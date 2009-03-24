@@ -1,0 +1,36 @@
+{
+synchronized (this) {
+    if (_exchange.getStatus() != HttpExchange.STATUS_WAITING_FOR_COMMIT)     throw new IllegalStateException();
+    _exchange.setStatus(HttpExchange.STATUS_SENDING_REQUEST);
+    _generator.setVersion(_exchange._version);
+    String uri=_exchange._uri;
+    if (_destination.isProxied() && uri.startsWith("/")) {
+      uri=(_destination.isSecure() ? HttpSchemes.HTTPS : HttpSchemes.HTTP) + "://" + _destination.getAddress().getHost()+ ":"+ _destination.getAddress().getPort()+ uri;
+      Authorization auth=_destination.getProxyAuthentication();
+      if (auth != null)       auth.setCredentials(_exchange);
+    }
+    _generator.setRequest(_exchange._method,uri);
+    if (_exchange._version >= HttpVersions.HTTP_1_1_ORDINAL) {
+      if (!_exchange._requestFields.containsKey(HttpHeaders.HOST_BUFFER))       _exchange._requestFields.add(HttpHeaders.HOST_BUFFER,_destination.getHostHeader());
+    }
+    if (_exchange._requestContent != null) {
+      _exchange._requestFields.putLongField(HttpHeaders.CONTENT_LENGTH,_exchange._requestContent.length());
+      _generator.completeHeader(_exchange._requestFields,false);
+      _generator.addContent(_exchange._requestContent,true);
+    }
+ else     if (_exchange._requestContentSource != null) {
+      _generator.completeHeader(_exchange._requestFields,false);
+      int available=_exchange._requestContentSource.available();
+      if (available > 0) {
+        byte[] buf=new byte[available];
+        int length=_exchange._requestContentSource.read(buf);
+        _generator.addContent(new ByteArrayBuffer(buf,0,length),false);
+      }
+    }
+ else {
+      _exchange._requestFields.remove(HttpHeaders.CONTENT_LENGTH);
+      _generator.completeHeader(_exchange._requestFields,true);
+    }
+    _exchange.setStatus(HttpExchange.STATUS_WAITING_FOR_RESPONSE);
+  }
+}

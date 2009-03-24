@@ -1,0 +1,124 @@
+{
+  String servletPath=null;
+  String pathInfo=null;
+  Enumeration reqRanges=null;
+  Boolean included=request.getAttribute(Dispatcher.__INCLUDE_REQUEST_URI) != null;
+  if (included != null && included.booleanValue()) {
+    servletPath=(String)request.getAttribute(Dispatcher.__INCLUDE_SERVLET_PATH);
+    pathInfo=(String)request.getAttribute(Dispatcher.__INCLUDE_PATH_INFO);
+    if (servletPath == null) {
+      servletPath=request.getServletPath();
+      pathInfo=request.getPathInfo();
+    }
+  }
+ else {
+    included=Boolean.FALSE;
+    servletPath=request.getServletPath();
+    pathInfo=request.getPathInfo();
+    reqRanges=request.getHeaders(HttpHeaders.RANGE);
+    if (reqRanges != null && !reqRanges.hasMoreElements())     reqRanges=null;
+  }
+  String pathInContext=URIUtil.addPaths(servletPath,pathInfo);
+  boolean endsWithSlash=pathInContext.endsWith(URIUtil.SLASH);
+  String pathInContextGz=null;
+  boolean gzip=false;
+  if (!included.booleanValue() && _gzip && reqRanges == null && !endsWithSlash) {
+    String accept=request.getHeader(HttpHeaders.ACCEPT_ENCODING);
+    if (accept != null && accept.indexOf("gzip") >= 0)     gzip=true;
+  }
+  Resource resource=null;
+  HttpContent content=null;
+  Connector connector=HttpConnection.getCurrentConnection().getConnector();
+  ResourceCache cache=(connector instanceof NIOConnector) ? _nioCache : _bioCache;
+  try {
+    if (gzip) {
+      pathInContextGz=pathInContext + ".gz";
+      if (cache == null) {
+        resource=getResource(pathInContextGz);
+      }
+ else {
+        content=cache.lookup(pathInContextGz,this);
+        if (content != null)         resource=content.getResource();
+ else         resource=getResource(pathInContextGz);
+      }
+      if (resource == null || !resource.exists() || resource.isDirectory()) {
+        if (cache != null && content == null) {
+          String real_path=_servletContext.getRealPath(pathInContextGz);
+          if (real_path != null)           cache.miss(pathInContextGz,_contextHandler.newResource(real_path));
+        }
+        gzip=false;
+        pathInContextGz=null;
+      }
+    }
+    if (!gzip) {
+      if (cache == null)       resource=getResource(pathInContext);
+ else {
+        content=cache.lookup(pathInContext,this);
+        if (content != null)         resource=content.getResource();
+ else         resource=getResource(pathInContext);
+      }
+    }
+    if (Log.isDebugEnabled())     Log.debug("resource=" + resource + (content != null ? " content" : ""));
+    if (resource == null || !resource.exists())     response.sendError(HttpServletResponse.SC_NOT_FOUND);
+ else     if (!resource.isDirectory()) {
+      if (content == null)       content=new UnCachedContent(resource);
+      if (included.booleanValue() || passConditionalHeaders(request,response,resource,content)) {
+        if (gzip) {
+          response.setHeader(HttpHeaders.CONTENT_ENCODING,"gzip");
+          String mt=_servletContext.getMimeType(pathInContext);
+          if (mt != null)           response.setContentType(mt);
+        }
+        sendData(request,response,included.booleanValue(),resource,content,reqRanges);
+      }
+    }
+ else {
+      String welcome=null;
+      if (!endsWithSlash || (pathInContext.length() == 1 && request.getAttribute("org.eclipse.jetty.server.nullPathInfo") != null)) {
+        StringBuffer buf=request.getRequestURL();
+synchronized (buf) {
+          int param=buf.lastIndexOf(";");
+          if (param < 0)           buf.append('/');
+ else           buf.insert(param,'/');
+          String q=request.getQueryString();
+          if (q != null && q.length() != 0) {
+            buf.append('?');
+            buf.append(q);
+          }
+          response.setContentLength(0);
+          response.sendRedirect(response.encodeRedirectURL(buf.toString()));
+        }
+      }
+ else       if (null != (welcome=getWelcomeFile(resource))) {
+        String ipath=URIUtil.addPaths(pathInContext,welcome);
+        if (_redirectWelcome) {
+          response.setContentLength(0);
+          String q=request.getQueryString();
+          if (q != null && q.length() != 0)           response.sendRedirect(URIUtil.addPaths(_servletContext.getContextPath(),ipath) + "?" + q);
+ else           response.sendRedirect(URIUtil.addPaths(_servletContext.getContextPath(),ipath));
+        }
+ else {
+          RequestDispatcher dispatcher=request.getRequestDispatcher(ipath);
+          if (dispatcher != null) {
+            if (included.booleanValue())             dispatcher.include(request,response);
+ else {
+              request.setAttribute("org.eclipse.jetty.server.welcome",ipath);
+              dispatcher.forward(request,response);
+            }
+          }
+        }
+      }
+ else {
+        content=new UnCachedContent(resource);
+        if (included.booleanValue() || passConditionalHeaders(request,response,resource,content))         sendDirectory(request,response,resource,pathInContext.length() > 1);
+      }
+    }
+  }
+ catch (  IllegalArgumentException e) {
+    Log.warn(Log.EXCEPTION,e);
+    if (!response.isCommitted())     response.sendError(500,e.getMessage());
+  }
+ finally {
+    if (content != null)     content.release();
+ else     if (resource != null)     resource.release();
+  }
+}

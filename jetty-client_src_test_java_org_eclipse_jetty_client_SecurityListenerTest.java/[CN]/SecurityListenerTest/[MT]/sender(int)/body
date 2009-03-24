@@ -1,0 +1,36 @@
+{
+  final CountDownLatch latch=new CountDownLatch(nb);
+  long l0=System.currentTimeMillis();
+  for (int i=0; i < nb; i++) {
+    final int n=i;
+    if (n % 1000 == 0) {
+      Thread.sleep(200);
+    }
+    HttpExchange httpExchange=new HttpExchange(){
+      protected void onRequestCommitted(){
+      }
+      protected void onResponseStatus(      Buffer version,      int status,      Buffer reason){
+      }
+      protected void onResponseHeader(      Buffer name,      Buffer value){
+      }
+      protected void onResponseContent(      Buffer content){
+      }
+      protected void onResponseComplete(){
+        latch.countDown();
+      }
+    }
+;
+    httpExchange.setURL("http://localhost:" + _port + "/");
+    httpExchange.addRequestHeader("arbitrary","value");
+    _httpClient.send(httpExchange);
+  }
+  long last=latch.getCount();
+  while (last > 0) {
+    latch.await(5,TimeUnit.SECONDS);
+    long next=latch.getCount();
+    if (last == next)     break;
+    last=next;
+  }
+  assertEquals(0,latch.getCount());
+  long l1=System.currentTimeMillis();
+}

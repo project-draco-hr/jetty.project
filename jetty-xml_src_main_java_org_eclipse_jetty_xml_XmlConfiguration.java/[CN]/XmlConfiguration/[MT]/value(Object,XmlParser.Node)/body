@@ -1,0 +1,73 @@
+{
+  Object value=null;
+  String type=node.getAttribute("type");
+  String ref=node.getAttribute("ref");
+  if (ref != null) {
+    value=_idMap.get(ref);
+  }
+ else {
+    if (node.size() == 0) {
+      if ("String".equals(type))       return "";
+      return null;
+    }
+    int first=0;
+    int last=node.size() - 1;
+    if (type == null || !"String".equals(type)) {
+      Object item=null;
+      while (first <= last) {
+        item=node.get(first);
+        if (!(item instanceof String))         break;
+        item=((String)item).trim();
+        if (((String)item).length() > 0)         break;
+        first++;
+      }
+      while (first < last) {
+        item=node.get(last);
+        if (!(item instanceof String))         break;
+        item=((String)item).trim();
+        if (((String)item).length() > 0)         break;
+        last--;
+      }
+      if (first > last)       return null;
+    }
+    if (first == last)     value=itemValue(obj,node.get(first));
+ else {
+      StringBuilder buf=new StringBuilder();
+      for (int i=first; i <= last; i++) {
+        Object item=node.get(i);
+        buf.append(itemValue(obj,item));
+      }
+      value=buf.toString();
+    }
+  }
+  if (value == null) {
+    if ("String".equals(type))     return "";
+    return null;
+  }
+  if (type == null) {
+    if (value != null && value instanceof String)     return ((String)value).trim();
+    return value;
+  }
+  if ("String".equals(type) || "java.lang.String".equals(type))   return value.toString();
+  Class pClass=TypeUtil.fromName(type);
+  if (pClass != null)   return TypeUtil.valueOf(pClass,value.toString());
+  if ("URL".equals(type) || "java.net.URL".equals(type)) {
+    if (value instanceof URL)     return value;
+    try {
+      return new URL(value.toString());
+    }
+ catch (    MalformedURLException e) {
+      throw new InvocationTargetException(e);
+    }
+  }
+  if ("InetAddress".equals(type) || "java.net.InetAddress".equals(type)) {
+    if (value instanceof InetAddress)     return value;
+    try {
+      return InetAddress.getByName(value.toString());
+    }
+ catch (    UnknownHostException e) {
+      throw new InvocationTargetException(e);
+    }
+  }
+  throw new IllegalStateException("Unknown type " + type);
+}

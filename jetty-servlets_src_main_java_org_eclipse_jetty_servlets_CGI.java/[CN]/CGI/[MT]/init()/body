@@ -1,0 +1,49 @@
+{
+  _env=new EnvList();
+  _cmdPrefix=getInitParameter("commandPrefix");
+  String tmp=getInitParameter("cgibinResourceBase");
+  if (tmp == null) {
+    tmp=getInitParameter("resourceBase");
+    if (tmp == null)     tmp=getServletContext().getRealPath("/");
+  }
+  if (tmp == null) {
+    Log.warn("CGI: no CGI bin !");
+    return;
+  }
+  File dir=new File(tmp);
+  if (!dir.exists()) {
+    Log.warn("CGI: CGI bin does not exist - " + dir);
+    return;
+  }
+  if (!dir.canRead()) {
+    Log.warn("CGI: CGI bin is not readable - " + dir);
+    return;
+  }
+  if (!dir.isDirectory()) {
+    Log.warn("CGI: CGI bin is not a directory - " + dir);
+    return;
+  }
+  try {
+    _docRoot=dir.getCanonicalFile();
+  }
+ catch (  IOException e) {
+    Log.warn("CGI: CGI bin failed - " + dir,e);
+    return;
+  }
+  _path=getInitParameter("Path");
+  if (_path != null)   _env.set("PATH",_path);
+  _ignoreExitState="true".equalsIgnoreCase(getInitParameter("ignoreExitState"));
+  Enumeration e=getInitParameterNames();
+  while (e.hasMoreElements()) {
+    String n=(String)e.nextElement();
+    if (n != null && n.startsWith("ENV_"))     _env.set(n.substring(4),getInitParameter(n));
+  }
+  if (!_env.envMap.containsKey("SystemRoot")) {
+    String os=System.getProperty("os.name");
+    if (os != null && os.toLowerCase().indexOf("windows") != -1) {
+      String windir=System.getProperty("windir");
+      _env.set("SystemRoot",windir != null ? windir : "C:\\WINDOWS");
+    }
+  }
+  _ok=true;
+}

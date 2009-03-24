@@ -1,0 +1,99 @@
+{
+  String attr=node.getAttribute("name");
+  String name="set" + attr.substring(0,1).toUpperCase() + attr.substring(1);
+  Object value=value(obj,node);
+  Object[] arg={value};
+  Class oClass=nodeClass(node);
+  if (oClass != null)   obj=null;
+ else   oClass=obj.getClass();
+  Class[] vClass={Object.class};
+  if (value != null)   vClass[0]=value.getClass();
+  if (Log.isDebugEnabled())   Log.debug("XML " + (obj != null ? obj.toString() : oClass.getName()) + "."+ name+ "("+ value+ ")");
+  try {
+    Method set=oClass.getMethod(name,vClass);
+    set.invoke(obj,arg);
+    return;
+  }
+ catch (  IllegalArgumentException e) {
+    Log.ignore(e);
+  }
+catch (  IllegalAccessException e) {
+    Log.ignore(e);
+  }
+catch (  NoSuchMethodException e) {
+    Log.ignore(e);
+  }
+  try {
+    Field type=vClass[0].getField("TYPE");
+    vClass[0]=(Class)type.get(null);
+    Method set=oClass.getMethod(name,vClass);
+    set.invoke(obj,arg);
+    return;
+  }
+ catch (  NoSuchFieldException e) {
+    Log.ignore(e);
+  }
+catch (  IllegalArgumentException e) {
+    Log.ignore(e);
+  }
+catch (  IllegalAccessException e) {
+    Log.ignore(e);
+  }
+catch (  NoSuchMethodException e) {
+    Log.ignore(e);
+  }
+  try {
+    Field field=oClass.getField(attr);
+    if (Modifier.isPublic(field.getModifiers())) {
+      field.set(obj,value);
+      return;
+    }
+  }
+ catch (  NoSuchFieldException e) {
+    Log.ignore(e);
+  }
+  Method[] sets=oClass.getMethods();
+  Method set=null;
+  for (int s=0; sets != null && s < sets.length; s++) {
+    if (name.equals(sets[s].getName()) && sets[s].getParameterTypes().length == 1) {
+      try {
+        set=sets[s];
+        sets[s].invoke(obj,arg);
+        return;
+      }
+ catch (      IllegalArgumentException e) {
+        Log.ignore(e);
+      }
+catch (      IllegalAccessException e) {
+        Log.ignore(e);
+      }
+    }
+  }
+  if (set != null) {
+    try {
+      Class sClass=set.getParameterTypes()[0];
+      if (sClass.isPrimitive()) {
+        for (int t=0; t < __primitives.length; t++) {
+          if (sClass.equals(__primitives[t])) {
+            sClass=__primitiveHolders[t];
+            break;
+          }
+        }
+      }
+      Constructor cons=sClass.getConstructor(vClass);
+      arg[0]=cons.newInstance(arg);
+      set.invoke(obj,arg);
+      return;
+    }
+ catch (    NoSuchMethodException e) {
+      Log.ignore(e);
+    }
+catch (    IllegalAccessException e) {
+      Log.ignore(e);
+    }
+catch (    InstantiationException e) {
+      Log.ignore(e);
+    }
+  }
+  throw new NoSuchMethodException(oClass + "." + name+ "("+ vClass[0]+ ")");
+}

@@ -1,0 +1,38 @@
+{
+  Request base_request=(request instanceof Request) ? (Request)request : HttpConnection.getCurrentConnection().getRequest();
+  String requested_session_id=request.getRequestedSessionId();
+  if (!DispatcherType.REQUEST.equals(request.getDispatcherType()) || requested_session_id != null) {
+    return;
+  }
+  SessionManager sessionManager=getSessionManager();
+  boolean requested_session_id_from_cookie=false;
+  if (_sessionManager.isUsingCookies()) {
+    Cookie[] cookies=request.getCookies();
+    if (cookies != null && cookies.length > 0) {
+      for (int i=0; i < cookies.length; i++) {
+        if (sessionManager.getSessionCookie().equalsIgnoreCase(cookies[i].getName())) {
+          if (requested_session_id != null) {
+            if (sessionManager.getHttpSession(requested_session_id) != null)             break;
+          }
+          requested_session_id=cookies[i].getValue();
+          requested_session_id_from_cookie=true;
+          if (Log.isDebugEnabled())           Log.debug("Got Session ID " + requested_session_id + " from cookie");
+        }
+      }
+    }
+  }
+  if (requested_session_id == null) {
+    String uri=request.getRequestURI();
+    int semi=uri.lastIndexOf(';');
+    if (semi >= 0) {
+      String path_params=uri.substring(semi + 1);
+      String param=sessionManager.getSessionIdPathParameterName();
+      if (param != null && path_params != null && path_params.startsWith(param)) {
+        requested_session_id=path_params.substring(sessionManager.getSessionIdPathParameterName().length() + 1);
+        if (Log.isDebugEnabled())         Log.debug("Got Session ID " + requested_session_id + " from URL");
+      }
+    }
+  }
+  base_request.setRequestedSessionId(requested_session_id);
+  base_request.setRequestedSessionIdFromCookie(requested_session_id != null && requested_session_id_from_cookie);
+}

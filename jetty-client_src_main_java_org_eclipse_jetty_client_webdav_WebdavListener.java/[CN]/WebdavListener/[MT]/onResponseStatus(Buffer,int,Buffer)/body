@@ -1,0 +1,27 @@
+{
+  if (!_webdavEnabled) {
+    _needIntercept=false;
+    super.onResponseStatus(version,status,reason);
+    return;
+  }
+  if (Log.isDebugEnabled())   Log.debug("WebdavListener:Response Status: " + status);
+  if (status == HttpStatus.FORBIDDEN_403 || status == HttpStatus.CONFLICT_409) {
+    if (_webdavEnabled) {
+      if (Log.isDebugEnabled())       Log.debug("WebdavListener:Response Status: dav enabled, taking a stab at resolving put issue");
+      setDelegatingResponses(false);
+      _needIntercept=true;
+    }
+ else {
+      if (Log.isDebugEnabled())       Log.debug("WebdavListener:Response Status: Webdav Disabled");
+      setDelegatingResponses(true);
+      setDelegatingRequests(true);
+      _needIntercept=false;
+    }
+  }
+ else {
+    _needIntercept=false;
+    setDelegatingResponses(true);
+    setDelegatingRequests(true);
+  }
+  super.onResponseStatus(version,status,reason);
+}

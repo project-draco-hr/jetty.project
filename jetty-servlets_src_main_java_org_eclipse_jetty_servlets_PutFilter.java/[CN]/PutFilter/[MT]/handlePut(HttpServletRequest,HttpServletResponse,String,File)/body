@@ -1,0 +1,48 @@
+{
+  boolean exists=file.exists();
+  if (pathInContext.endsWith("/")) {
+    if (!exists) {
+      if (!file.mkdirs())       response.sendError(HttpServletResponse.SC_FORBIDDEN);
+ else {
+        response.setStatus(HttpServletResponse.SC_CREATED);
+        response.flushBuffer();
+      }
+    }
+ else {
+      response.setStatus(HttpServletResponse.SC_OK);
+      response.flushBuffer();
+    }
+  }
+ else {
+    boolean ok=false;
+    try {
+      _hidden.put(pathInContext,pathInContext);
+      File parent=file.getParentFile();
+      parent.mkdirs();
+      int toRead=request.getContentLength();
+      InputStream in=request.getInputStream();
+      OutputStream out=new FileOutputStream(file,false);
+      if (toRead >= 0)       IO.copy(in,out,toRead);
+ else       IO.copy(in,out);
+      out.close();
+      response.setStatus(exists ? HttpServletResponse.SC_OK : HttpServletResponse.SC_CREATED);
+      response.flushBuffer();
+      ok=true;
+    }
+ catch (    Exception ex) {
+      _context.log(ex.toString(),ex);
+      response.sendError(HttpServletResponse.SC_FORBIDDEN);
+    }
+ finally {
+      if (!ok) {
+        try {
+          if (file.exists())           file.delete();
+        }
+ catch (        Exception e) {
+          _context.log(e.toString(),e);
+        }
+      }
+      _hidden.remove(pathInContext);
+    }
+  }
+}

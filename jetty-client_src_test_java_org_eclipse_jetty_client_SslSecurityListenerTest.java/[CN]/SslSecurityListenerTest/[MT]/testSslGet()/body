@@ -1,0 +1,20 @@
+{
+  final CyclicBarrier barrier=new CyclicBarrier(2);
+  ContentExchange httpExchange=new ContentExchange(true){
+    protected void onResponseComplete() throws IOException {
+      super.onResponseComplete();
+      try {
+        barrier.await();
+      }
+ catch (      Exception e) {
+      }
+    }
+  }
+;
+  httpExchange.setURL("https://localhost:" + _port + "/");
+  httpExchange.setMethod(HttpMethods.GET);
+  _httpClient.send(httpExchange);
+  barrier.await(10000,TimeUnit.SECONDS);
+  assertEquals(HttpServletResponse.SC_OK,httpExchange.getResponseStatus());
+  assertTrue(httpExchange.getResponseContent().length() > 400);
+}

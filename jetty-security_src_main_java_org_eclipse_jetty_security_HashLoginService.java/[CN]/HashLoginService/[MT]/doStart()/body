@@ -1,0 +1,37 @@
+{
+  super.doStart();
+  if (getRefreshInterval() > 0) {
+    _scanner=new Scanner();
+    _scanner.setScanInterval(getRefreshInterval());
+    List<File> dirList=new ArrayList<File>(1);
+    dirList.add(_configResource.getFile());
+    _scanner.setScanDirs(dirList);
+    _scanner.setFilenameFilter(new FilenameFilter(){
+      public boolean accept(      File dir,      String name){
+        File f=new File(dir,name);
+        try {
+          if (f.compareTo(_configResource.getFile()) == 0)           return true;
+        }
+ catch (        IOException e) {
+          return false;
+        }
+        return false;
+      }
+    }
+);
+    _scanner.addListener(new BulkListener(){
+      public void filesChanged(      List filenames) throws Exception {
+        if (filenames == null)         return;
+        if (filenames.isEmpty())         return;
+        if (filenames.size() == 1 && filenames.get(0).equals(_config))         loadUsers();
+      }
+      public String toString(){
+        return "HashLoginService$Scanner";
+      }
+    }
+);
+    _scanner.setReportExistingFilesOnStartup(false);
+    _scanner.setRecursive(false);
+    _scanner.start();
+  }
+}

@@ -1,0 +1,21 @@
+{
+  if (_scheme.equals("https://"))   return;
+  try {
+    _httpClient.setProxy(new Address("127.0.0.1",_port));
+    _httpClient.setProxyAuthentication(new ProxyAuthorization("user","password"));
+    ContentExchange httpExchange=new ContentExchange();
+    httpExchange.setAddress(new Address("jetty.eclipse.org",8080));
+    httpExchange.setMethod(HttpMethods.GET);
+    httpExchange.setURI("/jetty-6");
+    _httpClient.send(httpExchange);
+    int status=httpExchange.waitForDone();
+    String result=httpExchange.getResponseContent();
+    result=result.trim();
+    assertEquals(HttpExchange.STATUS_COMPLETED,status);
+    assertTrue(result.startsWith("Proxy request: http://jetty.eclipse.org:8080/jetty-6"));
+    assertTrue(result.endsWith("Basic dXNlcjpwYXNzd29yZA=="));
+  }
+  finally {
+    _httpClient.setProxy(null);
+  }
+}

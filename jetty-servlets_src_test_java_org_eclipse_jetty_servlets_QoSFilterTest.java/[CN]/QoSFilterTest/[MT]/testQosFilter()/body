@@ -1,0 +1,12 @@
+{
+  FilterHolder holder=new FilterHolder(QoSFilter2.class);
+  holder.setAsyncSupported(true);
+  holder.setInitParameter(QoSFilter.MAX_REQUESTS_INIT_PARAM,"" + MAX_QOS);
+  _tester.getContext().getServletHandler().addFilterWithMapping(holder,"/*",FilterMapping.DEFAULT);
+  for (int i=0; i < NUM_CONNECTIONS; ++i) {
+    new Thread(new Worker2(i)).start();
+  }
+  _doneRequests.await(20,TimeUnit.SECONDS);
+  assertFalse("TEST WAS NOT PARALLEL ENOUGH!",TestServlet.__maxSleepers < MAX_QOS);
+  assertTrue(TestServlet.__maxSleepers <= MAX_QOS);
+}

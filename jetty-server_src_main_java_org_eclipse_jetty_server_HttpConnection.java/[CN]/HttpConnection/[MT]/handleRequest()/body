@@ -1,0 +1,79 @@
+{
+  boolean handling=_server.isRunning() && _request._async.handling();
+  boolean error=false;
+  String threadName=null;
+  try {
+    if (Log.isDebugEnabled()) {
+      threadName=Thread.currentThread().getName();
+      Thread.currentThread().setName(threadName + " - " + _uri);
+    }
+    while (handling) {
+      _request.setHandled(false);
+      try {
+        String info=URIUtil.canonicalPath(_uri.getDecodedPath());
+        if (info == null)         throw new HttpException(400);
+        _request.setPathInfo(info);
+        if (_out != null)         _out.reopen();
+        if (_request._async.isInitial()) {
+          _request.setDispatcherType(DispatcherType.REQUEST);
+          _connector.customize(_endp,_request);
+          _server.handle(this);
+        }
+ else {
+          _request.setDispatcherType(DispatcherType.ASYNC);
+          _server.handleAsync(this);
+        }
+      }
+ catch (      RetryRequest r) {
+        Log.ignore(r);
+      }
+catch (      EofException e) {
+        Log.ignore(e);
+        error=true;
+      }
+catch (      HttpException e) {
+        Log.debug(e);
+        _request.setHandled(true);
+        _response.sendError(e.getStatus(),e.getReason());
+        error=true;
+      }
+catch (      Exception e) {
+        Log.warn(e);
+        _request.setHandled(true);
+        _generator.sendError(500,null,null,true);
+        error=true;
+      }
+catch (      Error e) {
+        Log.warn(e);
+        _request.setHandled(true);
+        _generator.sendError(500,null,null,true);
+        error=true;
+      }
+ finally {
+        handling=!_request._async.unhandle() && _server != null;
+      }
+    }
+  }
+  finally {
+    if (threadName != null)     Thread.currentThread().setName(threadName);
+    if (_request._async.isUncompleted()) {
+      _request._async.doComplete();
+      if (_expect == HttpHeaderValues.CONTINUE_ORDINAL) {
+        _expect=UNKNOWN;
+        if (_parser instanceof HttpParser)         ((HttpParser)_parser).setState(HttpParser.STATE_END);
+      }
+      if (_endp.isOpen()) {
+        if (_generator.isPersistent())         _connector.persist(_endp);
+        if (error)         _endp.close();
+ else {
+          if (!_response.isCommitted() && !_request.isHandled())           _response.sendError(HttpServletResponse.SC_NOT_FOUND);
+          _response.complete();
+        }
+      }
+ else {
+        _response.complete();
+      }
+      _request.setHandled(true);
+    }
+  }
+}

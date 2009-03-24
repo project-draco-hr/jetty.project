@@ -1,0 +1,60 @@
+{
+  Constraint scBase=new Constraint();
+  try {
+    XmlParser.Node auths=node.get("auth-constraint");
+    if (auths != null) {
+      scBase.setAuthenticate(true);
+      Iterator iter=auths.iterator("role-name");
+      Object roles=null;
+      while (iter.hasNext()) {
+        String role=((XmlParser.Node)iter.next()).toString(false,true);
+        roles=LazyList.add(roles,role);
+      }
+      scBase.setRoles(LazyList.toStringArray(roles));
+    }
+    XmlParser.Node data=node.get("user-data-constraint");
+    if (data != null) {
+      data=data.get("transport-guarantee");
+      String guarantee=data.toString(false,true).toUpperCase();
+      if (guarantee == null || guarantee.length() == 0 || "NONE".equals(guarantee))       scBase.setDataConstraint(Constraint.DC_NONE);
+ else       if ("INTEGRAL".equals(guarantee))       scBase.setDataConstraint(Constraint.DC_INTEGRAL);
+ else       if ("CONFIDENTIAL".equals(guarantee))       scBase.setDataConstraint(Constraint.DC_CONFIDENTIAL);
+ else {
+        Log.warn("Unknown user-data-constraint:" + guarantee);
+        scBase.setDataConstraint(Constraint.DC_CONFIDENTIAL);
+      }
+    }
+    Iterator iter=node.iterator("web-resource-collection");
+    while (iter.hasNext()) {
+      XmlParser.Node collection=(XmlParser.Node)iter.next();
+      String name=collection.getString("web-resource-name",false,true);
+      Constraint sc=(Constraint)scBase.clone();
+      sc.setName(name);
+      Iterator iter2=collection.iterator("url-pattern");
+      while (iter2.hasNext()) {
+        String url=((XmlParser.Node)iter2.next()).toString(false,true);
+        url=normalizePattern(url);
+        Iterator iter3=collection.iterator("http-method");
+        if (iter3.hasNext()) {
+          while (iter3.hasNext()) {
+            String method=((XmlParser.Node)iter3.next()).toString(false,true);
+            ConstraintMapping mapping=new ConstraintMapping();
+            mapping.setMethod(method);
+            mapping.setPathSpec(url);
+            mapping.setConstraint(sc);
+            _constraintMappings=LazyList.add(_constraintMappings,mapping);
+          }
+        }
+ else {
+          ConstraintMapping mapping=new ConstraintMapping();
+          mapping.setPathSpec(url);
+          mapping.setConstraint(sc);
+          _constraintMappings=LazyList.add(_constraintMappings,mapping);
+        }
+      }
+    }
+  }
+ catch (  CloneNotSupportedException e) {
+    Log.warn(e);
+  }
+}

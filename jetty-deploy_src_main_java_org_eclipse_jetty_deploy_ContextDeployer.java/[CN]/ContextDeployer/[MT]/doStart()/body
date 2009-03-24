@@ -1,0 +1,25 @@
+{
+  if (_configurationDir == null)   throw new IllegalStateException("No configuration dir specified");
+  if (_contexts == null)   throw new IllegalStateException("No context handler collection specified for deployer");
+  _scanner.setScanDir(_configurationDir.getFile());
+  _scanner.setScanInterval(getScanInterval());
+  _scanner.setRecursive(_recursive);
+  _scanner.setFilenameFilter(new FilenameFilter(){
+    public boolean accept(    File dir,    String name){
+      try {
+        if (name.endsWith(".xml") && dir.equals(getConfigurationDir().getFile()))         return true;
+        return false;
+      }
+ catch (      IOException e) {
+        Log.warn(e);
+        return false;
+      }
+    }
+  }
+);
+  _scannerListener=new ScannerListener();
+  _scanner.addListener(_scannerListener);
+  _scanner.scan();
+  _scanner.start();
+  _contexts.getServer().getContainer().addBean(_scanner);
+}

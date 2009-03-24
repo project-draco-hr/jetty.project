@@ -1,0 +1,24 @@
+{
+  String q=req.getQueryString();
+  if (q == null) {
+    resp.sendError(HttpServletResponse.SC_NO_CONTENT);
+    return;
+  }
+  String[] parts=q.split("\\&");
+  String type=null;
+  for (int i=0; i < parts.length; i++) {
+    String t=_context.getMimeType(parts[i]);
+    if (t != null) {
+      if (type == null)       type=t;
+ else       if (!type.equals(t)) {
+        resp.sendError(HttpServletResponse.SC_UNSUPPORTED_MEDIA_TYPE);
+        return;
+      }
+    }
+  }
+  if (type != null)   resp.setContentType(type);
+  for (int i=0; i < parts.length; i++) {
+    RequestDispatcher dispatcher=_context.getRequestDispatcher(parts[i]);
+    if (dispatcher != null)     dispatcher.include(req,resp);
+  }
+}

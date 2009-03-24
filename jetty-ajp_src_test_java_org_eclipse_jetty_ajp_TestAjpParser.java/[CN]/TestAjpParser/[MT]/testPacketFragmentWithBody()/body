@@ -1,0 +1,21 @@
+{
+  String packet=getTestHeader() + getTestBody();
+  byte[] src=TypeUtil.fromHexString(packet);
+  for (int f=1; f < src.length; f++) {
+    byte[] frag0=new byte[src.length - f];
+    byte[] frag1=new byte[f];
+    System.arraycopy(src,0,frag0,0,src.length - f);
+    System.arraycopy(src,src.length - f,frag1,0,f);
+    ByteArrayBuffer buffer=new ByteArrayBuffer(Ajp13Packet.MAX_PACKET_SIZE);
+    SimpleBuffers buffers=new SimpleBuffers(new Buffer[]{buffer});
+    ByteArrayEndPoint endp=new ByteArrayEndPoint(frag0,Ajp13Packet.MAX_PACKET_SIZE);
+    endp.setNonBlocking(true);
+    Ajp13Parser parser=new Ajp13Parser(buffers,endp);
+    parser.setEventHandler(new EH());
+    parser.setGenerator(new Ajp13Generator(buffers,endp,0,0));
+    parser.parseNext();
+    endp.setIn(new ByteArrayBuffer(frag1));
+    parser.parseAvailable();
+  }
+  assertTrue(true);
+}

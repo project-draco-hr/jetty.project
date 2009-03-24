@@ -1,0 +1,64 @@
+{
+  HttpServletRequest request=(HttpServletRequest)messageInfo.getRequestMessage();
+  HttpServletResponse response=(HttpServletResponse)messageInfo.getResponseMessage();
+  String credentials=request.getHeader(HttpHeaders.AUTHORIZATION);
+  try {
+    boolean stale=false;
+    long timestamp=System.currentTimeMillis();
+    if (credentials != null) {
+      if (Log.isDebugEnabled())       Log.debug("Credentials: " + credentials);
+      QuotedStringTokenizer tokenizer=new QuotedStringTokenizer(credentials,"=, ",true,false);
+      final Digest digest=new Digest(request.getMethod());
+      String last=null;
+      String name=null;
+      while (tokenizer.hasMoreTokens()) {
+        String tok=tokenizer.nextToken();
+        char c=(tok.length() == 1) ? tok.charAt(0) : '\0';
+switch (c) {
+case '=':
+          name=last;
+        last=tok;
+      break;
+case ',':
+    name=null;
+case ' ':
+  break;
+default :
+last=tok;
+if (name != null) {
+if ("username".equalsIgnoreCase(name)) digest.username=tok;
+ else if ("realm".equalsIgnoreCase(name)) digest.realm=tok;
+ else if ("nonce".equalsIgnoreCase(name)) digest.nonce=tok;
+ else if ("nc".equalsIgnoreCase(name)) digest.nc=tok;
+ else if ("cnonce".equalsIgnoreCase(name)) digest.cnonce=tok;
+ else if ("qop".equalsIgnoreCase(name)) digest.qop=tok;
+ else if ("uri".equalsIgnoreCase(name)) digest.uri=tok;
+ else if ("response".equalsIgnoreCase(name)) digest.response=tok;
+break;
+}
+}
+}
+int n=checkNonce(digest.nonce,timestamp);
+if (n > 0) {
+if (login(clientSubject,digest.username,digest,Constraint.__DIGEST_AUTH,messageInfo)) {
+return AuthStatus.SUCCESS;
+}
+}
+ else if (n == 0) stale=true;
+}
+if (!isMandatory(messageInfo)) {
+return AuthStatus.SUCCESS;
+}
+String domain=request.getContextPath();
+if (domain == null) domain="/";
+response.setHeader(HttpHeaders.WWW_AUTHENTICATE,"Digest realm=\"" + realmName + "\", domain=\""+ domain+ "\", nonce=\""+ newNonce(timestamp)+ "\", algorithm=MD5, qop=\"auth\""+ (useStale ? (" stale=" + stale) : ""));
+response.sendError(HttpServletResponse.SC_UNAUTHORIZED);
+return AuthStatus.SEND_CONTINUE;
+}
+ catch (IOException e) {
+throw new AuthException(e.getMessage());
+}
+catch (UnsupportedCallbackException e) {
+throw new AuthException(e.getMessage());
+}
+}

@@ -1,0 +1,70 @@
+{
+  try {
+    if (_state == STATE_HEADER && !_expectMore)     throw new IllegalStateException("State==HEADER");
+    prepareBuffers();
+    if (_endp == null) {
+      if (!_expectMore && _needEOC && _buffer != null) {
+        _buffer.put(AJP13_END_RESPONSE);
+      }
+      _needEOC=false;
+      return 0;
+    }
+    int total=0;
+    long last_len=-1;
+    Flushing:     while (true) {
+      int len=-1;
+      int to_flush=((_header != null && _header.length() > 0) ? 4 : 0) | ((_buffer != null && _buffer.length() > 0) ? 2 : 0);
+switch (to_flush) {
+case 7:
+        throw new IllegalStateException();
+case 6:
+      len=_endp.flush(_header,_buffer,null);
+    break;
+case 5:
+  throw new IllegalStateException();
+case 4:
+len=_endp.flush(_header);
+break;
+case 3:
+throw new IllegalStateException();
+case 2:
+len=_endp.flush(_buffer);
+break;
+case 1:
+throw new IllegalStateException();
+case 0:
+{
+if (_header != null) _header.clear();
+_bufferPrepared=false;
+if (_buffer != null) {
+_buffer.clear();
+_buffer.setPutIndex(7);
+_buffer.setGetIndex(7);
+if (_content != null && _content.length() < _buffer.space() && _state != STATE_FLUSHING) {
+_buffer.put(_content);
+_content.clear();
+_content=null;
+break Flushing;
+}
+}
+if (!_expectMore && !_needEOC && (_content == null || _content.length() == 0)) {
+if (_state == STATE_FLUSHING) _state=STATE_END;
+break Flushing;
+}
+prepareBuffers();
+}
+}
+if (len <= 0) {
+if (last_len <= 0) break Flushing;
+break;
+}
+last_len=len;
+total+=len;
+}
+return total;
+}
+ catch (IOException e) {
+Log.ignore(e);
+throw (e instanceof EofException) ? e : new EofException(e);
+}
+}

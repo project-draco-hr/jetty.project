@@ -1,0 +1,57 @@
+{
+  if (!_bufferPrepared) {
+    if (_content != null && _content.length() > 0 && _buffer != null && _buffer.space() > 0) {
+      int len=_buffer.put(_content);
+      if (len > 0 && _buffer.space() == 0) {
+        len--;
+        _buffer.setPutIndex(_buffer.putIndex() - 1);
+      }
+      _content.skip(len);
+      if (_content.length() == 0)       _content=null;
+      if (_buffer.length() == 0) {
+        _content=null;
+      }
+    }
+    if (_buffer != null) {
+      int payloadSize=_buffer.length();
+      if (payloadSize > 0) {
+        _bufferPrepared=true;
+        _buffer.put((byte)0);
+        int put=_buffer.putIndex();
+        _buffer.setGetIndex(0);
+        _buffer.setPutIndex(0);
+        _buffer.put((byte)'A');
+        _buffer.put((byte)'B');
+        addInt(payloadSize + 4);
+        _buffer.put((byte)3);
+        addInt(payloadSize);
+        _buffer.setPutIndex(put);
+      }
+    }
+    if (_needMore) {
+      if (_header == null) {
+        _header=_buffers.getBuffer(_headerBufferSize);
+      }
+      if (_buffer == null && _header != null && _header.space() >= AJP13_MORE_CONTENT.length) {
+        _header.put(AJP13_MORE_CONTENT);
+        _needMore=false;
+      }
+ else       if (_buffer != null && _buffer.space() >= AJP13_MORE_CONTENT.length) {
+        _buffer.put(AJP13_MORE_CONTENT);
+        _needMore=false;
+        _bufferPrepared=true;
+      }
+    }
+    if (!_expectMore && _needEOC) {
+      if (_buffer == null && _header.space() >= AJP13_END_RESPONSE.length) {
+        _header.put(AJP13_END_RESPONSE);
+        _needEOC=false;
+      }
+ else       if (_buffer != null && _buffer.space() >= AJP13_END_RESPONSE.length) {
+        _buffer.put(AJP13_END_RESPONSE);
+        _needEOC=false;
+        _bufferPrepared=true;
+      }
+    }
+  }
+}

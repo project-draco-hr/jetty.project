@@ -1,0 +1,23 @@
+{
+  _charset=_defaultCharset;
+  _contentType=_fields.get(HttpHeaders.CONTENT_TYPE_BUFFER);
+  if (_contentType != null) {
+    String charset=MimeTypes.getCharsetFromContentType(_contentType);
+    if (charset != null)     _charset=charset;
+  }
+  Buffer bb=new ByteArrayBuffer(32 * 1024 + (_genContent != null ? _genContent.length : 0));
+  Buffer sb=new ByteArrayBuffer(4 * 1024);
+  StringEndPoint endp=new StringEndPoint(_charset);
+  HttpGenerator generator=new HttpGenerator(new SimpleBuffers(new Buffer[]{sb,bb}),endp,sb.capacity(),bb.capacity());
+  if (_method != null) {
+    generator.setRequest(getMethod(),getURI());
+    if (_version == null)     generator.setVersion(HttpVersions.HTTP_1_1_ORDINAL);
+ else     generator.setVersion(HttpVersions.CACHE.getOrdinal(HttpVersions.CACHE.lookup(_version)));
+    generator.completeHeader(_fields,false);
+    if (_genContent != null)     generator.addContent(new View(new ByteArrayBuffer(_genContent)),false);
+ else     if (_parsedContent != null)     generator.addContent(new ByteArrayBuffer(_parsedContent.toByteArray()),false);
+  }
+  generator.complete();
+  generator.flushBuffer();
+  return endp.getOutput();
+}

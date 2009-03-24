@@ -1,0 +1,32 @@
+{
+  SSLServerSocketFactory factory=null;
+  SSLServerSocket socket=null;
+  try {
+    factory=createFactory();
+    socket=(SSLServerSocket)(host == null ? factory.createServerSocket(port,backlog) : factory.createServerSocket(port,backlog,InetAddress.getByName(host)));
+    if (_wantClientAuth)     socket.setWantClientAuth(_wantClientAuth);
+    if (_needClientAuth)     socket.setNeedClientAuth(_needClientAuth);
+    if (_excludeCipherSuites != null && _excludeCipherSuites.length > 0) {
+      List excludedCSList=Arrays.asList(_excludeCipherSuites);
+      String[] enabledCipherSuites=socket.getEnabledCipherSuites();
+      List enabledCSList=new ArrayList(Arrays.asList(enabledCipherSuites));
+      Iterator exIter=excludedCSList.iterator();
+      while (exIter.hasNext()) {
+        String cipherName=(String)exIter.next();
+        if (enabledCSList.contains(cipherName)) {
+          enabledCSList.remove(cipherName);
+        }
+      }
+      enabledCipherSuites=(String[])enabledCSList.toArray(new String[enabledCSList.size()]);
+      socket.setEnabledCipherSuites(enabledCipherSuites);
+    }
+  }
+ catch (  IOException e) {
+    throw e;
+  }
+catch (  Exception e) {
+    Log.warn(Log.EXCEPTION,e);
+    throw new IOException("Could not create JsseListener: " + e.toString());
+  }
+  return socket;
+}

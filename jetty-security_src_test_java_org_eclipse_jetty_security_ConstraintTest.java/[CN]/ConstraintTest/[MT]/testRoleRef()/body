@@ -1,0 +1,21 @@
+{
+  RoleCheckHandler check=new RoleCheckHandler();
+  _security.setHandler(check);
+  _security.setAuthenticator(new BasicAuthenticator());
+  _security.setStrict(false);
+  _server.start();
+  String response;
+  response=_connector.getResponses("GET /ctx/noauth/info HTTP/1.0\r\n\r\n");
+  assertTrue(response.startsWith("HTTP/1.1 200 OK"));
+  _connector.reopen();
+  response=_connector.getResponses("GET /ctx/auth/info HTTP/1.0\r\n" + "Authorization: " + B64Code.encode("user2:password") + "\r\n"+ "\r\n");
+  assertTrue(response.startsWith("HTTP/1.1 500 "));
+  _server.stop();
+  RoleRefHandler roleref=new RoleRefHandler();
+  _security.setHandler(roleref);
+  roleref.setHandler(check);
+  _server.start();
+  _connector.reopen();
+  response=_connector.getResponses("GET /ctx/auth/info HTTP/1.0\r\n" + "Authorization: " + B64Code.encode("user2:password") + "\r\n"+ "\r\n");
+  assertTrue(response.startsWith("HTTP/1.1 200 OK"));
+}

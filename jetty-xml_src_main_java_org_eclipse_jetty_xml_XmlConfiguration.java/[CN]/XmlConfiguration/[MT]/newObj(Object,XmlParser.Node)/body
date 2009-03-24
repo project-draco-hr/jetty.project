@@ -1,0 +1,47 @@
+{
+  Class oClass=nodeClass(node);
+  String id=node.getAttribute("id");
+  int size=0;
+  int argi=node.size();
+  for (int i=0; i < node.size(); i++) {
+    Object o=node.get(i);
+    if (o instanceof String)     continue;
+    if (!((XmlParser.Node)o).getTag().equals("Arg")) {
+      argi=i;
+      break;
+    }
+    size++;
+  }
+  Object[] arg=new Object[size];
+  for (int i=0, j=0; j < size; i++) {
+    Object o=node.get(i);
+    if (o instanceof String)     continue;
+    arg[j++]=value(obj,(XmlParser.Node)o);
+  }
+  if (Log.isDebugEnabled())   Log.debug("XML new " + oClass);
+  Constructor[] constructors=oClass.getConstructors();
+  for (int c=0; constructors != null && c < constructors.length; c++) {
+    if (constructors[c].getParameterTypes().length != size)     continue;
+    Object n=null;
+    boolean called=false;
+    try {
+      n=constructors[c].newInstance(arg);
+      called=true;
+    }
+ catch (    IllegalAccessException e) {
+      Log.ignore(e);
+    }
+catch (    InstantiationException e) {
+      Log.ignore(e);
+    }
+catch (    IllegalArgumentException e) {
+      Log.ignore(e);
+    }
+    if (called) {
+      if (id != null)       _idMap.put(id,n);
+      configure(n,node,argi);
+      return n;
+    }
+  }
+  throw new IllegalStateException("No Constructor: " + node + " on "+ obj);
+}

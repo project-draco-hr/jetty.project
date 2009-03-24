@@ -1,0 +1,17 @@
+{
+  if (login(clientSubject,username,password,Constraint.__FORM_AUTH,messageInfo)) {
+    char[] pwdChars=password.toString().toCharArray();
+    Set<LoginCallbackImpl> loginCallbacks=clientSubject.getPrivateCredentials(LoginCallbackImpl.class);
+    if (!loginCallbacks.isEmpty()) {
+      LoginCallbackImpl loginCallback=loginCallbacks.iterator().next();
+      FormCredential form_cred=new FormCredential(username,pwdChars,loginCallback.getUserPrincipal());
+      session.setAttribute(__J_AUTHENTICATED,form_cred);
+    }
+    if (ssoSource != null) {
+      UserInfo userInfo=new UserInfo(username,pwdChars);
+      ssoSource.store(userInfo,response);
+    }
+    return true;
+  }
+  return false;
+}

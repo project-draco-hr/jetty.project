@@ -1,0 +1,33 @@
+{
+  Class<?> c=findLoadedClass(name);
+  ClassNotFoundException ex=null;
+  boolean tried_parent=false;
+  boolean system_class=_context.isSystemClass(name);
+  boolean server_class=_context.isServerClass(name);
+  if (system_class && server_class) {
+    return null;
+  }
+  if (c == null && _parent != null && (_context.isParentLoaderPriority() || system_class)) {
+    tried_parent=true;
+    try {
+      c=_parent.loadClass(name);
+      if (Log.isDebugEnabled())       Log.debug("loaded " + c);
+    }
+ catch (    ClassNotFoundException e) {
+      ex=e;
+    }
+  }
+  if (c == null) {
+    try {
+      c=this.findClass(name);
+    }
+ catch (    ClassNotFoundException e) {
+      ex=e;
+    }
+  }
+  if (c == null && _parent != null && !tried_parent && !server_class)   c=_parent.loadClass(name);
+  if (c == null)   throw ex;
+  if (resolve)   resolveClass(c);
+  if (Log.isDebugEnabled())   Log.debug("loaded " + c + " from "+ c.getClassLoader());
+  return c;
+}

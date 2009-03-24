@@ -1,0 +1,59 @@
+{
+  String response;
+  _handler._checker=new RequestTester(){
+    public boolean check(    HttpServletRequest request,    HttpServletResponse response) throws IOException {
+      response.getOutputStream().println("Hello World");
+      return true;
+    }
+  }
+;
+  _connector.reopen();
+  response=_connector.getResponses("GET / HTTP/1.1\n" + "Host: whatever\n" + "\n");
+  assertTrue(response.indexOf("200") > 0);
+  assertFalse(response.indexOf("Connection: close") > 0);
+  assertTrue(response.indexOf("Hello World") > 0);
+  _connector.reopen();
+  response=_connector.getResponses("GET / HTTP/1.1\n" + "Host: whatever\n" + "Connection: close\n"+ "\n");
+  assertTrue(response.indexOf("200") > 0);
+  assertTrue(response.indexOf("Connection: close") > 0);
+  assertTrue(response.indexOf("Hello World") > 0);
+  _connector.reopen();
+  response=_connector.getResponses("GET / HTTP/1.1\n" + "Host: whatever\n" + "Connection: Other, close\n"+ "\n");
+  assertTrue(response.indexOf("200") > 0);
+  assertTrue(response.indexOf("Connection: close") > 0);
+  assertTrue(response.indexOf("Hello World") > 0);
+  _connector.reopen();
+  response=_connector.getResponses("GET / HTTP/1.0\n" + "Host: whatever\n" + "\n");
+  assertTrue(response.indexOf("200") > 0);
+  assertFalse(response.indexOf("Connection: close") > 0);
+  assertTrue(response.indexOf("Hello World") > 0);
+  _connector.reopen();
+  response=_connector.getResponses("GET / HTTP/1.0\n" + "Host: whatever\n" + "Connection: Other, close\n"+ "\n");
+  assertTrue(response.indexOf("200") > 0);
+  assertTrue(response.indexOf("Connection: close") > 0);
+  assertTrue(response.indexOf("Hello World") > 0);
+  _connector.reopen();
+  response=_connector.getResponses("GET / HTTP/1.0\n" + "Host: whatever\n" + "Connection: Other, keep-alive\n"+ "\n");
+  assertTrue(response.indexOf("200") > 0);
+  assertTrue(response.indexOf("Connection: keep-alive") > 0);
+  assertTrue(response.indexOf("Hello World") > 0);
+  _handler._checker=new RequestTester(){
+    public boolean check(    HttpServletRequest request,    HttpServletResponse response) throws IOException {
+      response.setHeader("Connection","TE");
+      response.addHeader("Connection","Other");
+      response.getOutputStream().println("Hello World");
+      return true;
+    }
+  }
+;
+  _connector.reopen();
+  response=_connector.getResponses("GET / HTTP/1.1\n" + "Host: whatever\n" + "\n");
+  assertTrue(response.indexOf("200") > 0);
+  assertTrue(response.indexOf("Connection: TE,Other") > 0);
+  assertTrue(response.indexOf("Hello World") > 0);
+  _connector.reopen();
+  response=_connector.getResponses("GET / HTTP/1.1\n" + "Host: whatever\n" + "Connection: close\n"+ "\n");
+  assertTrue(response.indexOf("200") > 0);
+  assertTrue(response.indexOf("Connection: close") > 0);
+  assertTrue(response.indexOf("Hello World") > 0);
+}

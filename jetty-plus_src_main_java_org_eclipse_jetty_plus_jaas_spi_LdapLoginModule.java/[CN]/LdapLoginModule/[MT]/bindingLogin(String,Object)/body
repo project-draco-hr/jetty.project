@@ -1,0 +1,14 @@
+{
+  SearchResult searchResult=findUser(username);
+  String userDn=searchResult.getNameInNamespace();
+  Log.info("Attempting authentication: " + userDn);
+  Hashtable environment=getEnvironment();
+  environment.put(Context.SECURITY_PRINCIPAL,userDn);
+  environment.put(Context.SECURITY_CREDENTIALS,password);
+  DirContext dirContext=new InitialDirContext(environment);
+  List roles=getUserRolesByDn(dirContext,userDn);
+  UserInfo userInfo=new UserInfo(username,null,roles);
+  setCurrentUser(new JAASUserInfo(userInfo));
+  setAuthenticated(true);
+  return true;
+}

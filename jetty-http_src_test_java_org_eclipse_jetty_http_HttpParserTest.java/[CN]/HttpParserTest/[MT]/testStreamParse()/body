@@ -1,0 +1,44 @@
+{
+  StringEndPoint io=new StringEndPoint();
+  String http="GET / HTTP/1.0\015\012" + "Header1: value1\015\012" + "Transfer-Encoding: chunked\015\012"+ "\015\012"+ "a;\015\012"+ "0123456789\015\012"+ "1a\015\012"+ "ABCDEFGHIJKLMNOPQRSTUVWXYZ\015\012"+ "0\015\012"+ "POST /foo HTTP/1.0\015\012"+ "Header2: value2\015\012"+ "Content-Length: 0\015\012"+ "\015\012"+ "PUT /doodle HTTP/1.0\015\012"+ "Header3: value3\015\012"+ "Content-Length: 10\015\012"+ "\015\012"+ "0123456789\015\012";
+  int[] tests={1024,http.length() + 3,http.length() + 2,http.length() + 1,http.length() + 0,http.length() - 1,http.length() - 2,http.length() / 2,http.length() / 3,64,32};
+  for (int t=0; t < tests.length; t++) {
+    String tst="t" + tests[t];
+    try {
+      ByteArrayBuffer buffer=new ByteArrayBuffer(tests[t]);
+      ByteArrayBuffer content=new ByteArrayBuffer(8192);
+      SimpleBuffers buffers=new SimpleBuffers(new Buffer[]{buffer,content});
+      Handler handler=new Handler();
+      HttpParser parser=new HttpParser(buffers,io,handler,buffer.capacity(),content.capacity());
+      io.setInput(http);
+      parser.parse();
+      assertEquals(tst,"GET",f0);
+      assertEquals(tst,"/",f1);
+      assertEquals(tst,"HTTP/1.0",f2);
+      assertEquals(tst,1,h);
+      assertEquals(tst,"Header1",hdr[0]);
+      assertEquals(tst,"value1",val[0]);
+      assertEquals(tst,"0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ",_content);
+      parser.parse();
+      assertEquals(tst,"POST",f0);
+      assertEquals(tst,"/foo",f1);
+      assertEquals(tst,"HTTP/1.0",f2);
+      assertEquals(tst,1,h);
+      assertEquals(tst,"Header2",hdr[0]);
+      assertEquals(tst,"value2",val[0]);
+      assertEquals(tst,null,_content);
+      parser.parse();
+      assertEquals(tst,"PUT",f0);
+      assertEquals(tst,"/doodle",f1);
+      assertEquals(tst,"HTTP/1.0",f2);
+      assertEquals(tst,1,h);
+      assertEquals(tst,"Header3",hdr[0]);
+      assertEquals(tst,"value3",val[0]);
+      assertEquals(tst,"0123456789",_content);
+    }
+ catch (    Exception e) {
+      if (t + 1 < tests.length)       throw e;
+      assertTrue(e.toString().indexOf("FULL") >= 0);
+    }
+  }
+}

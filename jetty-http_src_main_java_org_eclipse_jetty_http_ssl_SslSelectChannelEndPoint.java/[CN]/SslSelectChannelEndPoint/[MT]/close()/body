@@ -1,0 +1,78 @@
+{
+  _closing=true;
+  try {
+    int tries=0;
+    while (_outNIOBuffer.length() > 0) {
+      if (tries++ > 100)       throw new IllegalStateException();
+      flush();
+      Thread.sleep(100);
+    }
+    _engine.closeOutbound();
+    loop:     while (isOpen() && !(_engine.isInboundDone() && _engine.isOutboundDone())) {
+      if (tries++ > 100)       throw new IllegalStateException();
+      if (_outNIOBuffer.length() > 0) {
+        flush();
+        Thread.sleep(100);
+      }
+switch (_engine.getHandshakeStatus()) {
+case FINISHED:
+case NOT_HANDSHAKING:
+        break loop;
+case NEED_UNWRAP:
+      Buffer buffer=_buffers.getBuffer(_engine.getSession().getApplicationBufferSize());
+    try {
+      ByteBuffer bbuffer=((NIOBuffer)buffer).getByteBuffer();
+      if (!unwrap(bbuffer) && _engine.getHandshakeStatus() == HandshakeStatus.NEED_UNWRAP) {
+        break loop;
+      }
+    }
+ catch (    SSLException e) {
+      Log.ignore(e);
+    }
+ finally {
+      _buffers.returnBuffer(buffer);
+    }
+  break;
+case NEED_TASK:
+{
+  Runnable task;
+  while ((task=_engine.getDelegatedTask()) != null) {
+    task.run();
+  }
+  break;
+}
+case NEED_WRAP:
+{
+if (_outNIOBuffer.length() > 0) flush();
+try {
+  _outNIOBuffer.compact();
+  int put=_outNIOBuffer.putIndex();
+  _outBuffer.position(put);
+  _result=null;
+  _last="close wrap";
+  _result=_engine.wrap(__NO_BUFFERS,_outBuffer);
+  _outNIOBuffer.setPutIndex(put + _result.bytesProduced());
+}
+  finally {
+  _outBuffer.position(0);
+}
+flush();
+break;
+}
+}
+}
+}
+ catch (IOException e) {
+Log.ignore(e);
+}
+catch (InterruptedException e) {
+Log.ignore(e);
+}
+ finally {
+super.close();
+if (_inNIOBuffer != null) _buffers.returnBuffer(_inNIOBuffer);
+if (_outNIOBuffer != null) _buffers.returnBuffer(_outNIOBuffer);
+if (_reuseBuffer[0] != null) _buffers.returnBuffer(_reuseBuffer[0]);
+if (_reuseBuffer[1] != null) _buffers.returnBuffer(_reuseBuffer[1]);
+}
+}

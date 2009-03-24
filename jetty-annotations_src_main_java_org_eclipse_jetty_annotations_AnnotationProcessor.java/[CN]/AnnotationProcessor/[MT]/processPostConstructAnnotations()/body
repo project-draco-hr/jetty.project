@@ -1,0 +1,16 @@
+{
+  for (  Method m : _finder.getMethodsForAnnotation(PostConstruct.class)) {
+    if (!isServletType(m.getDeclaringClass())) {
+      Log.debug("Ignoring " + m.getName() + " as non-servlet type");
+      continue;
+    }
+    if (m.getParameterTypes().length != 0)     throw new IllegalStateException(m + " has parameters");
+    if (m.getReturnType() != Void.TYPE)     throw new IllegalStateException(m + " is not void");
+    if (m.getExceptionTypes().length != 0)     throw new IllegalStateException(m + " throws checked exceptions");
+    if (Modifier.isStatic(m.getModifiers()))     throw new IllegalStateException(m + " is static");
+    PostConstructCallback callback=new PostConstructCallback();
+    callback.setTargetClass(m.getDeclaringClass());
+    callback.setTarget(m);
+    _callbacks.add(callback);
+  }
+}

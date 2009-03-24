@@ -1,0 +1,33 @@
+{
+  Object old_run_as=null;
+  try {
+    if (_servlet == null)     _servlet=(Servlet)newInstance();
+    if (_config == null)     _config=new Config();
+    if (!(_servlet instanceof SingleThreadedWrapper))     _servlet=getServletHandler().customizeServlet(_servlet);
+    if (_identityService != null && _runAsToken != null) {
+      old_run_as=_identityService.associateRunAs(_runAsToken);
+    }
+    _servlet.init(_config);
+  }
+ catch (  UnavailableException e) {
+    makeUnavailable(e);
+    _servlet=null;
+    _config=null;
+    throw e;
+  }
+catch (  ServletException e) {
+    makeUnavailable(e.getCause() == null ? e : e.getCause());
+    _servlet=null;
+    _config=null;
+    throw e;
+  }
+catch (  Exception e) {
+    makeUnavailable(e);
+    _servlet=null;
+    _config=null;
+    throw new ServletException(this.toString(),e);
+  }
+ finally {
+    if (_identityService != null && _runAsToken != null)     _identityService.disassociateRunAs(old_run_as);
+  }
+}

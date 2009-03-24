@@ -1,0 +1,43 @@
+{
+  Log.info("jetty-" + _version);
+  HttpGenerator.setServerVersion(_version);
+  MultiException mex=new MultiException();
+  Iterator itor=_dependentBeans.iterator();
+  while (itor.hasNext()) {
+    try {
+      Object o=itor.next();
+      if (o instanceof LifeCycle)       ((LifeCycle)o).start();
+    }
+ catch (    Throwable e) {
+      mex.add(e);
+    }
+  }
+  if (_threadPool == null) {
+    QueuedThreadPool tp=new QueuedThreadPool();
+    setThreadPool(tp);
+  }
+  if (_sessionIdManager != null)   _sessionIdManager.start();
+  try {
+    if (_threadPool instanceof LifeCycle)     ((LifeCycle)_threadPool).start();
+  }
+ catch (  Throwable e) {
+    mex.add(e);
+  }
+  try {
+    super.doStart();
+  }
+ catch (  Throwable e) {
+    Log.warn("Error starting handlers",e);
+  }
+  if (_connectors != null) {
+    for (int i=0; i < _connectors.length; i++) {
+      try {
+        _connectors[i].start();
+      }
+ catch (      Throwable e) {
+        mex.add(e);
+      }
+    }
+  }
+  mex.ifExceptionThrow();
+}

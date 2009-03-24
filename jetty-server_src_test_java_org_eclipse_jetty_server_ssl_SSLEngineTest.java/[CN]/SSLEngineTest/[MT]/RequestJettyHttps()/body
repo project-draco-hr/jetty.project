@@ -1,0 +1,41 @@
+{
+  final int loops=100;
+  final int numConns=100;
+  Socket[] client=new Socket[numConns];
+  SSLContext ctx=SSLContext.getInstance("SSLv3");
+  ctx.init(null,s_dummyTrustManagers,new java.security.SecureRandom());
+  int port=connector.getLocalPort();
+  try {
+    for (int l=0; l < loops; l++) {
+      System.err.print('.');
+      try {
+        for (int i=0; i < numConns; ++i) {
+          client[i]=ctx.getSocketFactory().createSocket("localhost",port);
+          OutputStream os=client[i].getOutputStream();
+          os.write(REQUEST0.getBytes());
+          os.write(REQUEST0.getBytes());
+          os.flush();
+        }
+        for (int i=0; i < numConns; ++i) {
+          OutputStream os=client[i].getOutputStream();
+          os.write(REQUEST1.getBytes());
+          os.flush();
+        }
+        for (int i=0; i < numConns; ++i) {
+          String responses=readResponse(client[i]);
+          assertEquals(String.format("responses %d %d",l,i),RESPONSE0 + RESPONSE0 + RESPONSE1,responses);
+        }
+      }
+  finally {
+        for (int i=0; i < numConns; ++i) {
+          if (client[i] != null) {
+            client[i].close();
+          }
+        }
+      }
+    }
+  }
+  finally {
+    System.err.println();
+  }
+}

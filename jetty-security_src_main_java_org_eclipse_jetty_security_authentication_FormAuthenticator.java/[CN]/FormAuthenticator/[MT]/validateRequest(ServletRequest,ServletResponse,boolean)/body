@@ -1,0 +1,48 @@
+{
+  HttpServletRequest request=(HttpServletRequest)req;
+  HttpServletResponse response=(HttpServletResponse)res;
+  HttpSession session=request.getSession(mandatory);
+  String uri=request.getPathInfo();
+  if (session == null || isLoginOrErrorPage(uri)) {
+    return DefaultAuthentication.SUCCESS_UNAUTH_RESULTS;
+  }
+  try {
+    if (uri.endsWith(__J_SECURITY_CHECK)) {
+      final String username=request.getParameter(__J_USERNAME);
+      final char[] password=request.getParameter(__J_PASSWORD).toCharArray();
+      UserIdentity user=_loginService.login(username,password);
+      if (user != null) {
+        String nuri=(String)session.getAttribute(__J_URI);
+        if (nuri == null || nuri.length() == 0) {
+          nuri=request.getContextPath();
+          if (nuri.length() == 0)           nuri=URIUtil.SLASH;
+        }
+        session.removeAttribute(__J_URI);
+        response.setContentLength(0);
+        response.sendRedirect(response.encodeRedirectURL(nuri));
+        return new DefaultAuthentication(Authentication.Status.SEND_SUCCESS,Constraint.__FORM_AUTH,user);
+      }
+      if (Log.isDebugEnabled())       Log.debug("Form authentication FAILED for " + StringUtil.printable(username));
+      if (_formErrorPage == null) {
+        if (response != null)         response.sendError(HttpServletResponse.SC_FORBIDDEN);
+      }
+ else {
+        RequestDispatcher dispatcher=request.getRequestDispatcher(_formErrorPage);
+        dispatcher.forward(request,response);
+      }
+      return DefaultAuthentication.SEND_FAILURE_RESULTS;
+    }
+    if (!mandatory)     return DefaultAuthentication.SUCCESS_UNAUTH_RESULTS;
+    if (request.getQueryString() != null)     uri+="?" + request.getQueryString();
+    session.setAttribute(__J_URI,request.getScheme() + "://" + request.getServerName()+ ":"+ request.getServerPort()+ URIUtil.addPaths(request.getContextPath(),uri));
+    RequestDispatcher dispatcher=request.getRequestDispatcher(_formLoginPage);
+    dispatcher.forward(request,response);
+    return DefaultAuthentication.SEND_CONTINUE_RESULTS;
+  }
+ catch (  IOException e) {
+    throw new ServerAuthException(e);
+  }
+catch (  ServletException e) {
+    throw new ServerAuthException(e);
+  }
+}

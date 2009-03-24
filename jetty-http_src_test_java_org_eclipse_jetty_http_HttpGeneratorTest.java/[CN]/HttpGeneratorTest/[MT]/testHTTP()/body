@@ -1,0 +1,41 @@
+{
+  Buffer bb=new ByteArrayBuffer(8096);
+  Buffer sb=new ByteArrayBuffer(1500);
+  HttpFields fields=new HttpFields();
+  ByteArrayEndPoint endp=new ByteArrayEndPoint(new byte[0],4096);
+  HttpGenerator hb=new HttpGenerator(new SimpleBuffers(new Buffer[]{sb,bb}),endp,sb.capacity(),bb.capacity());
+  Handler handler=new Handler();
+  HttpParser parser=null;
+  for (int v=9; v <= 11; v++) {
+    for (int r=0; r < tr.length; r++) {
+      for (int chunks=1; chunks <= 6; chunks++) {
+        for (int c=0; c < (v == 11 ? connect.length : (connect.length - 1)); c++) {
+          String t="v=" + v + ",r="+ r+ ",chunks="+ chunks+ ",connect="+ connect[c]+ ",tr="+ tr[r];
+          hb.reset(true);
+          endp.reset();
+          fields.clear();
+          tr[r].build(v,hb,"OK\r\nTest",connect[c],null,chunks,fields);
+          String response=endp.getOut().toString();
+          if (v == 9) {
+            assertFalse(t,hb.isPersistent());
+            if (tr[r].body != null)             assertEquals(t,tr[r].body,response);
+            continue;
+          }
+          parser=new HttpParser(new ByteArrayBuffer(response.getBytes()),handler);
+          try {
+            parser.parse();
+          }
+ catch (          IOException e) {
+            if (tr[r].body != null)             throw e;
+            continue;
+          }
+          if (tr[r].body != null)           assertEquals(t,tr[r].body,this.content);
+          if (v == 10)           assertTrue(t,hb.isPersistent() || tr[r].values[1] == null || c == 2 || c == 0);
+ else           assertTrue(t,hb.isPersistent() || c == 2 || c == 3);
+          if (v > 9)           assertEquals("OK  Test",f2);
+          assertTrue(t,tr[r].values[1] == null || content.length() == Integer.parseInt(tr[r].values[1]));
+        }
+      }
+    }
+  }
+}

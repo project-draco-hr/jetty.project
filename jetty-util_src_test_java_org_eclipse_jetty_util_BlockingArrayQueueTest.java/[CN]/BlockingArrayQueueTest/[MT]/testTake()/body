@@ -1,0 +1,30 @@
+{
+  final String[] data=new String[4];
+  final BlockingArrayQueue<String> queue=new BlockingArrayQueue<String>();
+  Thread thread=new Thread(){
+    public void run(){
+      try {
+        data[0]=queue.take();
+        data[1]=queue.take();
+        Thread.sleep(1000);
+        data[2]=queue.take();
+        data[3]=queue.poll(100,TimeUnit.MILLISECONDS);
+      }
+ catch (      Exception e) {
+        assertTrue(false);
+        e.printStackTrace();
+      }
+    }
+  }
+;
+  thread.start();
+  Thread.sleep(1000);
+  queue.offer("zero");
+  queue.offer("one");
+  queue.offer("two");
+  thread.join();
+  assertEquals("zero",data[0]);
+  assertEquals("one",data[1]);
+  assertEquals("two",data[2]);
+  assertEquals(null,data[3]);
+}

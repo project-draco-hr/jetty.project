@@ -1,0 +1,19 @@
+{
+  HttpDestination dest=(HttpDestination)key.attachment();
+  SelectChannelEndPoint ep=null;
+  if (dest.isSecure()) {
+    if (dest.isProxied()) {
+      String connect=HttpMethods.CONNECT + " " + dest.getAddress()+ HttpVersions.HTTP_1_0+ "\r\n\r\n";
+      throw new IllegalStateException("Not Implemented");
+    }
+    SSLEngine engine=newSslEngine();
+    ep=new SslSelectChannelEndPoint(_sslBuffers,channel,selectSet,key,engine);
+  }
+ else {
+    ep=new SelectChannelEndPoint(channel,selectSet,key);
+  }
+  HttpConnection connection=(HttpConnection)ep.getConnection();
+  connection.setDestination(dest);
+  dest.onNewConnection(connection);
+  return ep;
+}

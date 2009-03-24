@@ -1,0 +1,34 @@
+{
+  HttpServletRequest request=(HttpServletRequest)req;
+  HttpServletResponse response=(HttpServletResponse)res;
+  String servletPath=request.getServletPath();
+  String pathInfo=request.getPathInfo();
+  String pathInContext=URIUtil.addPaths(servletPath,pathInfo);
+  String resource=URIUtil.addPaths(_baseURI,pathInContext);
+  String method=request.getMethod();
+  boolean op=_operations.contains(method);
+  if (op) {
+    File file=null;
+    try {
+      if (method.equals(__OPTIONS))       handleOptions(request,response);
+ else {
+        file=new File(new URI(resource));
+        boolean exists=file.exists();
+        if (exists && !passConditionalHeaders(request,response,file))         return;
+        if (method.equals(__PUT))         handlePut(request,response,pathInContext,file);
+ else         if (method.equals(__DELETE))         handleDelete(request,response,pathInContext,file);
+ else         if (method.equals(__MOVE))         handleMove(request,response,pathInContext,file);
+ else         throw new IllegalStateException();
+      }
+    }
+ catch (    Exception e) {
+      _context.log(e.toString(),e);
+      response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+    }
+  }
+ else {
+    if (isHidden(pathInContext))     response.sendError(HttpServletResponse.SC_NOT_FOUND);
+ else     chain.doFilter(request,response);
+    return;
+  }
+}

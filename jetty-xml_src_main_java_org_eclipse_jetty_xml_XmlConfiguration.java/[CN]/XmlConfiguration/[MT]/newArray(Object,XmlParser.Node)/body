@@ -1,0 +1,26 @@
+{
+  Class aClass=java.lang.Object.class;
+  String type=node.getAttribute("type");
+  final String id=node.getAttribute("id");
+  if (type != null) {
+    aClass=TypeUtil.fromName(type);
+    if (aClass == null) {
+      if ("String".equals(type))       aClass=java.lang.String.class;
+ else       if ("URL".equals(type))       aClass=java.net.URL.class;
+ else       if ("InetAddress".equals(type))       aClass=java.net.InetAddress.class;
+ else       aClass=Loader.loadClass(XmlConfiguration.class,type,true);
+    }
+  }
+  Object al=null;
+  Iterator iter=node.iterator("Item");
+  while (iter.hasNext()) {
+    XmlParser.Node item=(XmlParser.Node)iter.next();
+    String nid=item.getAttribute("id");
+    Object v=value(obj,item);
+    al=LazyList.add(al,(v == null && aClass.isPrimitive()) ? ZERO : v);
+    if (nid != null)     _idMap.put(nid,v);
+  }
+  Object array=LazyList.toArray(al,aClass);
+  if (id != null)   _idMap.put(id,array);
+  return array;
+}

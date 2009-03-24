@@ -1,0 +1,26 @@
+{
+  HttpConnection q_connection=null;
+synchronized (this) {
+    _pendingConnections--;
+    _connections.add(connection);
+    if (_newConnection > 0) {
+      q_connection=connection;
+      _newConnection--;
+    }
+ else     if (_queue.size() == 0) {
+      _idle.add(connection);
+    }
+ else {
+      HttpExchange ex=_queue.removeFirst();
+      connection.send(ex);
+    }
+  }
+  if (q_connection != null) {
+    try {
+      _newQueue.put(q_connection);
+    }
+ catch (    InterruptedException e) {
+      Log.ignore(e);
+    }
+  }
+}

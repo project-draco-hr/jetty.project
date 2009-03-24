@@ -1,0 +1,28 @@
+{
+  if (_filterHolder != null) {
+    if (Log.isDebugEnabled())     Log.debug("call filter " + _filterHolder);
+    Filter filter=_filterHolder.getFilter();
+    if (_filterHolder.isAsyncSupported())     filter.doFilter(request,response,_next);
+ else {
+      final Request base_request=(request instanceof Request) ? ((Request)request) : HttpConnection.getCurrentConnection().getRequest();
+      final boolean suspendable=base_request.isAsyncSupported();
+      if (suspendable) {
+        try {
+          base_request.setAsyncSupported(false);
+          filter.doFilter(request,response,_next);
+        }
+  finally {
+          base_request.setAsyncSupported(true);
+        }
+      }
+ else       filter.doFilter(request,response,_next);
+    }
+    return;
+  }
+  if (_servletHolder != null) {
+    if (Log.isDebugEnabled())     Log.debug("call servlet " + _servletHolder);
+    final Request base_request=(request instanceof Request) ? ((Request)request) : HttpConnection.getCurrentConnection().getRequest();
+    _servletHolder.handle(base_request,request,response);
+  }
+ else   notFound((HttpServletRequest)request,(HttpServletResponse)response);
+}

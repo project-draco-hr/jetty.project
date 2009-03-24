@@ -1,0 +1,27 @@
+{
+  Iterator itor=node.iterator("injection-target");
+  while (itor.hasNext()) {
+    XmlParser.Node injectionNode=(XmlParser.Node)itor.next();
+    String targetClassName=injectionNode.getString("injection-target-class",false,true);
+    String targetName=injectionNode.getString("injection-target-name",false,true);
+    if ((targetClassName == null) || targetClassName.equals("")) {
+      Log.warn("No classname found in injection-target");
+      continue;
+    }
+    if ((targetName == null) || targetName.equals("")) {
+      Log.warn("No field or method name in injection-target");
+      continue;
+    }
+    try {
+      Class clazz=getWebAppContext().loadClass(targetClassName);
+      Injection injection=new Injection();
+      injection.setTargetClass(clazz);
+      injection.setJndiName(jndiName);
+      injection.setTarget(clazz,targetName,valueClass);
+      _injections.add(injection);
+    }
+ catch (    ClassNotFoundException e) {
+      Log.warn("Couldn't load injection target class " + targetClassName);
+    }
+  }
+}

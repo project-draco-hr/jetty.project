@@ -1,0 +1,21 @@
+{
+  super.doStop();
+  long start=System.currentTimeMillis();
+  while (_threadsStarted.get() > 0 && (System.currentTimeMillis() - start) < (_maxStopTime / 2))   Thread.sleep(1);
+  _jobs.clear();
+  Runnable noop=new Runnable(){
+    public void run(){
+    }
+  }
+;
+  for (int i=_threadsIdle.get(); i-- > 0; )   _jobs.offer(noop);
+  Thread.yield();
+  if (_threadsStarted.get() > 0)   for (  Thread thread : _threads)   thread.interrupt();
+  while (_threadsStarted.get() > 0 && (System.currentTimeMillis() - start) < _maxStopTime) {
+    Thread.sleep(1);
+  }
+  if (_threads.size() > 0)   Log.warn(_threads.size() + " threads could not be stopped");
+synchronized (_joinLock) {
+    _joinLock.notifyAll();
+  }
+}

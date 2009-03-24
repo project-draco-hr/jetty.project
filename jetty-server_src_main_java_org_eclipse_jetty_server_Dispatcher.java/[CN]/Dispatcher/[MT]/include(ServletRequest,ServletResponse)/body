@@ -1,0 +1,43 @@
+{
+  Request base_request=(request instanceof Request) ? ((Request)request) : HttpConnection.getCurrentConnection().getRequest();
+  request.removeAttribute(__JSP_FILE);
+  DispatcherType old_type=base_request.getDispatcherType();
+  Attributes old_attr=base_request.getAttributes();
+  MultiMap old_params=base_request.getParameters();
+  try {
+    base_request.setDispatcherType(DispatcherType.INCLUDE);
+    base_request.getConnection().include();
+    if (_named != null)     _contextHandler.doHandle(_named,base_request,(HttpServletRequest)request,(HttpServletResponse)response);
+ else {
+      String query=_dQuery;
+      if (query != null) {
+        MultiMap parameters=new MultiMap();
+        UrlEncoded.decodeTo(query,parameters,request.getCharacterEncoding());
+        if (old_params != null && old_params.size() > 0) {
+          Iterator iter=old_params.entrySet().iterator();
+          while (iter.hasNext()) {
+            Map.Entry entry=(Map.Entry)iter.next();
+            String name=(String)entry.getKey();
+            Object values=entry.getValue();
+            for (int i=0; i < LazyList.size(values); i++)             parameters.add(name,LazyList.get(values,i));
+          }
+        }
+        base_request.setParameters(parameters);
+      }
+      IncludeAttributes attr=new IncludeAttributes(old_attr);
+      attr._requestURI=_uri;
+      attr._contextPath=_contextHandler.getContextPath();
+      attr._servletPath=null;
+      attr._pathInfo=_path;
+      attr._query=query;
+      base_request.setAttributes(attr);
+      _contextHandler.doHandle(_named == null ? _path : _named,base_request,(HttpServletRequest)request,(HttpServletResponse)response);
+    }
+  }
+  finally {
+    base_request.setAttributes(old_attr);
+    base_request.getConnection().included();
+    base_request.setParameters(old_params);
+    base_request.setDispatcherType(old_type);
+  }
+}

@@ -1,0 +1,34 @@
+{
+  try {
+    loadConfigurations();
+    for (int i=0; i < _configurations.length; i++)     _configurations[i].setWebAppContext(this);
+    _ownClassLoader=false;
+    if (getClassLoader() == null) {
+      WebAppClassLoader classLoader=new WebAppClassLoader(this);
+      setClassLoader(classLoader);
+      _ownClassLoader=true;
+    }
+    if (Log.isDebugEnabled()) {
+      ClassLoader loader=getClassLoader();
+      Log.debug("Thread Context class loader is: " + loader);
+      loader=loader.getParent();
+      while (loader != null) {
+        Log.debug("Parent class loader is: " + loader);
+        loader=loader.getParent();
+      }
+    }
+    for (int i=0; i < _configurations.length; i++)     _configurations[i].configureClassLoader();
+    getTempDirectory();
+    if (_tmpDir != null && !_isExistingTmpDir && !isTempWorkDirectory()) {
+      File sentinel=new File(_tmpDir,".active");
+      if (!sentinel.exists())       sentinel.mkdir();
+    }
+    super.doStart();
+    if (isLogUrlOnStart())     dumpUrl();
+  }
+ catch (  Exception e) {
+    Log.warn("Failed startup of context " + this,e);
+    _unavailableException=e;
+    _unavailable=true;
+  }
+}

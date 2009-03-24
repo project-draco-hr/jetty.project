@@ -1,0 +1,74 @@
+{
+  boolean included=false;
+  String servlet_path=(String)request.getAttribute(Dispatcher.__INCLUDE_SERVLET_PATH);
+  if (servlet_path == null)   servlet_path=request.getServletPath();
+ else   included=true;
+  String path_info=(String)request.getAttribute(Dispatcher.__INCLUDE_PATH_INFO);
+  if (path_info == null)   path_info=request.getPathInfo();
+  String servlet=path_info;
+  if (servlet == null || servlet.length() <= 1) {
+    response.sendError(404);
+    return;
+  }
+  int i0=servlet.charAt(0) == '/' ? 1 : 0;
+  int i1=servlet.indexOf('/',i0);
+  servlet=i1 < 0 ? servlet.substring(i0) : servlet.substring(i0,i1);
+  ServletHolder[] holders=_servletHandler.getServlets();
+  ServletHolder holder=getHolder(holders,servlet);
+  if (holder != null) {
+    Log.debug("Adding servlet mapping for named servlet:" + servlet + ":"+ URIUtil.addPaths(servlet_path,servlet)+ "/*");
+    ServletMapping mapping=new ServletMapping();
+    mapping.setServletName(servlet);
+    mapping.setPathSpec(URIUtil.addPaths(servlet_path,servlet) + "/*");
+    _servletHandler.setServletMappings((ServletMapping[])LazyList.addToArray(_servletHandler.getServletMappings(),mapping,ServletMapping.class));
+  }
+ else {
+    if (servlet.endsWith(".class"))     servlet=servlet.substring(0,servlet.length() - 6);
+    if (servlet == null || servlet.length() == 0) {
+      response.sendError(404);
+      return;
+    }
+synchronized (_servletHandler) {
+      _invokerEntry=_servletHandler.getHolderEntry(servlet_path);
+      String path=URIUtil.addPaths(servlet_path,servlet);
+      Map.Entry entry=_servletHandler.getHolderEntry(path);
+      if (entry != null && !entry.equals(_invokerEntry)) {
+        holder=(ServletHolder)entry.getValue();
+      }
+ else {
+        Log.debug("Making new servlet=" + servlet + " with path="+ path+ "/*");
+        holder=_servletHandler.addServletWithMapping(servlet,path + "/*");
+        if (_parameters != null)         holder.setInitParameters(_parameters);
+        try {
+          holder.start();
+        }
+ catch (        Exception e) {
+          Log.debug(e);
+          throw new UnavailableException(e.toString());
+        }
+        if (!_nonContextServlets) {
+          Object s=holder.getServlet();
+          if (_contextHandler.getClassLoader() != s.getClass().getClassLoader()) {
+            try {
+              holder.stop();
+            }
+ catch (            Exception e) {
+              Log.ignore(e);
+            }
+            Log.warn("Dynamic servlet " + s + " not loaded from context "+ request.getContextPath());
+            throw new UnavailableException("Not in context");
+          }
+        }
+        if (_verbose)         Log.debug("Dynamic load '" + servlet + "' at "+ path);
+      }
+    }
+  }
+  if (holder != null) {
+    final Request base_request=(request instanceof Request) ? ((Request)request) : HttpConnection.getCurrentConnection().getRequest();
+    holder.handle(base_request,new InvokedRequest(request,included,servlet,servlet_path,path_info),response);
+  }
+ else {
+    Log.info("Can't find holder for servlet: " + servlet);
+    response.sendError(404);
+  }
+}

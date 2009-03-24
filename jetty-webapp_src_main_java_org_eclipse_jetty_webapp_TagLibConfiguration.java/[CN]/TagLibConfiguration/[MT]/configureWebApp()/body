@@ -1,0 +1,114 @@
+{
+  Set tlds=new HashSet();
+  if (_context.getResourceAliases() != null && _context.getBaseResource() != null && _context.getBaseResource().exists()) {
+    Iterator iter=_context.getResourceAliases().values().iterator();
+    while (iter.hasNext()) {
+      String location=(String)iter.next();
+      if (location != null && location.toLowerCase().endsWith(".tld")) {
+        if (!location.startsWith("/"))         location="/WEB-INF/" + location;
+        Resource l=_context.getBaseResource().addPath(location);
+        tlds.add(l);
+      }
+    }
+  }
+  Resource web_inf=_context.getWebInf();
+  if (web_inf != null) {
+    String[] contents=web_inf.list();
+    for (int i=0; contents != null && i < contents.length; i++) {
+      if (contents[i] != null && contents[i].toLowerCase().endsWith(".tld")) {
+        Resource l=_context.getWebInf().addPath(contents[i]);
+        tlds.add(l);
+      }
+    }
+  }
+  String tmp=_context.getInitParameter(__web_inf_pattern);
+  Pattern webInfPattern=(tmp == null ? null : Pattern.compile(tmp));
+  tmp=_context.getInitParameter(__container_pattern);
+  Pattern containerPattern=(tmp == null ? null : Pattern.compile(tmp));
+  TagLibJarScanner tldScanner=new TagLibJarScanner();
+  tldScanner.setTldSet(tlds);
+  tldScanner.scan(webInfPattern,Thread.currentThread().getContextClassLoader(),true,false);
+  tldScanner.scan(containerPattern,Thread.currentThread().getContextClassLoader().getParent(),false,true);
+  XmlParser parser=new XmlParser(false);
+  URL taglib11=null;
+  URL taglib12=null;
+  URL taglib20=null;
+  URL taglib21=null;
+  try {
+    Class jsp_page=Loader.loadClass(WebXmlConfiguration.class,"javax.servlet.jsp.JspPage");
+    taglib11=jsp_page.getResource("javax/servlet/jsp/resources/web-jsptaglibrary_1_1.dtd");
+    taglib12=jsp_page.getResource("javax/servlet/jsp/resources/web-jsptaglibrary_1_2.dtd");
+    taglib20=jsp_page.getResource("javax/servlet/jsp/resources/web-jsptaglibrary_2_0.xsd");
+    taglib21=jsp_page.getResource("javax/servlet/jsp/resources/web-jsptaglibrary_2_1.xsd");
+  }
+ catch (  Exception e) {
+    Log.ignore(e);
+  }
+ finally {
+    if (taglib11 == null)     taglib11=Loader.getResource(Servlet.class,"javax/servlet/jsp/resources/web-jsptaglibrary_1_1.dtd",true);
+    if (taglib12 == null)     taglib12=Loader.getResource(Servlet.class,"javax/servlet/jsp/resources/web-jsptaglibrary_1_2.dtd",true);
+    if (taglib20 == null)     taglib20=Loader.getResource(Servlet.class,"javax/servlet/jsp/resources/web-jsptaglibrary_2_0.xsd",true);
+    if (taglib21 == null)     taglib21=Loader.getResource(Servlet.class,"javax/servlet/jsp/resources/web-jsptaglibrary_2_1.xsd",true);
+  }
+  if (taglib11 != null) {
+    parser.redirectEntity("web-jsptaglib_1_1.dtd",taglib11);
+    parser.redirectEntity("web-jsptaglibrary_1_1.dtd",taglib11);
+  }
+  if (taglib12 != null) {
+    parser.redirectEntity("web-jsptaglib_1_2.dtd",taglib12);
+    parser.redirectEntity("web-jsptaglibrary_1_2.dtd",taglib12);
+  }
+  if (taglib20 != null) {
+    parser.redirectEntity("web-jsptaglib_2_0.xsd",taglib20);
+    parser.redirectEntity("web-jsptaglibrary_2_0.xsd",taglib20);
+  }
+  if (taglib21 != null) {
+    parser.redirectEntity("web-jsptaglib_2_1.xsd",taglib21);
+    parser.redirectEntity("web-jsptaglibrary_2_1.xsd",taglib21);
+  }
+  parser.setXpath("/taglib/listener/listener-class");
+  Iterator iter=tlds.iterator();
+  while (iter.hasNext()) {
+    try {
+      Resource tld=(Resource)iter.next();
+      if (Log.isDebugEnabled())       Log.debug("TLD=" + tld);
+      XmlParser.Node root;
+      try {
+        root=parser.parse(tld.getInputStream());
+      }
+ catch (      Exception e) {
+        root=parser.parse(tld.getURL().toString());
+      }
+      if (root == null) {
+        Log.warn("No TLD root in {}",tld);
+        continue;
+      }
+      for (int i=0; i < root.size(); i++) {
+        Object o=root.get(i);
+        if (o instanceof XmlParser.Node) {
+          XmlParser.Node node=(XmlParser.Node)o;
+          if ("listener".equals(node.getTag())) {
+            String className=node.getString("listener-class",false,true);
+            if (Log.isDebugEnabled())             Log.debug("listener=" + className);
+            try {
+              Class listenerClass=getWebAppContext().loadClass(className);
+              EventListener l=(EventListener)listenerClass.newInstance();
+              _context.addEventListener(l);
+            }
+ catch (            Exception e) {
+              Log.warn("Could not instantiate listener " + className + ": "+ e);
+              Log.debug(e);
+            }
+catch (            Error e) {
+              Log.warn("Could not instantiate listener " + className + ": "+ e);
+              Log.debug(e);
+            }
+          }
+        }
+      }
+    }
+ catch (    Exception e) {
+      Log.warn(e);
+    }
+  }
+}

@@ -1,0 +1,42 @@
+{
+  byte[] bytes;
+  try {
+    bytes=path.getBytes("utf-8");
+  }
+ catch (  UnsupportedEncodingException e) {
+    bytes=path.getBytes();
+  }
+  StringBuffer buf=new StringBuffer(bytes.length * 2);
+  buf.append("file:");
+synchronized (buf) {
+    for (int i=5; i < bytes.length; i++) {
+      byte b=bytes[i];
+switch (b) {
+case '%':
+        buf.append("%25");
+      continue;
+case ' ':
+    buf.append("%20");
+  continue;
+case '/':
+case '.':
+case '-':
+case '_':
+buf.append((char)b);
+continue;
+default :
+if (Character.isJavaIdentifierPart((char)b)) {
+if (b >= 'a' && b <= 'z' || b >= 'A' && b <= 'Z' || b >= '0' && b <= '9') {
+buf.append((char)b);
+continue;
+}
+}
+buf.append('%');
+buf.append(Integer.toHexString((0xf0 & (int)b) >> 4));
+buf.append(Integer.toHexString((0x0f & (int)b)));
+continue;
+}
+}
+}
+return buf.toString();
+}

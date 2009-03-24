@@ -1,0 +1,58 @@
+{
+  boolean accepted=false;
+  try {
+    if (request.getAttribute(_suspended) == null) {
+      accepted=_passes.tryAcquire(_waitMs,TimeUnit.MILLISECONDS);
+      if (accepted) {
+        request.setAttribute(_suspended,Boolean.FALSE);
+      }
+ else {
+        request.setAttribute(_suspended,Boolean.TRUE);
+        if (_suspendMs > 0)         request.setAsyncTimeout(_suspendMs);
+        request.startAsync();
+        int priority=getPriority(request);
+        _queue[priority].add(request);
+        return;
+      }
+    }
+ else {
+      Boolean suspended=(Boolean)request.getAttribute(_suspended);
+      if (suspended.booleanValue()) {
+        request.setAttribute(_suspended,Boolean.FALSE);
+        if (request.getAttribute("javax.servlet.resumed") == Boolean.TRUE) {
+          _passes.acquire();
+          accepted=true;
+        }
+ else {
+          accepted=_passes.tryAcquire(_waitMs,TimeUnit.MILLISECONDS);
+        }
+      }
+ else {
+        _passes.acquire();
+        accepted=true;
+      }
+    }
+    if (accepted) {
+      chain.doFilter(request,response);
+    }
+ else {
+      ((HttpServletResponse)response).sendError(HttpServletResponse.SC_SERVICE_UNAVAILABLE);
+    }
+  }
+ catch (  InterruptedException e) {
+    _context.log("QoS",e);
+    ((HttpServletResponse)response).sendError(HttpServletResponse.SC_SERVICE_UNAVAILABLE);
+  }
+ finally {
+    if (accepted) {
+      for (int p=_queue.length; p-- > 0; ) {
+        ServletRequest r=_queue[p].poll();
+        if (r != null) {
+          r.getAsyncContext().dispatch();
+          break;
+        }
+      }
+      _passes.release();
+    }
+  }
+}

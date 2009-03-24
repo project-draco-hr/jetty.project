@@ -1,0 +1,50 @@
+{
+  if (_filterMappings == null) {
+    _filterPathMappings=null;
+    _filterNameMappings=null;
+  }
+ else {
+    _filterPathMappings=new ArrayList();
+    _filterNameMappings=new MultiMap();
+    for (int i=0; i < _filterMappings.length; i++) {
+      FilterHolder filter_holder=(FilterHolder)_filterNameMap.get(_filterMappings[i].getFilterName());
+      if (filter_holder == null)       throw new IllegalStateException("No filter named " + _filterMappings[i].getFilterName());
+      _filterMappings[i].setFilterHolder(filter_holder);
+      if (_filterMappings[i].getPathSpecs() != null)       _filterPathMappings.add(_filterMappings[i]);
+      if (_filterMappings[i].getServletNames() != null) {
+        String[] names=_filterMappings[i].getServletNames();
+        for (int j=0; j < names.length; j++) {
+          if (names[j] != null)           _filterNameMappings.add(names[j],_filterMappings[i]);
+        }
+      }
+    }
+  }
+  if (_servletMappings == null || _servletNameMap == null) {
+    _servletPathMap=null;
+  }
+ else {
+    PathMap pm=new PathMap();
+    for (int i=0; i < _servletMappings.length; i++) {
+      ServletHolder servlet_holder=(ServletHolder)_servletNameMap.get(_servletMappings[i].getServletName());
+      if (servlet_holder == null)       throw new IllegalStateException("No such servlet: " + _servletMappings[i].getServletName());
+ else       if (_servletMappings[i].getPathSpecs() != null) {
+        String[] pathSpecs=_servletMappings[i].getPathSpecs();
+        for (int j=0; j < pathSpecs.length; j++)         if (pathSpecs[j] != null)         pm.put(pathSpecs[j],servlet_holder);
+      }
+    }
+    _servletPathMap=pm;
+  }
+  if (Log.isDebugEnabled()) {
+    Log.debug("filterNameMap=" + _filterNameMap);
+    Log.debug("pathFilters=" + _filterPathMappings);
+    Log.debug("servletFilterMap=" + _filterNameMappings);
+    Log.debug("servletPathMap=" + _servletPathMap);
+    Log.debug("servletNameMap=" + _servletNameMap);
+  }
+  try {
+    if (isStarted())     initialize();
+  }
+ catch (  Exception e) {
+    throw new RuntimeException(e);
+  }
+}

@@ -1,0 +1,36 @@
+{
+  try {
+    CallbackHandler callbackHandler=new CallbackHandler(){
+      public void handle(      Callback[] callbacks) throws IOException, UnsupportedCallbackException {
+        for (        Callback callback : callbacks) {
+          if (callback instanceof NameCallback) {
+            ((NameCallback)callback).setName(username);
+          }
+ else           if (callback instanceof PasswordCallback) {
+            ((PasswordCallback)callback).setPassword((char[])credentials.toString().toCharArray());
+          }
+ else           if (callback instanceof ObjectCallback) {
+            ((ObjectCallback)callback).setObject(credentials);
+          }
+        }
+      }
+    }
+;
+    Subject subject=new Subject();
+    LoginContext loginContext=new LoginContext(_loginModuleName,subject,callbackHandler);
+    loginContext.login();
+    JAASUserPrincipal userPrincipal=new JAASUserPrincipal(getUserName(callbackHandler),subject,loginContext);
+    subject.getPrincipals().add(userPrincipal);
+    return _identityService.newUserIdentity(subject,userPrincipal,getGroups(subject));
+  }
+ catch (  LoginException e) {
+    Log.warn(e);
+  }
+catch (  IOException e) {
+    Log.warn(e);
+  }
+catch (  UnsupportedCallbackException e) {
+    Log.warn(e);
+  }
+  return null;
+}

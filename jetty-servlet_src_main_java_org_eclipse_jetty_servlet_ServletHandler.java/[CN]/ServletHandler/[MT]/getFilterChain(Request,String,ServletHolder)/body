@@ -1,0 +1,38 @@
+{
+  String key=pathInContext == null ? servletHolder.getName() : pathInContext;
+  int dispatch=FilterMapping.dispatch(baseRequest.getDispatcherType());
+  if (_filterChainsCached && _chainCache != null) {
+    FilterChain chain=(FilterChain)_chainCache[dispatch].get(key);
+    if (chain != null)     return chain;
+  }
+  Object filters=null;
+  if (pathInContext != null && _filterPathMappings != null) {
+    for (int i=0; i < _filterPathMappings.size(); i++) {
+      FilterMapping mapping=(FilterMapping)_filterPathMappings.get(i);
+      if (mapping.appliesTo(pathInContext,dispatch))       filters=LazyList.add(filters,mapping.getFilterHolder());
+    }
+  }
+  if (servletHolder != null && _filterNameMappings != null && _filterNameMappings.size() > 0) {
+    if (_filterNameMappings.size() > 0) {
+      Object o=_filterNameMappings.get(servletHolder.getName());
+      for (int i=0; i < LazyList.size(o); i++) {
+        FilterMapping mapping=(FilterMapping)LazyList.get(o,i);
+        if (mapping.appliesTo(dispatch))         filters=LazyList.add(filters,mapping.getFilterHolder());
+      }
+      o=_filterNameMappings.get("*");
+      for (int i=0; i < LazyList.size(o); i++) {
+        FilterMapping mapping=(FilterMapping)LazyList.get(o,i);
+        if (mapping.appliesTo(dispatch))         filters=LazyList.add(filters,mapping.getFilterHolder());
+      }
+    }
+  }
+  if (filters == null)   return null;
+  FilterChain chain=null;
+  if (_filterChainsCached) {
+    if (LazyList.size(filters) > 0)     chain=new CachedChain(filters,servletHolder);
+    if (_maxFilterChainsCacheSize > 0 && _chainCache[dispatch].size() > _maxFilterChainsCacheSize)     _chainCache[dispatch].clear();
+    _chainCache[dispatch].put(key,chain);
+  }
+ else   if (LazyList.size(filters) > 0)   chain=new Chain(baseRequest,filters,servletHolder);
+  return chain;
+}

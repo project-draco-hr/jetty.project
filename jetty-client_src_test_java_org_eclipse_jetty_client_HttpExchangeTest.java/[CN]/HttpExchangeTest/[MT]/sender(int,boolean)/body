@@ -1,0 +1,68 @@
+{
+  _count.set(0);
+  final CountDownLatch complete=new CountDownLatch(nb);
+  final CountDownLatch latch=new CountDownLatch(nb);
+  HttpExchange[] httpExchange=new HttpExchange[nb];
+  long start=System.currentTimeMillis();
+  for (int i=0; i < nb; i++) {
+    final int n=i;
+    httpExchange[n]=new HttpExchange(){
+      String result="pending";
+      int len=0;
+      protected void onRequestCommitted(){
+        result="committed";
+      }
+      protected void onRequestComplete() throws IOException {
+        result="sent";
+      }
+      protected void onResponseStatus(      Buffer version,      int status,      Buffer reason){
+        result="status";
+      }
+      protected void onResponseHeader(      Buffer name,      Buffer value){
+      }
+      protected void onResponseHeaderComplete() throws IOException {
+        result="content";
+        super.onResponseHeaderComplete();
+      }
+      protected void onResponseContent(      Buffer content){
+        len+=content.length();
+      }
+      protected void onResponseComplete(){
+        result="complete";
+        if (len == 2009)         latch.countDown();
+ else         System.err.println(n + " ONLY " + len);
+        complete.countDown();
+      }
+      protected void onConnectionFailed(      Throwable ex){
+        complete.countDown();
+        result="failed";
+        System.err.println(n + " FAILED " + ex);
+        super.onConnectionFailed(ex);
+      }
+      protected void onException(      Throwable ex){
+        complete.countDown();
+        result="excepted";
+        System.err.println(n + " EXCEPTED " + ex);
+        super.onException(ex);
+      }
+      protected void onExpire(){
+        complete.countDown();
+        result="expired";
+        System.err.println(n + " EXPIRED " + len);
+        super.onExpire();
+      }
+      public String toString(){
+        return n + " " + result+ " "+ len;
+      }
+    }
+;
+    httpExchange[n].setURL(_scheme + "localhost:" + _port+ "/"+ n);
+    httpExchange[n].addRequestHeader("arbitrary","value");
+    if (close)     httpExchange[n].setRequestHeader("Connection","close");
+    _httpClient.send(httpExchange[n]);
+  }
+  assertTrue(complete.await(45,TimeUnit.SECONDS));
+  long elapsed=System.currentTimeMillis() - start;
+  if (elapsed > 0)   System.err.println(nb + "/" + _count+ " c="+ close+ " rate="+ (nb * 1000 / elapsed));
+  assertEquals("nb=" + nb + " close="+ close,0,latch.getCount());
+}

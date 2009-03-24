@@ -1,0 +1,54 @@
+{
+  try {
+    if (_info == null) {
+      String desc=null;
+      Object attributes=null;
+      Object constructors=null;
+      Object operations=null;
+      Object notifications=null;
+      Class o_class=_managed.getClass();
+      Object influences=findInfluences(null,_managed.getClass());
+      Set defined=new HashSet();
+      for (int i=0; i < LazyList.size(influences); i++) {
+        Class oClass=(Class)LazyList.get(influences,i);
+        if (Object.class.equals(oClass))         oClass=ObjectMBean.class;
+        String pName=oClass.getPackage().getName();
+        String cName=oClass.getName().substring(pName.length() + 1);
+        String rName=pName.replace('.','/') + "/management/" + cName+ "-mbean";
+        try {
+          Log.debug(rName);
+          ResourceBundle bundle=Loader.getResourceBundle(o_class,rName,true,Locale.getDefault());
+          Enumeration e=bundle.getKeys();
+          while (e.hasMoreElements()) {
+            String key=(String)e.nextElement();
+            String value=bundle.getString(key);
+            if (key.equals(cName)) {
+              if (desc == null)               desc=value;
+            }
+ else             if (key.indexOf('(') > 0) {
+              if (!defined.contains(key) && key.indexOf('[') < 0) {
+                defined.add(key);
+                operations=LazyList.add(operations,defineOperation(key,value,bundle));
+              }
+            }
+ else {
+              if (!defined.contains(key)) {
+                defined.add(key);
+                attributes=LazyList.add(attributes,defineAttribute(key,value));
+              }
+            }
+          }
+        }
+ catch (        MissingResourceException e) {
+          Log.ignore(e);
+        }
+      }
+      _info=new MBeanInfo(o_class.getName(),desc,(MBeanAttributeInfo[])LazyList.toArray(attributes,MBeanAttributeInfo.class),(MBeanConstructorInfo[])LazyList.toArray(constructors,MBeanConstructorInfo.class),(MBeanOperationInfo[])LazyList.toArray(operations,MBeanOperationInfo.class),(MBeanNotificationInfo[])LazyList.toArray(notifications,MBeanNotificationInfo.class));
+    }
+  }
+ catch (  RuntimeException e) {
+    Log.warn(e);
+    throw e;
+  }
+  return _info;
+}

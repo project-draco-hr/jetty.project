@@ -1,0 +1,36 @@
+{
+  super.doStart();
+  _timeoutQ.setNow();
+  _timeoutQ.setDuration(_timeout);
+  if (_threadPool == null) {
+    QueuedThreadPool pool=new QueuedThreadPool();
+    pool.setMaxThreads(16);
+    pool.setDaemon(true);
+    pool.setName("HttpClient");
+    _threadPool=pool;
+  }
+  if (_threadPool instanceof LifeCycle) {
+    ((LifeCycle)_threadPool).start();
+  }
+  if (_connectorType == CONNECTOR_SELECT_CHANNEL) {
+    _connector=new SelectConnector(this);
+  }
+ else {
+    _connector=new SocketConnector(this);
+  }
+  _connector.start();
+  _threadPool.dispatch(new Runnable(){
+    public void run(){
+      while (isRunning()) {
+        _timeoutQ.setNow();
+        _timeoutQ.tick();
+        try {
+          Thread.sleep(1000);
+        }
+ catch (        InterruptedException e) {
+        }
+      }
+    }
+  }
+);
+}

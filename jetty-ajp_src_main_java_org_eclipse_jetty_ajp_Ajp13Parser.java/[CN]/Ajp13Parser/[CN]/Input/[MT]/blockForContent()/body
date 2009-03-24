@@ -1,0 +1,25 @@
+{
+  if (_content.length() > 0)   return true;
+  if (_parser.isState(Ajp13Parser.STATE_END))   return false;
+  if (_endp == null)   _parser.parseNext();
+ else   if (_endp.isBlocking()) {
+    _parser.parseNext();
+    while (_content.length() == 0 && !_parser.isState(Ajp13Parser.STATE_END)) {
+      _parser.parseNext();
+    }
+  }
+ else {
+    long filled=_parser.parseNext();
+    boolean blocked=false;
+    while (_content.length() == 0 && !_parser.isState(Ajp13Parser.STATE_END)) {
+      if (filled > 0)       blocked=false;
+ else       if (filled == 0) {
+        if (blocked)         throw new InterruptedIOException("timeout");
+        blocked=true;
+        _endp.blockReadable(_maxIdleTime);
+      }
+      filled=_parser.parseNext();
+    }
+  }
+  return _content.length() > 0;
+}

@@ -1,0 +1,89 @@
+{
+  final int THREADS=50;
+  final int LOOPS=1000;
+  final BlockingArrayQueue<Integer> queue=new BlockingArrayQueue<Integer>(1 + THREADS * LOOPS);
+  final ConcurrentLinkedQueue<Integer> produced=new ConcurrentLinkedQueue<Integer>();
+  final ConcurrentLinkedQueue<Integer> consumed=new ConcurrentLinkedQueue<Integer>();
+  _running=true;
+  final CyclicBarrier barrier0=new CyclicBarrier(THREADS + 1);
+  for (int i=0; i < THREADS; i++) {
+    final Integer id=new Integer(i);
+    new Thread(){
+      public void run(){
+        final Random random=new Random();
+        setPriority(getPriority() - 1);
+        try {
+          while (_running) {
+            int r=1 + random.nextInt(10);
+            if (r % 2 == 0) {
+              Integer msg=queue.poll();
+              if (msg == null) {
+                Thread.sleep(1 + random.nextInt(10));
+                continue;
+              }
+              consumed.add(msg);
+            }
+ else {
+              Integer msg=queue.poll(r,TimeUnit.MILLISECONDS);
+              if (msg != null)               consumed.add(msg);
+            }
+          }
+        }
+ catch (        Exception e) {
+          e.printStackTrace();
+        }
+ finally {
+          try {
+            barrier0.await();
+          }
+ catch (          Exception e) {
+            e.printStackTrace();
+          }
+        }
+      }
+    }
+.start();
+  }
+  final CyclicBarrier barrier1=new CyclicBarrier(THREADS + 1);
+  for (int i=0; i < THREADS; i++) {
+    final Integer id=new Integer(i);
+    new Thread(){
+      public void run(){
+        final Random random=new Random();
+        try {
+          for (int j=0; j < LOOPS; j++) {
+            Integer msg=new Integer(random.nextInt());
+            produced.add(msg);
+            if (!queue.offer(msg))             throw new Exception(id + " FULL! " + queue.size());
+            Thread.sleep(1 + random.nextInt(10));
+          }
+        }
+ catch (        Exception e) {
+          e.printStackTrace();
+        }
+ finally {
+          try {
+            barrier1.await();
+          }
+ catch (          Exception e) {
+            e.printStackTrace();
+          }
+        }
+      }
+    }
+.start();
+  }
+  barrier1.await();
+  int size=queue.size();
+  int last=size - 1;
+  while (size > 0 && size != last) {
+    last=size;
+    Thread.sleep(500);
+    size=queue.size();
+  }
+  _running=false;
+  barrier0.await();
+  HashSet<Integer> prodSet=new HashSet<Integer>(produced);
+  HashSet<Integer> consSet=new HashSet<Integer>(consumed);
+  assertEquals(prodSet,consSet);
+}

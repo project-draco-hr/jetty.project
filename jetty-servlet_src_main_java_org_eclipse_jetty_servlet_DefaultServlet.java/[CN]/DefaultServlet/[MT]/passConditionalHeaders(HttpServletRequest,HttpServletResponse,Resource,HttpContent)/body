@@ -1,0 +1,41 @@
+{
+  try {
+    if (!request.getMethod().equals(HttpMethods.HEAD)) {
+      String ifms=request.getHeader(HttpHeaders.IF_MODIFIED_SINCE);
+      if (ifms != null) {
+        if (content != null) {
+          Buffer mdlm=content.getLastModified();
+          if (mdlm != null) {
+            if (ifms.equals(mdlm.toString())) {
+              response.reset();
+              response.setStatus(HttpServletResponse.SC_NOT_MODIFIED);
+              response.flushBuffer();
+              return false;
+            }
+          }
+        }
+        long ifmsl=request.getDateHeader(HttpHeaders.IF_MODIFIED_SINCE);
+        if (ifmsl != -1) {
+          if (resource.lastModified() / 1000 <= ifmsl / 1000) {
+            response.reset();
+            response.setStatus(HttpServletResponse.SC_NOT_MODIFIED);
+            response.flushBuffer();
+            return false;
+          }
+        }
+      }
+      long date=request.getDateHeader(HttpHeaders.IF_UNMODIFIED_SINCE);
+      if (date != -1) {
+        if (resource.lastModified() / 1000 > date / 1000) {
+          response.sendError(HttpServletResponse.SC_PRECONDITION_FAILED);
+          return false;
+        }
+      }
+    }
+  }
+ catch (  IllegalArgumentException iae) {
+    if (!response.isCommitted())     response.sendError(400,iae.getMessage());
+    throw iae;
+  }
+  return true;
+}

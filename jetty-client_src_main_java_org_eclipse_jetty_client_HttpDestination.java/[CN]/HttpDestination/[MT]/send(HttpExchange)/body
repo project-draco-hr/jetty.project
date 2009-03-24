@@ -1,0 +1,22 @@
+{
+  LinkedList<String> listeners=_client.getRegisteredListeners();
+  if (listeners != null) {
+    for (int i=listeners.size(); i > 0; --i) {
+      String listenerClass=listeners.get(i - 1);
+      try {
+        Class listener=Class.forName(listenerClass);
+        Constructor constructor=listener.getDeclaredConstructor(HttpDestination.class,HttpExchange.class);
+        HttpEventListener elistener=(HttpEventListener)constructor.newInstance(this,ex);
+        ex.setEventListener(elistener);
+      }
+ catch (      Exception e) {
+        e.printStackTrace();
+        throw new IOException("Unable to instantiate registered listener for destination: " + listenerClass);
+      }
+    }
+  }
+  if (_client.hasRealms()) {
+    ex.setEventListener(new SecurityListener(this,ex));
+  }
+  doSend(ex);
+}

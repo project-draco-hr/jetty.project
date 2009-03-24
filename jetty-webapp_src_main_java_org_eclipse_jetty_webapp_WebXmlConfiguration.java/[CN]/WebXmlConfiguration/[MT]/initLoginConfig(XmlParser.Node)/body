@@ -1,0 +1,24 @@
+{
+  XmlParser.Node method=node.get("auth-method");
+  if (method != null) {
+    XmlParser.Node name=node.get("realm-name");
+    _securityHandler.setRealmName(name == null ? "default" : name.toString(false,true));
+    _securityHandler.setAuthMethod(method.toString(false,true));
+    if (Constraint.__FORM_AUTH.equals(_securityHandler.getAuthMethod())) {
+      XmlParser.Node formConfig=node.get("form-login-config");
+      if (formConfig != null) {
+        String loginPageName=null;
+        XmlParser.Node loginPage=formConfig.get("form-login-page");
+        if (loginPage != null)         loginPageName=loginPage.toString(false,true);
+        String errorPageName=null;
+        XmlParser.Node errorPage=formConfig.get("form-error-page");
+        if (errorPage != null)         errorPageName=errorPage.toString(false,true);
+        _securityHandler.setInitParameter(FormAuthenticator.__FORM_LOGIN_PAGE,loginPageName);
+        _securityHandler.setInitParameter(FormAuthenticator.__FORM_ERROR_PAGE,errorPageName);
+      }
+ else {
+        throw new IllegalArgumentException("!form-login-config");
+      }
+    }
+  }
+}

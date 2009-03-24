@@ -1,0 +1,38 @@
+{
+  client=new HttpClient();
+  client.setConnectorType(HttpClient.CONNECTOR_SELECT_CHANNEL);
+  client.setTimeout(200);
+  client.setMaxRetries(0);
+  client.setMaxConnectionsPerAddress(100);
+  try {
+    client.start();
+  }
+ catch (  Exception e) {
+    throw new Error("Cannot start HTTP client: " + e);
+  }
+  server=new Server();
+  SelectChannelConnector connector=new SelectChannelConnector();
+  connector.setHost(host);
+  connector.setPort(0);
+  server.setConnectors(new Connector[]{connector});
+  server.setHandler(new AbstractHandler(){
+    public void handle(    String target,    HttpServletRequest servletRequest,    HttpServletResponse response) throws IOException, ServletException {
+      Request request=(Request)servletRequest;
+      try {
+        Thread.sleep(2000);
+      }
+ catch (      InterruptedException e) {
+        e.printStackTrace();
+      }
+      request.setHandled(true);
+    }
+  }
+);
+  try {
+    server.start();
+    _port=connector.getLocalPort();
+  }
+ catch (  Exception e) {
+    Log.warn("Cannot create server: " + e);
+  }
+}

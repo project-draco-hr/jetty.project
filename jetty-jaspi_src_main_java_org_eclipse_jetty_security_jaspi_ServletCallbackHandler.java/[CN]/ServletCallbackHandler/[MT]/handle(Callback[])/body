@@ -1,0 +1,42 @@
+{
+  for (  Callback callback : callbacks) {
+    if (callback instanceof CallerPrincipalCallback) {
+      _callerPrincipals.set((CallerPrincipalCallback)callback);
+    }
+ else     if (callback instanceof GroupPrincipalCallback) {
+      _groupPrincipals.set((GroupPrincipalCallback)callback);
+    }
+ else     if (callback instanceof PasswordValidationCallback) {
+      PasswordValidationCallback passwordValidationCallback=(PasswordValidationCallback)callback;
+      Subject subject=passwordValidationCallback.getSubject();
+      UserIdentity user=_loginService.login(passwordValidationCallback.getUsername(),passwordValidationCallback.getPassword());
+      if (user != null) {
+        passwordValidationCallback.setResult(true);
+        passwordValidationCallback.getSubject().getPrincipals().addAll(user.getSubject().getPrincipals());
+        passwordValidationCallback.getSubject().getPrivateCredentials().add(user);
+      }
+    }
+ else     if (callback instanceof CredentialValidationCallback) {
+      CredentialValidationCallback credentialValidationCallback=(CredentialValidationCallback)callback;
+      Subject subject=credentialValidationCallback.getSubject();
+      LoginCallback loginCallback=new LoginCallbackImpl(subject,credentialValidationCallback.getUsername(),credentialValidationCallback.getCredential());
+      UserIdentity user=_loginService.login(credentialValidationCallback.getUsername(),credentialValidationCallback.getCredential());
+      if (user != null) {
+        credentialValidationCallback.setResult(true);
+        credentialValidationCallback.getSubject().getPrincipals().addAll(user.getSubject().getPrincipals());
+        credentialValidationCallback.getSubject().getPrivateCredentials().add(user);
+      }
+    }
+ else     if (callback instanceof CertStoreCallback) {
+    }
+ else     if (callback instanceof PrivateKeyCallback) {
+    }
+ else     if (callback instanceof SecretKeyCallback) {
+    }
+ else     if (callback instanceof TrustStoreCallback) {
+    }
+ else {
+      throw new UnsupportedCallbackException(callback);
+    }
+  }
+}

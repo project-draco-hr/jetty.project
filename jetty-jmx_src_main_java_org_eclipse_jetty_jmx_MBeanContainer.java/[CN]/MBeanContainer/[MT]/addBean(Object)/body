@@ -1,0 +1,43 @@
+{
+  try {
+    if (obj == null || _beans.containsKey(obj))     return;
+    Object mbean=ObjectMBean.mbeanFor(obj);
+    if (mbean == null)     return;
+    ObjectName oname=null;
+    if (mbean instanceof ObjectMBean) {
+      ((ObjectMBean)mbean).setMBeanContainer(this);
+      oname=((ObjectMBean)mbean).getObjectName();
+    }
+    if (oname == null) {
+      String type=obj.getClass().getName().toLowerCase();
+      int dot=type.lastIndexOf('.');
+      if (dot >= 0)       type=type.substring(dot + 1);
+      String name=null;
+      if (mbean instanceof ObjectMBean) {
+        name=((ObjectMBean)mbean).getObjectNameBasis();
+        if (name != null) {
+          name=name.replace('\\','/');
+          if (name.endsWith("/"))           name=name.substring(0,name.length() - 1);
+          int slash=name.lastIndexOf('/',name.length() - 1);
+          if (slash > 0)           name=name.substring(slash + 1);
+          dot=name.lastIndexOf('.');
+          if (dot > 0)           name=name.substring(0,dot);
+          name=name.replace(':','_').replace('*','_').replace('?','_').replace('=','_').replace(',','_').replace(' ','_');
+        }
+      }
+      String basis=(name != null && name.length() > 1) ? ("type=" + type + ",name="+ name) : ("type=" + type);
+      Integer count=(Integer)_unique.get(basis);
+      count=TypeUtil.newInteger(count == null ? 0 : (1 + count.intValue()));
+      _unique.put(basis,count);
+      String domain=_domain;
+      if (domain == null)       domain=obj.getClass().getPackage().getName();
+      oname=ObjectName.getInstance(domain + ":" + basis+ ",id="+ count);
+    }
+    ObjectInstance oinstance=_server.registerMBean(mbean,oname);
+    Log.debug("Registered {}",oinstance.getObjectName());
+    _beans.put(obj,oinstance.getObjectName());
+  }
+ catch (  Exception e) {
+    Log.warn("bean: " + obj,e);
+  }
+}

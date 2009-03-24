@@ -1,0 +1,19 @@
+{
+  _memoryBean=ManagementFactory.getMemoryMXBean();
+  ServletContext context=getServletContext();
+  ContextHandler.Context scontext=(ContextHandler.Context)context;
+  _server=scontext.getContextHandler().getServer();
+  Handler handler=_server.getChildHandlerByClass(StatisticsHandler.class);
+  if (handler != null) {
+    _statsHandler=(StatisticsHandler)handler;
+  }
+ else {
+    Log.info("Installing Statistics Handler");
+    _statsHandler=new StatisticsHandler();
+    _server.addHandler(_statsHandler);
+  }
+  _connectors=_server.getConnectors();
+  if (getInitParameter("restrictToLocalhost") != null) {
+    _restrictToLocalhost="true".equals(getInitParameter("restrictToLocalhost"));
+  }
+}

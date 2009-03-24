@@ -1,0 +1,43 @@
+{
+  try {
+    if (getCallbackHandler() == null) {
+      throw new LoginException("No callback handler");
+    }
+    Callback[] callbacks=configureCallbacks();
+    getCallbackHandler().handle(callbacks);
+    String webUserName=((NameCallback)callbacks[0]).getName();
+    Object webCredential=((ObjectCallback)callbacks[1]).getObject();
+    if (webUserName == null || webCredential == null) {
+      setAuthenticated(false);
+      return isAuthenticated();
+    }
+    if (_forceBindingLogin) {
+      return bindingLogin(webUserName,webCredential);
+    }
+    UserInfo userInfo=getUserInfo(webUserName);
+    if (userInfo == null) {
+      setAuthenticated(false);
+      return false;
+    }
+    setCurrentUser(new JAASUserInfo(userInfo));
+    if (webCredential instanceof String) {
+      return credentialLogin(Credential.getCredential((String)webCredential));
+    }
+    return credentialLogin(webCredential);
+  }
+ catch (  UnsupportedCallbackException e) {
+    throw new LoginException("Error obtaining callback information.");
+  }
+catch (  IOException e) {
+    if (_debug) {
+      e.printStackTrace();
+    }
+    throw new LoginException("IO Error performing login.");
+  }
+catch (  Exception e) {
+    if (_debug) {
+      e.printStackTrace();
+    }
+    throw new LoginException("Error obtaining user info.");
+  }
+}

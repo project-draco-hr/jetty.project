@@ -1,0 +1,40 @@
+{
+  try {
+    String response;
+    int offset=0;
+    connector.reopen();
+    String byteRangeHeader="";
+    if (reqRanges != null) {
+      byteRangeHeader="Range: " + reqRanges + "\n";
+    }
+    response=connector.getResponses("GET /" + path + " HTTP/1.1\n"+ "Host: localhost\n"+ byteRangeHeader+ "Connection: close\n"+ "\n");
+switch (expectedStatus) {
+case 200:
+{
+        offset=checkContains(response,offset,"HTTP/1.1 200 OK\r\n",tname + ".1. proper 200 OK status code");
+        break;
+      }
+case 206:
+{
+      offset=checkContains(response,offset,"HTTP/1.1 206 Partial Content\r\n",tname + ".1. proper 206 Partial Content status code");
+      break;
+    }
+case 416:
+{
+    offset=checkContains(response,offset,"HTTP/1.1 416 Requested Range Not Satisfiable\r\n",tname + ".1. proper 416 Requested Range not Satisfiable status code");
+    break;
+  }
+}
+if (expectedRange != null) {
+String expectedContentRange="Content-Range: bytes " + expectedRange + "\r\n";
+offset=checkContains(response,offset,expectedContentRange,tname + ".2. _content range " + expectedRange);
+}
+if (expectedStatus == 200 || expectedStatus == 206) {
+offset=checkContains(response,offset,expectedData,tname + ".3. subrange data: \"" + expectedData+ "\"");
+}
+}
+ catch (Exception e) {
+e.printStackTrace();
+assertTrue(false);
+}
+}

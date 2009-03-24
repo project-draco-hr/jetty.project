@@ -1,0 +1,65 @@
+{
+  boolean more_in_buffer=true;
+  boolean progress=true;
+  try {
+    _handling=true;
+    setCurrentConnection(this);
+    while (more_in_buffer) {
+      try {
+        if (_request._async.isAsync()) {
+          Log.debug("resume request",_request);
+          if (!_request._async.isComplete())           handleRequest();
+ else           if (!_parser.isComplete())           progress|=_parser.parseAvailable() > 0;
+          if (_generator.isCommitted() && !_generator.isComplete())           _generator.flushBuffer();
+          if (_endp.isBufferingOutput())           _endp.flush();
+        }
+ else {
+          if (!_parser.isComplete())           progress|=_parser.parseAvailable() > 0;
+          while (_generator.isCommitted() && !_generator.isComplete()) {
+            long written=_generator.flushBuffer();
+            if (written <= 0)             break;
+            progress=true;
+            if (_endp.isBufferingOutput())             _endp.flush();
+          }
+          if (_endp.isBufferingOutput()) {
+            _endp.flush();
+            if (!_endp.isBufferingOutput())             progress=true;
+          }
+          if (!progress)           return;
+          progress=false;
+        }
+      }
+ catch (      HttpException e) {
+        if (Log.isDebugEnabled()) {
+          Log.debug("uri=" + _uri);
+          Log.debug("fields=" + _requestFields);
+          Log.debug(e);
+        }
+        _generator.sendError(e.getStatus(),e.getReason(),null,true);
+        _parser.reset(true);
+        _endp.close();
+        throw e;
+      }
+ finally {
+        more_in_buffer=_parser.isMoreInBuffer() || _endp.isBufferingInput();
+        if (_parser.isComplete() && _generator.isComplete() && !_endp.isBufferingOutput()) {
+          if (!_generator.isPersistent()) {
+            _parser.reset(true);
+            more_in_buffer=false;
+          }
+          reset(!more_in_buffer);
+          progress=true;
+        }
+        if (_request.isAsyncStarted()) {
+          Log.debug("return with suspended request");
+          more_in_buffer=false;
+        }
+ else         if (_generator.isCommitted() && !_generator.isComplete() && _endp instanceof SelectChannelEndPoint)         ((SelectChannelEndPoint)_endp).setWritable(false);
+      }
+    }
+  }
+  finally {
+    setCurrentConnection(null);
+    _handling=false;
+  }
+}

@@ -1,0 +1,42 @@
+{
+  Connection connection=null;
+  try {
+    initDb();
+    connection=getConnection();
+    PreparedStatement statement=connection.prepareStatement(_userSql);
+    statement.setObject(1,userName);
+    ResultSet rs=statement.executeQuery();
+    if (rs.next()) {
+      int key=rs.getInt(_userTableKey);
+      String credentials=rs.getString(_userTablePasswordField);
+      statement.close();
+      statement=connection.prepareStatement(_roleSql);
+      statement.setInt(1,key);
+      rs=statement.executeQuery();
+      List<String> roles=new ArrayList<String>();
+      while (rs.next())       roles.add(rs.getString(_roleTableRoleField));
+      statement.close();
+      return putUser(userName,new Password(credentials),roles.toArray(new String[roles.size()]));
+    }
+  }
+ catch (  NamingException e) {
+    Log.warn("No datasource for " + _jndiName,e);
+  }
+catch (  SQLException e) {
+    Log.warn("Problem loading user info for " + userName,e);
+  }
+ finally {
+    if (connection != null) {
+      try {
+        connection.close();
+      }
+ catch (      SQLException x) {
+        Log.warn("Problem closing connection",x);
+      }
+ finally {
+        connection=null;
+      }
+    }
+  }
+  return null;
+}

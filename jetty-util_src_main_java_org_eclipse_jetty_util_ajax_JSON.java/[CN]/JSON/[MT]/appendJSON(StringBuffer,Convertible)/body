@@ -1,0 +1,52 @@
+{
+  final char[] c={'{'};
+  converter.toJSON(new Output(){
+    public void add(    Object obj){
+      if (c[0] == 0)       throw new IllegalStateException();
+      append(buffer,obj);
+      c[0]=0;
+    }
+    public void addClass(    Class type){
+      if (c[0] == 0)       throw new IllegalStateException();
+      buffer.append(c);
+      buffer.append("\"class\":");
+      append(buffer,type.getName());
+      c[0]=',';
+    }
+    public void add(    String name,    Object value){
+      if (c[0] == 0)       throw new IllegalStateException();
+      buffer.append(c);
+      QuotedStringTokenizer.quote(buffer,name);
+      buffer.append(':');
+      append(buffer,value);
+      c[0]=',';
+    }
+    public void add(    String name,    double value){
+      if (c[0] == 0)       throw new IllegalStateException();
+      buffer.append(c);
+      QuotedStringTokenizer.quote(buffer,name);
+      buffer.append(':');
+      appendNumber(buffer,new Double(value));
+      c[0]=',';
+    }
+    public void add(    String name,    long value){
+      if (c[0] == 0)       throw new IllegalStateException();
+      buffer.append(c);
+      QuotedStringTokenizer.quote(buffer,name);
+      buffer.append(':');
+      appendNumber(buffer,TypeUtil.newLong(value));
+      c[0]=',';
+    }
+    public void add(    String name,    boolean value){
+      if (c[0] == 0)       throw new IllegalStateException();
+      buffer.append(c);
+      QuotedStringTokenizer.quote(buffer,name);
+      buffer.append(':');
+      appendBoolean(buffer,value ? Boolean.TRUE : Boolean.FALSE);
+      c[0]=',';
+    }
+  }
+);
+  if (c[0] == '{')   buffer.append("{}");
+ else   if (c[0] != 0)   buffer.append("}");
+}

@@ -1,0 +1,60 @@
+{
+  List<Method> methods=_finder.getMethodsForAnnotation(javax.annotation.Resource.class);
+  for (  Method m : methods) {
+    if (!isServletType(m.getDeclaringClass())) {
+      Log.debug("Ignoring @Resource annotation on on-servlet type method " + m.getName());
+      continue;
+    }
+    Resource resource=(Resource)m.getAnnotation(Resource.class);
+    if (resource == null)     continue;
+    if (Modifier.isStatic(m.getModifiers()))     throw new IllegalStateException(m + " cannot be static");
+    if (!IntrospectionUtil.isJavaBeanCompliantSetter(m))     throw new IllegalStateException(m + " is not a java bean compliant setter method");
+    String name=m.getName().substring(3);
+    name=name.substring(0,1).toLowerCase() + name.substring(1);
+    name=m.getDeclaringClass().getCanonicalName() + "/" + name;
+    name=(resource.name() != null && !resource.name().trim().equals("") ? resource.name() : name);
+    String mappedName=(resource.mappedName() != null && !resource.mappedName().trim().equals("") ? resource.mappedName() : null);
+    Class type=m.getParameterTypes()[0];
+    Resource.AuthenticationType auth=resource.authenticationType();
+    boolean shareable=resource.shareable();
+    if ((resource.type() != null) && !resource.type().equals(Object.class) && (!IntrospectionUtil.isTypeCompatible(type,resource.type(),false)))     throw new IllegalStateException("@Resource incompatible type=" + resource.type() + " with method param="+ type+ " for "+ m);
+    Injection webXmlInjection=_injections.getInjection(m.getDeclaringClass(),m);
+    if (webXmlInjection == null) {
+      try {
+        boolean bound=org.eclipse.jetty.plus.jndi.NamingEntryUtil.bindToENC(_webApp,name,mappedName);
+        if (!bound)         bound=org.eclipse.jetty.plus.jndi.NamingEntryUtil.bindToENC(_webApp.getServer(),name,mappedName);
+        if (!bound)         bound=org.eclipse.jetty.plus.jndi.NamingEntryUtil.bindToENC(null,name,mappedName);
+        if (!bound) {
+          try {
+            InitialContext ic=new InitialContext();
+            String nameInEnvironment=(mappedName != null ? mappedName : name);
+            ic.lookup("java:comp/env/" + nameInEnvironment);
+            bound=true;
+          }
+ catch (          NameNotFoundException e) {
+            bound=false;
+          }
+        }
+        if (bound) {
+          Log.debug("Bound " + (mappedName == null ? name : mappedName) + " as "+ name);
+          Injection injection=new Injection();
+          injection.setTargetClass(m.getDeclaringClass());
+          injection.setJndiName(name);
+          injection.setMappingName(mappedName);
+          injection.setTarget(m);
+          _injections.add(injection);
+        }
+ else         if (!isEnvEntryType(type)) {
+          throw new IllegalStateException("No resource at " + (mappedName == null ? name : mappedName));
+        }
+      }
+ catch (      NamingException e) {
+        if (!isEnvEntryType(type))         throw new IllegalStateException(e);
+      }
+    }
+ else {
+      Object value=webXmlInjection.lookupInjectedValue();
+      if (!IntrospectionUtil.isTypeCompatible(type,value.getClass(),false))       throw new IllegalStateException("Type of field=" + type + " is not compatible with Resource type="+ value.getClass());
+    }
+  }
+}

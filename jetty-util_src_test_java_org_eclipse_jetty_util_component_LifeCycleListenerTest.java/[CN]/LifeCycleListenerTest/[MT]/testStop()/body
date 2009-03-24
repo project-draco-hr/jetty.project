@@ -1,0 +1,23 @@
+{
+  TestLifeCycle lifecycle=new TestLifeCycle();
+  TestListener listener=new TestListener();
+  lifecycle.addLifeCycleListener(listener);
+  lifecycle.start();
+  ((StdErrLog)Log.getLog()).setHideStacks(true);
+  lifecycle.setCause(cause);
+  try {
+    lifecycle.stop();
+    assertTrue(false);
+  }
+ catch (  Exception e) {
+    assertEquals(cause,e);
+    assertEquals(cause,listener.getCause());
+  }
+  lifecycle.setCause(null);
+  ((StdErrLog)Log.getLog()).setHideStacks(false);
+  lifecycle.stop();
+  assertTrue("The stopping event didn't occur",listener.stopping);
+  assertTrue("The stopped event didn't occur",listener.stopped);
+  assertTrue("The stopping event must occur before the stopped event",listener.stoppingTime <= listener.stoppedTime);
+  assertTrue("The lifecycle state is not stooped",lifecycle.isStopped());
+}

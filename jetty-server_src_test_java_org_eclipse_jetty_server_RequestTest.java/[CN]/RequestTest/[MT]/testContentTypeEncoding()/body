@@ -1,0 +1,21 @@
+{
+  final ArrayList results=new ArrayList();
+  _handler._checker=new RequestTester(){
+    public boolean check(    HttpServletRequest request,    HttpServletResponse response){
+      results.add(request.getContentType());
+      results.add(request.getCharacterEncoding());
+      return true;
+    }
+  }
+;
+  _connector.getResponses("GET / HTTP/1.1\n" + "Host: whatever\n" + "Content-Type: text/test\n"+ "\n"+ "GET / HTTP/1.1\n"+ "Host: whatever\n"+ "Content-Type: text/html;charset=utf8\n"+ "\n"+ "GET / HTTP/1.1\n"+ "Host: whatever\n"+ "Content-Type: text/html; charset=\"utf8\"\n"+ "\n"+ "GET / HTTP/1.1\n"+ "Host: whatever\n"+ "Content-Type: text/html; other=foo ; blah=\"charset=wrong;\" ; charset =   \" x=z; \"   ; more=values \n"+ "\n");
+  int i=0;
+  assertEquals("text/test",results.get(i++));
+  assertEquals(null,results.get(i++));
+  assertEquals("text/html;charset=utf8",results.get(i++));
+  assertEquals("utf8",results.get(i++));
+  assertEquals("text/html; charset=\"utf8\"",results.get(i++));
+  assertEquals("utf8",results.get(i++));
+  assertTrue(((String)results.get(i++)).startsWith("text/html"));
+  assertEquals(" x=z; ",results.get(i++));
+}

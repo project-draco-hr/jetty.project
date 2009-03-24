@@ -1,0 +1,62 @@
+{
+  HttpServletRequest request=(HttpServletRequest)messageInfo.getRequestMessage();
+  HttpServletResponse response=(HttpServletResponse)messageInfo.getResponseMessage();
+  HttpSession session=request.getSession(isMandatory(messageInfo));
+  String uri=request.getPathInfo();
+  if (session == null || isLoginOrErrorPage(uri))   return AuthStatus.SUCCESS;
+  try {
+    if (uri.endsWith(__J_SECURITY_CHECK)) {
+      final String username=request.getParameter(__J_USERNAME);
+      final String password=request.getParameter(__J_PASSWORD);
+      boolean success=tryLogin(messageInfo,clientSubject,response,session,username,new Password(password));
+      if (success) {
+        String nuri=(String)session.getAttribute(__J_URI);
+        if (nuri == null || nuri.length() == 0) {
+          nuri=request.getContextPath();
+          if (nuri.length() == 0)           nuri=URIUtil.SLASH;
+        }
+        session.removeAttribute(__J_URI);
+        response.setContentLength(0);
+        response.sendRedirect(response.encodeRedirectURL(nuri));
+        return AuthStatus.SEND_CONTINUE;
+      }
+      if (Log.isDebugEnabled())       Log.debug("Form authentication FAILED for " + StringUtil.printable(username));
+      if (_formErrorPage == null) {
+        if (response != null)         response.sendError(HttpServletResponse.SC_FORBIDDEN);
+      }
+ else {
+        response.setContentLength(0);
+        response.sendRedirect(response.encodeRedirectURL(URIUtil.addPaths(request.getContextPath(),_formErrorPage)));
+      }
+      return AuthStatus.SEND_FAILURE;
+    }
+    FormCredential form_cred=(FormCredential)session.getAttribute(__J_AUTHENTICATED);
+    if (form_cred != null) {
+      boolean success=tryLogin(messageInfo,clientSubject,response,session,form_cred._jUserName,new Password(new String(form_cred._jPassword)));
+      if (success) {
+        return AuthStatus.SUCCESS;
+      }
+    }
+ else     if (ssoSource != null) {
+      UserInfo userInfo=ssoSource.fetch(request);
+      if (userInfo != null) {
+        boolean success=tryLogin(messageInfo,clientSubject,response,session,userInfo.getUserName(),new Password(new String(userInfo.getPassword())));
+        if (success) {
+          return AuthStatus.SUCCESS;
+        }
+      }
+    }
+    if (!isMandatory(messageInfo) || isLoginOrErrorPage(uri))     return AuthStatus.SUCCESS;
+    if (request.getQueryString() != null)     uri+="?" + request.getQueryString();
+    session.setAttribute(__J_URI,request.getScheme() + "://" + request.getServerName()+ ":"+ request.getServerPort()+ URIUtil.addPaths(request.getContextPath(),uri));
+    response.setContentLength(0);
+    response.sendRedirect(response.encodeRedirectURL(URIUtil.addPaths(request.getContextPath(),_formLoginPage)));
+    return AuthStatus.SEND_CONTINUE;
+  }
+ catch (  IOException e) {
+    throw new AuthException(e.getMessage());
+  }
+catch (  UnsupportedCallbackException e) {
+    throw new AuthException(e.getMessage());
+  }
+}

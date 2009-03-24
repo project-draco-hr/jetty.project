@@ -1,0 +1,67 @@
+{
+  final Request base_request=(request instanceof Request) ? ((Request)request) : HttpConnection.getCurrentConnection().getRequest();
+  if (DispatcherType.REQUEST.equals(request.getDispatcherType())) {
+    if (_read > 0) {
+      byte[] buf=new byte[_read];
+      request.getInputStream().read(buf);
+    }
+ else     if (_read < 0) {
+      InputStream in=request.getInputStream();
+      int b=in.read();
+      while (b != -1)       b=in.read();
+    }
+    if (_suspendFor > 0)     request.setAsyncTimeout(_suspendFor);
+    request.addAsyncListener(__asyncListener);
+    final AsyncContext asyncContext=request.startAsync();
+    if (_completeAfter > 0) {
+      new Thread(){
+        public void run(){
+          try {
+            Thread.sleep(_completeAfter);
+            response.getOutputStream().print("COMPLETED");
+            response.setStatus(200);
+            base_request.setHandled(true);
+            asyncContext.complete();
+          }
+ catch (          Exception e) {
+            e.printStackTrace();
+          }
+        }
+      }
+.start();
+    }
+ else     if (_completeAfter == 0) {
+      response.getOutputStream().print("COMPLETED");
+      response.setStatus(200);
+      base_request.setHandled(true);
+      asyncContext.complete();
+    }
+    if (_resumeAfter > 0) {
+      new Thread(){
+        public void run(){
+          try {
+            Thread.sleep(_resumeAfter);
+            asyncContext.dispatch();
+          }
+ catch (          Exception e) {
+            e.printStackTrace();
+          }
+        }
+      }
+.start();
+    }
+ else     if (_resumeAfter == 0) {
+      asyncContext.dispatch();
+    }
+  }
+ else   if (request.getAttribute("TIMEOUT") != null) {
+    response.setStatus(200);
+    response.getOutputStream().print("TIMEOUT");
+    base_request.setHandled(true);
+  }
+ else {
+    response.setStatus(200);
+    response.getOutputStream().print("RESUMED");
+    base_request.setHandled(true);
+  }
+}

@@ -1,0 +1,30 @@
+{
+  Properties properties=new Properties();
+  Resource resource=Resource.newResource(_config);
+  properties.load(resource.getInputStream());
+  _jdbcDriver=properties.getProperty("jdbcdriver");
+  _url=properties.getProperty("url");
+  _userName=properties.getProperty("username");
+  _password=properties.getProperty("password");
+  String _userTable=properties.getProperty("usertable");
+  _userTableKey=properties.getProperty("usertablekey");
+  String _userTableUserField=properties.getProperty("usertableuserfield");
+  _userTablePasswordField=properties.getProperty("usertablepasswordfield");
+  String _roleTable=properties.getProperty("roletable");
+  String _roleTableKey=properties.getProperty("roletablekey");
+  _roleTableRoleField=properties.getProperty("roletablerolefield");
+  String _userRoleTable=properties.getProperty("userroletable");
+  String _userRoleTableUserKey=properties.getProperty("userroletableuserkey");
+  String _userRoleTableRoleKey=properties.getProperty("userroletablerolekey");
+  _cacheTime=new Integer(properties.getProperty("cachetime"));
+  if (_jdbcDriver == null || _jdbcDriver.equals("") || _url == null || _url.equals("") || _userName == null || _userName.equals("") || _password == null || _cacheTime < 0) {
+    if (Log.isDebugEnabled())     Log.debug("UserRealm " + getName() + " has not been properly configured");
+  }
+  _cacheTime*=1000;
+  _lastHashPurge=0;
+  _userSql="select " + _userTableKey + ","+ _userTablePasswordField+ " from "+ _userTable+ " where "+ _userTableUserField+ " = ?";
+  _roleSql="select r." + _roleTableRoleField + " from "+ _roleTable+ " r, "+ _userRoleTable+ " u where u."+ _userRoleTableUserKey+ " = ?"+ " and r."+ _roleTableKey+ " = u."+ _userRoleTableRoleKey;
+  Loader.loadClass(this.getClass(),_jdbcDriver).newInstance();
+  connectDatabase();
+  super.doStart();
+}

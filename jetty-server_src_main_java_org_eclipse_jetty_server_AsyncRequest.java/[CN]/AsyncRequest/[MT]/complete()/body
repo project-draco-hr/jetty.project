@@ -1,0 +1,29 @@
+{
+  boolean dispatch=false;
+synchronized (this) {
+switch (_state) {
+case __IDLE:
+case __COMPLETE:
+case __REDISPATCHING:
+case __COMPLETING:
+case __UNSUSPENDING:
+      return;
+case __DISPATCHED:
+case __REDISPATCHED:
+    throw new IllegalStateException(this.getStatusString());
+case __SUSPENDING:
+  _state=__COMPLETING;
+return;
+case __SUSPENDED:
+_state=__COMPLETING;
+dispatch=true;
+break;
+default :
+throw new IllegalStateException(this.getStatusString());
+}
+}
+if (dispatch) {
+cancelTimeout();
+scheduleDispatch();
+}
+}

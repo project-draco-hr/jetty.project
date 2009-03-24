@@ -1,0 +1,31 @@
+{
+  if (connection.isReserved())   connection.setReserved(false);
+  if (close) {
+    try {
+      connection.close();
+    }
+ catch (    IOException e) {
+      Log.ignore(e);
+    }
+  }
+  if (!_client.isStarted())   return;
+  if (!close && connection.getEndPoint().isOpen()) {
+synchronized (this) {
+      if (_queue.size() == 0) {
+        connection.setLast(System.currentTimeMillis());
+        _idle.add(connection);
+      }
+ else {
+        HttpExchange ex=_queue.removeFirst();
+        connection.send(ex);
+      }
+      this.notifyAll();
+    }
+  }
+ else {
+synchronized (this) {
+      _connections.remove(connection);
+      if (!_queue.isEmpty())       startNewConnection();
+    }
+  }
+}

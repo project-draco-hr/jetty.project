@@ -1,0 +1,28 @@
+{
+  UserIdentity old=((Request)request).getUserIdentity();
+  UserIdentity scoped=_security.getIdentityService().associate(old,new UserIdentity.Scope(){
+    public String getContextPath(){
+      return "/";
+    }
+    public String getName(){
+      return "someServlet";
+    }
+    public Map<String,String> getRoleRefMap(){
+      Map<String,String> map=new HashMap<String,String>();
+      map.put("untranslated","user");
+      return map;
+    }
+    public String getRunAsRole(){
+      return null;
+    }
+  }
+);
+  ((Request)request).setUserIdentity(scoped);
+  try {
+    super.handle(target,request,response);
+  }
+  finally {
+    _security.getIdentityService().disassociate(scoped);
+    ((Request)request).setUserIdentity(old);
+  }
+}

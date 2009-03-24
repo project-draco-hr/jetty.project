@@ -1,0 +1,103 @@
+{
+  String path=command.getAbsolutePath();
+  File dir=command.getParentFile();
+  String scriptName=req.getRequestURI().substring(0,req.getRequestURI().length() - pathInfo.length());
+  String scriptPath=getServletContext().getRealPath(scriptName);
+  String pathTranslated=req.getPathTranslated();
+  int len=req.getContentLength();
+  if (len < 0)   len=0;
+  if ((pathTranslated == null) || (pathTranslated.length() == 0))   pathTranslated=path;
+  EnvList env=new EnvList(_env);
+  env.set("AUTH_TYPE",req.getAuthType());
+  env.set("CONTENT_LENGTH",Integer.toString(len));
+  env.set("CONTENT_TYPE",req.getContentType());
+  env.set("GATEWAY_INTERFACE","CGI/1.1");
+  if ((pathInfo != null) && (pathInfo.length() > 0)) {
+    env.set("PATH_INFO",pathInfo);
+  }
+  env.set("PATH_TRANSLATED",pathTranslated);
+  env.set("QUERY_STRING",req.getQueryString());
+  env.set("REMOTE_ADDR",req.getRemoteAddr());
+  env.set("REMOTE_HOST",req.getRemoteHost());
+  env.set("REMOTE_USER",req.getRemoteUser());
+  env.set("REQUEST_METHOD",req.getMethod());
+  env.set("SCRIPT_NAME",scriptName);
+  env.set("SCRIPT_FILENAME",scriptPath);
+  env.set("SERVER_NAME",req.getServerName());
+  env.set("SERVER_PORT",Integer.toString(req.getServerPort()));
+  env.set("SERVER_PROTOCOL",req.getProtocol());
+  env.set("SERVER_SOFTWARE",getServletContext().getServerInfo());
+  Enumeration enm=req.getHeaderNames();
+  while (enm.hasMoreElements()) {
+    String name=(String)enm.nextElement();
+    String value=req.getHeader(name);
+    env.set("HTTP_" + name.toUpperCase().replace('-','_'),value);
+  }
+  env.set("HTTPS",(req.isSecure() ? "ON" : "OFF"));
+  String execCmd=path;
+  if ((execCmd.charAt(0) != '"') && (execCmd.indexOf(" ") >= 0))   execCmd="\"" + execCmd + "\"";
+  if (_cmdPrefix != null)   execCmd=_cmdPrefix + " " + execCmd;
+  Process p=(dir == null) ? Runtime.getRuntime().exec(execCmd,env.getEnvArray()) : Runtime.getRuntime().exec(execCmd,env.getEnvArray(),dir);
+  final InputStream inFromReq=req.getInputStream();
+  final OutputStream outToCgi=p.getOutputStream();
+  final int inLength=len;
+  IO.copyThread(p.getErrorStream(),System.err);
+  new Thread(new Runnable(){
+    public void run(){
+      try {
+        if (inLength > 0)         IO.copy(inFromReq,outToCgi,inLength);
+        outToCgi.close();
+      }
+ catch (      IOException e) {
+        Log.ignore(e);
+      }
+    }
+  }
+).start();
+  OutputStream os=null;
+  try {
+    String line=null;
+    InputStream inFromCgi=p.getInputStream();
+    while ((line=getTextLineFromStream(inFromCgi)).length() > 0) {
+      if (!line.startsWith("HTTP")) {
+        int k=line.indexOf(':');
+        if (k > 0) {
+          String key=line.substring(0,k).trim();
+          String value=line.substring(k + 1).trim();
+          if ("Location".equals(key)) {
+            res.sendRedirect(value);
+          }
+ else           if ("Status".equals(key)) {
+            String[] token=value.split(" ");
+            int status=Integer.parseInt(token[0]);
+            res.setStatus(status);
+          }
+ else {
+            res.addHeader(key,value);
+          }
+        }
+      }
+    }
+    os=res.getOutputStream();
+    IO.copy(inFromCgi,os);
+    p.waitFor();
+    if (!_ignoreExitState) {
+      int exitValue=p.exitValue();
+      if (0 != exitValue) {
+        Log.warn("Non-zero exit status (" + exitValue + ") from CGI program: "+ path);
+        if (!res.isCommitted())         res.sendError(500,"Failed to exec CGI");
+      }
+    }
+  }
+ catch (  IOException e) {
+    Log.debug("CGI: Client closed connection!");
+  }
+catch (  InterruptedException ie) {
+    Log.debug("CGI: interrupted!");
+  }
+ finally {
+    if (os != null)     os.close();
+    os=null;
+    p.destroy();
+  }
+}

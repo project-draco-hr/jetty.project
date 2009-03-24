@@ -1,0 +1,27 @@
+{
+  SSLEngine engine=null;
+  try {
+    engine=_context.createSSLEngine();
+    engine.setUseClientMode(false);
+    if (_wantClientAuth)     engine.setWantClientAuth(_wantClientAuth);
+    if (_needClientAuth)     engine.setNeedClientAuth(_needClientAuth);
+    if (_excludeCipherSuites != null && _excludeCipherSuites.length > 0) {
+      List<String> excludedCSList=Arrays.asList(_excludeCipherSuites);
+      String[] enabledCipherSuites=engine.getEnabledCipherSuites();
+      List<String> enabledCSList=new ArrayList<String>(Arrays.asList(enabledCipherSuites));
+      for (      String cipherName : excludedCSList) {
+        if (enabledCSList.contains(cipherName)) {
+          enabledCSList.remove(cipherName);
+        }
+      }
+      enabledCipherSuites=enabledCSList.toArray(new String[enabledCSList.size()]);
+      engine.setEnabledCipherSuites(enabledCipherSuites);
+    }
+  }
+ catch (  Exception e) {
+    Log.warn("Error creating sslEngine -- closing this connector",e);
+    close();
+    throw new IllegalStateException(e);
+  }
+  return engine;
+}

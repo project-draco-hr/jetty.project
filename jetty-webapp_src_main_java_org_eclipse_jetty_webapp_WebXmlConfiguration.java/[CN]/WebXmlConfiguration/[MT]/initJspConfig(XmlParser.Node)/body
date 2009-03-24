@@ -1,0 +1,26 @@
+{
+  for (int i=0; i < node.size(); i++) {
+    Object o=node.get(i);
+    if (o instanceof XmlParser.Node && "taglib".equals(((XmlParser.Node)o).getTag()))     initTagLib((XmlParser.Node)o);
+  }
+  Iterator iter=node.iterator("jsp-property-group");
+  Object paths=null;
+  while (iter.hasNext()) {
+    XmlParser.Node group=(XmlParser.Node)iter.next();
+    Iterator iter2=group.iterator("url-pattern");
+    while (iter2.hasNext()) {
+      String url=((XmlParser.Node)iter2.next()).toString(false,true);
+      url=normalizePattern(url);
+      paths=LazyList.add(paths,url);
+    }
+  }
+  if (LazyList.size(paths) > 0) {
+    String jspName=getJSPServletName();
+    if (jspName != null) {
+      ServletMapping mapping=new ServletMapping();
+      mapping.setServletName(jspName);
+      mapping.setPathSpecs(LazyList.toStringArray(paths));
+      _servletMappings=LazyList.add(_servletMappings,mapping);
+    }
+  }
+}

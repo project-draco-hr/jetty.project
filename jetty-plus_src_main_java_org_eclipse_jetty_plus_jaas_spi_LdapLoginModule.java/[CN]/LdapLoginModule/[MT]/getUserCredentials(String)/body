@@ -1,0 +1,34 @@
+{
+  String ldapCredential=null;
+  SearchControls ctls=new SearchControls();
+  ctls.setCountLimit(1);
+  ctls.setDerefLinkFlag(true);
+  ctls.setSearchScope(SearchControls.SUBTREE_SCOPE);
+  String filter="(&(objectClass={0})({1}={2}))";
+  Log.debug("Searching for users with filter: \'" + filter + "\'"+ " from base dn: "+ _userBaseDn);
+  try {
+    Object[] filterArguments={_userObjectClass,_userIdAttribute,username};
+    NamingEnumeration results=_rootContext.search(_userBaseDn,filter,filterArguments,ctls);
+    Log.debug("Found user?: " + results.hasMoreElements());
+    if (!results.hasMoreElements()) {
+      throw new LoginException("User not found.");
+    }
+    SearchResult result=findUser(username);
+    Attributes attributes=result.getAttributes();
+    Attribute attribute=attributes.get(_userPasswordAttribute);
+    if (attribute != null) {
+      try {
+        byte[] value=(byte[])attribute.get();
+        ldapCredential=new String(value);
+      }
+ catch (      NamingException e) {
+        Log.debug("no password available under attribute: " + _userPasswordAttribute);
+      }
+    }
+  }
+ catch (  NamingException e) {
+    throw new LoginException("Root context binding failure.");
+  }
+  Log.debug("user cred is: " + ldapCredential);
+  return ldapCredential;
+}

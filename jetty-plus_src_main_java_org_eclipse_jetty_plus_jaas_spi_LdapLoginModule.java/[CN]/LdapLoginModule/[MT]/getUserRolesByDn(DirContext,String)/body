@@ -1,0 +1,29 @@
+{
+  ArrayList roleList=new ArrayList();
+  if (dirContext == null || _roleBaseDn == null || _roleMemberAttribute == null || _roleObjectClass == null) {
+    return roleList;
+  }
+  SearchControls ctls=new SearchControls();
+  ctls.setDerefLinkFlag(true);
+  ctls.setSearchScope(SearchControls.SUBTREE_SCOPE);
+  String filter="(&(objectClass={0})({1}={2}))";
+  Object[] filterArguments={_roleObjectClass,_roleMemberAttribute,userDn};
+  NamingEnumeration results=dirContext.search(_roleBaseDn,filter,filterArguments,ctls);
+  Log.debug("Found user roles?: " + results.hasMoreElements());
+  while (results.hasMoreElements()) {
+    SearchResult result=(SearchResult)results.nextElement();
+    Attributes attributes=result.getAttributes();
+    if (attributes == null) {
+      continue;
+    }
+    Attribute roleAttribute=attributes.get(_roleNameAttribute);
+    if (roleAttribute == null) {
+      continue;
+    }
+    NamingEnumeration roles=roleAttribute.getAll();
+    while (roles.hasMore()) {
+      roleList.add(roles.next());
+    }
+  }
+  return roleList;
+}

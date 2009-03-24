@@ -1,0 +1,65 @@
+{
+  QueuedThreadPool tp=new QueuedThreadPool();
+  tp.setMinThreads(5);
+  tp.setMaxThreads(10);
+  tp.setMaxIdleTimeMs(500);
+  tp.setThreadsPriority(Thread.NORM_PRIORITY - 1);
+  tp.start();
+  Thread.sleep(100);
+  assertEquals(5,tp.getThreads());
+  assertEquals(5,tp.getIdleThreads());
+  Thread.sleep(1000);
+  assertEquals(5,tp.getThreads());
+  assertEquals(5,tp.getIdleThreads());
+  Job job=new Job();
+  tp.dispatch(job);
+  Thread.sleep(200);
+  assertEquals(5,tp.getThreads());
+  assertEquals(4,tp.getIdleThreads());
+  job._running=false;
+  Thread.sleep(200);
+  assertEquals(5,tp.getThreads());
+  assertEquals(5,tp.getIdleThreads());
+  Job[] jobs=new Job[5];
+  for (int i=0; i < jobs.length; i++) {
+    jobs[i]=new Job();
+    tp.dispatch(jobs[i]);
+  }
+  Thread.sleep(200);
+  assertEquals(5,tp.getThreads());
+  Thread.sleep(1000);
+  assertEquals(5,tp.getThreads());
+  job=new Job();
+  tp.dispatch(job);
+  assertEquals(6,tp.getThreads());
+  job._running=false;
+  Thread.sleep(1000);
+  assertEquals(5,tp.getThreads());
+  jobs[0]._running=false;
+  Thread.sleep(1000);
+  assertEquals(5,tp.getThreads());
+  assertEquals(1,tp.getIdleThreads());
+  for (int i=1; i < jobs.length; i++)   jobs[i]._running=false;
+  Thread.sleep(1000);
+  assertEquals(5,tp.getThreads());
+  jobs=new Job[15];
+  for (int i=0; i < jobs.length; i++) {
+    jobs[i]=new Job();
+    tp.dispatch(jobs[i]);
+  }
+  assertEquals(10,tp.getThreads());
+  Thread.sleep(100);
+  assertEquals(0,tp.getIdleThreads());
+  for (int i=0; i < 9; i++)   jobs[i]._running=false;
+  Thread.sleep(1000);
+  assertTrue(tp.getThreads() < 10);
+  int threads=tp.getThreads();
+  Thread.sleep(1000);
+  assertTrue(tp.getThreads() < threads);
+  threads=tp.getThreads();
+  Thread.sleep(1000);
+  assertTrue(tp.getThreads() < threads);
+  for (int i=9; i < jobs.length; i++)   jobs[i]._running=false;
+  Thread.sleep(1000);
+  tp.stop();
+}

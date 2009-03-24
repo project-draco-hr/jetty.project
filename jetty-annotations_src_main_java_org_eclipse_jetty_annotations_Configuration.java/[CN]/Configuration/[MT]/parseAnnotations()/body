@@ -1,0 +1,54 @@
+{
+  AnnotationFinder finder=new AnnotationFinder();
+  Log.debug("Scanning system jars");
+  finder.find(getWebAppContext().getClassLoader().getParent(),true,getWebAppContext().getInitParameter(__container_pattern),false,new ClassNameResolver(){
+    public boolean isExcluded(    String name){
+      if (getWebAppContext().isSystemClass(name))       return false;
+      if (getWebAppContext().isServerClass(name))       return true;
+      return false;
+    }
+    public boolean shouldOverride(    String name){
+      if (getWebAppContext().isParentLoaderPriority())       return true;
+      return false;
+    }
+  }
+);
+  Log.debug("Scanning WEB-INF/lib jars");
+  finder.find(getWebAppContext().getClassLoader(),false,getWebAppContext().getInitParameter(__web_inf_pattern),true,new ClassNameResolver(){
+    public boolean isExcluded(    String name){
+      if (getWebAppContext().isSystemClass(name))       return true;
+      if (getWebAppContext().isServerClass(name))       return false;
+      return false;
+    }
+    public boolean shouldOverride(    String name){
+      if (getWebAppContext().isParentLoaderPriority())       return false;
+      return true;
+    }
+  }
+);
+  Log.debug("Scanning classes in WEB-INF/classes");
+  finder.find(_context.getWebInf().addPath("classes/"),new ClassNameResolver(){
+    public boolean isExcluded(    String name){
+      if (getWebAppContext().isSystemClass(name))       return true;
+      if (getWebAppContext().isServerClass(name))       return false;
+      return false;
+    }
+    public boolean shouldOverride(    String name){
+      if (getWebAppContext().isParentLoaderPriority())       return false;
+      return true;
+    }
+  }
+);
+  AnnotationProcessor processor=new AnnotationProcessor(getWebAppContext(),finder,_runAsCollection,_injections,_callbacks,LazyList.getList(_servlets),LazyList.getList(_filters),LazyList.getList(_listeners),LazyList.getList(_servletMappings),LazyList.getList(_filterMappings));
+  processor.process();
+  _servlets=processor.getServlets();
+  _filters=processor.getFilters();
+  _servletMappings=processor.getServletMappings();
+  _filterMappings=processor.getFilterMappings();
+  _listeners=processor.getListeners();
+  _servletHandler.setFilters((FilterHolder[])LazyList.toArray(_filters,FilterHolder.class));
+  _servletHandler.setFilterMappings((FilterMapping[])LazyList.toArray(_filterMappings,FilterMapping.class));
+  _servletHandler.setServlets((ServletHolder[])LazyList.toArray(_servlets,ServletHolder.class));
+  _servletHandler.setServletMappings((ServletMapping[])LazyList.toArray(_servletMappings,ServletMapping.class));
+  getWebAppContext().setEventListeners((EventListener[])LazyList.toArray(_listeners,EventListener.class));
+}

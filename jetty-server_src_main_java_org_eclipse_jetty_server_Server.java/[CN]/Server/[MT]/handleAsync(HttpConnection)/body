@@ -1,0 +1,26 @@
+{
+  final AsyncRequest async=connection.getRequest().getAsyncRequest();
+  final AsyncRequest.AsyncEventState state=async.getAsyncEventState();
+  final Request base_request=connection.getRequest();
+  final String path=state.getPath();
+  if (path != null) {
+    base_request.setAttribute(AsyncContext.ASYNC_REQUEST_URI,base_request.getRequestURI());
+    base_request.setAttribute(AsyncContext.ASYNC_QUERY_STRING,base_request.getQueryString());
+    base_request.setAttribute(AsyncContext.ASYNC_CONTEXT_PATH,state.getSuspendedContext().getContextPath());
+    final String contextPath=state.getServletContext().getContextPath();
+    HttpURI uri=new HttpURI(URIUtil.addPaths(contextPath,path));
+    base_request.setUri(uri);
+    base_request.setRequestURI(null);
+    base_request.setPathInfo(base_request.getRequestURI());
+    base_request.setQueryString(uri.getQuery());
+  }
+  final String target=base_request.getPathInfo();
+  final HttpServletRequest request=(HttpServletRequest)async.getRequest();
+  final HttpServletResponse response=(HttpServletResponse)async.getResponse();
+  if (Log.isDebugEnabled()) {
+    Log.debug("REQUEST " + target + " on "+ connection);
+    handle(target,request,response);
+    Log.debug("RESPONSE " + target + "  "+ connection.getResponse().getStatus());
+  }
+ else   handle(target,request,response);
+}

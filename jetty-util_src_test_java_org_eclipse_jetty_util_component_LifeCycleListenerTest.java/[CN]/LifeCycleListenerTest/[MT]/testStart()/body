@@ -1,0 +1,22 @@
+{
+  TestLifeCycle lifecycle=new TestLifeCycle();
+  TestListener listener=new TestListener();
+  lifecycle.addLifeCycleListener(listener);
+  ((StdErrLog)Log.getLog()).setHideStacks(true);
+  lifecycle.setCause(cause);
+  try {
+    lifecycle.start();
+    assertTrue(false);
+  }
+ catch (  Exception e) {
+    assertEquals(cause,e);
+    assertEquals(cause,listener.getCause());
+  }
+  lifecycle.setCause(null);
+  ((StdErrLog)Log.getLog()).setHideStacks(false);
+  lifecycle.start();
+  assertTrue("The staring event didn't occur",listener.starting);
+  assertTrue("The started event didn't occur",listener.started);
+  assertTrue("The starting event must occur before the started event",listener.startingTime <= listener.startedTime);
+  assertTrue("The lifecycle state is not started",lifecycle.isStarted());
+}

@@ -1,0 +1,25 @@
+{
+  try {
+    String response;
+    int offset=0;
+    connector.reopen();
+    offset=0;
+    connector.reopen();
+    response=connector.getResponses("GET /R1 HTTP/1.1\n" + "Host: localhost\n" + "\n");
+    offset=checkContains(response,offset,"HTTP/1.1 200 OK\015\012","8.1.2 default") + 10;
+    checkContains(response,offset,"Content-Length: ","8.1.2 default");
+    offset=0;
+    connector.reopen();
+    response=connector.getResponses("GET /R1 HTTP/1.1\n" + "Host: localhost\n" + "\n"+ "GET /R2 HTTP/1.1\n"+ "Host: localhost\n"+ "Connection: close\n"+ "\n"+ "GET /R3 HTTP/1.1\n"+ "Host: localhost\n"+ "Connection: close\n"+ "\n");
+    offset=checkContains(response,offset,"HTTP/1.1 200 OK\015\012","8.1.2 default") + 1;
+    offset=checkContains(response,offset,"/R1","8.1.2 default") + 1;
+    assertEquals("8.1.2.1 close",-1,response.indexOf("/R3"));
+    offset=checkContains(response,offset,"HTTP/1.1 200 OK\015\012","8.1.2.2 pipeline") + 11;
+    offset=checkContains(response,offset,"Connection: close","8.1.2.2 pipeline") + 1;
+    offset=checkContains(response,offset,"/R2","8.1.2.1 close") + 3;
+  }
+ catch (  Exception e) {
+    e.printStackTrace();
+    assertTrue(false);
+  }
+}

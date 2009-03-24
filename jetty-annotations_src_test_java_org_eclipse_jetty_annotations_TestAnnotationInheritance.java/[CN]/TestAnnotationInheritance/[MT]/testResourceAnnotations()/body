@@ -1,0 +1,79 @@
+{
+  Server server=new Server();
+  WebAppContext wac=new WebAppContext();
+  wac.setServer(server);
+  InitialContext ic=new InitialContext();
+  Context comp=(Context)ic.lookup("java:comp");
+  Context env=comp.createSubcontext("env");
+  org.eclipse.jetty.plus.jndi.EnvEntry resourceA=new org.eclipse.jetty.plus.jndi.EnvEntry(server,"resA",new Integer(1000),false);
+  org.eclipse.jetty.plus.jndi.EnvEntry resourceB=new org.eclipse.jetty.plus.jndi.EnvEntry(server,"resB",new Integer(2000),false);
+  classNames.add(ResourceA.class.getName());
+  classNames.add(ResourceB.class.getName());
+  AnnotationFinder finder=new AnnotationFinder();
+  finder.find(classNames,new ClassNameResolver(){
+    public boolean isExcluded(    String name){
+      return false;
+    }
+    public boolean shouldOverride(    String name){
+      return false;
+    }
+  }
+);
+  List<Class<?>> resourcesClasses=finder.getClassesForAnnotation(Resources.class);
+  assertNotNull(resourcesClasses);
+  assertEquals(1,resourcesClasses.size());
+  List<Class<?>> annotatedClasses=finder.getClassesForAnnotation(Resource.class);
+  List<Method> annotatedMethods=finder.getMethodsForAnnotation(Resource.class);
+  List<Field> annotatedFields=finder.getFieldsForAnnotation(Resource.class);
+  assertNotNull(annotatedClasses);
+  assertEquals(0,annotatedClasses.size());
+  assertEquals(3,annotatedMethods.size());
+  assertEquals(6,annotatedFields.size());
+  InjectionCollection injections=new InjectionCollection();
+  LifeCycleCallbackCollection callbacks=new LifeCycleCallbackCollection();
+  RunAsCollection runAses=new RunAsCollection();
+  AnnotationProcessor processor=new AnnotationProcessor(wac,finder,runAses,injections,callbacks,Collections.EMPTY_LIST,Collections.EMPTY_LIST,Collections.EMPTY_LIST,Collections.EMPTY_LIST,Collections.EMPTY_LIST);
+  processor.process();
+  assertEquals(resourceB.getObjectToBind(),env.lookup("myf"));
+  assertEquals(resourceA.getObjectToBind(),env.lookup("mye"));
+  assertEquals(resourceA.getObjectToBind(),env.lookup("resA"));
+  assertEquals(resourceA.getObjectToBind(),env.lookup("org.eclipse.jetty.annotations.resources.ResourceA/g"));
+  assertEquals(resourceA.getObjectToBind(),env.lookup("org.eclipse.jetty.annotations.resources.ResourceA/h"));
+  assertEquals(resourceB.getObjectToBind(),env.lookup("org.eclipse.jetty.annotations.resources.ResourceB/f"));
+  assertEquals(resourceB.getObjectToBind(),env.lookup("org.eclipse.jetty.annotations.resources.ResourceA/n"));
+  assertNotNull(injections);
+  List<Injection> fieldInjections=injections.getFieldInjections(ResourceB.class);
+  assertNotNull(fieldInjections);
+  Iterator itor=fieldInjections.iterator();
+  System.err.println("Field injections:");
+  while (itor.hasNext()) {
+    System.err.println(itor.next());
+  }
+  assertEquals(1,fieldInjections.size());
+  fieldInjections=injections.getFieldInjections(ResourceA.class);
+  assertNotNull(fieldInjections);
+  assertEquals(4,fieldInjections.size());
+  List<Injection> methodInjections=injections.getMethodInjections(ResourceB.class);
+  itor=methodInjections.iterator();
+  System.err.println("Method injections:");
+  while (itor.hasNext())   System.err.println(itor.next());
+  assertNotNull(methodInjections);
+  assertEquals(0,methodInjections.size());
+  methodInjections=injections.getMethodInjections(ResourceA.class);
+  assertNotNull(methodInjections);
+  assertEquals(3,methodInjections.size());
+  ResourceB binst=new ResourceB();
+  injections.inject(binst);
+  Field f=ResourceB.class.getDeclaredField("f");
+  f.setAccessible(true);
+  assertEquals(resourceB.getObjectToBind(),f.get(binst));
+  f=ResourceA.class.getDeclaredField("g");
+  f.setAccessible(true);
+  assertEquals(resourceA.getObjectToBind(),f.get(binst));
+  f=ResourceA.class.getDeclaredField("j");
+  f.setAccessible(true);
+  assertEquals(resourceA.getObjectToBind(),f.get(binst));
+  f=ResourceA.class.getDeclaredField("n");
+  f.setAccessible(true);
+  assertEquals(resourceB.getObjectToBind(),f.get(binst));
+}

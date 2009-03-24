@@ -1,0 +1,42 @@
+{
+  boolean dispatched=true;
+  do {
+    try {
+      _connection.handle();
+    }
+ catch (    ClosedChannelException e) {
+      Log.ignore(e);
+    }
+catch (    EofException e) {
+      Log.debug("EOF",e);
+      try {
+        close();
+      }
+ catch (      IOException e2) {
+        Log.ignore(e2);
+      }
+    }
+catch (    HttpException e) {
+      Log.debug("BAD",e);
+      try {
+        close();
+      }
+ catch (      IOException e2) {
+        Log.ignore(e2);
+      }
+    }
+catch (    Throwable e) {
+      Log.warn("handle failed",e);
+      try {
+        close();
+      }
+ catch (      IOException e2) {
+        Log.ignore(e2);
+      }
+    }
+ finally {
+      dispatched=!undispatch();
+    }
+  }
+ while (dispatched);
+}

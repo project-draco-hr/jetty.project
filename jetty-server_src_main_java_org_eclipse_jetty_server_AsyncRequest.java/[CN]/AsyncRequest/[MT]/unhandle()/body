@@ -1,0 +1,36 @@
+{
+synchronized (this) {
+switch (_state) {
+case __REDISPATCHED:
+case __DISPATCHED:
+      _state=__UNCOMPLETED;
+    return true;
+case __IDLE:
+  throw new IllegalStateException(this.getStatusString());
+case __SUSPENDING:
+_initial=false;
+_state=__SUSPENDED;
+scheduleTimeout();
+if (_state == __SUSPENDED) return true;
+ else if (_state == __COMPLETING) {
+_state=__UNCOMPLETED;
+return true;
+}
+_initial=false;
+_state=__REDISPATCHED;
+return false;
+case __REDISPATCHING:
+_initial=false;
+_state=__REDISPATCHED;
+return false;
+case __COMPLETING:
+_initial=false;
+_state=__UNCOMPLETED;
+return true;
+case __SUSPENDED:
+case __UNSUSPENDING:
+default :
+throw new IllegalStateException(this.getStatusString());
+}
+}
+}

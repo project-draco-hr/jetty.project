@@ -1,0 +1,35 @@
+{
+  Request baseRequest=(request instanceof Request) ? (Request)request : HttpConnection.getCurrentConnection().getRequest();
+  DispatcherType dispatch=request.getDispatcherType();
+  if (!isStarted() || _shutdown || (DispatcherType.REQUEST.equals(dispatch) && baseRequest.isHandled()))   return;
+  if (_vhosts != null && _vhosts.length > 0) {
+    String vhost=normalizeHostname(request.getServerName());
+    boolean match=false;
+    for (int i=0; !match && i < _vhosts.length; i++) {
+      String contextVhost=_vhosts[i];
+      if (contextVhost == null)       continue;
+      if (contextVhost.startsWith("*.")) {
+        match=contextVhost.regionMatches(true,2,vhost,vhost.indexOf(".") + 1,contextVhost.length() - 2);
+      }
+ else       match=contextVhost.equalsIgnoreCase(vhost);
+    }
+    if (!match)     return;
+  }
+  if (_connectors != null && _connectors.size() > 0) {
+    String connector=HttpConnection.getCurrentConnection().getConnector().getName();
+    if (connector == null || !_connectors.contains(connector))     return;
+  }
+  if (_compactPath)   target=URIUtil.compactPath(target);
+  if (target.startsWith(_contextPath)) {
+    if (_contextPath.length() == target.length() && _contextPath.length() > 1 && !_allowNullPathInfo) {
+      baseRequest.setHandled(true);
+      if (request.getQueryString() != null)       response.sendRedirect(URIUtil.addPaths(request.getRequestURI(),URIUtil.SLASH) + "?" + request.getQueryString());
+ else       response.sendRedirect(URIUtil.addPaths(request.getRequestURI(),URIUtil.SLASH));
+      return;
+    }
+  }
+ else {
+    return;
+  }
+  doHandle(target,baseRequest,request,response);
+}

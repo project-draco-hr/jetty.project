@@ -1,0 +1,15 @@
+{
+  final UserIdentity identity;
+  if (info instanceof UserIdentity)   identity=(UserIdentity)info;
+ else {
+    Credential credential=(info instanceof Credential) ? (Credential)info : Credential.getCredential(info.toString());
+    Principal userPrincipal=new KnownUser(userName,credential);
+    Subject subject=new Subject();
+    subject.getPrincipals().add(userPrincipal);
+    subject.getPrivateCredentials().add(credential);
+    subject.setReadOnly();
+    identity=_identityService.newUserIdentity(subject,userPrincipal,UserIdentity.NO_ROLES);
+  }
+  _users.put(userName,identity);
+  return identity;
+}

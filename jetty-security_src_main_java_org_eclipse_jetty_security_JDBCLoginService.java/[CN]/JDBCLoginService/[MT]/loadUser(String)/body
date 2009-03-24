@@ -1,0 +1,26 @@
+{
+  try {
+    if (null == _con)     connectDatabase();
+    if (null == _con)     throw new SQLException("Can't connect to database");
+    PreparedStatement stat=_con.prepareStatement(_userSql);
+    stat.setObject(1,username);
+    ResultSet rs=stat.executeQuery();
+    if (rs.next()) {
+      int key=rs.getInt(_userTableKey);
+      String credentials=rs.getString(_userTablePasswordField);
+      stat.close();
+      stat=_con.prepareStatement(_roleSql);
+      stat.setInt(1,key);
+      rs=stat.executeQuery();
+      List<String> roles=new ArrayList<String>();
+      while (rs.next())       roles.add(rs.getString(_roleTableRoleField));
+      stat.close();
+      return putUser(username,new Password(credentials),roles.toArray(new String[roles.size()]));
+    }
+  }
+ catch (  SQLException e) {
+    Log.warn("UserRealm " + getName() + " could not load user information from database",e);
+    connectDatabase();
+  }
+  return null;
+}

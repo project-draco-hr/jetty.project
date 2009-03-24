@@ -1,0 +1,81 @@
+{
+  long content_length=resource.length();
+  OutputStream out=null;
+  try {
+    out=response.getOutputStream();
+  }
+ catch (  IllegalStateException e) {
+    out=new WriterOutputStream(response.getWriter());
+  }
+  if (reqRanges == null || !reqRanges.hasMoreElements()) {
+    if (include) {
+      resource.writeTo(out,0,content_length);
+    }
+ else {
+      if (out instanceof HttpConnection.Output) {
+        if (_cacheControl != null) {
+          if (response instanceof Response)           ((Response)response).getHttpFields().put(HttpHeaders.CACHE_CONTROL_BUFFER,_cacheControl);
+ else           response.setHeader(HttpHeaders.CACHE_CONTROL,_cacheControl.toString());
+        }
+        ((HttpConnection.Output)out).sendContent(content);
+      }
+ else {
+        writeHeaders(response,content,content_length);
+        resource.writeTo(out,0,content_length);
+      }
+    }
+  }
+ else {
+    List ranges=InclusiveByteRange.satisfiableRanges(reqRanges,content_length);
+    if (ranges == null || ranges.size() == 0) {
+      writeHeaders(response,content,content_length);
+      response.setStatus(HttpServletResponse.SC_REQUESTED_RANGE_NOT_SATISFIABLE);
+      response.setHeader(HttpHeaders.CONTENT_RANGE,InclusiveByteRange.to416HeaderRangeString(content_length));
+      resource.writeTo(out,0,content_length);
+      return;
+    }
+    if (ranges.size() == 1) {
+      InclusiveByteRange singleSatisfiableRange=(InclusiveByteRange)ranges.get(0);
+      long singleLength=singleSatisfiableRange.getSize(content_length);
+      writeHeaders(response,content,singleLength);
+      response.setStatus(HttpServletResponse.SC_PARTIAL_CONTENT);
+      response.setHeader(HttpHeaders.CONTENT_RANGE,singleSatisfiableRange.toHeaderRangeString(content_length));
+      resource.writeTo(out,singleSatisfiableRange.getFirst(content_length),singleLength);
+      return;
+    }
+    writeHeaders(response,content,-1);
+    String mimetype=content.getContentType().toString();
+    MultiPartOutputStream multi=new MultiPartOutputStream(out);
+    response.setStatus(HttpServletResponse.SC_PARTIAL_CONTENT);
+    String ctp;
+    if (request.getHeader(HttpHeaders.REQUEST_RANGE) != null)     ctp="multipart/x-byteranges; boundary=";
+ else     ctp="multipart/byteranges; boundary=";
+    response.setContentType(ctp + multi.getBoundary());
+    InputStream in=resource.getInputStream();
+    long pos=0;
+    for (int i=0; i < ranges.size(); i++) {
+      InclusiveByteRange ibr=(InclusiveByteRange)ranges.get(i);
+      String header=HttpHeaders.CONTENT_RANGE + ": " + ibr.toHeaderRangeString(content_length);
+      multi.startPart(mimetype,new String[]{header});
+      long start=ibr.getFirst(content_length);
+      long size=ibr.getSize(content_length);
+      if (in != null) {
+        if (start < pos) {
+          in.close();
+          in=resource.getInputStream();
+          pos=0;
+        }
+        if (pos < start) {
+          in.skip(start - pos);
+          pos=start;
+        }
+        IO.copy(in,multi,size);
+        pos+=size;
+      }
+ else       (resource).writeTo(multi,start,size);
+    }
+    if (in != null)     in.close();
+    multi.close();
+  }
+  return;
+}

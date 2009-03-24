@@ -1,0 +1,44 @@
+{
+  final Request base_request=(request instanceof Request) ? (Request)request : HttpConnection.getCurrentConnection().getRequest();
+  final Response base_response=(response instanceof Response) ? (Response)response : HttpConnection.getCurrentConnection().getResponse();
+  final Handler handler=getHandler();
+  if (handler == null)   return;
+  if (checkSecurity(base_request)) {
+    Object constraintInfo=prepareConstraintInfo(pathInContext,base_request);
+    if (!checkUserDataPermissions(pathInContext,base_request,base_response,constraintInfo)) {
+      if (!base_request.isHandled()) {
+        response.sendError(Response.SC_FORBIDDEN);
+        base_request.setHandled(true);
+      }
+      return;
+    }
+    boolean isAuthMandatory=isAuthMandatory(base_request,base_response,constraintInfo);
+    UserIdentity old_user_identity=base_request.getUserIdentity();
+    try {
+      final Authenticator authenticator=_authenticator;
+      Authentication authentication=authenticator.validateRequest(request,response,isAuthMandatory);
+      if (authentication.getAuthStatus() == Authentication.Status.SUCCESS) {
+        final UserIdentity user_identity=authentication.getUserIdentity();
+        base_request.setAuthType(authentication.getAuthMethod());
+        base_request.setUserIdentity(user_identity);
+        if (isAuthMandatory && !checkWebResourcePermissions(pathInContext,base_request,base_response,constraintInfo,user_identity)) {
+          response.sendError(Response.SC_FORBIDDEN,"User not in required role");
+          base_request.setHandled(true);
+          return;
+        }
+        handler.handle(pathInContext,request,response);
+        authenticator.secureResponse(request,response,isAuthMandatory,authentication);
+      }
+ else {
+        base_request.setHandled(true);
+      }
+    }
+ catch (    ServerAuthException e) {
+      response.sendError(Response.SC_INTERNAL_SERVER_ERROR,e.getMessage());
+    }
+ finally {
+      base_request.setUserIdentity(old_user_identity);
+    }
+  }
+ else   handler.handle(pathInContext,request,response);
+}

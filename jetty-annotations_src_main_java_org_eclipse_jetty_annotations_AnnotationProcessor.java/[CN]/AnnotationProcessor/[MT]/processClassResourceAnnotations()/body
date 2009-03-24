@@ -1,0 +1,24 @@
+{
+  List<Class<?>> classes=_finder.getClassesForAnnotation(Resource.class);
+  for (  Class<?> clazz : classes) {
+    if (!isServletType(clazz)) {
+      Log.debug("Ignoring @Resource annotation on on-servlet type class " + clazz.getName());
+      continue;
+    }
+    Resource resource=(Resource)clazz.getAnnotation(Resource.class);
+    if (resource != null) {
+      String name=resource.name();
+      String mappedName=resource.mappedName();
+      Resource.AuthenticationType auth=resource.authenticationType();
+      Class type=resource.type();
+      boolean shareable=resource.shareable();
+      if (name == null || name.trim().equals(""))       throw new IllegalStateException("Class level Resource annotations must contain a name (Common Annotations Spec Section 2.3)");
+      try {
+        if (!org.eclipse.jetty.plus.jndi.NamingEntryUtil.bindToENC(_webApp,name,mappedName))         if (!org.eclipse.jetty.plus.jndi.NamingEntryUtil.bindToENC(_webApp.getServer(),name,mappedName))         throw new IllegalStateException("No resource at " + (mappedName == null ? name : mappedName));
+      }
+ catch (      NamingException e) {
+        throw new IllegalStateException(e);
+      }
+    }
+  }
+}

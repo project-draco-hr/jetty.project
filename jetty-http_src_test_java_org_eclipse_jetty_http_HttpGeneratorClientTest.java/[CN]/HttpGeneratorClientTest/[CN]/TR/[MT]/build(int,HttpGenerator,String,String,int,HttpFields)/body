@@ -1,0 +1,36 @@
+{
+  values[2]=connection;
+  values[3]=te;
+  hb.setRequest(HttpMethods.GET,"/context/path/info");
+  hb.setVersion(version);
+  for (int i=0; i < headers.length; i++) {
+    if (values[i] == null)     continue;
+    fields.put(new ByteArrayBuffer(headers[i]),new ByteArrayBuffer(values[i]));
+  }
+  if (body != null) {
+    int inc=1 + body.length() / chunks;
+    Buffer buf=new ByteArrayBuffer(body);
+    View view=new View(buf);
+    for (int i=1; i < chunks; i++) {
+      view.setPutIndex(i * inc);
+      view.setGetIndex((i - 1) * inc);
+      hb.addContent(view,HttpGenerator.MORE);
+      if (hb.isBufferFull() && hb.isState(HttpGenerator.STATE_HEADER))       hb.completeHeader(fields,HttpGenerator.MORE);
+      if (i % 2 == 0) {
+        if (hb.isState(HttpGenerator.STATE_HEADER)) {
+          if (version < 11)           fields.addLongField("Content-Length",body.length());
+          hb.completeHeader(fields,HttpGenerator.MORE);
+        }
+        hb.flushBuffer();
+      }
+    }
+    view.setPutIndex(buf.putIndex());
+    view.setGetIndex((chunks - 1) * inc);
+    hb.addContent(view,HttpGenerator.LAST);
+    if (hb.isState(HttpGenerator.STATE_HEADER))     hb.completeHeader(fields,HttpGenerator.LAST);
+  }
+ else {
+    hb.completeHeader(fields,HttpGenerator.LAST);
+  }
+  hb.complete();
+}

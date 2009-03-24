@@ -1,0 +1,26 @@
+{
+  if (Log.isDebugEnabled())   Log.debug("resolveEntity(" + pid + ", "+ sid+ ")");
+  if (sid != null && sid.endsWith(".dtd"))   _dtd=sid;
+  URL entity=null;
+  if (pid != null)   entity=(URL)_redirectMap.get(pid);
+  if (entity == null)   entity=(URL)_redirectMap.get(sid);
+  if (entity == null) {
+    String dtd=sid;
+    if (dtd.lastIndexOf('/') >= 0)     dtd=dtd.substring(dtd.lastIndexOf('/') + 1);
+    if (Log.isDebugEnabled())     Log.debug("Can't exact match entity in redirect map, trying " + dtd);
+    entity=(URL)_redirectMap.get(dtd);
+  }
+  if (entity != null) {
+    try {
+      InputStream in=entity.openStream();
+      if (Log.isDebugEnabled())       Log.debug("Redirected entity " + sid + " --> "+ entity);
+      InputSource is=new InputSource(in);
+      is.setSystemId(sid);
+      return is;
+    }
+ catch (    IOException e) {
+      Log.ignore(e);
+    }
+  }
+  return null;
+}

@@ -1,0 +1,77 @@
+{
+  if (_tmpDir != null && _tmpDir.isDirectory() && _tmpDir.canWrite())   return _tmpDir;
+  Object t=getAttribute(ServletContext.TEMPDIR);
+  if (t != null && (t instanceof File)) {
+    _tmpDir=(File)t;
+    if (_tmpDir.isDirectory() && _tmpDir.canWrite())     return _tmpDir;
+  }
+  if (t != null && (t instanceof String)) {
+    try {
+      _tmpDir=new File((String)t);
+      if (_tmpDir.isDirectory() && _tmpDir.canWrite()) {
+        if (Log.isDebugEnabled())         Log.debug("Converted to File " + _tmpDir + " for "+ this);
+        setAttribute(ServletContext.TEMPDIR,_tmpDir);
+        return _tmpDir;
+      }
+    }
+ catch (    Exception e) {
+      Log.warn(Log.EXCEPTION,e);
+    }
+  }
+  File work=null;
+  try {
+    File w=new File(System.getProperty("jetty.home"),"work");
+    if (w.exists() && w.canWrite() && w.isDirectory())     work=w;
+ else     if (getBaseResource() != null) {
+      Resource web_inf=getWebInf();
+      if (web_inf != null && web_inf.exists()) {
+        w=new File(web_inf.getFile(),"work");
+        if (w.exists() && w.canWrite() && w.isDirectory())         work=w;
+      }
+    }
+  }
+ catch (  Exception e) {
+    Log.ignore(e);
+  }
+  try {
+    String temp=getCanonicalNameForWebAppTmpDir();
+    if (work != null)     _tmpDir=new File(work,temp);
+ else {
+      _tmpDir=new File(System.getProperty("java.io.tmpdir"),temp);
+      if (_tmpDir.exists()) {
+        if (Log.isDebugEnabled())         Log.debug("Delete existing temp dir " + _tmpDir + " for "+ this);
+        if (!IO.delete(_tmpDir)) {
+          if (Log.isDebugEnabled())           Log.debug("Failed to delete temp dir " + _tmpDir);
+        }
+        if (_tmpDir.exists()) {
+          String old=_tmpDir.toString();
+          _tmpDir=File.createTempFile(temp + "_","");
+          if (_tmpDir.exists())           _tmpDir.delete();
+          Log.warn("Can't reuse " + old + ", using "+ _tmpDir);
+        }
+      }
+    }
+    if (!_tmpDir.exists())     _tmpDir.mkdir();
+    if (!isTempWorkDirectory())     _tmpDir.deleteOnExit();
+    if (Log.isDebugEnabled())     Log.debug("Created temp dir " + _tmpDir + " for "+ this);
+  }
+ catch (  Exception e) {
+    _tmpDir=null;
+    Log.ignore(e);
+  }
+  if (_tmpDir == null) {
+    try {
+      _tmpDir=File.createTempFile("JettyContext","");
+      if (_tmpDir.exists())       _tmpDir.delete();
+      _tmpDir.mkdir();
+      _tmpDir.deleteOnExit();
+      if (Log.isDebugEnabled())       Log.debug("Created temp dir " + _tmpDir + " for "+ this);
+    }
+ catch (    IOException e) {
+      Log.warn("tmpdir",e);
+      System.exit(1);
+    }
+  }
+  setAttribute(ServletContext.TEMPDIR,_tmpDir);
+  return _tmpDir;
+}

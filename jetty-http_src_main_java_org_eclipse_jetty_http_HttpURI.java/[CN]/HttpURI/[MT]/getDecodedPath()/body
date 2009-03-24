@@ -1,0 +1,26 @@
+{
+  if (_path == _param)   return null;
+  int length=_param - _path;
+  byte[] bytes=null;
+  int n=0;
+  for (int i=_path; i < _param; i++) {
+    byte b=_raw[i];
+    if (b == '%' && (i + 2) < _param) {
+      b=(byte)(0xff & TypeUtil.parseInt(_raw,i + 1,2,16));
+      i+=2;
+    }
+ else     if (bytes == null) {
+      n++;
+      continue;
+    }
+    if (bytes == null) {
+      bytes=new byte[length];
+      for (int j=0; j < n; j++)       bytes[j]=_raw[_path + j];
+    }
+    bytes[n++]=b;
+  }
+  if (bytes == null)   return toUtf8String(_path,length);
+  _utf8b.reset();
+  _utf8b.append(bytes,0,n);
+  return _utf8b.toString();
+}

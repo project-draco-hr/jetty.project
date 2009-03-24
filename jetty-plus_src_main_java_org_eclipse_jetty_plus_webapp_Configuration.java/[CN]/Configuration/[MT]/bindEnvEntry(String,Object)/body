@@ -1,0 +1,19 @@
+{
+  InitialContext ic=null;
+  boolean bound=false;
+  ic=new InitialContext();
+  try {
+    NamingEntry ne=(NamingEntry)ic.lookup("java:comp/env/" + NamingEntryUtil.makeNamingEntryName(ic.getNameParser(""),name));
+    if (ne != null && ne instanceof EnvEntry) {
+      EnvEntry ee=(EnvEntry)ne;
+      bound=ee.isOverrideWebXml();
+    }
+  }
+ catch (  NameNotFoundException e) {
+    bound=false;
+  }
+  if (!bound) {
+    Context envCtx=(Context)ic.lookup("java:comp/env");
+    NamingUtil.bind(envCtx,name,value);
+  }
+}

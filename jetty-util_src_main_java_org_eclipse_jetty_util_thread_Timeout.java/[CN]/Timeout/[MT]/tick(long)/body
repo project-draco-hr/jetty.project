@@ -1,0 +1,23 @@
+{
+  long _expiry=-1;
+  Task task=null;
+  while (true) {
+    try {
+synchronized (_lock) {
+        if (_expiry == -1) {
+          if (now != -1)           _now=now;
+          _expiry=_now - _duration;
+        }
+        task=_head._next;
+        if (task == _head || task._timestamp > _expiry)         break;
+        task.unlink();
+        task._expired=true;
+        task.expire();
+      }
+      task.expired();
+    }
+ catch (    Throwable th) {
+      Log.warn(Log.EXCEPTION,th);
+    }
+  }
+}

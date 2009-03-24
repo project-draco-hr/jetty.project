@@ -1,0 +1,27 @@
+{
+  if (_loginService == null) {
+    _loginService=findLoginService();
+    if (_loginService != null)     _loginServiceShared=true;
+  }
+  if (_identityService == null) {
+    if (_loginService != null)     _identityService=_loginService.getIdentityService();
+    if (_identityService == null)     _identityService=findIdentityService();
+    if (_identityService == null)     _identityService=new DefaultIdentityService();
+  }
+  if (_loginService != null) {
+    if (_loginService.getIdentityService() == null)     _loginService.setIdentityService(_identityService);
+ else     if (_loginService.getIdentityService() != _identityService)     throw new IllegalStateException("LoginService has different IdentityService to " + this);
+  }
+  if (!_loginServiceShared && _loginService instanceof LifeCycle)   ((LifeCycle)_loginService).start();
+  if (_authenticator == null && _authenticatorFactory != null) {
+    _authenticator=_authenticatorFactory.getAuthenticator(getServer(),ContextHandler.getCurrentContext(),this);
+    if (_authenticator != null)     _authMethod=_authenticator.getAuthMethod();
+  }
+  if (_authenticator == null) {
+    Log.warn("No ServerAuthentication for " + this);
+    throw new IllegalStateException("No ServerAuthentication");
+  }
+  _authenticator.setConfiguration(this);
+  if (_authenticator instanceof LifeCycle)   ((LifeCycle)_authenticator).start();
+  super.doStart();
+}

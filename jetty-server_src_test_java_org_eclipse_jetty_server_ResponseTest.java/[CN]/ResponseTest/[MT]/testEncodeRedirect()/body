@@ -1,0 +1,13 @@
+{
+  HttpConnection connection=new HttpConnection(connector,connector._endp,connector._server);
+  Response response=new Response(connection);
+  Request request=connection.getRequest();
+  assertEquals("http://host:port/path/info;param?query=0&more=1#target",response.encodeRedirectUrl("http://host:port/path/info;param?query=0&more=1#target"));
+  request.setRequestedSessionId("12345");
+  request.setRequestedSessionIdFromCookie(false);
+  AbstractSessionManager manager=new HashSessionManager();
+  manager.setIdManager(new HashSessionIdManager());
+  request.setSessionManager(manager);
+  request.setSession(new TestSession(manager,"12345"));
+  assertEquals("http://host:port/path/info;param;jsessionid=12345?query=0&more=1#target",response.encodeRedirectUrl("http://host:port/path/info;param?query=0&more=1#target"));
+}

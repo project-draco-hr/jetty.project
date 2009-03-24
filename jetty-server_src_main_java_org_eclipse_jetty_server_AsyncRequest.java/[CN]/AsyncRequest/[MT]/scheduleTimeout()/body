@@ -1,0 +1,20 @@
+{
+  EndPoint endp=_connection.getEndPoint();
+  if (endp.isBlocking()) {
+synchronized (this) {
+      long expire_at=System.currentTimeMillis() + _timeoutMs;
+      long wait=_timeoutMs;
+      while (_timeoutMs > 0 && wait > 0) {
+        try {
+          this.wait(wait);
+        }
+ catch (        InterruptedException e) {
+          Log.ignore(e);
+        }
+        wait=expire_at - System.currentTimeMillis();
+      }
+      if (_timeoutMs > 0 && wait <= 0)       expired();
+    }
+  }
+ else   _connection.scheduleTimeout(_event._timeout,_timeoutMs);
+}

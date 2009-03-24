@@ -1,0 +1,29 @@
+{
+  if (attr == null)   return;
+  if (Log.isDebugEnabled())   Log.debug("setAttribute " + _managed + ":"+ attr.getName()+ "="+ attr.getValue());
+  Method setter=(Method)_setters.get(attr.getName());
+  if (setter == null)   throw new AttributeNotFoundException(attr.getName());
+  try {
+    Object o=_managed;
+    if (setter.getDeclaringClass().isInstance(this))     o=this;
+    Object value=attr.getValue();
+    if (value != null && _convert.contains(attr.getName())) {
+      if (value.getClass().isArray()) {
+        Class t=setter.getParameterTypes()[0].getComponentType();
+        Object na=Array.newInstance(t,Array.getLength(value));
+        for (int i=Array.getLength(value); i-- > 0; )         Array.set(na,i,_mbeanContainer.findBean((ObjectName)Array.get(value,i)));
+        value=na;
+      }
+ else       value=_mbeanContainer.findBean((ObjectName)value);
+    }
+    setter.invoke(o,new Object[]{value});
+  }
+ catch (  IllegalAccessException e) {
+    Log.warn(Log.EXCEPTION,e);
+    throw new AttributeNotFoundException(e.toString());
+  }
+catch (  InvocationTargetException e) {
+    Log.warn(Log.EXCEPTION,e);
+    throw new ReflectionException((Exception)e.getTargetException());
+  }
+}

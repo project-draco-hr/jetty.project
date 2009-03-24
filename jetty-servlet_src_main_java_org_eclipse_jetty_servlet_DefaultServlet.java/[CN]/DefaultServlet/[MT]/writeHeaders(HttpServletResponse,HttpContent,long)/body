@@ -1,0 +1,25 @@
+{
+  if (content.getContentType() != null)   response.setContentType(content.getContentType().toString());
+  if (response instanceof Response) {
+    Response r=(Response)response;
+    HttpFields fields=r.getHttpFields();
+    if (content.getLastModified() != null)     fields.put(HttpHeaders.LAST_MODIFIED_BUFFER,content.getLastModified(),content.getResource().lastModified());
+ else     if (content.getResource() != null) {
+      long lml=content.getResource().lastModified();
+      if (lml != -1)       fields.putDateField(HttpHeaders.LAST_MODIFIED_BUFFER,lml);
+    }
+    if (count != -1)     r.setLongContentLength(count);
+    if (_acceptRanges)     fields.put(HttpHeaders.ACCEPT_RANGES_BUFFER,HttpHeaderValues.BYTES_BUFFER);
+    if (_cacheControl != null)     fields.put(HttpHeaders.CACHE_CONTROL_BUFFER,_cacheControl);
+  }
+ else {
+    long lml=content.getResource().lastModified();
+    if (lml >= 0)     response.setDateHeader(HttpHeaders.LAST_MODIFIED,lml);
+    if (count != -1) {
+      if (count < Integer.MAX_VALUE)       response.setContentLength((int)count);
+ else       response.setHeader(HttpHeaders.CONTENT_LENGTH,TypeUtil.toString(count));
+    }
+    if (_acceptRanges)     response.setHeader(HttpHeaders.ACCEPT_RANGES,"bytes");
+    if (_cacheControl != null)     response.setHeader(HttpHeaders.CACHE_CONTROL,_cacheControl.toString());
+  }
+}

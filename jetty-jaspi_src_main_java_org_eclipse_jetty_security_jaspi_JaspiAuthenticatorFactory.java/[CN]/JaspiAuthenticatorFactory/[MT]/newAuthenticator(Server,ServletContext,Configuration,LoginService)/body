@@ -1,0 +1,28 @@
+{
+  Authenticator authenticator=null;
+  try {
+    AuthConfigFactory authConfigFactory=AuthConfigFactory.getFactory();
+    RegistrationListener listener=new RegistrationListener(){
+      public void notify(      String layer,      String appContext){
+      }
+    }
+;
+    Subject serviceSubject=findServiceSubject(server);
+    String serverName=findServerName(server,serviceSubject);
+    String appContext=serverName + " " + context.getContextPath();
+    AuthConfigProvider authConfigProvider=authConfigFactory.getConfigProvider(MESSAGE_LAYER,appContext,listener);
+    if (authConfigProvider != null) {
+      ServletCallbackHandler servletCallbackHandler=new ServletCallbackHandler(loginService);
+      ServerAuthConfig serverAuthConfig=authConfigProvider.getServerAuthConfig(MESSAGE_LAYER,appContext,servletCallbackHandler);
+      if (serverAuthConfig != null) {
+        Map map=new HashMap();
+        for (        String key : configuration.getInitParameterNames())         map.put(key,configuration.getInitParameter(key));
+        authenticator=new JaspiAuthenticator(appContext,serverAuthConfig,map,servletCallbackHandler,serviceSubject,configuration.isLazy());
+      }
+    }
+  }
+ catch (  AuthException e) {
+    Log.warn(e);
+  }
+  return authenticator;
+}

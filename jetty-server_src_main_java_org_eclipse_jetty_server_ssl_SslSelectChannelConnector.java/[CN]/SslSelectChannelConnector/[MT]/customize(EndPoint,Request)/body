@@ -1,0 +1,34 @@
+{
+  super.customize(endpoint,request);
+  request.setScheme(HttpSchemes.HTTPS);
+  SslSelectChannelEndPoint sslHttpChannelEndpoint=(SslSelectChannelEndPoint)endpoint;
+  SSLEngine sslEngine=sslHttpChannelEndpoint.getSSLEngine();
+  try {
+    SSLSession sslSession=sslEngine.getSession();
+    String cipherSuite=sslSession.getCipherSuite();
+    Integer keySize;
+    X509Certificate[] certs;
+    String idStr;
+    CachedInfo cachedInfo=(CachedInfo)sslSession.getValue(CACHED_INFO_ATTR);
+    if (cachedInfo != null) {
+      keySize=cachedInfo.getKeySize();
+      certs=cachedInfo.getCerts();
+      idStr=cachedInfo.getIdStr();
+    }
+ else {
+      keySize=new Integer(ServletSSL.deduceKeyLength(cipherSuite));
+      certs=getCertChain(sslSession);
+      byte[] bytes=sslSession.getId();
+      idStr=TypeUtil.toHexString(bytes);
+      cachedInfo=new CachedInfo(keySize,certs,idStr);
+      sslSession.putValue(CACHED_INFO_ATTR,cachedInfo);
+    }
+    if (certs != null)     request.setAttribute("javax.servlet.request.X509Certificate",certs);
+    request.setAttribute("javax.servlet.request.cipher_suite",cipherSuite);
+    request.setAttribute("javax.servlet.request.key_size",keySize);
+    request.setAttribute("javax.servlet.request.ssl_session_id",idStr);
+  }
+ catch (  Exception e) {
+    Log.warn(Log.EXCEPTION,e);
+  }
+}

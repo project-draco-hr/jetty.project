@@ -1,0 +1,23 @@
+{
+  Buffer buffer=null;
+  Resource resource=content.getResource();
+  long length=resource.length();
+  if (_useFileMappedBuffer && resource.getFile() != null) {
+    buffer=new DirectNIOBuffer(resource.getFile());
+  }
+ else {
+    InputStream is=resource.getInputStream();
+    try {
+      Connector connector=HttpConnection.getCurrentConnection().getConnector();
+      buffer=((NIOConnector)connector).getUseDirectBuffers() ? (NIOBuffer)new DirectNIOBuffer((int)length) : (NIOBuffer)new IndirectNIOBuffer((int)length);
+    }
+ catch (    OutOfMemoryError e) {
+      Log.warn(e.toString());
+      Log.debug(e);
+      buffer=new IndirectNIOBuffer((int)length);
+    }
+    buffer.readFrom(is,(int)length);
+    is.close();
+  }
+  content.setBuffer(buffer);
+}

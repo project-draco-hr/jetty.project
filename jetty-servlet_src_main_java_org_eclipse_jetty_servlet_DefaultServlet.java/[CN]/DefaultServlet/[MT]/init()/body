@@ -1,0 +1,61 @@
+{
+  _servletContext=getServletContext();
+  ContextHandler.Context scontext=ContextHandler.getCurrentContext();
+  if (scontext == null)   _contextHandler=((ContextHandler.Context)_servletContext).getContextHandler();
+ else   _contextHandler=ContextHandler.getCurrentContext().getContextHandler();
+  _mimeTypes=_contextHandler.getMimeTypes();
+  _welcomes=_contextHandler.getWelcomeFiles();
+  if (_welcomes == null)   _welcomes=new String[]{"index.jsp","index.html"};
+  _acceptRanges=getInitBoolean("acceptRanges",_acceptRanges);
+  _dirAllowed=getInitBoolean("dirAllowed",_dirAllowed);
+  _redirectWelcome=getInitBoolean("redirectWelcome",_redirectWelcome);
+  _gzip=getInitBoolean("gzip",_gzip);
+  String aliases=_servletContext.getInitParameter("aliases");
+  if (aliases != null)   _contextHandler.setAliases(Boolean.parseBoolean(aliases));
+  _useFileMappedBuffer=getInitBoolean("useFileMappedBuffer",_useFileMappedBuffer);
+  _relativeResourceBase=getInitParameter("relativeResourceBase");
+  String rb=getInitParameter("resourceBase");
+  if (rb != null) {
+    if (_relativeResourceBase != null)     throw new UnavailableException("resourceBase & relativeResourceBase");
+    try {
+      _resourceBase=_contextHandler.newResource(rb);
+    }
+ catch (    Exception e) {
+      Log.warn(Log.EXCEPTION,e);
+      throw new UnavailableException(e.toString());
+    }
+  }
+  String t=getInitParameter("cacheControl");
+  if (t != null)   _cacheControl=new ByteArrayBuffer(t);
+  try {
+    String cache_type=getInitParameter("cacheType");
+    int max_cache_size=getInitInt("maxCacheSize",-2);
+    int max_cached_file_size=getInitInt("maxCachedFileSize",-2);
+    int max_cached_files=getInitInt("maxCachedFiles",-2);
+    if (cache_type == null || "nio".equals(cache_type) || "both".equals(cache_type)) {
+      if (max_cache_size == -2 || max_cache_size > 0) {
+        _nioCache=new NIOResourceCache(_mimeTypes);
+        _nioCache.setUseFileMappedBuffer(_useFileMappedBuffer);
+        if (max_cache_size > 0)         _nioCache.setMaxCacheSize(max_cache_size);
+        if (max_cached_file_size >= -1)         _nioCache.setMaxCachedFileSize(max_cached_file_size);
+        if (max_cached_files >= -1)         _nioCache.setMaxCachedFiles(max_cached_files);
+        _nioCache.start();
+      }
+    }
+    if ("bio".equals(cache_type) || "both".equals(cache_type)) {
+      if (max_cache_size == -2 || max_cache_size > 0) {
+        _bioCache=new ResourceCache(_mimeTypes);
+        if (max_cache_size > 0)         _bioCache.setMaxCacheSize(max_cache_size);
+        if (max_cached_file_size >= -1)         _bioCache.setMaxCachedFileSize(max_cached_file_size);
+        if (max_cached_files >= -1)         _bioCache.setMaxCachedFiles(max_cached_files);
+        _bioCache.start();
+      }
+    }
+    if (_nioCache == null)     _bioCache=null;
+  }
+ catch (  Exception e) {
+    Log.warn(Log.EXCEPTION,e);
+    throw new UnavailableException(e.toString());
+  }
+  if (Log.isDebugEnabled())   Log.debug("resource base = " + _resourceBase);
+}

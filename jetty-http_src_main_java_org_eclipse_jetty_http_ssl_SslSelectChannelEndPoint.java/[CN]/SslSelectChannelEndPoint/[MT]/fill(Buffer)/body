@@ -1,0 +1,74 @@
+{
+  ByteBuffer bbuf=extractInputBuffer(buffer);
+  int size=buffer.length();
+  HandshakeStatus initialStatus=_engine.getHandshakeStatus();
+synchronized (bbuf) {
+    try {
+      unwrap(bbuf);
+      int tries=0, wraps=0;
+      loop:       while (true) {
+        if (tries++ > 100)         throw new IllegalStateException();
+        if (_outNIOBuffer.length() > 0)         flush();
+switch (_engine.getHandshakeStatus()) {
+case FINISHED:
+case NOT_HANDSHAKING:
+          if (_closing)           return -1;
+        break loop;
+case NEED_UNWRAP:
+      if (!unwrap(bbuf) && _engine.getHandshakeStatus() == HandshakeStatus.NEED_UNWRAP) {
+        break loop;
+      }
+    break;
+case NEED_TASK:
+{
+    Runnable task;
+    while ((task=_engine.getDelegatedTask()) != null) {
+      task.run();
+    }
+    if (initialStatus == HandshakeStatus.NOT_HANDSHAKING && HandshakeStatus.NEED_UNWRAP == _engine.getHandshakeStatus() && wraps == 0) {
+      return -1;
+    }
+    break;
+  }
+case NEED_WRAP:
+{
+  wraps++;
+synchronized (_outBuffer) {
+    try {
+      _outNIOBuffer.compact();
+      int put=_outNIOBuffer.putIndex();
+      _outBuffer.position();
+      _result=null;
+      _last="fill wrap";
+      _result=_engine.wrap(__NO_BUFFERS,_outBuffer);
+switch (_result.getStatus()) {
+case BUFFER_OVERFLOW:
+case BUFFER_UNDERFLOW:
+        Log.warn("wrap {}",_result);
+case CLOSED:
+      _closing=true;
+  }
+  _outNIOBuffer.setPutIndex(put + _result.bytesProduced());
+}
+  finally {
+  _outBuffer.position(0);
+}
+}
+flush();
+break;
+}
+}
+}
+}
+ catch (SSLException e) {
+Log.warn(e.toString());
+Log.debug(e);
+throw e;
+}
+ finally {
+buffer.setPutIndex(bbuf.position());
+bbuf.position(0);
+}
+}
+return buffer.length() - size;
+}

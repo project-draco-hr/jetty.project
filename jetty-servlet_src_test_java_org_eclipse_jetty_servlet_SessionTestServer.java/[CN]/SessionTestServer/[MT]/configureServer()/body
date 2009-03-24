@@ -1,0 +1,17 @@
+{
+  if (_sessionIdMgr == null || _sessionMgr1 == null || _sessionMgr2 == null)   throw new IllegalStateException("Must set a SessionIdManager instance and 2 SessionManager instances");
+  setSessionIdManager(_sessionIdMgr);
+  ContextHandlerCollection contextsA=new ContextHandlerCollection();
+  setHandler(contextsA);
+  setSessionIdManager(_sessionIdMgr);
+  ServletContextHandler contextA1=new ServletContextHandler(contextsA,"/contextA",ServletContextHandler.SESSIONS);
+  contextA1.addServlet(new ServletHolder(new SessionActionServlet()),"/session/*");
+  contextA1.addServlet(new ServletHolder(new ForwardingServlet()),"/dispatch/*");
+  contextA1.getSessionHandler().setSessionManager(_sessionMgr1);
+  _sessionMgr1.setIdManager(_sessionIdMgr);
+  ServletContextHandler contextA2=new ServletContextHandler(contextsA,"/contextB",ServletContextHandler.SESSIONS);
+  contextA2.addServlet(new ServletHolder(new SessionForwardedServlet()),"/session/*");
+  contextA2.addServlet(new ServletHolder(new SessionActionServlet()),"/action/session/*");
+  contextA2.getSessionHandler().setSessionManager(_sessionMgr2);
+  _sessionMgr2.setIdManager(_sessionIdMgr);
+}

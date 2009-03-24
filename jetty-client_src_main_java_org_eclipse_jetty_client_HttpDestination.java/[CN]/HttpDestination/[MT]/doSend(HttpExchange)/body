@@ -1,0 +1,26 @@
+{
+  if (_cookies != null) {
+    StringBuilder buf=null;
+    for (    HttpCookie cookie : _cookies) {
+      if (buf == null)       buf=new StringBuilder();
+ else       buf.append("; ");
+      buf.append(cookie.getName());
+      buf.append("=");
+      buf.append(cookie.getValue());
+    }
+    if (buf != null)     ex.addRequestHeader(HttpHeaders.COOKIE,buf.toString());
+  }
+  if (_authorizations != null) {
+    Authorization auth=(Authorization)_authorizations.match(ex.getURI());
+    if (auth != null)     ((Authorization)auth).setCredentials(ex);
+  }
+synchronized (this) {
+    HttpConnection connection=null;
+    if (_queue.size() > 0 || (connection=getIdleConnection()) == null || !connection.send(ex)) {
+      _queue.add(ex);
+      if (_connections.size() + _pendingConnections < _maxConnections) {
+        startNewConnection();
+      }
+    }
+  }
+}

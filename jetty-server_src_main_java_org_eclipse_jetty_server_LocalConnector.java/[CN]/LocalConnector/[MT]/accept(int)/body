@@ -1,0 +1,31 @@
+{
+  HttpConnection connection=null;
+  while (isRunning()) {
+synchronized (this) {
+      try {
+        while (!_accepting)         this.wait();
+      }
+ catch (      InterruptedException e) {
+        return;
+      }
+    }
+    try {
+      if (connection == null) {
+        connection=new HttpConnection(this,_endp,getServer());
+        connectionOpened(connection);
+      }
+      while (_in.length() > 0)       connection.handle();
+    }
+  finally {
+      if (!_keepOpen) {
+        connectionClosed(connection);
+        connection.destroy();
+        connection=null;
+      }
+synchronized (this) {
+        _accepting=false;
+        this.notify();
+      }
+    }
+  }
+}

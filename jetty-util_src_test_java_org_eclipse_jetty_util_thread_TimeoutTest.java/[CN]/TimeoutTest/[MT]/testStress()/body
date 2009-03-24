@@ -1,0 +1,75 @@
+{
+  final int LOOP=500;
+  final boolean[] running={true};
+  final int[] count={0,0,0};
+  timeout.setNow(System.currentTimeMillis());
+  timeout.setDuration(500);
+  Thread ticker=new Thread(){
+    public void run(){
+      while (running[0]) {
+        try {
+synchronized (lock) {
+            lock.wait(30);
+          }
+          Thread.sleep(30);
+          timeout.tick(System.currentTimeMillis());
+        }
+ catch (        Exception e) {
+          e.printStackTrace();
+        }
+      }
+    }
+  }
+;
+  ticker.start();
+  for (int i=0; i < LOOP; i++) {
+    Thread th=new Thread(){
+      public void run(){
+synchronized (count) {
+          count[0]++;
+        }
+        Timeout.Task task=new Timeout.Task(){
+          public void expired(){
+synchronized (count) {
+              count[2]++;
+            }
+          }
+        }
+;
+        int once=(int)(10 + (System.currentTimeMillis() % 50));
+        int loop=0;
+        while (running[0]) {
+          try {
+            long delay=1000;
+            long wait=100 - once;
+            if (loop++ == once) {
+synchronized (count) {
+                count[1]++;
+              }
+              delay=200;
+              wait=1000;
+            }
+            timeout.schedule(task,delay);
+            Thread.sleep(wait);
+            task.cancel();
+          }
+ catch (          Exception e) {
+            e.printStackTrace();
+          }
+        }
+      }
+    }
+;
+    th.start();
+  }
+  Thread.sleep(8000);
+synchronized (lock) {
+    running[0]=false;
+  }
+  Thread.sleep(2000);
+  timeout.tick(System.currentTimeMillis());
+  Thread.sleep(1000);
+  assertEquals("count threads",LOOP,count[0]);
+  assertEquals("count once waits",LOOP,count[1]);
+  assertEquals("count expires",LOOP,count[2]);
+}

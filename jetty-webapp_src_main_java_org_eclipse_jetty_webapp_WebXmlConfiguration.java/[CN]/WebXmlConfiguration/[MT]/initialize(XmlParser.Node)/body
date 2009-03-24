@@ -1,0 +1,45 @@
+{
+  _servletHandler=getWebAppContext().getServletHandler();
+  _securityHandler=(SecurityHandler)getWebAppContext().getSecurityHandler();
+  _filters=LazyList.array2List(_servletHandler.getFilters());
+  _filterMappings=LazyList.array2List(_servletHandler.getFilterMappings());
+  _servlets=LazyList.array2List(_servletHandler.getServlets());
+  _servletMappings=LazyList.array2List(_servletHandler.getServletMappings());
+  _listeners=LazyList.array2List(getWebAppContext().getEventListeners());
+  _welcomeFiles=LazyList.array2List(getWebAppContext().getWelcomeFiles());
+  if (_securityHandler instanceof ConstraintAware) {
+    _constraintMappings=LazyList.array2List(((ConstraintAware)_securityHandler).getConstraintMappings());
+    if (((ConstraintAware)_securityHandler).getRoles() != null) {
+      _roles.addAll(((ConstraintAware)_securityHandler).getRoles());
+    }
+  }
+  _errorPages=getWebAppContext().getErrorHandler() instanceof ErrorPageErrorHandler ? ((ErrorPageErrorHandler)getWebAppContext().getErrorHandler()).getErrorPages() : null;
+  Iterator iter=config.iterator();
+  XmlParser.Node node=null;
+  while (iter.hasNext()) {
+    try {
+      Object o=iter.next();
+      if (!(o instanceof XmlParser.Node))       continue;
+      node=(XmlParser.Node)o;
+      String name=node.getTag();
+      initWebXmlElement(name,node);
+    }
+ catch (    ClassNotFoundException e) {
+      throw e;
+    }
+catch (    Exception e) {
+      Log.warn("Configuration problem at " + node,e);
+      throw new UnavailableException("Configuration problem");
+    }
+  }
+  _servletHandler.setFilters((FilterHolder[])LazyList.toArray(_filters,FilterHolder.class));
+  _servletHandler.setFilterMappings((FilterMapping[])LazyList.toArray(_filterMappings,FilterMapping.class));
+  _servletHandler.setServlets((ServletHolder[])LazyList.toArray(_servlets,ServletHolder.class));
+  _servletHandler.setServletMappings((ServletMapping[])LazyList.toArray(_servletMappings,ServletMapping.class));
+  getWebAppContext().setEventListeners((EventListener[])LazyList.toArray(_listeners,EventListener.class));
+  getWebAppContext().setWelcomeFiles((String[])LazyList.toArray(_welcomeFiles,String.class));
+  if (_securityHandler instanceof ConstraintAware) {
+    ((ConstraintAware)_securityHandler).setConstraintMappings((ConstraintMapping[])LazyList.toArray(_constraintMappings,ConstraintMapping.class),_roles);
+  }
+  if (_errorPages != null && getWebAppContext().getErrorHandler() instanceof ErrorPageErrorHandler)   ((ErrorPageErrorHandler)getWebAppContext().getErrorHandler()).setErrorPages(_errorPages);
+}

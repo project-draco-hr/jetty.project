@@ -1,0 +1,225 @@
+{
+  long total_filled=-1;
+  if (_buffer == null) {
+    if (_header == null) {
+      _header=_buffers.getBuffer(Ajp13Packet.MAX_PACKET_SIZE);
+      _header.clear();
+    }
+    _buffer=_header;
+    _tok0=new View(_header);
+    _tok1=new View(_header);
+    _tok0.setPutIndex(_tok0.getIndex());
+    _tok1.setPutIndex(_tok1.getIndex());
+  }
+  if (_state == STATE_END)   throw new IllegalStateException("STATE_END");
+  if (_state > STATE_END && _contentPosition == _contentLength) {
+    _state=STATE_END;
+    _handler.messageComplete(_contentPosition);
+    return total_filled;
+  }
+  if (_state < 0) {
+    if (_packetLength <= 0) {
+      if (_buffer.length() < 4) {
+        if (total_filled < 0)         total_filled=0;
+        total_filled+=fill();
+        if (_buffer.length() < 4)         return total_filled;
+      }
+      _contentLength=HttpTokens.UNKNOWN_CONTENT;
+      int _magic=Ajp13RequestPacket.getInt(_buffer);
+      if (_magic != Ajp13RequestHeaders.MAGIC)       throw new IOException("Bad AJP13 rcv packet: " + "0x" + Integer.toHexString(_magic) + " expected "+ "0x"+ Integer.toHexString(Ajp13RequestHeaders.MAGIC)+ " "+ this);
+      _packetLength=Ajp13RequestPacket.getInt(_buffer);
+      if (_packetLength > Ajp13Packet.MAX_PACKET_SIZE)       throw new IOException("AJP13 packet (" + _packetLength + "bytes) too large for buffer");
+    }
+    if (_buffer.length() < _packetLength) {
+      if (total_filled < 0)       total_filled=0;
+      total_filled+=fill();
+      if (_buffer.length() < _packetLength)       return total_filled;
+    }
+    Buffer bufHeaderName=null;
+    Buffer bufHeaderValue=null;
+    int attr_type=0;
+    byte packetType=Ajp13RequestPacket.getByte(_buffer);
+switch (packetType) {
+case Ajp13Packet.FORWARD_REQUEST_ORDINAL:
+      _handler.startForwardRequest();
+    break;
+case Ajp13Packet.CPING_REQUEST_ORDINAL:
+  ((Ajp13Generator)_generator).sendCPong();
+if (_header != null) {
+  _buffers.returnBuffer(_header);
+  _header=null;
+}
+if (_body != null) {
+_buffers.returnBuffer(_body);
+_body=null;
+}
+_buffer=null;
+reset(true);
+return -1;
+case Ajp13Packet.SHUTDOWN_ORDINAL:
+shutdownRequest();
+return -1;
+default :
+Log.warn("AJP13 message type ({PING}: " + packetType + " ) not supported/recognized as an AJP request");
+throw new IllegalStateException("PING is not implemented");
+}
+_handler.parsedMethod(Ajp13RequestPacket.getMethod(_buffer));
+_handler.parsedProtocol(Ajp13RequestPacket.getString(_buffer,_tok0));
+_handler.parsedUri(Ajp13RequestPacket.getString(_buffer,_tok1));
+_handler.parsedRemoteAddr(Ajp13RequestPacket.getString(_buffer,_tok1));
+_handler.parsedRemoteHost(Ajp13RequestPacket.getString(_buffer,_tok1));
+_handler.parsedServerName(Ajp13RequestPacket.getString(_buffer,_tok1));
+_handler.parsedServerPort(Ajp13RequestPacket.getInt(_buffer));
+_handler.parsedSslSecure(Ajp13RequestPacket.getBool(_buffer));
+_headers=Ajp13RequestPacket.getInt(_buffer);
+for (int h=0; h < _headers; h++) {
+bufHeaderName=Ajp13RequestPacket.getHeaderName(_buffer,_tok0);
+bufHeaderValue=Ajp13RequestPacket.getString(_buffer,_tok1);
+if (bufHeaderName != null && bufHeaderName.toString().equals(Ajp13RequestHeaders.CONTENT_LENGTH)) {
+_contentLength=BufferUtil.toLong(bufHeaderValue);
+if (_contentLength == 0) _contentLength=HttpTokens.NO_CONTENT;
+}
+_handler.parsedHeader(bufHeaderName,bufHeaderValue);
+}
+attr_type=Ajp13RequestPacket.getByte(_buffer) & 0xff;
+while (attr_type != 0xFF) {
+switch (attr_type) {
+case Ajp13RequestHeaders.REMOTE_USER_ATTR:
+_handler.parsedRemoteUser(Ajp13RequestPacket.getString(_buffer,_tok1));
+break;
+case Ajp13RequestHeaders.AUTH_TYPE_ATTR:
+_handler.parsedAuthorizationType(Ajp13RequestPacket.getString(_buffer,_tok1));
+break;
+case Ajp13RequestHeaders.QUERY_STRING_ATTR:
+_handler.parsedQueryString(Ajp13RequestPacket.getString(_buffer,_tok1));
+break;
+case Ajp13RequestHeaders.JVM_ROUTE_ATTR:
+_handler.parsedRequestAttribute("org.eclipse.http.ajp.JVMRoute",Ajp13RequestPacket.getString(_buffer,_tok1));
+break;
+case Ajp13RequestHeaders.SSL_CERT_ATTR:
+_handler.parsedSslCert(Ajp13RequestPacket.getString(_buffer,_tok1));
+break;
+case Ajp13RequestHeaders.SSL_CIPHER_ATTR:
+_handler.parsedSslCipher(Ajp13RequestPacket.getString(_buffer,_tok1));
+break;
+case Ajp13RequestHeaders.SSL_SESSION_ATTR:
+_handler.parsedSslSession(Ajp13RequestPacket.getString(_buffer,_tok1));
+break;
+case Ajp13RequestHeaders.REQUEST_ATTR:
+_handler.parsedRequestAttribute(Ajp13RequestPacket.getString(_buffer,_tok0).toString(),Ajp13RequestPacket.getString(_buffer,_tok1));
+break;
+case Ajp13RequestHeaders.SSL_KEYSIZE_ATTR:
+int length=Ajp13RequestPacket.getInt(_buffer);
+if (length > 0 && length < 16) {
+_buffer.skip(-2);
+_handler.parsedSslKeySize(Integer.parseInt(Ajp13RequestPacket.getString(_buffer,_tok1).toString()));
+}
+ else _handler.parsedSslKeySize(length);
+break;
+case Ajp13RequestHeaders.SECRET_ATTR:
+break;
+case Ajp13RequestHeaders.STORED_METHOD_ATTR:
+break;
+case Ajp13RequestHeaders.CONTEXT_ATTR:
+_handler.parsedContextPath(Ajp13RequestPacket.getString(_buffer,_tok1));
+break;
+case Ajp13RequestHeaders.SERVLET_PATH_ATTR:
+_handler.parsedServletPath(Ajp13RequestPacket.getString(_buffer,_tok1));
+break;
+default :
+Log.warn("Unsupported Ajp13 Request Attribute {}",new Integer(attr_type));
+break;
+}
+attr_type=Ajp13RequestPacket.getByte(_buffer) & 0xff;
+}
+_contentPosition=0;
+switch ((int)_contentLength) {
+case HttpTokens.NO_CONTENT:
+_state=STATE_END;
+_handler.headerComplete();
+_handler.messageComplete(_contentPosition);
+break;
+case HttpTokens.UNKNOWN_CONTENT:
+_generator.getBodyChunk();
+if (_buffers != null && _body == null && _buffer == _header && _header.length() <= 0) {
+_body=_buffers.getBuffer(Ajp13Packet.MAX_PACKET_SIZE);
+_body.clear();
+}
+_state=STATE_AJP13CHUNK_START;
+_handler.headerComplete();
+return total_filled;
+default :
+if (_buffers != null && _body == null && _buffer == _header && _contentLength > (_header.capacity() - _header.getIndex())) {
+_body=_buffers.getBuffer(Ajp13Packet.MAX_PACKET_SIZE);
+_body.clear();
+}
+_state=STATE_AJP13CHUNK_START;
+_handler.headerComplete();
+return total_filled;
+}
+}
+Buffer chunk;
+while (_state > STATE_END) {
+switch (_state) {
+case STATE_AJP13CHUNK_START:
+if (_buffer.length() < 6) {
+if (total_filled < 0) total_filled=0;
+total_filled+=fill();
+if (_buffer.length() < 6) return total_filled;
+}
+int _magic=Ajp13RequestPacket.getInt(_buffer);
+if (_magic != Ajp13RequestHeaders.MAGIC) {
+throw new IOException("Bad AJP13 rcv packet: " + "0x" + Integer.toHexString(_magic) + " expected "+ "0x"+ Integer.toHexString(Ajp13RequestHeaders.MAGIC)+ " "+ this);
+}
+_chunkPosition=0;
+_chunkLength=Ajp13RequestPacket.getInt(_buffer) - 2;
+Ajp13RequestPacket.getInt(_buffer);
+if (_chunkLength == 0) {
+_state=STATE_END;
+_generator.gotBody();
+_handler.messageComplete(_contentPosition);
+return total_filled;
+}
+_state=STATE_AJP13CHUNK;
+case STATE_AJP13CHUNK:
+if (_buffer.length() < _chunkLength) {
+if (total_filled < 0) total_filled=0;
+total_filled+=fill();
+if (_buffer.length() < _chunkLength) return total_filled;
+}
+int remaining=_chunkLength - _chunkPosition;
+if (remaining == 0) {
+_state=STATE_AJP13CHUNK_START;
+if (_contentPosition < _contentLength) {
+_generator.getBodyChunk();
+}
+ else {
+_generator.gotBody();
+}
+return total_filled;
+}
+if (_buffer.length() < remaining) {
+remaining=_buffer.length();
+}
+chunk=Ajp13RequestPacket.get(_buffer,(int)remaining);
+_contentPosition+=chunk.length();
+_chunkPosition+=chunk.length();
+_contentView.update(chunk);
+remaining=_chunkLength - _chunkPosition;
+if (remaining == 0) {
+_state=STATE_AJP13CHUNK_START;
+if (_contentPosition < _contentLength || _contentLength == HttpTokens.UNKNOWN_CONTENT) {
+_generator.getBodyChunk();
+}
+ else {
+_generator.gotBody();
+}
+}
+_handler.content(chunk);
+return total_filled;
+default :
+throw new IllegalStateException("Invalid Content State");
+}
+}
+return total_filled;
+}

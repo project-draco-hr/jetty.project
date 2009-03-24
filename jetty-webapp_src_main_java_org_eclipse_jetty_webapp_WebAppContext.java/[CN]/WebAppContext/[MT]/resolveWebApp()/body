@@ -1,0 +1,47 @@
+{
+  Resource web_app=super.getBaseResource();
+  if (web_app == null) {
+    if (_war == null || _war.length() == 0)     _war=getResourceBase();
+    web_app=newResource(_war);
+    if (web_app.getAlias() != null) {
+      Log.debug(web_app + " anti-aliased to " + web_app.getAlias());
+      web_app=newResource(web_app.getAlias());
+    }
+    if (Log.isDebugEnabled())     Log.debug("Try webapp=" + web_app + ", exists="+ web_app.exists()+ ", directory="+ web_app.isDirectory());
+    if (web_app.exists() && !web_app.isDirectory() && !web_app.toString().startsWith("jar:")) {
+      Resource jarWebApp=newResource("jar:" + web_app + "!/");
+      if (jarWebApp.exists() && jarWebApp.isDirectory()) {
+        web_app=jarWebApp;
+      }
+    }
+    if (web_app.exists() && ((_copyDir && web_app.getFile() != null && web_app.getFile().isDirectory()) || (_extractWAR && web_app.getFile() != null && !web_app.getFile().isDirectory()) || (_extractWAR && web_app.getFile() == null)|| !web_app.isDirectory())) {
+      File extractedWebAppDir=new File(getTempDirectory(),"webapp");
+      if (web_app.getFile() != null && web_app.getFile().isDirectory()) {
+        Log.info("Copy " + web_app.getFile() + " to "+ extractedWebAppDir);
+        IO.copyDir(web_app.getFile(),extractedWebAppDir);
+      }
+ else {
+        if (!extractedWebAppDir.exists()) {
+          extractedWebAppDir.mkdir();
+          Log.info("Extract " + _war + " to "+ extractedWebAppDir);
+          JarResource.extract(web_app,extractedWebAppDir,false);
+        }
+ else {
+          if (web_app.lastModified() > extractedWebAppDir.lastModified()) {
+            extractedWebAppDir.delete();
+            extractedWebAppDir.mkdir();
+            Log.info("Extract " + _war + " to "+ extractedWebAppDir);
+            JarResource.extract(web_app,extractedWebAppDir,false);
+          }
+        }
+      }
+      web_app=Resource.newResource(extractedWebAppDir.getCanonicalPath());
+    }
+    if (!web_app.exists() || !web_app.isDirectory()) {
+      Log.warn("Web application not found " + _war);
+      throw new java.io.FileNotFoundException(_war);
+    }
+    if (Log.isDebugEnabled())     Log.debug("webapp=" + web_app);
+    super.setBaseResource(web_app);
+  }
+}

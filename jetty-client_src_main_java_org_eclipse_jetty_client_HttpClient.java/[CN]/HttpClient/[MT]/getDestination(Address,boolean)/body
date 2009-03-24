@@ -1,0 +1,15 @@
+{
+  if (remote == null)   throw new UnknownHostException("Remote socket address cannot be null.");
+synchronized (_destinations) {
+    HttpDestination destination=_destinations.get(remote);
+    if (destination == null) {
+      destination=new HttpDestination(this,remote,ssl,_maxConnectionsPerAddress);
+      if (_proxy != null && (_noProxy == null || !_noProxy.contains(remote.getHost()))) {
+        destination.setProxy(_proxy);
+        if (_proxyAuthentication != null)         destination.setProxyAuthentication(_proxyAuthentication);
+      }
+      _destinations.put(remote,destination);
+    }
+    return destination;
+  }
+}

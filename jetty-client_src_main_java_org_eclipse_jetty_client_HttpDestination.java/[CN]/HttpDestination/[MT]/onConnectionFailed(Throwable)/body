@@ -1,0 +1,22 @@
+{
+  Throwable connect_failure=null;
+synchronized (this) {
+    _pendingConnections--;
+    if (_newConnection > 0) {
+      connect_failure=throwable;
+      _newConnection--;
+    }
+ else     if (_queue.size() > 0) {
+      HttpExchange ex=_queue.removeFirst();
+      ex.getEventListener().onConnectionFailed(throwable);
+    }
+  }
+  if (connect_failure != null) {
+    try {
+      _newQueue.put(connect_failure);
+    }
+ catch (    InterruptedException e) {
+      Log.ignore(e);
+    }
+  }
+}

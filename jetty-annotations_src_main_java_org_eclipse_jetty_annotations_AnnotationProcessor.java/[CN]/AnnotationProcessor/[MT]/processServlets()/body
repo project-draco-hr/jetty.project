@@ -1,0 +1,38 @@
+{
+  for (  Class clazz : _finder.getClassesForAnnotation(javax.servlet.http.annotation.Servlet.class)) {
+    javax.servlet.http.annotation.Servlet annotation=(javax.servlet.http.annotation.Servlet)clazz.getAnnotation(javax.servlet.http.annotation.Servlet.class);
+    PojoServlet servlet=new PojoServlet(getPojoInstanceFor(clazz));
+    List<Method> methods=_finder.getMethodsForAnnotation(GET.class);
+    if (methods.size() > 1)     throw new IllegalStateException("More than one GET annotation on " + clazz.getName());
+ else     if (methods.size() == 1)     servlet.setGetMethodName(methods.get(0).getName());
+    methods=_finder.getMethodsForAnnotation(POST.class);
+    if (methods.size() > 1)     throw new IllegalStateException("More than one POST annotation on " + clazz.getName());
+ else     if (methods.size() == 1)     servlet.setPostMethodName(methods.get(0).getName());
+    methods=_finder.getMethodsForAnnotation(PUT.class);
+    if (methods.size() > 1)     throw new IllegalStateException("More than one PUT annotation on " + clazz.getName());
+ else     if (methods.size() == 1)     servlet.setPutMethodName(methods.get(0).getName());
+    methods=_finder.getMethodsForAnnotation(DELETE.class);
+    if (methods.size() > 1)     throw new IllegalStateException("More than one DELETE annotation on " + clazz.getName());
+ else     if (methods.size() == 1)     servlet.setDeleteMethodName(methods.get(0).getName());
+    methods=_finder.getMethodsForAnnotation(HEAD.class);
+    if (methods.size() > 1)     throw new IllegalStateException("More than one HEAD annotation on " + clazz.getName());
+ else     if (methods.size() == 1)     servlet.setHeadMethodName(methods.get(0).getName());
+    ServletHolder holder=new ServletHolder(servlet);
+    holder.setName((annotation.name().equals("") ? clazz.getName() : annotation.name()));
+    holder.setInitOrder(annotation.loadOnStartup());
+    LazyList.add(_servlets,holder);
+    for (    InitParam ip : annotation.initParams()) {
+      holder.setInitParameter(ip.name(),ip.value());
+    }
+    if (annotation.urlMappings().length > 0) {
+      ArrayList paths=new ArrayList();
+      ServletMapping mapping=new ServletMapping();
+      mapping.setServletName(holder.getName());
+      for (      String s : annotation.urlMappings()) {
+        paths.add(normalizePattern(s));
+      }
+      mapping.setPathSpecs((String[])paths.toArray(new String[paths.size()]));
+      LazyList.add(_servletMappings,mapping);
+    }
+  }
+}

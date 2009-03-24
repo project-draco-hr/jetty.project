@@ -1,0 +1,20 @@
+{
+  URL url=null;
+  boolean tried_parent=false;
+  if (_context.isParentLoaderPriority() || _context.isSystemClass(name)) {
+    tried_parent=true;
+    if (_parent != null)     url=_parent.getResource(name);
+  }
+  if (url == null) {
+    url=this.findResource(name);
+    if (url == null && name.startsWith("/")) {
+      if (Log.isDebugEnabled())       Log.debug("HACK leading / off " + name);
+      url=this.findResource(name.substring(1));
+    }
+  }
+  if (url == null && !tried_parent && !_context.isServerClass(name)) {
+    if (_parent != null)     url=_parent.getResource(name);
+  }
+  if (url != null)   if (Log.isDebugEnabled())   Log.debug("getResource(" + name + ")="+ url);
+  return url;
+}

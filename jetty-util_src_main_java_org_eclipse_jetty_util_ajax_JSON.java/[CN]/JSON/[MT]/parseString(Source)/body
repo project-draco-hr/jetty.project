@@ -1,0 +1,109 @@
+{
+  if (source.next() != '"')   throw new IllegalStateException();
+  boolean escape=false;
+  StringBuffer b=null;
+  final char[] scratch=source.scratchBuffer();
+  if (scratch != null) {
+    int i=0;
+    while (source.hasNext()) {
+      if (i >= scratch.length) {
+        b=new StringBuffer(scratch.length * 2);
+        b.append(scratch,0,i);
+        break;
+      }
+      char c=source.next();
+      if (escape) {
+        escape=false;
+switch (c) {
+case '"':
+          scratch[i++]='"';
+        break;
+case '\\':
+      scratch[i++]='\\';
+    break;
+case '/':
+  scratch[i++]='/';
+break;
+case 'b':
+scratch[i++]='\b';
+break;
+case 'f':
+scratch[i++]='\f';
+break;
+case 'n':
+scratch[i++]='\n';
+break;
+case 'r':
+scratch[i++]='\r';
+break;
+case 't':
+scratch[i++]='\t';
+break;
+case 'u':
+char uc=(char)((TypeUtil.convertHexDigit((byte)source.next()) << 12) + (TypeUtil.convertHexDigit((byte)source.next()) << 8) + (TypeUtil.convertHexDigit((byte)source.next()) << 4)+ (TypeUtil.convertHexDigit((byte)source.next())));
+scratch[i++]=uc;
+break;
+default :
+scratch[i++]=c;
+}
+}
+ else if (c == '\\') {
+escape=true;
+continue;
+}
+ else if (c == '\"') {
+return toString(scratch,0,i);
+}
+ else scratch[i++]=c;
+}
+if (b == null) return toString(scratch,0,i);
+}
+ else b=new StringBuffer(getStringBufferSize());
+synchronized (b) {
+while (source.hasNext()) {
+char c=source.next();
+if (escape) {
+escape=false;
+switch (c) {
+case '"':
+b.append('"');
+break;
+case '\\':
+b.append('\\');
+break;
+case '/':
+b.append('/');
+break;
+case 'b':
+b.append('\b');
+break;
+case 'f':
+b.append('\f');
+break;
+case 'n':
+b.append('\n');
+break;
+case 'r':
+b.append('\r');
+break;
+case 't':
+b.append('\t');
+break;
+case 'u':
+char uc=(char)((TypeUtil.convertHexDigit((byte)source.next()) << 12) + (TypeUtil.convertHexDigit((byte)source.next()) << 8) + (TypeUtil.convertHexDigit((byte)source.next()) << 4)+ (TypeUtil.convertHexDigit((byte)source.next())));
+b.append(uc);
+break;
+default :
+b.append(c);
+}
+}
+ else if (c == '\\') {
+escape=true;
+continue;
+}
+ else if (c == '\"') break;
+ else b.append(c);
+}
+return b.toString();
+}
+}

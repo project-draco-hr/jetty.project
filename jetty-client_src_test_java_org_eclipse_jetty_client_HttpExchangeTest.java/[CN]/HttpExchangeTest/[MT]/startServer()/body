@@ -1,0 +1,42 @@
+{
+  newServer();
+  _server.setHandler(new AbstractHandler(){
+    public void handle(    String target,    HttpServletRequest request,    HttpServletResponse response) throws IOException, ServletException {
+      int i=0;
+      try {
+        Request base_request=(request instanceof Request) ? (Request)request : HttpConnection.getCurrentConnection().getRequest();
+        base_request.setHandled(true);
+        response.setStatus(200);
+        _count.incrementAndGet();
+        if (request.getServerName().equals("jetty.eclipse.org")) {
+          response.getOutputStream().println("Proxy request: " + request.getRequestURL());
+          response.getOutputStream().println(request.getHeader(HttpHeaders.PROXY_AUTHORIZATION));
+        }
+ else         if (request.getMethod().equalsIgnoreCase("GET")) {
+          response.getOutputStream().println("<hello>");
+          for (; i < 100; i++) {
+            response.getOutputStream().println("  <world>" + i + "</world");
+            if (i % 20 == 0)             response.getOutputStream().flush();
+          }
+          response.getOutputStream().println("</hello>");
+        }
+ else {
+          copyStream(request.getInputStream(),response.getOutputStream());
+        }
+      }
+ catch (      IOException e) {
+        e.printStackTrace();
+        throw e;
+      }
+catch (      Throwable e) {
+        e.printStackTrace();
+        throw new ServletException(e);
+      }
+ finally {
+      }
+    }
+  }
+);
+  _server.start();
+  _port=_connector.getLocalPort();
+}

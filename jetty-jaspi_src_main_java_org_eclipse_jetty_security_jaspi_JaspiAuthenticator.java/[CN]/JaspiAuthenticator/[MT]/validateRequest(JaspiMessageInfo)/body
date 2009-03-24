@@ -1,0 +1,18 @@
+{
+  try {
+    ServerAuthContext authContext=_authConfig.getAuthContext(_authContextId,_serviceSubject,_authProperties);
+    Subject clientSubject=new Subject();
+    AuthStatus authStatus=authContext.validateRequest(messageInfo,clientSubject,_serviceSubject);
+    String authMethod=(String)messageInfo.getMap().get(JaspiMessageInfo.AUTH_METHOD_KEY);
+    CallerPrincipalCallback principalCallback=_callbackHandler.getThreadCallerPrincipalCallback();
+    Principal principal=principalCallback == null ? null : principalCallback.getPrincipal();
+    GroupPrincipalCallback groupPrincipalCallback=_callbackHandler.getThreadGroupPrincipalCallback();
+    String[] groups=groupPrincipalCallback == null ? null : groupPrincipalCallback.getGroups();
+    Set<UserIdentity> ids=clientSubject.getPrivateCredentials(UserIdentity.class);
+    if (ids.size() > 0)     return new DefaultAuthentication(toServerAuthStatus(authStatus),authMethod,ids.iterator().next());
+    return Authentication.SEND_FAILURE_RESULTS;
+  }
+ catch (  AuthException e) {
+    throw new ServerAuthException(e);
+  }
+}

@@ -1,0 +1,26 @@
+{
+  final Request base_request=(request instanceof Request) ? ((Request)request) : HttpConnection.getCurrentConnection().getRequest();
+  if (!request.isAsyncStarted()) {
+    try {
+      Thread.sleep(_initialDuration);
+    }
+ catch (    InterruptedException e1) {
+    }
+    request.setAsyncTimeout(_completeDuration * 10);
+    request.startAsync();
+    (new Thread(){
+      public void run(){
+        try {
+          Thread.sleep(_completeDuration);
+          request.getAsyncContext().complete();
+synchronized (_lock) {
+            _lock.notify();
+          }
+        }
+ catch (        InterruptedException e) {
+        }
+      }
+    }
+).start();
+  }
+}

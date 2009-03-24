@@ -1,0 +1,28 @@
+{
+  MultiException mx=new MultiException();
+  if (_filters != null) {
+    for (int i=0; i < _filters.length; i++)     _filters[i].start();
+  }
+  if (_servlets != null) {
+    ServletHolder[] servlets=(ServletHolder[])_servlets.clone();
+    Arrays.sort(servlets);
+    for (int i=0; i < servlets.length; i++) {
+      try {
+        if (servlets[i].getClassName() == null && servlets[i].getForcedPath() != null) {
+          ServletHolder forced_holder=(ServletHolder)_servletPathMap.match(servlets[i].getForcedPath());
+          if (forced_holder == null || forced_holder.getClassName() == null) {
+            mx.add(new IllegalStateException("No forced path servlet for " + servlets[i].getForcedPath()));
+            continue;
+          }
+          servlets[i].setClassName(forced_holder.getClassName());
+        }
+        servlets[i].start();
+      }
+ catch (      Throwable e) {
+        Log.debug(Log.EXCEPTION,e);
+        mx.add(e);
+      }
+    }
+    mx.ifExceptionThrow();
+  }
+}

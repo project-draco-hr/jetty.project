@@ -1,0 +1,25 @@
+{
+  Log.debug("metadata-complete " + _metaDataComplete);
+  if (_metaDataComplete)   return;
+  String tmp=(String)_context.getInitParameter("org.eclipse.jetty.webapp.WebXmlFragmentPattern");
+  Pattern webFragPattern=(tmp == null ? null : Pattern.compile(tmp));
+  JarScanner fragScanner=new JarScanner(){
+    public void processEntry(    URL jarUrl,    JarEntry entry){
+      try {
+        String name=entry.getName();
+        if (name.toLowerCase().equals("meta-inf/web.xml")) {
+          Resource webXmlFrag=_context.newResource("jar:" + jarUrl + "!/"+ name);
+          Log.debug("web.xml fragment found {}",webXmlFrag);
+          XmlParser.Node config=null;
+          config=_xmlParser.parse(webXmlFrag.toString());
+          initialize(config);
+        }
+      }
+ catch (      Exception e) {
+        Log.warn("Problem processing jar entry " + entry,e);
+      }
+    }
+  }
+;
+  fragScanner.scan(webFragPattern,Thread.currentThread().getContextClassLoader(),true,false);
+}

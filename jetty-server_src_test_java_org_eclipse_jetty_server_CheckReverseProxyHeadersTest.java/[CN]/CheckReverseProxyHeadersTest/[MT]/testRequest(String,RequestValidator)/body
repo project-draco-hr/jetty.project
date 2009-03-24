@@ -1,0 +1,19 @@
+{
+  Server server=new Server();
+  LocalConnector connector=new LocalConnector();
+  connector.setForwarded(true);
+  server.setConnectors(new Connector[]{connector});
+  ValidationHandler validationHandler=new ValidationHandler(requestValidator);
+  server.setHandler(validationHandler);
+  try {
+    server.start();
+    connector.getResponses("GET / HTTP/1.1\n" + headers + "\n\n");
+    Error error=validationHandler.getError();
+    if (error != null) {
+      throw error;
+    }
+  }
+  finally {
+    server.stop();
+  }
+}

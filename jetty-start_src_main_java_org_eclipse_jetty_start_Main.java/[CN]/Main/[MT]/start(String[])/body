@@ -1,0 +1,65 @@
+{
+  ArrayList al=new ArrayList();
+  for (int i=0; i < args.length; i++) {
+    if (args[i] == null)     continue;
+ else     al.add(args[i]);
+  }
+  args=(String[])al.toArray(new String[al.size()]);
+  InputStream cpcfg=null;
+  try {
+    Monitor.monitor();
+    cpcfg=getClass().getClassLoader().getResourceAsStream(_config);
+    if (_debug)     System.err.println("config=" + _config);
+    if (cpcfg == null)     cpcfg=new FileInputStream(_config);
+    configure(cpcfg,args.length);
+    File file=new File(System.getProperty("jetty.home"));
+    String canonical=file.getCanonicalPath();
+    System.setProperty("jetty.home",canonical);
+  }
+ catch (  Exception e) {
+    e.printStackTrace();
+    System.exit(1);
+  }
+ finally {
+    try {
+      cpcfg.close();
+    }
+ catch (    Exception e) {
+      e.printStackTrace();
+    }
+  }
+  System.setProperty("java.class.path",_classpath.toString());
+  ClassLoader cl=_classpath.getClassLoader();
+  if (_debug) {
+    System.err.println("java.class.path=" + System.getProperty("java.class.path"));
+    System.err.println("jetty.home=" + System.getProperty("jetty.home"));
+    System.err.println("java.io.tmpdir=" + System.getProperty("java.io.tmpdir"));
+    System.err.println("java.class.path=" + _classpath);
+    System.err.println("classloader=" + cl);
+    System.err.println("classloader.parent=" + cl.getParent());
+  }
+  Thread.currentThread().setContextClassLoader(cl);
+  try {
+    Policy policy=Policy.getPolicy();
+    if (policy != null)     policy.refresh();
+  }
+ catch (  Exception e) {
+    e.printStackTrace();
+  }
+  try {
+    for (int i=0; i < args.length; i++) {
+      if (args[i] == null)       continue;
+      _xml.add(args[i]);
+    }
+    args=(String[])_xml.toArray(args);
+    String mainClass=System.getProperty("jetty.server");
+    if (mainClass != null)     _classname=mainClass;
+    mainClass=System.getProperty("main.class");
+    if (mainClass != null)     _classname=mainClass;
+    if (_debug)     System.err.println("main.class=" + _classname);
+    invokeMain(cl,_classname,args);
+  }
+ catch (  Exception e) {
+    e.printStackTrace();
+  }
+}
