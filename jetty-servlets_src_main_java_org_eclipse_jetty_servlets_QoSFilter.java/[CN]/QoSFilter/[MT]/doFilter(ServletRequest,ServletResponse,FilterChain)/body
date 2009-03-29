@@ -8,10 +8,11 @@
       }
  else {
         request.setAttribute(_suspended,Boolean.TRUE);
-        if (_suspendMs > 0)         request.setAsyncTimeout(_suspendMs);
-        request.startAsync();
+        Continuation continuation=ContinuationSupport.getContinuation(request);
+        if (_suspendMs > 0)         continuation.setTimeout(_suspendMs);
+        continuation.suspend();
         int priority=getPriority(request);
-        _queue[priority].add(request);
+        _queue[priority].add(continuation);
         return;
       }
     }
@@ -46,9 +47,9 @@
  finally {
     if (accepted) {
       for (int p=_queue.length; p-- > 0; ) {
-        ServletRequest r=_queue[p].poll();
-        if (r != null) {
-          r.getAsyncContext().dispatch();
+        Continuation continutaion=_queue[p].poll();
+        if (continutaion != null) {
+          continutaion.resume();
           break;
         }
       }

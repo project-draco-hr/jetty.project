@@ -17,12 +17,13 @@
       exceptional=false;
     }
   finally {
-      if (request.isAsyncStarted() && !req.getAsyncContext().hasOriginalRequestAndResponse()) {
-        request.addAsyncListener(new AsyncListener(){
-          public void onComplete(          AsyncEvent event) throws IOException {
+      Continuation continuation=ContinuationSupport.getContinuation(request);
+      if (continuation.isSuspended() && continuation.wrappersKept()) {
+        continuation.addContinuationListener(new ContinuationListener(){
+          public void onComplete(          ContinuationEvent event) throws IOException {
             wrappedResponse.finish();
           }
-          public void onTimeout(          AsyncEvent event) throws IOException {
+          public void onTimeout(          ContinuationEvent event) throws IOException {
           }
         }
 );

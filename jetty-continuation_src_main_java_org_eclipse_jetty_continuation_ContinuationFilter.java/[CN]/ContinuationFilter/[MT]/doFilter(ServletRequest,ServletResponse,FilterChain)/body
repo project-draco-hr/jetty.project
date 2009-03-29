@@ -1,0 +1,22 @@
+{
+  if (_jetty)   chain.doFilter(request,response);
+ else {
+    final FauxContinuation fc=new FauxContinuation();
+    request.setAttribute(Continuation.ATTRIBUTE,fc);
+    boolean complete=false;
+    while (!complete) {
+      try {
+        chain.doFilter(request,response);
+      }
+ catch (      IOException e) {
+        _context.log("OpenServletFilter caught ",e);
+      }
+catch (      ServletException e) {
+        _context.log("OpenServletFilter caught ",e);
+      }
+ finally {
+        complete=fc.handleSuspension();
+      }
+    }
+  }
+}
