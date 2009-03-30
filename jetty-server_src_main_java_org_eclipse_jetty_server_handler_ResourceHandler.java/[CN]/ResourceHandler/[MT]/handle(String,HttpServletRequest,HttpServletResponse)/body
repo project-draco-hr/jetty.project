@@ -14,9 +14,11 @@
       response.sendRedirect(URIUtil.addPaths(request.getRequestURI(),URIUtil.SLASH));
       return;
     }
-    resource=getWelcome(resource);
-    if (resource == null || !resource.exists() || resource.isDirectory()) {
-      response.sendError(HttpServletResponse.SC_FORBIDDEN);
+    Resource welcome=getWelcome(resource);
+    if (welcome != null && welcome.exists())     resource=welcome;
+ else {
+      doDirectory(request,response,resource);
+      base_request.setHandled(true);
       return;
     }
   }
@@ -24,7 +26,7 @@
   if (last_modified > 0) {
     long if_modified=request.getDateHeader(HttpHeaders.IF_MODIFIED_SINCE);
     if (if_modified > 0 && last_modified / 1000 <= if_modified / 1000) {
-      response.setStatus(HttpServletResponse.SC_NOT_MODIFIED);
+      response.setStatus(HttpStatus.NOT_MODIFIED_304);
       return;
     }
   }
