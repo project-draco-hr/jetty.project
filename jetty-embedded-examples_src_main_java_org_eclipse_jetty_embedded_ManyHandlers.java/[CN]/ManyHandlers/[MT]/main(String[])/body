@@ -1,12 +1,22 @@
 {
-  Server server=new Server();
-  Connector connector=new SelectChannelConnector();
-  connector.setPort(8080);
-  server.setConnectors(new Connector[]{connector});
+  Server server=new Server(8080);
   Handler param=new ParamHandler();
+  HandlerWrapper wrapper=new HandlerWrapper(){
+    public void handle(    String target,    HttpServletRequest request,    HttpServletResponse response) throws IOException, ServletException {
+      request.setAttribute("welcome","Hello");
+      super.handle(target,request,response);
+    }
+  }
+;
   Handler hello=new HelloHandler();
+  Handler dft=new DefaultHandler();
+  RequestLogHandler log=new RequestLogHandler();
+  log.setRequestLog(new NCSARequestLog(File.createTempFile("demo","log").getAbsolutePath()));
   HandlerCollection handlers=new HandlerCollection();
-  handlers.setHandlers(new Handler[]{param,hello});
+  HandlerList list=new HandlerList();
+  wrapper.addHandler(hello);
+  list.setHandlers(new Handler[]{param,wrapper,dft});
+  handlers.setHandlers(new Handler[]{list,log});
   server.setHandler(handlers);
   server.start();
   server.join();
