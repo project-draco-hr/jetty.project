@@ -1,7 +1,7 @@
 {
   Resource resource=null;
   if (_closed)   throw new IOException("Closed");
-  if (_generator.getContentWritten() > 0)   throw new IllegalStateException("!empty");
+  if (super._generator.getContentWritten() > 0)   throw new IllegalStateException("!empty");
   if (content instanceof HttpContent) {
     HttpContent c=(HttpContent)content;
     Buffer contentType=c.getContentType();
@@ -37,23 +37,23 @@
     content=resource.getInputStream();
   }
   if (content instanceof Buffer) {
-    _generator.addContent((Buffer)content,HttpGenerator.LAST);
+    super._generator.addContent((Buffer)content,HttpGenerator.LAST);
     commitResponse(HttpGenerator.LAST);
   }
  else   if (content instanceof InputStream) {
     InputStream in=(InputStream)content;
     try {
-      int max=_generator.prepareUncheckedAddContent();
-      Buffer buffer=_generator.getUncheckedBuffer();
+      int max=super._generator.prepareUncheckedAddContent();
+      Buffer buffer=super._generator.getUncheckedBuffer();
       int len=buffer.readFrom(in,max);
       while (len >= 0) {
-        _generator.completeUncheckedAddContent();
+        super._generator.completeUncheckedAddContent();
         _out.flush();
-        max=_generator.prepareUncheckedAddContent();
-        buffer=_generator.getUncheckedBuffer();
+        max=super._generator.prepareUncheckedAddContent();
+        buffer=super._generator.getUncheckedBuffer();
         len=buffer.readFrom(in,max);
       }
-      _generator.completeUncheckedAddContent();
+      super._generator.completeUncheckedAddContent();
       _out.flush();
     }
   finally {
