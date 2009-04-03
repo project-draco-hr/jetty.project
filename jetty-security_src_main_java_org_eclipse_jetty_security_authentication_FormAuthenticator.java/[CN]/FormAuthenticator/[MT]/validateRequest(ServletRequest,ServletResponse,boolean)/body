@@ -26,21 +26,29 @@
       if (_formErrorPage == null) {
         if (response != null)         response.sendError(HttpServletResponse.SC_FORBIDDEN);
       }
- else {
+ else       if (_dispatch) {
         RequestDispatcher dispatcher=request.getRequestDispatcher(_formErrorPage);
         response.setHeader(HttpHeaders.CACHE_CONTROL,"No-cache");
         response.setDateHeader(HttpHeaders.EXPIRES,1);
         dispatcher.forward(request,response);
+      }
+ else {
+        response.sendRedirect(URIUtil.addPaths(request.getContextPath(),_formErrorPage));
       }
       return DefaultAuthentication.SEND_FAILURE_RESULTS;
     }
     if (!mandatory)     return DefaultAuthentication.SUCCESS_UNAUTH_RESULTS;
     if (request.getQueryString() != null)     uri+="?" + request.getQueryString();
     session.setAttribute(__J_URI,request.getScheme() + "://" + request.getServerName()+ ":"+ request.getServerPort()+ URIUtil.addPaths(request.getContextPath(),uri));
-    RequestDispatcher dispatcher=request.getRequestDispatcher(_formLoginPage);
-    response.setHeader(HttpHeaders.CACHE_CONTROL,"No-cache");
-    response.setDateHeader(HttpHeaders.EXPIRES,1);
-    dispatcher.forward(request,response);
+    if (_dispatch) {
+      RequestDispatcher dispatcher=request.getRequestDispatcher(_formLoginPage);
+      response.setHeader(HttpHeaders.CACHE_CONTROL,"No-cache");
+      response.setDateHeader(HttpHeaders.EXPIRES,1);
+      dispatcher.forward(request,response);
+    }
+ else {
+      response.sendRedirect(URIUtil.addPaths(request.getContextPath(),_formLoginPage));
+    }
     return DefaultAuthentication.SEND_CONTINUE_RESULTS;
   }
  catch (  IOException e) {
