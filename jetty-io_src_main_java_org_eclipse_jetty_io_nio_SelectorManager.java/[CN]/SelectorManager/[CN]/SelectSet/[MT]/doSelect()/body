@@ -64,11 +64,26 @@ synchronized (this) {
       _idleTimeout.setNow(now);
       _timeout.setNow(now);
       if (selected == 0 && (now - before) < wait / 2) {
-        if (_jvmBug++ > 5) {
+        _jvmBug++;
+        if (_jvmBug > 4) {
           for (          SelectionKey key : selector.keys()) {
             if (key.interestOps() == 0 && key.isValid())             key.cancel();
           }
           selector.selectNow();
+        }
+ else         if (_jvmBug > 8) {
+synchronized (this) {
+            System.err.println("SUN BUG WORKAROUND!!!!");
+            final Selector new_selector=Selector.open();
+            for (            SelectionKey key : _selector.keys()) {
+              final SocketChannel channel=(SocketChannel)key.channel();
+              final Object attachment=key.attachment();
+              key.cancel();
+              addChange(channel,attachment);
+            }
+            _selector.close();
+            _selector=new_selector;
+          }
         }
       }
  else       _jvmBug=0;
