@@ -13,11 +13,14 @@
     }
  else {
       if (out instanceof HttpConnection.Output) {
-        if (_cacheControl != null) {
-          if (response instanceof Response)           ((Response)response).getHttpFields().put(HttpHeaders.CACHE_CONTROL_BUFFER,_cacheControl);
- else           response.setHeader(HttpHeaders.CACHE_CONTROL,_cacheControl.toString());
+        if (response instanceof Response) {
+          if (_cacheControl != null)           ((Response)response).getHttpFields().put(HttpHeaders.CACHE_CONTROL_BUFFER,_cacheControl);
+          ((HttpConnection.Output)out).sendContent(content);
         }
-        ((HttpConnection.Output)out).sendContent(content);
+ else {
+          writeHeaders(response,content,content_length);
+          ((HttpConnection.Output)out).sendContent(content.getBuffer());
+        }
       }
  else {
         writeHeaders(response,content,content_length);

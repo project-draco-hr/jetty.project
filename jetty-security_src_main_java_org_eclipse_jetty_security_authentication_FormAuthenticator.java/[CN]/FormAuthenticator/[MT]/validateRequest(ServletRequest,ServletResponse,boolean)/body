@@ -4,23 +4,27 @@
   HttpSession session=request.getSession(mandatory);
   String uri=request.getPathInfo();
   if (session == null || isLoginOrErrorPage(uri)) {
-    return DefaultAuthentication.SUCCESS_UNAUTH_RESULTS;
+    return Authentication.NOT_CHECKED;
   }
   try {
-    if (uri.endsWith(__J_SECURITY_CHECK)) {
+    if (uri == null)     uri=URIUtil.SLASH;
+ else     if (uri.endsWith(__J_SECURITY_CHECK)) {
       final String username=request.getParameter(__J_USERNAME);
-      final char[] password=request.getParameter(__J_PASSWORD).toCharArray();
+      final String password=request.getParameter(__J_PASSWORD);
       UserIdentity user=_loginService.login(username,password);
       if (user != null) {
-        String nuri=(String)session.getAttribute(__J_URI);
+        String nuri;
+synchronized (session) {
+          nuri=(String)session.getAttribute(__J_URI);
+          session.removeAttribute(__J_URI);
+        }
         if (nuri == null || nuri.length() == 0) {
           nuri=request.getContextPath();
           if (nuri.length() == 0)           nuri=URIUtil.SLASH;
         }
-        session.removeAttribute(__J_URI);
         response.setContentLength(0);
         response.sendRedirect(response.encodeRedirectURL(nuri));
-        return new DefaultAuthentication(Authentication.Status.SEND_SUCCESS,this,user);
+        return new DefaultAuthentication.Send(this,user);
       }
       if (Log.isDebugEnabled())       Log.debug("Form authentication FAILED for " + StringUtil.printable(username));
       if (_formErrorPage == null) {
@@ -35,11 +39,13 @@
  else {
         response.sendRedirect(URIUtil.addPaths(request.getContextPath(),_formErrorPage));
       }
-      return DefaultAuthentication.SEND_FAILURE_RESULTS;
+      return Authentication.FAILED;
     }
-    if (!mandatory)     return DefaultAuthentication.SUCCESS_UNAUTH_RESULTS;
+    if (!mandatory)     return Authentication.NOT_CHECKED;
     if (request.getQueryString() != null)     uri+="?" + request.getQueryString();
-    session.setAttribute(__J_URI,request.getScheme() + "://" + request.getServerName()+ ":"+ request.getServerPort()+ URIUtil.addPaths(request.getContextPath(),uri));
+synchronized (session) {
+      if (session.getAttribute(__J_URI) == null)       session.setAttribute(__J_URI,request.getScheme() + "://" + request.getServerName()+ ":"+ request.getServerPort()+ URIUtil.addPaths(request.getContextPath(),uri));
+    }
     if (_dispatch) {
       RequestDispatcher dispatcher=request.getRequestDispatcher(_formLoginPage);
       response.setHeader(HttpHeaders.CACHE_CONTROL,"No-cache");
@@ -49,7 +55,7 @@
  else {
       response.sendRedirect(URIUtil.addPaths(request.getContextPath(),_formLoginPage));
     }
-    return DefaultAuthentication.SEND_CONTINUE_RESULTS;
+    return Authentication.CHALLENGE;
   }
  catch (  IOException e) {
     throw new ServerAuthException(e);

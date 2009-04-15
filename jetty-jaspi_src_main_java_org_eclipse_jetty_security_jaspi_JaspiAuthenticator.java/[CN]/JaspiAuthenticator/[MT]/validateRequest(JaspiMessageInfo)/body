@@ -8,9 +8,14 @@
     Principal principal=principalCallback == null ? null : principalCallback.getPrincipal();
     GroupPrincipalCallback groupPrincipalCallback=_callbackHandler.getThreadGroupPrincipalCallback();
     String[] groups=groupPrincipalCallback == null ? null : groupPrincipalCallback.getGroups();
+    if (authStatus == AuthStatus.SEND_CONTINUE)     return Authentication.CHALLENGE;
+    if (authStatus == AuthStatus.SEND_FAILURE)     return Authentication.FAILED;
     Set<UserIdentity> ids=clientSubject.getPrivateCredentials(UserIdentity.class);
-    if (ids.size() > 0)     return new DefaultAuthentication(toServerAuthStatus(authStatus),authMethod,ids.iterator().next());
-    return Authentication.SEND_FAILURE_RESULTS;
+    if (ids.size() > 0) {
+      if (authStatus == AuthStatus.SEND_SUCCESS)       return new DefaultAuthentication.Send(this,ids.iterator().next());
+      return new DefaultAuthentication(this,ids.iterator().next());
+    }
+    return Authentication.FAILED;
   }
  catch (  AuthException e) {
     throw new ServerAuthException(e);

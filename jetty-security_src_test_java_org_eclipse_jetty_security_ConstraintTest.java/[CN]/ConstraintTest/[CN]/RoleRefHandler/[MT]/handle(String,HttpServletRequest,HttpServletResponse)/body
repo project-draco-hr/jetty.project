@@ -1,6 +1,6 @@
 {
   UserIdentity old=((Request)request).getUserIdentity();
-  UserIdentity scoped=_security.getIdentityService().associate(old,new UserIdentity.Scope(){
+  UserIdentity scoped=_security.getIdentityService().scope(old,new UserIdentity.Scope(){
     public String getContextPath(){
       return "/";
     }
@@ -12,9 +12,6 @@
       map.put("untranslated","user");
       return map;
     }
-    public String getRunAsRole(){
-      return null;
-    }
   }
 );
   ((Request)request).setUserIdentity(scoped);
@@ -22,7 +19,7 @@
     super.handle(target,request,response);
   }
   finally {
-    _security.getIdentityService().disassociate(scoped);
+    _security.getIdentityService().descope(scoped);
     ((Request)request).setUserIdentity(old);
   }
 }

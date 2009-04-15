@@ -1,12 +1,12 @@
 {
   HttpSession session=((HttpServletRequest)request).getSession(mandatory);
-  if (session == null)   return DefaultAuthentication.SUCCESS_UNAUTH_RESULTS;
+  if (session == null)   return Authentication.NOT_CHECKED;
   Authentication authentication=(Authentication)session.getAttribute(__J_AUTHENTICATED);
   if (authentication != null)   return authentication;
   authentication=_delegate.validateRequest(request,response,mandatory);
-  if (authentication != null && authentication.getUserIdentity().getSubject() != null) {
-    Authentication next=new FormAuthentication(Authentication.Status.SUCCESS,_delegate,authentication.getUserIdentity());
-    session.setAttribute(__J_AUTHENTICATED,next);
+  if (authentication != null && authentication.isSuccess()) {
+    Authentication cached=new FormAuthentication(_delegate,authentication.getUserIdentity());
+    session.setAttribute(__J_AUTHENTICATED,cached);
   }
   return authentication;
 }
