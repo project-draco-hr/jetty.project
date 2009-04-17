@@ -9,13 +9,13 @@
     GroupPrincipalCallback groupPrincipalCallback=_callbackHandler.getThreadGroupPrincipalCallback();
     String[] groups=groupPrincipalCallback == null ? null : groupPrincipalCallback.getGroups();
     if (authStatus == AuthStatus.SEND_CONTINUE)     return Authentication.CHALLENGE;
-    if (authStatus == AuthStatus.SEND_FAILURE)     return Authentication.FAILED;
+    if (authStatus == AuthStatus.SEND_FAILURE)     return Authentication.FAILURE;
     Set<UserIdentity> ids=clientSubject.getPrivateCredentials(UserIdentity.class);
     if (ids.size() > 0) {
-      if (authStatus == AuthStatus.SEND_SUCCESS)       return new DefaultAuthentication.Send(this,ids.iterator().next());
-      return new DefaultAuthentication(this,ids.iterator().next());
+      if (authStatus == AuthStatus.SEND_SUCCESS)       return new FormAuthenticator.FormAuthentication(this,ids.iterator().next());
+      return new UserAuthentication(this,ids.iterator().next());
     }
-    return Authentication.FAILED;
+    return Authentication.FAILURE;
   }
  catch (  AuthException e) {
     throw new ServerAuthException(e);

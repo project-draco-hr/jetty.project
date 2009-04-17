@@ -10,7 +10,7 @@
   ServletRequestEvent request_event=null;
   ServletHolder servlet_holder=null;
   FilterChain chain=null;
-  UserIdentity old_identity=null;
+  UserIdentity.Scope old_scope=null;
   if (target.startsWith("/")) {
     PathMap.Entry entry=getHolderEntry(target);
     if (entry != null) {
@@ -47,12 +47,8 @@
       notFound(request,response);
     }
  else {
-      base_request.setServletName(servlet_holder.getName());
-      if (_identityService != null) {
-        old_identity=base_request.getUserIdentity();
-        scoped_identity=_identityService.scope(old_identity,servlet_holder);
-        base_request.setUserIdentity(scoped_identity);
-      }
+      old_scope=base_request.getUserIdentityScope();
+      base_request.setUserIdentityScope(servlet_holder);
       request_listeners=base_request.takeRequestListeners();
       if (request_listeners != null) {
         request_event=new ServletRequestEvent(getServletContext(),request);
@@ -135,11 +131,7 @@ catch (  Error e) {
         listener.requestDestroyed(request_event);
       }
     }
-    if (scoped_identity != null) {
-      _identityService.descope(scoped_identity);
-      base_request.setUserIdentity(old_identity);
-    }
-    base_request.setServletName(old_servlet_name);
+    if (old_scope != null)     base_request.setUserIdentityScope(old_scope);
     if (!(DispatcherType.INCLUDE.equals(type))) {
       base_request.setServletPath(old_servlet_path);
       base_request.setPathInfo(old_path_info);

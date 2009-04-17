@@ -1,21 +1,24 @@
 {
   HttpServletRequest request=(HttpServletRequest)req;
   HttpServletResponse response=(HttpServletResponse)res;
-  java.security.cert.X509Certificate[] certs=(java.security.cert.X509Certificate[])request.getAttribute("javax.servlet.request.X509Certificate");
+  X509Certificate[] certs=(X509Certificate[])request.getAttribute("javax.servlet.request.X509Certificate");
   try {
-    if (certs == null || certs.length == 0 || certs[0] == null) {
-      response.sendError(HttpServletResponse.SC_FORBIDDEN,"!certificate");
-      return Authentication.FAILED;
+    if (certs != null && certs.length > 0) {
+      for (      X509Certificate cert : certs) {
+        if (cert == null)         continue;
+        Principal principal=cert.getSubjectDN();
+        if (principal == null)         principal=cert.getIssuerDN();
+        final String username=principal == null ? "clientcert" : principal.getName();
+        final char[] credential=B64Code.encode(cert.getSignature());
+        UserIdentity user=_loginService.login(username,credential);
+        if (user != null)         return new UserAuthentication(this,user);
+      }
     }
-    Principal principal=certs[0].getSubjectDN();
-    if (principal == null)     principal=certs[0].getIssuerDN();
-    final String username=principal == null ? "clientcert" : principal.getName();
-    final char[] credential=B64Code.encode(certs[0].getSignature());
-    UserIdentity user=_loginService.login(username,credential);
-    if (user != null)     return new DefaultAuthentication(this,user);
-    if (!mandatory)     return Authentication.NOT_CHECKED;
-    response.sendError(HttpServletResponse.SC_FORBIDDEN);
-    return Authentication.FAILED;
+    if (mandatory) {
+      response.sendError(HttpServletResponse.SC_FORBIDDEN);
+      return Authentication.FAILURE;
+    }
+    return certs == null ? Authentication.NOT_CHECKED : Authentication.UNAUTHENTICATED;
   }
  catch (  IOException e) {
     throw new ServerAuthException(e.getMessage());

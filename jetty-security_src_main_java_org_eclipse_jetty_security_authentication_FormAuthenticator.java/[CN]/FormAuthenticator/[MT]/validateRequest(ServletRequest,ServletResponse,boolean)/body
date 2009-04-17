@@ -24,7 +24,7 @@ synchronized (session) {
         }
         response.setContentLength(0);
         response.sendRedirect(response.encodeRedirectURL(nuri));
-        return new DefaultAuthentication.Send(this,user);
+        return new FormAuthentication(this,user);
       }
       if (Log.isDebugEnabled())       Log.debug("Form authentication FAILED for " + StringUtil.printable(username));
       if (_formErrorPage == null) {
@@ -39,23 +39,25 @@ synchronized (session) {
  else {
         response.sendRedirect(URIUtil.addPaths(request.getContextPath(),_formErrorPage));
       }
-      return Authentication.FAILED;
+      return Authentication.FAILURE;
     }
-    if (!mandatory)     return Authentication.NOT_CHECKED;
-    if (request.getQueryString() != null)     uri+="?" + request.getQueryString();
+    if (mandatory) {
+      if (request.getQueryString() != null)       uri+="?" + request.getQueryString();
 synchronized (session) {
-      if (session.getAttribute(__J_URI) == null)       session.setAttribute(__J_URI,request.getScheme() + "://" + request.getServerName()+ ":"+ request.getServerPort()+ URIUtil.addPaths(request.getContextPath(),uri));
-    }
-    if (_dispatch) {
-      RequestDispatcher dispatcher=request.getRequestDispatcher(_formLoginPage);
-      response.setHeader(HttpHeaders.CACHE_CONTROL,"No-cache");
-      response.setDateHeader(HttpHeaders.EXPIRES,1);
-      dispatcher.forward(new FormRequest(request),new FormResponse(response));
-    }
+        if (session.getAttribute(__J_URI) == null)         session.setAttribute(__J_URI,request.getScheme() + "://" + request.getServerName()+ ":"+ request.getServerPort()+ URIUtil.addPaths(request.getContextPath(),uri));
+      }
+      if (_dispatch) {
+        RequestDispatcher dispatcher=request.getRequestDispatcher(_formLoginPage);
+        response.setHeader(HttpHeaders.CACHE_CONTROL,"No-cache");
+        response.setDateHeader(HttpHeaders.EXPIRES,1);
+        dispatcher.forward(new FormRequest(request),new FormResponse(response));
+      }
  else {
-      response.sendRedirect(URIUtil.addPaths(request.getContextPath(),_formLoginPage));
+        response.sendRedirect(URIUtil.addPaths(request.getContextPath(),_formLoginPage));
+      }
+      return Authentication.CHALLENGE;
     }
-    return Authentication.CHALLENGE;
+    return Authentication.UNAUTHENTICATED;
   }
  catch (  IOException e) {
     throw new ServerAuthException(e);

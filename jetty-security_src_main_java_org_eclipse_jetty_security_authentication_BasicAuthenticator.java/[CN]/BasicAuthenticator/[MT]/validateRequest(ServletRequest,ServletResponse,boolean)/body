@@ -10,12 +10,14 @@
       String username=credentials.substring(0,i);
       String password=credentials.substring(i + 1);
       UserIdentity user=_loginService.login(username,password);
-      if (user != null)       return new DefaultAuthentication(this,user);
+      if (user != null)       return new UserAuthentication(this,user);
     }
-    if (!mandatory)     return Authentication.NOT_CHECKED;
-    response.setHeader(HttpHeaders.WWW_AUTHENTICATE,"basic realm=\"" + _loginService.getName() + '"');
-    response.sendError(HttpServletResponse.SC_UNAUTHORIZED);
-    return Authentication.CHALLENGE;
+    if (mandatory) {
+      response.setHeader(HttpHeaders.WWW_AUTHENTICATE,"basic realm=\"" + _loginService.getName() + '"');
+      response.sendError(HttpServletResponse.SC_UNAUTHORIZED);
+      return Authentication.CHALLENGE;
+    }
+    return credentials == null ? Authentication.NOT_CHECKED : Authentication.UNAUTHENTICATED;
   }
  catch (  IOException e) {
     throw new ServerAuthException(e);
