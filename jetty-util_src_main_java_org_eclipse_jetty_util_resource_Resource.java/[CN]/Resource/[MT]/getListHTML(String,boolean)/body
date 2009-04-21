@@ -4,7 +4,7 @@
   if (ls == null)   return null;
   Arrays.sort(ls);
   String decodedBase=URIUtil.decodePath(base);
-  String title="Directory: " + decodedBase;
+  String title="Directory: " + deTag(decodedBase);
   StringBuilder buf=new StringBuilder(4096);
   buf.append("<HTML><HEAD><TITLE>");
   buf.append(title);
@@ -12,9 +12,9 @@
   buf.append(title);
   buf.append("</H1><TABLE BORDER=0>");
   if (parent) {
-    buf.append("<TR><TD><A HREF=");
-    buf.append(URIUtil.addPaths(base,"../"));
-    buf.append(">Parent Directory</A></TD><TD></TD><TD></TD></TR>\n");
+    buf.append("<TR><TD><A HREF=\"");
+    URIUtil.encodePath(buf,URIUtil.addPaths(base,"../"));
+    buf.append("\">Parent Directory</A></TD><TD></TD><TD></TD></TR>\n");
   }
   DateFormat dfmt=DateFormat.getDateTimeInstance(DateFormat.MEDIUM,DateFormat.MEDIUM);
   for (int i=0; i < ls.length; i++) {
@@ -23,9 +23,9 @@
     buf.append("<TR><TD><A HREF=\"");
     String path=URIUtil.addPaths(base,encoded);
     if (item.isDirectory() && !path.endsWith("/"))     path=URIUtil.addPaths(path,URIUtil.SLASH);
-    buf.append(path);
+    URIUtil.encodePath(buf,path);
     buf.append("\">");
-    buf.append(StringUtil.replace(StringUtil.replace(ls[i],"<","&lt;"),">","&gt;"));
+    buf.append(deTag(ls[i]));
     buf.append("&nbsp;");
     buf.append("</TD><TD ALIGN=right>");
     buf.append(item.length());
