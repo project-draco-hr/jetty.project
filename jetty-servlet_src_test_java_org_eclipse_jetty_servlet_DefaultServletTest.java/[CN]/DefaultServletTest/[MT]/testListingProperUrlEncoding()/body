@@ -1,0 +1,27 @@
+{
+  ServletHolder defholder=context.addServlet(DefaultServlet.class,"/*");
+  defholder.setInitParameter("dirAllowed","true");
+  defholder.setInitParameter("redirectWelcome","false");
+  defholder.setInitParameter("gzip","false");
+  File testDir=new File("target/tests/" + getName());
+  prepareEmptyTestDir(testDir);
+  File resBase=new File(testDir,"docroot");
+  resBase.mkdirs();
+  File wackyDir=new File(resBase,"dir;");
+  assertTrue(wackyDir.mkdirs());
+  new File(wackyDir,"four").mkdir();
+  new File(wackyDir,"five").mkdir();
+  new File(wackyDir,"six").mkdir();
+  String resBasePath=resBase.getAbsolutePath();
+  defholder.setInitParameter("resourceBase",resBasePath);
+  String response=connector.getResponses("GET /context/dir;/ HTTP/1.0\r\n\r\n");
+  assertResponseContains("HTTP/1.1 404 Not Found",response);
+  connector.reopen();
+  StringBuffer req2=new StringBuffer();
+  response=connector.getResponses("GET /context/dir%3B/ HTTP/1.0\r\n\r\n");
+  assertResponseNotContains("%253B",response);
+  assertResponseContains("/dir%3B/",response);
+  assertResponseContains("/dir%3B/four/",response);
+  assertResponseContains("/dir%3B/five/",response);
+  assertResponseContains("/dir%3B/six/",response);
+}
