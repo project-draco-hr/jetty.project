@@ -1,16 +1,16 @@
 {
+  long now=System.currentTimeMillis();
+  long idleTimeout=_client.getIdleTimeout();
+  HttpConnection connection=null;
+  while (true) {
 synchronized (this) {
-    long now=System.currentTimeMillis();
-    long idleTimeout=_client.getIdleTimeout();
-    while (_idle.size() > 0) {
-      HttpConnection connection=_idle.remove(_idle.size() - 1);
-      long last=connection.getLast();
-      if (connection.getEndPoint().isOpen() && (last == 0 || ((now - last) < idleTimeout)))       return connection;
- else {
-        _connections.remove(connection);
-        connection.getEndPoint().close();
-      }
+      if (_idle.size() > 0)       connection=_idle.remove(_idle.size() - 1);
     }
-    return null;
+    if (connection == null)     return null;
+    long last=connection.getLast();
+    if (connection.getEndPoint().isOpen() && (last == 0 || ((now - last) < idleTimeout)))     return connection;
+    _connections.remove(connection);
+    connection.getEndPoint().close();
+    connection=null;
   }
 }
