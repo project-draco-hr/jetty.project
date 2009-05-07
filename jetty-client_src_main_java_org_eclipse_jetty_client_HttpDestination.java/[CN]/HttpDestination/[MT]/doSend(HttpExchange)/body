@@ -14,9 +14,13 @@
     Authorization auth=(Authorization)_authorizations.match(ex.getURI());
     if (auth != null)     ((Authorization)auth).setCredentials(ex);
   }
+  HttpConnection connection=getIdleConnection();
+  if (connection != null) {
+    boolean sent=connection.send(ex);
+    if (!sent)     connection=null;
+  }
+  if (connection == null) {
 synchronized (this) {
-    HttpConnection connection=null;
-    if (_queue.size() > 0 || (connection=getIdleConnection()) == null || !connection.send(ex)) {
       _queue.add(ex);
       if (_connections.size() + _pendingConnections < _maxConnections) {
         startNewConnection();
