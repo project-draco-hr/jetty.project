@@ -24,11 +24,13 @@
         Authentication.User userAuth=(Authentication.User)authentication;
         base_request.setAuthentication(authentication);
         _identityService.associate(userAuth.getUserIdentity());
-        boolean authorized=checkWebResourcePermissions(pathInContext,base_request,base_response,constraintInfo,userAuth.getUserIdentity());
-        if (isAuthMandatory && !authorized) {
-          response.sendError(Response.SC_FORBIDDEN,"!role");
-          base_request.setHandled(true);
-          return;
+        if (isAuthMandatory) {
+          boolean authorized=checkWebResourcePermissions(pathInContext,base_request,base_response,constraintInfo,userAuth.getUserIdentity());
+          if (!authorized) {
+            response.sendError(Response.SC_FORBIDDEN,"!role");
+            base_request.setHandled(true);
+            return;
+          }
         }
         handler.handle(pathInContext,request,response);
         authenticator.secureResponse(request,response,isAuthMandatory,userAuth);
