@@ -1,0 +1,42 @@
+{
+  DispatcherType dispatch=baseRequest.getDispatcherType();
+switch (_availability) {
+case __STOPPED:
+case __SHUTDOWN:
+    return false;
+case __UNAVAILABLE:
+  response.sendError(HttpServletResponse.SC_SERVICE_UNAVAILABLE);
+return false;
+default :
+if ((DispatcherType.REQUEST.equals(dispatch) && baseRequest.isHandled())) return false;
+}
+if (_vhosts != null && _vhosts.length > 0) {
+String vhost=normalizeHostname(baseRequest.getServerName());
+boolean match=false;
+for (int i=0; !match && i < _vhosts.length; i++) {
+String contextVhost=_vhosts[i];
+if (contextVhost == null) continue;
+if (contextVhost.startsWith("*.")) {
+match=contextVhost.regionMatches(true,2,vhost,vhost.indexOf(".") + 1,contextVhost.length() - 2);
+}
+ else match=contextVhost.equalsIgnoreCase(vhost);
+}
+if (!match) return false;
+}
+if (_connectors != null && _connectors.size() > 0) {
+String connector=HttpConnection.getCurrentConnection().getConnector().getName();
+if (connector == null || !_connectors.contains(connector)) return false;
+}
+if (target.startsWith(_contextPath)) {
+if (_contextPath.length() == target.length() && _contextPath.length() > 1 && !_allowNullPathInfo) {
+baseRequest.setHandled(true);
+if (baseRequest.getQueryString() != null) response.sendRedirect(URIUtil.addPaths(baseRequest.getRequestURI(),URIUtil.SLASH) + "?" + baseRequest.getQueryString());
+ else response.sendRedirect(URIUtil.addPaths(baseRequest.getRequestURI(),URIUtil.SLASH));
+return false;
+}
+}
+ else {
+return false;
+}
+return true;
+}

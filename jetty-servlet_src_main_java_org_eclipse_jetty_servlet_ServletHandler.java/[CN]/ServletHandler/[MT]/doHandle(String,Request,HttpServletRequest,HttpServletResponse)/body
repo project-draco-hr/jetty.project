@@ -1,0 +1,87 @@
+{
+  DispatcherType type=baseRequest.getDispatcherType();
+  ServletHolder servlet_holder=(ServletHolder)baseRequest.getUserIdentityScope();
+  FilterChain chain=null;
+  if (target.startsWith("/")) {
+    if (servlet_holder != null && _filterMappings != null && _filterMappings.length > 0)     chain=getFilterChain(baseRequest,target,servlet_holder);
+  }
+ else {
+    if (servlet_holder != null) {
+      if (_filterMappings != null && _filterMappings.length > 0) {
+        chain=getFilterChain(baseRequest,null,servlet_holder);
+      }
+    }
+  }
+  Log.debug("chain=",chain);
+  try {
+    if (servlet_holder == null) {
+      notFound(request,response);
+    }
+ else {
+      baseRequest.setHandled(true);
+      if (chain != null)       chain.doFilter(request,response);
+ else       servlet_holder.handle(baseRequest,request,response);
+    }
+  }
+ catch (  RetryRequest e) {
+    throw e;
+  }
+catch (  EofException e) {
+    throw e;
+  }
+catch (  Exception e) {
+    if (!(DispatcherType.REQUEST.equals(type) || DispatcherType.ASYNC.equals(type))) {
+      if (e instanceof IOException)       throw (IOException)e;
+      if (e instanceof RuntimeException)       throw (RuntimeException)e;
+      if (e instanceof ServletException)       throw (ServletException)e;
+    }
+    Throwable th=e;
+    if (th instanceof UnavailableException) {
+      Log.debug(th);
+    }
+ else     if (th instanceof ServletException) {
+      Log.debug(th);
+      Throwable cause=((ServletException)th).getRootCause();
+      if (cause != th && cause != null)       th=cause;
+    }
+    if (th instanceof RetryRequest) {
+      baseRequest.setHandled(false);
+      throw (RetryRequest)th;
+    }
+ else     if (th instanceof HttpException) {
+      throw (HttpException)th;
+    }
+ else     if (Log.isDebugEnabled()) {
+      Log.warn(request.getRequestURI(),th);
+      Log.debug(request.toString());
+    }
+ else     if (th instanceof IOException || th instanceof UnavailableException) {
+      Log.warn(request.getRequestURI() + ": " + th);
+    }
+ else {
+      Log.warn(request.getRequestURI(),th);
+    }
+    if (!response.isCommitted()) {
+      request.setAttribute(Dispatcher.ERROR_EXCEPTION_TYPE,th.getClass());
+      request.setAttribute(Dispatcher.ERROR_EXCEPTION,th);
+      if (th instanceof UnavailableException) {
+        UnavailableException ue=(UnavailableException)th;
+        if (ue.isPermanent())         response.sendError(HttpServletResponse.SC_NOT_FOUND,th.getMessage());
+ else         response.sendError(HttpServletResponse.SC_SERVICE_UNAVAILABLE,th.getMessage());
+      }
+ else       response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR,th.getMessage());
+    }
+ else     if (Log.isDebugEnabled())     Log.debug("Response already committed for handling " + th);
+  }
+catch (  Error e) {
+    if (!(DispatcherType.REQUEST.equals(type) || DispatcherType.ASYNC.equals(type)))     throw e;
+    Log.warn("Error for " + request.getRequestURI(),e);
+    if (Log.isDebugEnabled())     Log.debug(request.toString());
+    if (!response.isCommitted()) {
+      request.setAttribute(Dispatcher.ERROR_EXCEPTION_TYPE,e.getClass());
+      request.setAttribute(Dispatcher.ERROR_EXCEPTION,e);
+      response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR,e.getMessage());
+    }
+ else     if (Log.isDebugEnabled())     Log.debug("Response already committed for handling ",e);
+  }
+}

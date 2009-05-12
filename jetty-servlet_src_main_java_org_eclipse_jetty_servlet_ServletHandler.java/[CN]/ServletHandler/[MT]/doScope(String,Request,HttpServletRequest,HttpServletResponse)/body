@@ -1,0 +1,43 @@
+{
+  final String old_servlet_path=baseRequest.getServletPath();
+  final String old_path_info=baseRequest.getPathInfo();
+  DispatcherType type=baseRequest.getDispatcherType();
+  ServletHolder servlet_holder=null;
+  UserIdentity.Scope old_scope=null;
+  if (target.startsWith("/")) {
+    PathMap.Entry entry=getHolderEntry(target);
+    if (entry != null) {
+      servlet_holder=(ServletHolder)entry.getValue();
+      if (Log.isDebugEnabled())       Log.debug("servlet=" + servlet_holder);
+      String servlet_path_spec=(String)entry.getKey();
+      String servlet_path=entry.getMapped() != null ? entry.getMapped() : PathMap.pathMatch(servlet_path_spec,target);
+      String path_info=PathMap.pathInfo(servlet_path_spec,target);
+      if (DispatcherType.INCLUDE.equals(type)) {
+        baseRequest.setAttribute(Dispatcher.INCLUDE_SERVLET_PATH,servlet_path);
+        baseRequest.setAttribute(Dispatcher.INCLUDE_PATH_INFO,path_info);
+      }
+ else {
+        baseRequest.setServletPath(servlet_path);
+        baseRequest.setPathInfo(path_info);
+      }
+    }
+  }
+ else {
+    servlet_holder=(ServletHolder)_servletNameMap.get(target);
+  }
+  Log.debug("servlet holder=",servlet_holder);
+  try {
+    if (servlet_holder != null) {
+      old_scope=baseRequest.getUserIdentityScope();
+      baseRequest.setUserIdentityScope(servlet_holder);
+      nextScope(target,baseRequest,request,response);
+    }
+  }
+  finally {
+    if (old_scope != null)     baseRequest.setUserIdentityScope(old_scope);
+    if (!(DispatcherType.INCLUDE.equals(type))) {
+      baseRequest.setServletPath(old_servlet_path);
+      baseRequest.setPathInfo(old_path_info);
+    }
+  }
+}

@@ -1,0 +1,59 @@
+{
+  final Response base_response=baseRequest.getResponse();
+  long timestamp0=baseRequest.getTimeStamp();
+  long timestamp1=timestamp0;
+  try {
+synchronized (this) {
+      AsyncRequest asyncContextState=baseRequest.getAsyncRequest();
+      if (asyncContextState == null) {
+        _requests++;
+      }
+ else {
+        if (asyncContextState.isInitial())         _requests++;
+ else {
+          timestamp1=System.currentTimeMillis();
+        }
+      }
+      _requestsActive++;
+      if (_requestsActive > _requestsActiveMax)       _requestsActiveMax=_requestsActive;
+    }
+    super.handle(target,baseRequest,request,response);
+  }
+  finally {
+synchronized (this) {
+      _requestsActive--;
+      if (_requestsActive < 0)       _requestsActive=0;
+      if (_requestsActive < _requestsActiveMin)       _requestsActiveMin=_requestsActive;
+      long duration=System.currentTimeMillis() - timestamp1;
+      _requestsActiveDurationTotal+=duration;
+      if (_requestsActiveDurationMin == 0 || duration < _requestsActiveDurationMin)       _requestsActiveDurationMin=duration;
+      if (duration > _requestsActiveDurationMax)       _requestsActiveDurationMax=duration;
+      if (baseRequest.isAsyncStarted()) {
+        Object list=baseRequest.getAttribute(COMPLETE_HANDLER_ATTR);
+        baseRequest.setAttribute(COMPLETE_HANDLER_ATTR,LazyList.add(list,this));
+      }
+ else {
+        duration=System.currentTimeMillis() - timestamp0;
+        addRequestsDurationTotal(duration);
+switch (base_response.getStatus() / 100) {
+case 1:
+          _responses1xx++;
+        break;
+case 2:
+      _responses2xx++;
+    break;
+case 3:
+  _responses3xx++;
+break;
+case 4:
+_responses4xx++;
+break;
+case 5:
+_responses5xx++;
+break;
+}
+_responsesBytesTotal+=base_response.getContentCount();
+}
+}
+}
+}
