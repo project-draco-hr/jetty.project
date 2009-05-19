@@ -1,0 +1,78 @@
+{
+  final Throwable[] throwable=new Throwable[threads];
+  final Thread[] thread=new Thread[threads];
+  for (int i=0; i < threads; i++) {
+    final int id=i;
+    final String name="T" + i;
+    thread[i]=new Thread(){
+      public void run(){
+        try {
+          doLoops(id,name,loops,persistent);
+        }
+ catch (        Throwable th) {
+          th.printStackTrace();
+          throwable[id]=th;
+        }
+ finally {
+        }
+      }
+    }
+;
+  }
+  _loops=new int[threads];
+  for (int i=0; i < threads; i++)   thread[i].start();
+  while (true) {
+    Thread.sleep(1000L);
+    int finished=0;
+    int errors=0;
+    int min=loops;
+    int max=0;
+    int total=0;
+    for (int i=0; i < threads; i++) {
+      int l=_loops[i];
+      if (l < 0) {
+        errors++;
+        total-=l;
+      }
+ else {
+        if (l < min)         min=l;
+        if (l > max)         max=l;
+        total+=l;
+        if (l == loops)         finished++;
+      }
+    }
+    Log.info("min/ave/max/target=" + min + "/"+ (total / threads)+ "/"+ max+ "/"+ loops+ " errors/finished/loops="+ errors+ "/"+ finished+ "/"+ threads+ " idle/threads="+ (_threads.getIdleThreads())+ "/"+ _threads.getThreads());
+    if ((finished + errors) == threads)     break;
+  }
+  for (int i=0; i < threads; i++)   thread[i].join();
+  for (int i=0; i < threads; i++)   if (throwable[i] != null)   throw throwable[i];
+  int quantums=16;
+  int[][] count=new int[_latencies.length][quantums];
+  int length[]=new int[_latencies.length];
+  int other[]=new int[_latencies.length];
+  for (int i=0; i < _latencies.length; i++) {
+    Queue<Long> latencies=_latencies[i];
+    length[i]=latencies.size();
+    loop:     for (    long latency : (Queue<Long>)(_latencies[i])) {
+      for (int q=0; q < quantums; q++) {
+        if (latency >= (q * 1000) && latency < ((q + 1) * 1000)) {
+          count[i][q]++;
+          continue loop;
+        }
+      }
+      other[i]++;
+    }
+  }
+  System.out.println("           stage:\tbind\twrite\trecv\tdispatch\twrote\ttotal");
+  for (int q=0; q < quantums; q++) {
+    System.out.print(q + "000<=latency<" + (q + 1)+ "000");
+    for (int i=0; i < _latencies.length; i++)     System.out.print("\t" + count[i][q]);
+    System.out.println();
+  }
+  System.out.print("    <=latency    ");
+  for (int i=0; i < _latencies.length; i++)   System.out.print("\t" + other[i]);
+  System.out.println();
+  System.out.print("TOTAL             ");
+  for (int i=0; i < _latencies.length; i++)   System.out.print("\t" + length[i]);
+  System.out.println();
+}
