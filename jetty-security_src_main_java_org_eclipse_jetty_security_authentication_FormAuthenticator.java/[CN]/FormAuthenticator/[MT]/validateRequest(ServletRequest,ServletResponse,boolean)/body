@@ -42,9 +42,12 @@ synchronized (session) {
       return Authentication.SEND_FAILURE;
     }
     if (mandatory) {
-      if (request.getQueryString() != null)       uri+="?" + request.getQueryString();
 synchronized (session) {
-        if (session.getAttribute(__J_URI) == null)         session.setAttribute(__J_URI,request.getScheme() + "://" + request.getServerName()+ ":"+ request.getServerPort()+ URIUtil.addPaths(request.getContextPath(),uri));
+        if (session.getAttribute(__J_URI) == null) {
+          StringBuffer buf=request.getRequestURL();
+          if (request.getQueryString() != null)           buf.append("?").append(request.getQueryString());
+          session.setAttribute(__J_URI,buf.toString());
+        }
       }
       if (_dispatch) {
         RequestDispatcher dispatcher=request.getRequestDispatcher(_formLoginPage);
