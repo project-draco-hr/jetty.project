@@ -1,0 +1,50 @@
+{
+  Socket[] socket=new Socket[connections];
+  int[][] path=new int[connections][loops];
+  for (int i=0; i < connections; i++) {
+    socket[i]=new Socket(_addr,_port);
+    socket[i].setSoTimeout(30000);
+    if (i % 80 == 0)     System.err.println();
+    System.err.print('+');
+  }
+  System.err.println();
+  Log.info("Bound " + connections);
+  for (int l=0; l < loops; l++) {
+    for (int i=0; i < connections; i++) {
+      int p=path[i][l]=_random.nextInt(__paths.length);
+      int period=_random.nextInt(490) + 10;
+      String uri=__paths[p][0].replace("<PERIOD>",Integer.toString(period));
+      long start=System.currentTimeMillis();
+      String request="GET " + uri + " HTTP/1.1\r\n"+ "Host: localhost\r\n"+ "start: "+ start+ "\r\n"+ "result: "+ __paths[p][1]+ "\r\n"+ ((l + 1 < loops) ? "" : "Connection: close\r\n")+ "\r\n";
+      socket[i].getOutputStream().write(request.getBytes("UTF-8"));
+      socket[i].getOutputStream().flush();
+    }
+    if (l % 80 == 0)     System.err.println();
+    System.err.print('.');
+    Thread.sleep(_random.nextInt(590) + 10);
+  }
+  System.err.println();
+  Log.info("Sent " + (loops * __paths.length) + " requests");
+  String[] results=new String[connections];
+  for (int i=0; i < connections; i++) {
+    results[i]=IO.toString(socket[i].getInputStream(),"UTF-8");
+    if (i % 80 == 0)     System.err.println();
+    System.err.print('-');
+  }
+  System.err.println();
+  Log.info("Read " + connections + " connections");
+  for (int i=0; i < connections; i++) {
+    int offset=0;
+    String result=results[i];
+    for (int l=0; l < loops; l++) {
+      String expect=__paths[path[i][l]][1];
+      expect=expect + " " + expect;
+      offset=result.indexOf("200 OK",offset) + 6;
+      offset=result.indexOf("\r\n\r\n",offset) + 4;
+      int end=result.indexOf("\n",offset);
+      String r=result.substring(offset,end).trim();
+      assertEquals(i + "," + l,expect,r);
+      offset=end;
+    }
+  }
+}
