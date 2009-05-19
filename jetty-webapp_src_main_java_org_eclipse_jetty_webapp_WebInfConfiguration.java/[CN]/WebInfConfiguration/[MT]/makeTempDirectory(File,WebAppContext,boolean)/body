@@ -1,0 +1,24 @@
+{
+  if (parent != null && parent.exists() && parent.canWrite() && parent.isDirectory()) {
+    String temp=getCanonicalNameForWebAppTmpDir(context);
+    File tmpDir=new File(parent,temp);
+    if (deleteExisting && tmpDir.exists()) {
+      if (!IO.delete(tmpDir)) {
+        if (Log.isDebugEnabled())         Log.debug("Failed to delete temp dir " + tmpDir);
+      }
+      if (tmpDir.exists()) {
+        String old=tmpDir.toString();
+        tmpDir=File.createTempFile(temp + "_","");
+        if (tmpDir.exists())         tmpDir.delete();
+        Log.warn("Can't reuse " + old + ", using "+ tmpDir);
+      }
+    }
+    if (!tmpDir.exists())     tmpDir.mkdir();
+    if (!isTempWorkDirectory(tmpDir)) {
+      tmpDir.deleteOnExit();
+      File sentinel=new File(tmpDir,".active");
+      if (!sentinel.exists())       sentinel.mkdir();
+    }
+    setTempDirectory(tmpDir,context);
+  }
+}

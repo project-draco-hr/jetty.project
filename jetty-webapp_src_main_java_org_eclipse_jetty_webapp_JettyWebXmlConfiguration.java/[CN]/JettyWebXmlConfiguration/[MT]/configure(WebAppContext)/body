@@ -1,0 +1,27 @@
+{
+  if (context.isStarted()) {
+    if (Log.isDebugEnabled()) {
+      Log.debug("Cannot configure webapp after it is started");
+    }
+    return;
+  }
+  if (Log.isDebugEnabled())   Log.debug("Configuring web-jetty.xml");
+  Resource web_inf=context.getWebInf();
+  if (web_inf != null && web_inf.isDirectory()) {
+    Resource jetty=web_inf.addPath("jetty6-web.xml");
+    if (!jetty.exists())     jetty=web_inf.addPath("jetty-web.xml");
+    if (!jetty.exists())     jetty=web_inf.addPath("web-jetty.xml");
+    if (jetty.exists()) {
+      String[] old_server_classes=context.getServerClasses();
+      try {
+        context.setServerClasses(null);
+        if (Log.isDebugEnabled())         Log.debug("Configure: " + jetty);
+        XmlConfiguration jetty_config=new XmlConfiguration(jetty.getURL());
+        jetty_config.configure(context);
+      }
+  finally {
+        if (context.getServerClasses() == null)         context.setServerClasses(old_server_classes);
+      }
+    }
+  }
+}

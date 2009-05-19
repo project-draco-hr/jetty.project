@@ -1,0 +1,45 @@
+{
+  StringBuffer canonicalName=new StringBuffer();
+  canonicalName.append("Jetty");
+  Connector[] connectors=context.getServer().getConnectors();
+  canonicalName.append("_");
+  String host=(connectors == null || connectors[0] == null ? "" : connectors[0].getHost());
+  if (host == null)   host="0.0.0.0";
+  canonicalName.append(host.replace('.','_'));
+  canonicalName.append("_");
+  int port=(connectors == null || connectors[0] == null ? 0 : connectors[0].getLocalPort());
+  if (port < 0)   port=connectors[0].getPort();
+  canonicalName.append(port);
+  canonicalName.append("_");
+  try {
+    Resource resource=context.getBaseResource();
+    if (resource == null) {
+      if (context.getWar() == null || context.getWar().length() == 0)       resource=context.newResource(context.getResourceBase());
+      resource=context.newResource(context.getWar());
+    }
+    String tmp=URIUtil.decodePath(resource.getURL().getPath());
+    if (tmp.endsWith("/"))     tmp=tmp.substring(0,tmp.length() - 1);
+    if (tmp.endsWith("!"))     tmp=tmp.substring(0,tmp.length() - 1);
+    int i=tmp.lastIndexOf("/");
+    canonicalName.append(tmp.substring(i + 1,tmp.length()));
+  }
+ catch (  Exception e) {
+    Log.warn("Can't generate resourceBase as part of webapp tmp dir name",e);
+  }
+  canonicalName.append("_");
+  String contextPath=context.getContextPath();
+  contextPath=contextPath.replace('/','_');
+  contextPath=contextPath.replace('\\','_');
+  canonicalName.append(contextPath);
+  canonicalName.append("_");
+  String[] vhosts=context.getVirtualHosts();
+  canonicalName.append((vhosts == null || vhosts[0] == null ? "" : vhosts[0]));
+  String hash=Integer.toString(canonicalName.toString().hashCode(),36);
+  canonicalName.append("_");
+  canonicalName.append(hash);
+  for (int i=0; i < canonicalName.length(); i++) {
+    char c=canonicalName.charAt(i);
+    if (!Character.isJavaIdentifierPart(c))     canonicalName.setCharAt(i,'.');
+  }
+  return canonicalName.toString();
+}

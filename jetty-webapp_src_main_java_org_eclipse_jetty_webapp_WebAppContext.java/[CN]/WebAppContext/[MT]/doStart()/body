@@ -1,7 +1,6 @@
 {
   try {
     loadConfigurations();
-    for (int i=0; i < _configurations.length; i++)     _configurations[i].setWebAppContext(this);
     _ownClassLoader=false;
     if (getClassLoader() == null) {
       WebAppClassLoader classLoader=new WebAppClassLoader(this);
@@ -17,13 +16,9 @@
         loader=loader.getParent();
       }
     }
-    for (int i=0; i < _configurations.length; i++)     _configurations[i].configureClassLoader();
-    getTempDirectory();
-    if (_tmpDir != null && !_isExistingTmpDir && !isTempWorkDirectory()) {
-      File sentinel=new File(_tmpDir,".active");
-      if (!sentinel.exists())       sentinel.mkdir();
-    }
+    for (int i=0; i < _configurations.length; i++)     _configurations[i].preConfigure(this);
     super.doStart();
+    for (int i=0; i < _configurations.length; i++)     _configurations[i].postConfigure(this);
     if (isLogUrlOnStart())     dumpUrl();
   }
  catch (  Exception e) {

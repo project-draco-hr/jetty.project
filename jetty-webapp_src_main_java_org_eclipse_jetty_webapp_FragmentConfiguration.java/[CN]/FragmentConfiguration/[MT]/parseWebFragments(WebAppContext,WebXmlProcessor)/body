@@ -1,0 +1,25 @@
+{
+  String tmp=(String)context.getInitParameter("org.eclipse.jetty.webapp.WebXmlFragmentPattern");
+  Pattern webFragPattern=(tmp == null ? null : Pattern.compile(tmp));
+  List<URL> urls=(List<URL>)context.getAttribute(MetaInfConfiguration.__webFragJars);
+  JarScanner fragScanner=new JarScanner(){
+    public void processEntry(    URL jarUrl,    JarEntry entry){
+      try {
+        String name=entry.getName();
+        if (name.toLowerCase().equals("meta-inf/web-fragment.xml")) {
+          Resource webXmlFrag=context.newResource("jar:" + jarUrl + "!/"+ name);
+          Log.debug("web.xml fragment found {}",webXmlFrag);
+          processor.parseFragment(webXmlFrag.getURL());
+        }
+      }
+ catch (      Exception e) {
+        Log.warn("Problem processing jar entry " + entry,e);
+      }
+    }
+  }
+;
+  if (urls != null)   fragScanner.scan(webFragPattern,urls.toArray(new URL[urls.size()]),true);
+ else {
+    if (Log.isDebugEnabled())     Log.debug("No jars with web-fragments");
+  }
+}

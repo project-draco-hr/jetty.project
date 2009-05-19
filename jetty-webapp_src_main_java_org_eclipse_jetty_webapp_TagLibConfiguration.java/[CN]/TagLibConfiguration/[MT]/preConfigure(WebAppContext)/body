@@ -1,0 +1,51 @@
+{
+  Set tlds=new HashSet();
+  if (context.getResourceAliases() != null && context.getBaseResource() != null && context.getBaseResource().exists()) {
+    Iterator iter=context.getResourceAliases().values().iterator();
+    while (iter.hasNext()) {
+      String location=(String)iter.next();
+      if (location != null && location.toLowerCase().endsWith(".tld")) {
+        if (!location.startsWith("/"))         location="/WEB-INF/" + location;
+        Resource l=context.getBaseResource().addPath(location);
+        tlds.add(l);
+      }
+    }
+  }
+  Resource web_inf=context.getWebInf();
+  if (web_inf != null) {
+    String[] contents=web_inf.list();
+    for (int i=0; contents != null && i < contents.length; i++) {
+      if (contents[i] != null && contents[i].toLowerCase().endsWith(".tld")) {
+        Resource l=context.getWebInf().addPath(contents[i]);
+        tlds.add(l);
+      }
+    }
+  }
+  String tmp=context.getInitParameter(__web_inf_pattern);
+  Pattern webInfPattern=(tmp == null ? null : Pattern.compile(tmp));
+  tmp=context.getInitParameter(__container_pattern);
+  Pattern containerPattern=(tmp == null ? null : Pattern.compile(tmp));
+  List<URL> tldJars=(List<URL>)context.getAttribute(MetaInfConfiguration.__tldJars);
+  TagLibJarScanner tldScanner=new TagLibJarScanner(context);
+  try {
+    tldScanner.setTldSet(tlds);
+    if (tldJars != null)     tldScanner.scan(webInfPattern,tldJars.toArray(new URL[tldJars.size()]),true);
+    tldScanner.scan(containerPattern,Thread.currentThread().getContextClassLoader().getParent(),false,true);
+  }
+ catch (  Exception e) {
+    Log.warn(e);
+  }
+  TldProcessor processor=new TldProcessor(context);
+  context.setAttribute(TldProcessor.__taglib_processor,processor);
+  Iterator iter=tlds.iterator();
+  while (iter.hasNext()) {
+    try {
+      Resource tld=(Resource)iter.next();
+      if (Log.isDebugEnabled())       Log.debug("TLD=" + tld);
+      processor.parse(tld);
+    }
+ catch (    Exception e) {
+      Log.warn(e);
+    }
+  }
+}

@@ -1,0 +1,49 @@
+{
+  Resource web_app=context.getBaseResource();
+  if (web_app == null) {
+    String war=context.getWar();
+    if (war == null || war.length() == 0)     war=context.getResourceBase();
+    web_app=context.newResource(war);
+    if (web_app.getAlias() != null) {
+      Log.debug(web_app + " anti-aliased to " + web_app.getAlias());
+      web_app=context.newResource(web_app.getAlias());
+    }
+    if (Log.isDebugEnabled())     Log.debug("Try webapp=" + web_app + ", exists="+ web_app.exists()+ ", directory="+ web_app.isDirectory());
+    if (web_app.exists() && !web_app.isDirectory() && !web_app.toString().startsWith("jar:")) {
+      Resource jarWebApp=context.newResource("jar:" + web_app + "!/");
+      if (jarWebApp.exists() && jarWebApp.isDirectory()) {
+        web_app=jarWebApp;
+      }
+    }
+    if (web_app.exists() && ((context.isCopyWebDir() && web_app.getFile() != null && web_app.getFile().isDirectory()) || (context.isExtractWAR() && web_app.getFile() != null && !web_app.getFile().isDirectory()) || (context.isExtractWAR() && web_app.getFile() == null)|| !web_app.isDirectory())) {
+      File extractedWebAppDir=new File(context.getTempDirectory(),"webapp");
+      if (web_app.getFile() != null && web_app.getFile().isDirectory()) {
+        Log.info("Copy " + web_app.getFile() + " to "+ extractedWebAppDir);
+        IO.copyDir(web_app.getFile(),extractedWebAppDir);
+      }
+ else {
+        if (!extractedWebAppDir.exists()) {
+          extractedWebAppDir.mkdir();
+          Log.info("Extract " + war + " to "+ extractedWebAppDir);
+          JarResource.extract(web_app,extractedWebAppDir,false);
+        }
+ else {
+          if (web_app.lastModified() > extractedWebAppDir.lastModified()) {
+            extractedWebAppDir.delete();
+            extractedWebAppDir.mkdir();
+            Log.info("Extract " + war + " to "+ extractedWebAppDir);
+            JarResource.extract(web_app,extractedWebAppDir,false);
+          }
+        }
+      }
+      web_app=Resource.newResource(extractedWebAppDir.getCanonicalPath());
+    }
+    if (!web_app.exists() || !web_app.isDirectory()) {
+      Log.warn("Web application not found " + war);
+      throw new java.io.FileNotFoundException(war);
+    }
+    context.setBaseResource(web_app);
+    System.err.println("SetBaseResource in WebInfConfiguration, toString=" + context.toString());
+    if (Log.isDebugEnabled())     Log.debug("webapp=" + web_app);
+  }
+}

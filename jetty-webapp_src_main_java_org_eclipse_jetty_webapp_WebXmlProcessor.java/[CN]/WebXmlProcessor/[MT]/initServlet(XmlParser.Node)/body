@@ -1,0 +1,87 @@
+{
+  String id=node.getAttribute("id");
+  String servlet_name=node.getString("servlet-name",false,true);
+  ServletHolder holder=_servletHandler.getServlet(servlet_name);
+  if (holder == null) {
+    holder=_servletHandler.newServletHolder();
+    holder.setName(servlet_name);
+    _servlets=LazyList.add(_servlets,holder);
+  }
+  Iterator iParamsIter=node.iterator("init-param");
+  while (iParamsIter.hasNext()) {
+    XmlParser.Node paramNode=(XmlParser.Node)iParamsIter.next();
+    String pname=paramNode.getString("param-name",false,true);
+    String pvalue=paramNode.getString("param-value",false,true);
+    holder.setInitParameter(pname,pvalue);
+  }
+  String servlet_class=node.getString("servlet-class",false,true);
+  if (id != null && id.equals("jsp")) {
+    _jspServletName=servlet_name;
+    _jspServletClass=servlet_class;
+    try {
+      Loader.loadClass(this.getClass(),servlet_class);
+      _hasJSP=true;
+    }
+ catch (    ClassNotFoundException e) {
+      Log.info("NO JSP Support for {}, did not find {}",_context.getContextPath(),servlet_class);
+      _hasJSP=false;
+      _jspServletClass=servlet_class="org.eclipse.jetty.servlet.NoJspServlet";
+    }
+    if (holder.getInitParameter("scratchdir") == null) {
+      File tmp=_context.getTempDirectory();
+      File scratch=new File(tmp,"jsp");
+      if (!scratch.exists())       scratch.mkdir();
+      holder.setInitParameter("scratchdir",scratch.getAbsolutePath());
+      if ("?".equals(holder.getInitParameter("classpath"))) {
+        String classpath=_context.getClassPath();
+        Log.debug("classpath=" + classpath);
+        if (classpath != null)         holder.setInitParameter("classpath",classpath);
+      }
+    }
+  }
+  if (servlet_class != null)   holder.setClassName(servlet_class);
+  String jsp_file=node.getString("jsp-file",false,true);
+  if (jsp_file != null) {
+    holder.setForcedPath(jsp_file);
+    holder.setClassName(_jspServletClass);
+  }
+  XmlParser.Node startup=node.get("load-on-startup");
+  if (startup != null) {
+    String s=startup.toString(false,true).toLowerCase();
+    if (s.startsWith("t")) {
+      Log.warn("Deprecated boolean load-on-startup.  Please use integer");
+      holder.setInitOrder(1);
+    }
+ else {
+      int order=0;
+      try {
+        if (s != null && s.trim().length() > 0)         order=Integer.parseInt(s);
+      }
+ catch (      Exception e) {
+        Log.warn("Cannot parse load-on-startup " + s + ". Please use integer");
+        Log.ignore(e);
+      }
+      holder.setInitOrder(order);
+    }
+  }
+  Iterator sRefsIter=node.iterator("security-role-ref");
+  while (sRefsIter.hasNext()) {
+    XmlParser.Node securityRef=(XmlParser.Node)sRefsIter.next();
+    String roleName=securityRef.getString("role-name",false,true);
+    String roleLink=securityRef.getString("role-link",false,true);
+    if (roleName != null && roleName.length() > 0 && roleLink != null && roleLink.length() > 0) {
+      if (Log.isDebugEnabled())       Log.debug("link role " + roleName + " to "+ roleLink+ " for "+ this);
+      holder.setUserRoleLink(roleName,roleLink);
+    }
+ else {
+      Log.warn("Ignored invalid security-role-ref element: " + "servlet-name=" + holder.getName() + ", "+ securityRef);
+    }
+  }
+  XmlParser.Node run_as=node.get("run-as");
+  if (run_as != null) {
+    String roleName=run_as.getString("role-name",false,true);
+    if (roleName != null)     holder.setRunAsRole(roleName);
+  }
+  String async=node.getString("async-support",false,true);
+  if (async != null)   holder.setAsyncSupported(Boolean.valueOf(async));
+}

@@ -1,0 +1,51 @@
+{
+  File tmpDir=context.getTempDirectory();
+  if (tmpDir != null && tmpDir.isDirectory() && tmpDir.canWrite())   return;
+  Object t=context.getAttribute(WebAppContext.TEMPDIR);
+  if (t != null) {
+    if (t instanceof File) {
+      tmpDir=(File)t;
+      if (tmpDir.isDirectory() && tmpDir.canWrite()) {
+        context.setTempDirectory(tmpDir);
+        return;
+      }
+    }
+    if (t instanceof String) {
+      try {
+        tmpDir=new File((String)t);
+        if (tmpDir.isDirectory() && tmpDir.canWrite()) {
+          context.setAttribute(context.TEMPDIR,tmpDir);
+          context.setTempDirectory(tmpDir);
+          return;
+        }
+      }
+ catch (      Exception e) {
+        Log.warn(Log.EXCEPTION,e);
+      }
+    }
+  }
+  String temp=getCanonicalNameForWebAppTmpDir(context);
+  try {
+    File work=new File(System.getProperty("jetty.home"),"work");
+    if (!work.exists() || !work.canWrite() || !work.isDirectory())     work=null;
+    if (work != null)     makeTempDirectory(work,context,false);
+ else     makeTempDirectory(new File(System.getProperty("java.io.tmpdir")),context,true);
+  }
+ catch (  Exception e) {
+    tmpDir=null;
+    Log.ignore(e);
+  }
+  if (context.getTempDirectory() == null) {
+    try {
+      tmpDir=File.createTempFile("JettyContext","");
+      if (tmpDir.exists())       tmpDir.delete();
+      tmpDir.mkdir();
+      tmpDir.deleteOnExit();
+      setTempDirectory(tmpDir,context);
+    }
+ catch (    IOException e) {
+      Log.warn("tmpdir",e);
+      System.exit(1);
+    }
+  }
+}

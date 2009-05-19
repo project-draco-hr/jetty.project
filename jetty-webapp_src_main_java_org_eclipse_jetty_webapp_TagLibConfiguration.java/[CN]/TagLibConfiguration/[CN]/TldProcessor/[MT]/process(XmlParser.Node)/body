@@ -1,0 +1,25 @@
+{
+  for (int i=0; i < root.size(); i++) {
+    Object o=root.get(i);
+    if (o instanceof XmlParser.Node) {
+      XmlParser.Node node=(XmlParser.Node)o;
+      if ("listener".equals(node.getTag())) {
+        String className=node.getString("listener-class",false,true);
+        if (Log.isDebugEnabled())         Log.debug("listener=" + className);
+        try {
+          Class listenerClass=_context.loadClass(className);
+          EventListener l=(EventListener)listenerClass.newInstance();
+          _context.addEventListener(l);
+        }
+ catch (        Exception e) {
+          Log.warn("Could not instantiate listener " + className + ": "+ e);
+          Log.debug(e);
+        }
+catch (        Error e) {
+          Log.warn("Could not instantiate listener " + className + ": "+ e);
+          Log.debug(e);
+        }
+      }
+    }
+  }
+}
