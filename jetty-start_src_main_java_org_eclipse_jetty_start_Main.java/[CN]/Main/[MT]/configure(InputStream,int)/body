@@ -9,10 +9,9 @@
     while (tok.hasMoreTokens())     _classpath.addComponent(tok.nextToken());
   }
   List<String> section=null;
-  List<String> options=null;
   String o=getProperty("OPTIONS","default");
-  options=Arrays.asList((o.toString() + ",*").split("[ ,]"));
-  List<String> unsatisfied_options=new ArrayList<String>(options);
+  _activeOptions.addAll(Arrays.asList((o.toString() + ",*").split("[ ,]")));
+  List<String> unsatisfied_options=new ArrayList<String>(_activeOptions);
   String line=null;
   while (true) {
     line=cfg.readLine();
@@ -23,7 +22,7 @@
       section=Arrays.asList(trim.substring(1,trim.length() - 1).split("[ ,]"));
       _options.addAll(section);
     }
-    if (section != null && Collections.disjoint(section,options))     continue;
+    if (section != null && Collections.disjoint(section,_activeOptions))     continue;
     if (section != null)     unsatisfied_options.removeAll(section);
     try {
       StringTokenizer st=new StringTokenizer(line);
@@ -147,6 +146,13 @@
         if (cn != null && cn.length() > 0) {
           if (DEBUG)           System.err.println("  PATH=" + cn);
           _classpath.addClasspath(cn);
+        }
+      }
+ else       if (subject.toLowerCase().endsWith(".policy")) {
+        String cn=expand(subject.substring(0,subject.length() - 5));
+        if (cn != null && cn.length() > 0) {
+          if (DEBUG)           System.err.println("  POLICY=" + cn);
+          _policies.add(cn);
         }
       }
  else {
