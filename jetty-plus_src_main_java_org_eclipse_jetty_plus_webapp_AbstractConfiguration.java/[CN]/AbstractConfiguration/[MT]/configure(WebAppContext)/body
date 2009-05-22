@@ -2,16 +2,16 @@
   bindUserTransaction(context);
   WebXmlProcessor webXmlProcessor=(WebXmlProcessor)context.getAttribute(WebXmlProcessor.__web_processor);
   if (webXmlProcessor == null)   throw new IllegalStateException("No processor for web xml");
-  if (!webXmlProcessor.isMetaDataComplete()) {
-    if (Log.isDebugEnabled())     Log.debug("Processing annotations");
-    parseAnnotations(context);
-  }
   PlusWebXmlProcessor plusProcessor=new PlusWebXmlProcessor(context);
   plusProcessor.process(webXmlProcessor.getWebDefault());
   plusProcessor.process(webXmlProcessor.getWebXml());
   for (  XmlParser.Node frag : webXmlProcessor.getFragments())   plusProcessor.process(frag);
   plusProcessor.process(webXmlProcessor.getOverrideWeb());
-  ((ServletHandler)context.getServletHandler()).setInjections(_injections);
-  ((ServletHandler)context.getServletHandler()).setCallbacks(_callbacks);
+  if (!webXmlProcessor.isMetaDataComplete()) {
+    if (Log.isDebugEnabled())     Log.debug("Processing annotations");
+    parseAnnotations(context);
+  }
+  ((ServletHandler)context.getServletHandler()).setInjections((InjectionCollection)context.getAttribute(InjectionCollection.INJECTION_COLLECTION));
+  ((ServletHandler)context.getServletHandler()).setCallbacks((LifeCycleCallbackCollection)context.getAttribute(LifeCycleCallbackCollection.LIFECYCLE_CALLBACK_COLLECTION));
   injectAndCallPostConstructCallbacks(context);
 }
