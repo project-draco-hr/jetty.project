@@ -1,4 +1,11 @@
 {
+  boolean jetty="org.eclipse.jetty.servlet".equals(filterConfig.getClass().getPackage().getName());
   _context=filterConfig.getServletContext();
-  _faux=!"org.eclipse.jetty.servlet".equals(filterConfig.getClass().getPackage().getName());
+  String param=filterConfig.getInitParameter("debug");
+  _debug=param != null && Boolean.parseBoolean(param);
+  param=filterConfig.getInitParameter("partial");
+  _partial=param != null && Boolean.parseBoolean(param) || ContinuationSupport.__jetty6;
+  param=filterConfig.getInitParameter("faux");
+  _faux=(param != null && Boolean.parseBoolean(param)) || !(jetty || _partial || ContinuationSupport.__servlet3);
+  if (_debug)   _context.log("ContinuationFilter partial=" + _partial + " jetty6="+ ContinuationSupport.__jetty6+ " faux="+ _faux+ " servlet3="+ ContinuationSupport.__servlet3);
 }
