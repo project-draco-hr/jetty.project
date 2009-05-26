@@ -1,0 +1,81 @@
+{
+  final HttpServletRequest srequest=(HttpServletRequest)request;
+  final HttpServletResponse sresponse=(HttpServletResponse)response;
+  final long now=_requestTimeoutQ.getNow();
+  RateTracker tracker=(RateTracker)request.getAttribute(__TRACKER);
+  if (tracker == null) {
+    tracker=getRateTracker(request);
+    final boolean overRateLimit=tracker.isRateExceeded(now);
+    if (!overRateLimit) {
+      doFilterChain(filterchain,srequest,sresponse);
+      return;
+    }
+    Log.warn("DOS ALERT: ip=" + srequest.getRemoteAddr() + ",session="+ srequest.getRequestedSessionId()+ ",user="+ srequest.getUserPrincipal());
+switch ((int)_delayMs) {
+case -1:
+{
+        if (_insertHeaders)         ((HttpServletResponse)response).addHeader("DoSFilter","unavailable");
+        ((HttpServletResponse)response).sendError(HttpServletResponse.SC_SERVICE_UNAVAILABLE);
+        return;
+      }
+case 0:
+{
+      request.setAttribute(__TRACKER,tracker);
+      break;
+    }
+default :
+{
+    if (_insertHeaders)     ((HttpServletResponse)response).addHeader("DoSFilter","delayed");
+    Continuation continuation=ContinuationSupport.getContinuation(request,response);
+    request.setAttribute(__TRACKER,tracker);
+    if (_delayMs > 0)     continuation.setTimeout(_delayMs);
+    continuation.suspend();
+    return;
+  }
+}
+}
+boolean accepted=false;
+try {
+accepted=_passes.tryAcquire(_waitMs,TimeUnit.MILLISECONDS);
+if (!accepted) {
+final Continuation continuation=ContinuationSupport.getContinuation(request,response);
+Boolean throttled=(Boolean)request.getAttribute(__THROTTLED);
+if (throttled != Boolean.TRUE && _throttleMs > 0) {
+  int priority=getPriority(request,tracker);
+  request.setAttribute(__THROTTLED,Boolean.TRUE);
+  if (_insertHeaders)   ((HttpServletResponse)response).addHeader("DoSFilter","throttled");
+  if (_throttleMs > 0)   continuation.setTimeout(_throttleMs);
+  continuation.suspend();
+  _queue[priority].add(continuation);
+  return;
+}
+ else if (request.getAttribute("javax.servlet.resumed") == Boolean.TRUE) {
+  _passes.acquire();
+  accepted=true;
+}
+}
+if (accepted) doFilterChain(filterchain,srequest,sresponse);
+ else {
+if (_insertHeaders) ((HttpServletResponse)response).addHeader("DoSFilter","unavailable");
+((HttpServletResponse)response).sendError(HttpServletResponse.SC_SERVICE_UNAVAILABLE);
+}
+}
+ catch (InterruptedException e) {
+_context.log("DoS",e);
+((HttpServletResponse)response).sendError(HttpServletResponse.SC_SERVICE_UNAVAILABLE);
+}
+ finally {
+if (accepted) {
+synchronized (_queue) {
+  for (int p=_queue.length; p-- > 0; ) {
+    Continuation continuation=_queue[p].poll();
+    if (continuation != null) {
+      continuation.resume();
+      break;
+    }
+  }
+}
+_passes.release();
+}
+}
+}

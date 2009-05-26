@@ -1,0 +1,26 @@
+{
+  Thread other=new Thread(){
+    public void run(){
+      try {
+        String request="GET /ctx/dos/test HTTP/1.1\r\nHost: localhost\r\n\r\n";
+        String last="GET /ctx/dos/test?sleep=5000 HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n";
+        String responses=doRequests(request + request + request+ request,1,0,0,last);
+      }
+ catch (      Exception e) {
+        e.printStackTrace();
+      }
+    }
+  }
+;
+  other.start();
+  Thread.sleep(500);
+  String request="GET /ctx/dos/test HTTP/1.1\r\nHost: localhost\r\n\r\n";
+  String last="GET /ctx/dos/test HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n";
+  String responses=doRequests(request + request + request+ request,1,0,0,last);
+  assertEquals(4,count(responses,"HTTP/1.1 200 OK"));
+  assertEquals(1,count(responses,"HTTP/1.1 503"));
+  assertEquals(1,count(responses,"DoSFilter: delayed"));
+  assertEquals(1,count(responses,"DoSFilter: throttled"));
+  assertEquals(1,count(responses,"DoSFilter: unavailable"));
+  other.join();
+}

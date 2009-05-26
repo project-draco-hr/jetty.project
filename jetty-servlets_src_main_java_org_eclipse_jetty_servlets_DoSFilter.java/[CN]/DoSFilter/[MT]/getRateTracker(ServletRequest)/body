@@ -1,0 +1,34 @@
+{
+  HttpServletRequest srequest=(HttpServletRequest)request;
+  String loadId;
+  final int type;
+  loadId=extractUserId(request);
+  HttpSession session=srequest.getSession(false);
+  if (_trackSessions && session != null && !session.isNew()) {
+    loadId=session.getId();
+    type=USER_SESSION;
+  }
+ else {
+    loadId=_remotePort ? (request.getRemoteAddr() + request.getRemotePort()) : request.getRemoteAddr();
+    type=USER_IP;
+  }
+  RateTracker tracker=_rateTrackers.get(loadId);
+  if (tracker == null) {
+    RateTracker t;
+    if (_whitelist.contains(request.getRemoteAddr())) {
+      t=new FixedRateTracker(loadId,type,_maxRequestsPerSec);
+    }
+ else {
+      t=new RateTracker(loadId,type,_maxRequestsPerSec);
+    }
+    tracker=_rateTrackers.putIfAbsent(loadId,t);
+    if (tracker == null)     tracker=t;
+    if (type == USER_IP) {
+synchronized (_trackerTimeoutQ) {
+        _trackerTimeoutQ.schedule(tracker);
+      }
+    }
+ else     if (session != null)     session.setAttribute(__TRACKER,tracker);
+  }
+  return tracker;
+}

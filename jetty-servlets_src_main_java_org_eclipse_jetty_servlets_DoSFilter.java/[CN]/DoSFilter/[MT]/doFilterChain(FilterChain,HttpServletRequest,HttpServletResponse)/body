@@ -1,0 +1,20 @@
+{
+  final Thread thread=Thread.currentThread();
+  final Timeout.Task requestTimeout=new Timeout.Task(){
+    public void expired(){
+      closeConnection(request,response,thread);
+    }
+  }
+;
+  try {
+synchronized (_requestTimeoutQ) {
+      _requestTimeoutQ.schedule(requestTimeout);
+    }
+    chain.doFilter(request,response);
+  }
+  finally {
+synchronized (_requestTimeoutQ) {
+      requestTimeout.cancel();
+    }
+  }
+}
