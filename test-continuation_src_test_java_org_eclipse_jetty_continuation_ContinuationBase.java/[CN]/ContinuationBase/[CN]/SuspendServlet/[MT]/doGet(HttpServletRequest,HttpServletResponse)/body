@@ -4,13 +4,19 @@
   int read_before=0;
   long sleep_for=-1;
   long suspend_for=-1;
+  long suspend2_for=-1;
   long resume_after=-1;
+  long resume2_after=-1;
   long complete_after=-1;
+  long complete2_after=-1;
   if (request.getParameter("read") != null)   read_before=Integer.parseInt(request.getParameter("read"));
   if (request.getParameter("sleep") != null)   sleep_for=Integer.parseInt(request.getParameter("sleep"));
   if (request.getParameter("suspend") != null)   suspend_for=Integer.parseInt(request.getParameter("suspend"));
+  if (request.getParameter("suspend2") != null)   suspend2_for=Integer.parseInt(request.getParameter("suspend2"));
   if (request.getParameter("resume") != null)   resume_after=Integer.parseInt(request.getParameter("resume"));
+  if (request.getParameter("resume2") != null)   resume2_after=Integer.parseInt(request.getParameter("resume2"));
   if (request.getParameter("complete") != null)   complete_after=Integer.parseInt(request.getParameter("complete"));
+  if (request.getParameter("complete2") != null)   complete2_after=Integer.parseInt(request.getParameter("complete2"));
   if (continuation.isInitial()) {
     if (read_before > 0) {
       byte[] buf=new byte[read_before];
@@ -24,6 +30,7 @@
     if (suspend_for >= 0) {
       if (suspend_for > 0)       continuation.setTimeout(suspend_for);
       continuation.addContinuationListener(__listener);
+      ((HttpServletResponse)continuation.getServletResponse()).addHeader("history","suspend");
       continuation.suspend();
       if (complete_after > 0) {
         TimerTask complete=new TimerTask(){
@@ -51,6 +58,7 @@ synchronized (_timer) {
  else       if (resume_after > 0) {
         TimerTask resume=new TimerTask(){
           public void run(){
+            ((HttpServletResponse)continuation.getServletResponse()).addHeader("history","resume");
             continuation.resume();
           }
         }
@@ -60,6 +68,7 @@ synchronized (_timer) {
         }
       }
  else       if (resume_after == 0) {
+        ((HttpServletResponse)continuation.getServletResponse()).addHeader("history","resume");
         continuation.resume();
       }
     }
@@ -77,6 +86,52 @@ synchronized (_timer) {
       response.setStatus(200);
       response.getOutputStream().println("NORMAL\n");
     }
+  }
+ else   if (suspend2_for >= 0 && request.getAttribute("2nd") == null) {
+    request.setAttribute("2nd","cycle");
+    if (suspend2_for > 0)     continuation.setTimeout(suspend2_for);
+    ((HttpServletResponse)continuation.getServletResponse()).addHeader("history","suspend");
+    continuation.suspend();
+    if (complete2_after > 0) {
+      TimerTask complete=new TimerTask(){
+        public void run(){
+          try {
+            response.setStatus(200);
+            response.getOutputStream().println("COMPLETED\n");
+            continuation.complete();
+          }
+ catch (          Exception e) {
+            e.printStackTrace();
+          }
+        }
+      }
+;
+synchronized (_timer) {
+        _timer.schedule(complete,complete2_after);
+      }
+    }
+ else     if (complete2_after == 0) {
+      response.setStatus(200);
+      response.getOutputStream().println("COMPLETED\n");
+      continuation.complete();
+    }
+ else     if (resume2_after > 0) {
+      TimerTask resume=new TimerTask(){
+        public void run(){
+          ((HttpServletResponse)continuation.getServletResponse()).addHeader("history","resume");
+          continuation.resume();
+        }
+      }
+;
+synchronized (_timer) {
+        _timer.schedule(resume,resume2_after);
+      }
+    }
+ else     if (resume2_after == 0) {
+      ((HttpServletResponse)continuation.getServletResponse()).addHeader("history","resume");
+      continuation.resume();
+    }
+    return;
   }
  else   if (continuation.isExpired()) {
     response.setStatus(200);
