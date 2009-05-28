@@ -1,5 +1,4 @@
 {
-  boolean handling=_server.isRunning() && _request._async.handling();
   boolean error=false;
   String threadName=null;
   try {
@@ -7,6 +6,8 @@
       threadName=Thread.currentThread().getName();
       Thread.currentThread().setName(threadName + " - " + _uri);
     }
+    final Server server=_server;
+    boolean handling=_request._async.handling() && server != null && server.isRunning();
     while (handling) {
       _request.setHandled(false);
       try {
@@ -17,11 +18,11 @@
         if (_request._async.isInitial()) {
           _request.setDispatcherType(DispatcherType.REQUEST);
           _connector.customize(_endp,_request);
-          _server.handle(this);
+          server.handle(this);
         }
  else {
           _request.setDispatcherType(DispatcherType.ASYNC);
-          _server.handleAsync(this);
+          server.handleAsync(this);
         }
       }
  catch (      EofException e) {
@@ -47,7 +48,7 @@ catch (      Error e) {
         error=true;
       }
  finally {
-        handling=!_request._async.unhandle() && _server != null;
+        handling=!_request._async.unhandle() && server.isRunning() && _server != null;
       }
     }
   }
