@@ -21,6 +21,8 @@
   }
   _loops=new int[threads];
   for (int i=0; i < threads; i++)   thread[i].start();
+  String last=null;
+  int same=0;
   while (true) {
     Thread.sleep(1000L);
     int finished=0;
@@ -41,12 +43,18 @@
         if (l == loops)         finished++;
       }
     }
-    Log.info("min/ave/max/target=" + min + "/"+ (total / threads)+ "/"+ max+ "/"+ loops+ " errors/finished/loops="+ errors+ "/"+ finished+ "/"+ threads+ " idle/threads="+ (_threads.getIdleThreads())+ "/"+ _threads.getThreads());
+    String status="min/ave/max/target=" + min + "/"+ (total / threads)+ "/"+ max+ "/"+ loops+ " errors/finished/loops="+ errors+ "/"+ finished+ "/"+ threads+ " idle/threads="+ (_threads.getIdleThreads())+ "/"+ _threads.getThreads();
+    if (status.equals(last)) {
+      if (same++ > 10)       throw new IllegalStateException("Stalled");
+    }
+ else     same=0;
+    last=status;
+    Log.info(status);
     if ((finished + errors) == threads)     break;
   }
   for (int i=0; i < threads; i++)   thread[i].join();
   for (int i=0; i < threads; i++)   if (throwable[i] != null)   throw throwable[i];
-  int quantums=16;
+  int quantums=48;
   int[][] count=new int[_latencies.length][quantums];
   int length[]=new int[_latencies.length];
   int other[]=new int[_latencies.length];
@@ -55,7 +63,7 @@
     length[i]=latencies.size();
     loop:     for (    long latency : (Queue<Long>)(_latencies[i])) {
       for (int q=0; q < quantums; q++) {
-        if (latency >= (q * 1000) && latency < ((q + 1) * 1000)) {
+        if (latency >= (q * 100) && latency < ((q + 1) * 100)) {
           count[i][q]++;
           continue loop;
         }
@@ -65,7 +73,7 @@
   }
   System.out.println("           stage:\tbind\twrite\trecv\tdispatch\twrote\ttotal");
   for (int q=0; q < quantums; q++) {
-    System.out.print(q + "000<=latency<" + (q + 1)+ "000");
+    System.out.print(q + "00<=latency<" + (q + 1)+ "00");
     for (int i=0; i < _latencies.length; i++)     System.out.print("\t" + count[i][q]);
     System.out.println();
   }
