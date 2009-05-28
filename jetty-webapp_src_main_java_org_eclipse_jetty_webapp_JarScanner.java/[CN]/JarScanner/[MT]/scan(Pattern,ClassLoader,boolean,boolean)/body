@@ -1,20 +1,12 @@
 {
-  String[] patterns=(pattern == null ? null : pattern.pattern().split(","));
-  List<Pattern> subPatterns=new ArrayList<Pattern>();
-  for (int i=0; patterns != null && i < patterns.length; i++)   subPatterns.add(Pattern.compile(patterns[i]));
-  if (subPatterns.isEmpty())   subPatterns.add(pattern);
   while (loader != null) {
     if (loader instanceof URLClassLoader) {
       URL[] urls=((URLClassLoader)loader).getURLs();
       if (urls != null) {
-        if (subPatterns.isEmpty()) {
-          processJars(null,urls,isNullInclusive);
-        }
- else {
-          for (          Pattern p : subPatterns) {
-            processJars(p,urls,isNullInclusive);
-          }
-        }
+        URI[] uris=new URI[urls.length];
+        int i=0;
+        for (        URL u : urls)         uris[i++]=u.toURI();
+        scan(pattern,uris,isNullInclusive);
       }
     }
     if (visitParent)     loader=loader.getParent();

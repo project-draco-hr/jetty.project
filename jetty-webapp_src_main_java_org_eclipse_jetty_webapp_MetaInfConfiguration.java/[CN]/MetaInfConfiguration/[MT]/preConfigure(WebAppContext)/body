@@ -1,9 +1,8 @@
 {
-  List<URL> urls=findJars(context);
-  JarScanner fragScanner=new JarScanner(){
-    public void processEntry(    URL jarUrl,    JarEntry entry){
+  JarScanner scanner=new JarScanner(){
+    public void processEntry(    URI jarUri,    JarEntry entry){
       try {
-        MetaInfConfiguration.this.processEntry(context,jarUrl,entry);
+        MetaInfConfiguration.this.processEntry(context,jarUri,entry);
       }
  catch (      Exception e) {
         Log.warn("Problem processing jar entry " + entry,e);
@@ -11,5 +10,13 @@
     }
   }
 ;
-  fragScanner.scan(null,urls.toArray(new URL[urls.size()]),true);
+  List<Resource> jarResources=(List<Resource>)context.getAttribute(JAR_RESOURCES);
+  if (jarResources != null) {
+    URI[] uris=new URI[jarResources.size()];
+    int i=0;
+    for (    Resource r : jarResources) {
+      uris[i++]=r.getURI();
+    }
+    scanner.scan(null,uris,true);
+  }
 }

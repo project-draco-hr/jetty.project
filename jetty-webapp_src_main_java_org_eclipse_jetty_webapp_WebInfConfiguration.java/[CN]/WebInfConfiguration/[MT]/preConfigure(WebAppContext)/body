@@ -3,4 +3,39 @@
   unpack(context);
   File work=findWorkDirectory(context);
   if (work != null)   makeTempDirectory(work,context,false);
+  String tmp=(String)context.getAttribute(WEBINF_JAR_PATTERN);
+  Pattern webInfPattern=(tmp == null ? null : Pattern.compile(tmp));
+  tmp=(String)context.getAttribute(CONTAINER_JAR_PATTERN);
+  Pattern containerPattern=(tmp == null ? null : Pattern.compile(tmp));
+  final ArrayList jarResources=new ArrayList<Resource>();
+  context.setAttribute(JAR_RESOURCES,jarResources);
+  PatternMatcher jarNameMatcher=new PatternMatcher(){
+    public void matched(    URI uri) throws Exception {
+      jarResources.add(Resource.newResource(uri));
+    }
+  }
+;
+  ClassLoader loader=context.getClassLoader();
+  while (loader != null && (loader instanceof URLClassLoader)) {
+    URL[] urls=((URLClassLoader)loader).getURLs();
+    if (urls != null) {
+      URI[] containerUris=new URI[urls.length];
+      int i=0;
+      for (      URL u : urls) {
+        containerUris[i++]=u.toURI();
+      }
+      jarNameMatcher.match(containerPattern,containerUris,false);
+    }
+    loader=loader.getParent();
+  }
+  List<Resource> jars=findJars(context);
+  URI[] uris=null;
+  if (jars != null) {
+    uris=new URI[jars.size()];
+    int i=0;
+    for (    Resource r : jars) {
+      uris[i++]=r.getURI();
+    }
+  }
+  jarNameMatcher.match(webInfPattern,uris,true);
 }

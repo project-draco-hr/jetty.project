@@ -1,6 +1,15 @@
 {
   Log.debug("Scanning container jars");
-  parseAnnotationsFromJars(context,finder,context.getClassLoader().getParent(),context.getInitParameter(__container_pattern),true,false,new ClassNameResolver(){
+  ArrayList<URI> containerCandidateUris=findJars(context.getClassLoader().getParent(),true);
+  ArrayList<URI> containerUris=new ArrayList<URI>();
+  List<Resource> jarResources=(List<Resource>)context.getAttribute(JAR_RESOURCES);
+  for (  Resource r : jarResources) {
+    URI uri=r.getURI();
+    if (containerCandidateUris.contains(uri)) {
+      containerUris.add(uri);
+    }
+  }
+  finder.find(containerUris.toArray(new URI[containerUris.size()]),new ClassNameResolver(){
     public boolean isExcluded(    String name){
       if (context.isSystemClass(name))       return false;
       if (context.isServerClass(name))       return true;

@@ -1,0 +1,26 @@
+{
+  if (loader == null)   return;
+  if (!(loader instanceof URLClassLoader))   return;
+  JarScanner scanner=new JarScanner(){
+    public void processEntry(    URI jarUri,    JarEntry entry){
+      try {
+        String name=entry.getName();
+        if (name.toLowerCase().endsWith(".class")) {
+          String shortName=name.replace('/','.').substring(0,name.length() - 6);
+          if (!resolver.isExcluded(shortName)) {
+            if ((parsedClasses.get(shortName) == null) || (resolver.shouldOverride(shortName))) {
+              parsedClasses.remove(shortName);
+              Resource clazz=Resource.newResource("jar:" + jarUri + "!/"+ name);
+              scanClass(clazz.getInputStream());
+            }
+          }
+        }
+      }
+ catch (      Exception e) {
+        Log.warn("Problem processing jar entry " + entry,e);
+      }
+    }
+  }
+;
+  scanner.scan(null,loader,nullInclusive,visitParents);
+}

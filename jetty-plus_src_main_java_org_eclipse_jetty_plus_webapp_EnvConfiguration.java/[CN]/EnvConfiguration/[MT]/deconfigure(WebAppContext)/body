@@ -1,7 +1,14 @@
 {
   ClassLoader oldLoader=Thread.currentThread().getContextClassLoader();
   Thread.currentThread().setContextClassLoader(context.getClassLoader());
-  compCtx.destroySubcontext("env");
+  try {
+    Context ic=new InitialContext();
+    Context compCtx=(Context)ic.lookup("java:comp");
+    compCtx.destroySubcontext("env");
+  }
+ catch (  NameNotFoundException e) {
+    Log.warn(e);
+  }
   try {
     Context scopeContext=NamingEntryUtil.getContextForScope(context);
     scopeContext.destroySubcontext(NamingEntry.__contextName);
