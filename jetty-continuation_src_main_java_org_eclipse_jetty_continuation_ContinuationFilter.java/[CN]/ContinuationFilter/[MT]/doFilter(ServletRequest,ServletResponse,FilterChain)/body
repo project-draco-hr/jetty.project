@@ -1,13 +1,16 @@
 {
   if (_faux) {
-    final FauxContinuation fc=new FauxContinuation(request);
+    final FauxContinuation fc=new FauxContinuation(request,_debug);
     request.setAttribute(Continuation.ATTRIBUTE,fc);
     boolean complete=false;
     while (!complete) {
       try {
         chain.doFilter(request,response);
       }
-  finally {
+ catch (      ContinuationThrowable e) {
+        debug("faux",e);
+      }
+ finally {
         complete=fc.handleSuspension();
       }
     }
@@ -23,5 +26,12 @@
       if (c != null && c instanceof PartialContinuation)       ((PartialContinuation)c).exit();
     }
   }
- else   chain.doFilter(request,response);
+ else {
+    try {
+      chain.doFilter(request,response);
+    }
+ catch (    ContinuationThrowable e) {
+      debug("caught",e);
+    }
+  }
 }

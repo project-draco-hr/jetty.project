@@ -9,6 +9,7 @@
   long resume2_after=-1;
   long complete_after=-1;
   long complete2_after=-1;
+  boolean undispatch=false;
   if (request.getParameter("read") != null)   read_before=Integer.parseInt(request.getParameter("read"));
   if (request.getParameter("sleep") != null)   sleep_for=Integer.parseInt(request.getParameter("sleep"));
   if (request.getParameter("suspend") != null)   suspend_for=Integer.parseInt(request.getParameter("suspend"));
@@ -17,6 +18,7 @@
   if (request.getParameter("resume2") != null)   resume2_after=Integer.parseInt(request.getParameter("resume2"));
   if (request.getParameter("complete") != null)   complete_after=Integer.parseInt(request.getParameter("complete"));
   if (request.getParameter("complete2") != null)   complete2_after=Integer.parseInt(request.getParameter("complete2"));
+  if (request.getParameter("undispatch") != null)   undispatch=Boolean.parseBoolean(request.getParameter("undispatch"));
   if (continuation.isInitial()) {
     if (read_before > 0) {
       byte[] buf=new byte[read_before];
@@ -71,6 +73,7 @@ synchronized (_timer) {
         ((HttpServletResponse)continuation.getServletResponse()).addHeader("history","resume");
         continuation.resume();
       }
+      if (undispatch)       continuation.undispatch();
     }
  else     if (sleep_for >= 0) {
       try {
@@ -131,6 +134,7 @@ synchronized (_timer) {
       ((HttpServletResponse)response).addHeader("history","resume");
       continuation.resume();
     }
+    if (undispatch)     continuation.undispatch();
     return;
   }
  else   if (continuation.isExpired()) {
