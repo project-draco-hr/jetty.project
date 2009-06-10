@@ -6,7 +6,32 @@ case HttpHeaders.HOST_ORDINAL:
   break;
 case HttpHeaders.EXPECT_ORDINAL:
 value=HttpHeaderValues.CACHE.lookup(value);
-_expect=HttpHeaderValues.CACHE.getOrdinal(value);
+switch (HttpHeaderValues.CACHE.getOrdinal(value)) {
+case HttpHeaderValues.CONTINUE_ORDINAL:
+_expect100Continue=true;
+break;
+case HttpHeaderValues.PROCESSING_ORDINAL:
+_expect102Processing=true;
+break;
+default :
+String[] values=value.toString().split(",");
+for (int i=0; values != null && i < values.length; i++) {
+CachedBuffer cb=HttpHeaderValues.CACHE.get(values[i].trim());
+if (cb == null) _expect=true;
+ else {
+switch (cb.getOrdinal()) {
+case HttpHeaderValues.CONTINUE_ORDINAL:
+_expect100Continue=true;
+break;
+case HttpHeaderValues.PROCESSING_ORDINAL:
+_expect102Processing=true;
+break;
+default :
+_expect=true;
+}
+}
+}
+}
 break;
 case HttpHeaders.ACCEPT_ENCODING_ORDINAL:
 case HttpHeaders.USER_AGENT_ORDINAL:
@@ -17,8 +42,7 @@ value=MimeTypes.CACHE.lookup(value);
 _charset=MimeTypes.getCharsetFromContentType(value);
 break;
 case HttpHeaders.CONNECTION_ORDINAL:
-int ordinal=HttpHeaderValues.CACHE.getOrdinal(value);
-switch (ordinal) {
+switch (HttpHeaderValues.CACHE.getOrdinal(value)) {
 case -1:
 {
 String[] values=value.toString().split(",");
