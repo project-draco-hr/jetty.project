@@ -38,7 +38,10 @@
   Thread.currentThread().setContextClassLoader(cl);
   try {
     if (_activeOptions.contains("policy")) {
-      Policy.setPolicy(new CustomPolicy(_policies));
+      Class jettyPolicy=cl.loadClass("org.eclipse.jetty.policy.JettyPolicy");
+      Constructor c=jettyPolicy.getConstructor(new Class[]{Set.class,Map.class});
+      Object policyClass=c.newInstance(_policies,_properties);
+      Policy.setPolicy((Policy)policyClass);
       System.setSecurityManager(new SecurityManager());
     }
  else {
