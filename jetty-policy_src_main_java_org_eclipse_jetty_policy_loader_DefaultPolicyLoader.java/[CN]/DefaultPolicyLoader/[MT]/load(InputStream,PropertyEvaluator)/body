@@ -1,0 +1,26 @@
+{
+  Map<ProtectionDomain,PermissionCollection> pdMappings=new HashMap<ProtectionDomain,PermissionCollection>();
+  try {
+    PolicyFileScanner loader=new PolicyFileScanner();
+    Collection<GrantEntry> grantEntries=new ArrayList<GrantEntry>();
+    List<KeystoreEntry> keystoreEntries=new ArrayList<KeystoreEntry>();
+    loader.scanStream(new InputStreamReader(policyStream),grantEntries,keystoreEntries);
+    for (Iterator<GrantEntry> i=grantEntries.iterator(); i.hasNext(); ) {
+      GrantEntry grant=i.next();
+      Permissions permissions=processPermissions(grant.permissions,evaluator);
+      ProtectionDomain pd;
+      if (grant.codebase == null) {
+        pd=new ProtectionDomain(null,permissions);
+      }
+ else {
+        CodeSource codeSource=resolveToCodeSource(grant.codebase,evaluator);
+        pd=new ProtectionDomain(codeSource,permissions);
+      }
+      pdMappings.put(pd,null);
+    }
+    return pdMappings;
+  }
+ catch (  Exception e) {
+    throw new PolicyException(e);
+  }
+}

@@ -1,0 +1,15 @@
+{
+  Set<String> files=new HashSet<String>();
+  files.add(getWorkingDirectory() + "/src/test/resources/single-codebase-file-permission.policy");
+  files.add(getWorkingDirectory() + "/src/test/resources/single-codebase-file-permission-2.policy");
+  JettyPolicy ap=new JettyPolicy(files,evaluator);
+  ap.refresh();
+  URL url=new URL("file:///bar.jar");
+  CodeSource cs=new CodeSource(url,new Certificate[0]);
+  PermissionCollection pc=ap.getPermissions(cs);
+  assertNotNull(pc);
+  Permission testPerm=new FilePermission("/tmp/*","read");
+  Permission testPerm2=new FilePermission("/usr/*","write");
+  assertTrue(pc.implies(testPerm));
+  assertFalse(pc.implies(testPerm2));
+}
