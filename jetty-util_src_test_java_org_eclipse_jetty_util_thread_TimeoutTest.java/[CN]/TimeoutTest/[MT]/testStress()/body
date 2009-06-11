@@ -1,7 +1,7 @@
 {
   final int LOOP=500;
   final boolean[] running={true};
-  final int[] count={0,0,0};
+  final AtomicIntegerArray count=new AtomicIntegerArray(3);
   timeout.setNow(System.currentTimeMillis());
   timeout.setDuration(500);
   Thread ticker=new Thread(){
@@ -26,12 +26,12 @@ synchronized (lock) {
     Thread th=new Thread(){
       public void run(){
 synchronized (count) {
-          count[0]++;
+          count.incrementAndGet(0);
         }
         Timeout.Task task=new Timeout.Task(){
           public void expired(){
 synchronized (count) {
-              count[2]++;
+              count.incrementAndGet(2);
             }
           }
         }
@@ -44,7 +44,7 @@ synchronized (count) {
             long wait=100 - once;
             if (loop++ == once) {
 synchronized (count) {
-                count[1]++;
+                count.incrementAndGet(1);
               }
               delay=200;
               wait=1000;
@@ -69,7 +69,7 @@ synchronized (lock) {
   Thread.sleep(2000);
   timeout.tick(System.currentTimeMillis());
   Thread.sleep(1000);
-  assertEquals("count threads",LOOP,count[0]);
-  assertEquals("count once waits",LOOP,count[1]);
-  assertEquals("count expires",LOOP,count[2]);
+  assertEquals("count threads",LOOP,count.get(0));
+  assertEquals("count once waits",LOOP,count.get(1));
+  assertEquals("count expires",LOOP,count.get(2));
 }
