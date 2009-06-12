@@ -1,10 +1,14 @@
 {
+  long now=System.currentTimeMillis();
   long start=Long.parseLong(baseRequest.getHeader("start"));
   long received=baseRequest.getTimeStamp();
-  _latencies[2].add(new Long(received - start));
-  _latencies[3].add(new Long(System.currentTimeMillis() - start));
+  _handled.incrementAndGet();
+  long delay=received - start;
+  if (delay < 0)   delay=0;
+  _latencies[2].add(new Long(delay));
+  _latencies[3].add(new Long(now - start));
   response.setStatus(200);
-  response.getOutputStream().print("NORMAL");
+  response.getOutputStream().print("NORMAL " + request.getPathInfo() + "\n\n");
   baseRequest.setHandled(true);
   long end=System.currentTimeMillis();
   _latencies[4].add(new Long(System.currentTimeMillis() - start));

@@ -6,7 +6,6 @@
     socket.setSoLinger(false,0);
     long connected=System.currentTimeMillis();
     for (int i=0; i < __tests.length; i++) {
-      int timeout=__tests[i][1].equals("NORMAL") ? 0 : 20;
       String uri=__tests[i][0];
       String close=((i + 1) < __tests.length) ? "" : "Connection: close\r\n";
       String request="GET " + uri + " HTTP/1.1\r\nHost: localhost\r\nstart: "+ start+ "\r\n"+ close+ "\r\n";
@@ -17,6 +16,8 @@
     String response=IO.toString(socket.getInputStream());
     socket.close();
     long end=System.currentTimeMillis();
+    int bodies=count(response,"HTTP/1.1 200 OK");
+    assertEquals(__tests.length,bodies);
     long bind=connected - start;
     long flush=(written - connected) / __tests.length;
     long read=(end - written) / __tests.length;
@@ -35,7 +36,6 @@
   }
  else {
     for (int i=0; i < __tests.length; i++) {
-      int timeout=__tests[i][1].equals("NORMAL") ? 0 : (_random.nextInt(20) * _random.nextInt(20) + 1);
       String uri=__tests[i][0];
       long start=System.currentTimeMillis();
       String close="Connection: close\r\n";
@@ -53,9 +53,7 @@
       response=response.substring(response.indexOf("\r\n\r\n") + 4);
       String test=name + "-" + i+ " "+ uri+ " "+ __tests[i][1];
       assertEquals(test,__tests[i][1],response);
-      long duration=end - start;
-      assertTrue(test + " " + duration,duration + 50 >= timeout);
-      long latency=duration - timeout;
+      long latency=end - start;
       _latencies[5].add(new Long(latency));
     }
   }
