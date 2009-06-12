@@ -1,28 +1,34 @@
 {
-  try {
-    Properties properties=new Properties();
-    XmlConfiguration last=null;
-    Object[] obj=new Object[args.length];
-    for (int i=0; i < args.length; i++) {
-      if (args[i].toLowerCase().endsWith(".properties")) {
-        properties.load(Resource.newResource(args[i]).getInputStream());
-      }
+  AccessController.doPrivileged(new PrivilegedAction(){
+    public Object run(){
+      try {
+        Properties properties=new Properties();
+        XmlConfiguration last=null;
+        Object[] obj=new Object[args.length];
+        for (int i=0; i < args.length; i++) {
+          if (args[i].toLowerCase().endsWith(".properties")) {
+            properties.load(Resource.newResource(args[i]).getInputStream());
+          }
  else {
-        XmlConfiguration configuration=new XmlConfiguration(Resource.newResource(args[i]).getURL());
-        if (last != null)         configuration.getIdMap().putAll(last.getIdMap());
-        if (properties.size() > 0)         configuration.setProperties(properties);
-        obj[i]=configuration.configure();
-        last=configuration;
+            XmlConfiguration configuration=new XmlConfiguration(Resource.newResource(args[i]).getURL());
+            if (last != null)             configuration.getIdMap().putAll(last.getIdMap());
+            if (properties.size() > 0)             configuration.setProperties(properties);
+            obj[i]=configuration.configure();
+            last=configuration;
+          }
+        }
+        for (int i=0; i < args.length; i++) {
+          if (obj[i] instanceof LifeCycle) {
+            LifeCycle lc=(LifeCycle)obj[i];
+            if (!lc.isRunning())             lc.start();
+          }
+        }
       }
-    }
-    for (int i=0; i < args.length; i++) {
-      if (obj[i] instanceof LifeCycle) {
-        LifeCycle lc=(LifeCycle)obj[i];
-        if (!lc.isRunning())         lc.start();
+ catch (      Exception e) {
+        Log.warn(Log.EXCEPTION,e);
       }
+      return null;
     }
   }
- catch (  Exception e) {
-    Log.warn(Log.EXCEPTION,e);
-  }
+);
 }
