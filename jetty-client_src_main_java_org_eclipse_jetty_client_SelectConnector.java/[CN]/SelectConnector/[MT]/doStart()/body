@@ -1,4 +1,19 @@
 {
+  super.doStart();
   _selectorManager.start();
+  SSLEngine sslEngine=_selectorManager.newSslEngine();
+  SSLSession ssl_session=sslEngine.getSession();
+  ThreadLocalBuffers buffers=new ThreadLocalBuffers(){
+    @Override protected Buffer newBuffer(    int size){
+      return new DirectNIOBuffer(size);
+    }
+    @Override protected Buffer newHeader(    int size){
+      return new DirectNIOBuffer(size);
+    }
+  }
+;
+  buffers.setBufferSize(ssl_session.getApplicationBufferSize());
+  buffers.setHeaderSize(ssl_session.getPacketBufferSize());
+  _sslBuffers=buffers;
   _httpClient._threadPool.dispatch(this);
 }

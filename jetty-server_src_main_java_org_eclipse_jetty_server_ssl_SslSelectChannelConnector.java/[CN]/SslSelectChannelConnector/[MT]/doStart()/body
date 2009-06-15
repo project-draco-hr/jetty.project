@@ -4,8 +4,19 @@
   }
   SSLEngine engine=createSSLEngine();
   SSLSession ssl_session=engine.getSession();
-  setHeaderBufferSize(ssl_session.getApplicationBufferSize());
-  setRequestBufferSize(ssl_session.getApplicationBufferSize());
-  setResponseBufferSize(ssl_session.getApplicationBufferSize());
+  ThreadLocalBuffers buffers=new ThreadLocalBuffers(){
+    @Override protected Buffer newBuffer(    int size){
+      return new DirectNIOBuffer(size);
+    }
+    @Override protected Buffer newHeader(    int size){
+      return new DirectNIOBuffer(size);
+    }
+  }
+;
+  buffers.setBufferSize(ssl_session.getApplicationBufferSize());
+  buffers.setHeaderSize(ssl_session.getPacketBufferSize());
+  _sslBuffers=buffers;
+  if (getRequestHeaderSize() < ssl_session.getApplicationBufferSize())   setRequestHeaderSize(ssl_session.getApplicationBufferSize());
+  if (getRequestBufferSize() < ssl_session.getApplicationBufferSize())   setRequestBufferSize(ssl_session.getApplicationBufferSize());
   super.doStart();
 }
