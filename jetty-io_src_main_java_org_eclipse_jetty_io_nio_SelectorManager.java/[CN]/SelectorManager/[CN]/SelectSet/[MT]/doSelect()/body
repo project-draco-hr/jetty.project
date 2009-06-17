@@ -60,8 +60,8 @@ synchronized (_changes) {
       }
     }
     changes.clear();
-    long idle_next=0;
-    long retry_next=0;
+    long idle_next;
+    long retry_next;
     long now=System.currentTimeMillis();
 synchronized (this) {
       _idleTimeout.setNow(now);
@@ -91,9 +91,7 @@ synchronized (this) {
               Log.info("seeing JVM BUG(s) - recreating selector");
             }
             final Selector new_selector=Selector.open();
-            Iterator iterator=_selector.keys().iterator();
-            while (iterator.hasNext()) {
-              SelectionKey k=(SelectionKey)iterator.next();
+            for (            SelectionKey k : selector.keys()) {
               if (!k.isValid() || k.interestOps() == 0)               continue;
               final SelectableChannel channel=k.channel();
               final Object attachment=k.attachment();
@@ -112,9 +110,7 @@ synchronized (this) {
             _jvmBug0=true;
             Log.info("seeing JVM BUG(s) - cancelling interestOps==0");
           }
-          Iterator iter=selector.keys().iterator();
-          while (iter.hasNext()) {
-            SelectionKey k=(SelectionKey)iter.next();
+          for (          SelectionKey k : selector.keys()) {
             if (k.isValid() && k.interestOps() == 0) {
               k.cancel();
             }

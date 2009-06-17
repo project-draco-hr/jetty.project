@@ -1,43 +1,51 @@
 {
   boolean dispatched=true;
-  do {
-    try {
-      _connection.handle();
-    }
- catch (    ClosedChannelException e) {
-      Log.ignore(e);
-    }
-catch (    EofException e) {
-      Log.debug("EOF",e);
+  try {
+    while (dispatched) {
       try {
-        close();
+        _connection.handle();
       }
- catch (      IOException e2) {
-        Log.ignore(e2);
+ catch (      ClosedChannelException e) {
+        Log.ignore(e);
       }
-    }
-catch (    IOException e) {
-      Log.warn(e.toString());
-      Log.debug(e);
-      try {
-        close();
+catch (      EofException e) {
+        Log.debug("EOF",e);
+        try {
+          close();
+        }
+ catch (        IOException e2) {
+          Log.ignore(e2);
+        }
       }
- catch (      IOException e2) {
-        Log.ignore(e2);
+catch (      IOException e) {
+        Log.warn(e.toString());
+        Log.debug(e);
+        try {
+          close();
+        }
+ catch (        IOException e2) {
+          Log.ignore(e2);
+        }
       }
-    }
-catch (    Throwable e) {
-      Log.warn("handle failed",e);
-      try {
-        close();
+catch (      Throwable e) {
+        Log.warn("handle failed",e);
+        try {
+          close();
+        }
+ catch (        IOException e2) {
+          Log.ignore(e2);
+        }
       }
- catch (      IOException e2) {
-        Log.ignore(e2);
-      }
-    }
- finally {
       dispatched=!undispatch();
     }
   }
- while (dispatched);
+  finally {
+    if (dispatched) {
+      dispatched=!undispatch();
+      while (dispatched) {
+        Log.warn("SCEP.run() finally DISPATCHED");
+        dispatched=!undispatch();
+      }
+    }
+  }
 }
