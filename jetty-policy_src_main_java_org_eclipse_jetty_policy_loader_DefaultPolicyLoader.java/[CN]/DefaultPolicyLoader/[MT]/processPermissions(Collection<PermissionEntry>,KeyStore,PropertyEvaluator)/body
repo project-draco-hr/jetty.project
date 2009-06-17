@@ -1,0 +1,22 @@
+{
+  Permissions permissions=new Permissions();
+  for (Iterator<PermissionEntry> i=collection.iterator(); i.hasNext(); ) {
+    PermissionEntry perm=i.next();
+    Class clazz;
+    try {
+      clazz=Class.forName(perm.klass);
+      if (perm.signers != null) {
+        if (validate(resolveToCertificates(keystore,perm.signers),(Certificate[])clazz.getSigners())) {
+          permissions.add(resolveToPermission(clazz,perm,evaluator));
+        }
+      }
+ else {
+        permissions.add(resolveToPermission(clazz,perm,evaluator));
+      }
+    }
+ catch (    Exception e) {
+      throw new PolicyException(e);
+    }
+  }
+  return permissions;
+}
