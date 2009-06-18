@@ -4,20 +4,18 @@
   _tailLock.lock();
   try {
     if (_size.get() >= _limit)     return false;
- else {
-      if (_size.get() == _elements.length) {
-        _headLock.lock();
-        try {
-          if (!grow())           return false;
-        }
-  finally {
-          _headLock.unlock();
-        }
+    if (_size.get() == _capacity) {
+      _headLock.lock();
+      try {
+        if (!grow())         return false;
       }
-      _elements[_tail]=e;
-      _tail=(_tail + 1) % _elements.length;
-      not_empty=0 == _size.getAndIncrement();
+  finally {
+        _headLock.unlock();
+      }
     }
+    _elements[_tail]=e;
+    _tail=(_tail + 1) % _capacity;
+    not_empty=0 == _size.getAndIncrement();
   }
   finally {
     _tailLock.unlock();
