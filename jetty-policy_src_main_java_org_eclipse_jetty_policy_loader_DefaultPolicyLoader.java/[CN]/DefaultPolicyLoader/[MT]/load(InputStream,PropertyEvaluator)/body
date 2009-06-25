@@ -8,17 +8,22 @@
     loader.scanStream(new InputStreamReader(policyStream),grantEntries,keystoreEntries);
     for (Iterator<KeystoreEntry> i=keystoreEntries.iterator(); i.hasNext(); ) {
       keystore=resolveKeyStore(i.next(),evaluator);
+      if (keystore != null) {
+        break;
+      }
     }
     for (Iterator<GrantEntry> i=grantEntries.iterator(); i.hasNext(); ) {
       GrantEntry grant=i.next();
-      Permissions permissions=processPermissions(grant.permissions,keystore,evaluator);
+      Permissions permissions=processPermissions(grant,keystore,evaluator);
       ProtectionDomain pd;
       if (grant.codebase == null) {
         pd=new ProtectionDomain(null,permissions);
       }
  else {
-        CodeSource codeSource=resolveToCodeSource(grant.codebase,evaluator);
-        pd=new ProtectionDomain(codeSource,permissions);
+        Certificate[] certs=resolveToCertificates(keystore,grant.signers);
+        Principal[] principals=resolvePrincipals(keystore,grant.principals);
+        CodeSource codeSource=resolveToCodeSource(grant.codebase,certs,evaluator);
+        pd=new ProtectionDomain(codeSource,permissions,Thread.currentThread().getContextClassLoader(),principals);
       }
       pdMappings.put(pd,null);
     }

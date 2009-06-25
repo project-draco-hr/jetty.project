@@ -1,13 +1,20 @@
 {
+  if (keyStore == null) {
+    Certificate[] certs=null;
+    return certs;
+  }
+  Set<Certificate> certificateSet=new HashSet<Certificate>();
   StringTokenizer strTok=new StringTokenizer(signers,",");
-  Certificate[] certificates=new Certificate[strTok.countTokens()];
   for (int i=0; strTok.hasMoreTokens(); ++i) {
     try {
-      certificates[i]=keyStore.getCertificate(strTok.nextToken().trim());
+      Certificate certificate=keyStore.getCertificate(strTok.nextToken().trim());
+      if (certificate != null) {
+        certificateSet.add(certificate);
+      }
     }
  catch (    KeyStoreException kse) {
       throw new PolicyException(kse);
     }
   }
-  return certificates;
+  return certificateSet.toArray(new Certificate[certificateSet.size()]);
 }
