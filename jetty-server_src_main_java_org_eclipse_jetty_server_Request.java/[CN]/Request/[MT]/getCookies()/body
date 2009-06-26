@@ -1,16 +1,13 @@
 {
   if (_cookiesExtracted)   return _cookies == null ? null : _cookies.getCookies();
-  if (!_connection.getRequestFields().containsKey(HttpHeaders.COOKIE_BUFFER)) {
-    _cookiesExtracted=true;
-    if (_cookies != null)     _cookies.reset();
-    return null;
-  }
-  if (_cookies == null)   _cookies=new CookieCutter(this);
-  Enumeration enm=_connection.getRequestFields().getValues(HttpHeaders.COOKIE_BUFFER);
-  while (enm.hasMoreElements()) {
-    String c=(String)enm.nextElement();
-    _cookies.addCookieField(c);
-  }
   _cookiesExtracted=true;
-  return _cookies.getCookies();
+  Enumeration enm=_connection.getRequestFields().getValues(HttpHeaders.COOKIE_BUFFER);
+  if (enm != null) {
+    if (_cookies == null)     _cookies=new CookieCutter();
+    while (enm.hasMoreElements()) {
+      String c=(String)enm.nextElement();
+      _cookies.addCookieField(c);
+    }
+  }
+  return _cookies == null ? null : _cookies.getCookies();
 }

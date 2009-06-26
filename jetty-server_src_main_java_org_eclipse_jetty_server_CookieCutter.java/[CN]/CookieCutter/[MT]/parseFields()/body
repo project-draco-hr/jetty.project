@@ -1,8 +1,11 @@
 {
+  _lastCookies=null;
+  _cookies=null;
   Object cookies=null;
   int version=0;
-  for (int f=0; f < _added; f++) {
-    String hdr=_fields[f];
+  while (LazyList.size(_lazyFields) > _fields)   _lazyFields=LazyList.remove(_lazyFields,_fields);
+  for (int f=0; f < _fields; f++) {
+    String hdr=LazyList.get(_lazyFields,f);
     String name=null;
     String value=null;
     Cookie cookie=null;
@@ -20,7 +23,6 @@ case STATE_DELIMITER:
 case STATE_UNQUOTED_VALUE:
     state=STATE_NAME;
   value=hdr.substring(tokenstart,i).trim();
-if (_request != null && _request.isRequestedSessionIdFromURL()) value=URIUtil.decodePath(value);
 tokenstart=i + 1;
 break;
 case STATE_NAME:
@@ -79,7 +81,6 @@ if (i + 1 == length) {
 switch (state) {
 case STATE_UNQUOTED_VALUE:
 value=hdr.substring(tokenstart).trim();
-if (_request != null && _request.isRequestedSessionIdFromURL()) value=URIUtil.decodePath(value);
 break;
 case STATE_NAME:
 name=hdr.substring(tokenstart);
@@ -121,13 +122,6 @@ value=null;
 }
 }
 }
-int l=LazyList.size(cookies);
-if (l > 0) {
-if (_cookies != null && _cookies.length == l) {
-for (int i=0; i < l; i++) _cookies[i]=(Cookie)LazyList.get(cookies,i);
-}
- else _cookies=(Cookie[])LazyList.toArray(cookies,Cookie.class);
-}
-_added=0;
-_dirty=false;
+_cookies=(Cookie[])LazyList.toArray(cookies,Cookie.class);
+_lastCookies=_cookies;
 }
