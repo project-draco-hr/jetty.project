@@ -22,10 +22,15 @@
       for (int i=0; i < installed.length; i++) {
         ContextHandler c=(ContextHandler)installed[i];
         if (context.equals(c.getContextPath()))         continue files;
-        String path;
-        if (c instanceof WebAppContext)         path=((WebAppContext)c).getWar();
- else         path=(c.getBaseResource() == null ? "" : c.getBaseResource().getFile().getAbsolutePath());
-        if (path.equals(app.getFile().getAbsolutePath()))         continue files;
+        try {
+          String path=null;
+          if (c instanceof WebAppContext)           path=Resource.newResource(((WebAppContext)c).getWar()).getFile().getAbsolutePath();
+ else           if (c.getBaseResource() != null)           path=c.getBaseResource().getFile().getAbsolutePath();
+          if (path != null && path.equals(app.getFile().getAbsolutePath()))           continue files;
+        }
+ catch (        Exception e) {
+          Log.ignore(e);
+        }
       }
     }
     WebAppContext wah=null;
