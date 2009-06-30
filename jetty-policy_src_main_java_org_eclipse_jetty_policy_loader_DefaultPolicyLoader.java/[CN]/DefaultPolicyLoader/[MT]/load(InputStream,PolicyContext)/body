@@ -1,13 +1,13 @@
 {
-  Map<ProtectionDomain,PolicyEntry> policies=new HashMap<ProtectionDomain,PolicyEntry>();
+  Map<ProtectionDomain,PolicyBlock> policies=new HashMap<ProtectionDomain,PolicyBlock>();
   KeyStore keystore=null;
   try {
     PolicyFileScanner loader=new PolicyFileScanner();
-    Collection<GrantNode> grantEntries=new ArrayList<GrantNode>();
-    List<KeystoreNode> keystoreEntries=new ArrayList<KeystoreNode>();
+    Collection<GrantEntry> grantEntries=new ArrayList<GrantEntry>();
+    List<KeystoreEntry> keystoreEntries=new ArrayList<KeystoreEntry>();
     loader.scanStream(new InputStreamReader(policyStream),grantEntries,keystoreEntries);
-    for (Iterator<KeystoreNode> i=keystoreEntries.iterator(); i.hasNext(); ) {
-      KeystoreNode node=i.next();
+    for (Iterator<KeystoreEntry> i=keystoreEntries.iterator(); i.hasNext(); ) {
+      KeystoreEntry node=i.next();
       node.expand(context);
       keystore=node.toKeyStore();
       if (keystore != null) {
@@ -15,10 +15,10 @@
         break;
       }
     }
-    for (Iterator<GrantNode> i=grantEntries.iterator(); i.hasNext(); ) {
-      GrantNode grant=i.next();
+    for (Iterator<GrantEntry> i=grantEntries.iterator(); i.hasNext(); ) {
+      GrantEntry grant=i.next();
       grant.expand(context);
-      PolicyEntry policy=new PolicyEntry();
+      PolicyBlock policy=new PolicyBlock();
       policy.setCodeSource(grant.getCodeSource());
       policy.setPrincipals(grant.getPrincipals());
       policy.setPermissions(grant.getPermissions());
