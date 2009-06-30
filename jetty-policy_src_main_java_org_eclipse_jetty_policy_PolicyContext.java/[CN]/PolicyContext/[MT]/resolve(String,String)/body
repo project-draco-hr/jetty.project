@@ -1,0 +1,38 @@
+{
+  if ("self".equals(protocol)) {
+    if (principals != null && principals.length != 0) {
+      StringBuilder sb=new StringBuilder();
+      for (int i=0; i < principals.length; ++i) {
+        sb.append(principals[i].getClass().getName());
+        sb.append(" \"");
+        sb.append(principals[i].getName());
+        sb.append("\" ");
+      }
+      return sb.toString();
+    }
+ else {
+      throw new PolicyException("self can not be expanded, missing principals");
+    }
+  }
+  if ("alias".equals(protocol)) {
+    try {
+      Certificate cert=keystore.getCertificate(data);
+      if (cert instanceof X509Certificate) {
+        Principal principal=((X509Certificate)cert).getSubjectX500Principal();
+        StringBuilder sb=new StringBuilder();
+        sb.append(principal.getClass().getName());
+        sb.append(" \"");
+        sb.append(principal.getName());
+        sb.append("\" ");
+        return sb.toString();
+      }
+ else {
+        throw new PolicyException("alias can not be expanded, bad cert");
+      }
+    }
+ catch (    Exception e) {
+      throw new PolicyException("alias can not be expanded: " + data);
+    }
+  }
+  throw new PolicyException("unknown protocol: " + protocol);
+}
