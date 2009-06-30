@@ -9,98 +9,122 @@
     String name=null;
     String value=null;
     Cookie cookie=null;
-    byte state=STATE_NAME;
-    for (int i=0, tokenstart=0, length=hdr.length(); i < length; i++) {
+    boolean invalue=false;
+    boolean quoted=false;
+    boolean escaped=false;
+    int tokenstart=-1;
+    int tokenend=-1;
+    for (int i=0, length=hdr.length(), last=length - 1; i < length; i++) {
       char c=hdr.charAt(i);
+      if (quoted) {
+        if (escaped) {
+          escaped=false;
+          continue;
+        }
 switch (c) {
-case ',':
-case ';':
-switch (state) {
-case STATE_DELIMITER:
-          state=STATE_NAME;
-        tokenstart=i + 1;
-      break;
-case STATE_UNQUOTED_VALUE:
-    state=STATE_NAME;
-  value=hdr.substring(tokenstart,i).trim();
-tokenstart=i + 1;
-break;
-case STATE_NAME:
-name=hdr.substring(tokenstart,i);
-value="";
-tokenstart=i + 1;
-break;
-case STATE_VALUE:
-state=STATE_NAME;
-value="";
-tokenstart=i + 1;
-break;
-}
-break;
-case '=':
-switch (state) {
-case STATE_NAME:
-state=STATE_VALUE;
-name=hdr.substring(tokenstart,i);
-tokenstart=i + 1;
-break;
-case STATE_VALUE:
-state=STATE_UNQUOTED_VALUE;
-tokenstart=i;
-break;
-}
-break;
 case '"':
-switch (state) {
-case STATE_VALUE:
-state=STATE_QUOTED_VALUE;
-tokenstart=i + 1;
-break;
-case STATE_QUOTED_VALUE:
-state=STATE_DELIMITER;
-value=hdr.substring(tokenstart,i);
-break;
+          tokenend=i;
+        quoted=false;
+      if (i == last) {
+        if (invalue)         value=hdr.substring(tokenstart,tokenend + 1);
+ else {
+          name=hdr.substring(tokenstart,tokenend + 1);
+          value="";
+        }
+      }
+    break;
+case '\\':
+  escaped=true;
+continue;
+default :
+continue;
 }
-break;
+}
+ else {
+if (invalue) {
+switch (c) {
 case ' ':
 case '\t':
+continue;
+case '"':
+if (tokenstart < 0) {
+quoted=true;
+tokenstart=i;
+}
+tokenend=i;
+if (i == last) {
+value=hdr.substring(tokenstart,tokenend + 1);
+break;
+}
+continue;
+case ';':
+if (tokenstart >= 0) value=hdr.substring(tokenstart,tokenend + 1);
+ else value="";
+tokenstart=-1;
+invalue=false;
 break;
 default :
-switch (state) {
-case STATE_VALUE:
-state=STATE_UNQUOTED_VALUE;
-tokenstart=i;
-break;
-case STATE_DELIMITER:
-state=STATE_NAME;
-tokenstart=i;
+if (tokenstart < 0) tokenstart=i;
+tokenend=i;
+if (i == last) {
+value=hdr.substring(tokenstart,tokenend + 1);
 break;
 }
+continue;
 }
-if (i + 1 == length) {
-switch (state) {
-case STATE_UNQUOTED_VALUE:
-value=hdr.substring(tokenstart).trim();
-break;
-case STATE_NAME:
-name=hdr.substring(tokenstart);
+}
+ else {
+switch (c) {
+case ' ':
+case '\t':
+continue;
+case '"':
+if (tokenstart < 0) {
+quoted=true;
+tokenstart=i;
+}
+tokenend=i;
+if (i == last) {
+name=hdr.substring(tokenstart,tokenend + 1);
 value="";
 break;
-case STATE_VALUE:
+}
+continue;
+case ';':
+if (tokenstart >= 0) {
+name=hdr.substring(tokenstart,tokenend + 1);
+value="";
+}
+tokenstart=-1;
+break;
+case '=':
+if (tokenstart >= 0) name=hdr.substring(tokenstart,tokenend + 1);
+tokenstart=-1;
+invalue=true;
+continue;
+default :
+if (tokenstart < 0) tokenstart=i;
+tokenend=i;
+if (i == last) {
+name=hdr.substring(tokenstart,tokenend + 1);
 value="";
 break;
 }
+continue;
 }
-if (name != null && value != null) {
-name=name.trim();
+}
+}
+if (value != null && name != null) {
+name=QuotedStringTokenizer.unquote(name);
+value=QuotedStringTokenizer.unquote(value);
 try {
 if (name.startsWith("$")) {
 String lowercaseName=name.toLowerCase();
 if ("$path".equals(lowercaseName)) {
-cookie.setPath(value);
+if (cookie != null) cookie.setPath(value);
 }
  else if ("$domain".equals(lowercaseName)) {
-cookie.setDomain(value);
+if (cookie != null) cookie.setDomain(value);
 }
  else if ("$version".equals(lowercaseName)) {
 version=Integer.parseInt(value);
@@ -108,14 +132,13 @@ version=Integer.parseInt(value);
 }
  else {
 cookie=new Cookie(name,value);
-if (version > 0) {
-cookie.setVersion(version);
-}
+if (version > 0) cookie.setVersion(version);
 cookies=LazyList.add(cookies,cookie);
 }
 }
  catch (Exception e) {
-Log.ignore(e);
+Log.warn(e.toString());
+Log.debug(e);
 }
 name=null;
 value=null;
