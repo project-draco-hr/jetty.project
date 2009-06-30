@@ -1,0 +1,32 @@
+{
+  Map<ProtectionDomain,PolicyEntry> policies=new HashMap<ProtectionDomain,PolicyEntry>();
+  KeyStore keystore=null;
+  try {
+    PolicyFileScanner loader=new PolicyFileScanner();
+    Collection<GrantNode> grantEntries=new ArrayList<GrantNode>();
+    List<KeystoreNode> keystoreEntries=new ArrayList<KeystoreNode>();
+    loader.scanStream(new InputStreamReader(policyStream),grantEntries,keystoreEntries);
+    for (Iterator<KeystoreNode> i=keystoreEntries.iterator(); i.hasNext(); ) {
+      KeystoreNode node=i.next();
+      node.expand(context);
+      keystore=node.toKeyStore();
+      if (keystore != null) {
+        context.setKeystore(keystore);
+        break;
+      }
+    }
+    for (Iterator<GrantNode> i=grantEntries.iterator(); i.hasNext(); ) {
+      GrantNode grant=i.next();
+      grant.expand(context);
+      PolicyEntry policy=new PolicyEntry();
+      policy.setCodeSource(grant.getCodeSource());
+      policy.setPrincipals(grant.getPrincipals());
+      policy.setPermissions(grant.getPermissions());
+      policies.put(policy.toProtectionDomain(),policy);
+    }
+    return policies;
+  }
+ catch (  Exception e) {
+    throw new PolicyException(e);
+  }
+}

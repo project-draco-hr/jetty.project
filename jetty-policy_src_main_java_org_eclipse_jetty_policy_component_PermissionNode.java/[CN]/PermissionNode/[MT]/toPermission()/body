@@ -1,0 +1,24 @@
+{
+  try {
+    Class clazz=Class.forName(klass);
+    if (signerArray != null && !validate(signerArray,(Certificate[])clazz.getSigners())) {
+      throw new PolicyException("Unvalidated Permissions: " + klass + "/"+ name);
+    }
+    Permission permission=null;
+    if (name == null && actions == null) {
+      permission=(Permission)clazz.newInstance();
+    }
+ else     if (name != null && actions == null) {
+      Constructor c=clazz.getConstructor(new Class[]{String.class});
+      permission=(Permission)c.newInstance(name);
+    }
+ else     if (name != null && actions != null) {
+      Constructor c=clazz.getConstructor(new Class[]{String.class,String.class});
+      permission=(Permission)c.newInstance(name,actions);
+    }
+    return permission;
+  }
+ catch (  Exception e) {
+    throw new PolicyException(e);
+  }
+}
