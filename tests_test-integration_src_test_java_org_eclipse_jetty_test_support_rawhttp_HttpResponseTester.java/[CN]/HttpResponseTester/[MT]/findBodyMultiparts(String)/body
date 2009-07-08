@@ -1,0 +1,42 @@
+{
+  List<HttpResponseTester> multiparts=new ArrayList<HttpResponseTester>();
+  BufferedReader buf=new BufferedReader(new StringReader(getBody()));
+  String line;
+  String startBoundary="--" + boundary;
+  String endBoundary="--" + boundary + "--";
+  HttpResponseTester resp=null;
+  boolean parsingHeader=true;
+  boolean previousBodyLine=false;
+  while ((line=buf.readLine()) != null) {
+    if (line.equals(startBoundary)) {
+      if (resp != null) {
+        multiparts.add(resp);
+      }
+      resp=new HttpResponseTester();
+      parsingHeader=true;
+      previousBodyLine=false;
+      continue;
+    }
+    if (line.equals(endBoundary)) {
+      if (resp != null) {
+        multiparts.add(resp);
+      }
+      break;
+    }
+    if (parsingHeader) {
+      if (line.equals("")) {
+        parsingHeader=false;
+        continue;
+      }
+      resp.parseHeader(line);
+    }
+ else {
+      if (previousBodyLine) {
+        resp.appendBody("\n");
+      }
+      resp.appendBody(line);
+      previousBodyLine=true;
+    }
+  }
+  return multiparts;
+}

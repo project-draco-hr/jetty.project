@@ -1,0 +1,18 @@
+{
+  StringBuffer rawRequest=new StringBuffer();
+  rawRequest.append("GET /tests/alpha.txt HTTP/1.1\r\n");
+  rawRequest.append("Host: localhost\r\n");
+  rawRequest.append("Connection: close\r\n");
+  rawRequest.append("\r\n");
+  Socket sock=new Socket(InetAddress.getLocalHost(),serverPort);
+  sock.setSoTimeout(5000);
+  DEBUG("--raw-request--\n" + rawRequest);
+  InputStream in=new ByteArrayInputStream(rawRequest.toString().getBytes());
+  IO.copy(in,sock.getOutputStream());
+  String rawResponse=IO.toString(sock.getInputStream());
+  DEBUG("--raw-response--\n" + rawResponse);
+  HttpResponseTester response=new HttpResponseTester();
+  response.parse(rawResponse);
+  response.assertStatusOK();
+  response.assertBody("ABCDEFGHIJKLMNOPQRSTUVWXYZ\n");
+}

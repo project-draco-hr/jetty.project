@@ -1,0 +1,33 @@
+{
+  StringBuffer req1=new StringBuffer();
+  req1.append("GET /rfc2616-webapp/alpha.txt HTTP/1.1\n");
+  req1.append("Host: localhost\n");
+  req1.append("Connection: close\n");
+  req1.append("\n");
+  response=http.request(req1);
+  boolean noRangeHasContentLocation=response.hasHeader("Content-Location");
+  boolean noRangeHasETag=response.hasHeader("ETag");
+  StringBuffer req2=new StringBuffer();
+  req2.append("GET /rfc2616-webapp/alpha.txt HTTP/1.1\n");
+  req2.append("Host: localhost\n");
+  req2.append("Connection: close\n");
+  req2.append("Range: bytes=1-3\n");
+  req2.append("\n");
+  http.enableDebug();
+  response=http.request(req2);
+  response.assertStatus("10.2.7 Partial Content",HttpStatus.PARTIAL_CONTENT_206);
+  if (response.hasHeader("Content-Range")) {
+    response.assertHeader("10.2.7 Partial Content / Response / Content Range","Content-Range","bytes 1-3/27");
+  }
+  if (response.hasHeader("Content-Length")) {
+    response.assertHeader("10.2.7 Patial Content / Response / Content Length","Content-Length","3");
+  }
+  response.assertHeaderExists("10.2.7 Partial Content / Response / Date","Date");
+  if (noRangeHasContentLocation) {
+    response.assertHeaderExists("10.2.7 Partial Content / Content-Location","Content-Location");
+  }
+  if (noRangeHasETag) {
+    response.assertHeaderExists("10.2.7 Partial Content / Content-Location","ETag");
+  }
+  response.assertBody("10.2.7 Partial Content","BCD");
+}

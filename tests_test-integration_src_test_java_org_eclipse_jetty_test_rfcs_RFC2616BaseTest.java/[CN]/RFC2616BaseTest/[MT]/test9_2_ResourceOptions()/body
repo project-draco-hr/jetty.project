@@ -1,0 +1,20 @@
+{
+  StringBuffer req2=new StringBuffer();
+  req2.append("OPTIONS /rfc2616-webapp/httpmethods HTTP/1.1\n");
+  req2.append("Host: localhost\n");
+  req2.append("\n");
+  req2.append("GET /rfc2616-webapp/httpmethods HTTP/1.1\n");
+  req2.append("Host: localhost\n");
+  req2.append("Connection: close\n");
+  req2.append("\n");
+  responses=http.requests(req2);
+  assertEquals("Response Count",2,responses.size());
+  response=responses.get(0);
+  response.assertHeaderExists("9.2 OPTIONS","Allow");
+  String allow=response.getHeader("Allow");
+  String expectedMethods[]={"GET","HEAD","POST","OPTIONS","TRACE"};
+  for (  String expectedMethod : expectedMethods) {
+    assertThat(allow,containsString(expectedMethod));
+  }
+  response.assertHeader("9.2 OPTIONS","Content-Length","0");
+}

@@ -1,0 +1,21 @@
+{
+  StringBuffer req2=new StringBuffer();
+  req2.append("GET /redirect/ HTTP/1.1\n");
+  req2.append("Host: localhost\n");
+  req2.append("\n");
+  req2.append("GET /redirect/ HTTP/1.1\n");
+  req2.append("Host: localhost\n");
+  req2.append("Connection: close\n");
+  req2.append("\n");
+  responses=http.requests(req2);
+  assertEquals("Response Count",2,responses.size());
+  response=responses.get(0);
+  String specId="10.3 Redirection HTTP/1.1 - basic (response 1)";
+  response.assertStatus(specId,HttpStatus.FOUND_302);
+  response.assertHeader(specId,"Location",server.getScheme() + "://localhost/tests/");
+  response=responses.get(1);
+  specId="10.3 Redirection HTTP/1.1 - basic (response 2)";
+  response.assertStatus(specId,HttpStatus.FOUND_302);
+  response.assertHeader(specId,"Location",server.getScheme() + "://localhost/tests/");
+  response.assertHeader(specId,"Connection","close");
+}

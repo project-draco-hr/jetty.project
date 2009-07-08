@@ -1,0 +1,30 @@
+{
+  charset=defaultCharset;
+  Buffer contentTypeBuffer=fields.get(HttpHeaders.CONTENT_TYPE_BUFFER);
+  if (contentTypeBuffer != null) {
+    String calcCharset=MimeTypes.getCharsetFromContentType(contentTypeBuffer);
+    if (calcCharset != null) {
+      this.charset=calcCharset;
+    }
+  }
+  Buffer bb=new ByteArrayBuffer(32 * 1024 + (content != null ? content.length : 0));
+  Buffer sb=new ByteArrayBuffer(4 * 1024);
+  StringEndPoint endp=new StringEndPoint(charset);
+  HttpGenerator generator=new HttpGenerator(new SimpleBuffers(sb,bb),endp);
+  if (method != null) {
+    generator.setRequest(getMethod(),getURI());
+    if (version == null) {
+      generator.setVersion(HttpVersions.HTTP_1_1_ORDINAL);
+    }
+ else {
+      generator.setVersion(HttpVersions.CACHE.getOrdinal(HttpVersions.CACHE.lookup(version)));
+    }
+    generator.completeHeader(fields,false);
+    if (content != null) {
+      generator.addContent(new View(new ByteArrayBuffer(content)),false);
+    }
+  }
+  generator.complete();
+  generator.flushBuffer();
+  return endp.getOutput();
+}

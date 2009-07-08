@@ -1,0 +1,28 @@
+{
+  StringBuffer req1=new StringBuffer();
+  req1.append("GET /tests/R1.txt HTTP/1.1\n");
+  req1.append("Host: localhost\n");
+  req1.append("Connection: close\n");
+  req1.append("\n");
+  response=http.request(req1);
+  response.assertStatusOK("9.4 GET / Response Code");
+  response.assertHeader("9.4 GET / Content Type","Content-Type","text/plain");
+  response.assertHeader("9.4 HEAD / Content Type","Content-Length","25");
+  response.assertBody("9.4 GET / Body","Host=Default\nResource=R1\n");
+  StringBuffer req2=new StringBuffer();
+  req2.append("HEAD /tests/R1.txt HTTP/1.1\n");
+  req2.append("Host: localhost\n");
+  req2.append("Connection: close\n");
+  req2.append("\n");
+  Socket sock=http.open();
+  try {
+    http.send(sock,req2);
+    String rawHeadResponse=http.readRaw(sock);
+    int headResponseLength=rawHeadResponse.length();
+    String rawGetResponse=response.getRawResponse().toString().substring(0,headResponseLength);
+    assertEquals("9.4 HEAD equals GET",rawHeadResponse,rawGetResponse);
+  }
+  finally {
+    http.close(sock);
+  }
+}

@@ -1,0 +1,24 @@
+{
+  StringBuffer rawRequests=new StringBuffer();
+  rawRequests.append("GET /tests/alpha.txt HTTP/1.1\r\n");
+  rawRequests.append("Host: localhost\r\n");
+  rawRequests.append("\r\n");
+  rawRequests.append("GET /tests/R1.txt HTTP/1.1\r\n");
+  rawRequests.append("Host: localhost\r\n");
+  rawRequests.append("\r\n");
+  rawRequests.append("GET /tests/R1.txt HTTP/1.1\r\n");
+  rawRequests.append("Host: localhost\r\n");
+  rawRequests.append("Connection: close\r\n");
+  rawRequests.append("\r\n");
+  HttpTesting http=new HttpTesting(new HttpSocketImpl(),serverPort);
+  List<HttpResponseTester> responses=http.requests(rawRequests);
+  HttpResponseTester response=responses.get(0);
+  response.assertStatusOK();
+  response.assertBody("ABCDEFGHIJKLMNOPQRSTUVWXYZ\n");
+  response=responses.get(1);
+  response.assertStatusOK();
+  response.assertBody("Host=Default\nResource=R1\n");
+  response=responses.get(2);
+  response.assertStatusOK();
+  response.assertBody("Host=Default\nResource=R1\n");
+}

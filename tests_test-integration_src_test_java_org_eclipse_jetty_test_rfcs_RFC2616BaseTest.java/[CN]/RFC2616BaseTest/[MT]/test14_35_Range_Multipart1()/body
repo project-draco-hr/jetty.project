@@ -1,0 +1,34 @@
+{
+  String rangedef="23-23,-2";
+  StringBuffer req1=new StringBuffer();
+  req1.append("GET /rfc2616-webapp/alpha.txt HTTP/1.1\n");
+  req1.append("Host: localhost\n");
+  req1.append("Range: ").append(rangedef).append("\n");
+  req1.append("Connection: close\n");
+  req1.append("\n");
+  response=http.request(req1);
+  String msg="Partial (Byte) Range: '" + rangedef + "'";
+  response.assertStatus(msg,HttpStatus.PARTIAL_CONTENT_206);
+  String contentType=response.getHeader("Content-Type");
+  StringAssert.assertContains(msg + " Content-Type",contentType,"multipart/byteranges");
+  String boundary=null;
+  String parts[]=StringUtil.split(contentType,';');
+  for (int i=0; i < parts.length; i++) {
+    if (parts[i].trim().startsWith("boundary=")) {
+      String boundparts[]=StringUtil.split(parts[i],'=');
+      assertEquals(msg + " Boundary parts.length",2,boundparts.length);
+      boundary=boundparts[1];
+    }
+  }
+  assertNotNull(msg + " Should have found boundary in Content-Type header",boundary);
+  List<HttpResponseTester> multiparts=response.findBodyMultiparts(boundary);
+  assertEquals(msg + " multiparts in body (count)",2,multiparts.size());
+  HttpResponseTester multipart1=multiparts.get(0);
+  multipart1.assertHeader(msg + " Multipart 1","Content-Type","text/plain");
+  multipart1.assertHeader(msg + " Multipart 1","Content-Range","bytes 23-23/27");
+  multipart1.assertBody(msg + " Multipart 1","X");
+  HttpResponseTester multipart2=multiparts.get(1);
+  multipart2.assertHeader(msg + " Multipart 2","Content-Type","text/plain");
+  multipart2.assertHeader(msg + " Multipart 2","Content-Range","bytes 25-26/27");
+  multipart2.assertBody(msg + " Multipart 2","Z\n");
+}

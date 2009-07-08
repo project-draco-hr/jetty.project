@@ -1,0 +1,34 @@
+{
+  StringBuffer req1=new StringBuffer();
+  req1.append("GET /tests/R1.txt HTTP/1.1\n");
+  req1.append("Host: localhost\n");
+  req1.append("Connection: close\n");
+  req1.append("\n");
+  response=http.request(req1);
+  response.assertStatusOK("8.1 Persistent Connections");
+  response.assertHeaderExists("8.1 Persistent Connections","Content-Length");
+  response.assertBodyContains("8.1 Persistent Connections","Resource=R1");
+  StringBuffer req2=new StringBuffer();
+  req2.append("GET /tests/R1.txt HTTP/1.1\n");
+  req2.append("Host: localhost\n");
+  req2.append("\n");
+  req2.append("GET /tests/R2.txt HTTP/1.1\n");
+  req2.append("Host: localhost\n");
+  req2.append("Connection: close\n");
+  req2.append("\n");
+  req2.append("GET /tests/R3.txt HTTP/1.1\n");
+  req2.append("Host: localhost\n");
+  req2.append("Connection: close\n");
+  req2.append("\n");
+  responses=http.requests(req2);
+  assertEquals("Response Count",2,responses.size());
+  response=responses.get(0);
+  response.assertStatusOK("8.1 Persistent Connections");
+  response.assertHeaderExists("8.1 Persistent Connections","Content-Length");
+  response.assertBodyContains("8.1 Peristent Connections","Resource=R1");
+  response=responses.get(1);
+  response.assertStatusOK("8.1.2.2 Persistent Connections / Pipeline");
+  response.assertHeaderExists("8.1.2.2 Persistent Connections / Pipeline","Content-Length");
+  response.assertHeader("8.1.2.2 Persistent Connections / Pipeline","Connection","close");
+  response.assertBodyContains("8.1.2.2 Peristent Connections / Pipeline","Resource=R2");
+}
