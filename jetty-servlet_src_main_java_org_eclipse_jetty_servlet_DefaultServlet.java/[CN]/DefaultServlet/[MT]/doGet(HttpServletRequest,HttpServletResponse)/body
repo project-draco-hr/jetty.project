@@ -2,6 +2,7 @@
   String servletPath=null;
   String pathInfo=null;
   Enumeration reqRanges=null;
+  boolean byteRangeRules=false;
   Boolean included=request.getAttribute(Dispatcher.INCLUDE_REQUEST_URI) != null;
   if (included != null && included.booleanValue()) {
     servletPath=(String)request.getAttribute(Dispatcher.INCLUDE_SERVLET_PATH);
@@ -15,8 +16,16 @@
     included=Boolean.FALSE;
     servletPath=request.getServletPath();
     pathInfo=request.getPathInfo();
-    reqRanges=request.getHeaders(HttpHeaders.RANGE);
-    if (reqRanges != null && !reqRanges.hasMoreElements())     reqRanges=null;
+    reqRanges=request.getHeaders(HttpHeaders.CONTENT_RANGE);
+    if (!hasDefinedRange(reqRanges)) {
+      reqRanges=request.getHeaders(HttpHeaders.RANGE);
+      if (hasDefinedRange(reqRanges)) {
+        byteRangeRules=true;
+      }
+ else {
+        reqRanges=null;
+      }
+    }
   }
   String pathInContext=URIUtil.addPaths(servletPath,pathInfo);
   boolean endsWithSlash=pathInContext.endsWith(URIUtil.SLASH);
@@ -75,7 +84,7 @@
             String mt=_servletContext.getMimeType(pathInContext);
             if (mt != null)             response.setContentType(mt);
           }
-          sendData(request,response,included.booleanValue(),resource,content,reqRanges);
+          sendData(request,response,included.booleanValue(),resource,content,reqRanges,byteRangeRules);
         }
       }
     }
