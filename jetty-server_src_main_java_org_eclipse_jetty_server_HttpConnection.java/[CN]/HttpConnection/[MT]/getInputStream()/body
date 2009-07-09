@@ -1,10 +1,8 @@
 {
   if (_expect100Continue) {
     if (((HttpParser)_parser).getHeaderBuffer() == null || ((HttpParser)_parser).getHeaderBuffer().length() < 2) {
-      _generator.setResponse(HttpStatus.CONTINUE_100,null);
-      _generator.completeHeader(null,true);
-      _generator.complete();
-      _generator.reset(false);
+      if (_generator.isCommitted())       throw new IllegalStateException("Committed before 100 Continues");
+      ((HttpGenerator)_generator).send1xx(HttpStatus.CONTINUE_100);
     }
     _expect100Continue=false;
   }
