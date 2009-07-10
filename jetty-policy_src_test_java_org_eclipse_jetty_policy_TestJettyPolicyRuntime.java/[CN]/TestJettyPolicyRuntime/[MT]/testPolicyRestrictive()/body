@@ -1,18 +1,20 @@
 {
-  JettyPolicy ap=new JettyPolicy(Collections.singleton(getWorkingDirectory() + "/src/test/resources/global-file-read-only-tmp-permission.policy"),evaluator);
-  ap.refresh();
-  Policy.setPolicy(ap);
-  System.setSecurityManager(new SecurityManager());
-  File test=new File("/tmp");
-  assertTrue(test.canRead());
-  File test2=new File("/tmp/foo");
-  assertTrue(test2.canRead());
-  try {
-    File test3=new File("/tmp/foo/bar/do");
-    test3.mkdirs();
-    assertTrue("we should not get here",false);
-  }
- catch (  AccessControlException ace) {
-    assertTrue("Exception was thrown",true);
+  if (!_runningOnWindows) {
+    JettyPolicy ap=new JettyPolicy(Collections.singleton(getWorkingDirectory() + "/src/test/resources/global-file-read-only-tmp-permission.policy"),evaluator);
+    ap.refresh();
+    Policy.setPolicy(ap);
+    System.setSecurityManager(new SecurityManager());
+    File test=new File("/tmp");
+    assertTrue(test.canRead());
+    File test2=new File("/tmp/foo");
+    assertTrue(test2.canRead());
+    try {
+      File test3=new File("/tmp/foo/bar/do");
+      test3.mkdirs();
+      assertTrue("we should not get here",false);
+    }
+ catch (    AccessControlException ace) {
+      assertTrue("Exception was thrown",true);
+    }
   }
 }
