@@ -5,13 +5,15 @@
   List<KeystoreEntry> keystoreEntries=new ArrayList<KeystoreEntry>();
   File policyFile=new File(getWorkingDirectory() + "/src/test/resources/context/jetty-certificate.policy");
   loader.scanStream(new InputStreamReader(new FileInputStream(policyFile)),grantEntries,keystoreEntries);
-  for (Iterator<KeystoreEntry> i=keystoreEntries.iterator(); i.hasNext(); ) {
-    KeystoreEntry node=i.next();
-    node.expand(context);
-    context.setKeystore(node.toKeyStore());
+  if (!_runningOnWindows) {
+    for (Iterator<KeystoreEntry> i=keystoreEntries.iterator(); i.hasNext(); ) {
+      KeystoreEntry node=i.next();
+      node.expand(context);
+      context.setKeystore(node.toKeyStore());
+    }
+    GrantEntry grant=grantEntries.get(0);
+    grant.expand(context);
+    Permission perm=grant.getPermissions().elements().nextElement();
+    assertEquals(__PRINCIPAL,perm.getName());
   }
-  GrantEntry grant=grantEntries.get(0);
-  grant.expand(context);
-  Permission perm=grant.getPermissions().elements().nextElement();
-  assertEquals(__PRINCIPAL,perm.getName());
 }
