@@ -1,4 +1,5 @@
 {
+  final int debug=__log.isDebugEnabled() ? req.hashCode() : 0;
   final HttpServletRequest request=(HttpServletRequest)req;
   final HttpServletResponse response=(HttpServletResponse)res;
   if ("CONNECT".equalsIgnoreCase(request.getMethod())) {
@@ -13,6 +14,7 @@
       String uri=request.getRequestURI();
       if (request.getQueryString() != null)       uri+="?" + request.getQueryString();
       HttpURI url=proxyHttpURI(request.getScheme(),request.getServerName(),request.getServerPort(),uri);
+      if (debug != 0)       __log.debug(debug + " proxy " + uri+ "-->"+ url);
       if (url == null) {
         response.sendError(HttpServletResponse.SC_FORBIDDEN);
         return;
@@ -23,20 +25,27 @@
         protected void onRequestComplete() throws IOException {
         }
         protected void onResponseComplete() throws IOException {
+          if (debug != 0)           __log.debug(debug + " complete");
           continuation.complete();
         }
         protected void onResponseContent(        Buffer content) throws IOException {
+          if (debug != 0)           __log.debug(debug + " content" + content.length());
           content.writeTo(out);
         }
         protected void onResponseHeaderComplete() throws IOException {
         }
         protected void onResponseStatus(        Buffer version,        int status,        Buffer reason) throws IOException {
+          if (debug != 0)           __log.debug(debug + " " + version+ " "+ status+ " "+ reason);
           if (reason != null && reason.length() > 0)           response.setStatus(status,reason.toString());
  else           response.setStatus(status);
         }
         protected void onResponseHeader(        Buffer name,        Buffer value) throws IOException {
           String s=name.toString().toLowerCase();
-          if (!_DontProxyHeaders.contains(s))           response.addHeader(name.toString(),value.toString());
+          if (!_DontProxyHeaders.contains(s) || (HttpHeaders.CONNECTION_BUFFER.equals(name) && HttpHeaderValues.CLOSE_BUFFER.equals(value))) {
+            if (debug != 0)             __log.debug(debug + " " + name+ ": "+ value);
+            response.addHeader(name.toString(),value.toString());
+          }
+ else           if (debug != 0)           __log.debug(debug + " " + name+ "! "+ value);
         }
         protected void onConnectionFailed(        Throwable ex){
           onException(ex);
@@ -61,7 +70,7 @@
       exchange.setMethod(request.getMethod());
       exchange.setURL(url.toString());
       exchange.setVersion(request.getProtocol());
-      if (Log.isDebugEnabled())       Log.debug("PROXY TO " + url);
+      if (debug != 0)       __log.debug(debug + " " + request.getMethod()+ " "+ url+ " "+ request.getProtocol());
       String connectionHdr=request.getHeader("Connection");
       if (connectionHdr != null) {
         connectionHdr=connectionHdr.toLowerCase();
@@ -77,17 +86,18 @@
         if (_DontProxyHeaders.contains(lhdr))         continue;
         if (connectionHdr != null && connectionHdr.indexOf(lhdr) >= 0)         continue;
         if ("content-type".equals(lhdr))         hasContent=true;
-        if ("content-length".equals(lhdr)) {
+ else         if ("content-length".equals(lhdr)) {
           contentLength=request.getContentLength();
           exchange.setRequestHeader(HttpHeaders.CONTENT_LENGTH,TypeUtil.toString(contentLength));
           if (contentLength > 0)           hasContent=true;
         }
+ else         if ("x-forwarded-for".equals(lhdr))         xForwardedFor=true;
         Enumeration<?> vals=request.getHeaders(hdr);
         while (vals.hasMoreElements()) {
           String val=(String)vals.nextElement();
           if (val != null) {
-            exchange.setRequestHeader(lhdr,val);
-            xForwardedFor|="X-Forwarded-For".equalsIgnoreCase(hdr);
+            if (debug != 0)             __log.debug(debug + " " + hdr+ ": "+ val);
+            exchange.setRequestHeader(hdr,val);
           }
         }
       }
