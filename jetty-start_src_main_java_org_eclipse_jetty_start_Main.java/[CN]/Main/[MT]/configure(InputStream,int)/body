@@ -92,7 +92,7 @@
         expression&=not ? !eval : eval;
         not=false;
       }
-      String file=expand(subject).replace('/',File.separatorChar);
+      String file=expand(subject);
       if (DEBUG)       System.err.println((expression ? "T " : "F ") + line);
       if (!expression) {
         done.add(file);
@@ -101,14 +101,14 @@
       if (subject.indexOf("~=") > 0) {
         int i=file.indexOf("~=");
         String property=file.substring(0,i);
-        String value=file.substring(i + 2);
+        String value=fixPath(file.substring(i + 2));
         if (DEBUG)         System.err.println("  " + property + "~="+ value);
         setProperty(property,value);
       }
-      if (subject.indexOf("/=") > 0) {
+ else       if (subject.indexOf("/=") > 0) {
         int i=file.indexOf("/=");
         String property=file.substring(0,i);
-        String value=file.substring(i + 2);
+        String value=fixPath(file.substring(i + 2));
         String canonical=new File(value).getCanonicalPath();
         if (DEBUG)         System.err.println("  " + property + "/="+ value+ "=="+ canonical);
         setProperty(property,canonical);
@@ -116,20 +116,20 @@
  else       if (subject.indexOf("=") > 0) {
         int i=file.indexOf("=");
         String property=file.substring(0,i);
-        String value=file.substring(i + 1);
+        String value=fixPath(file.substring(i + 1));
         if (DEBUG)         System.err.println("  " + property + "="+ value);
         System.setProperty(property,value);
       }
  else       if (subject.endsWith("/*")) {
-        File dir=new File(file.substring(0,file.length() - 1));
+        File dir=new File(fixPath(file.substring(0,file.length() - 1)));
         addJars(dir,done,false);
       }
  else       if (subject.endsWith("/**")) {
-        File dir=new File(file.substring(0,file.length() - 2));
+        File dir=new File(fixPath(file.substring(0,file.length() - 2)));
         addJars(dir,done,true);
       }
  else       if (subject.endsWith("/")) {
-        File cd=new File(file);
+        File cd=new File(fixPath(file));
         String d=cd.getCanonicalPath();
         if (!done.contains(d)) {
           done.add(d);
@@ -138,7 +138,7 @@
         }
       }
  else       if (subject.toLowerCase().endsWith(".xml")) {
-        File f=new File(file);
+        File f=new File(fixPath(file));
         if (f.exists())         _xml.add(f.getCanonicalPath());
         if (DEBUG)         System.err.println("  ARGS+=" + f);
       }
@@ -160,11 +160,11 @@
         String cn=expand(subject.substring(0,subject.length()));
         if (cn != null && cn.length() > 0) {
           if (DEBUG)           System.err.println("  POLICY=" + cn);
-          _policies.add(cn);
+          _policies.add(fixPath(cn));
         }
       }
  else {
-        File f=new File(file);
+        File f=new File(fixPath(file));
         if (f.exists()) {
           String d=f.getCanonicalPath();
           if (!done.contains(d)) {
