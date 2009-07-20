@@ -5,10 +5,12 @@
 synchronized (bbuf) {
     try {
       unwrap(bbuf);
-      int tries=0, wraps=0;
+      int wraps=0;
       loop:       while (true) {
-        if (tries++ > 100)         throw new IllegalStateException();
-        if (_outNIOBuffer.length() > 0)         flush();
+        if (isBufferingOutput()) {
+          flush();
+          if (isBufferingOutput())           break loop;
+        }
 switch (_engine.getHandshakeStatus()) {
 case FINISHED:
 case NOT_HANDSHAKING:
@@ -25,7 +27,7 @@ case NEED_TASK:
     while ((task=_engine.getDelegatedTask()) != null) {
       task.run();
     }
-    if (initialStatus == HandshakeStatus.NOT_HANDSHAKING && HandshakeStatus.NEED_UNWRAP == _engine.getHandshakeStatus() && wraps == 0) {
+    if (initialStatus == HandshakeStatus.NOT_HANDSHAKING && _engine.getHandshakeStatus() == HandshakeStatus.NEED_UNWRAP && wraps == 0) {
       if (_debug)       __log.warn(_session + " JETTY-567");
       return -1;
     }
@@ -40,7 +42,6 @@ synchronized (_outBuffer) {
       int put=_outNIOBuffer.putIndex();
       _outBuffer.position();
       _result=null;
-      _last="fill wrap";
       _result=_engine.wrap(__NO_BUFFERS,_outBuffer);
       if (_debug)       __log.debug(_session + " fill wrap " + _result);
 switch (_result.getStatus()) {

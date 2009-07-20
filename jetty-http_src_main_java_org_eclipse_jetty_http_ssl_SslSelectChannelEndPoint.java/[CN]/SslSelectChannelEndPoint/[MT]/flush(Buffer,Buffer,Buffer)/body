@@ -4,8 +4,10 @@
   if (buffer != null)   available+=buffer.length();
   int tries=0;
   loop:   while (true) {
-    if (tries++ > 100)     throw new IllegalStateException();
-    if (_outNIOBuffer.length() > 0)     flush();
+    if (_outNIOBuffer.length() > 0) {
+      flush();
+      if (isBufferingOutput())       break loop;
+    }
 switch (_engine.getHandshakeStatus()) {
 case FINISHED:
 case NOT_HANDSHAKING:
@@ -13,15 +15,20 @@ case NOT_HANDSHAKING:
         if (consumed == 0)         consumed=-1;
         break loop;
       }
-    int c=(header != null && buffer != null) ? wrap(header,buffer) : wrap(header);
-  if (c > 0) {
-    consumed+=c;
-    available-=c;
+    int c;
+  if (header != null && header.length() > 0) {
+    if (buffer != null && buffer.length() > 0)     c=wrap(header,buffer);
+ else     c=wrap(header);
   }
- else   if (c < 0) {
-    if (consumed == 0)     consumed=-1;
-    break loop;
-  }
+ else   c=wrap(buffer);
+if (c > 0) {
+  consumed+=c;
+  available-=c;
+}
+ else if (c < 0) {
+  if (consumed == 0)   consumed=-1;
+  break loop;
+}
 break;
 case NEED_UNWRAP:
 Buffer buf=_buffers.getBuffer(_engine.getSession().getApplicationBufferSize());
@@ -51,7 +58,6 @@ _outNIOBuffer.compact();
 int put=_outNIOBuffer.putIndex();
 _outBuffer.position();
 _result=null;
-_last="flush wrap";
 _result=_engine.wrap(__NO_BUFFERS,_outBuffer);
 if (_debug) __log.debug(_session + " flush wrap " + _result);
 switch (_result.getStatus()) {
@@ -68,6 +74,7 @@ _outBuffer.position(0);
 }
 }
 flush();
+if (isBufferingOutput()) break loop;
 break;
 }
 }

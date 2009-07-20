@@ -1,18 +1,21 @@
 {
   _closing=true;
   try {
-    int tries=0;
-    while (_outNIOBuffer.length() > 0) {
-      if (tries++ > 100)       throw new IllegalStateException();
+    if (isBufferingOutput()) {
       flush();
-      Thread.sleep(100);
+      while (isOpen() && isBufferingOutput()) {
+        Thread.sleep(100);
+        flush();
+      }
     }
     _engine.closeOutbound();
     loop:     while (isOpen() && !(_engine.isInboundDone() && _engine.isOutboundDone())) {
-      if (tries++ > 100)       throw new IllegalStateException();
-      if (_outNIOBuffer.length() > 0) {
+      if (isBufferingOutput()) {
         flush();
-        Thread.sleep(100);
+        while (isOpen() && isBufferingOutput()) {
+          Thread.sleep(100);
+          flush();
+        }
       }
       if (_debug)       __log.debug(_session + " closing " + _engine.getHandshakeStatus());
 switch (_engine.getHandshakeStatus()) {
@@ -44,13 +47,11 @@ case NEED_TASK:
 }
 case NEED_WRAP:
 {
-if (_outNIOBuffer.length() > 0) flush();
 try {
   _outNIOBuffer.compact();
   int put=_outNIOBuffer.putIndex();
   _outBuffer.position(put);
   _result=null;
-  _last="close wrap";
   _result=_engine.wrap(__NO_BUFFERS,_outBuffer);
   if (_debug)   __log.debug(_session + " close wrap " + _result);
   _outNIOBuffer.setPutIndex(put + _result.bytesProduced());
@@ -58,7 +59,6 @@ try {
   finally {
   _outBuffer.position(0);
 }
-flush();
 break;
 }
 }
