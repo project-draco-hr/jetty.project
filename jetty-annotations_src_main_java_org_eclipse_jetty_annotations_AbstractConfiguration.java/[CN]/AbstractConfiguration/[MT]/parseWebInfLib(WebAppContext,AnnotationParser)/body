@@ -1,0 +1,31 @@
+{
+  WebXmlProcessor webXmlProcessor=(WebXmlProcessor)context.getAttribute(WebXmlProcessor.WEB_PROCESSOR);
+  if (webXmlProcessor == null)   throw new IllegalStateException("No processor for web xml");
+  List<Descriptor> frags=webXmlProcessor.getFragments();
+  ArrayList<URI> webInfUris=new ArrayList<URI>();
+  List<Resource> jarResources=(List<Resource>)context.getAttribute(WEB_INF_JAR_RESOURCES);
+  for (  Resource r : jarResources) {
+    URI uri=r.getURI();
+    Descriptor d=null;
+    for (    Descriptor frag : frags) {
+      Resource fragResource=frag.getResource();
+      if (Resource.isContainedIn(fragResource,r)) {
+        d=frag;
+        break;
+      }
+    }
+    if (d == null || (d != null && !d.isMetaDataComplete()))     webInfUris.add(uri);
+  }
+  parser.parse(webInfUris.toArray(new URI[webInfUris.size()]),new ClassNameResolver(){
+    public boolean isExcluded(    String name){
+      if (context.isSystemClass(name))       return true;
+      if (context.isServerClass(name))       return false;
+      return false;
+    }
+    public boolean shouldOverride(    String name){
+      if (context.isParentLoaderPriority())       return false;
+      return true;
+    }
+  }
+);
+}

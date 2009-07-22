@@ -7,11 +7,11 @@
   Pattern webInfPattern=(tmp == null ? null : Pattern.compile(tmp));
   tmp=(String)context.getAttribute(CONTAINER_JAR_PATTERN);
   Pattern containerPattern=(tmp == null ? null : Pattern.compile(tmp));
-  final ArrayList jarResources=new ArrayList<Resource>();
-  context.setAttribute(JAR_RESOURCES,jarResources);
-  PatternMatcher jarNameMatcher=new PatternMatcher(){
+  final ArrayList containerJarResources=new ArrayList<Resource>();
+  context.setAttribute(CONTAINER_JAR_RESOURCES,containerJarResources);
+  PatternMatcher containerJarNameMatcher=new PatternMatcher(){
     public void matched(    URI uri) throws Exception {
-      jarResources.add(Resource.newResource(uri));
+      containerJarResources.add(Resource.newResource(uri));
     }
   }
 ;
@@ -24,10 +24,18 @@
       for (      URL u : urls) {
         containerUris[i++]=u.toURI();
       }
-      jarNameMatcher.match(containerPattern,containerUris,false);
+      containerJarNameMatcher.match(containerPattern,containerUris,false);
     }
     loader=loader.getParent();
   }
+  final ArrayList webInfJarResources=new ArrayList<Resource>();
+  context.setAttribute(WEB_INF_JAR_RESOURCES,webInfJarResources);
+  PatternMatcher webInfJarNameMatcher=new PatternMatcher(){
+    public void matched(    URI uri) throws Exception {
+      webInfJarResources.add(Resource.newResource(uri));
+    }
+  }
+;
   List<Resource> jars=findJars(context);
   URI[] uris=null;
   if (jars != null) {
@@ -37,5 +45,5 @@
       uris[i++]=r.getURI();
     }
   }
-  jarNameMatcher.match(webInfPattern,uris,true);
+  webInfJarNameMatcher.match(webInfPattern,uris,true);
 }

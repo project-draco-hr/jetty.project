@@ -1,6 +1,8 @@
 {
-  AnnotationFinder finder=new AnnotationFinder();
-  finder.find(ClassA.class.getName(),new ClassNameResolver(){
+  AnnotationParser parser=new AnnotationParser();
+  SampleHandler handler=new SampleHandler();
+  parser.registerAnnotationHandler("org.eclipse.jetty.annotations.Sample",handler);
+  parser.parse(ClassA.class.getName(),new ClassNameResolver(){
     public boolean isExcluded(    String name){
       return true;
     }
@@ -9,8 +11,13 @@
     }
   }
 );
-  assertTrue(finder.getClassesForAnnotation(Sample.class).isEmpty());
-  finder.find(ClassA.class.getName(),new ClassNameResolver(){
+  assertEquals(0,handler.annotatedClassNames.size());
+  assertEquals(0,handler.annotatedFields.size());
+  assertEquals(0,handler.annotatedMethods.size());
+  handler.annotatedClassNames.clear();
+  handler.annotatedFields.clear();
+  handler.annotatedMethods.clear();
+  parser.parse(ClassA.class.getName(),new ClassNameResolver(){
     public boolean isExcluded(    String name){
       return false;
     }
@@ -19,5 +26,5 @@
     }
   }
 );
-  assertEquals(1,finder.getClassesForAnnotation(Sample.class).size());
+  assertEquals(1,handler.annotatedClassNames.size());
 }

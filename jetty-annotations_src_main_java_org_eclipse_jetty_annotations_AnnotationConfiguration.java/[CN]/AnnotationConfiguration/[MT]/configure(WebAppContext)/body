@@ -1,0 +1,32 @@
+{
+  Boolean b=(Boolean)context.getAttribute(METADATA_COMPLETE);
+  boolean metadataComplete=(b != null && b.booleanValue());
+  Integer i=(Integer)context.getAttribute(WEBXML_VERSION);
+  int webxmlVersion=(i == null ? 0 : i.intValue());
+  if (metadataComplete) {
+    if (Log.isDebugEnabled())     Log.debug("Metadata-complete==true,  not processing annotations for context " + context);
+    return;
+  }
+ else {
+    if (Log.isDebugEnabled())     Log.debug("parsing annotations");
+    AnnotationParser parser=new AnnotationParser();
+    parser.registerAnnotationHandler("javax.annotation.Resource",new ResourceAnnotationHandler(context));
+    parser.registerAnnotationHandler("javax.annotation.Resources",new ResourcesAnnotationHandler(context));
+    parser.registerAnnotationHandler("javax.annotation.PostConstruct",new PostConstructAnnotationHandler(context));
+    parser.registerAnnotationHandler("javax.annotation.PreDestroy",new PreDestroyAnnotationHandler(context));
+    parser.registerAnnotationHandler("javax.annotation.security.RunAs",new RunAsAnnotationHandler(context));
+    ClassInheritanceHandler classHandler=new ClassInheritanceHandler();
+    parser.registerClassHandler(classHandler);
+    if (webxmlVersion >= 30 || context.isConfigurationDiscovered()) {
+      if (Log.isDebugEnabled())       Log.debug("Scanning all classes for annotations: webxmlVersion=" + webxmlVersion + " configurationDiscovered="+ context.isConfigurationDiscovered());
+      parseContainerPath(context,parser);
+      parseWebInfLib(context,parser);
+      parseWebInfClasses(context,parser);
+    }
+ else {
+      if (Log.isDebugEnabled())       Log.debug("Scanning only classes in web.xml for annotations");
+      parse25Classes(context,parser);
+    }
+    context.setAttribute(CLASS_INHERITANCE_MAP,classHandler.getMap());
+  }
+}

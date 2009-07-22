@@ -1,0 +1,35 @@
+{
+  Class clazz=null;
+  try {
+    clazz=Loader.loadClass(null,className);
+  }
+ catch (  Exception e) {
+    Log.warn(e);
+    return;
+  }
+  if (!Util.isServletType(clazz)) {
+    Log.debug("@Resources annotation ignored on on-servlet type class " + clazz.getName());
+    return;
+  }
+  Resources resources=(Resources)clazz.getAnnotation(Resources.class);
+  if (resources == null)   return;
+  Resource[] resArray=resources.value();
+  if (resArray == null || resArray.length == 0)   return;
+  for (int j=0; j < resArray.length; j++) {
+    String name=resArray[j].name();
+    String mappedName=resArray[j].mappedName();
+    Resource.AuthenticationType auth=resArray[j].authenticationType();
+    Class type=resArray[j].type();
+    boolean shareable=resArray[j].shareable();
+    if (name == null || name.trim().equals("")) {
+      Log.warn("@Resource annotations on classes must contain a name (Common Annotations Spec Section 2.3)");
+      break;
+    }
+    try {
+      if (!org.eclipse.jetty.plus.jndi.NamingEntryUtil.bindToENC(_wac,name,mappedName))       if (!org.eclipse.jetty.plus.jndi.NamingEntryUtil.bindToENC(_wac.getServer(),name,mappedName))       throw new IllegalStateException("No resource bound at " + (mappedName == null ? name : mappedName));
+    }
+ catch (    NamingException e) {
+      Log.warn(e);
+    }
+  }
+}

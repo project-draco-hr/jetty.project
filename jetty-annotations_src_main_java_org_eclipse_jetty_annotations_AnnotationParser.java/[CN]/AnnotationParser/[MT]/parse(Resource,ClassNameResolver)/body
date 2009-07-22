@@ -1,0 +1,17 @@
+{
+  if (!dir.isDirectory() || !dir.exists())   return;
+  String[] files=dir.list();
+  for (int f=0; files != null && f < files.length; f++) {
+    try {
+      Resource res=dir.addPath(files[f]);
+      if (res.isDirectory())       parse(res,resolver);
+      String name=res.getName();
+      if (name.endsWith(".class")) {
+        if ((resolver == null) || (!resolver.isExcluded(name) && (!isParsed(name) || resolver.shouldOverride(name))))         scanClass(res.getURL().openStream());
+      }
+    }
+ catch (    Exception ex) {
+      Log.warn(Log.EXCEPTION,ex);
+    }
+  }
+}

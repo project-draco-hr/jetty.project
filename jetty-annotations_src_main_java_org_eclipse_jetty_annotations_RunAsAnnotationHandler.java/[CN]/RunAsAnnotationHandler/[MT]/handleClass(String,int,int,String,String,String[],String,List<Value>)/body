@@ -1,0 +1,24 @@
+{
+  RunAsCollection runAsCollection=(RunAsCollection)_wac.getAttribute(RunAsCollection.RUNAS_COLLECTION);
+  Class clazz=null;
+  try {
+    clazz=Loader.loadClass(null,className);
+    if (!javax.servlet.Servlet.class.isAssignableFrom(clazz)) {
+      Log.debug("@RunAs annotation ignored on on-servlet class " + clazz.getName());
+      return;
+    }
+    RunAs runAs=(RunAs)clazz.getAnnotation(RunAs.class);
+    if (runAs != null) {
+      String role=runAs.value();
+      if (role != null) {
+        org.eclipse.jetty.plus.annotation.RunAs ra=new org.eclipse.jetty.plus.annotation.RunAs();
+        ra.setTargetClass(clazz);
+        ra.setRoleName(role);
+        runAsCollection.add(ra);
+      }
+    }
+  }
+ catch (  Exception e) {
+    Log.warn(e);
+  }
+}

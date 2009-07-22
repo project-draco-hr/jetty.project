@@ -1,0 +1,29 @@
+{
+  Server server=new Server();
+  WebAppContext wac=new WebAppContext();
+  wac.setServer(server);
+  InjectionCollection injections=new InjectionCollection();
+  wac.setAttribute(InjectionCollection.INJECTION_COLLECTION,injections);
+  InitialContext ic=new InitialContext();
+  Context comp=(Context)ic.lookup("java:comp");
+  Context env=comp.createSubcontext("env");
+  org.eclipse.jetty.plus.jndi.EnvEntry resourceA=new org.eclipse.jetty.plus.jndi.EnvEntry(server,"resA",new Integer(1000),false);
+  org.eclipse.jetty.plus.jndi.EnvEntry resourceB=new org.eclipse.jetty.plus.jndi.EnvEntry(server,"resB",new Integer(2000),false);
+  ArrayList<String> classNames=new ArrayList<String>();
+  classNames.add(ResourceA.class.getName());
+  classNames.add(ResourceB.class.getName());
+  AnnotationParser parser=new AnnotationParser();
+  ResourcesAnnotationHandler handler=new ResourcesAnnotationHandler(wac);
+  parser.registerAnnotationHandler("javax.annotation.Resources",handler);
+  parser.parse(classNames,new ClassNameResolver(){
+    public boolean isExcluded(    String name){
+      return false;
+    }
+    public boolean shouldOverride(    String name){
+      return false;
+    }
+  }
+);
+  assertEquals(resourceA.getObjectToBind(),env.lookup("fluff"));
+  assertEquals(resourceB.getObjectToBind(),env.lookup("stuff"));
+}

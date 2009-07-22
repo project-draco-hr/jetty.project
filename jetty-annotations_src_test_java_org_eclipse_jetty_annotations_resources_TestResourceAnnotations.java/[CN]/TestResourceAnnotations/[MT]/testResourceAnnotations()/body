@@ -1,0 +1,64 @@
+{
+  Server server=new Server();
+  WebAppContext wac=new WebAppContext();
+  wac.setServer(server);
+  InjectionCollection injections=new InjectionCollection();
+  wac.setAttribute(InjectionCollection.INJECTION_COLLECTION,injections);
+  InitialContext ic=new InitialContext();
+  Context comp=(Context)ic.lookup("java:comp");
+  Context env=comp.createSubcontext("env");
+  org.eclipse.jetty.plus.jndi.EnvEntry resourceA=new org.eclipse.jetty.plus.jndi.EnvEntry(server,"resA",new Integer(1000),false);
+  org.eclipse.jetty.plus.jndi.EnvEntry resourceB=new org.eclipse.jetty.plus.jndi.EnvEntry(server,"resB",new Integer(2000),false);
+  ArrayList<String> classNames=new ArrayList<String>();
+  classNames.add(ResourceA.class.getName());
+  classNames.add(ResourceB.class.getName());
+  AnnotationParser parser=new AnnotationParser();
+  ResourceAnnotationHandler handler=new ResourceAnnotationHandler(wac);
+  parser.registerAnnotationHandler("javax.annotation.Resource",handler);
+  parser.parse(classNames,new ClassNameResolver(){
+    public boolean isExcluded(    String name){
+      return false;
+    }
+    public boolean shouldOverride(    String name){
+      return false;
+    }
+  }
+);
+  assertEquals(resourceB.getObjectToBind(),env.lookup("myf"));
+  assertEquals(resourceA.getObjectToBind(),env.lookup("mye"));
+  assertEquals(resourceA.getObjectToBind(),env.lookup("resA"));
+  assertEquals(resourceA.getObjectToBind(),env.lookup("org.eclipse.jetty.annotations.resources.ResourceA/g"));
+  assertEquals(resourceA.getObjectToBind(),env.lookup("org.eclipse.jetty.annotations.resources.ResourceA/h"));
+  assertEquals(resourceB.getObjectToBind(),env.lookup("org.eclipse.jetty.annotations.resources.ResourceB/f"));
+  assertEquals(resourceB.getObjectToBind(),env.lookup("org.eclipse.jetty.annotations.resources.ResourceA/n"));
+  assertNotNull(injections);
+  List<Injection> fieldInjections=injections.getFieldInjections(ResourceB.class);
+  assertNotNull(fieldInjections);
+  assertEquals(1,fieldInjections.size());
+  Injection fi=fieldInjections.get(0);
+  assertEquals("f",fi.getTarget().getName());
+  fieldInjections=injections.getFieldInjections(ResourceA.class);
+  assertNotNull(fieldInjections);
+  assertEquals(4,fieldInjections.size());
+  List<Injection> methodInjections=injections.getMethodInjections(ResourceB.class);
+  assertNotNull(methodInjections);
+  assertEquals(0,methodInjections.size());
+  methodInjections=injections.getMethodInjections(ResourceA.class);
+  assertNotNull(methodInjections);
+  assertEquals(3,methodInjections.size());
+  ResourceB binst=new ResourceB();
+  injections.inject(binst);
+  Field f=ResourceB.class.getDeclaredField("f");
+  f.setAccessible(true);
+  assertEquals(resourceB.getObjectToBind(),f.get(binst));
+  f=ResourceA.class.getDeclaredField("g");
+  f.setAccessible(true);
+  assertEquals(resourceA.getObjectToBind(),f.get(binst));
+  f=ResourceA.class.getDeclaredField("j");
+  f.setAccessible(true);
+  assertEquals(resourceA.getObjectToBind(),f.get(binst));
+  f=ResourceA.class.getDeclaredField("n");
+  f.setAccessible(true);
+  assertEquals(resourceB.getObjectToBind(),f.get(binst));
+  comp.destroySubcontext("env");
+}

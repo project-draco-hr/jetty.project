@@ -1,0 +1,27 @@
+{
+  classNames.add(ClassA.class.getName());
+  classNames.add(ClassB.class.getName());
+  SampleHandler handler=new SampleHandler();
+  AnnotationParser parser=new AnnotationParser();
+  parser.registerAnnotationHandler("org.eclipse.jetty.annotations.Sample",handler);
+  parser.parse(classNames,new ClassNameResolver(){
+    public boolean isExcluded(    String name){
+      return false;
+    }
+    public boolean shouldOverride(    String name){
+      return false;
+    }
+  }
+);
+  assertEquals(2,handler.annotatedClassNames.size());
+  assertEquals(7,handler.annotatedMethods.size());
+  assertTrue(handler.annotatedMethods.contains("org.eclipse.jetty.annotations.ClassA.a"));
+  assertTrue(handler.annotatedMethods.contains("org.eclipse.jetty.annotations.ClassA.b"));
+  assertTrue(handler.annotatedMethods.contains("org.eclipse.jetty.annotations.ClassA.c"));
+  assertTrue(handler.annotatedMethods.contains("org.eclipse.jetty.annotations.ClassA.d"));
+  assertTrue(handler.annotatedMethods.contains("org.eclipse.jetty.annotations.ClassA.l"));
+  assertTrue(handler.annotatedMethods.contains("org.eclipse.jetty.annotations.ClassB.a"));
+  assertTrue(handler.annotatedMethods.contains("org.eclipse.jetty.annotations.ClassB.c"));
+  assertEquals(1,handler.annotatedFields.size());
+  assertEquals("org.eclipse.jetty.annotations.ClassA.m",handler.annotatedFields.get(0));
+}
