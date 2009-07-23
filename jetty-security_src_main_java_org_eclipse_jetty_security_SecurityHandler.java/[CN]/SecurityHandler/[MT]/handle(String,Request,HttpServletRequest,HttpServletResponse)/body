@@ -12,6 +12,7 @@
       return;
     }
     boolean isAuthMandatory=isAuthMandatory(baseRequest,base_response,constraintInfo);
+    Object previousIdentity=null;
     try {
       final Authenticator authenticator=_authenticator;
       Authentication authentication=baseRequest.getAuthentication();
@@ -26,7 +27,7 @@
  else       if (authentication instanceof Authentication.User) {
         Authentication.User userAuth=(Authentication.User)authentication;
         baseRequest.setAuthentication(authentication);
-        _identityService.associate(userAuth.getUserIdentity());
+        previousIdentity=_identityService.associate(userAuth.getUserIdentity());
         if (isAuthMandatory) {
           boolean authorized=checkWebResourcePermissions(pathInContext,baseRequest,base_response,constraintInfo,userAuth.getUserIdentity());
           if (!authorized) {
@@ -46,6 +47,7 @@
           handler.handle(pathInContext,baseRequest,request,response);
         }
   finally {
+          previousIdentity=lazy.getPreviousAssociation();
           lazy.setIdentityService(null);
         }
         Authentication auth=baseRequest.getAuthentication();
@@ -57,6 +59,7 @@
       }
  else {
         baseRequest.setAuthentication(authentication);
+        previousIdentity=_identityService.associate(null);
         handler.handle(pathInContext,baseRequest,request,response);
         authenticator.secureResponse(request,response,isAuthMandatory,null);
       }
@@ -65,7 +68,7 @@
       response.sendError(Response.SC_INTERNAL_SERVER_ERROR,e.getMessage());
     }
  finally {
-      _identityService.associate(null);
+      _identityService.disassociate(previousIdentity);
     }
   }
  else   handler.handle(pathInContext,baseRequest,request,response);
