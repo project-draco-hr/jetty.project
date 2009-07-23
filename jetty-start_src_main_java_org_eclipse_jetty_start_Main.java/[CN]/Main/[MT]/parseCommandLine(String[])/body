@@ -1,0 +1,46 @@
+{
+  try {
+    List<String> arguments=new ArrayList<String>();
+    arguments.addAll(Arrays.asList(args));
+    arguments.addAll(loadStartIni());
+    List<String> xmls=new ArrayList<String>();
+    for (    String arg : arguments) {
+      if ("--help".equals(arg)) {
+        _showUsage=true;
+        continue;
+      }
+      if ("--stop".equals(arg)) {
+        int port=Integer.parseInt(_config.getProperty("STOP.PORT","-1"));
+        String key=_config.getProperty("STOP.KEY",null);
+        stop(port,key);
+        return;
+      }
+      if ("--version".equals(arg) || "-v".equals(arg) || "--info".equals(arg)) {
+        _dumpVersions=true;
+        continue;
+      }
+      if ("--list-modes".equals(arg)) {
+        _listModes=true;
+        continue;
+      }
+      if ("--exec-print".equals(arg)) {
+        _execPrint=true;
+        continue;
+      }
+      if ("--secure".equals(arg)) {
+        _secure=true;
+        continue;
+      }
+      if (arg.indexOf('=') >= 0) {
+        processProperty(arg);
+        continue;
+      }
+      xmls.add(arg);
+    }
+    start(xmls);
+  }
+ catch (  Throwable t) {
+    t.printStackTrace(System.err);
+    usage();
+  }
+}

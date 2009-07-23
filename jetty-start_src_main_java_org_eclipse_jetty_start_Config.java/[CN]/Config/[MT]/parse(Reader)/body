@@ -1,0 +1,177 @@
+{
+  BufferedReader buf=null;
+  try {
+    buf=new BufferedReader(reader);
+    List<String> sections=new ArrayList<String>();
+    sections.add(DEFAULT_SECTION);
+    _classpaths.put(DEFAULT_SECTION,new Classpath());
+    Version java_version=new Version(System.getProperty("java.version"));
+    Version ver=new Version();
+    String line=null;
+    while ((line=buf.readLine()) != null) {
+      String trim=line.trim();
+      if (trim.length() == 0)       continue;
+      if (trim.startsWith("#"))       continue;
+      if (trim.startsWith("[") && trim.endsWith("]")) {
+        sections=Arrays.asList(trim.substring(1,trim.length() - 1).split(","));
+        for (        String sectionId : sections) {
+          if (!_classpaths.containsKey(sectionId)) {
+            _classpaths.put(sectionId,new Classpath());
+          }
+        }
+      }
+      try {
+        StringTokenizer st=new StringTokenizer(line);
+        String subject=st.nextToken();
+        boolean expression=true;
+        boolean not=false;
+        String condition=null;
+        while (st.hasMoreTokens()) {
+          condition=st.nextToken();
+          if (condition.equalsIgnoreCase("!")) {
+            not=true;
+            continue;
+          }
+          if (condition.equalsIgnoreCase("OR")) {
+            if (expression)             break;
+            expression=true;
+            continue;
+          }
+          if (condition.equalsIgnoreCase("AND")) {
+            if (!expression)             break;
+            continue;
+          }
+          boolean eval=true;
+          if (condition.equals("true") || condition.equals("always")) {
+            eval=true;
+          }
+ else           if (condition.equals("false") || condition.equals("never")) {
+            eval=false;
+          }
+ else           if (condition.equals("available")) {
+            String class_to_check=st.nextToken();
+            eval=isAvailable(sections,class_to_check);
+          }
+ else           if (condition.equals("exists")) {
+            try {
+              eval=false;
+              File file=new File(expand(st.nextToken()));
+              eval=file.exists();
+            }
+ catch (            Exception e) {
+              debug(e);
+            }
+          }
+ else           if (condition.equals("property")) {
+            String property=getProperty(st.nextToken());
+            eval=property != null && property.length() > 0;
+          }
+ else           if (condition.equals("system")) {
+            String property=System.getProperty(st.nextToken());
+            eval=property != null && property.length() > 0;
+          }
+ else           if (condition.equals("java")) {
+            String operator=st.nextToken();
+            String version=st.nextToken();
+            ver.parse(version);
+            eval=(operator.equals("<") && java_version.compare(ver) < 0) || (operator.equals(">") && java_version.compare(ver) > 0) || (operator.equals("<=") && java_version.compare(ver) <= 0)|| (operator.equals("=<") && java_version.compare(ver) <= 0)|| (operator.equals("=>") && java_version.compare(ver) >= 0)|| (operator.equals(">=") && java_version.compare(ver) >= 0)|| (operator.equals("==") && java_version.compare(ver) == 0)|| (operator.equals("!=") && java_version.compare(ver) != 0);
+          }
+ else           if (condition.equals("nargs")) {
+            String operator=st.nextToken();
+            int number=Integer.parseInt(st.nextToken());
+            eval=(operator.equals("<") && argCount < number) || (operator.equals(">") && argCount > number) || (operator.equals("<=") && argCount <= number)|| (operator.equals("=<") && argCount <= number)|| (operator.equals("=>") && argCount >= number)|| (operator.equals(">=") && argCount >= number)|| (operator.equals("==") && argCount == number)|| (operator.equals("!=") && argCount != number);
+          }
+ else {
+            System.err.println("ERROR: Unknown condition: " + condition);
+            eval=false;
+          }
+          expression&=not ? !eval : eval;
+          not=false;
+        }
+        String file=expand(subject);
+        debug((expression ? "T " : "F ") + line);
+        if (!expression)         continue;
+        if (subject.indexOf("~=") > 0) {
+          int i=file.indexOf("~=");
+          String property=file.substring(0,i);
+          String value=fixPath(file.substring(i + 2));
+          debug("  " + property + "~="+ value);
+          setProperty(property,value);
+        }
+ else         if (subject.indexOf("/=") > 0) {
+          int i=file.indexOf("/=");
+          String property=file.substring(0,i);
+          String value=fixPath(file.substring(i + 2));
+          String canonical=new File(value).getCanonicalPath();
+          debug("  " + property + "/="+ value+ "=="+ canonical);
+          setProperty(property,canonical);
+        }
+ else         if (subject.indexOf("=") > 0) {
+          int i=file.indexOf("=");
+          String property=file.substring(0,i);
+          String value=fixPath(file.substring(i + 1));
+          debug("  " + property + "="+ value);
+          System.setProperty(property,value);
+        }
+ else         if (subject.endsWith("/*")) {
+          File dir=new File(fixPath(file.substring(0,file.length() - 1)));
+          addJars(sections,dir,false);
+        }
+ else         if (subject.endsWith("/**")) {
+          File dir=new File(fixPath(file.substring(0,file.length() - 2)));
+          addJars(sections,dir,true);
+        }
+ else         if (subject.endsWith("/")) {
+          File cd=new File(fixPath(file));
+          String d=cd.getCanonicalPath();
+          boolean added=addClasspathComponent(sections,d);
+          debug((added ? "  CLASSPATH+=" : "  !") + d);
+        }
+ else         if (subject.toLowerCase().endsWith(".xml")) {
+          File f=new File(fixPath(file));
+          if (f.exists())           _xml.add(f.getCanonicalPath());
+          debug("  ARGS+=" + f);
+        }
+ else         if (subject.toLowerCase().endsWith(".class")) {
+          String cn=expand(subject.substring(0,subject.length() - 6));
+          if (cn != null && cn.length() > 0) {
+            debug("  CLASS=" + cn);
+            _classname=cn;
+          }
+        }
+ else         if (subject.toLowerCase().endsWith(".path")) {
+          String cn=expand(subject.substring(0,subject.length() - 5));
+          if (cn != null && cn.length() > 0) {
+            debug("  PATH=" + cn);
+            addClasspathPath(sections,cn);
+          }
+        }
+ else         if (subject.toLowerCase().endsWith(".policy")) {
+          String cn=expand(subject.substring(0,subject.length()));
+          if (cn != null && cn.length() > 0) {
+            debug("  POLICY=" + cn);
+            _policies.add(fixPath(cn));
+          }
+        }
+ else {
+          File f=new File(fixPath(file));
+          if (f.exists()) {
+            String d=f.getCanonicalPath();
+            boolean added=addClasspathComponent(sections,d);
+            if (!added) {
+              added=addClasspathPath(sections,expand(subject));
+            }
+            debug((added ? "  CLASSPATH+=" : "  !") + d);
+          }
+        }
+      }
+ catch (      Exception e) {
+        System.err.println("on line: '" + line + "'");
+        e.printStackTrace();
+      }
+    }
+  }
+  finally {
+    close(buf);
+  }
+}

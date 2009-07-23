@@ -1,0 +1,21 @@
+{
+  StringBuffer buf=new StringBuffer();
+  buf.append("[All]\n");
+  buf.append("$(jetty.home)/lib/core-test.jar\n");
+  buf.append("$(jetty.home)/lib/util.jar\n");
+  String jettyHome=getTestableJettyHome();
+  Config options=new Config();
+  options.setProperty("jetty.home",jettyHome);
+  options.parse(buf);
+  Classpath defaultClasspath=options.getClasspath();
+  assertNotNull("Default Classpath should not be null",defaultClasspath);
+  Classpath foocp=options.getSectionClasspath("Foo");
+  assertNull("Foo Classpath should not exist",foocp);
+  Classpath allcp=options.getSectionClasspath("All");
+  assertNotNull("Classpath section 'All' should exist",allcp);
+  File lib=new File(getJettyHomeDir(),"lib");
+  Classpath expected=new Classpath();
+  expected.addComponent(new File(lib,"core-test.jar"));
+  expected.addComponent(new File(lib,"util.jar"));
+  assertEquals("Single Classpath Section",expected,allcp);
+}

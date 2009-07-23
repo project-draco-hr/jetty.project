@@ -1,0 +1,20 @@
+{
+  List<File> entries=new ArrayList<File>();
+  File[] files=dir.listFiles();
+  if (files == null) {
+    return;
+  }
+  entries.addAll(Arrays.asList(files));
+  Collections.sort(entries,FilenameComparator.INSTANCE);
+  for (  File entry : entries) {
+    if (entry.isDirectory() && recurse)     addJars(sections,entry,recurse);
+ else {
+      String name=entry.getName().toLowerCase();
+      if (name.endsWith(".jar") || name.endsWith(".zip")) {
+        String jar=entry.getCanonicalPath();
+        boolean added=addClasspathComponent(sections,jar);
+        debug((added ? "  CLASSPATH+=" : "  !") + jar);
+      }
+    }
+  }
+}

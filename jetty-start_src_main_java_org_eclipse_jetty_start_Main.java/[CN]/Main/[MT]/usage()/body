@@ -1,4 +1,69 @@
 {
-  System.err.println("Usage: java -jar start.jar [--help|--stop|--version] [OPTIONS=option,...] [name=value ...] [config ...]");
+  String usageResource="org/eclipse/jetty/start/usage.txt";
+  InputStream usageStream=getClass().getClassLoader().getResourceAsStream(usageResource);
+  if (usageStream == null) {
+    System.err.println("Usage: java -jar start.jar [options] [properties] [configs]");
+    System.err.println("ERROR: detailed usage resource unavailable");
+    System.exit(1);
+  }
+  BufferedReader buf=null;
+  try {
+    buf=new BufferedReader(new InputStreamReader(usageStream));
+    String line;
+    while ((line=buf.readLine()) != null) {
+      if (line.startsWith("@OPTIONS@")) {
+        List<String> sortedOptions=new ArrayList<String>();
+        sortedOptions.addAll(_config.getSectionIds());
+        Collections.sort(sortedOptions);
+        System.err.println("      Available OPTIONS: ");
+        for (        String option : sortedOptions) {
+          System.err.println("         [" + option + "]");
+        }
+      }
+ else       if (line.startsWith("@CONFIGS@")) {
+        System.err.println("    Configurations Available in ${jetty.home}/etc/: ");
+        File etc=new File(System.getProperty("jetty.home","."),"etc");
+        if (!etc.exists()) {
+          System.err.println("      Unable to find " + etc);
+          continue;
+        }
+        if (!etc.isDirectory()) {
+          System.err.println("      Unable list dir " + etc);
+          continue;
+        }
+        File configs[]=etc.listFiles(new FileFilter(){
+          public boolean accept(          File path){
+            if (!path.isFile()) {
+              return false;
+            }
+            String name=path.getName().toLowerCase();
+            return (name.startsWith("jetty") && name.endsWith(".xml"));
+          }
+        }
+);
+        List<File> configFiles=new ArrayList<File>();
+        configFiles.addAll(Arrays.asList(configs));
+        Collections.sort(configFiles);
+        for (        File configFile : configFiles) {
+          System.err.println("         etc/" + configFile.getName());
+        }
+      }
+ else {
+        System.err.println(line);
+      }
+    }
+  }
+ catch (  IOException e) {
+    e.printStackTrace(System.err);
+  }
+ finally {
+    if (buf != null) {
+      try {
+        buf.close();
+      }
+ catch (      IOException ignore) {
+      }
+    }
+  }
   System.exit(1);
 }

@@ -1,0 +1,54 @@
+{
+  Set<String> sectionIds=_config.getSectionIds();
+  StringBuffer msg=new StringBuffer();
+  msg.append("There ");
+  if (sectionIds.size() > 1) {
+    msg.append("are ");
+  }
+ else {
+    msg.append("is ");
+  }
+  msg.append(String.valueOf(sectionIds.size()));
+  msg.append(" OPTION mode");
+  if (sectionIds.size() > 1) {
+    msg.append("s");
+  }
+  msg.append(" available to use.");
+  System.out.println(msg);
+  System.out.println("Each mode is listed along with associated available classpath entries,  in the order that they would appear from that mode.");
+  System.out.println("Note: If using multiple modes (eg: 'Server,servlet,webapp,jms,jmx') " + "then overlapping entries will not be repeated in the eventual classpath.");
+  System.out.println();
+  System.out.printf("${jetty.home} = %s%n",_jettyHome);
+  System.out.println();
+  for (  String sectionId : sectionIds) {
+    if (Config.DEFAULT_SECTION.equals(sectionId)) {
+      System.out.println("GLOBAL Mode (Prepended Entries)");
+    }
+ else     if ("*".equals(sectionId)) {
+      System.out.println("GLOBAL Mode (Appended Entries) (*)");
+    }
+ else {
+      System.out.printf("Mode [%s]",sectionId);
+      if (Character.isUpperCase(sectionId.charAt(0))) {
+        System.out.print(" (Aggregate)");
+      }
+      System.out.println();
+    }
+    System.out.println("-------------------------------------------------------------");
+    Classpath sectionCP=_config.getSectionClasspath(sectionId);
+    if (sectionCP.isEmpty()) {
+      System.out.println("Empty mode, no classpath entries active.");
+      System.out.println();
+      continue;
+    }
+    int i=0;
+    for (    File element : sectionCP.getElements()) {
+      String elementPath=element.getAbsolutePath();
+      if (elementPath.startsWith(_jettyHome)) {
+        elementPath="${jetty.home}" + elementPath.substring(_jettyHome.length());
+      }
+      System.out.printf("%2d: %20s | %s\n",i++,getVersion(element),elementPath);
+    }
+    System.out.println();
+  }
+}
