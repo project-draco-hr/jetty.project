@@ -1,6 +1,7 @@
 {
   Request baseRequest=(request instanceof Request) ? ((Request)request) : HttpConnection.getCurrentConnection().getRequest();
   Response base_response=baseRequest.getResponse();
+  response.resetBuffer();
   base_response.fwdReset();
   request.removeAttribute(__JSP_FILE);
   String old_uri=baseRequest.getRequestURI();
@@ -19,7 +20,7 @@
       if (query != null) {
         MultiMap parameters=new MultiMap();
         UrlEncoded.decodeTo(query,parameters,request.getCharacterEncoding());
-        boolean rewrite_old_query=false;
+        boolean merge_old_query=false;
         if (old_params == null) {
           baseRequest.getParameterNames();
           old_params=baseRequest.getParameters();
@@ -29,19 +30,13 @@
           while (iter.hasNext()) {
             Map.Entry entry=(Map.Entry)iter.next();
             String name=(String)entry.getKey();
-            if (parameters.containsKey(name)) {
-              rewrite_old_query=true;
-            }
- else {
-              Object values=entry.getValue();
-              for (int i=0; i < LazyList.size(values); i++) {
-                parameters.add(name,LazyList.get(values,i));
-              }
-            }
+            if (parameters.containsKey(name))             merge_old_query=true;
+            Object values=entry.getValue();
+            for (int i=0; i < LazyList.size(values); i++)             parameters.add(name,LazyList.get(values,i));
           }
         }
         if (old_query != null && old_query.length() > 0) {
-          if (rewrite_old_query) {
+          if (merge_old_query) {
             StringBuilder overridden_query_string=new StringBuilder();
             MultiMap overridden_old_query=new MultiMap();
             UrlEncoded.decodeTo(old_query,overridden_old_query,request.getCharacterEncoding());
