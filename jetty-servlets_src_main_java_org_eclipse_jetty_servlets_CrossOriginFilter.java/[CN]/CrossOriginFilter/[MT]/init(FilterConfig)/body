@@ -1,0 +1,36 @@
+{
+  String allowedOriginsConfig=config.getInitParameter(ALLOWED_ORIGINS_PARAM);
+  if (allowedOriginsConfig == null)   allowedOriginsConfig="*";
+  String[] allowedOrigins=allowedOriginsConfig.split(",");
+  for (  String allowedOrigin : allowedOrigins) {
+    allowedOrigin=allowedOrigin.trim();
+    if (allowedOrigin.length() > 0) {
+      if (ANY_ORIGIN.equals(allowedOrigin)) {
+        anyOriginAllowed=true;
+        this.allowedOrigins.clear();
+        break;
+      }
+ else {
+        this.allowedOrigins.add(allowedOrigin);
+      }
+    }
+  }
+  String allowedMethodsConfig=config.getInitParameter(ALLOWED_METHODS_PARAM);
+  if (allowedMethodsConfig == null)   allowedMethodsConfig="GET,POST";
+  allowedMethods.addAll(Arrays.asList(allowedMethodsConfig.split(",")));
+  String allowedHeadersConfig=config.getInitParameter(ALLOWED_HEADERS_PARAM);
+  if (allowedHeadersConfig == null)   allowedHeadersConfig="X-Requested-With";
+  allowedHeaders.addAll(Arrays.asList(allowedHeadersConfig.split(",")));
+  String preflightMaxAgeConfig=config.getInitParameter(PREFLIGHT_MAX_AGE_PARAM);
+  if (preflightMaxAgeConfig == null)   preflightMaxAgeConfig="1800";
+  try {
+    preflightMaxAge=Integer.parseInt(preflightMaxAgeConfig);
+  }
+ catch (  NumberFormatException x) {
+    Log.info("Cross-origin filter, could not parse '{}' parameter as integer: {}",PREFLIGHT_MAX_AGE_PARAM,preflightMaxAgeConfig);
+  }
+  String allowedCredentialsConfig=config.getInitParameter(ALLOWED_CREDENTIALS_PARAM);
+  if (allowedCredentialsConfig == null)   allowedCredentialsConfig="false";
+  allowCredentials=Boolean.parseBoolean(allowedCredentialsConfig);
+  Log.debug("Cross-origin filter configuration: " + ALLOWED_ORIGINS_PARAM + " = "+ allowedOriginsConfig+ ", "+ ALLOWED_METHODS_PARAM+ " = "+ allowedMethodsConfig+ ", "+ ALLOWED_HEADERS_PARAM+ " = "+ allowedHeadersConfig+ ", "+ PREFLIGHT_MAX_AGE_PARAM+ " = "+ preflightMaxAgeConfig+ ", "+ ALLOWED_CREDENTIALS_PARAM+ " = "+ allowedCredentialsConfig);
+}
