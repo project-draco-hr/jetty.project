@@ -1,14 +1,14 @@
 {
   HttpServletRequest request=(HttpServletRequest)req;
   HttpServletResponse response=(HttpServletResponse)res;
-  HttpSession session=request.getSession(mandatory);
   String uri=request.getRequestURI();
-  if (session == null || isLoginOrErrorPage(uri)) {
-    return Authentication.NOT_CHECKED;
-  }
+  if (uri == null)   uri=URIUtil.SLASH;
+  mandatory|=uri.endsWith(__J_SECURITY_CHECK);
+  if (!mandatory)   return _deferred;
+  if (isLoginOrErrorPage(uri))   return Authentication.NOT_CHECKED;
+  HttpSession session=request.getSession(true);
   try {
-    if (uri == null)     uri=URIUtil.SLASH;
- else     if (uri.endsWith(__J_SECURITY_CHECK)) {
+    if (uri.endsWith(__J_SECURITY_CHECK)) {
       final String username=request.getParameter(__J_USERNAME);
       final String password=request.getParameter(__J_PASSWORD);
       UserIdentity user=_loginService.login(username,password);
@@ -24,6 +24,8 @@ synchronized (session) {
         }
         response.setContentLength(0);
         response.sendRedirect(response.encodeRedirectURL(nuri));
+        Authentication cached=new SessionAuthentication(session,this,user);
+        session.setAttribute(SessionAuthentication.__J_AUTHENTICATED,cached);
         return new FormAuthentication(this,user);
       }
       if (Log.isDebugEnabled())       Log.debug("Form authentication FAILED for " + StringUtil.printable(username));
@@ -41,26 +43,29 @@ synchronized (session) {
       }
       return Authentication.SEND_FAILURE;
     }
-    if (mandatory) {
-synchronized (session) {
-        if (session.getAttribute(__J_URI) == null) {
-          StringBuffer buf=request.getRequestURL();
-          if (request.getQueryString() != null)           buf.append("?").append(request.getQueryString());
-          session.setAttribute(__J_URI,buf.toString());
-        }
-      }
-      if (_dispatch) {
-        RequestDispatcher dispatcher=request.getRequestDispatcher(_formLoginPage);
-        response.setHeader(HttpHeaders.CACHE_CONTROL,"No-cache");
-        response.setDateHeader(HttpHeaders.EXPIRES,1);
-        dispatcher.forward(new FormRequest(request),new FormResponse(response));
-      }
- else {
-        response.sendRedirect(URIUtil.addPaths(request.getContextPath(),_formLoginPage));
-      }
-      return Authentication.SEND_CONTINUE;
+    Authentication authentication=(Authentication)session.getAttribute(SessionAuthentication.__J_AUTHENTICATED);
+    if (authentication != null) {
+      if (authentication instanceof Authentication.User && _loginService != null && !_loginService.validate(((Authentication.User)authentication).getUserIdentity()))       session.removeAttribute(SessionAuthentication.__J_AUTHENTICATED);
+ else       return authentication;
     }
-    return Authentication.UNAUTHENTICATED;
+synchronized (session) {
+      if (session.getAttribute(__J_URI) == null) {
+        StringBuffer buf=request.getRequestURL();
+        if (request.getQueryString() != null)         buf.append("?").append(request.getQueryString());
+        session.setAttribute(__J_URI,buf.toString());
+      }
+    }
+    if (_deferred.isDeferred(response))     return Authentication.UNAUTHENTICATED;
+    if (_dispatch) {
+      RequestDispatcher dispatcher=request.getRequestDispatcher(_formLoginPage);
+      response.setHeader(HttpHeaders.CACHE_CONTROL,"No-cache");
+      response.setDateHeader(HttpHeaders.EXPIRES,1);
+      dispatcher.forward(new FormRequest(request),new FormResponse(response));
+    }
+ else {
+      response.sendRedirect(URIUtil.addPaths(request.getContextPath(),_formLoginPage));
+    }
+    return Authentication.SEND_CONTINUE;
   }
  catch (  IOException e) {
     throw new ServerAuthException(e);

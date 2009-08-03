@@ -3,6 +3,7 @@
   HttpServletResponse response=(HttpServletResponse)res;
   String credentials=request.getHeader(HttpHeaders.AUTHORIZATION);
   try {
+    if (!mandatory)     return _deferred;
     if (credentials != null) {
       credentials=credentials.substring(credentials.indexOf(' ') + 1);
       credentials=B64Code.decode(credentials,StringUtil.__ISO_8859_1);
@@ -12,12 +13,10 @@
       UserIdentity user=_loginService.login(username,password);
       if (user != null)       return new UserAuthentication(this,user);
     }
-    if (mandatory) {
-      response.setHeader(HttpHeaders.WWW_AUTHENTICATE,"basic realm=\"" + _loginService.getName() + '"');
-      response.sendError(HttpServletResponse.SC_UNAUTHORIZED);
-      return Authentication.SEND_CONTINUE;
-    }
-    return credentials == null ? Authentication.NOT_CHECKED : Authentication.UNAUTHENTICATED;
+    if (_deferred.isDeferred(response))     return Authentication.UNAUTHENTICATED;
+    response.setHeader(HttpHeaders.WWW_AUTHENTICATE,"basic realm=\"" + _loginService.getName() + '"');
+    response.sendError(HttpServletResponse.SC_UNAUTHORIZED);
+    return Authentication.SEND_CONTINUE;
   }
  catch (  IOException e) {
     throw new ServerAuthException(e);

@@ -7,12 +7,12 @@
     Object constraintInfo=prepareConstraintInfo(pathInContext,baseRequest);
     if (!checkUserDataPermissions(pathInContext,baseRequest,base_response,constraintInfo)) {
       if (!baseRequest.isHandled()) {
-        response.sendError(Response.SC_FORBIDDEN,"!data constraint");
+        response.sendError(Response.SC_FORBIDDEN);
         baseRequest.setHandled(true);
       }
       return;
     }
-    boolean isAuthMandatory=isAuthMandatory(baseRequest,base_response,constraintInfo) || authenticator.isMandatory(request);
+    boolean isAuthMandatory=isAuthMandatory(baseRequest,base_response,constraintInfo);
     Object previousIdentity=null;
     try {
       Authentication authentication=baseRequest.getAuthentication();
@@ -40,15 +40,15 @@
         authenticator.secureResponse(request,response,isAuthMandatory,userAuth);
       }
  else       if (authentication instanceof Authentication.Deferred) {
-        DeferredAuthentication lazy=(DeferredAuthentication)authentication;
-        lazy.setIdentityService(_identityService);
+        DeferredAuthentication deferred=(DeferredAuthentication)authentication;
+        deferred.setIdentityService(_identityService);
         baseRequest.setAuthentication(authentication);
         try {
           handler.handle(pathInContext,baseRequest,request,response);
         }
   finally {
-          previousIdentity=lazy.getPreviousAssociation();
-          lazy.setIdentityService(null);
+          previousIdentity=deferred.getPreviousAssociation();
+          deferred.setIdentityService(null);
         }
         Authentication auth=baseRequest.getAuthentication();
         if (auth instanceof Authentication.User) {

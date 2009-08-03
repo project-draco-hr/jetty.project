@@ -1,4 +1,5 @@
 {
+  if (mandatory)   return _deferred;
   HttpServletRequest request=(HttpServletRequest)req;
   HttpServletResponse response=(HttpServletResponse)res;
   String credentials=request.getHeader(HttpHeaders.AUTHORIZATION);
@@ -44,14 +45,14 @@ if (user != null) return new UserAuthentication(this,user);
 }
  else if (n == 0) stale=true;
 }
-if (mandatory) {
+if (!_deferred.isDeferred(response)) {
 String domain=request.getContextPath();
 if (domain == null) domain="/";
 response.setHeader(HttpHeaders.WWW_AUTHENTICATE,"Digest realm=\"" + _loginService.getName() + "\", domain=\""+ domain+ "\", nonce=\""+ newNonce((Request)request)+ "\", algorithm=MD5, qop=\"auth\""+ (_useStale ? (" stale=" + stale) : ""));
 response.sendError(HttpServletResponse.SC_UNAUTHORIZED);
 return Authentication.SEND_CONTINUE;
 }
-return credentials == null ? Authentication.NOT_CHECKED : Authentication.UNAUTHENTICATED;
+return Authentication.UNAUTHENTICATED;
 }
  catch (IOException e) {
 throw new ServerAuthException(e);
