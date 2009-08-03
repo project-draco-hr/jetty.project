@@ -2,16 +2,16 @@
   final Response base_response=baseRequest.getResponse();
   final Handler handler=getHandler();
   if (handler == null)   return;
-  if (_authenticator != null && checkSecurity(baseRequest)) {
+  final Authenticator authenticator=_authenticator;
+  if (authenticator != null && checkSecurity(baseRequest)) {
     Object constraintInfo=prepareConstraintInfo(pathInContext,baseRequest);
     if (!checkUserDataPermissions(pathInContext,baseRequest,base_response,constraintInfo)) {
       if (!baseRequest.isHandled()) {
-        response.sendError(Response.SC_FORBIDDEN);
+        response.sendError(Response.SC_FORBIDDEN,"!data constraint");
         baseRequest.setHandled(true);
       }
       return;
     }
-    final Authenticator authenticator=_authenticator;
     boolean isAuthMandatory=isAuthMandatory(baseRequest,base_response,constraintInfo) || authenticator.isMandatory(request);
     Object previousIdentity=null;
     try {
