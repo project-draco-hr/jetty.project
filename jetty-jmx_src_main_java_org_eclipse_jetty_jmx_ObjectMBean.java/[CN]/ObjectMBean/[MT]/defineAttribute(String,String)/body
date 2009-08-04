@@ -25,29 +25,56 @@
   for (int m=0; m < methods.length; m++) {
     if ((methods[m].getModifiers() & Modifier.PUBLIC) == 0)     continue;
     if (methods[m].getName().equals("get" + uName) && methods[m].getParameterTypes().length == 0) {
-      if (getter != null)       throw new IllegalArgumentException("Multiple getters for attr " + name + " in "+ oClass);
+      if (getter != null) {
+        Log.warn("Multiple mbean getters for attr " + name + " in "+ oClass);
+        continue;
+      }
       getter=methods[m];
-      if (type != null && !type.equals(methods[m].getReturnType()))       throw new IllegalArgumentException("Type conflict for attr " + name + " in "+ oClass);
+      if (type != null && !type.equals(methods[m].getReturnType())) {
+        Log.warn("Type conflict for mbean attr " + name + " in "+ oClass);
+        continue;
+      }
       type=methods[m].getReturnType();
     }
     if (methods[m].getName().equals("is" + uName) && methods[m].getParameterTypes().length == 0) {
-      if (getter != null)       throw new IllegalArgumentException("Multiple getters for attr " + name + " in "+ oClass);
+      if (getter != null) {
+        Log.warn("Multiple mbean getters for attr " + name + " in "+ oClass);
+        continue;
+      }
       getter=methods[m];
-      if (type != null && !type.equals(methods[m].getReturnType()))       throw new IllegalArgumentException("Type conflict for attr " + name + " in "+ oClass);
+      if (type != null && !type.equals(methods[m].getReturnType())) {
+        Log.warn("Type conflict for mbean attr " + name + " in "+ oClass);
+        continue;
+      }
       type=methods[m].getReturnType();
     }
     if (writable && methods[m].getName().equals("set" + uName) && methods[m].getParameterTypes().length == 1) {
-      if (setter != null)       throw new IllegalArgumentException("Multiple setters for attr " + name + " in "+ oClass);
+      if (setter != null) {
+        Log.warn("Multiple setters for mbean attr " + name + " in "+ oClass);
+        continue;
+      }
       setter=methods[m];
-      if (type != null && !type.equals(methods[m].getParameterTypes()[0]))       throw new IllegalArgumentException("Type conflict for attr " + name + " in "+ oClass);
+      if (type != null && !type.equals(methods[m].getParameterTypes()[0])) {
+        Log.warn("Type conflict for mbean attr " + name + " in "+ oClass);
+        continue;
+      }
       type=methods[m].getParameterTypes()[0];
     }
   }
   if (convert) {
-    if (type == null)     throw new IllegalArgumentException("No type for " + name + " on "+ _managed.getClass());
-    if (type.isPrimitive() && !type.isArray())     throw new IllegalArgumentException("Cannot convert primative " + name);
+    if (type == null) {
+      Log.warn("No mbean type for " + name + " on "+ _managed.getClass());
+      return null;
+    }
+    if (type.isPrimitive() && !type.isArray()) {
+      Log.warn("Cannot convert mbean primative " + name);
+      return null;
+    }
   }
-  if (getter == null && setter == null)   throw new IllegalArgumentException("No getter or setters found for " + name + " in "+ oClass);
+  if (getter == null && setter == null) {
+    Log.warn("No mbean getter or setters found for " + name + " in "+ oClass);
+    return null;
+  }
   try {
     _getters.put(name,getter);
     _setters.put(name,setter);
