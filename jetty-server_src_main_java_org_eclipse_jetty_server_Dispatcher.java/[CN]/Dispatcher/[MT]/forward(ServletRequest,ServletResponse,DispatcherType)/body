@@ -4,20 +4,24 @@
   response.resetBuffer();
   base_response.fwdReset();
   request.removeAttribute(__JSP_FILE);
-  String old_uri=baseRequest.getRequestURI();
-  String old_context_path=baseRequest.getContextPath();
-  String old_servlet_path=baseRequest.getServletPath();
-  String old_path_info=baseRequest.getPathInfo();
-  String old_query=baseRequest.getQueryString();
-  Attributes old_attr=baseRequest.getAttributes();
+  final String old_uri=baseRequest.getRequestURI();
+  final String old_context_path=baseRequest.getContextPath();
+  final String old_servlet_path=baseRequest.getServletPath();
+  final String old_path_info=baseRequest.getPathInfo();
+  final String old_query=baseRequest.getQueryString();
+  final Attributes old_attr=baseRequest.getAttributes();
+  final DispatcherType old_type=baseRequest.getDispatcherType();
   MultiMap old_params=baseRequest.getParameters();
-  DispatcherType old_type=baseRequest.getDispatcherType();
   try {
     baseRequest.setDispatcherType(dispatch);
     if (_named != null)     _contextHandler.handle(_named,baseRequest,(HttpServletRequest)request,(HttpServletResponse)response);
  else {
       String query=_dQuery;
       if (query != null) {
+        if (old_params == null) {
+          baseRequest.extractParameters();
+          old_params=baseRequest.getParameters();
+        }
         MultiMap parameters=new MultiMap();
         UrlEncoded.decodeTo(query,parameters,request.getCharacterEncoding());
         boolean merge_old_query=false;

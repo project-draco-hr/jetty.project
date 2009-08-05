@@ -1,8 +1,8 @@
 {
   Request baseRequest=(request instanceof Request) ? ((Request)request) : HttpConnection.getCurrentConnection().getRequest();
   request.removeAttribute(__JSP_FILE);
-  DispatcherType old_type=baseRequest.getDispatcherType();
-  Attributes old_attr=baseRequest.getAttributes();
+  final DispatcherType old_type=baseRequest.getDispatcherType();
+  final Attributes old_attr=baseRequest.getAttributes();
   MultiMap old_params=baseRequest.getParameters();
   try {
     baseRequest.setDispatcherType(DispatcherType.INCLUDE);
@@ -11,6 +11,10 @@
  else {
       String query=_dQuery;
       if (query != null) {
+        if (old_params == null) {
+          baseRequest.extractParameters();
+          old_params=baseRequest.getParameters();
+        }
         MultiMap parameters=new MultiMap();
         UrlEncoded.decodeTo(query,parameters,request.getCharacterEncoding());
         if (old_params != null && old_params.size() > 0) {
