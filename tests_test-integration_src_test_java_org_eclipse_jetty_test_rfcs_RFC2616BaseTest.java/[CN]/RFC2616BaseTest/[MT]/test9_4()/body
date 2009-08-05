@@ -20,7 +20,11 @@
     String rawHeadResponse=http.readRaw(sock);
     int headResponseLength=rawHeadResponse.length();
     String rawGetResponse=response.getRawResponse().toString().substring(0,headResponseLength);
-    assertEquals("9.4 HEAD equals GET",rawHeadResponse,rawGetResponse);
+    List<String> linesGet=StringUtil.asLines(rawGetResponse);
+    List<String> linesHead=StringUtil.asLines(rawHeadResponse);
+    StringUtil.removeStartsWith("Date: ",linesGet);
+    StringUtil.removeStartsWith("Date: ",linesHead);
+    StringAssert.assertContainsSame("9.4 HEAD equals GET",linesGet,linesHead);
   }
   finally {
     http.close(sock);
