@@ -2,35 +2,37 @@
   Resource web_app=context.getBaseResource();
   if (web_app == null) {
     String war=context.getWar();
-    if (war == null || war.length() == 0)     war=context.getResourceBase();
-    web_app=context.newResource(war);
+    if (war != null && war.length() > 0)     web_app=context.newResource(war);
+ else     web_app=context.getBaseResource();
     if (web_app.getAlias() != null) {
       Log.debug(web_app + " anti-aliased to " + web_app.getAlias());
       web_app=context.newResource(web_app.getAlias());
     }
     if (Log.isDebugEnabled())     Log.debug("Try webapp=" + web_app + ", exists="+ web_app.exists()+ ", directory="+ web_app.isDirectory());
     if (web_app.exists() && !web_app.isDirectory() && !web_app.toString().startsWith("jar:")) {
-      Resource jarWebApp=context.newResource("jar:" + web_app + "!/");
+      Resource jarWebApp=JarResource.newJarResource(web_app);
       if (jarWebApp.exists() && jarWebApp.isDirectory())       web_app=jarWebApp;
     }
     if (web_app.exists() && ((context.isCopyWebDir() && web_app.getFile() != null && web_app.getFile().isDirectory()) || (context.isExtractWAR() && web_app.getFile() != null && !web_app.getFile().isDirectory()) || (context.isExtractWAR() && web_app.getFile() == null)|| !web_app.isDirectory())) {
       File extractedWebAppDir=new File(context.getTempDirectory(),"webapp");
       if (web_app.getFile() != null && web_app.getFile().isDirectory()) {
-        Log.info("Copy " + web_app.getFile() + " to "+ extractedWebAppDir);
-        IO.copyDir(web_app.getFile(),extractedWebAppDir);
+        Log.info("Copy " + web_app + " to "+ extractedWebAppDir);
+        web_app.copyTo(extractedWebAppDir);
       }
  else {
         if (!extractedWebAppDir.exists()) {
           extractedWebAppDir.mkdir();
-          Log.info("Extract " + war + " to "+ extractedWebAppDir);
-          JarResource.extract(web_app,extractedWebAppDir,false);
+          Log.info("Extract " + web_app + " to "+ extractedWebAppDir);
+          Resource jar_web_app=JarResource.newJarResource(web_app);
+          jar_web_app.copyTo(extractedWebAppDir);
         }
  else {
           if (web_app.lastModified() > extractedWebAppDir.lastModified()) {
             extractedWebAppDir.delete();
             extractedWebAppDir.mkdir();
-            Log.info("Extract " + war + " to "+ extractedWebAppDir);
-            JarResource.extract(web_app,extractedWebAppDir,false);
+            Log.info("Extract " + web_app + " to "+ extractedWebAppDir);
+            Resource jar_web_app=JarResource.newJarResource(web_app);
+            jar_web_app.copyTo(extractedWebAppDir);
           }
         }
       }
@@ -44,14 +46,14 @@
     if (Log.isDebugEnabled())     Log.debug("webapp=" + web_app);
   }
   Resource web_inf=web_app.addPath("WEB-INF/");
-  if (web_inf.exists() && web_inf.isDirectory() && (web_inf.getFile() == null || !web_inf.getFile().isDirectory())) {
+  if (web_inf instanceof ResourceCollection || web_inf.exists() && web_inf.isDirectory() && (web_inf.getFile() == null || !web_inf.getFile().isDirectory())) {
     File extractedWebInfDir=new File(context.getTempDirectory(),"webinf");
     if (extractedWebInfDir.exists())     extractedWebInfDir.delete();
     extractedWebInfDir.mkdir();
     File webInfDir=new File(extractedWebInfDir,"WEB-INF");
     webInfDir.mkdir();
     Log.info("Extract " + web_inf + " to "+ webInfDir);
-    JarResource.extract(web_inf,webInfDir,false);
+    web_inf.copyTo(webInfDir);
     web_inf=Resource.newResource(extractedWebInfDir.toURL());
     ResourceCollection rc=new ResourceCollection(new Resource[]{web_inf,web_app});
     context.setBaseResource(rc);
