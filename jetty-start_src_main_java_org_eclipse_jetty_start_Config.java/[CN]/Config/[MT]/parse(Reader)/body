@@ -97,72 +97,80 @@
           String value=fixPath(file.substring(i + 2));
           debug("  " + property + "~="+ value);
           setProperty(property,value);
+          continue;
         }
- else         if (subject.indexOf("/=") > 0) {
+        if (subject.indexOf("/=") > 0) {
           int i=file.indexOf("/=");
           String property=file.substring(0,i);
           String value=fixPath(file.substring(i + 2));
           String canonical=new File(value).getCanonicalPath();
           debug("  " + property + "/="+ value+ "=="+ canonical);
           setProperty(property,canonical);
+          continue;
         }
- else         if (subject.indexOf("=") > 0) {
+        if (subject.indexOf("=") > 0) {
           int i=file.indexOf("=");
           String property=file.substring(0,i);
           String value=fixPath(file.substring(i + 1));
           debug("  " + property + "="+ value);
           System.setProperty(property,value);
+          continue;
         }
- else         if (subject.endsWith("/*")) {
+        if (subject.endsWith("/*")) {
           File dir=new File(fixPath(file.substring(0,file.length() - 1)));
           addJars(sections,dir,false);
+          continue;
         }
- else         if (subject.endsWith("/**")) {
+        if (subject.endsWith("/**")) {
           File dir=new File(fixPath(file.substring(0,file.length() - 2)));
           addJars(sections,dir,true);
+          continue;
         }
- else         if (subject.endsWith("/")) {
+        if (subject.endsWith("/")) {
           File cd=new File(fixPath(file));
           String d=cd.getCanonicalPath();
           boolean added=addClasspathComponent(sections,d);
           debug((added ? "  CLASSPATH+=" : "  !") + d);
+          continue;
         }
- else         if (subject.toLowerCase().endsWith(".xml")) {
+        if (subject.toLowerCase().endsWith(".xml")) {
           File f=new File(fixPath(file));
           if (f.exists())           _xml.add(f.getCanonicalPath());
           debug("  ARGS+=" + f);
+          continue;
         }
- else         if (subject.toLowerCase().endsWith(".class")) {
+        if (subject.toLowerCase().endsWith(".class")) {
           String cn=expand(subject.substring(0,subject.length() - 6));
           if (cn != null && cn.length() > 0) {
             debug("  CLASS=" + cn);
             _classname=cn;
           }
+          continue;
         }
- else         if (subject.toLowerCase().endsWith(".path")) {
+        if (subject.toLowerCase().endsWith(".path")) {
           String cn=expand(subject.substring(0,subject.length() - 5));
           if (cn != null && cn.length() > 0) {
             debug("  PATH=" + cn);
             addClasspathPath(sections,cn);
           }
+          continue;
         }
- else         if (subject.toLowerCase().endsWith(".policy")) {
+        if (subject.toLowerCase().endsWith(".policy")) {
           String cn=expand(subject.substring(0,subject.length()));
           if (cn != null && cn.length() > 0) {
             debug("  POLICY=" + cn);
             _policies.add(fixPath(cn));
           }
+          continue;
         }
- else {
-          File f=new File(fixPath(file));
-          if (f.exists()) {
-            String d=f.getCanonicalPath();
-            boolean added=addClasspathComponent(sections,d);
-            if (!added) {
-              added=addClasspathPath(sections,expand(subject));
-            }
-            debug((added ? "  CLASSPATH+=" : "  !") + d);
+        File f=new File(fixPath(file));
+        if (f.exists()) {
+          String d=f.getCanonicalPath();
+          boolean added=addClasspathComponent(sections,d);
+          if (!added) {
+            added=addClasspathPath(sections,expand(subject));
           }
+          debug((added ? "  CLASSPATH+=" : "  !") + d);
         }
       }
  catch (      Exception e) {
