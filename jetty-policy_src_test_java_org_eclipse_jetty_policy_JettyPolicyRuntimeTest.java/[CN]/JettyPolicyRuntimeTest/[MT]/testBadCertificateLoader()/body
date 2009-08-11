@@ -16,7 +16,6 @@
   }
   Thread.currentThread().setContextClassLoader(loader);
   ap.refresh();
-  boolean excepted=false;
   try {
     Class<?> clazz=loader.loadClass("org.eclipse.jetty.toolchain.test.policy.Tester");
     Method m=clazz.getMethod("testEcho",new Class[]{String.class});
@@ -24,18 +23,9 @@
     assertEquals("foo",foo);
     Method m2=clazz.getMethod("testReadSystemProperty",new Class[]{String.class});
     m2.invoke(clazz.newInstance(),new Object[]{"foobar"});
+    fail("Should have thrown an InvocationTargetException");
   }
- catch (  ClassNotFoundException e) {
-    e.printStackTrace();
-    assertFalse("should not have got here",true);
-  }
-catch (  InvocationTargetException e) {
+ catch (  InvocationTargetException e) {
     assertTrue(e.getCause().getMessage().contains("access denied"));
-    excepted=true;
   }
-catch (  IllegalAccessException e) {
-    e.printStackTrace();
-    assertFalse("should not have got here",true);
-  }
-  assertTrue("checking that we through a security exception",excepted);
 }

@@ -2,7 +2,6 @@
   if (_runningOnWindows) {
     return;
   }
-  System.out.println("test");
   JettyPolicy ap=new JettyPolicy(getSinglePolicy("jetty-certificate.policy"),evaluator);
   ap.refresh();
   Policy.setPolicy(ap);
@@ -17,25 +16,11 @@
   }
   Thread.currentThread().setContextClassLoader(loader);
   ap.refresh();
-  try {
-    Class<?> clazz=loader.loadClass("org.eclipse.jetty.toolchain.test.policy.Tester");
-    Method m=clazz.getMethod("testEcho",new Class[]{String.class});
-    String foo=(String)m.invoke(clazz.newInstance(),new Object[]{"foo"});
-    assertEquals("foo",foo);
-    Method m2=clazz.getMethod("testReadSystemProperty",new Class[]{String.class});
-    m2.invoke(clazz.newInstance(),new Object[]{"foo"});
-    assertTrue("system property access was granted",true);
-  }
- catch (  ClassNotFoundException e) {
-    e.printStackTrace();
-    assertFalse("should not have got here",true);
-  }
-catch (  SecurityException e) {
-    e.printStackTrace();
-    assertFalse("should not have got here",true);
-  }
-catch (  IllegalAccessException e) {
-    e.printStackTrace();
-    assertFalse("should not have got here",true);
-  }
+  Class<?> clazz=loader.loadClass("org.eclipse.jetty.toolchain.test.policy.Tester");
+  Method m=clazz.getMethod("testEcho",new Class[]{String.class});
+  String foo=(String)m.invoke(clazz.newInstance(),new Object[]{"foo"});
+  assertEquals("foo",foo);
+  Method m2=clazz.getMethod("testReadSystemProperty",new Class[]{String.class});
+  m2.invoke(clazz.newInstance(),new Object[]{"foo"});
+  assertTrue("system property access was granted",true);
 }
