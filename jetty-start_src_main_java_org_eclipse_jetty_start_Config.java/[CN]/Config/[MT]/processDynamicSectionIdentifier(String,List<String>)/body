@@ -1,0 +1,46 @@
+{
+  String section=null;
+  String rawPath;
+  boolean deep;
+  if (dynamicPathId.endsWith("/*")) {
+    deep=false;
+    rawPath=fixPath(dynamicPathId.substring(0,dynamicPathId.length() - 1));
+  }
+ else   if (dynamicPathId.endsWith("/**")) {
+    deep=true;
+    rawPath=fixPath(dynamicPathId.substring(0,dynamicPathId.length() - 2));
+  }
+ else   if (dynamicPathId.indexOf('/') > 1 && !dynamicPathId.endsWith("/")) {
+    section=dynamicPathId.substring(dynamicPathId.lastIndexOf('/') + 1);
+    rawPath=dynamicPathId.substring(0,dynamicPathId.lastIndexOf('/'));
+    deep=true;
+  }
+ else {
+    String msg="Illegal dynamic path [" + dynamicPathId + "]";
+    throw new IOException(msg);
+  }
+  File parentDir=new File(expand(rawPath));
+  if (!parentDir.exists())   return sections;
+  debug("dynamic: " + parentDir);
+  File dirs[]=section != null ? new File[]{new File(parentDir,section)} : parentDir.listFiles(new FileFilter(){
+    public boolean accept(    File path){
+      return path.isDirectory();
+    }
+  }
+);
+  List<String> dyn_sections=new ArrayList<String>();
+  List<String> super_sections=new ArrayList<String>();
+  if (sections != null)   super_sections.addAll(sections);
+  for (  File dir : dirs) {
+    String id=dir.getName();
+    if (_classpaths.keySet().contains(id))     continue;
+    _classpaths.put(id,new Classpath());
+    dyn_sections.clear();
+    if (sections != null)     dyn_sections.addAll(sections);
+    dyn_sections.add(id);
+    super_sections.add(id);
+    debug("dynamic: " + dyn_sections);
+    addJars(dyn_sections,dir,deep);
+  }
+  return super_sections;
+}

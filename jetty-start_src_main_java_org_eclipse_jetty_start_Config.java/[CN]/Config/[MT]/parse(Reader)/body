@@ -14,17 +14,18 @@
       if (trim.startsWith("#"))       continue;
       if (trim.startsWith("[") && trim.endsWith("]")) {
         String identifier=trim.substring(1,trim.length() - 1);
-        if (identifier.charAt(0) == '=') {
-          processDynamicSectionIdentifier(identifier.substring(1));
+        sections=Arrays.asList(identifier.split(","));
+        List<String> section_ids=new ArrayList<String>();
+        for (        String sectionId : sections) {
+          if (sectionId.charAt(0) == '=')           continue;
+          if (!_classpaths.containsKey(sectionId))           _classpaths.put(sectionId,new Classpath());
+          section_ids.add(sectionId);
         }
- else {
-          sections=Arrays.asList(identifier.split(","));
-          for (          String sectionId : sections) {
-            if (!_classpaths.containsKey(sectionId)) {
-              _classpaths.put(sectionId,new Classpath());
-            }
-          }
+        for (        String sectionId : sections) {
+          if (sectionId.charAt(0) != '=')           continue;
+          section_ids=processDynamicSectionIdentifier(sectionId.substring(1),section_ids);
         }
+        sections=section_ids;
         continue;
       }
       try {
