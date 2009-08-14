@@ -1,15 +1,40 @@
 {
-  PermissionCollection perms=new Permissions();
-  for (Iterator<ProtectionDomain> i=pdMapping.keySet().iterator(); i.hasNext(); ) {
-    ProtectionDomain pd=i.next();
-    if (pd.getCodeSource() == null || pd.getCodeSource().implies(domain.getCodeSource()) && pd.getPrincipals() == null || pd.getCodeSource().implies(domain.getCodeSource()) && validate(pd.getPrincipals(),domain.getPrincipals())) {
-      if (pdMapping.get(pd) != null) {
-        for (Enumeration<Permission> e=pdMapping.get(pd).getPermissions().elements(); e.hasMoreElements(); ) {
-          Permission perm=e.nextElement();
-          perms.add(perm);
-        }
-      }
+  if (!initialized) {
+synchronized (this) {
+      refresh();
     }
   }
-  return perms;
+  if (_cache.containsKey(domain)) {
+    if (__DEBUG) {
+      System.out.println("Pulling from a cache for " + domain.getCodeSource().getLocation() + " with "+ _cache.size()+ " entries");
+    }
+    return _cache.get(domain);
+  }
+ else {
+    PermissionCollection perms=new Permissions();
+    for (Iterator<ProtectionDomain> i=pdMapping.keySet().iterator(); i.hasNext(); ) {
+      ProtectionDomain pd=i.next();
+      if (__DEBUG) {
+        System.out.println("----START----");
+        System.out.println("PDCS: " + pd.getCodeSource());
+        System.out.println("CS: " + domain.getCodeSource());
+      }
+      if (pd.getCodeSource() == null || pd.getCodeSource().implies(domain.getCodeSource()) && pd.getPrincipals() == null || pd.getCodeSource().implies(domain.getCodeSource()) && validate(pd.getPrincipals(),domain.getPrincipals())) {
+        if (pdMapping.get(pd) != null) {
+          for (Enumeration<Permission> e=pdMapping.get(pd).getPermissions().elements(); e.hasMoreElements(); ) {
+            Permission perm=e.nextElement();
+            if (__DEBUG) {
+              System.out.println("D: " + perm);
+            }
+            perms.add(perm);
+          }
+        }
+      }
+      if (__DEBUG) {
+        System.out.println("----STOP----");
+      }
+    }
+    _cache.put(domain,perms);
+    return perms;
+  }
 }

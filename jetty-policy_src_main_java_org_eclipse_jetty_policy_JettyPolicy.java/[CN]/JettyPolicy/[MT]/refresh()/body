@@ -3,10 +3,27 @@
     if (!initialized) {
       initialize();
     }
+    if (__DEBUG) {
+      System.out.println("refreshing policy files");
+    }
     pdMapping.clear();
     for (Iterator<String> i=_policies.iterator(); i.hasNext(); ) {
       File policyFile=new File(i.next());
       pdMapping.putAll(DefaultPolicyLoader.load(new FileInputStream(policyFile),_context));
+    }
+    if (__DEBUG) {
+      System.out.println("refreshing policy files");
+synchronized (this) {
+        _cache.clear();
+        System.setSecurityManager(null);
+        Policy.setPolicy(null);
+        Policy.setPolicy(this);
+        System.setSecurityManager(new SecurityManager());
+      }
+      for (Iterator<ProtectionDomain> i=pdMapping.keySet().iterator(); i.hasNext(); ) {
+        System.out.println(i.next().toString());
+      }
+      System.out.println("finished reloading policies");
     }
   }
  catch (  Exception e) {
