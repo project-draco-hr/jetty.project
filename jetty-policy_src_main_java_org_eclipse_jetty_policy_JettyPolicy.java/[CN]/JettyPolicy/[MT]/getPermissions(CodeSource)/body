@@ -4,14 +4,8 @@ synchronized (this) {
       refresh();
     }
   }
-  if (_cache.containsKey(codesource)) {
-    if (__DEBUG) {
-      System.out.println("Pulling from a cache for " + codesource.getLocation() + " with "+ _cache.size()+ " entries");
-    }
-    return _cache.get(codesource);
-  }
- else {
-    PermissionCollection perms=new Permissions();
+  PermissionCollection perms=new Permissions();
+synchronized (pdMapping) {
     for (Iterator<ProtectionDomain> i=pdMapping.keySet().iterator(); i.hasNext(); ) {
       ProtectionDomain pd=i.next();
       if (pd.getCodeSource() == null || pd.getCodeSource().implies(codesource)) {
@@ -34,7 +28,6 @@ synchronized (this) {
         }
       }
     }
-    _cache.put(codesource,perms);
-    return perms;
   }
+  return perms;
 }
