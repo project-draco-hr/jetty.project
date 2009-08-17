@@ -1,0 +1,16 @@
+{
+  if (_umask != 0) {
+    Log.info("Setting umask=0" + Integer.toString(_umask,8));
+    SetUID.setumask(_umask);
+  }
+  if (_startServerAsPrivileged) {
+    super.doStart();
+    dropPrivs();
+  }
+ else {
+    Connector[] connectors=getConnectors();
+    for (int i=0; connectors != null && i < connectors.length; i++)     connectors[i].open();
+    dropPrivs();
+    super.doStart();
+  }
+}
