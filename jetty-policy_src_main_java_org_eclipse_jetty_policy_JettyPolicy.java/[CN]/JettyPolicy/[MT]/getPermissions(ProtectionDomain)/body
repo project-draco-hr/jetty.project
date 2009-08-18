@@ -1,33 +1,37 @@
 {
   if (!initialized) {
-synchronized (this) {
-      refresh();
-    }
+    refresh();
   }
-  PermissionCollection perms=new Permissions();
-synchronized (pdMapping) {
-    for (Iterator<ProtectionDomain> i=pdMapping.keySet().iterator(); i.hasNext(); ) {
-      ProtectionDomain pd=i.next();
+  if (_cache.containsKey(domain)) {
+    return _cache.get(domain);
+  }
+synchronized (_cache) {
+    if (_cache.containsKey(domain)) {
+      return _cache.get(domain);
+    }
+    PermissionCollection perms=new Permissions();
+    for (Iterator<PolicyBlock> i=_grants.iterator(); i.hasNext(); ) {
+      PolicyBlock policyBlock=i.next();
+      ProtectionDomain grantPD=policyBlock.toProtectionDomain();
       if (__DEBUG) {
         System.out.println("----START----");
-        System.out.println("PDCS: " + pd.getCodeSource());
+        System.out.println("PDCS: " + policyBlock.getCodeSource());
         System.out.println("CS: " + domain.getCodeSource());
       }
-      if (pd.getCodeSource() == null || pd.getCodeSource().implies(domain.getCodeSource()) && pd.getPrincipals() == null || pd.getCodeSource().implies(domain.getCodeSource()) && validate(pd.getPrincipals(),domain.getPrincipals())) {
-        if (pdMapping.get(pd) != null) {
-          for (Enumeration<Permission> e=pdMapping.get(pd).getPermissions().elements(); e.hasMoreElements(); ) {
-            Permission perm=e.nextElement();
-            if (__DEBUG) {
-              System.out.println("D: " + perm);
-            }
-            perms.add(perm);
+      if (grantPD.getCodeSource() == null || grantPD.getCodeSource().implies(domain.getCodeSource()) && grantPD.getPrincipals() == null || grantPD.getCodeSource().implies(domain.getCodeSource()) && validate(grantPD.getPrincipals(),domain.getPrincipals())) {
+        for (Enumeration<Permission> e=policyBlock.getPermissions().elements(); e.hasMoreElements(); ) {
+          Permission perm=e.nextElement();
+          if (__DEBUG) {
+            System.out.println("D: " + perm);
           }
+          perms.add(perm);
         }
       }
       if (__DEBUG) {
         System.out.println("----STOP----");
       }
     }
+    _cache.put(domain,perms);
+    return perms;
   }
-  return perms;
 }

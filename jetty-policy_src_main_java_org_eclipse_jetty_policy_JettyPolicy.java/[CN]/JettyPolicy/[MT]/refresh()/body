@@ -6,20 +6,18 @@
     if (__DEBUG) {
       System.out.println("refreshing policy files");
     }
-synchronized (pdMapping) {
-      pdMapping.clear();
-      for (Iterator<String> i=_policies.iterator(); i.hasNext(); ) {
-        File policyFile=new File(i.next());
-        pdMapping.putAll(DefaultPolicyLoader.load(new FileInputStream(policyFile),_context));
-      }
-      if (__DEBUG) {
-        System.out.println("resetting policies");
-        System.setSecurityManager(null);
-        Policy.setPolicy(null);
-        Policy.setPolicy(this);
-        System.setSecurityManager(new SecurityManager());
-        System.out.println("finished reloading policies");
-      }
+    Set<PolicyBlock> clean=new HashSet<PolicyBlock>();
+    for (Iterator<String> i=_policies.iterator(); i.hasNext(); ) {
+      File policyFile=new File(i.next());
+      clean.addAll(DefaultPolicyLoader.load(new FileInputStream(policyFile),_context));
+    }
+synchronized (_cache) {
+      _grants.clear();
+      _grants.addAll(clean);
+      _cache.clear();
+    }
+    if (__DEBUG) {
+      System.out.println("finished reloading policies");
     }
   }
  catch (  Exception e) {

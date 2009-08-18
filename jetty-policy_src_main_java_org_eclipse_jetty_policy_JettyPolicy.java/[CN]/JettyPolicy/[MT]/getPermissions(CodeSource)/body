@@ -4,30 +4,36 @@ synchronized (this) {
       refresh();
     }
   }
-  PermissionCollection perms=new Permissions();
-synchronized (pdMapping) {
-    for (Iterator<ProtectionDomain> i=pdMapping.keySet().iterator(); i.hasNext(); ) {
-      ProtectionDomain pd=i.next();
-      if (pd.getCodeSource() == null || pd.getCodeSource().implies(codesource)) {
+  if (_cache.containsKey(codesource)) {
+    return _cache.get(codesource);
+  }
+synchronized (_cache) {
+    if (_cache.containsKey(codesource)) {
+      return _cache.get(codesource);
+    }
+    PermissionCollection perms=new Permissions();
+    for (Iterator<PolicyBlock> i=_grants.iterator(); i.hasNext(); ) {
+      PolicyBlock policyBlock=i.next();
+      ProtectionDomain grantPD=policyBlock.toProtectionDomain();
+      if (grantPD.getCodeSource() == null || grantPD.getCodeSource().implies(codesource)) {
         if (__DEBUG) {
           System.out.println("----START----");
-          System.out.println("PDCS: " + pd.getCodeSource());
+          System.out.println("PDCS: " + grantPD.getCodeSource());
           System.out.println("CS: " + codesource);
         }
-        if (pdMapping.get(pd) != null) {
-          for (Enumeration<Permission> e=pdMapping.get(pd).getPermissions().elements(); e.hasMoreElements(); ) {
-            Permission perm=e.nextElement();
-            if (__DEBUG) {
-              System.out.println("D: " + perm);
-            }
-            perms.add(perm);
+        for (Enumeration<Permission> e=policyBlock.getPermissions().elements(); e.hasMoreElements(); ) {
+          Permission perm=e.nextElement();
+          if (__DEBUG) {
+            System.out.println("D: " + perm);
           }
+          perms.add(perm);
         }
         if (__DEBUG) {
           System.out.println("----STOP----");
         }
       }
     }
+    _cache.put(codesource,perms);
+    return perms;
   }
-  return perms;
 }
