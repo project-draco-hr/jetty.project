@@ -1,0 +1,51 @@
+{
+  Name cname=toCanonicalName(name);
+  if (cname == null) {
+    NamingContext ctx=new NamingContext(_env,_name,_parent,_parser);
+    ctx._bindings=_bindings;
+    return ctx;
+  }
+  if (cname.size() == 0)   throw new NamingException("Name is empty");
+  if (cname.size() == 1) {
+    Binding binding=getBinding(cname);
+    if (binding == null)     throw new NameNotFoundException();
+    Object o=binding.getObject();
+    if (o instanceof Reference) {
+      try {
+        return NamingManager.getObjectInstance(o,cname.getPrefix(1),this,_env);
+      }
+ catch (      NamingException e) {
+        throw e;
+      }
+catch (      Exception e) {
+        Log.warn("",e);
+        throw new NamingException(e.getMessage());
+      }
+    }
+ else {
+      return o;
+    }
+  }
+  String firstComponent=cname.get(0);
+  Object ctx=null;
+  if (firstComponent.equals(""))   ctx=this;
+ else {
+    Binding binding=getBinding(firstComponent);
+    if (binding == null)     throw new NameNotFoundException();
+    ctx=binding.getObject();
+    if (ctx instanceof Reference) {
+      try {
+        ctx=NamingManager.getObjectInstance(ctx,getNameParser("").parse(firstComponent),this,_env);
+      }
+ catch (      NamingException e) {
+        throw e;
+      }
+catch (      Exception e) {
+        Log.warn("",e);
+        throw new NamingException(e.getMessage());
+      }
+    }
+  }
+  if (!(ctx instanceof Context))   throw new NotContextException();
+  return ((Context)ctx).lookup(cname.getSuffix(1));
+}
