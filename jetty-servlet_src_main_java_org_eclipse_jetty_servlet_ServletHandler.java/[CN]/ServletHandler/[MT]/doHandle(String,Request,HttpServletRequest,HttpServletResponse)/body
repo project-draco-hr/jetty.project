@@ -26,6 +26,9 @@
  catch (  EofException e) {
     throw e;
   }
+catch (  ContinuationThrowable e) {
+    throw e;
+  }
 catch (  Exception e) {
     if (!(DispatcherType.REQUEST.equals(type) || DispatcherType.ASYNC.equals(type))) {
       if (e instanceof IOException)       throw (IOException)e;
@@ -39,7 +42,12 @@ catch (  Exception e) {
  else     if (th instanceof ServletException) {
       Log.debug(th);
       Throwable cause=((ServletException)th).getRootCause();
-      if (cause != th && cause != null)       th=cause;
+      if (cause != null)       th=cause;
+    }
+ else     if (th instanceof RuntimeIOException) {
+      Log.debug(th);
+      Throwable cause=(IOException)((RuntimeIOException)th).getCause();
+      if (cause != null)       th=cause;
     }
     if (th instanceof HttpException) {
       throw (HttpException)th;
@@ -49,7 +57,7 @@ catch (  Exception e) {
       Log.debug(request.toString());
     }
  else     if (th instanceof IOException || th instanceof UnavailableException) {
-      Log.warn(request.getRequestURI() + ": " + th);
+      Log.debug(request.getRequestURI(),th);
     }
  else {
       Log.warn(request.getRequestURI(),th);
@@ -65,9 +73,7 @@ catch (  Exception e) {
  else       response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR,th.getMessage());
     }
  else     if (Log.isDebugEnabled())     Log.debug("Response already committed for handling " + th);
-  }
-catch (  ContinuationThrowable e) {
-    throw e;
+    if (th instanceof IOException)     throw (IOException)th;
   }
 catch (  Error e) {
     if (!(DispatcherType.REQUEST.equals(type) || DispatcherType.ASYNC.equals(type)))     throw e;

@@ -7,6 +7,7 @@
   String name=(String)request.getAttribute("org.mortbay.jetty.thread.name");
   if (name == null)   name=old_name + "://" + baseRequest.getHeader("Host")+ baseRequest.getUri();
  else   retry=true;
+  String ex=null;
   try {
     final String d=_date.now();
     final int ms=_date.lastMs();
@@ -15,7 +16,23 @@
     thread.setName(name);
     getHandler().handle(target,baseRequest,request,response);
   }
-  finally {
+ catch (  IOException ioe) {
+    ex=ioe.toString();
+    throw ioe;
+  }
+catch (  ServletException se) {
+    ex=se.toString() + ":" + se.getCause();
+    throw se;
+  }
+catch (  RuntimeException rte) {
+    ex=rte.toString();
+    throw rte;
+  }
+catch (  Error e) {
+    ex=e.toString();
+    throw e;
+  }
+ finally {
     thread.setName(old_name);
     final String d=_date.now();
     final int ms=_date.lastMs();
@@ -24,6 +41,6 @@
       request.setAttribute("org.mortbay.jetty.thread.name",name);
       _print.println(d + (ms > 99 ? "." : (ms > 9 ? ".0" : ".00")) + ms+ ":"+ name+ " SUSPEND");
     }
- else     _print.println(d + (ms > 99 ? "." : (ms > 9 ? ".0" : ".00")) + ms+ ":"+ name+ " "+ base_response.getStatus()+ " "+ base_response.getContentType()+ " "+ base_response.getContentCount());
+ else     _print.println(d + (ms > 99 ? "." : (ms > 9 ? ".0" : ".00")) + ms+ ":"+ name+ " "+ base_response.getStatus()+ (ex == null ? "" : ("/" + ex))+ " "+ base_response.getContentType()+ " "+ base_response.getContentCount());
   }
 }
