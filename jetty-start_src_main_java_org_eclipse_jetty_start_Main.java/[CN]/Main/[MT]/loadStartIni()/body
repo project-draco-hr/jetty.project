@@ -1,6 +1,7 @@
 {
-  File startIniFile=new File("start.ini");
-  if (!startIniFile.exists()) {
+  String jettyHome=System.getProperty("jetty.home");
+  File startIniFile=(jettyHome != null) ? new File(jettyHome,"start.ini") : new File("start.ini");
+  if (!startIniFile.exists() || !startIniFile.canRead()) {
     return Collections.emptyList();
   }
   List<String> args=new ArrayList<String>();
@@ -11,29 +12,9 @@
     buf=new BufferedReader(reader);
     String arg;
     while ((arg=buf.readLine()) != null) {
-      if (arg.indexOf('=') >= 0) {
-        if (arg.startsWith("-D")) {
-          String[] assign=arg.substring(2).split("=",2);
-          if (assign.length == 2) {
-            System.setProperty(assign[0],assign[1]);
-          }
- else {
-            System.err.printf("Unable to set System Property '%s', no value provided%n",assign[0]);
-          }
-        }
- else {
-          String[] assign=arg.split("=",2);
-          if (assign.length == 2) {
-            this._config.setProperty(assign[0],assign[1]);
-          }
- else {
-            this._config.setProperty(assign[0],null);
-          }
-        }
-      }
- else {
-        args.add(arg);
-      }
+      arg=arg.trim();
+      if (arg.length() == 0 || arg.startsWith("#"))       continue;
+      args.add(arg);
     }
   }
  catch (  IOException e) {

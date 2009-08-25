@@ -38,9 +38,19 @@
     return;
   }
   if (_dryRun) {
-    showDryRun(classpath,xmls);
+    System.out.println(buildCommandLine(classpath,xmls));
     return;
   }
+  if (_exec) {
+    String cmd=buildCommandLine(classpath,xmls);
+    Process process=Runtime.getRuntime().exec(cmd);
+    copyInThread(process.getErrorStream(),System.err);
+    copyInThread(process.getInputStream(),System.out);
+    copyInThread(System.in,process.getOutputStream());
+    process.waitFor();
+    return;
+  }
+  if (_xArgs.size() > 0 || _sysProps.size() > 0)   System.err.println("WARNING: System properties and/or JVM args set.  Consider using --dry-run or --exec");
   Thread.currentThread().setContextClassLoader(cl);
   initSecurity(cl);
   try {

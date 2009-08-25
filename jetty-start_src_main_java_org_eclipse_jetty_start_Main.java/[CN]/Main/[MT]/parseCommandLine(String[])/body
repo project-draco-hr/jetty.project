@@ -1,8 +1,8 @@
 {
   try {
     List<String> arguments=new ArrayList<String>();
+    arguments.addAll(loadStartIni());
     if (args.length > 0)     arguments.addAll(Arrays.asList(args));
- else     arguments.addAll(loadStartIni());
     List<String> xmls=new ArrayList<String>();
     for (    String arg : arguments) {
       if ("--help".equals(arg)) {
@@ -27,6 +27,10 @@
         _dryRun=true;
         continue;
       }
+      if ("--exec".equals(arg)) {
+        _exec=true;
+        continue;
+      }
       if ("--fromDaemon".equals(arg)) {
         _fromDaemon=true;
         PrintStream logger=new PrintStream(new RedirectedStreamLogger("daemon_yyyy_mm_dd.log",false,90,TimeZone.getTimeZone("GMT")));
@@ -38,16 +42,50 @@
         _secure=true;
         continue;
       }
-      if (arg.indexOf('=') >= 0) {
-        processProperty(arg);
+      if (arg.startsWith("-X")) {
+        _xArgs.add(arg);
         continue;
       }
-      xmls.add(arg);
-    }
-    start(xmls);
-  }
- catch (  Throwable t) {
-    t.printStackTrace(System.err);
-    usage();
-  }
+      if (arg.startsWith("-D")) {
+        String[] assign=arg.substring(2).split("=",2);
+        _sysProps.add(assign[0]);
+switch (assign.length) {
+case 2:
+          System.setProperty(assign[0],assign[1]);
+        break;
+case 1:
+      System.setProperty(assign[0],"");
+    break;
+default :
+  break;
+}
+continue;
+}
+ else if (arg.indexOf('=') >= 0) {
+String[] assign=arg.split("=",2);
+switch (assign.length) {
+case 2:
+this._config.setProperty(assign[0],assign[1]);
+break;
+case 1:
+this._config.setProperty(assign[0],null);
+break;
+default :
+break;
+}
+continue;
+}
+xmls.add(arg);
+}
+String options=_config.getProperty("OPTIONS");
+if (options != null) {
+String ids[]=options.split(",");
+for (String id : ids) _config.addActiveOption(id);
+}
+start(xmls);
+}
+ catch (Throwable t) {
+t.printStackTrace(System.err);
+usage();
+}
 }
