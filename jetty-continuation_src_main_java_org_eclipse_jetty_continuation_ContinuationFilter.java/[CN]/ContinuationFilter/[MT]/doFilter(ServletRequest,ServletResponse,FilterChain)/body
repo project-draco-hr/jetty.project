@@ -1,30 +1,24 @@
 {
-  if (_faux) {
-    final FauxContinuation fc=new FauxContinuation(request);
-    request.setAttribute(Continuation.ATTRIBUTE,fc);
+  if (_filtered) {
+    Continuation c=(Continuation)request.getAttribute(Continuation.ATTRIBUTE);
+    FilteredContinuation fc;
+    if (_faux && (c == null || !(c instanceof FauxContinuation))) {
+      fc=new FauxContinuation(request);
+      request.setAttribute(Continuation.ATTRIBUTE,fc);
+    }
+ else     fc=(FilteredContinuation)c;
     boolean complete=false;
     while (!complete) {
       try {
-        fc.setServletResponse(response);
-        chain.doFilter(request,response);
+        if (fc == null || ((FilteredContinuation)fc).enter(response))         chain.doFilter(request,response);
       }
  catch (      ContinuationThrowable e) {
         debug("faux",e);
       }
  finally {
-        complete=fc.handleSuspension();
+        if (fc == null)         fc=(FilteredContinuation)request.getAttribute(Continuation.ATTRIBUTE);
+        complete=fc == null || ((FilteredContinuation)fc).exit();
       }
-    }
-    fc.onComplete();
-  }
- else   if (_partial) {
-    Continuation c=(Continuation)request.getAttribute(Continuation.ATTRIBUTE);
-    try {
-      if (c == null || !(c instanceof PartialContinuation) || ((PartialContinuation)c).enter())       chain.doFilter(request,response);
-    }
-  finally {
-      if (c == null)       c=(Continuation)request.getAttribute(Continuation.ATTRIBUTE);
-      if (c != null && c instanceof PartialContinuation)       ((PartialContinuation)c).exit();
     }
   }
  else {
