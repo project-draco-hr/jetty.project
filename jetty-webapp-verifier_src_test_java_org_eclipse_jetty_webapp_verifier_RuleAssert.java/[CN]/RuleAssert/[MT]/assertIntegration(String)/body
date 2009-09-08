@@ -1,0 +1,13 @@
+{
+  File setupFile=MavenTestingUtils.getTestResourceFile(prefix + ".setup.txt");
+  File configFile=MavenTestingUtils.getTestResourceFile(prefix + ".config.xml");
+  File expectationFile=MavenTestingUtils.getTestResourceFile(prefix + ".expectations.txt");
+  String webappName=MavenTestingUtils.readToString(setupFile).trim();
+  File webappPath=MavenTestingUtils.getTestResourcePath(webappName);
+  URI webappURI=webappPath.toURI();
+  RuleSet ruleset=RuleSet.load(configFile);
+  WebappVerifier verifier=ruleset.createWebappVerifier(webappURI);
+  verifier.setWorkDir(MavenTestingUtils.toTargetTestingDir());
+  verifier.visitAll();
+  assertViolations(loadExpectedViolations(expectationFile),verifier.getViolations());
+}

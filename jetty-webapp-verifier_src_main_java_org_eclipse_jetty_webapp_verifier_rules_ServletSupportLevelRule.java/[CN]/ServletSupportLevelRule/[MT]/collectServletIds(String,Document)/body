@@ -1,0 +1,99 @@
+{
+  List<ServletId> ids=new ArrayList<ServletId>();
+  DocumentType doctype=doc.getDoctype();
+  if (doctype != null) {
+    if ("web-app".equals(doctype.getName())) {
+      boolean valid=false;
+      for (      ServletId id : dtdPublicIds) {
+        if (id.name.equals(doctype.getPublicId())) {
+          ids.add(id);
+          valid=true;
+        }
+      }
+      if (!valid) {
+        error(webxmlpath,"Invalid DOCTYPE public ID: " + doctype.getPublicId());
+      }
+      valid=false;
+      for (      ServletId id : dtdSystemIds) {
+        if (id.name.equals(doctype.getSystemId())) {
+          ids.add(id);
+          valid=true;
+        }
+      }
+      if (!valid) {
+        error(webxmlpath,"Invalid DOCTYPE system ID: " + doctype.getSystemId());
+      }
+    }
+ else {
+      error(webxmlpath,"Invalid DOCTYPE detected, expected 'web-app', but found '" + doctype.getName() + "' instaed.");
+    }
+  }
+  Element root=doc.getDocumentElement();
+  if ("web-app".equals(root.getTagName())) {
+    String actualXmlNs=root.getAttribute("xmlns");
+    String actualXsi=root.getAttribute("xmlns:xsi");
+    String actualSchema=root.getAttribute("xsi:schemaLocation");
+    String actualVersion=root.getAttribute("version");
+    if (hasAnyValue(actualXmlNs,actualXsi,actualSchema,actualVersion)) {
+      if ((actualXmlNs == null) || (actualXmlNs == "")) {
+        error(webxmlpath,"Attribute <web-app xmlns=\"\"> must exist with a valid value");
+      }
+ else {
+        boolean valid=false;
+        for (        ServletId id : nsIds) {
+          if (id.name.equals(actualXmlNs)) {
+            ids.add(id);
+            valid=true;
+          }
+        }
+        if (!valid) {
+          String msg=String.format("Invalid xmlns value for <web-app xmlns=\"%s\">",actualXmlNs);
+          error(webxmlpath,msg);
+        }
+      }
+      if ((actualXsi == null) || (actualXsi == "")) {
+        error(webxmlpath,"Attribute <web-app xmlns:xsi=\"\"> must exist with a valid value");
+      }
+ else       if (!XSI_NS.equals(actualXsi)) {
+        String msg=String.format("Attribute mismatch expecting <web-app xmlns:xsi=\"%s\"> but found <web-app xmlns:xsi=\"%s\">",XSI_NS,actualXsi);
+        error(webxmlpath,msg);
+      }
+      if ((actualSchema == null) || (actualSchema == "")) {
+        error(webxmlpath,"Attribute <web-app xsi:schemaLocation=\"\"> must exist with a valid value");
+      }
+ else {
+        boolean valid=false;
+        for (        ServletId id : schemaIds) {
+          if (id.name.equals(actualSchema)) {
+            ids.add(id);
+            valid=true;
+          }
+        }
+        if (!valid) {
+          String msg=String.format("Invalid schemaLocation value <web-app xsi:schemaLocation=\"%s\">",actualSchema);
+          error(webxmlpath,msg);
+        }
+      }
+      if ((actualVersion == null) || (actualVersion == "")) {
+        error(webxmlpath,"Attribute <web-app version=\"\"> must exist with a valid value");
+      }
+ else {
+        boolean valid=false;
+        for (        String version : validVersions) {
+          if (version.equals(actualVersion)) {
+            ids.add(new ServletId(version,"version attribute",null));
+            valid=true;
+          }
+        }
+        if (!valid) {
+          String msg=String.format("Invalid version value <web-app version=\"%s\">",actualVersion);
+          error(webxmlpath,msg);
+        }
+      }
+    }
+  }
+ else {
+    error(webxmlpath,"Invalid web.xml, root element expectd to be <web-app>, but was <" + root.getTagName() + ">");
+  }
+  return ids;
+}

@@ -1,0 +1,33 @@
+{
+  File libDir=new File(_webappDir,"WEB-INF" + File.separator + "lib");
+  if (!libDir.exists()) {
+    return;
+  }
+  String libPath=getWebappRelativePath(libDir);
+  if (!libDir.isDirectory()) {
+    reportViolation(Severity.ERROR,libPath,"WEB-INF/lib is not a Directory?");
+    return;
+  }
+  for (  Rule rule : _rules) {
+    rule.visitWebInfLibStart(libPath,libDir);
+  }
+  File archives[]=libDir.listFiles();
+  for (  File archive : archives) {
+    if (!archive.isFile()) {
+      reportViolation(Severity.WARNING,Rule.ROOT_PATH,"Found non-file in WEB-INF/lib.  Remove it, " + "as it cannot be accessed by the Servlet container or the Webapp: " + archive);
+      continue;
+    }
+    if (archive.getName().toLowerCase().endsWith(".jar")) {
+      visitWebInfLibJar(libPath,archive);
+      continue;
+    }
+    if (archive.getName().toLowerCase().endsWith(".zip")) {
+      visitWebInfLibZip(libPath,archive);
+      continue;
+    }
+    reportViolation(Severity.WARNING,Rule.ROOT_PATH,"Found non-archive in WEB-INF/lib.  Remove it, " + "as it cannot be accessed by the Servlet container or the Webapp: " + archive);
+  }
+  for (  Rule rule : _rules) {
+    rule.visitWebInfLibEnd(libPath,libDir);
+  }
+}

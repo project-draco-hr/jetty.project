@@ -1,8 +1,19 @@
 {
   if (_configurations != null)   return;
   if (_configurationClasses == null)   _configurationClasses=__dftConfigurationClasses;
-  _configurations=new Configuration[_configurationClasses.length];
-  for (int i=0; i < _configurations.length; i++) {
+  int configsLen=_configurationClasses.length;
+  @SuppressWarnings("unchecked") List<Configuration> serverConfigs=(List<Configuration>)getServer().getAttribute(SERVER_CONFIG);
+  if (serverConfigs != null) {
+    configsLen+=serverConfigs.size();
+  }
+  _configurations=new Configuration[configsLen];
+  for (int i=0; i < _configurationClasses.length; i++) {
     _configurations[i]=(Configuration)Loader.loadClass(this.getClass(),_configurationClasses[i]).newInstance();
+  }
+  if (serverConfigs != null) {
+    int offset=_configurationClasses.length;
+    for (int i=0, n=serverConfigs.size(); i < n; i++) {
+      _configurations[i + offset]=serverConfigs.get(i);
+    }
   }
 }

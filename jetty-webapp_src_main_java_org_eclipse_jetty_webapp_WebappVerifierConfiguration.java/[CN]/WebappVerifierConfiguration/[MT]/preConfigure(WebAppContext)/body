@@ -1,0 +1,21 @@
+{
+  if (Log.isDebugEnabled()) {
+    Log.debug("Configuring webapp verifier");
+  }
+  URI configurationUri=new File(System.getProperty("jetty.home")).toURI().resolve("etc/default-webapp-verifier.xml");
+  RuleSet suite=RuleSet.load(configurationUri.toURL());
+  WebappVerifier verifier=suite.createWebappVerifier(new URI(context.getWar()));
+  verifier.visitAll();
+  Collection<Violation> violations=verifier.getViolations();
+  boolean haltWebapp=false;
+  Log.info(" Webapp Verifier Report: " + violations.size() + " violations");
+  for (  Violation violation : violations) {
+    if (violation.getSeverity() == Severity.ERROR) {
+      haltWebapp=true;
+    }
+    Log.info(violation.toString());
+  }
+  if (haltWebapp) {
+    throw new InstantiationException("Configuration exception: webapp failed webapp verification");
+  }
+}
