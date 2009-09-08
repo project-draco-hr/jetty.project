@@ -1,0 +1,22 @@
+{
+  if (!CentralizedWebAppLoggingConfiguration.isLoggerConfigured()) {
+    String loggerConfigFilename=MavenTestingUtils.getTestResourceFile("logger/testing.properties").getAbsolutePath();
+    CentralizedWebAppLoggingConfiguration.setLoggerConfigurationFilename(loggerConfigFilename);
+  }
+  CentralLoggerConfig root=CentralizedWebAppLoggingConfiguration.getLoggerRoot();
+  testAppender=(TestAppender)root.findAppender(TestAppender.class);
+  testAppender.reset();
+  Server server=new Server();
+  List<Configuration> serverConfigs=new ArrayList<Configuration>();
+  serverConfigs.add(new CentralizedWebAppLoggingConfiguration());
+  server.setAttribute(WebAppContext.SERVER_CONFIG,serverConfigs);
+  Connector connector=new SelectChannelConnector();
+  connector.setPort(0);
+  server.setConnectors(new Connector[]{connector});
+  File webappFile=MavenTestingUtils.getTestResourceFile("webapps/" + webappName);
+  WebAppContext webapp=new WebAppContext();
+  webapp.setContextPath(contextPath);
+  webapp.setWar(webappFile.getAbsolutePath());
+  server.setHandler(webapp);
+  return server;
+}

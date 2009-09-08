@@ -1,0 +1,26 @@
+{
+  Properties props=new Properties();
+  File testLoggingDir=new File(MavenTestingUtils.getTargetTestingDir(this),"logs");
+  testLoggingDir.mkdirs();
+  File logFile=new File(testLoggingDir,"rolling.log");
+  props.setProperty("root.level","DEBUG");
+  props.setProperty("root.appenders","roll");
+  props.setProperty("appender.roll.class",RollingFileAppender.class.getName());
+  props.setProperty("appender.roll.filename",logFile.getAbsolutePath());
+  props.setProperty("appender.roll.append","true");
+  props.setProperty("appender.roll.retainDays","120");
+  props.setProperty("appender.roll.zone","GMT");
+  props.setProperty("appender.roll.dateFormat","yyyy-MM-dd");
+  props.setProperty("appender.roll.backupFormat","HH-mm-ss.SSS");
+  CentralLoggerConfig root=CentralLoggerConfig.load(props);
+  assertNotNull("Root Logger should not be null",root);
+  assertSeverityLevel(root,Severity.DEBUG);
+  assertAppenders(root,RollingFileAppender.class);
+  RollingFileAppender actualAppender=(RollingFileAppender)root.getAppenders().get(0);
+  assertEquals("RollingFileAppender.filename",logFile.getAbsolutePath(),actualAppender.getFilename());
+  assertEquals("RollingFileAppender.append",true,actualAppender.isAppend());
+  assertEquals("RollingFileAppender.retainDays",120,actualAppender.getRetainDays());
+  assertEquals("RollingFileAppender.zone","GMT",actualAppender.getZone().getID());
+  assertEquals("RollingFileAppender.dateFormat","yyyy-MM-dd",actualAppender.getDateFormat());
+  assertEquals("RollingFileAppender.backupFormat","HH-mm-ss.SSS",actualAppender.getBackupFormat());
+}

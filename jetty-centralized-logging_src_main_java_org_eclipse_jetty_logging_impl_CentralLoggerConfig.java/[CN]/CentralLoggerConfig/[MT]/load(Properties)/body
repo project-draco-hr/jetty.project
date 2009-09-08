@@ -1,0 +1,31 @@
+{
+  CentralLoggerConfig root=new CentralLoggerConfig(Logger.ROOT_LOGGER_NAME);
+  root.level=Severity.INFO;
+  Map<String,Appender> declaredAppenders=getDeclaredAppenders(props);
+  root.appenders=getAppenders(props,"root.appenders",declaredAppenders);
+  if (root.appenders == null) {
+    root.appenders.add(new ConsoleAppender());
+  }
+  root.logger=new CentralLogger(root.name,root.appenders.toArray(new Appender[]{}),root.level);
+  root.level=Severity.valueOf(props.getProperty("root.level"));
+  Set<String> ids=new TreeSet<String>();
+  @SuppressWarnings("unchecked") Enumeration<String> enNames=(Enumeration<String>)props.propertyNames();
+  while (enNames.hasMoreElements()) {
+    String name=enNames.nextElement();
+    String id=between(name,"logger.",".level");
+    if (id == null) {
+      id=between(name,"logger.",".appenders");
+      if (id == null) {
+        continue;
+      }
+    }
+    ids.add(id);
+  }
+  for (  String id : ids) {
+    System.out.println("Processing child id: " + id);
+    CentralLoggerConfig childlog=root.getConfiguredLogger(id);
+    childlog.level=Severity.valueOf(props.getProperty("logger." + id + ".level","INFO"));
+    childlog.addAppenders(getAppenders(props,"logger." + id + ".appenders",declaredAppenders));
+  }
+  return root;
+}

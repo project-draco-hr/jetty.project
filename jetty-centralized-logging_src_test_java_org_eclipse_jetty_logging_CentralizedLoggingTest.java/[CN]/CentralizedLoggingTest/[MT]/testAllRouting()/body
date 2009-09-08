@@ -1,0 +1,11 @@
+{
+  CentralLoggerConfig root=CentralizedWebAppLoggingConfiguration.getLoggerRoot();
+  TestAppender testAppender=(TestAppender)root.findAppender(TestAppender.class);
+  assertNotNull("Should have found TestAppender in configuration",testAppender);
+  SimpleRequest.get(jetty,"/dummy-webapp-logging-log4j/logging");
+  SimpleRequest.get(jetty,"/dummy-webapp-logging-slf4j/logging");
+  SimpleRequest.get(jetty,"/dummy-webapp-logging-commons/logging");
+  SimpleRequest.get(jetty,"/dummy-webapp-logging-java/logging");
+  TestAppender.LogEvent expectedLogs[]={new LogEvent(null,-1,Severity.DEBUG,"LoggingServlet","LoggingServlet(log4j) initialized",null),new LogEvent(null,-1,Severity.INFO,"LoggingServlet","LoggingServlet(log4j) GET requested",null),new LogEvent(null,-1,Severity.DEBUG,"LoggingServlet","LoggingServlet(slf4j) initialized",null),new LogEvent(null,-1,Severity.INFO,"LoggingServlet","LoggingServlet(slf4j) GET requested",null),new LogEvent(null,-1,Severity.DEBUG,"LoggingServlet","LoggingServlet(commons-logging) initialized",null),new LogEvent(null,-1,Severity.INFO,"LoggingServlet","LoggingServlet(commons-logging) GET requested",null),new LogEvent(null,-1,Severity.DEBUG,"LoggingServlet","LoggingServlet(java) initialized",null),new LogEvent(null,-1,Severity.INFO,"LoggingServlet","LoggingServlet(java) GET requested",null)};
+  assertContainsLogEvents(testAppender,expectedLogs);
+}
