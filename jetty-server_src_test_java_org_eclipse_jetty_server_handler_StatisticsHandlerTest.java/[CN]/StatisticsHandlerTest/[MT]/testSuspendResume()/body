@@ -1,0 +1,38 @@
+{
+  final long sleep=500;
+  final AtomicReference<Continuation> continuationHandle=new AtomicReference<Continuation>();
+  _statsHandler.setHandler(new AbstractHandler(){
+    public void handle(    String path,    Request request,    HttpServletRequest httpRequest,    HttpServletResponse httpResponse) throws IOException, ServletException {
+      request.setHandled(true);
+      Continuation continuation=ContinuationSupport.getContinuation(httpRequest);
+      if (continuationHandle.get() == null) {
+        continuation.suspend();
+        continuationHandle.set(continuation);
+        try {
+          Thread.sleep(sleep);
+        }
+ catch (        InterruptedException x) {
+          Thread.currentThread().interrupt();
+          throw (IOException)new IOException().initCause(x);
+        }
+      }
+    }
+  }
+);
+  _server.start();
+  String request="GET / HTTP/1.1\r\n" + "Host: localhost\r\n" + "\r\n";
+  _connector.executeRequest(request);
+  boolean passed=_latchHandler.await(1000);
+  assertTrue(passed);
+  assertNotNull(continuationHandle.get());
+  assertTrue(continuationHandle.get().isSuspended());
+  continuationHandle.get().resume();
+  passed=_latchHandler.await(1000);
+  assertTrue(passed);
+  assertEquals(2,_statsHandler.getRequests());
+  assertEquals(1,_statsHandler.getRequestsResumed());
+  assertEquals(0,_statsHandler.getRequestsExpired());
+  assertEquals(1,_statsHandler.getResponses2xx());
+  assertTrue(sleep <= _statsHandler.getSuspendedTimeMin());
+  assertEquals(_statsHandler.getSuspendedTimeMin(),_statsHandler.getSuspendedTimeTotal());
+}
