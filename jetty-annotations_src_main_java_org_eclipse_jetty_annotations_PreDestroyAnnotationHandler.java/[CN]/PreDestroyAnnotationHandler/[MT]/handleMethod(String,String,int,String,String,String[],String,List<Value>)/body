@@ -1,21 +1,25 @@
 {
-  LifeCycleCallbackCollection callbacks=(LifeCycleCallbackCollection)_wac.getAttribute(LifeCycleCallbackCollection.LIFECYCLE_CALLBACK_COLLECTION);
-  Class clazz=null;
   try {
-    clazz=Loader.loadClass(null,className);
-    Method m=clazz.getDeclaredMethod(methodName,Util.convertTypes(params));
-    if (!Util.isServletType(m.getDeclaringClass())) {
-      Log.debug("Ignored " + m.getName() + " as non-servlet type");
+    org.objectweb.asm.Type[] args=org.objectweb.asm.Type.getArgumentTypes(desc);
+    if (args.length != 0) {
+      Log.warn("Skipping PreDestroy annotation on " + className + "."+ methodName+ ": has parameters");
       return;
     }
-    if (m.getParameterTypes().length != 0)     throw new IllegalStateException(m + " has parameters");
-    if (m.getReturnType() != Void.TYPE)     throw new IllegalStateException(m + " is not void");
-    if (m.getExceptionTypes().length != 0)     throw new IllegalStateException(m + " throws checked exceptions");
-    if (Modifier.isStatic(m.getModifiers()))     throw new IllegalStateException(m + " is static");
+    if (org.objectweb.asm.Type.getReturnType(desc) != org.objectweb.asm.Type.VOID_TYPE) {
+      Log.warn("Skipping PreDestroy annotation on " + className + "."+ methodName+ ": is not void");
+      return;
+    }
+    if (exceptions != null && exceptions.length != 0) {
+      Log.warn("Skipping PreDestroy annotation on " + className + "."+ methodName+ ": throws checked exceptions");
+      return;
+    }
+    if ((access & org.objectweb.asm.Opcodes.ACC_STATIC) > 0) {
+      Log.warn("Skipping PreDestroy annotation on " + className + "."+ methodName+ ": is static");
+      return;
+    }
     PreDestroyCallback callback=new PreDestroyCallback();
-    callback.setTargetClass(m.getDeclaringClass());
-    callback.setTarget(m);
-    callbacks.add(callback);
+    callback.setTarget(className,methodName);
+    _callbacks.add(callback);
   }
  catch (  Exception e) {
     Log.warn(e);

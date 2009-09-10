@@ -1,25 +1,26 @@
 {
-  InjectionCollection injections=(InjectionCollection)_wac.getAttribute(InjectionCollection.INJECTION_COLLECTION);
-  Class clazz=null;
   try {
-    clazz=Loader.loadClass(null,className);
-    Field f=clazz.getDeclaredField(fieldName);
-    if (!Util.isServletType(clazz)) {
-      Log.debug("Ignoring @Resource annotation on on-servlet type field " + fieldName);
+    if ((access & org.objectweb.asm.Opcodes.ACC_STATIC) > 0) {
+      Log.warn("Skipping Resource annotation on " + className + "."+ fieldName+ ": cannot be static");
       return;
     }
-    Resource resource=(Resource)f.getAnnotation(Resource.class);
-    if (resource == null)     return;
-    if (Modifier.isStatic(f.getModifiers()))     throw new IllegalStateException(f + " cannot be static");
-    if (Modifier.isFinal(f.getModifiers()))     throw new IllegalStateException(f + " cannot be final");
-    String name=f.getDeclaringClass().getCanonicalName() + "/" + f.getName();
-    name=(resource.name() != null && !resource.name().trim().equals("") ? resource.name() : name);
-    Class type=f.getType();
-    if ((resource.type() != null) && !resource.type().equals(Object.class) && (!IntrospectionUtil.isTypeCompatible(type,resource.type(),false)))     throw new IllegalStateException("@Resource incompatible type=" + resource.type() + " with field type ="+ f.getType());
-    String mappedName=(resource.mappedName() != null && !resource.mappedName().trim().equals("") ? resource.mappedName() : null);
-    Resource.AuthenticationType auth=resource.authenticationType();
-    boolean shareable=resource.shareable();
-    Injection webXmlInjection=injections.getInjection(f.getDeclaringClass(),f);
+    if ((access & org.objectweb.asm.Opcodes.ACC_FINAL) > 0) {
+      Log.warn("Skipping Resource annotation on " + className + "."+ fieldName+ ": cannot be final");
+      return;
+    }
+    String name=className + "/" + fieldName;
+    String mappedName=null;
+    org.objectweb.asm.Type resourceType=null;
+    if (values != null) {
+      for (      Value val : values) {
+        if (val.getName().equals("name") && !"".equals((String)val.getValue()))         name=(String)(val.getValue());
+ else         if (val.getName().equals("mappedName") && !"".equals((String)val.getValue()))         mappedName=(String)val.getValue();
+ else         if (val.getName().equals("type")) {
+          resourceType=(org.objectweb.asm.Type)(val.getValue());
+        }
+      }
+    }
+    Injection webXmlInjection=_injections.getInjection(name,className,fieldName);
     if (webXmlInjection == null) {
       try {
         boolean bound=org.eclipse.jetty.plus.jndi.NamingEntryUtil.bindToENC(_wac,name,mappedName);
@@ -39,23 +40,19 @@
         if (bound) {
           Log.debug("Bound " + (mappedName == null ? name : mappedName) + " as "+ name);
           Injection injection=new Injection();
-          injection.setTargetClass(f.getDeclaringClass());
+          injection.setTarget(className,fieldName,Util.asCanonicalName(resourceType));
           injection.setJndiName(name);
           injection.setMappingName(mappedName);
-          injection.setTarget(f);
-          injections.add(injection);
+          _injections.add(injection);
         }
- else         if (!Util.isEnvEntryType(type)) {
+ else         if (!Util.isEnvEntryType(fieldType)) {
+          System.err.println(fieldType);
           throw new IllegalStateException("No resource at " + (mappedName == null ? name : mappedName));
         }
       }
  catch (      NamingException e) {
-        if (!Util.isEnvEntryType(type))         throw new IllegalStateException(e);
+        if (!Util.isEnvEntryType(fieldType))         throw new IllegalStateException(e);
       }
-    }
- else {
-      Object val=webXmlInjection.lookupInjectedValue();
-      if (!IntrospectionUtil.isTypeCompatible(type,value.getClass(),false))       throw new IllegalStateException("Type of field=" + type + " is not compatible with Resource type="+ val.getClass());
     }
   }
  catch (  Exception e) {

@@ -32,20 +32,24 @@
   assertEquals(resourceB.getObjectToBind(),env.lookup("org.eclipse.jetty.annotations.resources.ResourceB/f"));
   assertEquals(resourceB.getObjectToBind(),env.lookup("org.eclipse.jetty.annotations.resources.ResourceA/n"));
   assertNotNull(injections);
-  List<Injection> fieldInjections=injections.getFieldInjections(ResourceB.class);
-  assertNotNull(fieldInjections);
-  assertEquals(1,fieldInjections.size());
-  Injection fi=fieldInjections.get(0);
-  assertEquals("f",fi.getTarget().getName());
-  fieldInjections=injections.getFieldInjections(ResourceA.class);
-  assertNotNull(fieldInjections);
-  assertEquals(4,fieldInjections.size());
-  List<Injection> methodInjections=injections.getMethodInjections(ResourceB.class);
-  assertNotNull(methodInjections);
-  assertEquals(0,methodInjections.size());
-  methodInjections=injections.getMethodInjections(ResourceA.class);
-  assertNotNull(methodInjections);
-  assertEquals(3,methodInjections.size());
+  List<Injection> resBInjections=injections.getInjections(ResourceB.class.getCanonicalName());
+  assertNotNull(resBInjections);
+  assertEquals(1,resBInjections.size());
+  Injection fi=resBInjections.get(0);
+  assertEquals("f",fi.getFieldName());
+  List<Injection> resAInjections=injections.getInjections(ResourceA.class.getCanonicalName());
+  assertNotNull(resAInjections);
+  assertEquals(7,resAInjections.size());
+  int fieldCount=0;
+  int methodCount=0;
+  Iterator<Injection> itor=resAInjections.iterator();
+  while (itor.hasNext()) {
+    Injection x=itor.next();
+    if (x.isField())     fieldCount++;
+ else     methodCount++;
+  }
+  assertEquals(4,fieldCount);
+  assertEquals(3,methodCount);
   ResourceB binst=new ResourceB();
   injections.inject(binst);
   Field f=ResourceB.class.getDeclaredField("f");

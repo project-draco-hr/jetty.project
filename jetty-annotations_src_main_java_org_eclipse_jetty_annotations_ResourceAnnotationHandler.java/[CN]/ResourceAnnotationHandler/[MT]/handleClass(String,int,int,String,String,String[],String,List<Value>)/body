@@ -1,22 +1,13 @@
 {
-  Class clazz=null;
-  try {
-    clazz=Loader.loadClass(null,className);
-  }
- catch (  Exception e) {
-    Log.warn(e);
-  }
-  if (!Util.isServletType(clazz)) {
-    Log.debug("Ignoring @Resource annotation on on-servlet type class " + clazz.getName());
-    return;
-  }
-  Resource resource=(Resource)clazz.getAnnotation(Resource.class);
-  if (resource != null) {
-    String name=resource.name();
-    String mappedName=resource.mappedName();
-    Resource.AuthenticationType auth=resource.authenticationType();
-    Class type=resource.type();
-    boolean shareable=resource.shareable();
+  String name=null;
+  String mappedName=null;
+  String resourceType=null;
+  if (values != null) {
+    for (    Value v : values) {
+      if ("name".equals(v.getName()))       name=(String)v.getValue();
+ else       if ("mappedName".equals(v.getName()))       mappedName=(String)v.getValue();
+ else       if ("type".equals(v.getName()))       resourceType=(String)v.getValue();
+    }
     if (name == null || name.trim().equals(""))     throw new IllegalStateException("Class level Resource annotations must contain a name (Common Annotations Spec Section 2.3)");
     try {
       if (!org.eclipse.jetty.plus.jndi.NamingEntryUtil.bindToENC(_wac,name,mappedName))       if (!org.eclipse.jetty.plus.jndi.NamingEntryUtil.bindToENC(_wac.getServer(),name,mappedName))       throw new IllegalStateException("No resource at " + (mappedName == null ? name : mappedName));
