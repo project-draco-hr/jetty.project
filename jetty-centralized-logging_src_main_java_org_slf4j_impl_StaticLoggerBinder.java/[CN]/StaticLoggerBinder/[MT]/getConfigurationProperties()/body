@@ -1,0 +1,45 @@
+{
+  String propertyFilename=System.getProperty(SYSPROP_CONFIG_KEY);
+  if (propertyFilename != null) {
+    System.out.printf("Found centralized-logging system property %s=%s%n",SYSPROP_CONFIG_KEY,propertyFilename);
+    File file=new File(propertyFilename);
+    if (file.exists() && file.isFile()) {
+      System.out.println("Loading centralized-logging configuration from file: " + file.getAbsolutePath());
+      Properties props=new Properties();
+      FileInputStream stream=null;
+      try {
+        stream=new FileInputStream(file);
+        props.load(stream);
+        return props;
+      }
+ catch (      IOException e) {
+        e.printStackTrace(System.err);
+      }
+ finally {
+        closeStream(stream);
+      }
+    }
+ else {
+      System.out.println("Cannot find file: " + file.getAbsolutePath());
+    }
+  }
+  URL resourceUrl=this.getClass().getResource("centralized-logging.properties");
+  if (resourceUrl != null) {
+    System.out.println("Loading centralized-logging configuration from resource URL: " + resourceUrl.toExternalForm());
+    InputStream stream=null;
+    try {
+      stream=resourceUrl.openStream();
+      Properties props=new Properties();
+      props.load(stream);
+      return props;
+    }
+ catch (    IOException e) {
+      e.printStackTrace(System.err);
+    }
+ finally {
+      closeStream(stream);
+    }
+  }
+  System.out.println("Using default centralized-logging configuration");
+  return getDefaultProperties();
+}
