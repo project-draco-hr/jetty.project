@@ -3,8 +3,7 @@
   root.level=Severity.INFO;
   Map<String,Appender> declaredAppenders=getDeclaredAppenders(props);
   root.appenders=getAppenders(props,"root.appenders",declaredAppenders);
-  if (root.appenders == null) {
-    root.appenders=new ArrayList<Appender>();
+  if (root.appenders.isEmpty()) {
     root.appenders.add(new ConsoleAppender());
   }
   root.logger=new CentralLogger(root.name,root.appenders.toArray(new Appender[]{}),root.level);
@@ -23,10 +22,22 @@
     ids.add(id);
   }
   for (  String id : ids) {
-    System.out.println("Processing child id: " + id);
     CentralLoggerConfig childlog=root.getConfiguredLogger(id);
     childlog.level=Severity.valueOf(props.getProperty("logger." + id + ".level","INFO"));
-    childlog.addAppenders(getAppenders(props,"logger." + id + ".appenders",declaredAppenders));
+    Set<String> appenderIds=getAppenderIds(props,"logger." + id + ".appenders");
+    for (    String appenderId : appenderIds) {
+      if (appenderId.startsWith("-")) {
+        childlog.removeAppenderById(appenderId.substring(1));
+      }
+ else {
+        if (declaredAppenders.containsKey(appenderId)) {
+          childlog.addAppender(declaredAppenders.get(appenderId));
+        }
+ else {
+          System.err.println("No such Appender: " + appenderId);
+        }
+      }
+    }
   }
   return root;
 }
