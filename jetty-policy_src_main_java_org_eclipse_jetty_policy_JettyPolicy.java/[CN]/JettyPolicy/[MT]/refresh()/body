@@ -1,15 +1,14 @@
 {
   try {
-    if (!initialized) {
-      initialize();
-    }
-synchronized (_cache) {
-      for (Iterator<Object> i=_cache.keySet().iterator(); i.hasNext(); ) {
-        System.out.println(i.next().toString());
-      }
+    if (__RELOAD && _scanner == null) {
+      initializeReloading();
     }
     if (__DEBUG) {
-      System.out.println("refreshing policy files");
+synchronized (_cache) {
+        for (Iterator<Object> i=_cache.keySet().iterator(); i.hasNext(); ) {
+          System.out.println(i.next().toString());
+        }
+      }
     }
     Set<PolicyBlock> clean=new HashSet<PolicyBlock>();
     for (Iterator<String> i=_policies.iterator(); i.hasNext(); ) {
@@ -21,9 +20,7 @@ synchronized (_cache) {
       _grants.addAll(clean);
       _cache.clear();
     }
-    if (__DEBUG) {
-      System.out.println("finished reloading policies");
-    }
+    _initialized=true;
   }
  catch (  Exception e) {
     e.printStackTrace();
