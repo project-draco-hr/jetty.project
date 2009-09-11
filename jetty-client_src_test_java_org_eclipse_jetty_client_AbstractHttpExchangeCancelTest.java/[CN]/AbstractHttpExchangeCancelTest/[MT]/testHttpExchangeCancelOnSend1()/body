@@ -1,0 +1,17 @@
+{
+  TestHttpExchange exchange=new TestHttpExchange(){
+    @Override void setStatus(    int status){
+      if (getStatus() == HttpExchange.STATUS_START && status == STATUS_WAITING_FOR_CONNECTION)       cancel();
+      super.setStatus(status);
+    }
+  }
+;
+  exchange.setAddress(newAddress());
+  exchange.setURI("/");
+  getHttpClient().send(exchange);
+  int status=exchange.waitForDone();
+  assertEquals(HttpExchange.STATUS_CANCELLED,status);
+  assertFalse(exchange.isResponseCompleted());
+  assertFalse(exchange.isFailed());
+  assertFalse(exchange.isAssociated());
+}

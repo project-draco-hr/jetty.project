@@ -1,129 +1,143 @@
 {
-  int no_progress=0;
-  long flushed=0;
-  boolean failed=false;
-  while (_endp.isBufferingInput() || _endp.isOpen()) {
+  if (_exchange != null)   _exchange.associate(this);
+  try {
+    int no_progress=0;
+    long flushed=0;
+    boolean failed=false;
+    while (_endp.isBufferingInput() || _endp.isOpen()) {
 synchronized (this) {
-      while (_exchange == null) {
-        if (_endp.isBlocking()) {
-          try {
-            this.wait();
-          }
- catch (          InterruptedException e) {
-            throw new InterruptedIOException();
-          }
-        }
- else {
-          _parser.fill();
-          _parser.skipCRLF();
-          if (_parser.isMoreInBuffer()) {
-            Log.warn("unexpected data");
-            _endp.close();
-          }
-          return;
-        }
-      }
-    }
-    if (_exchange.getStatus() == HttpExchange.STATUS_WAITING_FOR_COMMIT) {
-      no_progress=0;
-      commitRequest();
-    }
-    try {
-      long io=0;
-      _endp.flush();
-      if (_generator.isComplete()) {
-        if (!_requestComplete) {
-          _requestComplete=true;
-          _exchange.getEventListener().onRequestComplete();
-        }
-      }
- else {
-synchronized (this) {
-          if (_exchange == null)           continue;
-          flushed=_generator.flushBuffer();
-          io+=flushed;
-        }
-        if (!_generator.isComplete()) {
-          InputStream in=_exchange.getRequestContentSource();
-          if (in != null) {
-            if (_requestContentChunk == null || _requestContentChunk.length() == 0) {
-              _requestContentChunk=_exchange.getRequestContentChunk();
-              if (_requestContentChunk != null)               _generator.addContent(_requestContentChunk,false);
- else               _generator.complete();
-              io+=_generator.flushBuffer();
+        while (_exchange == null) {
+          if (_endp.isBlocking()) {
+            try {
+              this.wait();
+            }
+ catch (            InterruptedException e) {
+              throw new InterruptedIOException();
             }
           }
- else           _generator.complete();
+ else {
+            _parser.fill();
+            _parser.skipCRLF();
+            if (_parser.isMoreInBuffer()) {
+              Log.warn("Unexpected data received but no request sent");
+              close();
+            }
+            return;
+          }
         }
+        if (!_exchange.isAssociated())         _exchange.associate(this);
       }
-      if (!_parser.isComplete() && _generator.isCommitted()) {
-        long filled=_parser.parseAvailable();
-        io+=filled;
+      if (_exchange.getStatus() == HttpExchange.STATUS_WAITING_FOR_COMMIT) {
+        no_progress=0;
+        commitRequest();
       }
-      if (io > 0)       no_progress=0;
- else       if (no_progress++ >= 2 && !_endp.isBlocking()) {
-        if (_endp instanceof SslSelectChannelEndPoint && !_generator.isComplete() && !_generator.isEmpty()) {
-          if (_generator.flushBuffer() > 0)           continue;
-        }
-        return;
-      }
-    }
- catch (    Throwable e) {
-      if (e instanceof ThreadDeath)       throw (ThreadDeath)e;
-synchronized (this) {
-        if (_exchange != null) {
-          _exchange.getEventListener().onException(e);
-          _exchange.setStatus(HttpExchange.STATUS_EXCEPTED);
-        }
-      }
-      Log.warn("IOE on " + _exchange);
-      failed=true;
-      if (e instanceof IOException)       throw (IOException)e;
-      if (e instanceof Error)       throw (Error)e;
-      if (e instanceof RuntimeException)       throw (RuntimeException)e;
-      throw new RuntimeException(e);
-    }
- finally {
-      boolean complete=false;
-      boolean close=failed;
-      if (!failed) {
+      try {
+        long io=0;
+        _endp.flush();
         if (_generator.isComplete()) {
           if (!_requestComplete) {
             _requestComplete=true;
             _exchange.getEventListener().onRequestComplete();
           }
-          if (_parser.isComplete()) {
-            _destination.getHttpClient().cancel(_timeout);
-            complete=true;
+        }
+ else {
+synchronized (this) {
+            if (_exchange == null)             continue;
+            flushed=_generator.flushBuffer();
+            io+=flushed;
+          }
+          if (!_generator.isComplete()) {
+            InputStream in=_exchange.getRequestContentSource();
+            if (in != null) {
+              if (_requestContentChunk == null || _requestContentChunk.length() == 0) {
+                _requestContentChunk=_exchange.getRequestContentChunk();
+                if (_requestContentChunk != null)                 _generator.addContent(_requestContentChunk,false);
+ else                 _generator.complete();
+                io+=_generator.flushBuffer();
+              }
+            }
+ else             _generator.complete();
           }
         }
+        if (_generator.isComplete() && !_requestComplete) {
+          _requestComplete=true;
+          _exchange.getEventListener().onRequestComplete();
+        }
+        if (!_parser.isComplete() && _generator.isCommitted()) {
+          long filled=_parser.parseAvailable();
+          io+=filled;
+        }
+        if (io > 0)         no_progress=0;
+ else         if (no_progress++ >= 2 && !_endp.isBlocking()) {
+          if (_endp instanceof SslSelectChannelEndPoint && !_generator.isComplete() && !_generator.isEmpty()) {
+            if (_generator.flushBuffer() > 0)             continue;
+          }
+          return;
+        }
       }
-      if (complete || failed) {
+ catch (      Throwable e) {
+        Log.debug("Failure on " + _exchange,e);
+        if (e instanceof ThreadDeath)         throw (ThreadDeath)e;
 synchronized (this) {
-          if (!close)           close=shouldClose();
-          reset(true);
-          no_progress=0;
-          flushed=-1;
           if (_exchange != null) {
-            _exchange=null;
-            if (_pipeline == null) {
-              if (!isReserved())               _destination.returnConnection(this,close);
-              if (close)               return;
+            if (_exchange.getStatus() != HttpExchange.STATUS_CANCELLING) {
+              _exchange.getEventListener().onException(e);
+              _exchange.setStatus(HttpExchange.STATUS_EXCEPTED);
             }
- else {
-              if (close) {
+          }
+        }
+        failed=true;
+        if (e instanceof IOException)         throw (IOException)e;
+        if (e instanceof Error)         throw (Error)e;
+        if (e instanceof RuntimeException)         throw (RuntimeException)e;
+        throw new RuntimeException(e);
+      }
+ finally {
+        boolean complete=false;
+        boolean close=failed;
+        if (!failed) {
+          if (_generator.isComplete()) {
+            if (!_requestComplete) {
+              _requestComplete=true;
+              _exchange.getEventListener().onRequestComplete();
+            }
+            if (_parser.isComplete()) {
+              _destination.getHttpClient().cancel(_timeout);
+              complete=true;
+            }
+          }
+        }
+        if (complete || failed) {
+synchronized (this) {
+            if (!close)             close=shouldClose();
+            reset(true);
+            no_progress=0;
+            if (_exchange != null) {
+              _exchange.disassociate(this);
+              _exchange=null;
+              if (_pipeline == null) {
                 if (!isReserved())                 _destination.returnConnection(this,close);
-                _destination.send(_pipeline);
-                _pipeline=null;
-                return;
               }
-              HttpExchange ex=_pipeline;
-              _pipeline=null;
-              send(ex);
+ else {
+                if (close) {
+                  if (!isReserved())                   _destination.returnConnection(this,close);
+                  HttpExchange exchange=_pipeline;
+                  _pipeline=null;
+                  _destination.send(exchange);
+                }
+ else {
+                  HttpExchange exchange=_pipeline;
+                  _pipeline=null;
+                  send(exchange);
+                }
+              }
             }
           }
         }
       }
     }
+  }
+  finally {
+    if (_exchange != null && _exchange.isAssociated())     _exchange.disassociate(this);
   }
 }

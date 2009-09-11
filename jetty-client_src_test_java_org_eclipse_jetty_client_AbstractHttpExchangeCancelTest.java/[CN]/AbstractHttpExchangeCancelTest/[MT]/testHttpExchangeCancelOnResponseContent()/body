@@ -1,0 +1,17 @@
+{
+  TestHttpExchange exchange=new TestHttpExchange(){
+    @Override protected void onResponseContent(    Buffer content) throws IOException {
+      super.onResponseContent(content);
+      cancel();
+    }
+  }
+;
+  exchange.setAddress(newAddress());
+  exchange.setURI("/?action=body");
+  getHttpClient().send(exchange);
+  int status=exchange.waitForDone();
+  assertEquals(HttpExchange.STATUS_CANCELLED,status);
+  assertFalse(exchange.isResponseCompleted());
+  assertFalse(exchange.isFailed());
+  assertFalse(exchange.isAssociated());
+}
