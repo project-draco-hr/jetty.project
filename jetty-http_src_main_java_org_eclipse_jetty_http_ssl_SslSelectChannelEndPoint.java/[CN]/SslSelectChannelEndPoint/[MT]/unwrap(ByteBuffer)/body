@@ -10,12 +10,18 @@
       total_filled+=filled;
     }
  catch (    IOException e) {
-      if (_inNIOBuffer.length() == 0)       throw e;
+      if (_inNIOBuffer.length() == 0) {
+        _outNIOBuffer.clear();
+        throw e;
+      }
       break;
     }
   }
-  if (_inNIOBuffer.length() == 0) {
-    if (!isOpen())     throw new org.eclipse.jetty.io.EofException();
+  if (total_filled == 0 && _inNIOBuffer.length() == 0) {
+    if (!isOpen()) {
+      _outNIOBuffer.clear();
+      throw new EofException();
+    }
     return false;
   }
   try {
@@ -35,6 +41,11 @@ case BUFFER_OVERFLOW:
     throw new IllegalStateException(_result.toString());
 case BUFFER_UNDERFLOW:
   if (Log.isDebugEnabled())   Log.debug("unwrap {}",_result);
+if (!isOpen()) {
+  _inNIOBuffer.clear();
+  _outNIOBuffer.clear();
+  throw new EofException();
+}
 return (total_filled > 0);
 case CLOSED:
 _closing=true;
