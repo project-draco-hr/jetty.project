@@ -1,5 +1,5 @@
 {
-  ServletHolder defholder=context.addServlet(DefaultServlet.class,"/*");
+  ServletHolder defholder=context.addServlet(DefaultServlet.class,"/");
   defholder.setInitParameter("dirAllowed","true");
   defholder.setInitParameter("redirectWelcome","false");
   defholder.setInitParameter("gzip","false");
@@ -9,7 +9,7 @@
   File resBase=new File(testDir,"docroot");
   resBase.mkdirs();
   File index=new File(resBase,"index.html");
-  createFile(index,"<h>Hello Index</h1>");
+  createFile(index,"<h1>Hello Index</h1>");
   File wackyDir=new File(resBase,"dir?");
   if (!_runningOnWindows) {
     assertTrue(wackyDir.mkdirs());
@@ -24,7 +24,7 @@
   defholder.setInitParameter("resourceBase",resBasePath);
   String response;
   response=connector.getResponses("GET /context/ HTTP/1.0\r\n\r\n");
-  assertResponseContains("Directory: /context/<",response);
+  assertResponseContains("<h1>Hello Index</h1>",response);
   response=connector.getResponses("GET /context/dir?/ HTTP/1.0\r\n\r\n");
   assertResponseContains("404",response);
   if (!_runningOnWindows) {
@@ -44,7 +44,7 @@
   response=connector.getResponses("GET /context/dir?/../../sekret/pass HTTP/1.0\r\n\r\n");
   assertResponseNotContains("Sssh",response);
   response=connector.getResponses("GET /context/ HTTP/1.0\r\n\r\n");
-  assertResponseContains("Directory: /context/<",response);
+  assertResponseContains("<h1>Hello Index</h1>",response);
   response=connector.getResponses("GET /context/dir;/ HTTP/1.0\r\n\r\n");
   assertResponseContains("404",response);
   response=connector.getResponses("GET /context/dir%3B/ HTTP/1.0\r\n\r\n");

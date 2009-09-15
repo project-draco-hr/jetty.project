@@ -1,14 +1,14 @@
 {
   if (_welcomes == null)   return null;
+  String welcome_servlet=null;
   for (int i=0; i < _welcomes.length; i++) {
-    Resource welcome=getResource(URIUtil.addPaths(pathInContext,_welcomes[i]));
+    String welcome_in_context=URIUtil.addPaths(pathInContext,_welcomes[i]);
+    Resource welcome=getResource(welcome_in_context);
     if (welcome != null && welcome.exists())     return _welcomes[i];
-  }
-  if (_welcomeServlets) {
-    ServletHandler servletHandler=(ServletHandler)_contextHandler.getChildHandlerByClass(ServletHandler.class);
-    for (int i=0; i < _welcomes.length; i++) {
-      if (servletHandler.matchesPath(_welcomes[i]))       return _welcomes[i];
+    if (_welcomeServlets && welcome_servlet == null) {
+      Map.Entry entry=_servletHandler.getHolderEntry(welcome_in_context);
+      if (entry != null && entry.getValue() != _defaultHolder)       welcome_servlet=welcome_in_context;
     }
   }
-  return null;
+  return welcome_servlet;
 }
