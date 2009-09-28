@@ -1,0 +1,25 @@
+{
+  Server server=new Server(0);
+  LoginService loginService=new HashLoginService("MyRealm","src/test/resources/realm.properties");
+  server.addBean(loginService);
+  ConstraintSecurityHandler security=new ConstraintSecurityHandler();
+  server.setHandler(security);
+  Constraint constraint=new Constraint();
+  constraint.setName("auth");
+  constraint.setAuthenticate(true);
+  constraint.setRoles(new String[]{"user","admin"});
+  ConstraintMapping mapping=new ConstraintMapping();
+  mapping.setPathSpec("/*");
+  mapping.setConstraint(constraint);
+  Set<String> knownRoles=new HashSet<String>();
+  knownRoles.add("user");
+  knownRoles.add("admin");
+  security.setConstraintMappings(new ConstraintMapping[]{mapping},knownRoles);
+  security.setAuthenticator(new BasicAuthenticator());
+  security.setLoginService(loginService);
+  security.setStrict(false);
+  HelloHandler hh=new HelloHandler();
+  security.setHandler(hh);
+  server.start();
+  server.join();
+}
