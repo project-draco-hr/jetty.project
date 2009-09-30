@@ -1,17 +1,17 @@
 {
   startMonitor();
-  if (xmls.isEmpty()) {
-    if (_fromDaemon) {
-      xmls.add("etc/jetty-logging.xml");
-    }
-    xmls.add("etc/jetty.xml");
+  List<String> configuredXmls=loadConfig(xmls);
+  if (configuredXmls.isEmpty()) {
+    throw new FileNotFoundException("No XML configuration files specified in start.config or command line.");
   }
-  initConfig(xmls);
+  if (_fromDaemon) {
+    configuredXmls.add("etc/jetty-logging.xml");
+  }
   if (_secure) {
     _config.addActiveOption("policy");
     _config.addActiveOption("security");
   }
-  xmls=resolveXmlConfigs(xmls);
+  configuredXmls=resolveXmlConfigs(configuredXmls);
   Classpath classpath=_config.getActiveClasspath();
   System.setProperty("java.class.path",classpath.toString());
   ClassLoader cl=classpath.getClassLoader();
@@ -38,11 +38,11 @@
     return;
   }
   if (_dryRun) {
-    System.out.println(buildCommandLine(classpath,xmls));
+    System.out.println(buildCommandLine(classpath,configuredXmls));
     return;
   }
   if (_exec) {
-    String cmd=buildCommandLine(classpath,xmls);
+    String cmd=buildCommandLine(classpath,configuredXmls);
     Process process=Runtime.getRuntime().exec(cmd);
     copyInThread(process.getErrorStream(),System.err);
     copyInThread(process.getInputStream(),System.out);
@@ -60,7 +60,7 @@
     mainClass=System.getProperty("main.class");
     if (mainClass != null)     classname=mainClass;
     Config.debug("main.class=" + classname);
-    invokeMain(cl,classname,xmls);
+    invokeMain(cl,classname,configuredXmls);
   }
  catch (  Exception e) {
     e.printStackTrace();
