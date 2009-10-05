@@ -1,27 +1,24 @@
 {
   try {
-    int oldStatus=getStatus();
+    int oldStatus=_status.get();
+    boolean set=false;
 switch (oldStatus) {
 case STATUS_START:
 switch (newStatus) {
 case STATUS_WAITING_FOR_CONNECTION:
 case STATUS_WAITING_FOR_COMMIT:
 case STATUS_CANCELLING:
-        updateStatus(newStatus);
+        set=_status.compareAndSet(oldStatus,newStatus);
       break;
-default :
-    throw new IllegalStateException(oldStatus + " => " + newStatus);
-}
+  }
 break;
 case STATUS_WAITING_FOR_CONNECTION:
 switch (newStatus) {
 case STATUS_WAITING_FOR_COMMIT:
 case STATUS_CANCELLING:
 case STATUS_EXCEPTED:
-updateStatus(newStatus);
+set=_status.compareAndSet(oldStatus,newStatus);
 break;
-default :
-throw new IllegalStateException(oldStatus + " => " + newStatus);
 }
 break;
 case STATUS_WAITING_FOR_COMMIT:
@@ -29,32 +26,25 @@ switch (newStatus) {
 case STATUS_SENDING_REQUEST:
 case STATUS_CANCELLING:
 case STATUS_EXCEPTED:
-updateStatus(newStatus);
+set=_status.compareAndSet(oldStatus,newStatus);
 break;
 case STATUS_EXPIRED:
-updateStatus(newStatus);
-getEventListener().onExpire();
+if (set=_status.compareAndSet(oldStatus,newStatus)) getEventListener().onExpire();
 break;
-default :
-throw new IllegalStateException(oldStatus + " => " + newStatus);
 }
 break;
 case STATUS_SENDING_REQUEST:
 switch (newStatus) {
 case STATUS_WAITING_FOR_RESPONSE:
-updateStatus(newStatus);
-getEventListener().onRequestCommitted();
+if (set=_status.compareAndSet(oldStatus,newStatus)) getEventListener().onRequestCommitted();
 break;
 case STATUS_CANCELLING:
 case STATUS_EXCEPTED:
-updateStatus(newStatus);
+set=_status.compareAndSet(oldStatus,newStatus);
 break;
 case STATUS_EXPIRED:
-updateStatus(newStatus);
-getEventListener().onExpire();
+if (set=_status.compareAndSet(oldStatus,newStatus)) getEventListener().onExpire();
 break;
-default :
-throw new IllegalStateException(oldStatus + " => " + newStatus);
 }
 break;
 case STATUS_WAITING_FOR_RESPONSE:
@@ -62,70 +52,59 @@ switch (newStatus) {
 case STATUS_PARSING_HEADERS:
 case STATUS_CANCELLING:
 case STATUS_EXCEPTED:
-updateStatus(newStatus);
+set=_status.compareAndSet(oldStatus,newStatus);
 break;
 case STATUS_EXPIRED:
-updateStatus(newStatus);
-getEventListener().onExpire();
+if (set=_status.compareAndSet(oldStatus,newStatus)) getEventListener().onExpire();
 break;
-default :
-throw new IllegalStateException(oldStatus + " => " + newStatus);
 }
 break;
 case STATUS_PARSING_HEADERS:
 switch (newStatus) {
 case STATUS_PARSING_CONTENT:
-updateStatus(newStatus);
-getEventListener().onResponseHeaderComplete();
+if (set=_status.compareAndSet(oldStatus,newStatus)) getEventListener().onResponseHeaderComplete();
 break;
 case STATUS_CANCELLING:
 case STATUS_EXCEPTED:
-updateStatus(newStatus);
+set=_status.compareAndSet(oldStatus,newStatus);
 break;
 case STATUS_EXPIRED:
-updateStatus(newStatus);
-getEventListener().onExpire();
+if (set=_status.compareAndSet(oldStatus,newStatus)) getEventListener().onExpire();
 break;
-default :
-throw new IllegalStateException(oldStatus + " => " + newStatus);
 }
 break;
 case STATUS_PARSING_CONTENT:
 switch (newStatus) {
 case STATUS_COMPLETED:
-updateStatus(newStatus);
-getEventListener().onResponseComplete();
+if (set=_status.compareAndSet(oldStatus,newStatus)) getEventListener().onResponseComplete();
 break;
 case STATUS_CANCELLING:
 case STATUS_EXCEPTED:
-updateStatus(newStatus);
+set=_status.compareAndSet(oldStatus,newStatus);
 break;
 case STATUS_EXPIRED:
-updateStatus(newStatus);
-getEventListener().onExpire();
+if (set=_status.compareAndSet(oldStatus,newStatus)) getEventListener().onExpire();
 break;
-default :
-throw new IllegalStateException(oldStatus + " => " + newStatus);
 }
 break;
 case STATUS_COMPLETED:
 switch (newStatus) {
 case STATUS_START:
-updateStatus(newStatus);
+set=_status.compareAndSet(oldStatus,newStatus);
 break;
 case STATUS_CANCELLING:
 case STATUS_EXPIRED:
+set=true;
 break;
-default :
-throw new IllegalStateException(oldStatus + " => " + newStatus);
 }
 break;
 case STATUS_CANCELLING:
 switch (newStatus) {
 case STATUS_CANCELLED:
-updateStatus(newStatus);
+if (set=_status.compareAndSet(oldStatus,newStatus)) done();
 break;
 default :
+set=true;
 break;
 }
 break;
@@ -134,15 +113,14 @@ case STATUS_EXPIRED:
 case STATUS_CANCELLED:
 switch (newStatus) {
 case STATUS_START:
-updateStatus(newStatus);
+set=_status.compareAndSet(oldStatus,newStatus);
 break;
-default :
-throw new IllegalStateException(oldStatus + " => " + newStatus);
 }
 break;
 default :
 throw new AssertionError(oldStatus + " => " + newStatus);
 }
+if (!set) throw new IllegalStateException(oldStatus + " => " + newStatus);
 }
  catch (IOException x) {
 Log.warn(x);
