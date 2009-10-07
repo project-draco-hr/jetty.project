@@ -1,0 +1,25 @@
+{
+  _bytes=new ByteArrayBuffer(2048);
+  Buffers buffers=new SimpleBuffers(new ByteArrayBuffer(1024),new ByteArrayBuffer(1024));
+  ByteArrayEndPoint endp=new ByteArrayEndPoint();
+  AbstractGenerator generator=new AbstractGenerator(buffers,endp){
+    @Override public void completeHeader(    HttpFields fields,    boolean allContentAdded) throws IOException {
+    }
+    @Override public long flushBuffer() throws IOException {
+      return 0;
+    }
+    @Override public int prepareUncheckedAddContent() throws IOException {
+      return 1024;
+    }
+    public void addContent(    Buffer content,    boolean last) throws IOException {
+      _bytes.put(content);
+      content.clear();
+    }
+    public boolean addContent(    byte b) throws IOException {
+      return false;
+    }
+  }
+;
+  HttpOutput httpOut=new HttpOutput(generator,60000);
+  _writer=new HttpWriter(httpOut);
+}
