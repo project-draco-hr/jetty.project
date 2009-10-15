@@ -1,24 +1,25 @@
 {
-  Object listeners=null;
+  final List<ContinuationListener> listeners;
 synchronized (this) {
 switch (_state) {
 case __ASYNCSTARTED:
 case __ASYNCWAIT:
-      listeners=_listeners;
+      listeners=_continuationListeners;
     break;
 default :
-  return;
+  listeners=null;
+return;
 }
 _expired=true;
 }
 if (listeners != null) {
-for (int i=0; i < LazyList.size(listeners); i++) {
+for (int i=0; i < listeners.size(); i++) {
+ContinuationListener listener=listeners.get(i);
 try {
-  ContinuationListener listener=((ContinuationListener)LazyList.get(listeners,i));
-  listener.onTimeout(this);
+listener.onTimeout(this);
 }
  catch (Exception e) {
-  Log.warn(e);
+Log.warn(e);
 }
 }
 }
