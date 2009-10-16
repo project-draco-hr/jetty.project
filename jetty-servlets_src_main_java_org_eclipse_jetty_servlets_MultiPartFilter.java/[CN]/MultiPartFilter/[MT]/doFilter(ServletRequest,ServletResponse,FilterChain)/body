@@ -8,7 +8,13 @@
   String content_type=srequest.getContentType();
   String boundary="--" + value(content_type.substring(content_type.indexOf("boundary=")));
   byte[] byteBoundary=(boundary + "--").getBytes(StringUtil.__ISO_8859_1);
-  MultiMap params=new MultiMap(request.getParameterMap());
+  MultiMap params=new MultiMap();
+  for (Iterator i=request.getParameterMap().entrySet().iterator(); i.hasNext(); ) {
+    Map.Entry entry=(Map.Entry)i.next();
+    Object value=entry.getValue();
+    if (value instanceof String[])     params.addValues(entry.getKey(),(String[])value);
+ else     params.add(entry.getKey(),value);
+  }
   try {
     byte[] bytes=TypeUtil.readLine(in);
     String line=bytes == null ? null : new String(bytes,"UTF-8");
@@ -57,7 +63,7 @@
           out=new FileOutputStream(file);
           if (_fileOutputBuffer > 0)           out=new BufferedOutputStream(out,_fileOutputBuffer);
           request.setAttribute(name,file);
-          params.put(name,filename);
+          params.add(name,filename);
           if (_deleteFiles) {
             file.deleteOnExit();
             ArrayList files=(ArrayList)request.getAttribute(FILES);
