@@ -38,7 +38,7 @@ boolean accepted=false;
 try {
 accepted=_passes.tryAcquire(_waitMs,TimeUnit.MILLISECONDS);
 if (!accepted) {
-final Continuation continuation=ContinuationSupport.getContinuation(request,response);
+final Continuation continuation=ContinuationSupport.getContinuation(request);
 Boolean throttled=(Boolean)request.getAttribute(__THROTTLED);
 if (throttled != Boolean.TRUE && _throttleMs > 0) {
   int priority=getPriority(request,tracker);
@@ -46,6 +46,7 @@ if (throttled != Boolean.TRUE && _throttleMs > 0) {
   if (_insertHeaders)   ((HttpServletResponse)response).addHeader("DoSFilter","throttled");
   if (_throttleMs > 0)   continuation.setTimeout(_throttleMs);
   continuation.suspend();
+  continuation.addContinuationListener(_listener[priority]);
   _queue[priority].add(continuation);
   return;
 }
@@ -66,13 +67,11 @@ _context.log("DoS",e);
 }
  finally {
 if (accepted) {
-synchronized (_queue) {
-  for (int p=_queue.length; p-- > 0; ) {
-    Continuation continuation=_queue[p].poll();
-    if (continuation != null) {
-      continuation.resume();
-      break;
-    }
+for (int p=_queue.length; p-- > 0; ) {
+  Continuation continuation=_queue[p].poll();
+  if (continuation != null && continuation.isSuspended()) {
+    continuation.resume();
+    break;
   }
 }
 _passes.release();

@@ -1,7 +1,19 @@
 {
   _context=filterConfig.getServletContext();
   _queue=new Queue[getMaxPriority() + 1];
-  for (int p=0; p < _queue.length; p++)   _queue[p]=new ArrayQueue<Continuation>();
+  _listener=new ContinuationListener[getMaxPriority() + 1];
+  for (int p=0; p < _queue.length; p++) {
+    _queue[p]=new ConcurrentLinkedQueue<Continuation>();
+    final int priority=p;
+    _listener[p]=new ContinuationListener(){
+      public void onComplete(      Continuation continuation){
+      }
+      public void onTimeout(      Continuation continuation){
+        _queue[priority].remove(continuation);
+      }
+    }
+;
+  }
   int baseRateLimit=__DEFAULT_MAX_REQUESTS_PER_SEC;
   if (filterConfig.getInitParameter(MAX_REQUESTS_PER_S_INIT_PARAM) != null)   baseRateLimit=Integer.parseInt(filterConfig.getInitParameter(MAX_REQUESTS_PER_S_INIT_PARAM));
   _maxRequestsPerSec=baseRateLimit;
