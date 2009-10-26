@@ -1,7 +1,9 @@
 {
   super.doStart();
-  _timeoutQ.setNow();
   _timeoutQ.setDuration(_timeout);
+  _timeoutQ.setNow();
+  _idleTimeoutQ.setDuration(_idleTimeout);
+  _idleTimeoutQ.setNow();
   if (_threadPool == null) {
     QueuedThreadPool pool=new QueuedThreadPool();
     pool.setMaxThreads(16);
@@ -22,10 +24,10 @@
   _threadPool.dispatch(new Runnable(){
     public void run(){
       while (isRunning()) {
-        _timeoutQ.setNow();
-        _timeoutQ.tick();
+        _timeoutQ.tick(System.currentTimeMillis());
+        _idleTimeoutQ.tick(_timeoutQ.getNow());
         try {
-          Thread.sleep(1000);
+          Thread.sleep(200);
         }
  catch (        InterruptedException e) {
         }

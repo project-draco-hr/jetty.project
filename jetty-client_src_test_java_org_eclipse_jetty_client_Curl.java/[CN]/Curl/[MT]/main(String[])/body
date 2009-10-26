@@ -1,8 +1,29 @@
 {
+  if (args.length == 0)   args=new String[]{"--sync","http://www.sun.com/robots.txt","http://www.sun.com/favicon.ico","--dump","http://www.sun.com/robots.txt"};
   HttpClient client=new HttpClient();
+  client.setIdleTimeout(2000);
   client.start();
+  boolean async=true;
+  boolean dump=false;
   final CountDownLatch latch=new CountDownLatch(args.length);
   for (  String arg : args) {
+    if ("--sync".equals(arg)) {
+      async=false;
+      continue;
+    }
+    if ("--async".equals(arg)) {
+      async=true;
+      continue;
+    }
+    if ("--dump".equals(arg)) {
+      dump=true;
+      continue;
+    }
+    if ("--nodump".equals(arg)) {
+      dump=false;
+      continue;
+    }
+    final boolean d=dump;
     HttpExchange ex=new HttpExchange(){
       AtomicBoolean counted=new AtomicBoolean(false);
       @Override protected void onConnectionFailed(      Throwable ex){
@@ -23,6 +44,7 @@
       }
       @Override protected void onResponseContent(      Buffer content) throws IOException {
         super.onResponseContent(content);
+        if (d)         System.out.print(content.toString());
         System.err.println("got " + content.length());
       }
       /** 
@@ -50,7 +72,13 @@
 ;
     ex.setMethod(HttpMethods.GET);
     ex.setURL(arg);
+    System.err.println("\nSending " + ex);
     client.send(ex);
+    if (!async) {
+      System.err.println("waiting...");
+      ex.waitForDone();
+      System.err.println("Done");
+    }
   }
   latch.await();
 }

@@ -1,5 +1,5 @@
 {
-  long now=System.currentTimeMillis();
+  long now=_client.getNow();
   long idleTimeout=_client.getIdleTimeout();
   HttpConnection connection=null;
   while (true) {
@@ -12,7 +12,6 @@ synchronized (this) {
       if (_idle.size() > 0)       connection=_idle.remove(_idle.size() - 1);
     }
     if (connection == null)     return null;
-    long last=connection.getLast();
-    if (connection.getEndPoint().isOpen() && (last == 0 || ((now - last) < idleTimeout)))     return connection;
+    if (connection.cancelIdleTimeout())     return connection;
   }
 }
