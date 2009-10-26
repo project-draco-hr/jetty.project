@@ -1,16 +1,16 @@
 {
   super(new SelectChannelConnector(){
-    protected SelectChannelEndPoint newEndPoint(    SocketChannel channel,    SelectSet selectSet,    SelectionKey key) throws IOException {
+    @Override protected SelectChannelEndPoint newEndPoint(    SocketChannel channel,    SelectSet selectSet,    SelectionKey key) throws IOException {
       return new SelectChannelEndPoint(channel,selectSet,key){
         int write;
         int read;
-        public int flush(        Buffer header,        Buffer buffer,        Buffer trailer) throws IOException {
+        @Override public int flush(        Buffer header,        Buffer buffer,        Buffer trailer) throws IOException {
           int x=write++ & 0xff;
           if (x < 8)           return 0;
           if (x < 32)           return flush(header);
           return super.flush(header,buffer,trailer);
         }
-        public int flush(        Buffer buffer) throws IOException {
+        @Override public int flush(        Buffer buffer) throws IOException {
           int x=write++ & 0xff;
           if (x < 8)           return 0;
           if (x < 32) {
@@ -22,7 +22,7 @@
           }
           return super.flush(buffer);
         }
-        public int fill(        Buffer buffer) throws IOException {
+        @Override public int fill(        Buffer buffer) throws IOException {
           int x=read++ & 0xff;
           if (x < 8)           return 0;
           if (x < 16 && buffer.space() >= 1) {
