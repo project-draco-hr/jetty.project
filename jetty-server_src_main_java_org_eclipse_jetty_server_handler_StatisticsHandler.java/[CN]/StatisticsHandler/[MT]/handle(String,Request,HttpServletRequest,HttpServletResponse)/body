@@ -1,24 +1,36 @@
 {
-  _requests.incrementAndGet();
-  int activeRequests=_requestsActive.incrementAndGet();
-  updateMax(_requestsMaxActive,activeRequests);
+  updateMax(_dispatchedActiveMax,_dispatchedActive.incrementAndGet());
+  final long start;
   AsyncContinuation continuation=request.getAsyncContinuation();
-  if (continuation.isExpired()) {
-    _expiredRequests.incrementAndGet();
+  if (continuation.isInitial()) {
+    updateMax(_requestsActiveMax,_requestsActive.incrementAndGet());
+    start=request.getTimeStamp();
   }
- else   if (continuation.isResumed()) {
-    _resumedRequests.incrementAndGet();
-    long initialTime=request.getTimeStamp();
-    long suspendTime=System.currentTimeMillis() - initialTime;
-    updateMin(_suspendMinTime,suspendTime);
-    _suspendTotalTime.addAndGet(suspendTime);
+ else {
+    start=System.currentTimeMillis();
+    _suspendsActive.decrementAndGet();
+    if (continuation.isResumed())     _resumes.incrementAndGet();
   }
   try {
     super.handle(path,request,httpRequest,httpResponse);
   }
   finally {
-    _requestsActive.decrementAndGet();
-    if (!continuation.isSuspended()) {
+    final long now=System.currentTimeMillis();
+    final long dispatched=now - start;
+    _dispatchedActive.decrementAndGet();
+    _dispatched.incrementAndGet();
+    _dispatchedTimeTotal.addAndGet(dispatched);
+    updateMax(_dispatchedTimeMax,dispatched);
+    if (continuation.isSuspended()) {
+      if (continuation.isInitial())       continuation.addContinuationListener(_onCompletion);
+      _suspends.incrementAndGet();
+      updateMax(_suspendsActiveMax,_suspendsActive.incrementAndGet());
+    }
+ else     if (continuation.isInitial()) {
+      _requestsActive.decrementAndGet();
+      _requests.incrementAndGet();
+      updateMax(_requestTimeMax,dispatched);
+      _requestTimeTotal.addAndGet(dispatched);
       updateResponse(request);
     }
   }

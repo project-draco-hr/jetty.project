@@ -1,15 +1,31 @@
 {
-  final long timeout=1000;
   final AtomicReference<Continuation> continuationHandle=new AtomicReference<Continuation>();
+  final CyclicBarrier barrier[]={new CyclicBarrier(2),new CyclicBarrier(2),new CyclicBarrier(2)};
   _statsHandler.setHandler(new AbstractHandler(){
     public void handle(    String path,    Request request,    HttpServletRequest httpRequest,    HttpServletResponse httpResponse) throws IOException, ServletException {
       request.setHandled(true);
-      Continuation continuation=ContinuationSupport.getContinuation(httpRequest);
-      System.out.println("continuation = " + continuation);
-      if (continuationHandle.get() == null) {
-        continuation.setTimeout(timeout);
-        continuation.suspend();
-        continuationHandle.set(continuation);
+      try {
+        barrier[0].await();
+        Thread.sleep(10);
+        Continuation continuation=ContinuationSupport.getContinuation(httpRequest);
+        if (continuationHandle.get() == null) {
+          continuation.setTimeout(10);
+          continuation.suspend();
+          continuationHandle.set(continuation);
+        }
+      }
+ catch (      Exception x) {
+        Thread.currentThread().interrupt();
+        throw (IOException)new IOException().initCause(x);
+      }
+ finally {
+        try {
+          barrier[1].await();
+        }
+ catch (        Exception x) {
+          Thread.currentThread().interrupt();
+          throw (IOException)new IOException().initCause(x);
+        }
       }
     }
   }
@@ -17,15 +33,54 @@
   _server.start();
   String request="GET / HTTP/1.1\r\n" + "Host: localhost\r\n" + "\r\n";
   _connector.executeRequest(request);
-  boolean passed=_latchHandler.await(1000);
-  assertTrue(passed);
+  barrier[0].await();
+  assertEquals(0,_statsHandler.getRequests());
+  assertEquals(1,_statsHandler.getRequestsActive());
+  assertEquals(0,_statsHandler.getDispatched());
+  assertEquals(1,_statsHandler.getDispatchedActive());
+  barrier[1].await();
+  assertTrue(_latchHandler.await(1000));
   assertNotNull(continuationHandle.get());
   assertTrue(continuationHandle.get().isSuspended());
-  Thread.sleep(timeout);
-  passed=_latchHandler.await(1000);
-  assertTrue(passed);
-  assertEquals(2,_statsHandler.getRequests());
-  assertEquals(0,_statsHandler.getRequestsResumed());
-  assertEquals(1,_statsHandler.getRequestsExpired());
+  continuationHandle.get().addContinuationListener(new ContinuationListener(){
+    public void onTimeout(    Continuation continuation){
+    }
+    public void onComplete(    Continuation continuation){
+      try {
+        barrier[2].await();
+      }
+ catch (      Exception e) {
+      }
+    }
+  }
+);
+  assertEquals(0,_statsHandler.getRequests());
+  assertEquals(1,_statsHandler.getRequestsActive());
+  assertEquals(1,_statsHandler.getDispatched());
+  assertEquals(0,_statsHandler.getDispatchedActive());
+  _latchHandler.reset();
+  barrier[0].reset();
+  barrier[1].reset();
+  barrier[0].await();
+  assertEquals(0,_statsHandler.getRequests());
+  assertEquals(1,_statsHandler.getRequestsActive());
+  assertEquals(1,_statsHandler.getDispatched());
+  assertEquals(1,_statsHandler.getDispatchedActive());
+  barrier[1].await();
+  assertTrue(_latchHandler.await(1000));
+  barrier[2].await();
+  assertEquals(1,_statsHandler.getRequests());
+  assertEquals(0,_statsHandler.getRequestsActive());
+  assertEquals(2,_statsHandler.getDispatched());
+  assertEquals(0,_statsHandler.getDispatchedActive());
+  assertEquals(1,_statsHandler.getSuspends());
+  assertEquals(1,_statsHandler.getResumes());
+  assertEquals(1,_statsHandler.getExpires());
   assertEquals(1,_statsHandler.getResponses2xx());
+  assertTrue(_statsHandler.getRequestTimeTotal() >= 30);
+  assertEquals(_statsHandler.getRequestTimeTotal(),_statsHandler.getRequestTimeMax());
+  assertEquals(_statsHandler.getRequestTimeTotal(),_statsHandler.getRequestTimeAverage());
+  assertTrue(_statsHandler.getDispatchedTimeTotal() >= 20);
+  assertTrue(_statsHandler.getDispatchedTimeAverage() + 10 <= _statsHandler.getDispatchedTimeTotal());
+  assertTrue(_statsHandler.getDispatchedTimeMax() + 10 <= _statsHandler.getDispatchedTimeTotal());
 }

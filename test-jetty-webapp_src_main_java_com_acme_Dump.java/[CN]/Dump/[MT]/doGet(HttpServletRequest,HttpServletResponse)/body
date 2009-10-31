@@ -37,21 +37,11 @@ catch (    Exception e) {
  catch (        InterruptedException e) {
           e.printStackTrace();
         }
-        Continuation continuation=ContinuationSupport.getContinuation(request,response);
+        Continuation continuation=ContinuationSupport.getContinuation(request);
         continuation.resume();
       }
     }
 ).start();
-  }
-  if (request.getParameter("suspend") != null) {
-    try {
-      Continuation continuation=ContinuationSupport.getContinuation(request,response);
-      continuation.setTimeout(Long.parseLong(request.getParameter("suspend")));
-      continuation.suspend();
-    }
- catch (    Exception e) {
-      throw new ServletException(e);
-    }
   }
   if (request.getParameter("complete") != null) {
     final long complete=Long.parseLong(request.getParameter("complete"));
@@ -75,6 +65,18 @@ catch (    Exception e) {
       }
     }
 ).start();
+  }
+  if (request.getParameter("suspend") != null && request.getAttribute("SUSPEND") != Boolean.TRUE) {
+    request.setAttribute("SUSPEND",Boolean.TRUE);
+    try {
+      Continuation continuation=ContinuationSupport.getContinuation(request);
+      continuation.setTimeout(Long.parseLong(request.getParameter("suspend")));
+      continuation.suspend();
+      continuation.undispatch();
+    }
+ catch (    Exception e) {
+      throw new ServletException(e);
+    }
   }
   request.setAttribute("Dump",this);
   getServletContext().setAttribute("Dump",this);
