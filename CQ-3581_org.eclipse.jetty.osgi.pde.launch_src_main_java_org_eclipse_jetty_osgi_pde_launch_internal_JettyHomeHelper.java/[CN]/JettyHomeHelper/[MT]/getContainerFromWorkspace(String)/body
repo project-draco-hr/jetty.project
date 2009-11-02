@@ -1,0 +1,29 @@
+{
+  if (path == null || path.trim().length() == 0) {
+    return null;
+  }
+  IWorkspaceRoot root=ResourcesPlugin.getWorkspace().getRoot();
+  if (path.startsWith("${workspace_loc:")) {
+    path=resolveVariables(path);
+    return root.getContainerForLocation(new Path(path).makeAbsolute());
+  }
+ else   if (path.startsWith("${workspace_loc}")) {
+    path=path.substring("${workspace_loc}".length());
+    path=resolveVariables(path);
+    IFolder f=root.getFolder(new Path(path).makeAbsolute());
+    if (f.getRawLocation() == null) {
+      IContainer c=root.getContainerForLocation(new Path(path).makeAbsolute());
+      if (c != null) {
+        return c;
+      }
+ else {
+        return null;
+      }
+    }
+  }
+  IResource res=root.findMember(path);
+  if (res instanceof IContainer) {
+    return (IContainer)res;
+  }
+  return null;
+}

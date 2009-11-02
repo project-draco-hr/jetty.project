@@ -1,0 +1,24 @@
+{
+  String bundleActivator=(String)bundle.getHeaders().get("Bundle-Activator");
+  if (bundleActivator == null) {
+    bundleActivator=(String)bundle.getHeaders().get("Jetty-ClassInBundle");
+  }
+  if (bundleActivator != null) {
+    try {
+      return bundle.loadClass(bundleActivator).getClassLoader();
+    }
+ catch (    ClassNotFoundException e) {
+      e.printStackTrace();
+    }
+  }
+  if (!identifiedOsgiImpl) {
+    init(bundle);
+  }
+  if (isEquinox) {
+    return internalGetEquinoxBundleClassLoader(bundle);
+  }
+ else   if (isFelix) {
+    return internalGetFelixBundleClassLoader(bundle);
+  }
+  return null;
+}

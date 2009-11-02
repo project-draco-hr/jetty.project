@@ -1,0 +1,26 @@
+{
+  File contextsHome=getOSGiContextsHome();
+  if (contextsHome != null) {
+    File prodContextFile=new File(contextsHome,contributor.getSymbolicName() + "/" + contextFileRelativePath);
+    if (prodContextFile.exists()) {
+      return registerContext(contributor,prodContextFile);
+    }
+  }
+  File contextFile=new File(BUNDLE_FILE_LOCATOR_HELPER.getBundleInstallLocation(contributor),contextFileRelativePath);
+  if (contextFile.exists()) {
+    return registerContext(contributor,contextFile);
+  }
+ else {
+    if (contextFileRelativePath.startsWith("./")) {
+      contextFileRelativePath=contextFileRelativePath.substring(1);
+    }
+    if (!contextFileRelativePath.startsWith("/")) {
+      contextFileRelativePath="/" + contextFileRelativePath;
+    }
+    URL contextURL=contributor.getEntry(contextFileRelativePath);
+    if (contextURL != null) {
+      return registerContext(contributor,contextURL.openStream());
+    }
+    throw new IllegalArgumentException("Could not find the context " + "file " + contextFileRelativePath + " for the bundle "+ contributor.getSymbolicName());
+  }
+}

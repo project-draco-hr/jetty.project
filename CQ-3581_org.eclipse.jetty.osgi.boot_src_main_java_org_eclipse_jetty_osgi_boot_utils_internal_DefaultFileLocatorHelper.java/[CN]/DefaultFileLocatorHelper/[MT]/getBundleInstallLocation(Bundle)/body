@@ -1,0 +1,52 @@
+{
+  URL url=bundle.getEntry("/META-INF/MANIFEST.MF");
+  if (url.getProtocol().equals("file")) {
+    return new File(url.toURI()).getParentFile().getParentFile();
+  }
+ else   if (url.getProtocol().equals("bundleentry")) {
+    URLConnection con=url.openConnection();
+    if (BUNDLE_ENTRY_FIELD == null) {
+      BUNDLE_ENTRY_FIELD=con.getClass().getDeclaredField("bundleEntry");
+      BUNDLE_ENTRY_FIELD.setAccessible(true);
+    }
+    Object bundleEntry=BUNDLE_ENTRY_FIELD.get(con);
+    if (bundleEntry.getClass().getName().equals("org.eclipse.osgi.baseadaptor.bundlefile.FileBundleEntry")) {
+      if (FILE_FIELD == null) {
+        FILE_FIELD=bundleEntry.getClass().getDeclaredField("file");
+        FILE_FIELD.setAccessible(true);
+      }
+      File f=(File)FILE_FIELD.get(bundleEntry);
+      return f.getParentFile().getParentFile();
+    }
+ else     if (bundleEntry.getClass().getName().equals("org.eclipse.osgi.baseadaptor.bundlefile.ZipBundleEntry")) {
+      url=bundle.getEntry("/");
+      con=url.openConnection();
+      if (BUNDLE_ENTRY_FIELD == null) {
+        BUNDLE_ENTRY_FIELD=con.getClass().getDeclaredField("bundleEntry");
+        BUNDLE_ENTRY_FIELD.setAccessible(true);
+      }
+      bundleEntry=BUNDLE_ENTRY_FIELD.get(con);
+      if (BUNDLE_FILE_FIELD_FOR_DIR_ZIP_BUNDLE_ENTRY == null) {
+        BUNDLE_FILE_FIELD_FOR_DIR_ZIP_BUNDLE_ENTRY=bundleEntry.getClass().getDeclaredField("bundleFile");
+        BUNDLE_FILE_FIELD_FOR_DIR_ZIP_BUNDLE_ENTRY.setAccessible(true);
+      }
+      Object zipBundleFile=BUNDLE_FILE_FIELD_FOR_DIR_ZIP_BUNDLE_ENTRY.get(bundleEntry);
+      if (ZIP_FILE_FILED_FOR_ZIP_BUNDLE_FILE == null) {
+        ZIP_FILE_FILED_FOR_ZIP_BUNDLE_FILE=zipBundleFile.getClass().getDeclaredField("zipFile");
+        ZIP_FILE_FILED_FOR_ZIP_BUNDLE_FILE.setAccessible(true);
+      }
+      ZipFile zipFile=(ZipFile)ZIP_FILE_FILED_FOR_ZIP_BUNDLE_FILE.get(zipBundleFile);
+      return new File(zipFile.getName());
+    }
+ else     if (bundleEntry.getClass().getName().equals("org.eclipse.osgi.baseadaptor.bundlefile.DirZipBundleEntry")) {
+    }
+  }
+ else   if ("bundle".equals(url.getProtocol())) {
+    String location=bundle.getLocation();
+    if (location.startsWith("file:/")) {
+      URI uri=new URI(bundle.getLocation());
+      return new File(uri);
+    }
+  }
+  return null;
+}

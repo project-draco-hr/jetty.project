@@ -1,0 +1,19 @@
+{
+  String[] args=super.getVMArguments(configuration);
+  for (int i=0; i < args.length; i++) {
+    String arg=args[i];
+    if (arg.startsWith("-Djetty.home=")) {
+      return args;
+    }
+  }
+  String jettyHomePath=configuration.getAttribute(JettyConfigurationConstants.ATTR_JETTY_HOME,"");
+  File jettyHome=resolveJettyHome(configuration);
+  if (jettyHome == null || !jettyHome.exists()) {
+    System.err.println("could not resolve jettyhome; " + jettyHomePath + " -> "+ jettyHome);
+    return args;
+  }
+  String[] newArgs=new String[args.length + 1];
+  System.arraycopy(args,0,newArgs,0,args.length);
+  newArgs[args.length]="-Djetty.home=\"" + jettyHome.getAbsolutePath() + "\"";
+  return newArgs;
+}

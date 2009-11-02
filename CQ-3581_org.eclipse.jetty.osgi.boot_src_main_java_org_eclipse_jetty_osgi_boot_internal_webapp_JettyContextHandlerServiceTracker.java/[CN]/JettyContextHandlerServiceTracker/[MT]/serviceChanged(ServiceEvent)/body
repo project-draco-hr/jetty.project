@@ -1,0 +1,65 @@
+{
+  ServiceReference sr=ev.getServiceReference();
+switch (ev.getType()) {
+case ServiceEvent.MODIFIED:
+case ServiceEvent.UNREGISTERING:
+{
+      ContextHandler ctxtHandler=unregisterInIndex(ev.getServiceReference());
+      if (ctxtHandler != null && !ctxtHandler.isStopped()) {
+        try {
+          _helper.unregister(ctxtHandler);
+        }
+ catch (        Exception e) {
+          e.printStackTrace();
+        }
+      }
+    }
+  if (ev.getType() == ServiceEvent.UNREGISTERING) {
+    break;
+  }
+ else {
+  }
+case ServiceEvent.REGISTERED:
+{
+  Bundle contributor=sr.getBundle();
+  BundleContext context=FrameworkUtil.getBundle(JettyBootstrapActivator.class).getBundleContext();
+  ContextHandler contextHandler=(ContextHandler)context.getService(sr);
+  if (contextHandler.getServer() != null) {
+    return;
+  }
+  if (contextHandler instanceof WebAppContext) {
+    WebAppContext webapp=(WebAppContext)contextHandler;
+    String contextPath=(String)sr.getProperty("contextPath");
+    if (contextPath == null) {
+      contextPath=webapp.getContextPath();
+    }
+    String war=(String)sr.getProperty("war");
+    try {
+      ContextHandler handler=_helper.registerWebapplication(contributor,war,contextPath);
+      if (handler != null) {
+        registerInIndex(handler,sr);
+      }
+    }
+ catch (    Throwable e) {
+      e.printStackTrace();
+    }
+  }
+ else {
+    String contextFilePath=(String)sr.getProperty("contextFilePath");
+    if (contextFilePath == null) {
+      throw new IllegalArgumentException("the property contextFilePath is required");
+    }
+    try {
+      ContextHandler handler=_helper.registerContext(contributor,contextFilePath);
+      if (handler != null) {
+        registerInIndex(handler,sr);
+      }
+    }
+ catch (    Throwable e) {
+      e.printStackTrace();
+    }
+  }
+}
+break;
+}
+}

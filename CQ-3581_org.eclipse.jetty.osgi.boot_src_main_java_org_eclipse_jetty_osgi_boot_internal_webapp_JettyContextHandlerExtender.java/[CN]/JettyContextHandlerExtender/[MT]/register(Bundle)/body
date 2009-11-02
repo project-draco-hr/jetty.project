@@ -1,0 +1,47 @@
+{
+  Dictionary<?,?> dic=bundle.getHeaders();
+  String warFolderRelativePath=(String)dic.get("Jetty-WarFolderPath");
+  if (warFolderRelativePath != null) {
+    String contextPath=(String)dic.get("Web-ContextPath");
+    if (contextPath == null) {
+      contextPath=(String)dic.get("Jetty-WarContextPath");
+    }
+    if (contextPath == null || !contextPath.startsWith("/")) {
+      throw new IllegalArgumentException();
+    }
+    try {
+      JettyBootstrapActivator.registerWebapplication(bundle,warFolderRelativePath,contextPath);
+    }
+ catch (    Throwable e) {
+      e.printStackTrace();
+    }
+  }
+ else   if (dic.get("Jetty-ContextFilePath") != null) {
+    String contextFileRelativePath=(String)dic.get("Jetty-ContextFilePath");
+    if (contextFileRelativePath == null) {
+      return;
+    }
+    String[] pathes=contextFileRelativePath.split(",");
+    for (    String path : pathes) {
+      try {
+        JettyBootstrapActivator.registerContext(bundle,path.trim());
+      }
+ catch (      Throwable e) {
+        e.printStackTrace();
+      }
+    }
+  }
+ else {
+    URL rfc66Webxml=bundle.getEntry("/WEB-INF/web.xml");
+    if (rfc66Webxml == null) {
+      return;
+    }
+    String rfc66ContextPath=getWebContextPath(bundle,dic);
+    try {
+      JettyBootstrapActivator.registerWebapplication(bundle,".",rfc66ContextPath);
+    }
+ catch (    Throwable e) {
+      e.printStackTrace();
+    }
+  }
+}

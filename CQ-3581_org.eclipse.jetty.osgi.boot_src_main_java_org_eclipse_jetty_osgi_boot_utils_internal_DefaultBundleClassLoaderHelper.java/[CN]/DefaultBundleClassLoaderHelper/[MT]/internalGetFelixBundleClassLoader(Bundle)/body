@@ -1,0 +1,27 @@
+{
+  try {
+    if (Felix_BundleImpl_m_modules_field == null) {
+      Felix_BundleImpl_m_modules_field=bundle.getClass().getClassLoader().loadClass("org.apache.felix.framework.BundleImpl").getDeclaredField("m_modules");
+      Felix_BundleImpl_m_modules_field.setAccessible(true);
+    }
+    Object[] moduleArray=(Object[])Felix_BundleImpl_m_modules_field.get(bundle);
+    Object currentModuleImpl=moduleArray[moduleArray.length - 1];
+    if (Felix_ModuleImpl_m_classLoader_field == null && currentModuleImpl != null) {
+      Felix_ModuleImpl_m_classLoader_field=bundle.getClass().getClassLoader().loadClass("org.apache.felix.framework.ModuleImpl").getDeclaredField("m_classLoader");
+      Felix_ModuleImpl_m_classLoader_field.setAccessible(true);
+    }
+    ClassLoader cl=(ClassLoader)Felix_ModuleImpl_m_classLoader_field.get(currentModuleImpl);
+    if (cl == null) {
+      bundle.loadClass("java.lang.Object");
+      cl=(ClassLoader)Felix_ModuleImpl_m_classLoader_field.get(currentModuleImpl);
+      return cl;
+    }
+ else {
+      return cl;
+    }
+  }
+ catch (  Throwable t) {
+    t.printStackTrace();
+  }
+  return null;
+}

@@ -1,0 +1,24 @@
+{
+  if (!configuration.getAttribute(IPDELauncherConstants.DOCLEAR,false)) {
+    super.preLaunchCheck(configuration,launch,monitor);
+    File jettyHome=resolveJettyHome(configuration);
+    if (jettyHome != null && !jettyHome.exists()) {
+      try {
+        JettyHomeHelper.setupJettyHomeAndJettyXML(null,jettyHome.getAbsolutePath(),true);
+      }
+ catch (      IOException e) {
+        throw new CoreException(new Status(IStatus.ERROR,JettyOSGiPDEPlugin.PLUGIN_ID,"Unable to setup jettyhome",e));
+      }
+    }
+    return;
+  }
+  String jettyHomePath=resolveJettyHome(configuration).getAbsolutePath();
+  String jettyXml=JettyHomeHelper.getCurrentJettyXml(jettyHomePath,true);
+  super.preLaunchCheck(configuration,launch,monitor);
+  try {
+    JettyHomeHelper.setupJettyHomeAndJettyXML(jettyXml,jettyHomePath,true);
+  }
+ catch (  IOException e) {
+    throw new CoreException(new Status(IStatus.ERROR,JettyOSGiPDEPlugin.PLUGIN_ID,"Unable to setup jettyhome",e));
+  }
+}
