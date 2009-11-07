@@ -1,0 +1,28 @@
+{
+  ClassLoader contextCl=Thread.currentThread().getContextClassLoader();
+  String[] oldServerClasses=null;
+  WebAppContext webAppContext=null;
+  try {
+    TldLocatableURLClassloader composite=createContextClassLoader(contributor);
+    Thread.currentThread().setContextClassLoader(composite);
+    ContextHandler context=createContextHandler(contributor,contextFileInputStream,extraClasspath,overrideBundleInstallLocation);
+    if (context == null) {
+      return null;
+    }
+    _ctxtHandler.addHandler(context);
+    configureContextClassLoader(contributor,context,composite);
+    if (context instanceof WebAppContext) {
+      webAppContext=(WebAppContext)context;
+      oldServerClasses=webAppContext.getServerClasses();
+      webAppContext.setServerClasses(null);
+    }
+    context.start();
+    return context;
+  }
+  finally {
+    if (webAppContext != null) {
+      webAppContext.setServerClasses(oldServerClasses);
+    }
+    Thread.currentThread().setContextClassLoader(contextCl);
+  }
+}

@@ -1,0 +1,28 @@
+{
+  ClassLoader contextCl=Thread.currentThread().getContextClassLoader();
+  String[] oldServerClasses=null;
+  WebAppContext context=null;
+  try {
+    TldLocatableURLClassloader composite=createContextClassLoader(contributor);
+    Thread.currentThread().setContextClassLoader(composite);
+    context=new WebAppContext(webapp.getAbsolutePath(),contextPath);
+    context.setExtraClasspath(extraClasspath);
+    WebXmlConfiguration webXml=new WebXmlConfiguration();
+    webXml.configure(context);
+    JettyWebXmlConfiguration jettyXml=new JettyWebXmlConfiguration();
+    jettyXml.configure(context);
+    configureWebAppContext(context);
+    _ctxtHandler.addHandler(context);
+    configureContextClassLoader(contributor,context,composite);
+    oldServerClasses=context.getServerClasses();
+    context.setServerClasses(null);
+    context.start();
+    return context;
+  }
+  finally {
+    if (context != null && oldServerClasses != null) {
+      context.setServerClasses(oldServerClasses);
+    }
+    Thread.currentThread().setContextClassLoader(contextCl);
+  }
+}
