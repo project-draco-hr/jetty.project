@@ -1,0 +1,55 @@
+{
+  try {
+    connectionOpened(_connection);
+    while (isOpen()) {
+      if (_connection.isIdle()) {
+        if (getServer().getThreadPool().isLowOnThreads()) {
+          int lrmit=getLowResourceMaxIdleTime();
+          if (lrmit >= 0 && _sotimeout != lrmit) {
+            _sotimeout=lrmit;
+            ((SocketChannel)getTransport()).socket().setSoTimeout(_sotimeout);
+          }
+        }
+      }
+      try {
+        _connection.handle();
+      }
+ catch (      UpgradeConnectionException e) {
+        Log.debug(e.toString());
+        Log.ignore(e);
+        setConnection(e.getConnection());
+        continue;
+      }
+    }
+  }
+ catch (  EofException e) {
+    Log.debug("EOF",e);
+    try {
+      ConnectorEndPoint.this.close();
+    }
+ catch (    IOException e2) {
+      Log.ignore(e2);
+    }
+  }
+catch (  HttpException e) {
+    Log.debug("BAD",e);
+    try {
+      ConnectorEndPoint.this.close();
+    }
+ catch (    IOException e2) {
+      Log.ignore(e2);
+    }
+  }
+catch (  Throwable e) {
+    Log.warn("handle failed",e);
+    try {
+      ConnectorEndPoint.this.close();
+    }
+ catch (    IOException e2) {
+      Log.ignore(e2);
+    }
+  }
+ finally {
+    connectionClosed(_connection);
+  }
+}

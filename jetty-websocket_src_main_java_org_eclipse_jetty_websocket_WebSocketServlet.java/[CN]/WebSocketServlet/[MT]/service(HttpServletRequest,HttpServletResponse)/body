@@ -1,0 +1,22 @@
+{
+  if ("WebSocket".equals(request.getHeader("Upgrade")) && "HTTP/1.1".equals(request.getProtocol())) {
+    WebSocket websocket=doWebSocketConnect(request,request.getHeader("WebSocket-Protocol"));
+    if (websocket != null) {
+      HttpConnection http=HttpConnection.getCurrentConnection();
+      ConnectedEndPoint endp=(ConnectedEndPoint)http.getEndPoint();
+      WebSocketConnection connection=new WebSocketConnection(_buffers,endp,http.getTimeStamp(),websocket);
+      response.setHeader("Upgrade","WebSocket");
+      response.addHeader("Connection","Upgrade");
+      response.sendError(101,"Web Socket Protocol Handshake");
+      response.flushBuffer();
+      connection.fill(((HttpParser)http.getParser()).getHeaderBuffer());
+      connection.fill(((HttpParser)http.getParser()).getBodyBuffer());
+      websocket.onConnect(connection);
+      throw new UpgradeConnectionException(connection);
+    }
+ else {
+      response.sendError(503);
+    }
+  }
+ else   super.service(request,response);
+}

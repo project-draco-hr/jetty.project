@@ -1,0 +1,29 @@
+{
+  int space=_buffer.space();
+  if (space < needed) {
+    if (_endp.isBlocking()) {
+      try {
+        flushBuffer();
+        _buffer.compact();
+        space=_buffer.space();
+      }
+ catch (      IOException e) {
+        throw e;
+      }
+    }
+ else {
+      flushBuffer();
+      _buffer.compact();
+      space=_buffer.space();
+      if (space < needed && _buffer.length() > 0 && _endp.blockWritable(blockFor)) {
+        flushBuffer();
+        _buffer.compact();
+        space=_buffer.space();
+      }
+    }
+    if (space < needed) {
+      _endp.close();
+      throw new IOException("Full Timeout");
+    }
+  }
+}
