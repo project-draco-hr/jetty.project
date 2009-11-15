@@ -22,6 +22,7 @@ case NOT_HANDSHAKING:
   }
  else   c=wrap(buffer);
 if (c > 0) {
+  _handshook=true;
   consumed+=c;
   available-=c;
 }
@@ -31,6 +32,7 @@ if (c > 0) {
 }
 break;
 case NEED_UNWRAP:
+checkRenegotiate();
 Buffer buf=_buffers.getBuffer(_engine.getSession().getApplicationBufferSize());
 try {
 ByteBuffer bbuf=((NIOBuffer)buf).getByteBuffer();
@@ -52,6 +54,7 @@ break;
 }
 case NEED_WRAP:
 {
+checkRenegotiate();
 synchronized (_outBuffer) {
 try {
 _outNIOBuffer.compact();

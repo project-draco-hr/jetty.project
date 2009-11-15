@@ -17,44 +17,46 @@ case NOT_HANDSHAKING:
           if (_closing)           return -1;
         break loop;
 case NEED_UNWRAP:
-      if (!unwrap(bbuf) && _engine.getHandshakeStatus() == HandshakeStatus.NEED_UNWRAP) {
-        break loop;
-      }
-    break;
+      checkRenegotiate();
+    if (!unwrap(bbuf) && _engine.getHandshakeStatus() == HandshakeStatus.NEED_UNWRAP) {
+      break loop;
+    }
+  break;
 case NEED_TASK:
 {
-    Runnable task;
-    while ((task=_engine.getDelegatedTask()) != null) {
-      task.run();
-    }
-    if (initialStatus == HandshakeStatus.NOT_HANDSHAKING && _engine.getHandshakeStatus() == HandshakeStatus.NEED_UNWRAP && wraps == 0) {
-      if (_debug)       __log.warn(_session + " JETTY-567");
-      return -1;
-    }
-    break;
+  Runnable task;
+  while ((task=_engine.getDelegatedTask()) != null) {
+    task.run();
   }
+  if (initialStatus == HandshakeStatus.NOT_HANDSHAKING && _engine.getHandshakeStatus() == HandshakeStatus.NEED_UNWRAP && wraps == 0) {
+    if (_debug)     __log.warn(_session + " JETTY-567");
+    return -1;
+  }
+  break;
+}
 case NEED_WRAP:
 {
-  wraps++;
+checkRenegotiate();
+wraps++;
 synchronized (_outBuffer) {
-    try {
-      _outNIOBuffer.compact();
-      int put=_outNIOBuffer.putIndex();
-      _outBuffer.position();
-      _result=null;
-      _result=_engine.wrap(__NO_BUFFERS,_outBuffer);
-      if (_debug)       __log.debug(_session + " fill wrap " + _result);
+  try {
+    _outNIOBuffer.compact();
+    int put=_outNIOBuffer.putIndex();
+    _outBuffer.position();
+    _result=null;
+    _result=_engine.wrap(__NO_BUFFERS,_outBuffer);
+    if (_debug)     __log.debug(_session + " fill wrap " + _result);
 switch (_result.getStatus()) {
 case BUFFER_OVERFLOW:
 case BUFFER_UNDERFLOW:
-        Log.warn("wrap {}",_result);
+      Log.warn("wrap {}",_result);
 case CLOSED:
-      _closing=true;
-  }
-  _outNIOBuffer.setPutIndex(put + _result.bytesProduced());
+    _closing=true;
+}
+_outNIOBuffer.setPutIndex(put + _result.bytesProduced());
 }
   finally {
-  _outBuffer.position(0);
+_outBuffer.position(0);
 }
 }
 flush();
@@ -72,6 +74,8 @@ throw e;
 buffer.setPutIndex(bbuf.position());
 bbuf.position(0);
 }
+int filled=buffer.length() - size;
+if (filled > 0) _handshook=true;
+return filled;
 }
-return buffer.length() - size;
 }
