@@ -5,14 +5,18 @@
       int flushed=_generator.flush();
       int filled=_parser.parseNext();
       more=flushed > 0 || filled > 0 || !_parser.isBufferEmpty() || !_generator.isBufferEmpty();
-      if (filled < 0 || flushed < 0)       _endp.close();
+      if (filled < 0 || flushed < 0) {
+        _endp.close();
+        break;
+      }
     }
   }
  catch (  IOException e) {
-    System.err.println(e);
+    e.printStackTrace();
     throw e;
   }
  finally {
-    if (!_endp.isOpen())     _websocket.onDisconnect();
+    if (_endp.isOpen())     _connector.persist(_endp);
+ else     _websocket.onDisconnect();
   }
 }
