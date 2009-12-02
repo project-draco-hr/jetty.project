@@ -1,0 +1,20 @@
+{
+  if (!"WebSocket".equals(request.getHeader("Upgrade")))   throw new IllegalStateException("!Upgrade:websocket");
+  if (!"HTTP/1.1".equals(request.getProtocol()))   throw new IllegalStateException("!HTTP/1.1");
+  HttpConnection http=HttpConnection.getCurrentConnection();
+  ConnectedEndPoint endp=(ConnectedEndPoint)http.getEndPoint();
+  WebSocketConnection connection=new WebSocketConnection(this,endp,http.getTimeStamp(),websocket);
+  String uri=request.getRequestURI();
+  String host=request.getHeader("Host");
+  response.setHeader("Upgrade","WebSocket");
+  response.addHeader("Connection","Upgrade");
+  response.addHeader("WebSocket-Origin",origin);
+  response.addHeader("WebSocket-Location","ws://" + host + uri);
+  if (protocol != null)   response.addHeader("WebSocket-Protocol",protocol);
+  response.sendError(101,"Web Socket Protocol Handshake");
+  response.flushBuffer();
+  connection.fill(((HttpParser)http.getParser()).getHeaderBuffer());
+  connection.fill(((HttpParser)http.getParser()).getBodyBuffer());
+  websocket.onConnect(connection);
+  throw new UpgradeConnectionException(connection);
+}
