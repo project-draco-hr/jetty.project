@@ -29,14 +29,22 @@ catch (      Throwable th) {
     }
   }
 );
-  _idle=(_endp instanceof SelectChannelEndPoint) ? new IdleCheck(){
-    public void access(    EndPoint endp){
-      ((SelectChannelEndPoint)_endp).scheduleIdle();
+  if (_endp instanceof SelectChannelEndPoint) {
+    final SelectChannelEndPoint scep=(SelectChannelEndPoint)_endp;
+    scep.cancelIdle();
+    _idle=new IdleCheck(){
+      public void access(      EndPoint endp){
+        scep.getSelectSet().scheduleTimeout(scep.getTimeoutTask(),_maxIdleTimeMs);
+      }
     }
-  }
- : new IdleCheck(){
-    public void access(    EndPoint endp){
-    }
-  }
 ;
+    scep.getSelectSet().scheduleTimeout(scep.getTimeoutTask(),_maxIdleTimeMs);
+  }
+ else {
+    _idle=new IdleCheck(){
+      public void access(      EndPoint endp){
+      }
+    }
+;
+  }
 }
