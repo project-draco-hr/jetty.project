@@ -1,0 +1,16 @@
+{
+  DeploymentManager depman=new DeploymentManager();
+  depman.setDefaultLifeCycleGoal(null);
+  AppLifeCyclePathCollector pathtracker=new AppLifeCyclePathCollector();
+  MockAppProvider mockProvider=new MockAppProvider();
+  depman.addLifeCycleBinding(pathtracker);
+  depman.addAppProvider(mockProvider);
+  depman.start();
+  mockProvider.findWebapp("foo-webapp-1.war");
+  Collection<App> apps=depman.getApps();
+  Assert.assertNotNull("Should never be null",apps);
+  Assert.assertEquals("Expected App Count",1,apps.size());
+  App actual=depman.getAppByOriginId("mock-foo-webapp-1.war");
+  Assert.assertNotNull("Should have gotten app (by id)",actual);
+  Assert.assertEquals("Should have gotten app (by id)","mock-foo-webapp-1.war",actual.getOriginId());
+}

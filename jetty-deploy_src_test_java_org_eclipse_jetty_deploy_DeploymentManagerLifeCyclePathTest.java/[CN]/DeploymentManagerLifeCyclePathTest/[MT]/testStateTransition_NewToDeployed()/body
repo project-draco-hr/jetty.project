@@ -1,0 +1,18 @@
+{
+  DeploymentManager depman=new DeploymentManager();
+  depman.setDefaultLifeCycleGoal(null);
+  AppLifeCyclePathCollector pathtracker=new AppLifeCyclePathCollector();
+  MockAppProvider mockProvider=new MockAppProvider();
+  depman.addLifeCycleBinding(pathtracker);
+  depman.addAppProvider(mockProvider);
+  depman.setContexts(new ContextHandlerCollection());
+  depman.start();
+  mockProvider.findWebapp("foo-webapp-1.war");
+  App app=depman.getAppByOriginId("mock-foo-webapp-1.war");
+  depman.requestAppGoal(app,"deployed");
+  List<String> expected=new ArrayList<String>();
+  expected.add("pre-deploying");
+  expected.add("deploying");
+  expected.add("deployed");
+  pathtracker.assertExpected("Test StateTransition / New -> Deployed",expected);
+}

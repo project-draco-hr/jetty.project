@@ -1,0 +1,23 @@
+{
+  File rulesetFile=new File(this.rulesetPath);
+  RuleSet ruleset=RuleSet.load(rulesetFile);
+  URI warURI=app.getArchivePath().toURI();
+  WebappVerifier verifier=ruleset.createWebappVerifier(warURI);
+  verifier.visitAll();
+  Collection<Violation> violations=verifier.getViolations();
+  if (violations.size() <= 0) {
+    Log.info("Webapp Verifier - All Rules Passed - No Violations");
+    return;
+  }
+  boolean haltWebapp=false;
+  Log.info("Webapp Verifier Found " + violations.size() + " violations.");
+  for (  Violation violation : violations) {
+    if (violation.getSeverity() == Severity.ERROR) {
+      haltWebapp=true;
+    }
+    Log.info(violation.toString());
+  }
+  if (haltWebapp) {
+    throw new IllegalStateException("Webapp Failed Webapp Verification");
+  }
+}
