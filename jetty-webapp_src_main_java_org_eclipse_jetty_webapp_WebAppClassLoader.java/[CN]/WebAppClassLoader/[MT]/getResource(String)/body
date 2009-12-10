@@ -1,7 +1,10 @@
 {
   URL url=null;
   boolean tried_parent=false;
-  if (_context.isParentLoaderPriority() || _context.isSystemClass(name)) {
+  boolean system_class=_context.isSystemClass(name);
+  boolean server_class=_context.isServerClass(name);
+  if (system_class && server_class)   return null;
+  if (_parent != null && (_context.isParentLoaderPriority() || system_class) && !server_class) {
     tried_parent=true;
     if (_parent != null)     url=_parent.getResource(name);
   }
@@ -12,7 +15,7 @@
       url=this.findResource(name.substring(1));
     }
   }
-  if (url == null && !tried_parent && !_context.isServerClass(name)) {
+  if (url == null && !tried_parent && !server_class) {
     if (_parent != null)     url=_parent.getResource(name);
   }
   if (url != null)   if (Log.isDebugEnabled())   Log.debug("getResource(" + name + ")="+ url);
