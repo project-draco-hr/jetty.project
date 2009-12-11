@@ -151,10 +151,22 @@ synchronized (this) {
         SelectionKey busy=selector.selectedKeys().iterator().next();
         if (busy == _busyKey) {
           if (++_busyKeyCount > __BUSY_KEY && !(busy.channel() instanceof ServerSocketChannel)) {
-            SelectChannelEndPoint endpoint=(SelectChannelEndPoint)busy.attachment();
+            final SelectChannelEndPoint endpoint=(SelectChannelEndPoint)busy.attachment();
             Log.warn("Busy Key " + busy.channel() + " "+ endpoint);
             busy.cancel();
-            if (endpoint != null)             endpoint.close();
+            if (endpoint != null) {
+              dispatch(new Runnable(){
+                public void run(){
+                  try {
+                    endpoint.close();
+                  }
+ catch (                  IOException e) {
+                    Log.ignore(e);
+                  }
+                }
+              }
+);
+            }
           }
         }
  else         _busyKeyCount=0;

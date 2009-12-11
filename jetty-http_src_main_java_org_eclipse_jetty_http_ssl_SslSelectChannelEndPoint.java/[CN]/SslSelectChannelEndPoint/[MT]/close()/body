@@ -1,18 +1,19 @@
 {
   _closing=true;
+  long end=System.currentTimeMillis() + ((SocketChannel)_channel).socket().getSoTimeout();
   try {
     if (isBufferingOutput()) {
       flush();
-      while (isOpen() && isBufferingOutput()) {
+      while (isOpen() && isBufferingOutput() && System.currentTimeMillis() < end) {
         Thread.sleep(100);
         flush();
       }
     }
     _engine.closeOutbound();
-    loop:     while (isOpen() && !(_engine.isInboundDone() && _engine.isOutboundDone())) {
+    loop:     while (isOpen() && !(_engine.isInboundDone() && _engine.isOutboundDone()) && System.currentTimeMillis() < end) {
       if (isBufferingOutput()) {
         flush();
-        while (isOpen() && isBufferingOutput()) {
+        while (isOpen() && isBufferingOutput() && System.currentTimeMillis() < end) {
           Thread.sleep(100);
           flush();
         }
