@@ -28,17 +28,37 @@
   }
   ClassLoader contextCl=Thread.currentThread().getContextClassLoader();
   try {
-    XmlConfiguration config=new XmlConfiguration(new FileInputStream(jettyHome + "/etc/jetty.xml"));
-    config.getProperties().put("jetty.home",jettyHome);
     File jettyHomeF=new File(jettyHome);
     try {
-      _libEtcClassLoader=LibExtClassLoaderHelper.createLibEtcClassLoaderHelper(jettyHomeF,_server,JettyBootstrapActivator.class.getClassLoader());
+      URLClassLoader libEtcClassLoader=LibExtClassLoaderHelper.createLibEtcClassLoaderHelper(jettyHomeF,_server,JettyBootstrapActivator.class.getClassLoader());
+      URL[] jarsWithTlds=getJarsWithTlds();
+      _commonParentClassLoaderForWebapps=jarsWithTlds == null ? libEtcClassLoader : new TldLocatableURLClassloader(libEtcClassLoader,getJarsWithTlds());
     }
  catch (    MalformedURLException e) {
       e.printStackTrace();
     }
-    Thread.currentThread().setContextClassLoader(_libEtcClassLoader);
-    config.configure(_server);
+    Thread.currentThread().setContextClassLoader(_commonParentClassLoaderForWebapps);
+    String jettyetc=System.getProperty(OSGiWebappConstants.SYS_PROP_JETTY_ETC_FILES,"etc/jetty.xml");
+    StringTokenizer tokenizer=new StringTokenizer(jettyetc,";,");
+    while (tokenizer.hasMoreTokens()) {
+      String etcFile=tokenizer.nextToken().trim();
+      File conffile=etcFile.startsWith("/") ? new File(etcFile) : new File(jettyHomeF,etcFile);
+      if (!conffile.exists()) {
+        __logger.warn("Unable to resolve the jetty/etc file " + etcFile);
+      }
+      try {
+        XmlConfiguration config=new XmlConfiguration(new FileInputStream(conffile));
+        config.getProperties().put("jetty.home",jettyHome);
+        config.getProperties().put("jetty.host",System.getProperty("jetty.host",""));
+        config.getProperties().put("jetty.port",System.getProperty("jetty.port","8080"));
+        config.getProperties().put("jetty.port.ssl",System.getProperty("jetty.port.ssl","8443"));
+        config.configure(_server);
+      }
+ catch (      SAXParseException saxparse) {
+        Log.getLogger(WebappRegistrationHelper.class.getName()).warn("Unable to configure the jetty/etc file " + etcFile,saxparse);
+        throw saxparse;
+      }
+    }
     init();
     _server.start();
   }

@@ -2,15 +2,19 @@
   ArrayList<URL> urls=new ArrayList<URL>();
   File jettyResources=new File(jettyHome,"resources");
   if (jettyResources.exists()) {
+    Map<String,File> jettyResFiles=new HashMap<String,File>();
     for (    File f : jettyResources.listFiles()) {
+      jettyResFiles.put(f.getName(),f);
       if (f.getName().toLowerCase().startsWith("readme")) {
         continue;
       }
  else {
-        urls.add(jettyResources.toURI().toURL());
-        break;
+        if (urls.isEmpty()) {
+          urls.add(jettyResources.toURI().toURL());
+        }
       }
     }
+    processFilesInResourcesFolder(jettyHome,jettyResFiles);
   }
   File libEtc=new File(jettyHome,"lib/ext");
   for (  File f : libEtc.listFiles()) {
@@ -21,9 +25,6 @@
       }
       urls.add(url);
     }
-  }
-  if (urls.isEmpty()) {
-    return parentClassLoader;
   }
   return new URLClassLoader(urls.toArray(new URL[urls.size()]),parentClassLoader);
 }
