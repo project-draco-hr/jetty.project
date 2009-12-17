@@ -1,0 +1,19 @@
+{
+  if (baseRequest.isHandled() || !baseRequest.getMethod().equals("PUT")) {
+    return;
+  }
+  baseRequest.setHandled(true);
+  File file=new File(resourcePath,URLDecoder.decode(request.getPathInfo()));
+  file.getParentFile().mkdirs();
+  file.deleteOnExit();
+  FileOutputStream out=new FileOutputStream(file);
+  ServletInputStream in=request.getInputStream();
+  try {
+    copyStream(in,out);
+  }
+  finally {
+    in.close();
+    out.close();
+  }
+  response.setStatus(HttpServletResponse.SC_CREATED);
+}
