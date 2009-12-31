@@ -1,0 +1,21 @@
+{
+  Resource resource=Resource.newResource(app.getArchivePath().toURI());
+  if (!resource.exists())   throw new IllegalStateException("App resouce does not exist " + resource);
+  String context=app.getArchivePath().getName();
+  if (app.getArchivePath().isDirectory()) {
+  }
+ else   if (FileID.isWebArchiveFile(app.getArchivePath())) {
+    context=context.substring(0,context.length() - 4);
+  }
+ else   throw new IllegalStateException("unable to create ContextHandler for " + app);
+  if (context.equalsIgnoreCase("root") || context.equalsIgnoreCase("root/"))   context=URIUtil.SLASH;
+  if (context.charAt(0) != '/')   context="/" + context;
+  if (context.endsWith("/") && context.length() > 0)   context=context.substring(0,context.length() - 1);
+  WebAppContext wah=new WebAppContext();
+  wah.setContextPath(context);
+  wah.setWar(app.getArchivePath().getAbsolutePath());
+  if (_defaultsDescriptor != null)   wah.setDefaultsDescriptor(_defaultsDescriptor);
+  wah.setExtractWAR(_extractWars);
+  wah.setParentLoaderPriority(_parentLoaderPriority);
+  return wah;
+}
