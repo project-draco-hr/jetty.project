@@ -6,13 +6,15 @@
     System.setProperty("java.naming.factory.url.pkgs","org.eclipse.jetty.jndi");
   }
   _ctxtHandler=(ContextHandlerCollection)_server.getChildHandlerByClass(ContextHandlerCollection.class);
-  if (_ctxtHandler == null) {
-    throw new IllegalStateException("ERROR: No ContextHandlerCollection was configured" + " with the server to add applications to." + "Using a default one is not supported at"+ " this point. "+ " Please review the jetty.xml file used.");
-  }
   List<DeploymentManager> deployers=_server.getBeans(DeploymentManager.class);
   if (deployers != null && !deployers.isEmpty()) {
     _deploymentManager=deployers.get(0);
     for (    AppProvider provider : _deploymentManager.getAppProviders()) {
+      if (provider instanceof OSGiAppProvider) {
+        _provider=(OSGiAppProvider)provider;
+        break;
+      }
     }
   }
+  if (_ctxtHandler == null || _provider == null)   throw new IllegalStateException("ERROR: No ContextHandlerCollection or OSGiAppProvider configured");
 }
