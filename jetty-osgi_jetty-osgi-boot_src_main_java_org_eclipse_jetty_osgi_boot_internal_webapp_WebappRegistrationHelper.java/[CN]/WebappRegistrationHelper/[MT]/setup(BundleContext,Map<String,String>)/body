@@ -30,9 +30,9 @@
   try {
     File jettyHomeF=new File(jettyHome);
     try {
-      URLClassLoader libEtcClassLoader=LibExtClassLoaderHelper.createLibEtcClassLoaderHelper(jettyHomeF,_server,JettyBootstrapActivator.class.getClassLoader());
+      URLClassLoader libExtClassLoader=LibExtClassLoaderHelper.createLibEtcClassLoaderHelper(jettyHomeF,_server,JettyBootstrapActivator.class.getClassLoader());
       URL[] jarsWithTlds=getJarsWithTlds();
-      _commonParentClassLoaderForWebapps=jarsWithTlds == null ? libEtcClassLoader : new TldLocatableURLClassloader(libEtcClassLoader,getJarsWithTlds());
+      _commonParentClassLoaderForWebapps=jarsWithTlds == null ? libExtClassLoader : new TldLocatableURLClassloader(libExtClassLoader,getJarsWithTlds());
     }
  catch (    MalformedURLException e) {
       e.printStackTrace();
@@ -40,6 +40,13 @@
     Thread.currentThread().setContextClassLoader(_commonParentClassLoaderForWebapps);
     String jettyetc=System.getProperty(OSGiWebappConstants.SYS_PROP_JETTY_ETC_FILES,"etc/jetty.xml");
     StringTokenizer tokenizer=new StringTokenizer(jettyetc,";,");
+    Map<Object,Object> id_map=new HashMap();
+    id_map.put("Server","_server");
+    Map<Object,Object> properties=new HashMap();
+    properties.put("jetty.home",jettyHome);
+    properties.put("jetty.host",System.getProperty("jetty.host",""));
+    properties.put("jetty.port",System.getProperty("jetty.port","8080"));
+    properties.put("jetty.port.ssl",System.getProperty("jetty.port.ssl","8443"));
     while (tokenizer.hasMoreTokens()) {
       String etcFile=tokenizer.nextToken().trim();
       File conffile=etcFile.startsWith("/") ? new File(etcFile) : new File(jettyHomeF,etcFile);
@@ -60,11 +67,10 @@
  else {
         try {
           XmlConfiguration config=new XmlConfiguration(new FileInputStream(conffile));
-          config.getIdMap().put("Server","_server");
-          config.getProperties().put("jetty.home",jettyHome);
-          config.getProperties().put("jetty.host",System.getProperty("jetty.host",""));
-          config.getProperties().put("jetty.port",System.getProperty("jetty.port","8080"));
-          config.getProperties().put("jetty.port.ssl",System.getProperty("jetty.port.ssl","8443"));
+          config.setIdMap(id_map);
+          config.setProperties(properties);
+          config.configure();
+          id_map=config.getIdMap();
         }
  catch (        SAXParseException saxparse) {
           Log.getLogger(WebappRegistrationHelper.class.getName()).warn("Unable to configure the jetty/etc file " + etcFile,saxparse);
