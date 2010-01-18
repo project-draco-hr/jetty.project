@@ -5,51 +5,7 @@
   try {
     OSGiWebappClassLoader composite=createWebappClassLoader(contributor);
     Thread.currentThread().setContextClassLoader(composite);
-    final JettyWebXmlConfiguration jettyXml=new JettyWebXmlConfiguration(){
-      /** 
- * Configure Apply web-jetty.xml configuration
- * @see Configuration#configure(WebAppContext)
- */
-      public void configure(      WebAppContext context) throws Exception {
-        if (context.isStarted()) {
-          if (Log.isDebugEnabled()) {
-            Log.debug("Cannot configure webapp after it is started");
-          }
-          return;
-        }
-        if (Log.isDebugEnabled())         Log.debug("Configuring web-jetty.xml");
-        Resource web_inf=context.getWebInf();
-        if (web_inf != null && web_inf.isDirectory()) {
-          Resource jetty=web_inf.addPath("jetty7-web.xml");
-          if (!jetty.exists())           jetty=web_inf.addPath("jetty-web.xml");
-          if (!jetty.exists())           jetty=web_inf.addPath("web-jetty.xml");
-          if (jetty.exists()) {
-            String[] old_server_classes=context.getServerClasses();
-            try {
-              context.setServerClasses(null);
-              if (Log.isDebugEnabled())               Log.debug("Configure: " + jetty);
-              XmlConfiguration jetty_config=new XmlConfiguration(jetty.getURL());
-              jetty_config.configure(context);
-            }
-  finally {
-              if (context.getServerClasses() == null)               context.setServerClasses(old_server_classes);
-            }
-          }
-        }
-      }
-    }
-;
-    context=new WebAppContext(webapp.getAbsolutePath(),contextPath){
-      @Override protected void loadConfigurations() throws Exception {
-        super.loadConfigurations();
-        for (int i=0; i < getConfigurations().length; i++) {
-          if (getConfigurations()[i] instanceof JettyWebXmlConfiguration) {
-            getConfigurations()[i]=jettyXml;
-          }
-        }
-      }
-    }
-;
+    context=new WebAppContext(webapp.getAbsolutePath(),contextPath);
     context.setExtraClasspath(extraClasspath);
     if (webXmlPath != null && webXmlPath.length() != 0) {
       File webXml=null;
@@ -63,6 +19,9 @@
         context.setDescriptor(webXml.getAbsolutePath());
       }
     }
+    if (defaultWebXmlPath == null || defaultWebXmlPath.length() == 0) {
+      defaultWebXmlPath=_provider.getDefaultsDescriptor();
+    }
     if (defaultWebXmlPath != null && defaultWebXmlPath.length() != 0) {
       File defaultWebXml=null;
       if (defaultWebXmlPath.startsWith("/") || defaultWebXmlPath.startsWith("file:/")) {
@@ -75,6 +34,7 @@
         context.setDefaultsDescriptor(defaultWebXml.getAbsolutePath());
       }
     }
+    context.setParentLoaderPriority(_provider.isParentLoaderPriority());
     configureWebAppContext(context,contributor);
     configureWebappClassLoader(contributor,context,composite);
     oldServerClasses=context.getServerClasses();
