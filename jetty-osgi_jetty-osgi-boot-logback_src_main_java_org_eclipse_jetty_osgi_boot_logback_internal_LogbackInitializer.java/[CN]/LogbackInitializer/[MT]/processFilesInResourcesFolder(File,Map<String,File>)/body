@@ -1,0 +1,30 @@
+{
+  String logbackConf=System.getProperty("logback.configurationFile");
+  if (logbackConf != null) {
+    File confFile=new File(logbackConf);
+    if (confFile.exists()) {
+      return;
+    }
+  }
+  File logConf=isPDEDevelopment() ? files.get("logback-dev.xml") : null;
+  if (logConf == null) {
+    logConf=files.get("logback-test.xml");
+  }
+  if (logConf == null) {
+    logConf=files.get("logback.xml");
+  }
+  if (logConf == null) {
+    return;
+  }
+  LoggerContext lc=(LoggerContext)LoggerFactory.getILoggerFactory();
+  try {
+    JoranConfiguratorBase configurator=new JoranConfigurator();
+    configurator.setContext(lc);
+    lc.reset();
+    configurator.doConfigure(logConf.getAbsoluteFile().getAbsolutePath());
+  }
+ catch (  JoranException je) {
+    je.printStackTrace();
+  }
+  StatusPrinter.printIfErrorsOccured(lc);
+}
