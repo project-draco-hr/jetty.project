@@ -3,8 +3,20 @@
   try {
     Class cl=getClass().getClassLoader().loadClass("org.apache.jasper.servlet.JspServlet");
   }
- catch (  ClassNotFoundException e) {
+ catch (  Exception e) {
     System.err.println("Unable to locate the JspServlet: jsp support unavailable.");
+    e.printStackTrace();
+    return;
+  }
+  try {
+    JspFactory fact=JspFactory.getDefaultFactory();
+    if (fact == null) {
+      fact=(JspFactory)JettyBootstrapActivator.class.getClassLoader().loadClass("org.apache.jasper.runtime.JspFactoryImpl").newInstance();
+      JspFactory.setDefaultFactory(fact);
+    }
+  }
+ catch (  Exception e) {
+    System.err.println("Unable to set the JspFactory: jsp support incomplete.");
     e.printStackTrace();
   }
 }
