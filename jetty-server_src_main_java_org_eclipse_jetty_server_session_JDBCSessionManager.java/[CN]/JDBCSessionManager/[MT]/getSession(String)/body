@@ -11,10 +11,12 @@ synchronized (this) {
  else       data=session._data;
       if (data != null) {
         if (!data.getLastNode().equals(getIdManager().getWorkerName()) || session == null) {
-          session=new Session(data);
-          _sessions.put(idInCluster,session);
-          session.didActivate();
-          updateSessionNode(data);
+          if (data._expiryTime > System.currentTimeMillis()) {
+            session=new Session(data);
+            _sessions.put(idInCluster,session);
+            session.didActivate();
+            updateSessionNode(data);
+          }
         }
  else         if (Log.isDebugEnabled())         Log.debug("Session not stale " + session._data);
       }

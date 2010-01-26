@@ -1,22 +1,20 @@
 {
-synchronized (_sessionIdManager) {
-    boolean removed=false;
+  boolean removed=false;
 synchronized (this) {
-      if (_sessions.get(session.getClusterId()) != null) {
-        removed=true;
-        removeSession(session.getClusterId());
-      }
-    }
-    if (removed) {
-      _sessionIdManager.removeSession(session);
-      if (invalidate)       _sessionIdManager.invalidateAll(session.getClusterId());
+    if (getSession(session.getClusterId()) != null) {
+      removed=true;
+      removeSession(session.getClusterId());
     }
   }
-  if (invalidate && _sessionListeners != null) {
-    HttpSessionEvent event=new HttpSessionEvent(session);
-    for (int i=LazyList.size(_sessionListeners); i-- > 0; )     ((HttpSessionListener)LazyList.get(_sessionListeners,i)).sessionDestroyed(event);
-  }
-  if (!invalidate) {
-    session.willPassivate();
+  if (removed) {
+    _sessionIdManager.removeSession(session);
+    if (invalidate)     _sessionIdManager.invalidateAll(session.getClusterId());
+    if (invalidate && _sessionListeners != null) {
+      HttpSessionEvent event=new HttpSessionEvent(session);
+      for (int i=LazyList.size(_sessionListeners); i-- > 0; )       ((HttpSessionListener)LazyList.get(_sessionListeners,i)).sessionDestroyed(event);
+    }
+    if (!invalidate) {
+      session.willPassivate();
+    }
   }
 }
