@@ -1,18 +1,11 @@
 {
-  if (_statsStartedAt >= 0) {
-    long duration=System.currentTimeMillis() - connection.getTimeStamp();
-    int requests=(connection instanceof HttpConnection) ? ((HttpConnection)connection).getRequests() : 0;
-synchronized (_statsLock) {
-      _requests+=requests;
-      _connections++;
-      _connectionsOpen--;
-      _connectionsDurationTotal+=duration;
-      if (_connectionsOpen < 0)       _connectionsOpen=0;
-      if (_connectionsOpen < _connectionsOpenMin)       _connectionsOpenMin=_connectionsOpen;
-      if (_connectionsDurationMin == 0 || duration < _connectionsDurationMin)       _connectionsDurationMin=duration;
-      if (duration > _connectionsDurationMax)       _connectionsDurationMax=duration;
-      if (_connectionsRequestsMin == 0 || requests < _connectionsRequestsMin)       _connectionsRequestsMin=requests;
-      if (requests > _connectionsRequestsMax)       _connectionsRequestsMax=requests;
-    }
-  }
+  if (_statsStartedAt.get() == -1)   return;
+  long duration=System.currentTimeMillis() - connection.getTimeStamp();
+  int requests=(connection instanceof HttpConnection) ? ((HttpConnection)connection).getRequests() : 0;
+  _requests.addAndGet(requests);
+  _connections.incrementAndGet();
+  _connectionsOpen.decrementAndGet();
+  _connectionsDurationTotal.addAndGet(duration);
+  updateMax(_connectionsDurationMax,duration);
+  updateMax(_connectionsRequestsMax,requests);
 }
