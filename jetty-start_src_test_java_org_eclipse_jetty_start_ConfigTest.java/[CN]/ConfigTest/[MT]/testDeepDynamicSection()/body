@@ -1,6 +1,6 @@
 {
   StringBuffer buf=new StringBuffer();
-  buf.append("[All,default,=$(jetty.home)/lib/*]\n");
+  buf.append("[All,default,=$(jetty.home)/lib/**]\n");
   String jettyHome=getTestableJettyHome();
   Config options=new Config();
   options.setProperty("jetty.home",jettyHome);
@@ -13,9 +13,12 @@
   assertNotNull("Classpath section 'All' should exist",allcp);
   Classpath extcp=options.getSectionClasspath("ext");
   assertNotNull("Classpath section 'ext' should exist",extcp);
-  assertEquals("Deep Classpath Section",0,foocp.count());
-  Classpath expected=new Classpath();
   File lib=new File(getJettyHomeDir(),"lib");
+  Classpath expected=new Classpath();
+  File foo=new File(lib,"foo");
+  File bar=new File(foo,"bar");
+  expected.addComponent(new File(bar,"foobar.jar"));
+  assertEquals("Deep Classpath Section",expected,foocp);
   File ext=new File(lib,"ext");
   expected=new Classpath();
   expected.addComponent(new File(ext,"custom-impl.jar"));
