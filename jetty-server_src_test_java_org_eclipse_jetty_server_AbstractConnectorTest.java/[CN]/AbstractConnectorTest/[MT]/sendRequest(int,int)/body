@@ -1,0 +1,15 @@
+{
+  int idx=id - 1;
+  if (idx < 0)   throw new IllegalArgumentException("Connection ID <= 0");
+  _socket[idx]=_socket[idx] == null ? new Socket("localhost",_connector.getLocalPort()) : _socket[idx];
+  _out[idx]=_out[idx] == null ? new PrintWriter(_socket[idx].getOutputStream(),true) : _out[idx];
+  _in[idx]=_in[idx] == null ? new BufferedReader(new InputStreamReader(_socket[idx].getInputStream())) : _in[idx];
+  _connect.reset();
+  _out[idx].write(_request);
+  _out[idx].flush();
+  _connect.await();
+  assertEquals(count,_connector.getConnectionsOpen());
+  while (_in[idx].ready()) {
+    _in[idx].readLine();
+  }
+}

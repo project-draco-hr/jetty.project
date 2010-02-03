@@ -1,0 +1,40 @@
+{
+  _connect=new CyclicBarrier(2);
+  _server=new Server();
+  _connector=new SelectChannelConnector(){
+    public void connectionClosed(    Connection connection){
+      super.connectionClosed(connection);
+      _closed.countDown();
+    }
+  }
+;
+  _server.addConnector(_connector);
+  _connector.setStatsOn(true);
+  HandlerWrapper wrapper=new HandlerWrapper(){
+    public void handle(    String path,    Request request,    HttpServletRequest httpRequest,    HttpServletResponse httpResponse) throws IOException, ServletException {
+      try {
+        _connect.await();
+      }
+ catch (      Exception ex) {
+        Log.debug(ex);
+      }
+ finally {
+        super.handle(path,request,httpRequest,httpResponse);
+      }
+    }
+  }
+;
+  _server.setHandler(wrapper);
+  _handler=new AbstractHandler(){
+    public void handle(    String target,    Request baseRequest,    HttpServletRequest request,    HttpServletResponse response) throws IOException, ServletException {
+      baseRequest.setHandled(true);
+      PrintWriter out=response.getWriter();
+      out.write("Server response\n");
+      out.close();
+      response.setStatus(HttpServletResponse.SC_OK);
+    }
+  }
+;
+  wrapper.setHandler(_handler);
+  _server.start();
+}
