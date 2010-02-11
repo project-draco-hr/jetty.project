@@ -14,15 +14,13 @@
   try {
     while (endPoint.getIn().length() > 0) {
       while (true) {
-        try {
-          endPoint.getConnection().handle();
-          break;
+        final Connection con=endPoint.getConnection();
+        final Connection next=con.handle();
+        if (next != con) {
+          endPoint.setConnection(next);
+          continue;
         }
- catch (        UpgradeConnectionException e) {
-          Log.debug(e.toString());
-          Log.ignore(e);
-          endPoint.setConnection(e.getConnection());
-        }
+        break;
       }
     }
   }

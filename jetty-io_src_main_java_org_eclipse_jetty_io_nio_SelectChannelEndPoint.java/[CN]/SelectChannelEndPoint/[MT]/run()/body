@@ -3,15 +3,16 @@
   try {
     while (dispatched) {
       try {
-        _connection.handle();
+        while (true) {
+          final Connection next=_connection.handle();
+          if (next != _connection) {
+            _connection=next;
+            continue;
+          }
+          break;
+        }
       }
- catch (      UpgradeConnectionException e) {
-        Log.debug(e.toString());
-        Log.ignore(e);
-        setConnection(e.getConnection());
-        continue;
-      }
-catch (      ClosedChannelException e) {
+ catch (      ClosedChannelException e) {
         Log.ignore(e);
       }
 catch (      EofException e) {

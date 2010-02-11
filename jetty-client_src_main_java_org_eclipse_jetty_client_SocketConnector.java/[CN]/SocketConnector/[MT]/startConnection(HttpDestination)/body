@@ -17,7 +17,15 @@
   _httpClient.getThreadPool().dispatch(new Runnable(){
     public void run(){
       try {
-        connection.handle();
+        Connection con=connection;
+        while (true) {
+          final Connection next=con.handle();
+          if (next != con) {
+            con=next;
+            continue;
+          }
+          break;
+        }
       }
  catch (      IOException e) {
         if (e instanceof InterruptedIOException)         Log.ignore(e);
