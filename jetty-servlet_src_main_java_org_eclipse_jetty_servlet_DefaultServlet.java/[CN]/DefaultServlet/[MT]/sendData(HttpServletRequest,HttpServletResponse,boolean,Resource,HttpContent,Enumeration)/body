@@ -1,5 +1,5 @@
 {
-  long content_length=resource.length();
+  long content_length=content == null ? resource.length() : content.getContentLength();
   OutputStream out=null;
   try {
     out=response.getOutputStream();
@@ -7,7 +7,7 @@
  catch (  IllegalStateException e) {
     out=new WriterOutputStream(response.getWriter());
   }
-  if (reqRanges == null || !reqRanges.hasMoreElements()) {
+  if (reqRanges == null || !reqRanges.hasMoreElements() || content_length < 0) {
     if (include) {
       resource.writeTo(out,0,content_length);
     }
@@ -33,7 +33,8 @@
     }
   }
  else {
-    List ranges=InclusiveByteRange.satisfiableRanges(reqRanges,byteRangeRules,content_length);
+    List ranges=InclusiveByteRange.satisfiableRanges(reqRanges,content_length);
+    System.err.println(ranges + " " + request.getHeader(HttpHeaders.RANGE)+ " "+ content_length);
     if (ranges == null || ranges.size() == 0) {
       writeHeaders(response,content,content_length);
       response.setStatus(HttpServletResponse.SC_REQUESTED_RANGE_NOT_SATISFIABLE);
@@ -48,13 +49,6 @@
       response.setStatus(HttpServletResponse.SC_PARTIAL_CONTENT);
       response.setHeader(HttpHeaders.CONTENT_RANGE,singleSatisfiableRange.toHeaderRangeString(content_length));
       resource.writeTo(out,singleSatisfiableRange.getFirst(content_length),singleLength);
-      return;
-    }
-    if (!byteRangeRules) {
-      writeHeaders(response,content,content_length);
-      response.setStatus(HttpServletResponse.SC_REQUESTED_RANGE_NOT_SATISFIABLE);
-      response.setHeader(HttpHeaders.CONTENT_RANGE,InclusiveByteRange.to416HeaderRangeString(content_length));
-      resource.writeTo(out,0,content_length);
       return;
     }
     writeHeaders(response,content,-1);
