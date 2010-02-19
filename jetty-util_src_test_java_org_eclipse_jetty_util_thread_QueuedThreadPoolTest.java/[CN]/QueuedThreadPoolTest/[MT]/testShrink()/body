@@ -1,0 +1,40 @@
+{
+  Runnable job=new Runnable(){
+    public void run(){
+      try {
+        Thread.sleep(_sleep);
+      }
+ catch (      Exception e) {
+        e.printStackTrace();
+      }
+    }
+  }
+;
+  QueuedThreadPool tp=new QueuedThreadPool();
+  tp.setMinThreads(2);
+  tp.setMaxThreads(10);
+  tp.setMaxIdleTimeMs(400);
+  tp.setThreadsPriority(Thread.NORM_PRIORITY - 1);
+  tp.start();
+  Thread.sleep(100);
+  assertEquals(2,tp.getThreads());
+  assertEquals(2,tp.getIdleThreads());
+  _sleep=200;
+  tp.dispatch(job);
+  tp.dispatch(job);
+  for (int i=0; i < 20; i++)   tp.dispatch(job);
+  Thread.sleep(100);
+  assertEquals(10,tp.getThreads());
+  assertEquals(0,tp.getIdleThreads());
+  _sleep=1;
+  for (int i=0; i < 500; i++) {
+    tp.dispatch(job);
+    Thread.sleep(10);
+    if (i % 100 == 0) {
+      System.err.println(i + " threads=" + tp.getThreads()+ " idle="+ tp.getIdleThreads());
+    }
+  }
+  System.err.println("500 threads=" + tp.getThreads() + " idle="+ tp.getIdleThreads());
+  assertEquals(2,tp.getThreads());
+  assertEquals(2,tp.getIdleThreads());
+}
