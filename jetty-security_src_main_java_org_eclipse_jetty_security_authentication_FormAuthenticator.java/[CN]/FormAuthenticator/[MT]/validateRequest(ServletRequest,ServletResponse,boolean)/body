@@ -3,12 +3,12 @@
   HttpServletResponse response=(HttpServletResponse)res;
   String uri=request.getRequestURI();
   if (uri == null)   uri=URIUtil.SLASH;
-  mandatory|=uri.endsWith(__J_SECURITY_CHECK);
+  mandatory|=isJSecurityCheck(uri);
   if (!mandatory)   return _deferred;
   if (isLoginOrErrorPage(URIUtil.addPaths(request.getServletPath(),request.getPathInfo())))   return Authentication.NOT_CHECKED;
   HttpSession session=request.getSession(true);
   try {
-    if (uri.endsWith(__J_SECURITY_CHECK)) {
+    if (isJSecurityCheck(uri)) {
       final String username=request.getParameter(__J_USERNAME);
       final String password=request.getParameter(__J_PASSWORD);
       UserIdentity user=_loginService.login(username,password);
@@ -39,7 +39,7 @@ synchronized (session) {
         dispatcher.forward(new FormRequest(request),new FormResponse(response));
       }
  else {
-        response.sendRedirect(URIUtil.addPaths(request.getContextPath(),_formErrorPage));
+        response.sendRedirect(response.encodeRedirectURL(URIUtil.addPaths(request.getContextPath(),_formErrorPage)));
       }
       return Authentication.SEND_FAILURE;
     }
@@ -63,7 +63,7 @@ synchronized (session) {
       dispatcher.forward(new FormRequest(request),new FormResponse(response));
     }
  else {
-      response.sendRedirect(URIUtil.addPaths(request.getContextPath(),_formLoginPage));
+      response.sendRedirect(response.encodeRedirectURL(URIUtil.addPaths(request.getContextPath(),_formLoginPage)));
     }
     return Authentication.SEND_CONTINUE;
   }
