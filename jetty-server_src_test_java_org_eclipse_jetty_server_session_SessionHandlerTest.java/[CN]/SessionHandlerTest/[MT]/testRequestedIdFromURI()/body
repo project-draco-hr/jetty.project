@@ -1,0 +1,26 @@
+{
+  final String parameterName="sessionid";
+  final String sessionId="1234.host";
+  HttpServletRequest httpRequest=new MockHttpServletRequest(){
+    @Override public String getRequestURI(){
+      return "http://www.foo.net/app/action.do;" + parameterName + "="+ sessionId+ ";p1=abc;p2=def";
+    }
+  }
+;
+  Request baseRequest=new Request();
+  baseRequest.setDispatcherType(DispatcherType.REQUEST);
+  Assert.assertEquals(DispatcherType.REQUEST,baseRequest.getDispatcherType());
+  SessionHandler sessionHandler=new SessionHandler();
+  sessionHandler.setSessionManager(new MockSessionManager(){
+    @Override public String getSessionIdPathParameterName(){
+      return parameterName;
+    }
+    @Override public String getSessionIdPathParameterNamePrefix(){
+      return ";" + parameterName + "=";
+    }
+  }
+);
+  sessionHandler.setRequestedId(baseRequest,httpRequest);
+  Assert.assertEquals(sessionId,baseRequest.getRequestedSessionId());
+  Assert.assertFalse(baseRequest.isRequestedSessionIdFromCookie());
+}

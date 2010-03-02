@@ -1,0 +1,26 @@
+{
+  final String cookieName="SessionId";
+  final String sessionId="1234.host";
+  HttpServletRequest httpRequest=new MockHttpServletRequest(){
+    public Cookie[] getCookies(){
+      return new Cookie[]{new Cookie(cookieName,sessionId)};
+    }
+  }
+;
+  Request baseRequest=new Request();
+  baseRequest.setDispatcherType(DispatcherType.REQUEST);
+  Assert.assertEquals(DispatcherType.REQUEST,baseRequest.getDispatcherType());
+  SessionHandler sessionHandler=new SessionHandler();
+  sessionHandler.setSessionManager(new MockSessionManager(){
+    public boolean isUsingCookies(){
+      return true;
+    }
+    public String getSessionCookie(){
+      return cookieName;
+    }
+  }
+);
+  sessionHandler.setRequestedId(baseRequest,httpRequest);
+  Assert.assertEquals(sessionId,baseRequest.getRequestedSessionId());
+  Assert.assertTrue(baseRequest.isRequestedSessionIdFromCookie());
+}
