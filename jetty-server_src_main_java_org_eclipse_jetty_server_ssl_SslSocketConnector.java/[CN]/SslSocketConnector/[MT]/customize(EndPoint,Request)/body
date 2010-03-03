@@ -3,33 +3,6 @@
   request.setScheme(HttpSchemes.HTTPS);
   SocketEndPoint socket_end_point=(SocketEndPoint)endpoint;
   SSLSocket sslSocket=(SSLSocket)socket_end_point.getTransport();
-  try {
-    SSLSession sslSession=sslSocket.getSession();
-    String cipherSuite=sslSession.getCipherSuite();
-    Integer keySize;
-    String idStr;
-    X509Certificate[] certs;
-    CachedInfo cachedInfo=(CachedInfo)sslSession.getValue(CACHED_INFO_ATTR);
-    if (cachedInfo != null) {
-      keySize=cachedInfo.getKeySize();
-      certs=cachedInfo.getCerts();
-      idStr=cachedInfo.getIdStr();
-    }
- else {
-      keySize=new Integer(ServletSSL.deduceKeyLength(cipherSuite));
-      certs=getCertChain(sslSession);
-      byte[] idBytes=sslSession.getId();
-      idStr=TypeUtil.toHexString(idBytes);
-      cachedInfo=new CachedInfo(keySize,certs,idStr);
-      sslSession.putValue(CACHED_INFO_ATTR,cachedInfo);
-    }
-    if (certs != null)     request.setAttribute("javax.servlet.request.X509Certificate",certs);
- else     if (_needClientAuth)     throw new IllegalStateException("no client auth");
-    request.setAttribute("javax.servlet.request.ssl_session_id",idStr);
-    request.setAttribute("javax.servlet.request.cipher_suite",cipherSuite);
-    request.setAttribute("javax.servlet.request.key_size",keySize);
-  }
- catch (  Exception e) {
-    Log.warn(Log.EXCEPTION,e);
-  }
+  SSLSession sslSession=sslSocket.getSession();
+  SslCertificates.customize(sslSession,endpoint,request);
 }
