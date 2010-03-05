@@ -9,7 +9,12 @@
   if (_content != null && _content.length() > 0 || _bufferChunked) {
     if (!_endp.isOpen())     throw new EofException();
     flushBuffer();
-    if (_content != null && _content.length() > 0 || _bufferChunked)     throw new IllegalStateException("FULL");
+    if (_content != null && _content.length() > 0) {
+      Buffer nc=_buffers.getBuffer(_content.length() + content.length());
+      nc.put(_content);
+      nc.put(content);
+      _content=nc;
+    }
   }
   _content=content;
   _contentWritten+=content.length();
@@ -20,7 +25,7 @@
  else   if (_endp != null && _buffer == null && content.length() > 0 && _last) {
     _bypass=true;
   }
- else {
+ else   if (!_bufferChunked) {
     if (_buffer == null)     _buffer=_buffers.getBuffer();
     int len=_buffer.put(_content);
     _content.skip(len);

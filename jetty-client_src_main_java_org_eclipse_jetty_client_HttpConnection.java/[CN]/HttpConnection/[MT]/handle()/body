@@ -2,7 +2,6 @@
   if (_exchange != null)   _exchange.associate(this);
   try {
     int no_progress=0;
-    long flushed=0;
     boolean failed=false;
     while (_endp.isBufferingInput() || _endp.isOpen()) {
 synchronized (this) {
@@ -43,17 +42,19 @@ synchronized (this) {
  else {
 synchronized (this) {
             if (_exchange == null)             continue;
-            flushed=_generator.flushBuffer();
-            io+=flushed;
           }
+          long flushed=_generator.flushBuffer();
+          io+=flushed;
           if (!_generator.isComplete()) {
             InputStream in=_exchange.getRequestContentSource();
             if (in != null) {
               if (_requestContentChunk == null || _requestContentChunk.length() == 0) {
                 _requestContentChunk=_exchange.getRequestContentChunk();
+                _destination.getHttpClient().schedule(_timeout);
                 if (_requestContentChunk != null)                 _generator.addContent(_requestContentChunk,false);
  else                 _generator.complete();
-                io+=_generator.flushBuffer();
+                flushed=_generator.flushBuffer();
+                io+=flushed;
               }
             }
  else             _generator.complete();
@@ -63,14 +64,15 @@ synchronized (this) {
           _requestComplete=true;
           _exchange.getEventListener().onRequestComplete();
         }
-        if (!_parser.isComplete() && _generator.isCommitted()) {
+        if (!_parser.isComplete() && (_generator.isComplete() || _generator.isCommitted() && !_endp.isBlocking())) {
           long filled=_parser.parseAvailable();
           io+=filled;
         }
         if (io > 0)         no_progress=0;
  else         if (no_progress++ >= 2 && !_endp.isBlocking()) {
           if (_endp instanceof SslSelectChannelEndPoint && !_generator.isComplete() && !_generator.isEmpty()) {
-            if (_generator.flushBuffer() > 0)             continue;
+            long flushed=_generator.flushBuffer();
+            if (flushed > 0)             continue;
           }
           return this;
         }
