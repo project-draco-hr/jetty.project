@@ -1,0 +1,17 @@
+{
+  HttpClient client=new HttpClient();
+  client.setConnectorType(HttpClient.CONNECTOR_SELECT_CHANNEL);
+  client.setRealmResolver(new SimpleRealmResolver(new TestRealm()));
+  client.start();
+  String srvUrl="http://127.0.0.1:" + _server.getConnectors()[0].getLocalPort() + "/test/";
+  ContentExchange ex=new ContentExchange();
+  ex.setMethod(HttpMethods.POST);
+  ex.setURL(srvUrl);
+  ex.setRequestContentSource(new BufferedInputStream(new FileInputStream("src/test/resources/message.txt")));
+  _received=null;
+  client.send(ex);
+  ex.waitForDone();
+  String sent=IO.toString(new FileInputStream("src/test/resources/message.txt"));
+  assertEquals(sent,_received);
+  assertEquals(200,ex.getResponseStatus());
+}
