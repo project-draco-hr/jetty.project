@@ -115,22 +115,24 @@ synchronized (this) {
             reset(true);
             no_progress=0;
             if (_exchange != null) {
-              _exchange.disassociate();
-              _exchange=null;
-              if (_pipeline == null) {
-                if (!isReserved())                 _destination.returnConnection(this,close);
-              }
- else {
-                if (close) {
+              if (_status != HttpStatus.SWITCHING_PROTOCOLS_101 || !_exchange.onSwitchProtocol(_endp)) {
+                _exchange.disassociate();
+                _exchange=null;
+                if (_pipeline == null) {
                   if (!isReserved())                   _destination.returnConnection(this,close);
-                  HttpExchange exchange=_pipeline;
-                  _pipeline=null;
-                  _destination.send(exchange);
                 }
  else {
-                  HttpExchange exchange=_pipeline;
-                  _pipeline=null;
-                  send(exchange);
+                  if (close) {
+                    if (!isReserved())                     _destination.returnConnection(this,close);
+                    HttpExchange exchange=_pipeline;
+                    _pipeline=null;
+                    _destination.send(exchange);
+                  }
+ else {
+                    HttpExchange exchange=_pipeline;
+                    _pipeline=null;
+                    send(exchange);
+                  }
                 }
               }
             }
