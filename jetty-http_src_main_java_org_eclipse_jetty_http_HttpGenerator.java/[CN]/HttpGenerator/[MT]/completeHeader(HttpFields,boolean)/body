@@ -87,6 +87,7 @@
   HttpFields.Field transfer_encoding=null;
   boolean keep_alive=false;
   boolean close=false;
+  boolean content_type=false;
   StringBuilder connection=null;
   if (fields != null) {
     int s=fields.size();
@@ -102,6 +103,7 @@ case HttpHeaders.CONTENT_LENGTH_ORDINAL:
 break;
 case HttpHeaders.CONTENT_TYPE_ORDINAL:
 if (BufferUtil.isPrefix(MimeTypes.MULTIPART_BYTERANGES_BUFFER,field.getValueBuffer())) _contentLength=HttpTokens.SELF_DEFINING_CONTENT;
+content_type=true;
 field.put(_header);
 break;
 case HttpHeaders.TRANSFER_ENCODING_ORDINAL:
@@ -190,7 +192,7 @@ case HttpTokens.UNKNOWN_CONTENT:
 if (_contentWritten == 0 && _method == null && (_status < 200 || _status == 204 || _status == 304)) _contentLength=HttpTokens.NO_CONTENT;
  else if (_last) {
 _contentLength=_contentWritten;
-if (content_length == null) {
+if (content_length == null && (_method == null || _contentLength > 0 || content_type)) {
 _header.put(HttpHeaders.CONTENT_LENGTH_BUFFER);
 _header.put(HttpTokens.COLON);
 _header.put((byte)' ');
