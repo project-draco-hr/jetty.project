@@ -117,6 +117,15 @@ synchronized (this) {
             if (_exchange != null) {
               _exchange.disassociate();
               _exchange=null;
+              if (_status == HttpStatus.SWITCHING_PROTOCOLS_101) {
+                HttpConnection switched=_exchange.onSwitchProtocol(_endp);
+                if (switched != null) {
+                  HttpExchange exchange=_pipeline;
+                  _pipeline=null;
+                  if (exchange != null)                   _destination.send(exchange);
+                  return switched;
+                }
+              }
               if (_pipeline == null) {
                 if (!isReserved())                 _destination.returnConnection(this,close);
               }
