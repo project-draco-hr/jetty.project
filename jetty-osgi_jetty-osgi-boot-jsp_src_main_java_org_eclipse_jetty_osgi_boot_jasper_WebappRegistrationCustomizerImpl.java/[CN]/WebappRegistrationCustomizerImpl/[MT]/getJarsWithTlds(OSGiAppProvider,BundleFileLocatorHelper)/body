@@ -1,0 +1,28 @@
+{
+  HashSet<Class<?>> classesToAddToTheTldBundles=new HashSet<Class<?>>();
+  Class<?> jstlClass=WebappRegistrationCustomizerImpl.class.getClassLoader().loadClass(DEFAULT_JSTL_BUNDLE_CLASS);
+  classesToAddToTheTldBundles.add(jstlClass);
+  ArrayList<URL> urls=new ArrayList<URL>();
+  for (  Class<?> cl : classesToAddToTheTldBundles) {
+    Bundle tldBundle=FrameworkUtil.getBundle(cl);
+    File tldBundleLocation=locatorHelper.getBundleInstallLocation(tldBundle);
+    if (tldBundleLocation.isDirectory()) {
+      for (      File f : tldBundleLocation.listFiles()) {
+        if (f.getName().endsWith(".jar") && f.isFile()) {
+          urls.add(f.toURI().toURL());
+        }
+ else         if (f.isDirectory() && f.getName().equals("lib")) {
+          for (          File f2 : tldBundleLocation.listFiles()) {
+            if (f2.getName().endsWith(".jar") && f2.isFile()) {
+              urls.add(f2.toURI().toURL());
+            }
+          }
+        }
+      }
+    }
+ else {
+      urls.add(tldBundleLocation.toURI().toURL());
+    }
+  }
+  return urls.toArray(new URL[urls.size()]);
+}

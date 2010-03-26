@@ -29,15 +29,14 @@
   ClassLoader contextCl=Thread.currentThread().getContextClassLoader();
   try {
     File jettyHomeF=new File(jettyHome);
+    URLClassLoader libExtClassLoader=null;
     try {
-      URLClassLoader libExtClassLoader=LibExtClassLoaderHelper.createLibEtcClassLoaderHelper(jettyHomeF,_server,JettyBootstrapActivator.class.getClassLoader());
-      URL[] jarsWithTlds=getJarsWithTlds();
-      _commonParentClassLoaderForWebapps=jarsWithTlds == null ? libExtClassLoader : new TldLocatableURLClassloader(libExtClassLoader,getJarsWithTlds());
+      libExtClassLoader=LibExtClassLoaderHelper.createLibEtcClassLoaderHelper(jettyHomeF,_server,JettyBootstrapActivator.class.getClassLoader());
     }
  catch (    MalformedURLException e) {
       e.printStackTrace();
     }
-    Thread.currentThread().setContextClassLoader(_commonParentClassLoaderForWebapps);
+    Thread.currentThread().setContextClassLoader(libExtClassLoader);
     String jettyetc=System.getProperty(OSGiWebappConstants.SYS_PROP_JETTY_ETC_FILES,"etc/jetty.xml");
     StringTokenizer tokenizer=new StringTokenizer(jettyetc,";,");
     Map<Object,Object> id_map=new HashMap<Object,Object>();
@@ -79,6 +78,13 @@
       }
     }
     init();
+    try {
+      URL[] jarsWithTlds=getJarsWithTlds();
+      _commonParentClassLoaderForWebapps=jarsWithTlds == null ? libExtClassLoader : new TldLocatableURLClassloader(libExtClassLoader,getJarsWithTlds());
+    }
+ catch (    MalformedURLException e) {
+      e.printStackTrace();
+    }
     _server.start();
   }
  catch (  Throwable t) {
