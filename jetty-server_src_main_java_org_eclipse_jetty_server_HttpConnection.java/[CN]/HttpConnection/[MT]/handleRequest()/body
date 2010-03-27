@@ -65,7 +65,10 @@ catch (      Throwable e) {
       _request._async.doComplete();
       if (_expect100Continue) {
         _expect100Continue=false;
-        if (_parser instanceof HttpParser)         ((HttpParser)_parser).setState(HttpParser.STATE_END);
+        if (_parser instanceof HttpParser) {
+          HttpParser parser=(HttpParser)_parser;
+          if ((parser.getHeaderBuffer() == null || parser.getHeaderBuffer().length() < 2) && (parser.getBodyBuffer() == null || parser.getBodyBuffer().length() < 1))           ((HttpParser)_parser).setState(HttpParser.STATE_END);
+        }
       }
       if (_endp.isOpen()) {
         if (_generator.isPersistent())         _connector.persist(_endp);
