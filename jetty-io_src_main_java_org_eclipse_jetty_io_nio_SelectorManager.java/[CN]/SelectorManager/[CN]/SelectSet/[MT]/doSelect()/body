@@ -246,7 +246,13 @@ catch (      Exception e) {
     }
     selector.selectedKeys().clear();
     _idleTimeout.tick(now);
-    _timeout.tick(now);
+    _timeout.setNow(now);
+    Task task=_timeout.expired();
+    while (task != null) {
+      if (task instanceof Runnable)       dispatch((Runnable)task);
+ else       task.expired();
+      task=_timeout.expired();
+    }
   }
  catch (  CancelledKeyException e) {
     Log.ignore(e);
