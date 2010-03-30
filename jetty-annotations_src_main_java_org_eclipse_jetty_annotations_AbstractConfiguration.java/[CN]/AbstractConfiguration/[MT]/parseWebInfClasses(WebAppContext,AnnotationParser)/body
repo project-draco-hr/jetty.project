@@ -1,15 +1,20 @@
 {
   Log.debug("Scanning classes in WEB-INF/classes");
-  parser.parse(context.getWebInf().addPath("classes/"),new ClassNameResolver(){
-    public boolean isExcluded(    String name){
-      if (context.isSystemClass(name))       return true;
-      if (context.isServerClass(name))       return false;
-      return false;
-    }
-    public boolean shouldOverride(    String name){
-      if (context.isParentLoaderPriority())       return false;
-      return true;
+  if (context.getWebInf() != null) {
+    Resource classesDir=context.getWebInf().addPath("classes/");
+    if (classesDir.exists()) {
+      parser.parse(classesDir,new ClassNameResolver(){
+        public boolean isExcluded(        String name){
+          if (context.isSystemClass(name))           return true;
+          if (context.isServerClass(name))           return false;
+          return false;
+        }
+        public boolean shouldOverride(        String name){
+          if (context.isParentLoaderPriority())           return false;
+          return true;
+        }
+      }
+);
     }
   }
-);
 }
