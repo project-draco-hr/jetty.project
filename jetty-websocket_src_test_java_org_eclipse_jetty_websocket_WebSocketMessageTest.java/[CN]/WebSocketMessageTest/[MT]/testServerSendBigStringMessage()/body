@@ -1,0 +1,30 @@
+{
+  Socket socket=new Socket("localhost",_connector.getLocalPort());
+  OutputStream output=socket.getOutputStream();
+  output.write(("GET /test HTTP/1.1\r\n" + "Host: localhost\r\n" + "Upgrade: WebSocket\r\n"+ "Connection: Upgrade\r\n"+ "\r\n").getBytes("ISO-8859-1"));
+  output.flush();
+  InputStream input=socket.getInputStream();
+  BufferedReader reader=new BufferedReader(new InputStreamReader(input,"ISO-8859-1"));
+  String responseLine=reader.readLine();
+  assertTrue(responseLine.startsWith("HTTP/1.1 101 Web Socket Protocol Handshake"));
+  String line;
+  while ((line=reader.readLine()) != null)   if (line.length() == 0)   break;
+  assertTrue(_serverWebSocket.awaitConnected(1000));
+  assertNotNull(_serverWebSocket.outbound);
+  StringBuilder message=new StringBuilder();
+  String text="0123456789ABCDEF";
+  for (int i=0; i < 64 * 1024 / text.length(); ++i)   message.append(text);
+  _serverWebSocket.outbound.sendMessage(message.toString());
+  ByteArrayOutputStream baos=new ByteArrayOutputStream();
+  while (true) {
+    int read=input.read();
+    baos.write(read);
+    if (read == 0xFF)     break;
+  }
+  baos.close();
+  byte[] bytes=baos.toByteArray();
+  String result=StringUtil.printable(bytes);
+  assertTrue(result.startsWith("0x00"));
+  assertTrue(result.endsWith("0xFF"));
+  assertEquals(message.length() + "0x00".length() + "0xFF".length(),result.length());
+}

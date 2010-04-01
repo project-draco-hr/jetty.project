@@ -1,26 +1,35 @@
 {
   if (_buffer == null)   _buffer=_buffers.getDirectBuffer();
-  if ((frame & 0x80) == 0x80) {
-    if (length > 2097152)     throw new IllegalArgumentException("too big");
-    int length_bytes=(length > 16384) ? 3 : (length > 128) ? 2 : 1;
-    int needed=length + 1 + length_bytes;
-    checkSpace(needed,blockFor);
+  if (_buffer.space() == 0)   expelBuffer(blockFor);
+  if ((frame & WebSocket.LENGTH_FRAME) == WebSocket.LENGTH_FRAME) {
     _buffer.put(frame);
-switch (length_bytes) {
-case 3:
-      _buffer.put((byte)(0x80 | (length >> 14)));
-case 2:
-    _buffer.put((byte)(0x80 | (0x7f & (length >> 7))));
-case 1:
-  _buffer.put((byte)(0x7f & length));
-}
-_buffer.put(content,offset,length);
-}
+    if (_buffer.space() == 0)     expelBuffer(blockFor);
+    int lengthBytes=new BigInteger(String.valueOf(length)).bitLength() / 7 + 1;
+    for (int i=lengthBytes - 1; i >= 0; --i) {
+      byte lengthByte=(byte)(0x80 | (0x7F & (length >> 7 * i)));
+      _buffer.put(lengthByte);
+      if (_buffer.space() == 0)       expelBuffer(blockFor);
+    }
+  }
  else {
-int needed=length + 2;
-checkSpace(needed,blockFor);
-_buffer.put(frame);
-_buffer.put(content,offset,length);
-_buffer.put((byte)0xFF);
-}
+    _buffer.put(frame);
+  }
+  if (_buffer.space() == 0)   expelBuffer(blockFor);
+  int remaining=length;
+  while (remaining > 0) {
+    int chunk=remaining < _buffer.space() ? remaining : _buffer.space();
+    _buffer.put(content,offset + (length - remaining),chunk);
+    remaining-=chunk;
+    if (_buffer.space() > 0) {
+      if (frame == WebSocket.SENTINEL_FRAME)       _buffer.put((byte)0xFF);
+      flushBuffer();
+    }
+ else {
+      expelBuffer(blockFor);
+      if (remaining == 0) {
+        if (frame == WebSocket.SENTINEL_FRAME)         _buffer.put((byte)0xFF);
+        flushBuffer();
+      }
+    }
+  }
 }
