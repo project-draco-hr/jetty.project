@@ -1,7 +1,7 @@
 {
   if (_buffer == null)   _buffer=_buffers.getDirectBuffer();
   if (_buffer.space() == 0)   expelBuffer(blockFor);
-  if ((frame & WebSocket.LENGTH_FRAME) == WebSocket.LENGTH_FRAME) {
+  if (isLengthFrame(frame)) {
     _buffer.put(frame);
     if (_buffer.space() == 0)     expelBuffer(blockFor);
     int lengthBytes=new BigInteger(String.valueOf(length)).bitLength() / 7 + 1;
@@ -21,13 +21,13 @@
     _buffer.put(content,offset + (length - remaining),chunk);
     remaining-=chunk;
     if (_buffer.space() > 0) {
-      if (frame == WebSocket.SENTINEL_FRAME)       _buffer.put((byte)0xFF);
+      if (!isLengthFrame(frame))       _buffer.put((byte)0xFF);
       flushBuffer();
     }
  else {
       expelBuffer(blockFor);
       if (remaining == 0) {
-        if (frame == WebSocket.SENTINEL_FRAME)         _buffer.put((byte)0xFF);
+        if (!isLengthFrame(frame))         _buffer.put((byte)0xFF);
         flushBuffer();
       }
     }
