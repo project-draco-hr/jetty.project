@@ -4,7 +4,7 @@
     while (more) {
       int flushed=_generator.flush();
       int filled=_parser.parseNext();
-      more=flushed > 0 || filled > 0 || !_parser.isBufferEmpty() || !_generator.isBufferEmpty();
+      more=flushed > 0 || filled > 0 || !_parser.isBufferEmpty();
       if (filled < 0 || flushed < 0) {
         _endp.close();
         break;
@@ -16,7 +16,10 @@
     throw e;
   }
  finally {
-    if (_endp.isOpen())     _idle.access(_endp);
+    if (_endp.isOpen()) {
+      _idle.access(_endp);
+      if (!_generator.isBufferEmpty() && _endp instanceof AsyncEndPoint)       ((AsyncEndPoint)_endp).scheduleWrite();
+    }
  else     _websocket.onDisconnect();
   }
   return this;
