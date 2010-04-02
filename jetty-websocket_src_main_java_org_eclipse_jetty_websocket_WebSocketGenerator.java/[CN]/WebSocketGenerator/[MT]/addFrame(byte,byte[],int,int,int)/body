@@ -1,20 +1,15 @@
 {
   if (_buffer == null)   _buffer=_buffers.getDirectBuffer();
   if (_buffer.space() == 0)   expelBuffer(blockFor);
+  bufferPut(frame,blockFor);
   if (isLengthFrame(frame)) {
-    _buffer.put(frame);
-    if (_buffer.space() == 0)     expelBuffer(blockFor);
     int lengthBytes=new BigInteger(String.valueOf(length)).bitLength() / 7 + 1;
-    for (int i=lengthBytes - 1; i >= 0; --i) {
+    for (int i=lengthBytes - 1; i > 0; --i) {
       byte lengthByte=(byte)(0x80 | (0x7F & (length >> 7 * i)));
-      _buffer.put(lengthByte);
-      if (_buffer.space() == 0)       expelBuffer(blockFor);
+      bufferPut(lengthByte,blockFor);
     }
+    bufferPut((byte)(0x7F & length),blockFor);
   }
- else {
-    _buffer.put(frame);
-  }
-  if (_buffer.space() == 0)   expelBuffer(blockFor);
   int remaining=length;
   while (remaining > 0) {
     int chunk=remaining < _buffer.space() ? remaining : _buffer.space();
