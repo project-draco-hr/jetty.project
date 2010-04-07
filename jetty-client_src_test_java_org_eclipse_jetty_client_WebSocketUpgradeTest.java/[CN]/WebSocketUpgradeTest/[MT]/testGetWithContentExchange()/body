@@ -1,0 +1,67 @@
+{
+  final WebSocket clientWS=new WebSocket(){
+    Outbound _outbound;
+    public void onConnect(    Outbound outbound){
+      _outbound=outbound;
+      _results.add("clientWS.onConnect");
+      _results.add(_outbound);
+    }
+    public void onDisconnect(){
+    }
+    public void onMessage(    byte frame,    String data){
+      _results.add("clientWS.onMessage");
+      _results.add(data);
+    }
+    public void onMessage(    byte frame,    byte[] data,    int offset,    int length){
+    }
+  }
+;
+  HttpExchange httpExchange=new HttpExchange(){
+    /** 
+ * @see org.eclipse.jetty.client.HttpExchange#onResponseStatus(org.eclipse.jetty.io.Buffer,int,org.eclipse.jetty.io.Buffer)
+ */
+    @Override protected void onResponseStatus(    Buffer version,    int status,    Buffer reason) throws IOException {
+      _results.add(new Integer(status));
+      super.onResponseStatus(version,status,reason);
+    }
+    /** 
+ * @see org.eclipse.jetty.client.HttpExchange#onSwitchProtocol(org.eclipse.jetty.io.EndPoint)
+ */
+    @Override protected Connection onSwitchProtocol(    EndPoint endp) throws IOException {
+      WebSocketConnection connection=new WebSocketConnection(clientWS,endp);
+      try {
+        int c=10;
+        while (_results.size() == 0 && c-- > 0)         Thread.sleep(100);
+      }
+ catch (      InterruptedException e) {
+        e.printStackTrace();
+      }
+      _results.add("onSwitchProtocol");
+      _results.add(connection);
+      clientWS.onConnect(connection);
+      return connection;
+    }
+  }
+;
+  httpExchange.setURL("http://localhost:" + _port + "/");
+  httpExchange.setMethod(HttpMethods.GET);
+  httpExchange.addRequestHeader("Upgrade","WebSocket");
+  httpExchange.addRequestHeader("Connection","Upgrade");
+  _httpClient.send(httpExchange);
+  int status=httpExchange.waitForDone();
+  assertEquals(HttpExchange.STATUS_COMPLETED,status);
+  System.err.println("results=" + _results);
+  assertEquals("serverWS.onConnect",_results.poll(1,TimeUnit.SECONDS));
+  TestWebSocket serverWS=(TestWebSocket)_results.poll(1,TimeUnit.SECONDS);
+  assertEquals(new Integer(101),_results.poll(1,TimeUnit.SECONDS));
+  assertEquals("onSwitchProtocol",_results.poll(1,TimeUnit.SECONDS));
+  WebSocketConnection client_conn=(WebSocketConnection)_results.poll(1,TimeUnit.SECONDS);
+  assertEquals("clientWS.onConnect",_results.poll(1,TimeUnit.SECONDS));
+  assertEquals(client_conn,_results.poll(1,TimeUnit.SECONDS));
+  client_conn.sendMessage("hello world");
+  assertEquals("serverWS.onMessage",_results.poll(1,TimeUnit.SECONDS));
+  assertEquals("hello world",_results.poll(1,TimeUnit.SECONDS));
+  serverWS.sendMessage("buongiorno");
+  assertEquals("clientWS.onMessage",_results.poll(1,TimeUnit.SECONDS));
+  assertEquals("buongiorno",_results.poll(1,TimeUnit.SECONDS));
+}
