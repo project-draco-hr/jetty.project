@@ -1,0 +1,33 @@
+{
+  BufferedReader reader=new BufferedReader(new InputStreamReader(input));
+  String line=reader.readLine();
+  if (line == null)   throw new EOFException();
+  Matcher responseLine=Pattern.compile("HTTP/1\\.1\\s+(\\d+)").matcher(line);
+  assertTrue(responseLine.lookingAt());
+  String code=responseLine.group(1);
+  Map<String,String> headers=new LinkedHashMap<String,String>();
+  while ((line=reader.readLine()) != null) {
+    if (line.trim().length() == 0)     break;
+    Matcher header=Pattern.compile("([^:]+):\\s*(.*)").matcher(line);
+    assertTrue(header.lookingAt());
+    String headerName=header.group(1);
+    String headerValue=header.group(2);
+    headers.put(headerName.toLowerCase(),headerValue.toLowerCase());
+  }
+  StringBuilder body=new StringBuilder();
+  if (headers.containsKey("content-length")) {
+    int length=Integer.parseInt(headers.get("content-length"));
+    for (int i=0; i < length; ++i)     body.append((char)reader.read());
+  }
+ else   if ("chunked".equals(headers.get("transfer-encoding"))) {
+    while ((line=reader.readLine()) != null) {
+      if ("0".equals(line)) {
+        reader.readLine();
+        break;
+      }
+      body.append(reader.readLine());
+      reader.readLine();
+    }
+  }
+  return new Response(code,headers,body.toString().trim());
+}
