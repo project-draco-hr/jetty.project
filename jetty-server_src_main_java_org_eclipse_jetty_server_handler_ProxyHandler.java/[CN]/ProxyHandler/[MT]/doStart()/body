@@ -1,16 +1,16 @@
 {
   super.doStart();
-  threadPool=new QueuedThreadPool();
-  threadPool.start();
-  selectorManager.start();
-  threadPool.dispatch(new Runnable(){
+  if (_threadPool == null)   _threadPool=getServer().getThreadPool();
+  if (_threadPool instanceof LifeCycle && !((LifeCycle)_threadPool).isRunning())   ((LifeCycle)_threadPool).start();
+  _selectorManager.start();
+  _threadPool.dispatch(new Runnable(){
     public void run(){
       while (isRunning()) {
         try {
-          selectorManager.doSelect(0);
+          _selectorManager.doSelect(0);
         }
  catch (        IOException x) {
-          logger.warn("Unexpected exception",x);
+          _logger.warn("Unexpected exception",x);
         }
       }
     }

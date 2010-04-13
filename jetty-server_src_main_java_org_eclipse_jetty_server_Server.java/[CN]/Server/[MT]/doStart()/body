@@ -3,7 +3,11 @@
   Log.info("jetty-" + _version);
   HttpGenerator.setServerVersion(_version);
   MultiException mex=new MultiException();
-  Iterator itor=_dependentBeans.iterator();
+  if (_threadPool == null) {
+    QueuedThreadPool tp=new QueuedThreadPool();
+    setThreadPool(tp);
+  }
+  Iterator<Object> itor=_dependentBeans.iterator();
   while (itor.hasNext()) {
     try {
       Object o=itor.next();
@@ -12,10 +16,6 @@
  catch (    Throwable e) {
       mex.add(e);
     }
-  }
-  if (_threadPool == null) {
-    QueuedThreadPool tp=new QueuedThreadPool();
-    setThreadPool(tp);
   }
   if (_sessionIdManager != null)   _sessionIdManager.start();
   try {
