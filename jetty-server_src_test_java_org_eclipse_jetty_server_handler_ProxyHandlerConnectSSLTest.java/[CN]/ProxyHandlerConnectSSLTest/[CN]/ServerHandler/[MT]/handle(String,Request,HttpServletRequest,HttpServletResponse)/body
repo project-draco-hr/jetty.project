@@ -1,0 +1,21 @@
+{
+  request.setHandled(true);
+  String uri=httpRequest.getRequestURI();
+  if ("/echo".equals(uri)) {
+    StringBuilder builder=new StringBuilder();
+    builder.append(httpRequest.getMethod()).append(" ").append(uri);
+    if (httpRequest.getQueryString() != null)     builder.append("?").append(httpRequest.getQueryString());
+    ByteArrayOutputStream baos=new ByteArrayOutputStream();
+    InputStream input=httpRequest.getInputStream();
+    int read=-1;
+    while ((read=input.read()) >= 0)     baos.write(read);
+    baos.close();
+    System.err.println("server echoing:\r\n" + builder);
+    ServletOutputStream output=httpResponse.getOutputStream();
+    output.println(builder.toString());
+    output.write(baos.toByteArray());
+  }
+ else {
+    throw new ServletException();
+  }
+}
