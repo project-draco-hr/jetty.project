@@ -1,0 +1,31 @@
+{
+  Log.getLog().setDebugEnabled(true);
+  int size=32;
+  ContentExchange httpExchange=new ContentExchange();
+  Buffer babuf=new ByteArrayBuffer(size * 36 * 1024);
+  Buffer niobuf=new DirectNIOBuffer(size * 36 * 1024);
+  byte[] bytes="0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ".getBytes();
+  for (int i=0; i < size * 1024; i++) {
+    babuf.put(bytes);
+    niobuf.put(bytes);
+  }
+  httpExchange.setURL(_scheme + "localhost:" + _port+ "/");
+  httpExchange.setMethod(HttpMethods.POST);
+  httpExchange.setRequestContentType("application/data");
+  httpExchange.setRequestContent(babuf);
+  _httpClient.send(httpExchange);
+  int status=httpExchange.waitForDone();
+  String result=httpExchange.getResponseContent();
+  assertEquals(babuf.length(),result.length());
+  assertEquals(HttpExchange.STATUS_COMPLETED,status);
+  httpExchange.reset();
+  httpExchange.setURL(_scheme + "localhost:" + _port+ "/");
+  httpExchange.setMethod(HttpMethods.POST);
+  httpExchange.setRequestContentType("application/data");
+  httpExchange.setRequestContent(niobuf);
+  _httpClient.send(httpExchange);
+  status=httpExchange.waitForDone();
+  result=httpExchange.getResponseContent();
+  assertEquals(niobuf.length(),result.length());
+  assertEquals(HttpExchange.STATUS_COMPLETED,status);
+}
