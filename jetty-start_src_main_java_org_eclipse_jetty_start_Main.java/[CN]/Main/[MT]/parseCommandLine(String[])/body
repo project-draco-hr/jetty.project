@@ -1,11 +1,19 @@
 {
   try {
     List<String> arguments=new ArrayList<String>();
-    arguments.addAll(loadStartIni());
-    if (args.length > 0)     arguments.addAll(Arrays.asList(args));
+    boolean has_args=false;
+    for (    String arg : args)     has_args|=!arg.startsWith("-");
+    if (!has_args)     arguments.addAll(loadStartIni());
+    for (    String arg : args) {
+      if ("%start.ini".equals(arg)) {
+        arguments.addAll(loadStartIni());
+        continue;
+      }
+      arguments.add(arg);
+    }
     List<String> xmls=new ArrayList<String>();
     for (    String arg : arguments) {
-      if ("--help".equals(arg)) {
+      if ("--help".equals(arg) || "-?".equals(arg)) {
         _showUsage=true;
         continue;
       }
@@ -42,10 +50,6 @@
         _secure=true;
         continue;
       }
-      if (arg.startsWith("-X")) {
-        _xArgs.add(arg);
-        continue;
-      }
       if (arg.startsWith("-D")) {
         String[] assign=arg.substring(2).split("=",2);
         _sysProps.add(assign[0]);
@@ -61,11 +65,19 @@ default :
 }
 continue;
 }
- else if (arg.indexOf('=') >= 0) {
+if (arg.startsWith("-")) {
+_jvmArgs.add(arg);
+continue;
+}
+if (arg.indexOf('=') >= 0) {
 String[] assign=arg.split("=",2);
 switch (assign.length) {
 case 2:
-this._config.setProperty(assign[0],assign[1]);
+if ("OPTIONS".equals(assign[0])) {
+  String opts[]=assign[1].split(",");
+  for (  String opt : opts)   _config.addActiveOption(opt);
+}
+ else this._config.setProperty(assign[0],assign[1]);
 break;
 case 1:
 this._config.setProperty(assign[0],null);
@@ -76,11 +88,6 @@ break;
 continue;
 }
 xmls.add(arg);
-}
-String options=_config.getProperty("OPTIONS");
-if (options != null) {
-String ids[]=options.split(",");
-for (String id : ids) _config.addActiveOption(id);
 }
 start(xmls);
 }
