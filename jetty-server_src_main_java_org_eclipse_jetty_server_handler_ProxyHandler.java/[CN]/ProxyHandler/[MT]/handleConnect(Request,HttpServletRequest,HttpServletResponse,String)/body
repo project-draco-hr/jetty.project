@@ -26,9 +26,11 @@
       bodyBuffer.clear();
     }
   }
-  ClientToProxyConnection clientToProxy=prepareConnections(channel,buffer);
+  ConcurrentMap<String,Object> context=new ConcurrentHashMap<String,Object>();
+  prepareContext(request,context);
+  ClientToProxyConnection clientToProxy=prepareConnections(context,channel,buffer);
   response.setStatus(HttpServletResponse.SC_OK);
-  ((HttpGenerator)baseRequest.getConnection().getGenerator()).setPersistent(true);
+  baseRequest.getConnection().getGenerator().setPersistent(true);
   response.getOutputStream().close();
   upgradeConnection(request,response,clientToProxy);
 }
