@@ -1,13 +1,13 @@
 {
   if (source.next() != '"')   throw new IllegalStateException();
   boolean escape=false;
-  StringBuffer b=null;
+  StringBuilder b=null;
   final char[] scratch=source.scratchBuffer();
   if (scratch != null) {
     int i=0;
     while (source.hasNext()) {
       if (i >= scratch.length) {
-        b=new StringBuffer(scratch.length * 2);
+        b=new StringBuilder(scratch.length * 2);
         b.append(scratch,0,i);
         break;
       }
@@ -58,43 +58,43 @@ return toString(scratch,0,i);
 }
 if (b == null) return toString(scratch,0,i);
 }
- else b=new StringBuffer(getStringBufferSize());
-synchronized (b) {
+ else b=new StringBuilder(getStringBufferSize());
+final StringBuilder builder=b;
 while (source.hasNext()) {
 char c=source.next();
 if (escape) {
 escape=false;
 switch (c) {
 case '"':
-b.append('"');
+builder.append('"');
 break;
 case '\\':
-b.append('\\');
+builder.append('\\');
 break;
 case '/':
-b.append('/');
+builder.append('/');
 break;
 case 'b':
-b.append('\b');
+builder.append('\b');
 break;
 case 'f':
-b.append('\f');
+builder.append('\f');
 break;
 case 'n':
-b.append('\n');
+builder.append('\n');
 break;
 case 'r':
-b.append('\r');
+builder.append('\r');
 break;
 case 't':
-b.append('\t');
+builder.append('\t');
 break;
 case 'u':
 char uc=(char)((TypeUtil.convertHexDigit((byte)source.next()) << 12) + (TypeUtil.convertHexDigit((byte)source.next()) << 8) + (TypeUtil.convertHexDigit((byte)source.next()) << 4)+ (TypeUtil.convertHexDigit((byte)source.next())));
-b.append(uc);
+builder.append(uc);
 break;
 default :
-b.append(c);
+builder.append(c);
 }
 }
  else if (c == '\\') {
@@ -102,8 +102,7 @@ escape=true;
 continue;
 }
  else if (c == '\"') break;
- else b.append(c);
+ else builder.append(c);
 }
-return b.toString();
-}
+return builder.toString();
 }
