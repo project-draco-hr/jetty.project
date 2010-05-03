@@ -1,16 +1,21 @@
 {
   try {
     List<String> arguments=new ArrayList<String>();
-    boolean has_args=false;
-    for (    String arg : args)     has_args|=!arg.startsWith("-");
-    if (!has_args)     arguments.addAll(loadStartIni());
+    boolean ini=false;
     for (    String arg : args) {
-      if ("%start.ini".equals(arg)) {
-        arguments.addAll(loadStartIni());
-        continue;
+      if (arg.startsWith("--ini=")) {
+        ini=true;
+        if (arg.length() > 6) {
+          arguments.addAll(loadStartIni(arg.substring(6)));
+          continue;
+        }
       }
-      arguments.add(arg);
+ else       if (arg.startsWith("--config=")) {
+        _startConfig=arg.substring(9);
+      }
+ else       arguments.add(arg);
     }
+    if (!ini)     arguments.addAll(0,loadStartIni(null));
     List<String> xmls=new ArrayList<String>();
     for (    String arg : arguments) {
       if ("--help".equals(arg) || "-?".equals(arg)) {
@@ -29,6 +34,10 @@
       }
       if ("--list-modes".equals(arg) || "--list-options".equals(arg)) {
         _listOptions=true;
+        continue;
+      }
+      if ("--list-config".equals(arg)) {
+        _listConfig=true;
         continue;
       }
       if ("--exec-print".equals(arg) || "--dry-run".equals(arg)) {
