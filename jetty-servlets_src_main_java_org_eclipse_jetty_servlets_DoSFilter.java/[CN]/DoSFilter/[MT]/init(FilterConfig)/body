@@ -14,6 +14,8 @@
     }
 ;
   }
+  _rateTrackers.clear();
+  _whitelist.clear();
   int baseRateLimit=__DEFAULT_MAX_REQUESTS_PER_SEC;
   if (filterConfig.getInitParameter(MAX_REQUESTS_PER_S_INIT_PARAM) != null)   baseRateLimit=Integer.parseInt(filterConfig.getInitParameter(MAX_REQUESTS_PER_S_INIT_PARAM));
   _maxRequestsPerSec=baseRateLimit;
@@ -37,10 +39,8 @@
   _maxIdleTrackerMs=maxIdleTrackerMs;
   String whitelistString="";
   if (filterConfig.getInitParameter(IP_WHITELIST_INIT_PARAM) != null)   whitelistString=filterConfig.getInitParameter(IP_WHITELIST_INIT_PARAM);
-  if (whitelistString.length() == 0)   _whitelist=new HashSet<String>();
- else {
+  if (whitelistString.length() > 0) {
     StringTokenizer tokenizer=new StringTokenizer(whitelistString,",");
-    _whitelist=new HashSet<String>(tokenizer.countTokens());
     while (tokenizer.hasMoreTokens())     _whitelist.add(tokenizer.nextToken().trim());
     Log.info("Whitelisted IP addresses: {}",_whitelist.toString());
   }
@@ -59,10 +59,13 @@
     public void run(){
       try {
         while (_running) {
+          long now;
 synchronized (_requestTimeoutQ) {
-            _requestTimeoutQ.setNow();
+            now=_requestTimeoutQ.setNow();
             _requestTimeoutQ.tick();
-            _trackerTimeoutQ.setNow(_requestTimeoutQ.getNow());
+          }
+synchronized (_trackerTimeoutQ) {
+            _trackerTimeoutQ.setNow(now);
             _trackerTimeoutQ.tick();
           }
           try {

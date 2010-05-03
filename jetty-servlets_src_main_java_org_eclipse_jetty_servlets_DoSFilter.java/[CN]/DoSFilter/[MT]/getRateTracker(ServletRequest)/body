@@ -1,16 +1,20 @@
 {
   HttpServletRequest srequest=(HttpServletRequest)request;
-  String loadId;
-  final int type;
-  loadId=extractUserId(request);
   HttpSession session=srequest.getSession(false);
-  if (_trackSessions && session != null && !session.isNew()) {
-    loadId=session.getId();
-    type=USER_SESSION;
+  String loadId=extractUserId(request);
+  final int type;
+  if (loadId != null) {
+    type=USER_AUTH;
   }
  else {
-    loadId=_remotePort ? (request.getRemoteAddr() + request.getRemotePort()) : request.getRemoteAddr();
-    type=USER_IP;
+    if (_trackSessions && session != null && !session.isNew()) {
+      loadId=session.getId();
+      type=USER_SESSION;
+    }
+ else {
+      loadId=_remotePort ? (request.getRemoteAddr() + request.getRemotePort()) : request.getRemoteAddr();
+      type=USER_IP;
+    }
   }
   RateTracker tracker=_rateTrackers.get(loadId);
   if (tracker == null) {
