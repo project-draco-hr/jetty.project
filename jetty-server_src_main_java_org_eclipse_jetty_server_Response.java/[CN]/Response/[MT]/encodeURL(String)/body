@@ -1,7 +1,13 @@
 {
-  Request request=_connection.getRequest();
+  final Request request=_connection.getRequest();
   SessionManager sessionManager=request.getSessionManager();
   if (sessionManager == null)   return url;
+  if (sessionManager.isCheckingRemoteSessionIdEncoding() && URIUtil.hasScheme(url)) {
+    HttpURI uri=new HttpURI(url);
+    int port=uri.getPort();
+    if (port < 0)     port=HttpSchemes.HTTPS.equalsIgnoreCase(uri.getScheme()) ? 443 : 80;
+    if (!request.getServerName().equalsIgnoreCase(uri.getHost()) || request.getServerPort() != port || !uri.getPath().startsWith(request.getContextPath()))     return url;
+  }
   String sessionURLPrefix=sessionManager.getSessionIdPathParameterNamePrefix();
   if (sessionURLPrefix == null)   return url;
   if (url == null)   return null;
