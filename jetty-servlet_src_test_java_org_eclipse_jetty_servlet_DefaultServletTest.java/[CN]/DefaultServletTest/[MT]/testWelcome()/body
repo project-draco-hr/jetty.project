@@ -1,8 +1,8 @@
 {
-  File testDir=new File("target/tests/" + getName());
+  File testDir=new File("target/tests/" + DefaultServletTest.class.getSimpleName());
   prepareEmptyTestDir(testDir);
   File resBase=new File(testDir,"docroot");
-  resBase.mkdirs();
+  assertTrue(resBase.mkdirs());
   File inde=new File(resBase,"index.htm");
   File index=new File(resBase,"index.html");
   String resBasePath=resBase.getAbsolutePath();
@@ -13,8 +13,7 @@
   defholder.setInitParameter("gzip","false");
   defholder.setInitParameter("resourceBase",resBasePath);
   ServletHolder jspholder=context.addServlet(NoJspServlet.class,"*.jsp");
-  String response;
-  response=connector.getResponses("GET /context/ HTTP/1.0\r\n\r\n");
+  String response=connector.getResponses("GET /context/ HTTP/1.0\r\n\r\n");
   assertResponseContains("403",response);
   createFile(index,"<h1>Hello Index</h1>");
   response=connector.getResponses("GET /context/ HTTP/1.0\r\n\r\n");
@@ -22,10 +21,10 @@
   createFile(inde,"<h1>Hello Inde</h1>");
   response=connector.getResponses("GET /context/ HTTP/1.0\r\n\r\n");
   assertResponseContains("<h1>Hello Index</h1>",response);
-  index.delete();
+  assertTrue(index.delete());
   response=connector.getResponses("GET /context/ HTTP/1.0\r\n\r\n");
   assertResponseContains("<h1>Hello Inde</h1>",response);
-  inde.delete();
+  assertTrue(inde.delete());
   response=connector.getResponses("GET /context/ HTTP/1.0\r\n\r\n");
   assertResponseContains("403",response);
 }

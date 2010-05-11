@@ -1,16 +1,15 @@
 {
-  File testDir=new File("target/tests/" + getName());
+  File testDir=new File("target/tests/" + DefaultServletTest.class.getSimpleName());
   prepareEmptyTestDir(testDir);
   File resBase=new File(testDir,"docroot");
-  resBase.mkdirs();
+  assertTrue(resBase.mkdirs());
   File data=new File(resBase,"data.txt");
   createFile(data,"01234567890123456789012345678901234567890123456789012345678901234567890123456789");
   String resBasePath=resBase.getAbsolutePath();
   ServletHolder defholder=context.addServlet(DefaultServlet.class,"/");
   defholder.setInitParameter("acceptRanges","true");
   defholder.setInitParameter("resourceBase",resBasePath);
-  String response;
-  response=connector.getResponses("GET /context/data.txt HTTP/1.1\r\n" + "Host: localhost\r\n" + "\r\n");
+  String response=connector.getResponses("GET /context/data.txt HTTP/1.1\r\n" + "Host: localhost\r\n" + "\r\n");
   assertResponseContains("200 OK",response);
   assertResponseContains("Accept-Ranges: bytes",response);
   response=connector.getResponses("GET /context/data.txt HTTP/1.1\r\n" + "Host: localhost\r\n" + "Range: bytes=0-9\r\n"+ "\r\n");
