@@ -1,56 +1,41 @@
 {
-  Server server=new Server();
-  SslSelectChannelConnector connector=new SslSelectChannelConnector();
-  String keystore=System.getProperty("user.dir") + File.separator + "src"+ File.separator+ "test"+ File.separator+ "resources"+ File.separator+ "keystore";
-  connector.setPort(0);
-  connector.setKeystore(keystore);
-  connector.setPassword("storepwd");
-  connector.setKeyPassword("keypwd");
-  connector.setTruststore(keystore);
-  connector.setTrustPassword("storepwd");
-  server.setConnectors(new Connector[]{connector});
+  stopServer();
   StreamHandler handler=new StreamHandler();
   server.setHandler(handler);
-  try {
-    SSLContext context=SSLContext.getInstance("SSL");
-    context.init(null,s_dummyTrustManagers,new java.security.SecureRandom());
-    HttpsURLConnection.setDefaultSSLSocketFactory(context.getSocketFactory());
-    server.start();
-    URL url=new URL("https://localhost:" + connector.getLocalPort() + "/test");
-    HttpURLConnection conn=(HttpURLConnection)url.openConnection();
-    if (conn instanceof HttpsURLConnection) {
-      ((HttpsURLConnection)conn).setHostnameVerifier(new HostnameVerifier(){
-        public boolean verify(        String urlHostName,        SSLSession session){
-          return true;
-        }
+  server.start();
+  SSLContext context=SSLContext.getInstance("SSL");
+  context.init(null,s_dummyTrustManagers,new java.security.SecureRandom());
+  HttpsURLConnection.setDefaultSSLSocketFactory(context.getSocketFactory());
+  URL url=new URL("https://localhost:" + connector.getLocalPort() + "/test");
+  HttpURLConnection conn=(HttpURLConnection)url.openConnection();
+  if (conn instanceof HttpsURLConnection) {
+    ((HttpsURLConnection)conn).setHostnameVerifier(new HostnameVerifier(){
+      public boolean verify(      String urlHostName,      SSLSession session){
+        return true;
       }
+    }
 );
-    }
-    conn.setConnectTimeout(10000);
-    conn.setReadTimeout(100000);
-    conn.setDoInput(true);
-    conn.setDoOutput(true);
-    conn.setRequestMethod("POST");
-    conn.setRequestProperty("Content-Type","text/plain");
-    conn.setChunkedStreamingMode(128);
-    conn.connect();
-    byte[] b=new byte[BODY_SIZE];
-    for (int i=0; i < BODY_SIZE; i++) {
-      b[i]='x';
-    }
-    OutputStream os=conn.getOutputStream();
-    os.write(b);
-    os.flush();
-    int rc=conn.getResponseCode();
-    int len=0;
-    InputStream is=conn.getInputStream();
-    int bytes=0;
-    while ((len=is.read(b)) > -1)     bytes+=len;
-    is.close();
-    assertEquals(BODY_SIZE,handler.bytes);
-    assertEquals(BODY_SIZE,bytes);
   }
-  finally {
-    server.stop();
+  conn.setConnectTimeout(10000);
+  conn.setReadTimeout(100000);
+  conn.setDoInput(true);
+  conn.setDoOutput(true);
+  conn.setRequestMethod("POST");
+  conn.setRequestProperty("Content-Type","text/plain");
+  conn.setChunkedStreamingMode(128);
+  conn.connect();
+  byte[] b=new byte[BODY_SIZE];
+  for (int i=0; i < BODY_SIZE; i++) {
+    b[i]='x';
   }
+  OutputStream os=conn.getOutputStream();
+  os.write(b);
+  os.flush();
+  int len=0;
+  InputStream is=conn.getInputStream();
+  int bytes=0;
+  while ((len=is.read(b)) > -1)   bytes+=len;
+  is.close();
+  assertEquals(BODY_SIZE,handler.bytes);
+  assertEquals(BODY_SIZE,bytes);
 }

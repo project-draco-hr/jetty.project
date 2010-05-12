@@ -1,44 +1,27 @@
 {
-  Server server=new Server();
-  SslConnector connector=new SslSelectChannelConnector();
-  server.addConnector(connector);
-  String keystorePath=System.getProperty("basedir",".") + "/src/test/resources/keystore";
-  connector.setKeystore(keystorePath);
-  connector.setPassword("storepwd");
-  connector.setKeyPassword("keypwd");
-  connector.setTruststore(keystorePath);
-  connector.setTrustPassword("storepwd");
-  server.setHandler(new EmptyHandler());
-  server.start();
-  try {
-    KeyStore keystore=KeyStore.getInstance(KeyStore.getDefaultType());
-    keystore.load(new FileInputStream(keystorePath),"storepwd".toCharArray());
-    TrustManagerFactory trustManagerFactory=TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
-    trustManagerFactory.init(keystore);
-    SSLContext sslContext=SSLContext.getInstance("SSL");
-    sslContext.init(null,trustManagerFactory.getTrustManagers(),null);
-    _total=0;
-    final SSLSocket socket=(SSLSocket)sslContext.getSocketFactory().createSocket("localhost",connector.getLocalPort());
-    long start=System.nanoTime();
-    OutputStream out=socket.getOutputStream();
-    out.write("POST / HTTP/1.1\r\n".getBytes());
-    out.write("Host: localhost\r\n".getBytes());
-    out.write("Content-Length: 16777216\r\n".getBytes());
-    out.write("Content-Type: bytes\r\n".getBytes());
-    out.write("Connection: close\r\n".getBytes());
-    out.write("\r\n".getBytes());
-    out.flush();
-    byte[] requestContent=new byte[16777216];
-    Arrays.fill(requestContent,(byte)120);
-    out.write(requestContent);
-    out.flush();
-    InputStream in=socket.getInputStream();
-    String response=IO.toString(in);
-    long end=System.nanoTime();
-    System.out.println("upload time: " + TimeUnit.NANOSECONDS.toMillis(end - start));
-    assertEquals(requestContent.length,_total);
-  }
-  finally {
-    server.stop();
-  }
+  KeyStore keystore=KeyStore.getInstance(KeyStore.getDefaultType());
+  keystore.load(new FileInputStream(connector.getKeystore()),"storepwd".toCharArray());
+  TrustManagerFactory trustManagerFactory=TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+  trustManagerFactory.init(keystore);
+  SSLContext sslContext=SSLContext.getInstance("SSL");
+  sslContext.init(null,trustManagerFactory.getTrustManagers(),null);
+  final SSLSocket socket=(SSLSocket)sslContext.getSocketFactory().createSocket("localhost",connector.getLocalPort());
+  long start=System.nanoTime();
+  OutputStream out=socket.getOutputStream();
+  out.write("POST / HTTP/1.1\r\n".getBytes());
+  out.write("Host: localhost\r\n".getBytes());
+  out.write("Content-Length: 16777216\r\n".getBytes());
+  out.write("Content-Type: bytes\r\n".getBytes());
+  out.write("Connection: close\r\n".getBytes());
+  out.write("\r\n".getBytes());
+  out.flush();
+  byte[] requestContent=new byte[16777216];
+  Arrays.fill(requestContent,(byte)120);
+  out.write(requestContent);
+  out.flush();
+  InputStream in=socket.getInputStream();
+  String response=IO.toString(in);
+  long end=System.nanoTime();
+  System.out.println("upload time: " + TimeUnit.NANOSECONDS.toMillis(end - start));
+  assertEquals(requestContent.length,total);
 }
