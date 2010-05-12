@@ -1,17 +1,16 @@
 {
-  Server server=startServer(new EchoHandler());
+  configureServer(new EchoHandler());
+  Socket client=new Socket(HOST,_connector.getLocalPort());
   try {
-    long start=System.currentTimeMillis();
-    Socket client=new Socket(HOST,port);
     OutputStream os=client.getOutputStream();
     InputStream is=client.getInputStream();
-    os.write(("POST /echo?charset=utf-8 HTTP/1.1\r\n" + "host: " + HOST + ":"+ port+ "\r\n"+ "content-type: text/plain; charset=utf-8\r\n"+ "content-length: 10\r\n"+ "\r\n").getBytes("iso-8859-1"));
+    os.write(("POST /echo?charset=utf-8 HTTP/1.1\r\n" + "host: " + HOST + ":"+ _connector.getLocalPort()+ "\r\n"+ "content-type: text/plain; charset=utf-8\r\n"+ "content-length: 10\r\n"+ "\r\n").getBytes("iso-8859-1"));
     os.write(("123456789\n").getBytes("utf-8"));
-    os.write(("POST /echo?charset=utf-8 HTTP/1.1\r\n" + "host: " + HOST + ":"+ port+ "\r\n"+ "content-type: text/plain; charset=utf-8\r\n"+ "content-length: 10\r\n"+ "\r\n").getBytes("iso-8859-1"));
+    os.write(("POST /echo?charset=utf-8 HTTP/1.1\r\n" + "host: " + HOST + ":"+ _connector.getLocalPort()+ "\r\n"+ "content-type: text/plain; charset=utf-8\r\n"+ "content-length: 10\r\n"+ "\r\n").getBytes("iso-8859-1"));
     os.write(("abcdefghi\n").getBytes("utf-8"));
     String content="Wibble";
     byte[] contentB=content.getBytes("utf-16");
-    os.write(("POST /echo?charset=utf-8 HTTP/1.1\r\n" + "host: " + HOST + ":"+ port+ "\r\n"+ "content-type: text/plain; charset=utf-16\r\n"+ "content-length: "+ contentB.length+ "\r\n"+ "connection: close\r\n"+ "\r\n").getBytes("iso-8859-1"));
+    os.write(("POST /echo?charset=utf-8 HTTP/1.1\r\n" + "host: " + HOST + ":"+ _connector.getLocalPort()+ "\r\n"+ "content-type: text/plain; charset=utf-16\r\n"+ "content-length: "+ contentB.length+ "\r\n"+ "connection: close\r\n"+ "\r\n").getBytes("iso-8859-1"));
     os.write(contentB);
     os.flush();
     String in=IO.toString(is);
@@ -20,7 +19,6 @@
     assertTrue(in.indexOf("Wibble") >= 0);
   }
   finally {
-    server.stop();
-    Thread.yield();
+    client.close();
   }
 }

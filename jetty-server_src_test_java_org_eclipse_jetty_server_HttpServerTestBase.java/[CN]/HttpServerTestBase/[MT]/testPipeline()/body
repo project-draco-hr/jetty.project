@@ -1,13 +1,13 @@
 {
-  Server server=startServer(new HelloWorldHandler());
-  try {
-    for (int pipeline=1; pipeline < 32; pipeline++) {
-      Socket client=new Socket(HOST,port);
+  configureServer(new HelloWorldHandler());
+  for (int pipeline=1; pipeline < 32; pipeline++) {
+    Socket client=new Socket(HOST,_connector.getLocalPort());
+    try {
       client.setSoTimeout(5000);
       OutputStream os=client.getOutputStream();
       String request="";
-      for (int i=1; i < pipeline; i++)       request+="GET /data?writes=1&block=16&id=" + i + " HTTP/1.1\r\n"+ "host: "+ HOST+ ":"+ port+ "\r\n"+ "user-agent: testharness/1.0 (blah foo/bar)\r\n"+ "accept-encoding: nothing\r\n"+ "cookie: aaa=1234567890\r\n"+ "\r\n";
-      request+="GET /data?writes=1&block=16 HTTP/1.1\r\n" + "host: " + HOST + ":"+ port+ "\r\n"+ "user-agent: testharness/1.0 (blah foo/bar)\r\n"+ "accept-encoding: nothing\r\n"+ "cookie: aaa=bbbbbb\r\n"+ "Connection: close\r\n"+ "\r\n";
+      for (int i=1; i < pipeline; i++)       request+="GET /data?writes=1&block=16&id=" + i + " HTTP/1.1\r\n"+ "host: "+ HOST+ ":"+ _connector.getLocalPort()+ "\r\n"+ "user-agent: testharness/1.0 (blah foo/bar)\r\n"+ "accept-encoding: nothing\r\n"+ "cookie: aaa=1234567890\r\n"+ "\r\n";
+      request+="GET /data?writes=1&block=16 HTTP/1.1\r\n" + "host: " + HOST + ":"+ _connector.getLocalPort()+ "\r\n"+ "user-agent: testharness/1.0 (blah foo/bar)\r\n"+ "accept-encoding: nothing\r\n"+ "cookie: aaa=bbbbbb\r\n"+ "Connection: close\r\n"+ "\r\n";
       os.write(request.getBytes());
       os.flush();
       LineNumberReader in=new LineNumberReader(new InputStreamReader(client.getInputStream()));
@@ -19,9 +19,8 @@
       }
       assertEquals(pipeline,count);
     }
-  }
   finally {
-    server.stop();
-    Thread.yield();
+      client.close();
+    }
   }
 }

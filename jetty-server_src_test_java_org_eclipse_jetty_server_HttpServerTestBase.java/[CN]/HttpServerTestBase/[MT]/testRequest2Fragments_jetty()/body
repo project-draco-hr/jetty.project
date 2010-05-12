@@ -1,26 +1,25 @@
 {
-  Random random=new Random(System.currentTimeMillis());
+  configureServer(new EchoHandler());
   byte[] bytes=REQUEST2.getBytes();
   final int pointCount=2;
-  Server server=startServer(new EchoHandler());
-  try {
-    for (int i=0; i < LOOPS; i++) {
-      int[] points=new int[pointCount];
-      StringBuilder message=new StringBuilder();
-      message.append("iteration #").append(i + 1);
-      for (int j=0; j < points.length; ++j) {
-        points[j]=random.nextInt(bytes.length);
-      }
-      Arrays.sort(points);
-      Socket client=new Socket(HOST,port);
+  Random random=new Random(System.currentTimeMillis());
+  for (int i=0; i < LOOPS; i++) {
+    int[] points=new int[pointCount];
+    StringBuilder message=new StringBuilder();
+    message.append("iteration #").append(i + 1);
+    for (int j=0; j < points.length; ++j) {
+      points[j]=random.nextInt(bytes.length);
+    }
+    Arrays.sort(points);
+    Socket client=new Socket(HOST,_connector.getLocalPort());
+    try {
       OutputStream os=client.getOutputStream();
       writeFragments(bytes,points,message,os);
       String response=readResponse(client);
-      client.close();
       assertEquals("response for " + i + " "+ message.toString(),RESPONSE2,response);
     }
-  }
   finally {
-    server.stop();
+      client.close();
+    }
   }
 }

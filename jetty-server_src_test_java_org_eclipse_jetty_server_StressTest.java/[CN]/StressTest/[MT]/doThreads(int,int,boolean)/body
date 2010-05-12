@@ -1,29 +1,27 @@
 {
-  final Throwable[] throwable=new Throwable[threads];
-  final Thread[] thread=new Thread[threads];
+  final Throwable[] throwables=new Throwable[threadCount];
+  final Thread[] threads=new Thread[threadCount];
   try {
-    for (int i=0; i < threads; i++) {
+    for (int i=0; i < threadCount; i++) {
       final int id=i;
       final String name="T" + i;
-      thread[i]=new Thread(){
+      threads[i]=new Thread(){
         @Override public void run(){
           try {
             doLoops(id,name,loops,persistent);
           }
  catch (          Throwable th) {
             th.printStackTrace();
-            throwable[id]=th;
-          }
- finally {
+            throwables[id]=th;
           }
         }
       }
 ;
     }
-    _loops=new AtomicInteger[threads];
-    for (int i=0; i < threads; i++) {
+    _loops=new AtomicInteger[threadCount];
+    for (int i=0; i < threadCount; i++) {
       _loops[i]=new AtomicInteger(0);
-      thread[i].start();
+      threads[i].start();
     }
     String last=null;
     int same=0;
@@ -34,7 +32,7 @@
       int min=loops;
       int max=0;
       int total=0;
-      for (int i=0; i < threads; i++) {
+      for (int i=0; i < threadCount; i++) {
         int l=_loops[i].get();
         if (l < 0) {
           errors++;
@@ -47,7 +45,7 @@
           if (l == loops)           finished++;
         }
       }
-      String status="min/ave/max/target=" + min + "/"+ (total / threads)+ "/"+ max+ "/"+ loops+ " errors/finished/loops="+ errors+ "/"+ finished+ "/"+ threads+ " idle/threads="+ (_threads.getIdleThreads())+ "/"+ _threads.getThreads();
+      String status="min/ave/max/target=" + min + "/"+ (total / threadCount)+ "/"+ max+ "/"+ loops+ " errors/finished/loops="+ errors+ "/"+ finished+ "/"+ threadCount+ " idle/threads="+ (_threads.getIdleThreads())+ "/"+ _threads.getThreads();
       if (status.equals(last)) {
         if (same++ > 5) {
           System.err.println("STALLED!!!");
@@ -60,11 +58,11 @@
  else       same=0;
       last=status;
       Log.info(_server.getThreadPool().toString() + " " + status);
-      if ((finished + errors) == threads)       break;
+      if ((finished + errors) == threadCount)       break;
     }
-    for (int i=0; i < threads; i++)     thread[i].join();
-    for (int i=0; i < threads; i++)     if (throwable[i] != null)     throw throwable[i];
-    for (int i=0; i < _latencies.length; i++)     assertEquals(_handled.get(),_latencies[i].size());
+    for (    Thread thread : threads)     thread.join();
+    for (    Throwable throwable : throwables)     if (throwable != null)     throw throwable;
+    for (    ConcurrentLinkedQueue _latency : _latencies)     assertEquals(_handled.get(),_latency.size());
   }
   finally {
     System.err.println();
@@ -75,7 +73,7 @@
     for (int i=0; i < _latencies.length; i++) {
       Queue<Long> latencies=_latencies[i];
       length[i]=latencies.size();
-      loop:       for (      long latency : (Queue<Long>)(_latencies[i])) {
+      loop:       for (      long latency : latencies) {
         for (int q=0; q < quantums; q++) {
           if (latency >= (q * 100) && latency < ((q + 1) * 100)) {
             count[i][q]++;
