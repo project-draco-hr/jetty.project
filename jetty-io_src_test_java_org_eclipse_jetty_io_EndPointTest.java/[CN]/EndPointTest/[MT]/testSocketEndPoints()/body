@@ -1,0 +1,21 @@
+{
+  final ServerSocket server=new ServerSocket();
+  server.bind(null);
+  final Exchanger<Socket> accepted=new Exchanger<Socket>();
+  new Thread(){
+    public void run(){
+      try {
+        accepted.exchange(server.accept());
+      }
+ catch (      Exception e) {
+        e.printStackTrace();
+      }
+    }
+  }
+.start();
+  Socket s0=new Socket(server.getInetAddress(),server.getLocalPort());
+  Socket s1=accepted.exchange(null,5,TimeUnit.SECONDS);
+  SocketEndPoint in=new SocketEndPoint(s0);
+  SocketEndPoint out=new SocketEndPoint(s1);
+  check(in,out);
+}
