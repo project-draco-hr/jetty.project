@@ -1,27 +1,25 @@
 {
-  if (_whiteAddr.size() > 0) {
-    PathMap white=_whiteAddr.get(addr);
-    if (white == null || (white.size() > 0 && white.match(path) == null)) {
-      boolean match=false;
-      for (      String pattern : _whitePattern) {
-        if (addr.startsWith(pattern)) {
-          white=_whiteAddr.get(pattern);
-          if (white != null && white.size() > 0 && white.match(path) != null) {
-            match=true;
-            break;
-          }
-        }
+  if (_white.size() > 0) {
+    boolean match=false;
+    Object whiteObj=_white.getLazyMatches(addr);
+    if (whiteObj != null) {
+      List whiteList=(whiteObj instanceof List) ? (List)whiteObj : Collections.singletonList(whiteObj);
+      for (      Object entry : whiteList) {
+        PathMap pathMap=((Map.Entry<String,PathMap>)entry).getValue();
+        if (match=(pathMap != null && (pathMap.size() == 0 || pathMap.match(path) != null)))         ;
+        break;
       }
-      if (!match)       return false;
     }
+    if (!match)     return false;
   }
-  PathMap black=_blackAddr.get(addr);
-  if (black != null && (black.size() == 0 || black.match(path) != null))   return false;
-  for (  String pattern : _blackPattern) {
-    if (addr.startsWith(pattern)) {
-      black=_blackAddr.get(pattern);
-      if (black != null && black.match(path) != null)       return false;
-      break;
+  if (_black.size() > 0) {
+    Object blackObj=_black.getLazyMatches(addr);
+    if (blackObj != null) {
+      List blackList=(blackObj instanceof List) ? (List)blackObj : Collections.singletonList(blackObj);
+      for (      Object entry : blackList) {
+        PathMap pathMap=((Map.Entry<String,PathMap>)entry).getValue();
+        if (pathMap != null && (pathMap.size() == 0 || pathMap.match(path) != null))         return false;
+      }
     }
   }
   return true;
