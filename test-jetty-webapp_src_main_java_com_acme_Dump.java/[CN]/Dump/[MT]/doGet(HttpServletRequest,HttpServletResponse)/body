@@ -354,8 +354,14 @@ catch (    IOException e) {
       name=(String)a.nextElement();
       pout.write("</tr><tr>\n");
       pout.write("<th align=\"right\" valign=\"top\">" + name.replace("."," .") + ":&nbsp;</th>");
-      pout.write("<td>" + "<pre>" + toString(request.getAttribute(name)) + "</pre>"+ "</td>");
+      Object value=request.getAttribute(name);
+      if (value instanceof File) {
+        File file=(File)value;
+        pout.write("<td>" + "<pre>" + file.getName() + " ("+ file.length()+ " "+ new Date(file.lastModified())+ ")</pre>"+ "</td>");
+      }
+ else       pout.write("<td>" + "<pre>" + toString(request.getAttribute(name)) + "</pre>"+ "</td>");
     }
+    request.setAttribute("org.eclipse.jetty.servlet.MultiPartFilter.files",null);
     pout.write("</tr><tr>\n");
     pout.write("<th align=\"left\" colspan=\"2\"><big><br/>Servlet InitParameters:</big></th>");
     a=getInitParameterNames();
