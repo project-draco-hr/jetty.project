@@ -1,6 +1,33 @@
 {
   boolean progress=true;
   try {
+    if (_hixie != null) {
+      while (progress) {
+        if (_parser.getBuffer().length() > 0) {
+          int l=_parser.getBuffer().length();
+          if (l > 8)           l=8;
+          _hixie.put(_parser.getBuffer().peek(_parser.getBuffer().getIndex(),l));
+          _parser.getBuffer().skip(l);
+          progress=true;
+        }
+        if (_hixie.length() < 8) {
+          int filled=_endp.fill(_hixie);
+          progress|=filled > 0;
+          if (filled < 0) {
+            _endp.close();
+            break;
+          }
+        }
+        if (_hixie.length() == 8) {
+          doTheHixieHixieShake();
+          _endp.flush(_hixie);
+          _hixie=null;
+          _endp.flush();
+          break;
+        }
+      }
+      return this;
+    }
     while (progress) {
       int flushed=_generator.flush();
       int filled=_parser.parseNext();
