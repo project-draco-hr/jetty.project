@@ -1,39 +1,18 @@
 {
-  String baseUrl="http://" + host + ":"+ _port+ "/";
+  String baseUrl="http://" + "localhost" + ":" + port + "/";
   int count=200;
-  expireCount.set(0);
-  Log.info("Starting test on " + baseUrl);
+  final CountDownLatch expires=new CountDownLatch(count);
   for (int i=0; i < count; i++) {
-    if (i % 10 == 0)     System.err.print('.');
-    expireCount.incrementAndGet();
-    final ContentExchange ex=new ContentExchange(){
+    final ContentExchange exchange=new ContentExchange(){
       @Override protected void onExpire(){
-        expireCount.decrementAndGet();
+        expires.countDown();
       }
     }
 ;
-    ex.setMethod("GET");
-    ex.setURL(baseUrl);
-    client.send(ex);
-    try {
-      Thread.sleep(50);
-    }
- catch (    InterruptedException e) {
-      break;
-    }
+    exchange.setMethod("GET");
+    exchange.setURL(baseUrl);
+    client.send(exchange);
+    Thread.sleep(50);
   }
-  try {
-    Thread.sleep(2000);
-    int loops=0;
-    while (expireCount.get() > 0 && loops < 10) {
-      Log.info("waiting for test to complete: " + expireCount.get() + " of "+ count);
-      ++loops;
-      Thread.sleep(2000);
-    }
-    Thread.sleep(2000);
-  }
- catch (  InterruptedException e) {
-  }
-  System.err.println('!');
-  assertEquals(0,expireCount.get());
+  assertTrue(expires.await(5,TimeUnit.SECONDS));
 }

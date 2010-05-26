@@ -1,0 +1,27 @@
+{
+  server=new Server();
+  SelectChannelConnector connector=new SelectChannelConnector();
+  connector.setHost("localhost");
+  connector.setPort(0);
+  server.addConnector(connector);
+  server.setHandler(new AbstractHandler(){
+    public void handle(    String target,    Request request,    HttpServletRequest httpRequest,    HttpServletResponse httpResponse) throws IOException, ServletException {
+      request.setHandled(true);
+      try {
+        Thread.sleep(2000);
+      }
+ catch (      InterruptedException x) {
+        throw new ServletException(x);
+      }
+    }
+  }
+);
+  server.start();
+  port=connector.getLocalPort();
+  client=new HttpClient();
+  client.setConnectorType(HttpClient.CONNECTOR_SELECT_CHANNEL);
+  client.setTimeout(200);
+  client.setMaxRetries(0);
+  client.setMaxConnectionsPerAddress(100);
+  client.start();
+}
