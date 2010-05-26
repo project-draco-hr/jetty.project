@@ -3,7 +3,16 @@
     if (_location != null) {
       if (_location.indexOf("://") > 0)       _exchange.setURL(_location);
  else       _exchange.setURI(_location);
-      _destination.resend(_exchange);
+      HttpDestination destination=_destination.getHttpClient().getDestination(_exchange.getAddress(),HttpSchemes.HTTPS.equals(String.valueOf(_exchange.getScheme())));
+      if (_destination == destination)       _destination.resend(_exchange);
+ else {
+        HttpEventListener listener=this;
+        while (listener instanceof HttpEventListenerWrapper)         listener=((HttpEventListenerWrapper)listener).getEventListener();
+        _exchange.getEventListener().onRetry();
+        _exchange.reset();
+        _exchange.setEventListener(listener);
+        destination.send(_exchange);
+      }
       return false;
     }
  else {
