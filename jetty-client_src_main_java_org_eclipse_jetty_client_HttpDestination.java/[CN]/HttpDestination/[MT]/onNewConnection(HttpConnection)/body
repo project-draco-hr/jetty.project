@@ -13,7 +13,10 @@ synchronized (this) {
     }
  else {
       HttpExchange ex=_queue.removeFirst();
-      connection.send(ex);
+      if (!connection.send(ex)) {
+        _queue.addFirst(ex);
+        recycleConnection(connection);
+      }
     }
   }
   if (q_connection != null) {

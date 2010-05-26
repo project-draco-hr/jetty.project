@@ -16,10 +16,14 @@
   }
   HttpConnection connection=getIdleConnection();
   if (connection != null) {
-    boolean sent=connection.send(ex);
-    if (!sent)     connection=null;
+synchronized (this) {
+      if (!connection.send(ex)) {
+        _queue.add(ex);
+        recycleConnection(connection);
+      }
+    }
   }
-  if (connection == null) {
+ else {
 synchronized (this) {
       _queue.add(ex);
       if (_connections.size() + _pendingConnections < _maxConnections) {
