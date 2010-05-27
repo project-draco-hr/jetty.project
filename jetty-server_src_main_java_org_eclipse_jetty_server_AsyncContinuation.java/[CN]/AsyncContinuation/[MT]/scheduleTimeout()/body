@@ -5,7 +5,7 @@
 synchronized (this) {
         _expireAt=System.currentTimeMillis() + _timeoutMs;
         long wait=_timeoutMs;
-        while (_expireAt > 0 && wait > 0) {
+        while (_expireAt > 0 && wait > 0 && _connection.getServer().isRunning()) {
           try {
             this.wait(wait);
           }
@@ -14,7 +14,7 @@ synchronized (this) {
           }
           wait=_expireAt - System.currentTimeMillis();
         }
-        if (_expireAt > 0 && wait <= 0) {
+        if (_expireAt > 0 && wait <= 0 && _connection.getServer().isRunning()) {
           expired();
         }
       }
