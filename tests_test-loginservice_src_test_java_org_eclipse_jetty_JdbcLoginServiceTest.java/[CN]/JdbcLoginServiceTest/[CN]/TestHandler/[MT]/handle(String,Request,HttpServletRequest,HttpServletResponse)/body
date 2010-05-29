@@ -1,0 +1,30 @@
+{
+  if (baseRequest.isHandled()) {
+    return;
+  }
+  OutputStream out=null;
+  if (baseRequest.getMethod().equals("PUT")) {
+    baseRequest.setHandled(true);
+    File file=new File(resourcePath,URLDecoder.decode(request.getPathInfo()));
+    file.getParentFile().mkdirs();
+    file.deleteOnExit();
+    out=new FileOutputStream(file);
+    response.setStatus(HttpServletResponse.SC_CREATED);
+  }
+  if (baseRequest.getMethod().equals("POST")) {
+    baseRequest.setHandled(true);
+    out=new ByteArrayOutputStream();
+    response.setStatus(HttpServletResponse.SC_OK);
+  }
+  if (out != null) {
+    ServletInputStream in=request.getInputStream();
+    try {
+      copyStream(in,out);
+    }
+  finally {
+      in.close();
+      out.close();
+    }
+    if (!(out instanceof FileOutputStream))     _requestContent=out.toString();
+  }
+}
