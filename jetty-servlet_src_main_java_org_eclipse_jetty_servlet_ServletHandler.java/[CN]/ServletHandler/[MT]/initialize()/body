@@ -1,7 +1,16 @@
 {
   MultiException mx=new MultiException();
+  Container beanContainer=getServer() == null ? null : getServer().getContainer();
   if (_filters != null) {
-    for (int i=0; i < _filters.length; i++)     _filters[i].start();
+    for (int i=0; i < _filters.length; i++) {
+      _filters[i].start();
+      if (beanContainer != null) {
+        Filter filter=_filters[i].getFilter();
+        if (filter != null && filter.getClass().getName().startsWith("org.eclipse.jetty.")) {
+          beanContainer.addBean(filter);
+        }
+      }
+    }
   }
   if (_servlets != null) {
     ServletHolder[] servlets=(ServletHolder[])_servlets.clone();
@@ -17,6 +26,12 @@
           servlets[i].setClassName(forced_holder.getClassName());
         }
         servlets[i].start();
+        if (beanContainer != null) {
+          Servlet servlet=servlets[i].getServletInstance();
+          if (servlet != null && servlet.getClass().getName().startsWith("org.eclipse.jetty.")) {
+            beanContainer.addBean(servlet);
+          }
+        }
       }
  catch (      Throwable e) {
         Log.debug(Log.EXCEPTION,e);
