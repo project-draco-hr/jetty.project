@@ -13,9 +13,13 @@
  else       if (arg.startsWith("--config=")) {
         _startConfig=arg.substring(9);
       }
- else       arguments.add(arg);
+ else {
+        arguments.add(arg);
+      }
     }
-    if (!ini)     arguments.addAll(0,loadStartIni(null));
+    if (!ini) {
+      arguments.addAll(0,loadStartIni(null));
+    }
     List<String> xmls=new ArrayList<String>();
     for (    String arg : arguments) {
       if ("--help".equals(arg) || "-?".equals(arg)) {
@@ -49,9 +53,19 @@
         continue;
       }
       if ("--daemon".equals(arg)) {
-        PrintStream logger=new PrintStream(new FileOutputStream(new File(System.getProperty("jetty.log","."),"start.log")));
+        File startLog=new File(System.getProperty("jetty.logs","."),"start.log");
+        if (!startLog.exists() && !startLog.createNewFile()) {
+          System.err.println("Unable to create: " + startLog.getAbsolutePath());
+          System.exit(ERR_LOGGING);
+        }
+        if (!startLog.canWrite()) {
+          System.err.println("Unable to write to: " + startLog.getAbsolutePath());
+          System.exit(ERR_LOGGING);
+        }
+        PrintStream logger=new PrintStream(new FileOutputStream(startLog,true));
         System.setOut(logger);
         System.setErr(logger);
+        System.out.println("Establishing start.log on " + new Date());
         continue;
       }
       if ("--secure".equals(arg)) {
@@ -85,7 +99,9 @@ if ("OPTIONS".equals(assign[0])) {
   String opts[]=assign[1].split(",");
   for (  String opt : opts)   _config.addActiveOption(opt);
 }
- else this._config.setProperty(assign[0],assign[1]);
+ else {
+  this._config.setProperty(assign[0],assign[1]);
+}
 break;
 case 1:
 this._config.setProperty(assign[0],null);
@@ -102,5 +118,6 @@ start(xmls);
  catch (Throwable t) {
 t.printStackTrace(System.err);
 System.out.println("Use java -jar start.jar --help for usage information.");
+System.exit(ERR_UNKNOWN);
 }
 }

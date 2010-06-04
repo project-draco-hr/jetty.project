@@ -2,22 +2,30 @@
   int _port=port;
   String _key=key;
   try {
-    if (_port <= 0)     System.err.println("STOP.PORT system property must be specified");
+    if (_port <= 0) {
+      System.err.println("STOP.PORT system property must be specified");
+    }
     if (_key == null) {
       _key="";
       System.err.println("STOP.KEY system property must be specified");
       System.err.println("Using empty key");
     }
     Socket s=new Socket(InetAddress.getByName("127.0.0.1"),_port);
-    OutputStream out=s.getOutputStream();
-    out.write((_key + "\r\nstop\r\n").getBytes());
-    out.flush();
-    s.close();
+    try {
+      OutputStream out=s.getOutputStream();
+      out.write((_key + "\r\nstop\r\n").getBytes());
+      out.flush();
+    }
+  finally {
+      s.close();
+    }
   }
  catch (  ConnectException e) {
     System.err.println("ERROR: Not running!");
+    System.exit(ERR_NOT_STOPPED);
   }
 catch (  Exception e) {
-    e.printStackTrace();
+    e.printStackTrace(System.err);
+    System.exit(ERR_UNKNOWN);
   }
 }
