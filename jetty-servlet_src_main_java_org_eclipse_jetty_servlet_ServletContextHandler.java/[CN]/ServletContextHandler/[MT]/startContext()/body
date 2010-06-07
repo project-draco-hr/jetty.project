@@ -11,7 +11,12 @@
     _sessionHandler.setHandler(handler);
     handler=_sessionHandler;
   }
-  setHandler(handler);
+  HandlerWrapper wrapper=this;
+  while (wrapper != handler && wrapper.getHandler() instanceof HandlerWrapper)   wrapper=(HandlerWrapper)wrapper.getHandler();
+  if (wrapper != handler) {
+    if (wrapper.getHandler() != null)     throw new IllegalStateException("!ScopedHandler");
+    wrapper.setHandler(handler);
+  }
   super.startContext();
   if (_servletHandler != null && _servletHandler.isStarted())   _servletHandler.initialize();
 }
