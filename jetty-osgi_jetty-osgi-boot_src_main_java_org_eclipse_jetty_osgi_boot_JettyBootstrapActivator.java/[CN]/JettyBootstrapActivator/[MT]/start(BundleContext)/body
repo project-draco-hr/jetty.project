@@ -1,11 +1,13 @@
 {
   INSTANCE=this;
   _packageAdminServiceTracker=new PackageAdminServiceTracker(context);
+  Properties jettyServerMgdFactoryServiceProps=new Properties();
+  jettyServerMgdFactoryServiceProps.put("pid",OSGiWebappConstants.MANAGED_JETTY_SERVER_FACTORY_PID);
+  _jettyServerFactoryService=context.registerService(ManagedServiceFactory.class.getName(),new JettyServersManagedFactory(),jettyServerMgdFactoryServiceProps);
   _server=new Server();
   _registeredServer=context.registerService(_server.getClass().getName(),_server,new Properties());
   _jettyContextHandlerTracker=new JettyContextHandlerServiceTracker(context,_server);
   context.addServiceListener(_jettyContextHandlerTracker,"(objectclass=" + ContextHandler.class.getName() + ")");
-  JettyContextHandlerExtender jettyContexHandlerExtender=new JettyContextHandlerExtender();
-  context.addBundleListener(jettyContexHandlerExtender);
-  jettyContexHandlerExtender.init(context);
+  _webBundleTracker=new BundleTracker(context,Bundle.ACTIVE | Bundle.STOPPING,new WebBundleTrackerCustomizer());
+  _webBundleTracker.open();
 }

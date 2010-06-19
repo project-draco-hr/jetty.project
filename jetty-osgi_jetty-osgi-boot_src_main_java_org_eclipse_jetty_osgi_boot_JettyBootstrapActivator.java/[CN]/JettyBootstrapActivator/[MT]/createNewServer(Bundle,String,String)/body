@@ -1,0 +1,29 @@
+{
+  ServiceReference configurationAdminReference=contributor.getBundleContext().getServiceReference(ConfigurationAdmin.class.getName());
+  ConfigurationAdmin confAdmin=(ConfigurationAdmin)contributor.getBundleContext().getService(configurationAdminReference);
+  Configuration configuration=confAdmin.createFactoryConfiguration(OSGiWebappConstants.MANAGED_JETTY_SERVER_FACTORY_PID,contributor.getLocation());
+  Dictionary properties=new Hashtable();
+  properties.put(OSGiWebappConstants.MANAGED_JETTY_SERVER_NAME,serverName);
+  StringBuilder actualBundleUrls=new StringBuilder();
+  StringTokenizer tokenizer=new StringTokenizer(urlsToJettyXml,",",false);
+  while (tokenizer.hasMoreTokens()) {
+    if (actualBundleUrls.length() != 0) {
+      actualBundleUrls.append(",");
+    }
+    String token=tokenizer.nextToken();
+    if (token.indexOf(':') != -1) {
+      actualBundleUrls.append(token);
+    }
+ else     if (token.startsWith("/")) {
+      URL url=contributor.getEntry(token);
+      if (url == null) {
+        actualBundleUrls.append(token);
+      }
+ else {
+        actualBundleUrls.append(url.toString());
+      }
+    }
+  }
+  properties.put(OSGiWebappConstants.MANAGED_JETTY_JETTY_XML_URL,actualBundleUrls.toString());
+  configuration.update(properties);
+}
