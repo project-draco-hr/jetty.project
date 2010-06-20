@@ -1,0 +1,24 @@
+{
+  _ctxtHandler=(ContextHandlerCollection)_server.getChildHandlerByClass(ContextHandlerCollection.class);
+  List<DeploymentManager> deployers=_server.getBeans(DeploymentManager.class);
+  if (deployers != null && !deployers.isEmpty()) {
+    _deploymentManager=deployers.get(0);
+    for (    AppProvider provider : _deploymentManager.getAppProviders()) {
+      if (provider instanceof OSGiAppProvider) {
+        _provider=(OSGiAppProvider)provider;
+        break;
+      }
+    }
+    if (_provider == null) {
+      try {
+        _provider=new OSGiAppProvider();
+        _provider.setMonitoredDir(Resource.newResource(getDefaultOSGiContextsHome(new File(System.getProperty("jetty.home"))).toURI()));
+      }
+ catch (      IOException e) {
+        e.printStackTrace();
+      }
+      _deploymentManager.addAppProvider(_provider);
+    }
+  }
+  if (_ctxtHandler == null || _provider == null)   throw new IllegalStateException("ERROR: No ContextHandlerCollection or OSGiAppProvider configured");
+}

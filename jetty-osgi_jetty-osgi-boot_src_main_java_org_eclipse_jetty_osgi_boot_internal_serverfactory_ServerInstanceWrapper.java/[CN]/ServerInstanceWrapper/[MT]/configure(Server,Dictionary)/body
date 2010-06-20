@@ -1,0 +1,34 @@
+{
+  String jettyConfigurationUrls=(String)props.get(OSGiWebappConstants.MANAGED_JETTY_XML_CONFIG_URLS);
+  List<URL> jettyConfigurations=jettyConfigurationUrls != null ? extractResources(jettyConfigurationUrls) : null;
+  if (jettyConfigurations == null || jettyConfigurations.isEmpty()) {
+    return;
+  }
+  Map<Object,Object> id_map=new HashMap<Object,Object>();
+  id_map.put("Server",server);
+  Map<Object,Object> properties=new HashMap<Object,Object>();
+  Enumeration en=props.keys();
+  while (en.hasMoreElements()) {
+    Object key=en.nextElement();
+    Object value=props.get(key);
+    properties.put(key,value);
+  }
+  for (  URL jettyConfiguration : jettyConfigurations) {
+    InputStream is=null;
+    try {
+      is=jettyConfiguration.openStream();
+      XmlConfiguration config=new XmlConfiguration(is);
+      config.setIdMap(id_map);
+      config.setProperties(properties);
+      config.configure();
+      id_map=config.getIdMap();
+    }
+ catch (    SAXParseException saxparse) {
+      Log.getLogger(WebappRegistrationHelper.class.getName()).warn("Unable to configure the jetty/etc file " + jettyConfiguration,saxparse);
+      throw saxparse;
+    }
+ finally {
+      IO.close(is);
+    }
+  }
+}

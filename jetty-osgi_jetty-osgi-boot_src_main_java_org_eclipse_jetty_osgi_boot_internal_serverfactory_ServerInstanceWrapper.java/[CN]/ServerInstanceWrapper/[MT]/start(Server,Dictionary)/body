@@ -1,0 +1,32 @@
+{
+  _server=server;
+  ClassLoader contextCl=Thread.currentThread().getContextClassLoader();
+  try {
+    URLClassLoader libExtClassLoader=null;
+    String sharedURLs=(String)props.get(OSGiWebappConstants.MANAGED_JETTY_SHARED_LIB_FOLDER_URLS);
+    try {
+      List<File> shared=sharedURLs != null ? extractFiles(sharedURLs) : null;
+      libExtClassLoader=LibExtClassLoaderHelper.createLibExtClassLoader(shared,null,server,JettyBootstrapActivator.class.getClassLoader());
+    }
+ catch (    MalformedURLException e) {
+      e.printStackTrace();
+    }
+    Thread.currentThread().setContextClassLoader(libExtClassLoader);
+    configure(server,props);
+    init();
+    try {
+      URL[] jarsWithTlds=getJarsWithTlds();
+      _commonParentClassLoaderForWebapps=jarsWithTlds == null ? libExtClassLoader : new TldLocatableURLClassloader(libExtClassLoader,jarsWithTlds);
+    }
+ catch (    MalformedURLException e) {
+      e.printStackTrace();
+    }
+    server.start();
+  }
+ catch (  Throwable t) {
+    t.printStackTrace();
+  }
+ finally {
+    Thread.currentThread().setContextClassLoader(contextCl);
+  }
+}
