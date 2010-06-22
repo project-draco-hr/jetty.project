@@ -3,12 +3,12 @@
   if (contextsHome != null) {
     File prodContextFile=new File(contextsHome,contributor.getSymbolicName() + "/" + contextFileRelativePath);
     if (prodContextFile.exists()) {
-      return registerContext(contributor,prodContextFile,extraClasspath,overrideBundleInstallLocation);
+      return registerContext(contributor,contextFileRelativePath,prodContextFile,extraClasspath,overrideBundleInstallLocation);
     }
   }
   File contextFile=overrideBundleInstallLocation != null ? new File(overrideBundleInstallLocation,contextFileRelativePath) : new File(BUNDLE_FILE_LOCATOR_HELPER.getBundleInstallLocation(contributor),contextFileRelativePath);
   if (contextFile.exists()) {
-    return registerContext(contributor,contextFile,extraClasspath,overrideBundleInstallLocation);
+    return registerContext(contributor,contextFileRelativePath,contextFile,extraClasspath,overrideBundleInstallLocation);
   }
  else {
     if (contextFileRelativePath.startsWith("./")) {
@@ -17,10 +17,11 @@
     if (!contextFileRelativePath.startsWith("/")) {
       contextFileRelativePath="/" + contextFileRelativePath;
     }
-    if (overrideBundleInstallLocation == null) {
+    File overrideBundleInstallLocationF=overrideBundleInstallLocation != null ? Resource.newResource(overrideBundleInstallLocation).getFile() : null;
+    if (overrideBundleInstallLocationF == null) {
       URL contextURL=contributor.getEntry(contextFileRelativePath);
       if (contextURL != null) {
-        return registerContext(contributor,contextURL.openStream(),extraClasspath,overrideBundleInstallLocation);
+        return registerContext(contributor,contextFileRelativePath,contextURL.openStream(),extraClasspath,overrideBundleInstallLocation);
       }
     }
  else {
@@ -28,7 +29,7 @@
       try {
         zipFile=new JarFile(overrideBundleInstallLocation);
         ZipEntry entry=zipFile.getEntry(contextFileRelativePath.substring(1));
-        return registerContext(contributor,zipFile.getInputStream(entry),extraClasspath,overrideBundleInstallLocation);
+        return registerContext(contributor,contextFileRelativePath,zipFile.getInputStream(entry),extraClasspath,overrideBundleInstallLocation);
       }
  catch (      Throwable t) {
       }
