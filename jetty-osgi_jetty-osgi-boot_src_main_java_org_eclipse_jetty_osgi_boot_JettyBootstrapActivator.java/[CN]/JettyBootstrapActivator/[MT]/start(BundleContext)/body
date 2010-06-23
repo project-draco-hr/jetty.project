@@ -1,10 +1,20 @@
 {
   INSTANCE=this;
   _packageAdminServiceTracker=new PackageAdminServiceTracker(context);
-  _server=new Server();
-  _registeredServer=context.registerService(_server.getClass().getName(),_server,new Properties());
-  _jettyContextHandlerTracker=new JettyContextHandlerServiceTracker(context,_server);
+  if (_enableMultipleJettyServers) {
+    _jettyServerServiceTracker=new JettyServerServiceTracker();
+    context.addServiceListener(_jettyServerServiceTracker,"(objectclass=" + Server.class.getName() + ")");
+    _jettyContextHandlerTracker=new JettyContextHandlerServiceTracker(_jettyServerServiceTracker);
+  }
+ else {
+    _server=new Server();
+    _registeredServer=context.registerService(_server.getClass().getName(),_server,new Properties());
+    _jettyContextHandlerTracker=new JettyContextHandlerServiceTracker(context,_server);
+  }
   context.addServiceListener(_jettyContextHandlerTracker,"(objectclass=" + ContextHandler.class.getName() + ")");
+  if (_enableMultipleJettyServers) {
+    DefaultJettyAtJettyHomeHelper.startJettyAtJettyHome(context);
+  }
   _webBundleTracker=new BundleTracker(context,Bundle.ACTIVE | Bundle.STOPPING,new WebBundleTrackerCustomizer());
   _webBundleTracker.open();
 }

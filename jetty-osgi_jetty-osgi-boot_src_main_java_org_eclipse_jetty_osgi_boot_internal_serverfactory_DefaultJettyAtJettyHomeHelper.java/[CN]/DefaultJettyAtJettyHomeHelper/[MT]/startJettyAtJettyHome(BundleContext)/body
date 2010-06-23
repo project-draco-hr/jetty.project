@@ -1,0 +1,47 @@
+{
+  String jettyHomeSysProp=System.getProperty(SYS_PROP_JETTY_HOME);
+  String jettyHomeBundleSysProp=System.getProperty(SYS_PROP_JETTY_HOME_BUNDLE);
+  File jettyHome=null;
+  Bundle jettyHomeBundle=null;
+  if (jettyHomeSysProp != null) {
+    if (jettyHomeBundleSysProp != null) {
+      System.err.println("WARN: both the jetty.home property and the jetty.home.bundle property are defined." + " jetty.home.bundle is not taken into account.");
+    }
+    jettyHome=new File(jettyHomeSysProp);
+    if (!jettyHome.exists() || !jettyHome.isDirectory()) {
+      System.err.println("Unable to locate the jetty.home folder " + jettyHomeSysProp);
+      return;
+    }
+  }
+ else   if (jettyHomeBundleSysProp != null) {
+    for (    Bundle b : bundleContext.getBundles()) {
+      if (b.getSymbolicName().equals(jettyHomeBundleSysProp)) {
+        jettyHomeBundle=b;
+        break;
+      }
+    }
+    if (jettyHomeBundle == null) {
+      System.err.println("Unable to find the jetty.home.bundle named " + jettyHomeSysProp);
+      return;
+    }
+  }
+  if (jettyHome == null && jettyHomeBundle == null) {
+    System.err.println("No default jetty started.");
+    return;
+  }
+  try {
+    Server server=new Server();
+    Properties properties=new Properties();
+    properties.put(OSGiServerConstants.MANAGED_JETTY_SERVER_NAME,OSGiServerConstants.MANAGED_JETTY_SERVER_DEFAULT_NAME);
+    String configURLs=jettyHome != null ? getJettyConfigurationURLs(jettyHome) : getJettyConfigurationURLs(jettyHomeBundle);
+    properties.put(OSGiServerConstants.MANAGED_JETTY_XML_CONFIG_URLS,configURLs);
+    setProperty(properties,SYS_PROP_JETTY_HOME,System.getProperty(SYS_PROP_JETTY_HOME));
+    setProperty(properties,SYS_PROP_JETTY_HOST,System.getProperty(SYS_PROP_JETTY_HOST));
+    setProperty(properties,SYS_PROP_JETTY_PORT,System.getProperty(SYS_PROP_JETTY_PORT,"8080"));
+    setProperty(properties,SYS_PROP_JETTY_PORT_SSL,System.getProperty(SYS_PROP_JETTY_PORT_SSL,"8443"));
+    bundleContext.registerService(Server.class.getName(),server,properties);
+  }
+ catch (  Throwable t) {
+    t.printStackTrace();
+  }
+}

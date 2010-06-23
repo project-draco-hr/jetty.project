@@ -1,0 +1,32 @@
+{
+  String jettyetc=System.getProperty(SYS_PROP_JETTY_ETC_FILES,"etc/jetty.xml");
+  StringTokenizer tokenizer=new StringTokenizer(jettyetc,";,",false);
+  StringBuilder res=new StringBuilder();
+  while (tokenizer.hasMoreTokens()) {
+    String etcFile=tokenizer.nextToken().trim();
+    if (etcFile.indexOf(":") != -1) {
+      appendToCommaSeparatedList(res,etcFile);
+    }
+ else {
+      int last=etcFile.lastIndexOf('/');
+      String path=last != -1 && last < etcFile.length() - 2 ? etcFile.substring(0,last) : "/";
+      if (!path.startsWith("/")) {
+        path="/" + path;
+      }
+      String pattern=last != -1 && last < etcFile.length() - 2 ? etcFile.substring(last + 1) : etcFile;
+      Enumeration<URL> enUrls=configurationBundle.findEntries(path,pattern,false);
+      if ((enUrls == null || !enUrls.hasMoreElements()) && pattern.equals("jetty.xml")) {
+        path="/jettyhome" + path;
+        pattern="jetty-osgi-default.xml";
+        enUrls=configurationBundle.findEntries(path,pattern,false);
+        System.err.println("Configuring jetty with the default embedded configuration:" + "bundle: " + configurationBundle.getSymbolicName() + " config: /jettyhome/etc/jetty-osgi-default.xml");
+      }
+      if (enUrls != null) {
+        while (enUrls.hasMoreElements()) {
+          appendToCommaSeparatedList(res,enUrls.nextElement().toString());
+        }
+      }
+    }
+  }
+  return res.toString();
+}

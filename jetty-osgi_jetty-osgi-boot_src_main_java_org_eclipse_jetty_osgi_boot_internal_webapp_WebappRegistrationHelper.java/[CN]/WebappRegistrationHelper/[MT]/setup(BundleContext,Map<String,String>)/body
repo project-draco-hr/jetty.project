@@ -16,9 +16,6 @@
   String jettyHome=stripQuotesIfPresent(System.getProperty("jetty.home"));
   if (jettyHome == null || jettyHome.length() == 0) {
     if (_installLocation != null) {
-      if (_installLocation.getName().endsWith(".jar")) {
-        jettyHome=JettyHomeHelper.setupJettyHomeInEclipsePDE(_installLocation);
-      }
       if (jettyHome == null && _installLocation != null && _installLocation.isDirectory()) {
         jettyHome=_installLocation.getAbsolutePath() + "/jettyhome";
         bootBundleCanBeJarred=false;
@@ -55,7 +52,7 @@
       e.printStackTrace();
     }
     Thread.currentThread().setContextClassLoader(libExtClassLoader);
-    String jettyetc=System.getProperty(OSGiWebappConstants.SYS_PROP_JETTY_ETC_FILES,"etc/jetty.xml");
+    String jettyetc=System.getProperty(DefaultJettyAtJettyHomeHelper.SYS_PROP_JETTY_ETC_FILES,"etc/jetty.xml");
     StringTokenizer tokenizer=new StringTokenizer(jettyetc,";,");
     Map<Object,Object> id_map=new HashMap<Object,Object>();
     id_map.put("Server",_server);
@@ -64,8 +61,8 @@
       properties.put("jetty.home",jettyHome);
     }
     properties.put("jetty.host",System.getProperty("jetty.host"));
-    properties.put("jetty.port",System.getProperty("jetty.port"));
-    properties.put("jetty.port.ssl",System.getProperty("jetty.port.ssl"));
+    properties.put("jetty.port",System.getProperty("jetty.port","8080"));
+    properties.put("jetty.port.ssl",System.getProperty("jetty.port.ssl","8443"));
     while (tokenizer.hasMoreTokens()) {
       String etcFile=tokenizer.nextToken().trim();
       File conffile=null;

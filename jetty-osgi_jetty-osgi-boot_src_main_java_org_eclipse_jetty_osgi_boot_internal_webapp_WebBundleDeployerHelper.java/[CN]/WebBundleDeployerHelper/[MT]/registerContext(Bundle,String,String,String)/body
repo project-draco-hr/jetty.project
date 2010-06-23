@@ -1,0 +1,46 @@
+{
+  File contextsHome=_wrapper.getOSGiAppProvider().getContextXmlDirAsFile();
+  if (contextsHome != null) {
+    File prodContextFile=new File(contextsHome,contributor.getSymbolicName() + "/" + contextFileRelativePath);
+    if (prodContextFile.exists()) {
+      return registerContext(contributor,contextFileRelativePath,prodContextFile,extraClasspath,overrideBundleInstallLocation);
+    }
+  }
+  File contextFile=overrideBundleInstallLocation != null ? new File(overrideBundleInstallLocation,contextFileRelativePath) : new File(BUNDLE_FILE_LOCATOR_HELPER.getBundleInstallLocation(contributor),contextFileRelativePath);
+  if (contextFile.exists()) {
+    return registerContext(contributor,contextFileRelativePath,contextFile,extraClasspath,overrideBundleInstallLocation);
+  }
+ else {
+    if (contextFileRelativePath.startsWith("./")) {
+      contextFileRelativePath=contextFileRelativePath.substring(1);
+    }
+    if (!contextFileRelativePath.startsWith("/")) {
+      contextFileRelativePath="/" + contextFileRelativePath;
+    }
+    File overrideBundleInstallLocationF=overrideBundleInstallLocation != null ? Resource.newResource(overrideBundleInstallLocation).getFile() : null;
+    if (overrideBundleInstallLocationF == null) {
+      URL contextURL=contributor.getEntry(contextFileRelativePath);
+      if (contextURL != null) {
+        return registerContext(contributor,contextFileRelativePath,contextURL.openStream(),extraClasspath,overrideBundleInstallLocation);
+      }
+    }
+ else {
+      JarFile zipFile=null;
+      try {
+        zipFile=new JarFile(overrideBundleInstallLocation);
+        ZipEntry entry=zipFile.getEntry(contextFileRelativePath.substring(1));
+        return registerContext(contributor,contextFileRelativePath,zipFile.getInputStream(entry),extraClasspath,overrideBundleInstallLocation);
+      }
+ catch (      Throwable t) {
+      }
+ finally {
+        if (zipFile != null)         try {
+          zipFile.close();
+        }
+ catch (        IOException ioe) {
+        }
+      }
+    }
+    throw new IllegalArgumentException("Could not find the context " + "file " + contextFileRelativePath + " for the bundle "+ contributor.getSymbolicName()+ (overrideBundleInstallLocation != null ? " using the install location " + overrideBundleInstallLocation : ""));
+  }
+}
