@@ -1,0 +1,27 @@
+{
+  ClassLoader contextCl=Thread.currentThread().getContextClassLoader();
+  String[] oldServerClasses=null;
+  WebAppContext webAppContext=null;
+  try {
+    OSGiWebappClassLoader composite=createWebappClassLoader(contributor);
+    Thread.currentThread().setContextClassLoader(composite);
+    ContextHandler context=createContextHandler(handler,contributor,contextFileInputStream,extraClasspath,overrideBundleInstallLocation);
+    if (context == null) {
+      return null;
+    }
+    configureWebappClassLoader(contributor,context,composite);
+    if (context instanceof WebAppContext) {
+      webAppContext=(WebAppContext)context;
+      oldServerClasses=webAppContext.getServerClasses();
+      webAppContext.setServerClasses(null);
+    }
+    _wrapper.getOSGiAppProvider().addContext(contributor,pathInsideBundle,context);
+    return context;
+  }
+  finally {
+    if (webAppContext != null) {
+      webAppContext.setServerClasses(oldServerClasses);
+    }
+    Thread.currentThread().setContextClassLoader(contextCl);
+  }
+}

@@ -27,7 +27,8 @@ case ServiceEvent.REGISTERED:
   if (contextHandler.getServer() != null) {
     return;
   }
-  if (contextHandler instanceof WebAppContext) {
+  String contextFilePath=(String)sr.getProperty(OSGiWebappConstants.SERVICE_PROP_CONTEXT_FILE_PATH);
+  if (contextHandler instanceof WebAppContext && contextFilePath == null) {
     WebAppContext webapp=(WebAppContext)contextHandler;
     String contextPath=(String)sr.getProperty(OSGiWebappConstants.SERVICE_PROP_CONTEXT_PATH);
     if (contextPath == null) {
@@ -43,9 +44,14 @@ case ServiceEvent.REGISTERED:
     }
     String war=(String)sr.getProperty("war");
     try {
-      ContextHandler handler=getWebBundleDeployerHelp(sr).registerWebapplication(contributor,war,contextPath,(String)sr.getProperty(OSGiWebappConstants.SERVICE_PROP_EXTRA_CLASSPATH),(String)sr.getProperty(OSGiWebappConstants.SERVICE_PROP_BUNDLE_INSTALL_LOCATION_OVERRIDE),webXmlPath,defaultWebXmlPath);
-      if (handler != null) {
-        registerInIndex(handler,sr);
+      IWebBundleDeployerHelper deployerHelper=getWebBundleDeployerHelp(sr);
+      if (deployerHelper == null) {
+      }
+ else {
+        WebAppContext handler=deployerHelper.registerWebapplication(contributor,war,contextPath,(String)sr.getProperty(OSGiWebappConstants.SERVICE_PROP_EXTRA_CLASSPATH),(String)sr.getProperty(OSGiWebappConstants.SERVICE_PROP_BUNDLE_INSTALL_LOCATION_OVERRIDE),webXmlPath,defaultWebXmlPath,webapp);
+        if (handler != null) {
+          registerInIndex(handler,sr);
+        }
       }
     }
  catch (    Throwable e) {
@@ -53,14 +59,21 @@ case ServiceEvent.REGISTERED:
     }
   }
  else {
-    String contextFilePath=(String)sr.getProperty(OSGiWebappConstants.SERVICE_PROP_CONTEXT_FILE_PATH);
     if (contextFilePath == null) {
       throw new IllegalArgumentException("the property contextFilePath is required");
     }
     try {
-      ContextHandler handler=getWebBundleDeployerHelp(sr).registerContext(contributor,contextFilePath,(String)sr.getProperty(OSGiWebappConstants.SERVICE_PROP_EXTRA_CLASSPATH),(String)sr.getProperty(OSGiWebappConstants.SERVICE_PROP_BUNDLE_INSTALL_LOCATION_OVERRIDE));
-      if (handler != null) {
-        registerInIndex(handler,sr);
+      IWebBundleDeployerHelper deployerHelper=getWebBundleDeployerHelp(sr);
+      if (deployerHelper == null) {
+      }
+ else {
+        if (Boolean.TRUE.toString().equals(sr.getProperty(IWebBundleDeployerHelper.INTERNAL_SERVICE_PROP_UNKNOWN_CONTEXT_HANDLER_TYPE))) {
+          contextHandler=null;
+        }
+        ContextHandler handler=deployerHelper.registerContext(contributor,contextFilePath,(String)sr.getProperty(OSGiWebappConstants.SERVICE_PROP_EXTRA_CLASSPATH),(String)sr.getProperty(OSGiWebappConstants.SERVICE_PROP_BUNDLE_INSTALL_LOCATION_OVERRIDE),contextHandler);
+        if (handler != null) {
+          registerInIndex(handler,sr);
+        }
       }
     }
  catch (    Throwable e) {

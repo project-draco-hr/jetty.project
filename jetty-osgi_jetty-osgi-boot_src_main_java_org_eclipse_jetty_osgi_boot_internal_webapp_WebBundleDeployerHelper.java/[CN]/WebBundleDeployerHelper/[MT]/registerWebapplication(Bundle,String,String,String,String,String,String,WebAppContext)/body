@@ -1,0 +1,29 @@
+{
+  File bundleInstall=overrideBundleInstallLocation == null ? BUNDLE_FILE_LOCATOR_HELPER.getBundleInstallLocation(bundle) : new File(overrideBundleInstallLocation);
+  File webapp=null;
+  URL baseWebappInstallURL=null;
+  if (webappFolderPath != null && webappFolderPath.length() != 0 && !webappFolderPath.equals(".")) {
+    if (webappFolderPath.startsWith("/") || webappFolderPath.startsWith("file:")) {
+      webapp=new File(webappFolderPath);
+    }
+ else     if (bundleInstall != null && bundleInstall.isDirectory()) {
+      webapp=new File(bundleInstall,webappFolderPath);
+    }
+ else     if (bundleInstall != null) {
+      Enumeration<URL> urls=BUNDLE_FILE_LOCATOR_HELPER.findEntries(bundle,webappFolderPath);
+      if (urls != null && urls.hasMoreElements()) {
+        baseWebappInstallURL=urls.nextElement();
+      }
+    }
+  }
+ else {
+    webapp=bundleInstall;
+  }
+  if (baseWebappInstallURL == null && (webapp == null || !webapp.exists())) {
+    throw new IllegalArgumentException("Unable to locate " + webappFolderPath + " inside "+ (bundleInstall != null ? bundleInstall.getAbsolutePath() : "unlocated bundle '" + bundle.getSymbolicName() + "'"));
+  }
+  if (baseWebappInstallURL == null && webapp != null) {
+    baseWebappInstallURL=webapp.toURI().toURL();
+  }
+  return registerWebapplication(bundle,webappFolderPath,baseWebappInstallURL,contextPath,extraClasspath,bundleInstall,webXmlPath,defaultWebXmlPath,webAppContext);
+}

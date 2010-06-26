@@ -8,17 +8,9 @@
       appendToCommaSeparatedList(res,etcFile);
     }
  else {
-      int last=etcFile.lastIndexOf('/');
-      String path=last != -1 && last < etcFile.length() - 2 ? etcFile.substring(0,last) : "/";
-      if (!path.startsWith("/")) {
-        path="/" + path;
-      }
-      String pattern=last != -1 && last < etcFile.length() - 2 ? etcFile.substring(last + 1) : etcFile;
-      Enumeration<URL> enUrls=configurationBundle.findEntries(path,pattern,false);
-      if ((enUrls == null || !enUrls.hasMoreElements()) && pattern.equals("jetty.xml")) {
-        path="/jettyhome" + path;
-        pattern="jetty-osgi-default.xml";
-        enUrls=configurationBundle.findEntries(path,pattern,false);
+      Enumeration<URL> enUrls=BundleFileLocatorHelper.DEFAULT.findEntries(configurationBundle,etcFile);
+      if ((enUrls == null || !enUrls.hasMoreElements()) && etcFile.endsWith("etc/jetty.xml")) {
+        enUrls=BundleFileLocatorHelper.DEFAULT.findEntries(configurationBundle,"/jettyhome/etc/jetty-osgi-default.xml");
         System.err.println("Configuring jetty with the default embedded configuration:" + "bundle: " + configurationBundle.getSymbolicName() + " config: /jettyhome/etc/jetty-osgi-default.xml");
       }
       if (enUrls != null) {
