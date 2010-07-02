@@ -1,0 +1,38 @@
+{
+  StringBuffer req3=new StringBuffer();
+  req3.append("POST /echo/R1 HTTP/1.1\n");
+  req3.append("Host: localhost\n");
+  req3.append("Transfer-Encoding: chunked\n");
+  req3.append("Content-Type: text/plain\n");
+  req3.append("\n");
+  req3.append("3;\n");
+  req3.append("fgh\n");
+  req3.append("3;\n");
+  req3.append("Ijk\n");
+  req3.append("0;\n\n");
+  req3.append("POST /echo/R2 HTTP/1.1\n");
+  req3.append("Host: localhost\n");
+  req3.append("Transfer-Encoding: chunked\n");
+  req3.append("Content-Type: text/plain\n");
+  req3.append("\n");
+  req3.append("4;\n");
+  req3.append("lmno\n");
+  req3.append("5;\n");
+  req3.append("Pqrst\n");
+  req3.append("0;\n\n");
+  req3.append("GET /echo/R3 HTTP/1.1\n");
+  req3.append("Host: localhost\n");
+  req3.append("Connection: close\n");
+  req3.append("\n");
+  responses=http.requests(req3);
+  Assert.assertEquals("Response Count",3,responses.size());
+  response=responses.get(0);
+  response.assertStatusOK("3.6.1 Transfer Codings / Response 1 Code");
+  response.assertBody("3.6.1 Transfer Codings / Chunked String","fghIjk\n");
+  response=responses.get(1);
+  response.assertStatusOK("3.6.1 Transfer Codings / Response 2 Code");
+  response.assertBody("3.6.1 Transfer Codings / Chunked String","lmnoPqrst\n");
+  response=responses.get(2);
+  response.assertStatusOK("3.6.1 Transfer Codings / Response 3 Code");
+  response.assertNoBody("3.6.1 Transfer Codings / No Body");
+}
