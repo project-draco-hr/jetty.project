@@ -1,0 +1,30 @@
+{
+  final AtomicReference<Throwable> throwable=new AtomicReference<Throwable>();
+  HttpExchange httpExchange=new HttpExchange(){
+    /** 
+ * @see org.eclipse.jetty.client.HttpExchange#onException(java.lang.Throwable)
+ */
+    @Override protected void onException(    Throwable x){
+      throwable.set(x);
+    }
+  }
+;
+  httpExchange.setURL(_scheme + "localhost:" + _port+ "/");
+  httpExchange.setMethod("SLEEP");
+  _httpClient.send(httpExchange);
+  new Thread(){
+    @Override public void run(){
+      try {
+        Thread.sleep(250);
+        _httpClient.stop();
+      }
+ catch (      Exception e) {
+        e.printStackTrace();
+      }
+    }
+  }
+.start();
+  int status=httpExchange.waitForDone();
+  assertTrue(throwable.get().toString().indexOf("local close") >= 0);
+  assertEquals(HttpExchange.STATUS_EXCEPTED,status);
+}
