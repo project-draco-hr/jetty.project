@@ -1,7 +1,7 @@
 {
   String servletPath=null;
   String pathInfo=null;
-  Enumeration reqRanges=null;
+  Enumeration<String> reqRanges=null;
   Boolean included=request.getAttribute(Dispatcher.INCLUDE_REQUEST_URI) != null;
   if (included != null && included.booleanValue()) {
     servletPath=(String)request.getAttribute(Dispatcher.INCLUDE_SERVLET_PATH);
@@ -28,32 +28,30 @@
   }
   Resource resource=null;
   HttpContent content=null;
-  Connector connector=HttpConnection.getCurrentConnection().getConnector();
-  ResourceCache cache=(connector instanceof NIOConnector && !(connector instanceof SslConnector)) ? _nioCache : _bioCache;
   try {
     if (gzip) {
       pathInContextGz=pathInContext + ".gz";
-      if (cache == null) {
+      if (_cache == null) {
         resource=getResource(pathInContextGz);
       }
  else {
-        content=cache.lookup(pathInContextGz,this);
+        content=_cache.lookup(pathInContextGz);
         if (content != null)         resource=content.getResource();
- else         resource=getResource(pathInContextGz);
+ else         if (!(content instanceof ResourceCache.Miss))         resource=getResource(pathInContextGz);
       }
       if (resource == null || !resource.exists() || resource.isDirectory()) {
-        if (cache != null && content == null) {
+        if (_cache != null && content == null) {
           String real_path=_servletContext.getRealPath(pathInContextGz);
-          if (real_path != null)           cache.miss(pathInContextGz,_contextHandler.newResource(real_path));
+          if (real_path != null)           _cache.miss(pathInContextGz,_contextHandler.newResource(real_path));
         }
         gzip=false;
         pathInContextGz=null;
       }
     }
     if (!gzip) {
-      if (cache == null)       resource=getResource(pathInContext);
+      if (_cache == null)       resource=getResource(pathInContext);
  else {
-        content=cache.lookup(pathInContext,this);
+        content=_cache.lookup(pathInContext);
         if (content != null)         resource=content.getResource();
  else         resource=getResource(pathInContext);
       }

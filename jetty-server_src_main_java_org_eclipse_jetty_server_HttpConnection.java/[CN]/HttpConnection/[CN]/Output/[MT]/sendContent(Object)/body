@@ -3,8 +3,8 @@
   if (_closed)   throw new IOException("Closed");
   if (super._generator.getContentWritten() > 0)   throw new IllegalStateException("!empty");
   if (content instanceof HttpContent) {
-    HttpContent c=(HttpContent)content;
-    Buffer contentType=c.getContentType();
+    HttpContent httpContent=(HttpContent)content;
+    Buffer contentType=httpContent.getContentType();
     if (contentType != null && !_responseFields.containsKey(HttpHeaders.CONTENT_TYPE_BUFFER)) {
       String enc=_response.getSetCharacterEncoding();
       if (enc == null)       _responseFields.add(HttpHeaders.CONTENT_TYPE_BUFFER,contentType);
@@ -21,15 +21,16 @@
         }
       }
     }
-    if (c.getContentLength() > 0)     _responseFields.putLongField(HttpHeaders.CONTENT_LENGTH_BUFFER,c.getContentLength());
-    Buffer lm=c.getLastModified();
-    long lml=c.getResource().lastModified();
+    if (httpContent.getContentLength() > 0)     _responseFields.putLongField(HttpHeaders.CONTENT_LENGTH_BUFFER,httpContent.getContentLength());
+    Buffer lm=httpContent.getLastModified();
+    long lml=httpContent.getResource().lastModified();
     if (lm != null)     _responseFields.put(HttpHeaders.LAST_MODIFIED_BUFFER,lm,lml);
- else     if (c.getResource() != null) {
+ else     if (httpContent.getResource() != null) {
       if (lml != -1)       _responseFields.putDateField(HttpHeaders.LAST_MODIFIED_BUFFER,lml);
     }
-    content=c.getBuffer();
-    if (content == null)     content=c.getInputStream();
+    boolean direct=_connector instanceof NIOConnector && ((NIOConnector)_connector).getUseDirectBuffers() && !(_connector instanceof SslConnector);
+    content=direct ? httpContent.getDirectBuffer() : httpContent.getIndirectBuffer();
+    if (content == null)     content=httpContent.getInputStream();
   }
  else   if (content instanceof Resource) {
     resource=(Resource)content;

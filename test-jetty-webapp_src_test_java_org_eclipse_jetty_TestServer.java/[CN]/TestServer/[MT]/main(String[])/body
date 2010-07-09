@@ -1,5 +1,5 @@
 {
-  Log.getLog().setDebugEnabled(true);
+  Log.getLog().setDebugEnabled(false);
   ((StdErrLog)Log.getLog()).setSource(false);
   String jetty_root="..";
   Server server=new Server();
@@ -11,11 +11,23 @@
   QueuedThreadPool threadPool=new QueuedThreadPool();
   threadPool.setMaxThreads(100);
   server.setThreadPool(threadPool);
-  SelectChannelConnector connector=new SelectChannelConnector();
-  connector.setPort(8080);
-  connector.setMaxIdleTime(30000);
-  connector.setConfidentialPort(8443);
-  server.setConnectors(new Connector[]{connector});
+  SelectChannelConnector connector0=new SelectChannelConnector();
+  connector0.setPort(8080);
+  connector0.setMaxIdleTime(30000);
+  connector0.setConfidentialPort(8443);
+  connector0.setUseDirectBuffers(true);
+  server.addConnector(connector0);
+  SelectChannelConnector connector1=new SelectChannelConnector();
+  connector1.setPort(8081);
+  connector1.setMaxIdleTime(30000);
+  connector1.setConfidentialPort(8443);
+  connector1.setUseDirectBuffers(false);
+  server.addConnector(connector1);
+  SocketConnector connector2=new SocketConnector();
+  connector2.setPort(8082);
+  connector2.setMaxIdleTime(30000);
+  connector2.setConfidentialPort(8443);
+  server.addConnector(connector2);
   SslSelectChannelConnector ssl_connector=new SslSelectChannelConnector();
   ssl_connector.setPort(8443);
   ssl_connector.setKeystore(jetty_root + "/jetty-server/src/main/config/etc/keystore");

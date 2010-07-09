@@ -1,5 +1,15 @@
 {
-  long content_length=content == null ? resource.length() : content.getContentLength();
+  boolean direct;
+  long content_length;
+  if (content == null) {
+    direct=false;
+    content_length=resource.length();
+  }
+ else {
+    Connector connector=HttpConnection.getCurrentConnection().getConnector();
+    direct=connector instanceof NIOConnector && ((NIOConnector)connector).getUseDirectBuffers() && !(connector instanceof SslConnector);
+    content_length=content.getContentLength();
+  }
   OutputStream out=null;
   try {
     out=response.getOutputStream();
@@ -12,23 +22,28 @@
       resource.writeTo(out,0,content_length);
     }
  else {
-      if (out instanceof HttpConnection.Output) {
+      if (out instanceof HttpConnection.Output && content != null) {
         if (response instanceof Response) {
           writeOptionHeaders(((Response)response).getHttpFields());
           ((HttpConnection.Output)out).sendContent(content);
         }
- else         if (content.getBuffer() != null) {
-          writeHeaders(response,content,content_length);
-          ((HttpConnection.Output)out).sendContent(content.getBuffer());
-        }
  else {
-          writeHeaders(response,content,content_length);
-          resource.writeTo(out,0,content_length);
+          Buffer buffer=direct ? content.getDirectBuffer() : content.getIndirectBuffer();
+          if (buffer != null) {
+            writeHeaders(response,content,content_length);
+            ((HttpConnection.Output)out).sendContent(buffer);
+          }
+ else {
+            writeHeaders(response,content,content_length);
+            resource.writeTo(out,0,content_length);
+          }
         }
       }
  else {
         writeHeaders(response,content,content_length);
-        resource.writeTo(out,0,content_length);
+        Buffer buffer=(content == null) ? null : content.getIndirectBuffer();
+        if (buffer != null)         buffer.writeTo(out);
+ else         resource.writeTo(out,0,content_length);
       }
     }
   }

@@ -34,35 +34,29 @@
   }
   String t=getInitParameter("cacheControl");
   if (t != null)   _cacheControl=new ByteArrayBuffer(t);
-  try {
-    String cache_type=getInitParameter("cacheType");
-    int max_cache_size=getInitInt("maxCacheSize",-2);
-    int max_cached_file_size=getInitInt("maxCachedFileSize",-2);
-    int max_cached_files=getInitInt("maxCachedFiles",-2);
-    if (cache_type == null || "nio".equals(cache_type) || "both".equals(cache_type)) {
-      if (max_cache_size == -2 || max_cache_size > 0) {
-        _nioCache=new NIOResourceCache(_mimeTypes);
-        _nioCache.setUseFileMappedBuffer(_useFileMappedBuffer);
-        if (max_cache_size > 0)         _nioCache.setMaxCacheSize(max_cache_size);
-        if (max_cached_file_size >= -1)         _nioCache.setMaxCachedFileSize(max_cached_file_size);
-        if (max_cached_files >= -1)         _nioCache.setMaxCachedFiles(max_cached_files);
-        _nioCache.start();
-      }
-    }
-    if ("bio".equals(cache_type) || "both".equals(cache_type)) {
-      if (max_cache_size == -2 || max_cache_size > 0) {
-        _bioCache=new ResourceCache(_mimeTypes);
-        if (max_cache_size > 0)         _bioCache.setMaxCacheSize(max_cache_size);
-        if (max_cached_file_size >= -1)         _bioCache.setMaxCachedFileSize(max_cached_file_size);
-        if (max_cached_files >= -1)         _bioCache.setMaxCachedFiles(max_cached_files);
-        _bioCache.start();
-      }
-    }
-    if (_nioCache == null)     _bioCache=null;
+  String resourceCache=getInitParameter("resourceCache");
+  int max_cache_size=getInitInt("maxCacheSize",-2);
+  int max_cached_file_size=getInitInt("maxCachedFileSize",-2);
+  int max_cached_files=getInitInt("maxCachedFiles",-2);
+  if (resourceCache != null) {
+    if (max_cache_size != -1 || max_cached_file_size != -2 || max_cached_files != -2)     _servletContext.log("ignoring resource cache configuration, using resourceCache attribute");
+    if (_relativeResourceBase != null || _resourceBase != null)     throw new UnavailableException("resourceCache specified with resource bases");
+    _cache=(ResourceCache)_servletContext.getAttribute(resourceCache);
+    if (_cache == null)     throw new UnavailableException("Could not find resourceCache " + resourceCache);
   }
- catch (  Exception e) {
-    Log.warn(Log.EXCEPTION,e);
-    throw new UnavailableException(e.toString());
+ else {
+    try {
+      if (max_cached_files > 0) {
+        _cache=new ResourceCache(this,_mimeTypes,_useFileMappedBuffer);
+        if (max_cache_size > 0)         _cache.setMaxCacheSize(max_cache_size);
+        if (max_cached_file_size >= -1)         _cache.setMaxCachedFileSize(max_cached_file_size);
+        if (max_cached_files >= -1)         _cache.setMaxCachedFiles(max_cached_files);
+      }
+    }
+ catch (    Exception e) {
+      Log.warn(Log.EXCEPTION,e);
+      throw new UnavailableException(e.toString());
+    }
   }
   _servletHandler=(ServletHandler)_contextHandler.getChildHandlerByClass(ServletHandler.class);
   for (  ServletHolder h : _servletHandler.getServlets())   if (h.getServletInstance() == this)   _defaultHolder=h;
