@@ -1,0 +1,16 @@
+{
+  SslSocketConnector connector=new SslSocketConnector();
+  String keystorePath=System.getProperty("basedir",".") + "/src/test/resources/keystore";
+  connector.setKeystore(keystorePath);
+  connector.setPassword("storepwd");
+  connector.setKeyPassword("keypwd");
+  connector.setTruststore(keystorePath);
+  connector.setTrustPassword("storepwd");
+  startServer(connector);
+  KeyStore keystore=KeyStore.getInstance(KeyStore.getDefaultType());
+  keystore.load(new FileInputStream(connector.getKeystore()),"storepwd".toCharArray());
+  TrustManagerFactory trustManagerFactory=TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+  trustManagerFactory.init(keystore);
+  __sslContext=SSLContext.getInstance("SSL");
+  __sslContext.init(null,trustManagerFactory.getTrustManagers(),null);
+}
