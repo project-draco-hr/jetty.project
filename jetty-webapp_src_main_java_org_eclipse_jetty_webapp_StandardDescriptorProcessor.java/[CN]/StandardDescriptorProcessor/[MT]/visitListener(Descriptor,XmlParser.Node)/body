@@ -1,0 +1,24 @@
+{
+  String className=node.getString("listener-class",false,true);
+  Object listener=null;
+  try {
+    if (className != null && className.length() > 0) {
+      descriptor.addClassName(className);
+      if (!LazyList.contains(_listenerClassNames,className)) {
+        LazyList.add(_listenerClassNames,className);
+        Class listenerClass=_context.loadClass(className);
+        listener=newListenerInstance(listenerClass);
+        if (!(listener instanceof EventListener)) {
+          Log.warn("Not an EventListener: " + listener);
+          return;
+        }
+        _metaData.setOrigin(className + ".listener",descriptor);
+        _listeners=LazyList.add(_listeners,listener);
+      }
+    }
+  }
+ catch (  Exception e) {
+    Log.warn("Could not instantiate listener " + className,e);
+    return;
+  }
+}

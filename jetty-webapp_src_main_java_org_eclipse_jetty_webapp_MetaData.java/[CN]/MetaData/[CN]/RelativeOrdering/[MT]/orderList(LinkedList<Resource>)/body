@@ -1,0 +1,59 @@
+{
+  boolean changes=false;
+  List<Resource> iterable=new ArrayList(list);
+  Iterator<Resource> itor=iterable.iterator();
+  while (itor.hasNext()) {
+    Resource r=itor.next();
+    FragmentDescriptor f=getFragment(r);
+    if (f == null) {
+      continue;
+    }
+    List<String> befores=f.getBefores();
+    if (befores != null && !befores.isEmpty()) {
+      for (      String b : befores) {
+        if (!isBefore(list,f.getName(),b)) {
+          int idx1=getIndexOf(list,f.getName());
+          int idx2=getIndexOf(list,b);
+          if (idx2 < 0) {
+            changes=true;
+            Resource bResource=getJarForFragment(b);
+            if (bResource != null) {
+              if (_noOthers.remove(bResource)) {
+                insert(list,idx1 + 1,b);
+              }
+            }
+          }
+ else {
+            list.remove(idx1);
+            insert(list,idx2,f.getName());
+            changes=true;
+          }
+        }
+      }
+    }
+    List<String> afters=f.getAfters();
+    if (afters != null && !afters.isEmpty()) {
+      for (      String a : afters) {
+        if (!isAfter(list,f.getName(),a)) {
+          int idx1=getIndexOf(list,f.getName());
+          int idx2=getIndexOf(list,a);
+          if (idx2 < 0) {
+            changes=true;
+            Resource aResource=getJarForFragment(a);
+            if (aResource != null) {
+              if (_noOthers.remove(aResource)) {
+                insert(list,idx1,aResource);
+              }
+            }
+          }
+ else {
+            list.remove(idx2);
+            insert(list,idx1,a);
+            changes=true;
+          }
+        }
+      }
+    }
+  }
+  return changes;
+}

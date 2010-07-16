@@ -3,17 +3,7 @@
     if (Log.isDebugEnabled())     Log.debug("Cannot configure webapp after it is started");
     return;
   }
-  WebXmlProcessor processor=(WebXmlProcessor)context.getAttribute(WebXmlProcessor.WEB_PROCESSOR);
-  if (processor == null) {
-    processor=new WebXmlProcessor(context);
-    context.setAttribute(WebXmlProcessor.WEB_PROCESSOR,processor);
-  }
-  processor.processWebXml();
-  String overrideDescriptor=context.getOverrideDescriptor();
-  if (overrideDescriptor != null && overrideDescriptor.length() > 0) {
-    Resource orideResource=Resource.newSystemResource(overrideDescriptor);
-    if (orideResource == null)     orideResource=context.newResource(overrideDescriptor);
-    processor.parseOverride(orideResource);
-    processor.processOverride();
-  }
+  MetaData metaData=(MetaData)context.getAttribute(MetaData.METADATA);
+  if (metaData == null)   throw new IllegalStateException("No metadata");
+  metaData.addDescriptorProcessor(new StandardDescriptorProcessor());
 }

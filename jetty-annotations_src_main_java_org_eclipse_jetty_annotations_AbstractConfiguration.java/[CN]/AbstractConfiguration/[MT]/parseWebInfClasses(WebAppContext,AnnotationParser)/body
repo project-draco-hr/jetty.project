@@ -3,6 +3,10 @@
   if (context.getWebInf() != null) {
     Resource classesDir=context.getWebInf().addPath("classes/");
     if (classesDir.exists()) {
+      MetaData metaData=(MetaData)context.getAttribute(MetaData.METADATA);
+      if (metaData == null)       throw new IllegalStateException("No metadata");
+      List<DiscoveredAnnotation> discoveredAnnotations=new ArrayList<DiscoveredAnnotation>();
+      context.setAttribute(DISCOVERED_ANNOTATIONS,discoveredAnnotations);
       parser.parse(classesDir,new ClassNameResolver(){
         public boolean isExcluded(        String name){
           if (context.isSystemClass(name))           return true;
@@ -15,6 +19,8 @@
         }
       }
 );
+      metaData.addDiscoveredAnnotations(discoveredAnnotations);
+      context.removeAttribute(DISCOVERED_ANNOTATIONS);
     }
   }
 }

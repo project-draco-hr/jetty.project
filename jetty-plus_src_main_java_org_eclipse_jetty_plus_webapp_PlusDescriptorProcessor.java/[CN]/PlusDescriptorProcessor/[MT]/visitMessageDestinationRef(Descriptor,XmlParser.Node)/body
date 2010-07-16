@@ -1,0 +1,42 @@
+{
+  String jndiName=node.getString("message-destination-ref-name",false,true);
+  String type=node.getString("message-destination-type",false,true);
+  String usage=node.getString("message-destination-usage",false,true);
+  Origin o=_metaData.getOrigin("message-destination-ref." + jndiName);
+switch (o) {
+case NotSet:
+{
+      Class typeClass=TypeUtil.fromName(type);
+      if (typeClass == null)       typeClass=_context.loadClass(type);
+      addInjections(descriptor,node,jndiName,typeClass);
+      bindMessageDestinationRef(jndiName,typeClass);
+      _metaData.setOrigin("message-destination-ref." + jndiName,descriptor);
+      break;
+    }
+case WebXml:
+case WebDefaults:
+case WebOverride:
+{
+    if (!(descriptor instanceof FragmentDescriptor)) {
+      Class typeClass=TypeUtil.fromName(type);
+      if (typeClass == null)       typeClass=_context.loadClass(type);
+      addInjections(descriptor,node,jndiName,typeClass);
+      bindMessageDestinationRef(jndiName,typeClass);
+      _metaData.setOrigin("message-destination-ref." + jndiName,descriptor);
+    }
+ else {
+      Descriptor d=_metaData.getOriginDescriptor("message-destination-ref." + jndiName + ".injection");
+      if (d == null || d instanceof FragmentDescriptor) {
+        Class typeClass=TypeUtil.fromName(type);
+        if (typeClass == null)         typeClass=_context.loadClass(type);
+        addInjections(descriptor,node,jndiName,typeClass);
+      }
+    }
+    break;
+  }
+case WebFragment:
+{
+  throw new IllegalStateException("Conflicting message-destination-ref " + jndiName + " in "+ descriptor.getResource());
+}
+}
+}

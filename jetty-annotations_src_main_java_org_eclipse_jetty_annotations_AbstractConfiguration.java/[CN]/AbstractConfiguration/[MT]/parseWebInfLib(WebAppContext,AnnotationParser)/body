@@ -1,31 +1,31 @@
 {
-  WebXmlProcessor webXmlProcessor=(WebXmlProcessor)context.getAttribute(WebXmlProcessor.WEB_PROCESSOR);
-  if (webXmlProcessor == null)   throw new IllegalStateException("No processor for web xml");
-  List<Descriptor> frags=webXmlProcessor.getFragments();
+  MetaData metaData=(MetaData)context.getAttribute(MetaData.METADATA);
+  if (metaData == null)   throw new IllegalStateException("No metadata");
+  List<FragmentDescriptor> frags=metaData.getFragments();
   ArrayList<URI> webInfUris=new ArrayList<URI>();
-  List<Resource> jarResources=(List<Resource>)context.getAttribute(WEB_INF_JAR_RESOURCES);
-  for (  Resource r : jarResources) {
+  List<Resource> jars=(List<Resource>)context.getAttribute(WEB_INF_ORDERED_JAR_RESOURCES);
+  if (jars == null || jars.isEmpty())   jars=(List<Resource>)context.getAttribute(WEB_INF_JAR_RESOURCES);
+  List<DiscoveredAnnotation> discoveredAnnotations=new ArrayList<DiscoveredAnnotation>();
+  context.setAttribute(DISCOVERED_ANNOTATIONS,discoveredAnnotations);
+  for (  Resource r : jars) {
+    discoveredAnnotations.clear();
     URI uri=r.getURI();
-    Descriptor d=null;
-    for (    Descriptor frag : frags) {
-      Resource fragResource=frag.getResource();
-      if (Resource.isContainedIn(fragResource,r)) {
-        d=frag;
-        break;
+    FragmentDescriptor f=getFragmentFromJar(r,frags);
+    if (f == null || !isMetaDataComplete(f)) {
+      parser.parse(uri,new ClassNameResolver(){
+        public boolean isExcluded(        String name){
+          if (context.isSystemClass(name))           return true;
+          if (context.isServerClass(name))           return false;
+          return false;
+        }
+        public boolean shouldOverride(        String name){
+          if (context.isParentLoaderPriority())           return false;
+          return true;
+        }
       }
-    }
-    if (d == null || (d != null && !d.isMetaDataComplete()))     webInfUris.add(uri);
-  }
-  parser.parse(webInfUris.toArray(new URI[webInfUris.size()]),new ClassNameResolver(){
-    public boolean isExcluded(    String name){
-      if (context.isSystemClass(name))       return true;
-      if (context.isServerClass(name))       return false;
-      return false;
-    }
-    public boolean shouldOverride(    String name){
-      if (context.isParentLoaderPriority())       return false;
-      return true;
-    }
-  }
 );
+      metaData.addDiscoveredAnnotations(r,discoveredAnnotations);
+    }
+  }
+  context.removeAttribute(DISCOVERED_ANNOTATIONS);
 }

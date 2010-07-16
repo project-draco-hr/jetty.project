@@ -1,0 +1,20 @@
+{
+  if (Util.isServletType(clazz)) {
+    Method[] methods=clazz.getDeclaredMethods();
+    for (int i=0; i < methods.length; i++) {
+      Method m=(Method)methods[i];
+      if (m.isAnnotationPresent(PostConstruct.class)) {
+        if (m.getParameterTypes().length != 0)         throw new IllegalStateException(m + " has parameters");
+        if (m.getReturnType() != Void.TYPE)         throw new IllegalStateException(m + " is not void");
+        if (m.getExceptionTypes().length != 0)         throw new IllegalStateException(m + " throws checked exceptions");
+        if (Modifier.isStatic(m.getModifiers()))         throw new IllegalStateException(m + " is static");
+        MetaData metaData=((MetaData)_context.getAttribute(MetaData.METADATA));
+        MetaData.Origin origin=metaData.getOrigin("post-construct");
+        if (origin != null && (origin == MetaData.Origin.WebXml || origin == MetaData.Origin.WebDefaults || origin == MetaData.Origin.WebOverride))         return;
+        PostConstructCallback callback=new PostConstructCallback();
+        callback.setTarget(clazz.getName(),m.getName());
+        _callbacks.add(callback);
+      }
+    }
+  }
+}

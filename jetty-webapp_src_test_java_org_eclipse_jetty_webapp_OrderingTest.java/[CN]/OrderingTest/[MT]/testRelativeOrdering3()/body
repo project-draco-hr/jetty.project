@@ -1,0 +1,37 @@
+{
+  List<Resource> resources=new ArrayList<Resource>();
+  WebAppContext wac=new WebAppContext();
+  MetaData metaData=new MetaData(wac);
+  metaData._ordering=metaData.new RelativeOrdering();
+  TestResource jar1=new TestResource("A");
+  resources.add(jar1);
+  TestResource r1=new TestResource("A/web-fragment.xml");
+  FragmentDescriptor f1=new FragmentDescriptor(r1,metaData);
+  f1._name="A";
+  metaData._webFragmentNameMap.put(f1._name,f1);
+  metaData._webFragmentResourceMap.put(jar1,f1);
+  f1._otherType=FragmentDescriptor.OtherType.After;
+  f1._befores.add("C");
+  TestResource jar2=new TestResource("B");
+  resources.add(jar2);
+  TestResource r2=new TestResource("B/web-fragment.xml");
+  FragmentDescriptor f2=new FragmentDescriptor(r2,metaData);
+  f2._name="B";
+  metaData._webFragmentNameMap.put(f2._name,f2);
+  metaData._webFragmentResourceMap.put(jar2,f2);
+  f2._otherType=FragmentDescriptor.OtherType.Before;
+  f2._befores.add("C");
+  TestResource jar3=new TestResource("C");
+  resources.add(jar3);
+  TestResource r3=new TestResource("C/web-fragment.xml");
+  FragmentDescriptor f3=new FragmentDescriptor(r3,metaData);
+  f3._name="C";
+  metaData._webFragmentNameMap.put(f3._name,f3);
+  metaData._webFragmentResourceMap.put(jar3,f3);
+  f3._otherType=FragmentDescriptor.OtherType.None;
+  String[] outcomes={"BAC"};
+  List<Resource> orderedList=metaData._ordering.order(resources);
+  String result="";
+  for (  Resource r : orderedList)   result+=(((TestResource)r)._name);
+  if (!checkResult(result,outcomes))   fail("No outcome matched " + result);
+}

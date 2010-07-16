@@ -4,26 +4,17 @@
   wac.setServer(server);
   InjectionCollection injections=new InjectionCollection();
   wac.setAttribute(InjectionCollection.INJECTION_COLLECTION,injections);
+  wac.setAttribute(MetaData.METADATA,new MetaData(wac));
   InitialContext ic=new InitialContext();
   Context comp=(Context)ic.lookup("java:comp");
   Context env=comp.createSubcontext("env");
-  org.eclipse.jetty.plus.jndi.EnvEntry resourceA=new org.eclipse.jetty.plus.jndi.EnvEntry(server,"resA",1000,false);
-  org.eclipse.jetty.plus.jndi.EnvEntry resourceB=new org.eclipse.jetty.plus.jndi.EnvEntry(server,"resB",2000,false);
-  ArrayList<String> classNames=new ArrayList<String>();
-  classNames.add(ResourceA.class.getName());
-  classNames.add(ResourceB.class.getName());
-  AnnotationParser parser=new AnnotationParser();
+  org.eclipse.jetty.plus.jndi.EnvEntry resourceA=new org.eclipse.jetty.plus.jndi.EnvEntry(server,"resA",new Integer(1000),false);
+  org.eclipse.jetty.plus.jndi.EnvEntry resourceB=new org.eclipse.jetty.plus.jndi.EnvEntry(server,"resB",new Integer(2000),false);
+  AnnotationIntrospector parser=new AnnotationIntrospector();
   ResourceAnnotationHandler handler=new ResourceAnnotationHandler(wac);
-  parser.registerAnnotationHandler("javax.annotation.Resource",handler);
-  parser.parse(classNames,new ClassNameResolver(){
-    public boolean isExcluded(    String name){
-      return false;
-    }
-    public boolean shouldOverride(    String name){
-      return false;
-    }
-  }
-);
+  parser.registerHandler(handler);
+  parser.introspect(ResourceA.class);
+  parser.introspect(ResourceB.class);
   assertEquals(resourceB.getObjectToBind(),env.lookup("myf"));
   assertEquals(resourceA.getObjectToBind(),env.lookup("mye"));
   assertEquals(resourceA.getObjectToBind(),env.lookup("resA"));
@@ -36,7 +27,7 @@
   assertNotNull(resBInjections);
   assertEquals(1,resBInjections.size());
   Injection fi=resBInjections.get(0);
-  assertEquals("f",fi.getFieldName());
+  assertEquals("f",fi.getTarget().getName());
   List<Injection> resAInjections=injections.getInjections(ResourceA.class.getCanonicalName());
   assertNotNull(resAInjections);
   assertEquals(7,resAInjections.size());

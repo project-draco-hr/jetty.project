@@ -1,0 +1,42 @@
+{
+  for (  Resource jar : jars) {
+    FragmentDescriptor descriptor=_webFragmentResourceMap.get(jar);
+    if (descriptor != null) {
+switch (descriptor.getOtherType()) {
+case None:
+{
+          ((RelativeOrdering)_ordering).addNoOthers(jar);
+          break;
+        }
+case Before:
+{
+        ((RelativeOrdering)_ordering).addBeforeOthers(jar);
+        break;
+      }
+case After:
+{
+      ((RelativeOrdering)_ordering).addAfterOthers(jar);
+      break;
+    }
+}
+}
+ else {
+((RelativeOrdering)_ordering).addNoOthers(jar);
+}
+}
+List<Resource> orderedList=new ArrayList<Resource>();
+int maxIterations=2;
+boolean done=false;
+do {
+boolean changesBefore=orderList(_beforeOthers);
+boolean changesAfter=orderList(_afterOthers);
+boolean changesNone=orderList(_noOthers);
+done=(!changesBefore && !changesAfter && !changesNone);
+}
+ while (!done && (--maxIterations > 0));
+if (!done) throw new IllegalStateException("Circular references for fragments");
+for (Resource r : _beforeOthers) orderedList.add(r);
+for (Resource r : _noOthers) orderedList.add(r);
+for (Resource r : _afterOthers) orderedList.add(r);
+return orderedList;
+}

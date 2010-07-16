@@ -1,0 +1,43 @@
+{
+  String jndiName=node.getString("res-ref-name",false,true);
+  String type=node.getString("res-type",false,true);
+  String auth=node.getString("res-auth",false,true);
+  String shared=node.getString("res-sharing-scope",false,true);
+  Origin o=_metaData.getOrigin("resource-ref." + jndiName);
+switch (o) {
+case NotSet:
+{
+      _metaData.setOrigin("resource-ref." + jndiName,descriptor);
+      Class typeClass=TypeUtil.fromName(type);
+      if (typeClass == null)       typeClass=_context.loadClass(type);
+      addInjections(descriptor,node,jndiName,typeClass);
+      bindResourceRef(jndiName,typeClass);
+      break;
+    }
+case WebXml:
+case WebDefaults:
+case WebOverride:
+{
+    if (!(descriptor instanceof FragmentDescriptor)) {
+      _metaData.setOrigin("resource-ref." + jndiName,descriptor);
+      Class typeClass=TypeUtil.fromName(type);
+      if (typeClass == null)       typeClass=_context.loadClass(type);
+      addInjections(descriptor,node,jndiName,typeClass);
+      bindResourceRef(jndiName,typeClass);
+    }
+ else {
+      Descriptor d=_metaData.getOriginDescriptor("resource-ref." + jndiName + ".injection");
+      if (d == null || d instanceof FragmentDescriptor) {
+        Class typeClass=TypeUtil.fromName(type);
+        if (typeClass == null)         typeClass=_context.loadClass(type);
+        addInjections(descriptor,node,jndiName,TypeUtil.fromName(type));
+      }
+    }
+    break;
+  }
+case WebFragment:
+{
+  throw new IllegalStateException("Conflicting resource-ref " + jndiName + " in "+ descriptor.getResource());
+}
+}
+}

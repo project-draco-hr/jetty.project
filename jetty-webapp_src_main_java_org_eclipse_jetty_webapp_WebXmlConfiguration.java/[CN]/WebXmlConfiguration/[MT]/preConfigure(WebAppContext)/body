@@ -1,24 +1,20 @@
 {
-  if (context.isStarted()) {
-    if (Log.isDebugEnabled()) {
-      Log.debug("Cannot configure webapp after it is started");
-    }
-    return;
-  }
-  WebXmlProcessor processor=(WebXmlProcessor)context.getAttribute(WebXmlProcessor.WEB_PROCESSOR);
-  if (processor == null) {
-    processor=new WebXmlProcessor(context);
-    context.setAttribute(WebXmlProcessor.WEB_PROCESSOR,processor);
-  }
+  MetaData metaData=(MetaData)context.getAttribute(MetaData.METADATA);
+  if (metaData == null)   throw new IllegalStateException("No metadata");
   String defaultsDescriptor=context.getDefaultsDescriptor();
   if (defaultsDescriptor != null && defaultsDescriptor.length() > 0) {
     Resource dftResource=Resource.newSystemResource(defaultsDescriptor);
     if (dftResource == null)     dftResource=context.newResource(defaultsDescriptor);
-    processor.parseDefaults(dftResource);
-    processor.processDefaults();
+    metaData.setDefaults(dftResource);
   }
   Resource webxml=findWebXml(context);
   if (webxml != null) {
-    processor.parseWebXml(webxml);
+    metaData.setWebXml(webxml);
+  }
+  String overrideDescriptor=context.getOverrideDescriptor();
+  if (overrideDescriptor != null && overrideDescriptor.length() > 0) {
+    Resource orideResource=Resource.newSystemResource(overrideDescriptor);
+    if (orideResource == null)     orideResource=context.newResource(overrideDescriptor);
+    metaData.setOverride(orideResource);
   }
 }

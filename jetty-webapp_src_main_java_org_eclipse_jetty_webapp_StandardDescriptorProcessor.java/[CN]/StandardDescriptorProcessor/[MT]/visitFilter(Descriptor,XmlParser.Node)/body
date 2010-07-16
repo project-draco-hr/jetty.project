@@ -1,0 +1,96 @@
+{
+  String name=node.getString("filter-name",false,true);
+  FilterHolder holder=_servletHandler.getFilter(name);
+  if (holder == null) {
+    holder=_servletHandler.newFilterHolder();
+    holder.setName(name);
+    _filters=LazyList.add(_filters,holder);
+  }
+  String filter_class=node.getString("filter-class",false,true);
+  if (filter_class != null) {
+    descriptor.addClassName(filter_class);
+    Origin o=_metaData.getOrigin(name + ".filter.filter-class");
+switch (o) {
+case NotSet:
+{
+        holder.setClassName(filter_class);
+        _metaData.setOrigin(name + ".filter.filter-class",descriptor);
+        break;
+      }
+case WebXml:
+case WebDefaults:
+case WebOverride:
+{
+      if (!(descriptor instanceof FragmentDescriptor)) {
+        holder.setClassName(filter_class);
+        _metaData.setOrigin(name + ".filter.filter-class",descriptor);
+      }
+      break;
+    }
+case WebFragment:
+{
+    if (!holder.getClassName().equals(filter_class))     throw new IllegalStateException("Conflicting filter-class for filter " + name + " in "+ descriptor.getResource());
+    break;
+  }
+}
+}
+Iterator iter=node.iterator("init-param");
+while (iter.hasNext()) {
+XmlParser.Node paramNode=(XmlParser.Node)iter.next();
+String pname=paramNode.getString("param-name",false,true);
+String pvalue=paramNode.getString("param-value",false,true);
+Origin origin=_metaData.getOrigin(name + ".filter.init-param." + pname);
+switch (origin) {
+case NotSet:
+{
+  holder.setInitParameter(pname,pvalue);
+  _metaData.setOrigin(name + ".filter.init-param." + pname,descriptor);
+  break;
+}
+case WebXml:
+case WebDefaults:
+case WebOverride:
+{
+if (!(descriptor instanceof FragmentDescriptor)) {
+  holder.setInitParameter(pname,pvalue);
+  _metaData.setOrigin(name + ".filter.init-param." + pname,descriptor);
+}
+break;
+}
+case WebFragment:
+{
+if (!holder.getInitParameter(pname).equals(pvalue)) throw new IllegalStateException("Mismatching init-param " + pname + "="+ pvalue+ " in "+ descriptor.getResource());
+break;
+}
+}
+}
+String async=node.getString("async-supported",false,true);
+if (async != null) holder.setAsyncSupported(async.length() == 0 || Boolean.valueOf(async));
+if (async != null) {
+boolean val=async.length() == 0 || Boolean.valueOf(async);
+Origin o=_metaData.getOrigin(name + ".filter.async-supported");
+switch (o) {
+case NotSet:
+{
+holder.setAsyncSupported(val);
+_metaData.setOrigin(name + ".filter.async-supported",descriptor);
+break;
+}
+case WebXml:
+case WebDefaults:
+case WebOverride:
+{
+if (!(descriptor instanceof FragmentDescriptor)) {
+holder.setAsyncSupported(val);
+_metaData.setOrigin(name + ".filter.async-supported",descriptor);
+}
+break;
+}
+case WebFragment:
+{
+if (holder.isAsyncSupported() != val) throw new IllegalStateException("Conflicting async-supported=" + async + " for filter "+ name+ " in "+ descriptor.getResource());
+break;
+}
+}
+}
+}

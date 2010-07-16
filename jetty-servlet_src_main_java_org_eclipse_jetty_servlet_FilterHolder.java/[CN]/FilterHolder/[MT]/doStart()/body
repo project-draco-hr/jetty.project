@@ -5,8 +5,17 @@
     super.stop();
     throw new IllegalStateException(msg);
   }
-  if (_filter == null)   _filter=(Filter)newInstance();
-  _filter=getServletHandler().customizeFilter(_filter);
+  if (_filter == null) {
+    try {
+      _filter=((ServletContextHandler.Context)_servletHandler.getServletContext()).createFilter(getHeldClass());
+    }
+ catch (    ServletException se) {
+      Throwable cause=se.getRootCause();
+      if (cause instanceof InstantiationException)       throw (InstantiationException)cause;
+      if (cause instanceof IllegalAccessException)       throw (IllegalAccessException)cause;
+      throw se;
+    }
+  }
   _config=new Config();
   _filter.init(_config);
 }
