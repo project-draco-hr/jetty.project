@@ -1,0 +1,117 @@
+{
+  XmlParser.Node method=node.get("auth-method");
+  if (method != null) {
+    Origin o=context.getMetaData().getOrigin("auth-method");
+switch (o) {
+case NotSet:
+{
+        context.getSecurityHandler().setAuthMethod(method.toString(false,true));
+        context.getMetaData().setOrigin("auth-method",descriptor);
+        break;
+      }
+case WebXml:
+case WebDefaults:
+case WebOverride:
+{
+      if (!(descriptor instanceof FragmentDescriptor)) {
+        context.getSecurityHandler().setAuthMethod(method.toString(false,true));
+        context.getMetaData().setOrigin("auth-method",descriptor);
+      }
+      break;
+    }
+case WebFragment:
+{
+    if (!context.getSecurityHandler().getAuthMethod().equals(method.toString(false,true)))     throw new IllegalStateException("Conflicting auth-method value in " + descriptor.getResource());
+    break;
+  }
+}
+XmlParser.Node name=node.get("realm-name");
+String nameStr=(name == null ? "default" : name.toString(false,true));
+o=context.getMetaData().getOrigin("realm-name");
+switch (o) {
+case NotSet:
+{
+  context.getSecurityHandler().setRealmName(nameStr);
+  context.getMetaData().setOrigin("realm-name",descriptor);
+  break;
+}
+case WebXml:
+case WebDefaults:
+case WebOverride:
+{
+if (!(descriptor instanceof FragmentDescriptor)) {
+  context.getSecurityHandler().setRealmName(nameStr);
+  context.getMetaData().setOrigin("realm-name",descriptor);
+}
+break;
+}
+case WebFragment:
+{
+if (!context.getSecurityHandler().getRealmName().equals(nameStr)) throw new IllegalStateException("Conflicting realm-name value in " + descriptor.getResource());
+break;
+}
+}
+if (Constraint.__FORM_AUTH.equals(context.getSecurityHandler().getAuthMethod())) {
+XmlParser.Node formConfig=node.get("form-login-config");
+if (formConfig != null) {
+String loginPageName=null;
+XmlParser.Node loginPage=formConfig.get("form-login-page");
+if (loginPage != null) loginPageName=loginPage.toString(false,true);
+String errorPageName=null;
+XmlParser.Node errorPage=formConfig.get("form-error-page");
+if (errorPage != null) errorPageName=errorPage.toString(false,true);
+o=context.getMetaData().getOrigin("form-login-page");
+switch (o) {
+case NotSet:
+{
+context.getSecurityHandler().setInitParameter(FormAuthenticator.__FORM_LOGIN_PAGE,loginPageName);
+context.getMetaData().setOrigin("form-login-page",descriptor);
+break;
+}
+case WebXml:
+case WebDefaults:
+case WebOverride:
+{
+if (!(descriptor instanceof FragmentDescriptor)) {
+context.getSecurityHandler().setInitParameter(FormAuthenticator.__FORM_LOGIN_PAGE,loginPageName);
+context.getMetaData().setOrigin("form-login-page",descriptor);
+}
+break;
+}
+case WebFragment:
+{
+if (!context.getSecurityHandler().getInitParameter(FormAuthenticator.__FORM_LOGIN_PAGE).equals(loginPageName)) throw new IllegalStateException("Conflicting form-login-page value in " + descriptor.getResource());
+break;
+}
+}
+o=context.getMetaData().getOrigin("form-error-page");
+switch (o) {
+case NotSet:
+{
+context.getSecurityHandler().setInitParameter(FormAuthenticator.__FORM_ERROR_PAGE,errorPageName);
+context.getMetaData().setOrigin("form-error-page",descriptor);
+break;
+}
+case WebXml:
+case WebDefaults:
+case WebOverride:
+{
+if (!(descriptor instanceof FragmentDescriptor)) {
+context.getSecurityHandler().setInitParameter(FormAuthenticator.__FORM_ERROR_PAGE,errorPageName);
+context.getMetaData().setOrigin("form-error-page",descriptor);
+}
+break;
+}
+case WebFragment:
+{
+if (!context.getSecurityHandler().getInitParameter(FormAuthenticator.__FORM_ERROR_PAGE).equals(errorPageName)) throw new IllegalStateException("Conflicting form-error-page value in " + descriptor.getResource());
+break;
+}
+}
+}
+ else {
+throw new IllegalStateException("!form-login-config");
+}
+}
+}
+}

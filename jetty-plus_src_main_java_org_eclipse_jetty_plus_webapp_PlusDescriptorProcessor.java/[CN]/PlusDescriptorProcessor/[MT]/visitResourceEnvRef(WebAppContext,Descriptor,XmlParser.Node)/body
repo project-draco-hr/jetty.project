@@ -1,0 +1,40 @@
+{
+  String jndiName=node.getString("resource-env-ref-name",false,true);
+  String type=node.getString("resource-env-ref-type",false,true);
+  Origin o=context.getMetaData().getOrigin("resource-env-ref." + jndiName);
+switch (o) {
+case NotSet:
+{
+      Class<?> typeClass=TypeUtil.fromName(type);
+      if (typeClass == null)       typeClass=context.loadClass(type);
+      addInjections(context,descriptor,node,jndiName,typeClass);
+      bindResourceEnvRef(context,jndiName,typeClass);
+      break;
+    }
+case WebXml:
+case WebDefaults:
+case WebOverride:
+{
+    if (!(descriptor instanceof FragmentDescriptor)) {
+      context.getMetaData().setOrigin("resource-env-ref." + jndiName,descriptor);
+      Class<?> typeClass=TypeUtil.fromName(type);
+      if (typeClass == null)       typeClass=context.loadClass(type);
+      addInjections(context,descriptor,node,jndiName,typeClass);
+      bindResourceEnvRef(context,jndiName,typeClass);
+    }
+ else {
+      Descriptor d=context.getMetaData().getOriginDescriptor("resource-env-ref." + jndiName + ".injection");
+      if (d == null || d instanceof FragmentDescriptor) {
+        Class<?> typeClass=TypeUtil.fromName(type);
+        if (typeClass == null)         typeClass=context.loadClass(type);
+        addInjections(context,descriptor,node,jndiName,typeClass);
+      }
+    }
+    break;
+  }
+case WebFragment:
+{
+  throw new IllegalStateException("Conflicting resource-env-ref " + jndiName + " in "+ descriptor.getResource());
+}
+}
+}

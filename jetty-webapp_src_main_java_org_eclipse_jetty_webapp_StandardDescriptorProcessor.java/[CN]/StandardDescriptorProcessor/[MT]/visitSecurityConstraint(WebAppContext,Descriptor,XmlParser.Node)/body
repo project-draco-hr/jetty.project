@@ -1,0 +1,60 @@
+{
+  Constraint scBase=new Constraint();
+  try {
+    XmlParser.Node auths=node.get("auth-constraint");
+    if (auths != null) {
+      scBase.setAuthenticate(true);
+      Iterator<XmlParser.Node> iter=auths.iterator("role-name");
+      List<String> roles=new ArrayList<String>();
+      while (iter.hasNext()) {
+        String role=iter.next().toString(false,true);
+        roles.add(role);
+      }
+      scBase.setRoles(roles.toArray(new String[roles.size()]));
+    }
+    XmlParser.Node data=node.get("user-data-constraint");
+    if (data != null) {
+      data=data.get("transport-guarantee");
+      String guarantee=data.toString(false,true).toUpperCase();
+      if (guarantee == null || guarantee.length() == 0 || "NONE".equals(guarantee))       scBase.setDataConstraint(Constraint.DC_NONE);
+ else       if ("INTEGRAL".equals(guarantee))       scBase.setDataConstraint(Constraint.DC_INTEGRAL);
+ else       if ("CONFIDENTIAL".equals(guarantee))       scBase.setDataConstraint(Constraint.DC_CONFIDENTIAL);
+ else {
+        Log.warn("Unknown user-data-constraint:" + guarantee);
+        scBase.setDataConstraint(Constraint.DC_CONFIDENTIAL);
+      }
+    }
+    Iterator<XmlParser.Node> iter=node.iterator("web-resource-collection");
+    while (iter.hasNext()) {
+      XmlParser.Node collection=iter.next();
+      String name=collection.getString("web-resource-name",false,true);
+      Constraint sc=(Constraint)scBase.clone();
+      sc.setName(name);
+      Iterator<XmlParser.Node> iter2=collection.iterator("url-pattern");
+      while (iter2.hasNext()) {
+        String url=iter2.next().toString(false,true);
+        url=normalizePattern(url);
+        Iterator<XmlParser.Node> iter3=collection.iterator("http-method");
+        if (iter3.hasNext()) {
+          while (iter3.hasNext()) {
+            String method=((XmlParser.Node)iter3.next()).toString(false,true);
+            ConstraintMapping mapping=new ConstraintMapping();
+            mapping.setMethod(method);
+            mapping.setPathSpec(url);
+            mapping.setConstraint(sc);
+            ((ConstraintAware)context.getSecurityHandler()).addConstraintMapping(mapping);
+          }
+        }
+ else {
+          ConstraintMapping mapping=new ConstraintMapping();
+          mapping.setPathSpec(url);
+          mapping.setConstraint(sc);
+          ((ConstraintAware)context.getSecurityHandler()).addConstraintMapping(mapping);
+        }
+      }
+    }
+  }
+ catch (  CloneNotSupportedException e) {
+    Log.warn(e);
+  }
+}

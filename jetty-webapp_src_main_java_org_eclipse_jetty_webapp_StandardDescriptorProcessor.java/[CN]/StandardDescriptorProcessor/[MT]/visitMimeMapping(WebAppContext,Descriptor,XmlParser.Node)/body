@@ -1,0 +1,31 @@
+{
+  String extension=node.getString("extension",false,true);
+  if (extension != null && extension.startsWith("."))   extension=extension.substring(1);
+  String mimeType=node.getString("mime-type",false,true);
+  if (extension != null) {
+    Origin o=context.getMetaData().getOrigin("extension." + extension);
+switch (o) {
+case NotSet:
+{
+        context.getMimeTypes().addMimeMapping(extension,mimeType);
+        context.getMetaData().setOrigin("extension." + extension,descriptor);
+        break;
+      }
+case WebXml:
+case WebDefaults:
+case WebOverride:
+{
+      if (!(descriptor instanceof FragmentDescriptor)) {
+        context.getMimeTypes().addMimeMapping(extension,mimeType);
+        context.getMetaData().setOrigin("extension." + extension,descriptor);
+      }
+      break;
+    }
+case WebFragment:
+{
+    if (!context.getMimeTypes().getMimeByExtension("." + extension).equals(context.getMimeTypes().CACHE.lookup(mimeType)))     throw new IllegalStateException("Conflicting mime-type " + mimeType + " for extension "+ extension+ " in "+ descriptor.getResource());
+    break;
+  }
+}
+}
+}

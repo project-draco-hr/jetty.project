@@ -1,0 +1,31 @@
+{
+  for (int i=0; i < node.size(); i++) {
+    Object o=node.get(i);
+    if (o instanceof XmlParser.Node && "taglib".equals(((XmlParser.Node)o).getTag()))     visitTagLib(context,descriptor,(XmlParser.Node)o);
+  }
+  Iterator<XmlParser.Node> iter=node.iterator("jsp-property-group");
+  List<String> paths=new ArrayList<String>();
+  while (iter.hasNext()) {
+    XmlParser.Node group=iter.next();
+    Iterator<XmlParser.Node> iter2=group.iterator("url-pattern");
+    while (iter2.hasNext()) {
+      String url=iter2.next().toString(false,true);
+      url=normalizePattern(url);
+      paths.add(url);
+    }
+  }
+  if (paths.size() > 0) {
+    String jspName="jsp";
+    Map.Entry entry=context.getServletHandler().getHolderEntry("test.jsp");
+    if (entry != null) {
+      ServletHolder holder=(ServletHolder)entry.getValue();
+      jspName=holder.getName();
+    }
+    if (jspName != null) {
+      ServletMapping mapping=new ServletMapping();
+      mapping.setServletName(jspName);
+      mapping.setPathSpecs(paths.toArray(new String[paths.size()]));
+      context.getServletHandler().addServletMapping(mapping);
+    }
+  }
+}

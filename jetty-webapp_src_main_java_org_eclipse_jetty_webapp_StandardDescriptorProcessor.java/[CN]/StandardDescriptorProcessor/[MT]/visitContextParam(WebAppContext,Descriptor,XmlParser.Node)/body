@@ -1,0 +1,31 @@
+{
+  String name=node.getString("param-name",false,true);
+  String value=node.getString("param-value",false,true);
+  Origin o=context.getMetaData().getOrigin("context-param." + name);
+switch (o) {
+case NotSet:
+{
+      context.getInitParams().put(name,value);
+      context.getMetaData().setOrigin("context-param." + name,descriptor);
+      break;
+    }
+case WebXml:
+case WebDefaults:
+case WebOverride:
+{
+    if (!(descriptor instanceof FragmentDescriptor)) {
+      context.getInitParams().put(name,value);
+      context.getMetaData().setOrigin("context-param." + name,descriptor);
+    }
+    break;
+  }
+case WebFragment:
+{
+  if (descriptor instanceof FragmentDescriptor) {
+    if (!((String)context.getInitParams().get(name)).equals(value))     throw new IllegalStateException("Conflicting context-param " + name + "="+ value+ " in "+ descriptor.getResource());
+  }
+  break;
+}
+}
+if (Log.isDebugEnabled()) Log.debug("ContextParam: " + name + "="+ value);
+}

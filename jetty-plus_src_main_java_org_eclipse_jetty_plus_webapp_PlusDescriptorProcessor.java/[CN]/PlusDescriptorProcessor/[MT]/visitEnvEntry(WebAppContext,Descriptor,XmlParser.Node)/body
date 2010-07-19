@@ -1,0 +1,40 @@
+{
+  String name=node.getString("env-entry-name",false,true);
+  String type=node.getString("env-entry-type",false,true);
+  String valueStr=node.getString("env-entry-value",false,true);
+  if (valueStr == null || valueStr.equals("")) {
+    Log.warn("No value for env-entry-name " + name);
+    return;
+  }
+  Origin o=context.getMetaData().getOrigin("env-entry." + name);
+switch (o) {
+case NotSet:
+{
+      context.getMetaData().setOrigin("env-entry." + name,descriptor);
+      addInjections(context,descriptor,node,name,TypeUtil.fromName(type));
+      Object value=TypeUtil.valueOf(type,valueStr);
+      bindEnvEntry(name,value);
+      break;
+    }
+case WebXml:
+case WebDefaults:
+case WebOverride:
+{
+    if (!(descriptor instanceof FragmentDescriptor)) {
+      context.getMetaData().setOrigin("env-entry." + name,descriptor);
+      addInjections(context,descriptor,node,name,TypeUtil.fromName(type));
+      Object value=TypeUtil.valueOf(type,valueStr);
+      bindEnvEntry(name,value);
+    }
+ else {
+      Descriptor d=context.getMetaData().getOriginDescriptor("env-entry." + name + ".injection");
+      if (d == null || d instanceof FragmentDescriptor)       addInjections(context,descriptor,node,name,TypeUtil.fromName(type));
+    }
+    break;
+  }
+case WebFragment:
+{
+  throw new IllegalStateException("Conflicting env-entry " + name + " in "+ descriptor.getResource());
+}
+}
+}

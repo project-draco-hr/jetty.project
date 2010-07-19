@@ -1,0 +1,34 @@
+{
+  Iterator<XmlParser.Node> iter=node.iterator("locale-encoding-mapping");
+  while (iter.hasNext()) {
+    XmlParser.Node mapping=iter.next();
+    String locale=mapping.getString("locale",false,true);
+    String encoding=mapping.getString("encoding",false,true);
+    if (encoding != null) {
+      Origin o=context.getMetaData().getOrigin("locale-encoding." + locale);
+switch (o) {
+case NotSet:
+{
+          context.addLocaleEncoding(locale,encoding);
+          context.getMetaData().setOrigin("locale-encoding." + locale,descriptor);
+          break;
+        }
+case WebXml:
+case WebDefaults:
+case WebOverride:
+{
+        if (!(descriptor instanceof FragmentDescriptor)) {
+          context.addLocaleEncoding(locale,encoding);
+          context.getMetaData().setOrigin("locale-encoding." + locale,descriptor);
+        }
+        break;
+      }
+case WebFragment:
+{
+      if (!encoding.equals(context.getLocaleEncoding(locale)))       throw new IllegalStateException("Conflicting locale-encoding mapping for locale " + locale + " in "+ descriptor.getResource());
+      break;
+    }
+}
+}
+}
+}

@@ -1,0 +1,211 @@
+{
+  String id=node.getAttribute("id");
+  String servlet_name=node.getString("servlet-name",false,true);
+  ServletHolder holder=context.getServletHandler().getServlet(servlet_name);
+  if (holder == null) {
+    holder=context.getServletHandler().newServletHolder();
+    holder.setName(servlet_name);
+    context.getServletHandler().addServlet(holder);
+  }
+  ServletRegistration.Dynamic registration=holder.getRegistration();
+  Iterator iParamsIter=node.iterator("init-param");
+  while (iParamsIter.hasNext()) {
+    XmlParser.Node paramNode=(XmlParser.Node)iParamsIter.next();
+    String pname=paramNode.getString("param-name",false,true);
+    String pvalue=paramNode.getString("param-value",false,true);
+    Origin origin=context.getMetaData().getOrigin(servlet_name + ".servlet.init-param." + pname);
+switch (origin) {
+case NotSet:
+{
+        registration.setInitParameter(pname,pvalue);
+        context.getMetaData().setOrigin(servlet_name + ".servlet.init-param." + pname,descriptor);
+        break;
+      }
+case WebXml:
+case WebDefaults:
+case WebOverride:
+{
+      if (!(descriptor instanceof FragmentDescriptor)) {
+        registration.setInitParameter(pname,pvalue);
+        context.getMetaData().setOrigin(servlet_name + ".servlet.init-param." + pname,descriptor);
+      }
+      break;
+    }
+case WebFragment:
+{
+    if (!registration.getInitParameter(pname).equals(pvalue))     throw new IllegalStateException("Mismatching init-param " + pname + "="+ pvalue+ " in "+ descriptor.getResource());
+    break;
+  }
+}
+}
+String servlet_class=node.getString("servlet-class",false,true);
+String jspServletName=null;
+String jspServletClass=null;
+;
+boolean hasJSP=false;
+if (id != null && id.equals("jsp")) {
+jspServletName=servlet_name;
+jspServletClass=servlet_class;
+try {
+Loader.loadClass(this.getClass(),servlet_class);
+hasJSP=true;
+}
+ catch (ClassNotFoundException e) {
+Log.info("NO JSP Support for {}, did not find {}",context.getContextPath(),servlet_class);
+jspServletClass=servlet_class="org.eclipse.jetty.servlet.NoJspServlet";
+}
+if (registration.getInitParameter("scratchdir") == null) {
+File tmp=context.getTempDirectory();
+File scratch=new File(tmp,"jsp");
+if (!scratch.exists()) scratch.mkdir();
+registration.setInitParameter("scratchdir",scratch.getAbsolutePath());
+if ("?".equals(registration.getInitParameter("classpath"))) {
+  String classpath=context.getClassPath();
+  Log.debug("classpath=" + classpath);
+  if (classpath != null)   registration.setInitParameter("classpath",classpath);
+}
+}
+context.setAttribute("org.apache.catalina.jsp_classpath",context.getClassPath());
+registration.setInitParameter("com.sun.appserv.jsp.classpath",getSystemClassPath(context));
+}
+if (servlet_class != null) {
+descriptor.addClassName(servlet_class);
+Origin o=context.getMetaData().getOrigin(servlet_name + ".servlet.servlet-class");
+switch (o) {
+case NotSet:
+{
+  holder.setClassName(servlet_class);
+  context.getMetaData().setOrigin(servlet_name + ".servlet.servlet-class",descriptor);
+  break;
+}
+case WebXml:
+case WebDefaults:
+case WebOverride:
+{
+if (!(descriptor instanceof FragmentDescriptor)) {
+  holder.setClassName(servlet_class);
+  context.getMetaData().setOrigin(servlet_name + ".servlet.servlet-class",descriptor);
+}
+break;
+}
+case WebFragment:
+{
+if (!servlet_class.equals(holder.getClassName())) throw new IllegalStateException("Conflicting servlet-class " + servlet_class + " in "+ descriptor.getResource());
+break;
+}
+}
+}
+String jsp_file=node.getString("jsp-file",false,true);
+if (jsp_file != null) {
+holder.setForcedPath(jsp_file);
+holder.setClassName(jspServletClass);
+}
+XmlParser.Node startup=node.get("load-on-startup");
+if (startup != null) {
+String s=startup.toString(false,true).toLowerCase();
+int order=0;
+if (s.startsWith("t")) {
+Log.warn("Deprecated boolean load-on-startup.  Please use integer");
+order=1;
+}
+ else {
+try {
+if (s != null && s.trim().length() > 0) order=Integer.parseInt(s);
+}
+ catch (Exception e) {
+Log.warn("Cannot parse load-on-startup " + s + ". Please use integer");
+Log.ignore(e);
+}
+}
+Origin o=context.getMetaData().getOrigin(servlet_name + ".servlet.load-on-startup");
+switch (o) {
+case NotSet:
+{
+registration.setLoadOnStartup(order);
+context.getMetaData().setOrigin(servlet_name + ".servlet.load-on-startup",descriptor);
+break;
+}
+case WebXml:
+case WebDefaults:
+case WebOverride:
+{
+if (!(descriptor instanceof FragmentDescriptor)) {
+registration.setLoadOnStartup(order);
+context.getMetaData().setOrigin(servlet_name + ".servlet.load-on-startup",descriptor);
+}
+break;
+}
+case WebFragment:
+{
+if (order != holder.getInitOrder()) throw new IllegalStateException("Conflicting load-on-startup value in " + descriptor.getResource());
+break;
+}
+}
+}
+Iterator sRefsIter=node.iterator("security-role-ref");
+while (sRefsIter.hasNext()) {
+XmlParser.Node securityRef=(XmlParser.Node)sRefsIter.next();
+String roleName=securityRef.getString("role-name",false,true);
+String roleLink=securityRef.getString("role-link",false,true);
+if (roleName != null && roleName.length() > 0 && roleLink != null && roleLink.length() > 0) {
+if (Log.isDebugEnabled()) Log.debug("link role " + roleName + " to "+ roleLink+ " for "+ this);
+Origin o=context.getMetaData().getOrigin(servlet_name + ".servlet.role-name." + roleName);
+switch (o) {
+case NotSet:
+{
+holder.setUserRoleLink(roleName,roleLink);
+context.getMetaData().setOrigin(servlet_name + ".servlet.role-name." + roleName,descriptor);
+break;
+}
+case WebXml:
+case WebDefaults:
+case WebOverride:
+{
+if (!(descriptor instanceof FragmentDescriptor)) {
+holder.setUserRoleLink(roleName,roleLink);
+context.getMetaData().setOrigin(servlet_name + ".servlet.role-name." + roleName,descriptor);
+}
+break;
+}
+case WebFragment:
+{
+if (!holder.getUserRoleLink(roleName).equals(roleLink)) throw new IllegalStateException("Conflicting role-link for role-name " + roleName + " for servlet "+ servlet_name+ " in "+ descriptor.getResource());
+break;
+}
+}
+}
+ else {
+Log.warn("Ignored invalid security-role-ref element: " + "servlet-name=" + holder.getName() + ", "+ securityRef);
+}
+}
+XmlParser.Node run_as=node.get("run-as");
+if (run_as != null) {
+String roleName=run_as.getString("role-name",false,true);
+if (roleName != null) {
+Origin o=context.getMetaData().getOrigin(servlet_name + ".servlet.run-as");
+switch (o) {
+case NotSet:
+{
+registration.setRunAsRole(roleName);
+context.getMetaData().setOrigin(servlet_name + ".servlet.run-as",descriptor);
+break;
+}
+case WebXml:
+case WebDefaults:
+case WebOverride:
+{
+if (!(descriptor instanceof FragmentDescriptor)) {
+registration.setRunAsRole(roleName);
+context.getMetaData().setOrigin(servlet_name + ".servlet.run-as",descriptor);
+}
+break;
+}
+case WebFragment:
+{
+if (!registration.getRunAsRole().equals(roleName)) throw new IllegalStateException("Conflicting run-as role " + roleName + " for servlet "+ servlet_name+ " in "+ descriptor.getResource());
+break;
+}
+}
+}
+}
+}

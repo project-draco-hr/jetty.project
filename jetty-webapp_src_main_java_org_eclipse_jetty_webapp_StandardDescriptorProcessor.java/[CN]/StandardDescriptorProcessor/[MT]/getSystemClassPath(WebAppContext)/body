@@ -1,0 +1,25 @@
+{
+  ClassLoader loader=context.getClassLoader();
+  if (loader.getParent() != null)   loader=loader.getParent();
+  StringBuilder classpath=new StringBuilder();
+  while (loader != null && (loader instanceof URLClassLoader)) {
+    URL[] urls=((URLClassLoader)loader).getURLs();
+    if (urls != null) {
+      for (int i=0; i < urls.length; i++) {
+        try {
+          Resource resource=context.newResource(urls[i]);
+          File file=resource.getFile();
+          if (file != null && file.exists()) {
+            if (classpath.length() > 0)             classpath.append(File.pathSeparatorChar);
+            classpath.append(file.getAbsolutePath());
+          }
+        }
+ catch (        IOException e) {
+          Log.debug(e);
+        }
+      }
+    }
+    loader=loader.getParent();
+  }
+  return classpath.toString();
+}

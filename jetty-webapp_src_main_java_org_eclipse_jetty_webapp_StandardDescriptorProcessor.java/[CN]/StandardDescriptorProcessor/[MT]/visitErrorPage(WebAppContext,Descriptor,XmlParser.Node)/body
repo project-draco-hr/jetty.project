@@ -1,0 +1,34 @@
+{
+  String error=node.getString("error-code",false,true);
+  int code=0;
+  if (error == null || error.length() == 0)   error=node.getString("exception-type",false,true);
+ else   code=Integer.valueOf(error);
+  String location=node.getString("location",false,true);
+  ErrorPageErrorHandler handler=(ErrorPageErrorHandler)context.getErrorHandler();
+  Origin o=context.getMetaData().getOrigin("error." + error);
+switch (o) {
+case NotSet:
+{
+      if (code > 0)       handler.addErrorPage(code,location);
+ else       handler.addErrorPage(error,location);
+      context.getMetaData().setOrigin("error." + error,descriptor);
+      break;
+    }
+case WebXml:
+case WebDefaults:
+case WebOverride:
+{
+    if (!(descriptor instanceof FragmentDescriptor)) {
+      if (code > 0)       handler.addErrorPage(code,location);
+ else       handler.addErrorPage(error,location);
+      context.getMetaData().setOrigin("error." + error,descriptor);
+    }
+    break;
+  }
+case WebFragment:
+{
+  if (!handler.getErrorPages().get(error).equals(location))   throw new IllegalStateException("Conflicting error-code or exception-type " + error + " in "+ descriptor.getResource());
+  break;
+}
+}
+}
