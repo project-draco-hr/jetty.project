@@ -1,16 +1,20 @@
 {
   StringBuffer canonicalName=new StringBuffer();
-  canonicalName.append("Jetty");
-  Connector[] connectors=context.getServer().getConnectors();
-  canonicalName.append("_");
-  String host=(connectors == null || connectors[0] == null ? "" : connectors[0].getHost());
-  if (host == null)   host="0.0.0.0";
-  canonicalName.append(host.replace('.','_'));
-  canonicalName.append("_");
-  int port=(connectors == null || connectors[0] == null ? 0 : connectors[0].getLocalPort());
-  if (port < 0)   port=connectors[0].getPort();
-  canonicalName.append(port);
-  canonicalName.append("_");
+  canonicalName.append("jetty-");
+  Server server=context.getServer();
+  if (server != null) {
+    Connector[] connectors=context.getServer().getConnectors();
+    if (connectors.length > 0) {
+      String host=(connectors == null || connectors[0] == null ? "" : connectors[0].getHost());
+      if (host == null)       host="0.0.0.0";
+      canonicalName.append(host);
+      canonicalName.append("-");
+      int port=(connectors == null || connectors[0] == null ? 0 : connectors[0].getLocalPort());
+      if (port < 0)       port=connectors[0].getPort();
+      canonicalName.append(port);
+      canonicalName.append("-");
+    }
+  }
   try {
     Resource resource=context.getBaseResource();
     if (resource == null) {
@@ -22,25 +26,23 @@
     if (tmp.endsWith("!"))     tmp=tmp.substring(0,tmp.length() - 1);
     int i=tmp.lastIndexOf("/");
     canonicalName.append(tmp.substring(i + 1,tmp.length()));
+    canonicalName.append("-");
   }
  catch (  Exception e) {
     Log.warn("Can't generate resourceBase as part of webapp tmp dir name",e);
   }
-  canonicalName.append("_");
   String contextPath=context.getContextPath();
   contextPath=contextPath.replace('/','_');
   contextPath=contextPath.replace('\\','_');
   canonicalName.append(contextPath);
-  canonicalName.append("_");
+  canonicalName.append("-");
   String[] vhosts=context.getVirtualHosts();
-  if (vhosts == null || vhosts.length <= 0)   canonicalName.append("");
+  if (vhosts == null || vhosts.length <= 0)   canonicalName.append("any");
  else   canonicalName.append(vhosts[0]);
-  String hash=Integer.toString(canonicalName.toString().hashCode(),36);
-  canonicalName.append("_");
-  canonicalName.append(hash);
   for (int i=0; i < canonicalName.length(); i++) {
     char c=canonicalName.charAt(i);
-    if (!Character.isJavaIdentifierPart(c))     canonicalName.setCharAt(i,'.');
+    if (!Character.isJavaIdentifierPart(c) && "-.".indexOf(c) < 0)     canonicalName.setCharAt(i,'.');
   }
+  canonicalName.append("-");
   return canonicalName.toString();
 }
