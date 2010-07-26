@@ -42,21 +42,19 @@
     if (max_cache_size != -1 || max_cached_file_size != -2 || max_cached_files != -2)     Log.debug("ignoring resource cache configuration, using resourceCache attribute");
     if (_relativeResourceBase != null || _resourceBase != null)     throw new UnavailableException("resourceCache specified with resource bases");
     _cache=(ResourceCache)_servletContext.getAttribute(resourceCache);
-    if (_cache == null)     throw new UnavailableException("Could not find resourceCache " + resourceCache);
+    if (_cache == null)     Log.debug("Could not find resourceCache " + resourceCache);
   }
- else {
-    try {
-      if (max_cached_files > 0) {
-        _cache=new ResourceCache(this,_mimeTypes,_useFileMappedBuffer);
-        if (max_cache_size > 0)         _cache.setMaxCacheSize(max_cache_size);
-        if (max_cached_file_size >= -1)         _cache.setMaxCachedFileSize(max_cached_file_size);
-        if (max_cached_files >= -1)         _cache.setMaxCachedFiles(max_cached_files);
-      }
+  try {
+    if (_cache == null && max_cached_files > 0) {
+      _cache=new ResourceCache(this,_mimeTypes,_useFileMappedBuffer);
+      if (max_cache_size > 0)       _cache.setMaxCacheSize(max_cache_size);
+      if (max_cached_file_size >= -1)       _cache.setMaxCachedFileSize(max_cached_file_size);
+      if (max_cached_files >= -1)       _cache.setMaxCachedFiles(max_cached_files);
     }
- catch (    Exception e) {
-      Log.warn(Log.EXCEPTION,e);
-      throw new UnavailableException(e.toString());
-    }
+  }
+ catch (  Exception e) {
+    Log.warn(Log.EXCEPTION,e);
+    throw new UnavailableException(e.toString());
   }
   _servletHandler=(ServletHandler)_contextHandler.getChildHandlerByClass(ServletHandler.class);
   for (  ServletHolder h : _servletHandler.getServlets())   if (h.getServletInstance() == this)   _defaultHolder=h;
