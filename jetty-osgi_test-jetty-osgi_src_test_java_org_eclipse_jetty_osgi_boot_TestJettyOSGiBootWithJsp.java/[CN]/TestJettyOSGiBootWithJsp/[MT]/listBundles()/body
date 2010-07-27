@@ -1,0 +1,35 @@
+{
+  Map<String,Bundle> bundlesIndexedBySymbolicName=new HashMap<String,Bundle>();
+  for (  Bundle b : bundleContext.getBundles()) {
+    bundlesIndexedBySymbolicName.put(b.getSymbolicName(),b);
+  }
+  Bundle osgiBoot=bundlesIndexedBySymbolicName.get("org.eclipse.jetty.osgi.boot");
+  Assert.assertNotNull("Could not find the org.eclipse.jetty.osgi.boot bundle",osgiBoot);
+  Assert.assertTrue(osgiBoot.getState() == Bundle.ACTIVE);
+  Bundle osgiBootJsp=bundlesIndexedBySymbolicName.get("org.eclipse.jetty.osgi.boot.jsp");
+  Assert.assertNotNull("Could not find the org.eclipse.jetty.osgi.boot.jsp bundle",osgiBootJsp);
+  Assert.assertTrue("The fragment jsp is not correctly resolved",osgiBootJsp.getState() == Bundle.RESOLVED);
+  Bundle testWebBundle=bundlesIndexedBySymbolicName.get("org.eclipse.jetty.test-jetty-webapp");
+  Assert.assertNotNull("Could not find the org.eclipse.jetty.osgi.boot.jsp bundle",osgiBootJsp);
+  Assert.assertTrue("The fragment jsp is not correctly resolved",testWebBundle.getState() == Bundle.ACTIVE);
+  HttpClient client=new HttpClient();
+  client.setConnectorType(HttpClient.CONNECTOR_SELECT_CHANNEL);
+  try {
+    client.start();
+    ContentExchange getExchange=new ContentExchange();
+    getExchange.setURL("http://localhost:8080/jsp/dump.jsp");
+    getExchange.setMethod(HttpMethods.GET);
+    client.send(getExchange);
+    int state=getExchange.waitForDone();
+    String content=null;
+    int responseStatus=getExchange.getResponseStatus();
+    Assert.assertEquals(HttpStatus.OK_200,responseStatus);
+    if (responseStatus == HttpStatus.OK_200) {
+      content=getExchange.getResponseContent();
+    }
+    Assert.assertTrue(content.indexOf("<tr><th>ServletPath:</th><td>/jsp/dump.jsp</td></tr>") != -1);
+  }
+  finally {
+    client.stop();
+  }
+}

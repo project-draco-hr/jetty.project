@@ -1,0 +1,46 @@
+{
+  Map<String,Bundle> bundlesIndexedBySymbolicName=new HashMap<String,Bundle>();
+  for (  Bundle b : bundleContext.getBundles()) {
+    bundlesIndexedBySymbolicName.put(b.getSymbolicName(),b);
+    System.err.println("got " + b.getSymbolicName());
+  }
+  Bundle osgiBoot=bundlesIndexedBySymbolicName.get("org.eclipse.jetty.osgi.boot");
+  Assert.assertNotNull("Could not find the org.eclipse.jetty.osgi.boot bundle",osgiBoot);
+  Assert.assertTrue(osgiBoot.getState() == Bundle.ACTIVE);
+  Bundle httpServiceOSGiBundle=bundlesIndexedBySymbolicName.get("org.eclipse.jetty.osgi.httpservice");
+  Assert.assertNotNull(httpServiceOSGiBundle);
+  Assert.assertTrue(httpServiceOSGiBundle.getState() == Bundle.ACTIVE);
+  Bundle equinoxServlet=bundlesIndexedBySymbolicName.get("org.eclipse.equinox.http.servlet");
+  Assert.assertNotNull(equinoxServlet);
+  Assert.assertTrue(equinoxServlet.getState() == Bundle.ACTIVE);
+  ServiceReference sr=bundleContext.getServiceReference(HttpService.class.getName());
+  Assert.assertNotNull("The httpServiceOSGiBundle is started and should have deployed a service reference for HttpService",sr);
+  HttpService http=(HttpService)bundleContext.getService(sr);
+  http.registerServlet("/greetings",new HttpServlet(){
+    private static final long serialVersionUID=1L;
+    protected void doGet(    HttpServletRequest req,    HttpServletResponse resp) throws ServletException, IOException {
+      resp.getWriter().append("Hello");
+    }
+  }
+,null,null);
+  HttpClient client=new HttpClient();
+  client.setConnectorType(HttpClient.CONNECTOR_SELECT_CHANNEL);
+  try {
+    client.start();
+    ContentExchange getExchange=new ContentExchange();
+    getExchange.setURL("http://localhost:8080/greetings");
+    getExchange.setMethod(HttpMethods.GET);
+    client.send(getExchange);
+    int state=getExchange.waitForDone();
+    String content=null;
+    int responseStatus=getExchange.getResponseStatus();
+    Assert.assertEquals(HttpStatus.OK_200,responseStatus);
+    if (responseStatus == HttpStatus.OK_200) {
+      content=getExchange.getResponseContent();
+    }
+    Assert.assertEquals("Hello",content);
+  }
+  finally {
+    client.stop();
+  }
+}
