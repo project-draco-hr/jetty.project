@@ -17,7 +17,12 @@
     if (metaData.getOriginDescriptor("resource-ref." + name + ".injection") != null) {
       return;
     }
-    Injection injection=((InjectionCollection)_context.getAttribute(InjectionCollection.INJECTION_COLLECTION)).getInjection(name,clazz,field);
+    InjectionCollection injections=(InjectionCollection)_context.getAttribute(InjectionCollection.INJECTION_COLLECTION);
+    if (injections == null) {
+      injections=new InjectionCollection();
+      _context.setAttribute(InjectionCollection.INJECTION_COLLECTION,injections);
+    }
+    Injection injection=injections.getInjection(name,clazz,field);
     if (injection == null) {
       try {
         boolean bound=org.eclipse.jetty.plus.jndi.NamingEntryUtil.bindToENC(_context,name,mappedName);
@@ -40,7 +45,7 @@
           injection.setTarget(clazz,field,type);
           injection.setJndiName(name);
           injection.setMappingName(mappedName);
-          ((InjectionCollection)_context.getAttribute(InjectionCollection.INJECTION_COLLECTION)).add(injection);
+          injections.add(injection);
           metaData.setOrigin("resource-ref." + name + ".injection");
         }
  else         if (!Util.isEnvEntryType(type)) {
