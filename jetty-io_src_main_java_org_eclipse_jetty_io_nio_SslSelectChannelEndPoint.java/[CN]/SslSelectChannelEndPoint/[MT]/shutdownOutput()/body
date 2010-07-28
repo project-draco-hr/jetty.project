@@ -1,21 +1,18 @@
 {
   long end=System.currentTimeMillis() + ((SocketChannel)_channel).socket().getSoTimeout();
   try {
-    if (isBufferingOutput()) {
+    while (isOpen() && isBufferingOutput() && System.currentTimeMillis() < end) {
       flush();
-      while (isOpen() && isBufferingOutput() && System.currentTimeMillis() < end) {
+      if (isBufferingOutput()) {
         Thread.sleep(100);
         flush();
       }
     }
     _engine.closeOutbound();
     loop:     while (isOpen() && !(_engine.isInboundDone() && _engine.isOutboundDone()) && System.currentTimeMillis() < end) {
-      if (isBufferingOutput()) {
+      while (isOpen() && isBufferingOutput() && System.currentTimeMillis() < end) {
         flush();
-        while (isOpen() && isBufferingOutput() && System.currentTimeMillis() < end) {
-          Thread.sleep(100);
-          flush();
-        }
+        if (isBufferingOutput())         Thread.sleep(100);
       }
       if (_debug)       __log.debug(_session + " closing " + _engine.getHandshakeStatus());
 switch (_engine.getHandshakeStatus()) {
@@ -51,6 +48,7 @@ case NEED_WRAP:
 needOutBuffer();
 ByteBuffer out_buffer=_outNIOBuffer.getByteBuffer();
 try {
+if (_outNIOBuffer.length() > 0) flush();
 _outNIOBuffer.compact();
 int put=_outNIOBuffer.putIndex();
 out_buffer.position(put);
@@ -68,7 +66,8 @@ break;
 }
 }
 }
- catch (InterruptedException e) {
-Log.ignore(e);
+ catch (Exception e) {
+Log.debug(e);
+super.close();
 }
 }

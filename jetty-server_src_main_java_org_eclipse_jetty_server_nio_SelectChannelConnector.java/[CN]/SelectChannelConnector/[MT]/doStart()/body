@@ -5,6 +5,23 @@
   _manager.setLowResourcesMaxIdleTime(getLowResourcesMaxIdleTime());
   _manager.start();
   open();
-  _manager.register(_acceptChannel);
   super.doStart();
+  _manager.dispatch(new Runnable(){
+    public void run(){
+      final ServerSocketChannel server=_acceptChannel;
+      while (isRunning() && _acceptChannel == server && server.isOpen()) {
+        try {
+          SocketChannel channel=server.accept();
+          channel.configureBlocking(false);
+          Socket socket=channel.socket();
+          configure(socket);
+          _manager.register(channel);
+        }
+ catch (        IOException e) {
+          Log.ignore(e);
+        }
+      }
+    }
+  }
+);
 }

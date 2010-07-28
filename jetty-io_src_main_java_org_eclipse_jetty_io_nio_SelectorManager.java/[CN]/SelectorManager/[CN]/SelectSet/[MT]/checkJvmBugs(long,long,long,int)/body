@@ -1,0 +1,87 @@
+{
+  Selector selector=_selector;
+  if (selector == null)   return;
+  if (now > _monitorNext) {
+    _selects=(int)(_selects * __MONITOR_PERIOD / (now - _monitorStart));
+    _pausing=_selects > __MAX_SELECTS;
+    if (_pausing)     _paused++;
+    _selects=0;
+    _jvmBug=0;
+    _monitorStart=now;
+    _monitorNext=now + __MONITOR_PERIOD;
+  }
+  if (now > _log) {
+    if (_paused > 0)     Log.debug(this + " Busy selector - injecting delay " + _paused+ " times");
+    if (_jvmFix2 > 0)     Log.debug(this + " JVM BUG(s) - injecting delay" + _jvmFix2+ " times");
+    if (_jvmFix1 > 0)     Log.debug(this + " JVM BUG(s) - recreating selector " + _jvmFix1+ " times, cancelled keys "+ _jvmFix0+ " times");
+ else     if (Log.isDebugEnabled() && _jvmFix0 > 0)     Log.debug(this + " JVM BUG(s) - cancelled keys " + _jvmFix0+ " times");
+    _paused=0;
+    _jvmFix2=0;
+    _jvmFix1=0;
+    _jvmFix0=0;
+    _log=now + 60000;
+  }
+  if (selected == 0 && wait > 10 && (now - before) < (wait / 2)) {
+    _jvmBug++;
+    if (_jvmBug > (__JVMBUG_THRESHHOLD)) {
+      try {
+        if (_jvmBug == __JVMBUG_THRESHHOLD + 1)         _jvmFix2++;
+        Thread.sleep(__BUSY_PAUSE);
+      }
+ catch (      InterruptedException e) {
+        Log.ignore(e);
+      }
+    }
+ else     if (_jvmBug == __JVMBUG_THRESHHOLD) {
+synchronized (this) {
+        final Selector new_selector=Selector.open();
+        for (        SelectionKey k : selector.keys()) {
+          if (!k.isValid() || k.interestOps() == 0)           continue;
+          final SelectableChannel channel=k.channel();
+          final Object attachment=k.attachment();
+          if (attachment == null)           addChange(channel);
+ else           addChange(channel,attachment);
+        }
+        _selector.close();
+        _selector=new_selector;
+        return;
+      }
+    }
+ else     if (_jvmBug % 32 == 31) {
+      int cancelled=0;
+      for (      SelectionKey k : selector.keys()) {
+        if (k.isValid() && k.interestOps() == 0) {
+          k.cancel();
+          cancelled++;
+        }
+      }
+      if (cancelled > 0)       _jvmFix0++;
+      return;
+    }
+  }
+ else   if (__BUSY_KEY > 0 && selected == 1 && _selects > __MAX_SELECTS) {
+    SelectionKey busy=selector.selectedKeys().iterator().next();
+    if (busy == _busyKey) {
+      if (++_busyKeyCount > __BUSY_KEY && !(busy.channel() instanceof ServerSocketChannel)) {
+        final SelectChannelEndPoint endpoint=(SelectChannelEndPoint)busy.attachment();
+        Log.warn("Busy Key " + busy.channel() + " "+ endpoint);
+        busy.cancel();
+        if (endpoint != null) {
+          dispatch(new Runnable(){
+            public void run(){
+              try {
+                endpoint.close();
+              }
+ catch (              IOException e) {
+                Log.ignore(e);
+              }
+            }
+          }
+);
+        }
+      }
+    }
+ else     _busyKeyCount=0;
+    _busyKey=busy;
+  }
+}
