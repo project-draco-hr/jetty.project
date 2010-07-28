@@ -1,11 +1,36 @@
 {
-  MultiException mex=new MultiException();
+  final MultiException mex=new MultiException();
   if (_handlers != null) {
-    for (int i=0; i < _handlers.length; i++)     try {
-      _handlers[i].start();
+    if (_parallelStart) {
+      final CountDownLatch latch=new CountDownLatch(_handlers.length);
+      for (int i=0; i < _handlers.length; i++) {
+        final int h=i;
+        getServer().getThreadPool().dispatch(new Runnable(){
+          public void run(){
+            try {
+              _handlers[h].start();
+            }
+ catch (            Throwable e) {
+              mex.add(e);
+            }
+ finally {
+              latch.countDown();
+            }
+          }
+        }
+);
+      }
+      latch.await();
     }
- catch (    Throwable e) {
-      mex.add(e);
+ else {
+      for (int i=0; i < _handlers.length; i++) {
+        try {
+          _handlers[i].start();
+        }
+ catch (        Throwable e) {
+          mex.add(e);
+        }
+      }
     }
   }
   super.doStart();
