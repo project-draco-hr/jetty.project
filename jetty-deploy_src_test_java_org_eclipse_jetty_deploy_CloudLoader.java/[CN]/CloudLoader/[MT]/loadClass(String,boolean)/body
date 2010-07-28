@@ -1,0 +1,26 @@
+{
+  Class<?> c=findLoadedClass(name);
+  if (c == null && isLocal(name)) {
+    try {
+      c=this.findClass(name);
+    }
+ catch (    ClassNotFoundException e) {
+      Log.ignore(e);
+    }
+  }
+  if (c == null)   c=_parent.loadClass(name);
+  if (resolve)   resolveClass(c);
+  if (Log.isDebugEnabled())   Log.debug("loaded " + c + " from "+ c.getClassLoader());
+  boolean has_non_final_static_fields=false;
+  for (  Field field : c.getDeclaredFields()) {
+    int mods=field.getModifiers();
+    if (Modifier.isStatic(mods) && !Modifier.isFinal(mods)) {
+      has_non_final_static_fields=true;
+    }
+  }
+  if (has_non_final_static_fields) {
+    if (c.getClassLoader() == _parent)     Log.warn(name + " loaded from " + c.getClassLoader()+ " has non-final static fields");
+ else     Log.debug(name + " loaded from " + c.getClassLoader()+ " has non-final static fields");
+  }
+  return c;
+}
