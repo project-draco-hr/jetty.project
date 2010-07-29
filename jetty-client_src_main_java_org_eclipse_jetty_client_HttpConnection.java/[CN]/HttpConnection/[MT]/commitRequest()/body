@@ -4,13 +4,22 @@ synchronized (this) {
     if (_exchange.getStatus() != HttpExchange.STATUS_WAITING_FOR_COMMIT)     throw new IllegalStateException();
     _exchange.setStatus(HttpExchange.STATUS_SENDING_REQUEST);
     _generator.setVersion(_exchange.getVersion());
+    String method=_exchange.getMethod();
     String uri=_exchange.getURI();
-    if (_destination.isProxied() && uri.startsWith("/")) {
-      uri=(_destination.isSecure() ? HttpSchemes.HTTPS : HttpSchemes.HTTP) + "://" + _destination.getAddress().getHost()+ ":"+ _destination.getAddress().getPort()+ uri;
+    if (_destination.isProxied() && !HttpMethods.CONNECT.equals(method) && uri.startsWith("/")) {
+      boolean secure=_destination.isSecure();
+      String host=_destination.getAddress().getHost();
+      int port=_destination.getAddress().getPort();
+      StringBuilder absoluteURI=new StringBuilder();
+      absoluteURI.append(secure ? HttpSchemes.HTTPS : HttpSchemes.HTTP);
+      absoluteURI.append("://");
+      absoluteURI.append(host);
+      if (!(secure && port == 443 || !secure && port == 80))       absoluteURI.append(":").append(port);
+      absoluteURI.append(uri);
+      uri=absoluteURI.toString();
       Authentication auth=_destination.getProxyAuthentication();
       if (auth != null)       auth.setCredentials(_exchange);
     }
-    String method=_exchange.getMethod();
     _generator.setRequest(method,uri);
     _parser.setHeadResponse(HttpMethods.HEAD.equalsIgnoreCase(method));
     HttpFields requestHeaders=_exchange.getRequestFields();

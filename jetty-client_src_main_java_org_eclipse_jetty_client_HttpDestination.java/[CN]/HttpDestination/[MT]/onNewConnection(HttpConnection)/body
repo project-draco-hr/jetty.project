@@ -12,8 +12,18 @@ synchronized (this) {
       _idle.add(connection);
     }
  else {
-      HttpExchange ex=_queue.removeFirst();
-      send(connection,ex);
+      EndPoint endPoint=connection.getEndPoint();
+      if (isProxied() && endPoint instanceof SelectConnector.ProxySelectChannelEndPoint) {
+        SelectConnector.ProxySelectChannelEndPoint proxyEndPoint=(SelectConnector.ProxySelectChannelEndPoint)endPoint;
+        HttpExchange exchange=_queue.peekFirst();
+        ConnectExchange connect=new ConnectExchange(getAddress(),proxyEndPoint,exchange);
+        connect.setAddress(getProxy());
+        send(connection,connect);
+      }
+ else {
+        HttpExchange exchange=_queue.removeFirst();
+        send(connection,exchange);
+      }
     }
   }
   if (q_connection != null) {

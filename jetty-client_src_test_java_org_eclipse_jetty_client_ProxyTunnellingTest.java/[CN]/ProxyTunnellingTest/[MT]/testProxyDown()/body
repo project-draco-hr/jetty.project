@@ -1,0 +1,26 @@
+{
+  startSSLServer(new ServerHandler());
+  startProxy();
+  int proxyPort=proxyConnector.getLocalPort();
+  stopProxy();
+  HttpClient httpClient=new HttpClient();
+  httpClient.setProxy(new Address("localhost",proxyPort));
+  httpClient.start();
+  try {
+    final CountDownLatch latch=new CountDownLatch(1);
+    ContentExchange exchange=new ContentExchange(true){
+      @Override protected void onConnectionFailed(      Throwable x){
+        latch.countDown();
+      }
+    }
+;
+    exchange.setMethod(HttpMethods.GET);
+    String body="BODY";
+    exchange.setURL("https://localhost:" + serverConnector.getLocalPort() + "/echo?body="+ URLEncoder.encode(body,"UTF-8"));
+    httpClient.send(exchange);
+    assertTrue(latch.await(1000,TimeUnit.MILLISECONDS));
+  }
+  finally {
+    httpClient.stop();
+  }
+}

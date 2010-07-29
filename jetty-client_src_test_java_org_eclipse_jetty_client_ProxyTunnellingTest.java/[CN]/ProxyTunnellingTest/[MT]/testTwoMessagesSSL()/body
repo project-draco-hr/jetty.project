@@ -1,0 +1,31 @@
+{
+  startSSLServer(new ServerHandler());
+  startProxy();
+  HttpClient httpClient=new HttpClient();
+  httpClient.setProxy(new Address("localhost",proxyConnector.getLocalPort()));
+  httpClient.start();
+  try {
+    ContentExchange exchange=new ContentExchange(true);
+    exchange.setMethod(HttpMethods.GET);
+    String body="BODY";
+    exchange.setURL("https://localhost:" + serverConnector.getLocalPort() + "/echo?body="+ URLEncoder.encode(body,"UTF-8"));
+    httpClient.send(exchange);
+    assertEquals(HttpExchange.STATUS_COMPLETED,exchange.waitForDone());
+    String content=exchange.getResponseContent();
+    assertEquals(body,content);
+    exchange=new ContentExchange(true);
+    exchange.setMethod(HttpMethods.POST);
+    exchange.setURL("https://localhost:" + serverConnector.getLocalPort() + "/echo");
+    exchange.setRequestHeader(HttpHeaders.CONTENT_TYPE,MimeTypes.FORM_ENCODED);
+    content="body=" + body;
+    exchange.setRequestHeader(HttpHeaders.CONTENT_LENGTH,String.valueOf(content.length()));
+    exchange.setRequestContent(new ByteArrayBuffer(content,"UTF-8"));
+    httpClient.send(exchange);
+    assertEquals(HttpExchange.STATUS_COMPLETED,exchange.waitForDone());
+    content=exchange.getResponseContent();
+    assertEquals(body,content);
+  }
+  finally {
+    httpClient.stop();
+  }
+}
