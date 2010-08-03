@@ -1,0 +1,29 @@
+{
+  int exchangeState=getStatus();
+  try {
+    if (exchangeState == HttpExchange.STATUS_COMPLETED) {
+      try {
+        int responseCode=getResponseStatus();
+        if (responseCode >= HttpStatus.CONTINUE_100 && responseCode < HttpStatus.MULTIPLE_CHOICES_300) {
+          _responseReceived=true;
+        }
+ else {
+          _errorOccurred=true;
+        }
+      }
+ catch (      Exception e) {
+        _errorOccurred=true;
+        e.printStackTrace();
+      }
+    }
+ else     if (exchangeState == HttpExchange.STATUS_EXPIRED) {
+      _timeoutOccurred=true;
+    }
+ else {
+      _errorOccurred=true;
+    }
+  }
+  finally {
+    getDoneLatch().countDown();
+  }
+}

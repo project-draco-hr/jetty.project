@@ -1,0 +1,19 @@
+{
+  CustomContentExchange httpExchange=new CustomContentExchange();
+  httpExchange.setURL(_scheme + "localhost:" + _port);
+  httpExchange.setMethod(HttpMethods.POST);
+  httpExchange.setRequestContent(new ByteArrayBuffer("<h1>??</h1>"));
+  _httpClient.send(httpExchange);
+  httpExchange.getDoneLatch().await(900,TimeUnit.MILLISECONDS);
+  Assert.assertTrue(httpExchange.isTimeoutOccurred());
+  Assert.assertFalse(httpExchange.isResponseReceived());
+  httpExchange=new CustomContentExchange();
+  httpExchange.setURL(_scheme + "localhost:" + _port);
+  httpExchange.setMethod(HttpMethods.POST);
+  httpExchange.setRequestContent(new ByteArrayBuffer("<h1>??</h1>"));
+  httpExchange.setTimeout(500);
+  _httpClient.send(httpExchange);
+  httpExchange.getDoneLatch().await(1100,TimeUnit.MILLISECONDS);
+  Assert.assertFalse(httpExchange.isTimeoutOccurred());
+  Assert.assertTrue(httpExchange.isResponseReceived());
+}
