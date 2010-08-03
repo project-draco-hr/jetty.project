@@ -11,16 +11,23 @@
  else {
     throw new IllegalStateException("unable to create ContextHandler for " + app);
   }
-  if (context.equalsIgnoreCase("root") || context.equalsIgnoreCase("root/")) {
+  if (context.endsWith("/") && context.length() > 0) {
+    context=context.substring(0,context.length() - 1);
+  }
+  WebAppContext wah=new WebAppContext();
+  wah.setDisplayName(context);
+  if (context.equalsIgnoreCase("root")) {
+    context=URIUtil.SLASH;
+  }
+ else   if (context.toLowerCase().startsWith("root-")) {
+    int dash=context.toLowerCase().indexOf('-');
+    String virtual=context.substring(dash + 1);
+    wah.setVirtualHosts(new String[]{virtual});
     context=URIUtil.SLASH;
   }
   if (context.charAt(0) != '/') {
     context="/" + context;
   }
-  if (context.endsWith("/") && context.length() > 0) {
-    context=context.substring(0,context.length() - 1);
-  }
-  WebAppContext wah=new WebAppContext();
   wah.setContextPath(context);
   wah.setWar(file.getAbsolutePath());
   if (_defaultsDescriptor != null) {
