@@ -1,0 +1,25 @@
+{
+  String[] sidTokens=sidString.split("-");
+  int subAuthorityCount=sidTokens.length - 3;
+  int byteCount=0;
+  byte[] sidBytes=new byte[1 + 1 + 6+ (4 * subAuthorityCount)];
+  sidBytes[byteCount++]=(byte)Integer.parseInt(sidTokens[1]);
+  sidBytes[byteCount++]=(byte)subAuthorityCount;
+  String hexStr=Long.toHexString(Long.parseLong(sidTokens[2]));
+  while (hexStr.length() < 12) {
+    hexStr="0" + hexStr;
+  }
+  for (int i=0; i < hexStr.length(); i=i + 2) {
+    sidBytes[byteCount++]=(byte)Integer.parseInt(hexStr.substring(i,i + 2),16);
+  }
+  for (int i=3; i < sidTokens.length; ++i) {
+    hexStr=Long.toHexString(Long.parseLong(sidTokens[i]));
+    while (hexStr.length() < 8) {
+      hexStr="0" + hexStr;
+    }
+    for (int j=hexStr.length(); j > 0; j=j - 2) {
+      sidBytes[byteCount++]=(byte)Integer.parseInt(hexStr.substring(j - 2,j),16);
+    }
+  }
+  return sidBytes;
+}
