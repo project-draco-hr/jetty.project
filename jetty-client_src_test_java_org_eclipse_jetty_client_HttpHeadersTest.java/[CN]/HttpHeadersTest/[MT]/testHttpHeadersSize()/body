@@ -1,0 +1,27 @@
+{
+  HttpClient httpClient=new HttpClient();
+  httpClient.setConnectorType(HttpClient.CONNECTOR_SELECT_CHANNEL);
+  httpClient.start();
+  try {
+    String requestUrl="http://localhost:" + _port + "/header";
+    ContentExchange exchange=new ContentExchange(){
+      @Override protected void onException(      Throwable x){
+        Log.ignore(x);
+      }
+    }
+;
+    exchange.setURL(requestUrl);
+    exchange.setMethod(HttpMethods.GET);
+    for (int i=0; i < 4; i++) {
+      for (int j=0; j < 1024; j++) {
+        exchange.addRequestHeader("header" + i + "-"+ j,"v");
+      }
+    }
+    httpClient.send(exchange);
+    int state=exchange.waitForDone();
+    assertEquals(HttpExchange.STATUS_EXCEPTED,state);
+  }
+  finally {
+    httpClient.stop();
+  }
+}

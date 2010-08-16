@@ -5,102 +5,103 @@
   _last=_last | allContentAdded;
   if (_header == null)   _header=_buffers.getHeader();
   boolean has_server=false;
-  if (isRequest()) {
-    _persistent=true;
-    if (_version == HttpVersions.HTTP_0_9_ORDINAL) {
-      _contentLength=HttpTokens.NO_CONTENT;
-      _header.put(_method);
-      _header.put((byte)' ');
-      _header.put(_uri.getBytes("utf-8"));
-      _header.put(HttpTokens.CRLF);
-      _state=STATE_FLUSHING;
-      _noContent=true;
-      return;
-    }
- else {
-      _header.put(_method);
-      _header.put((byte)' ');
-      _header.put(_uri.getBytes("utf-8"));
-      _header.put((byte)' ');
-      _header.put(_version == HttpVersions.HTTP_1_0_ORDINAL ? HttpVersions.HTTP_1_0_BUFFER : HttpVersions.HTTP_1_1_BUFFER);
-      _header.put(HttpTokens.CRLF);
-    }
-  }
- else {
-    if (_version == HttpVersions.HTTP_0_9_ORDINAL) {
-      _persistent=false;
-      _contentLength=HttpTokens.EOF_CONTENT;
-      _state=STATE_CONTENT;
-      return;
-    }
- else {
-      if (_persistent == null)       _persistent=(_version > HttpVersions.HTTP_1_0_ORDINAL);
-      Status status=_status < __status.length ? __status[_status] : null;
-      if (status == null) {
-        _header.put(HttpVersions.HTTP_1_1_BUFFER);
+  try {
+    if (isRequest()) {
+      _persistent=true;
+      if (_version == HttpVersions.HTTP_0_9_ORDINAL) {
+        _contentLength=HttpTokens.NO_CONTENT;
+        _header.put(_method);
         _header.put((byte)' ');
-        _header.put((byte)('0' + _status / 100));
-        _header.put((byte)('0' + (_status % 100) / 10));
-        _header.put((byte)('0' + (_status % 10)));
+        _header.put(_uri.getBytes("utf-8"));
+        _header.put(HttpTokens.CRLF);
+        _state=STATE_FLUSHING;
+        _noContent=true;
+        return;
+      }
+ else {
+        _header.put(_method);
         _header.put((byte)' ');
-        if (_reason == null) {
+        _header.put(_uri.getBytes("utf-8"));
+        _header.put((byte)' ');
+        _header.put(_version == HttpVersions.HTTP_1_0_ORDINAL ? HttpVersions.HTTP_1_0_BUFFER : HttpVersions.HTTP_1_1_BUFFER);
+        _header.put(HttpTokens.CRLF);
+      }
+    }
+ else {
+      if (_version == HttpVersions.HTTP_0_9_ORDINAL) {
+        _persistent=false;
+        _contentLength=HttpTokens.EOF_CONTENT;
+        _state=STATE_CONTENT;
+        return;
+      }
+ else {
+        if (_persistent == null)         _persistent=(_version > HttpVersions.HTTP_1_0_ORDINAL);
+        Status status=_status < __status.length ? __status[_status] : null;
+        if (status == null) {
+          _header.put(HttpVersions.HTTP_1_1_BUFFER);
+          _header.put((byte)' ');
           _header.put((byte)('0' + _status / 100));
           _header.put((byte)('0' + (_status % 100) / 10));
           _header.put((byte)('0' + (_status % 10)));
-        }
- else         _header.put(_reason);
-        _header.put(HttpTokens.CRLF);
-      }
- else {
-        if (_reason == null)         _header.put(status._responseLine);
- else {
-          _header.put(status._schemeCode);
-          _header.put(_reason);
+          _header.put((byte)' ');
+          if (_reason == null) {
+            _header.put((byte)('0' + _status / 100));
+            _header.put((byte)('0' + (_status % 100) / 10));
+            _header.put((byte)('0' + (_status % 10)));
+          }
+ else           _header.put(_reason);
           _header.put(HttpTokens.CRLF);
         }
-      }
-      if (_status < 200 && _status >= 100) {
-        _noContent=true;
-        _content=null;
-        if (_buffer != null)         _buffer.clear();
-        if (_status != 101) {
-          _header.put(HttpTokens.CRLF);
-          _state=STATE_CONTENT;
-          return;
+ else {
+          if (_reason == null)           _header.put(status._responseLine);
+ else {
+            _header.put(status._schemeCode);
+            _header.put(_reason);
+            _header.put(HttpTokens.CRLF);
+          }
         }
-      }
- else       if (_status == 204 || _status == 304) {
-        _noContent=true;
-        _content=null;
-        if (_buffer != null)         _buffer.clear();
+        if (_status < 200 && _status >= 100) {
+          _noContent=true;
+          _content=null;
+          if (_buffer != null)           _buffer.clear();
+          if (_status != 101) {
+            _header.put(HttpTokens.CRLF);
+            _state=STATE_CONTENT;
+            return;
+          }
+        }
+ else         if (_status == 204 || _status == 304) {
+          _noContent=true;
+          _content=null;
+          if (_buffer != null)           _buffer.clear();
+        }
       }
     }
-  }
-  if (_status >= 200 && _date != null) {
-    _header.put(HttpHeaders.DATE_BUFFER);
-    _header.put((byte)':');
-    _header.put((byte)' ');
-    _header.put(_date);
-    _header.put(CRLF);
-  }
-  HttpFields.Field content_length=null;
-  HttpFields.Field transfer_encoding=null;
-  boolean keep_alive=false;
-  boolean close=false;
-  boolean content_type=false;
-  StringBuilder connection=null;
-  if (fields != null) {
-    int s=fields.size();
-    for (int f=0; f < s; f++) {
-      HttpFields.Field field=fields.getField(f);
-      if (field == null)       continue;
+    if (_status >= 200 && _date != null) {
+      _header.put(HttpHeaders.DATE_BUFFER);
+      _header.put((byte)':');
+      _header.put((byte)' ');
+      _header.put(_date);
+      _header.put(CRLF);
+    }
+    HttpFields.Field content_length=null;
+    HttpFields.Field transfer_encoding=null;
+    boolean keep_alive=false;
+    boolean close=false;
+    boolean content_type=false;
+    StringBuilder connection=null;
+    if (fields != null) {
+      int s=fields.size();
+      for (int f=0; f < s; f++) {
+        HttpFields.Field field=fields.getField(f);
+        if (field == null)         continue;
 switch (field.getNameOrdinal()) {
 case HttpHeaders.CONTENT_LENGTH_ORDINAL:
-        content_length=field;
-      _contentLength=field.getLongValue();
-    if (_contentLength < _contentWritten || _last && _contentLength != _contentWritten)     content_length=null;
-  field.put(_header);
-break;
+          content_length=field;
+        _contentLength=field.getLongValue();
+      if (_contentLength < _contentWritten || _last && _contentLength != _contentWritten)       content_length=null;
+    field.put(_header);
+  break;
 case HttpHeaders.CONTENT_TYPE_ORDINAL:
 if (BufferUtil.isPrefix(MimeTypes.MULTIPART_BYTERANGES_BUFFER,field.getValueBuffer())) _contentLength=HttpTokens.SELF_DEFINING_CONTENT;
 content_type=true;
@@ -259,4 +260,8 @@ _header.put(CRLF);
 if (!has_server && _status > 199 && getSendServerVersion()) _header.put(SERVER);
 _header.put(HttpTokens.CRLF);
 _state=STATE_CONTENT;
+}
+ catch (ArrayIndexOutOfBoundsException e) {
+throw new RuntimeException("Header>" + _header.capacity(),e);
+}
 }
