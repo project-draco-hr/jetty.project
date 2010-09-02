@@ -20,6 +20,7 @@
   if (request.getParameter("complete2") != null)   complete2_after=Integer.parseInt(request.getParameter("complete2"));
   if (request.getParameter("undispatch") != null)   undispatch=Boolean.parseBoolean(request.getParameter("undispatch"));
   if (continuation.isInitial()) {
+    ((HttpServletResponse)response).addHeader("history","initial");
     if (read_before > 0) {
       byte[] buf=new byte[read_before];
       request.getInputStream().read(buf);
@@ -90,63 +91,66 @@ synchronized (_timer) {
       response.getOutputStream().println("NORMAL\n");
     }
   }
- else   if (suspend2_for >= 0 && request.getAttribute("2nd") == null) {
-    request.setAttribute("2nd","cycle");
-    if (suspend2_for > 0)     continuation.setTimeout(suspend2_for);
-    ((HttpServletResponse)response).addHeader("history","suspend");
-    continuation.suspend(response);
-    if (complete2_after > 0) {
-      TimerTask complete=new TimerTask(){
-        @Override public void run(){
-          try {
-            response.setStatus(200);
-            response.getOutputStream().println("COMPLETED\n");
-            continuation.complete();
-          }
- catch (          Exception e) {
-            e.printStackTrace();
-          }
-        }
-      }
-;
-synchronized (_timer) {
-        _timer.schedule(complete,complete2_after);
-      }
-    }
- else     if (complete2_after == 0) {
-      response.setStatus(200);
-      response.getOutputStream().println("COMPLETED\n");
-      continuation.complete();
-    }
- else     if (resume2_after > 0) {
-      TimerTask resume=new TimerTask(){
-        @Override public void run(){
-          ((HttpServletResponse)response).addHeader("history","resume");
-          continuation.resume();
-        }
-      }
-;
-synchronized (_timer) {
-        _timer.schedule(resume,resume2_after);
-      }
-    }
- else     if (resume2_after == 0) {
-      ((HttpServletResponse)response).addHeader("history","resume");
-      continuation.resume();
-    }
-    if (undispatch)     continuation.undispatch();
-    return;
-  }
- else   if (continuation.isExpired()) {
-    response.setStatus(200);
-    response.getOutputStream().println("TIMEOUT\n");
-  }
- else   if (continuation.isResumed()) {
-    response.setStatus(200);
-    response.getOutputStream().println("RESUMED\n");
-  }
  else {
-    response.setStatus(200);
-    response.getOutputStream().println("unknown???\n");
+    ((HttpServletResponse)response).addHeader("history","!initial");
+    if (suspend2_for >= 0 && request.getAttribute("2nd") == null) {
+      request.setAttribute("2nd","cycle");
+      if (suspend2_for > 0)       continuation.setTimeout(suspend2_for);
+      ((HttpServletResponse)response).addHeader("history","suspend");
+      continuation.suspend(response);
+      if (complete2_after > 0) {
+        TimerTask complete=new TimerTask(){
+          @Override public void run(){
+            try {
+              response.setStatus(200);
+              response.getOutputStream().println("COMPLETED\n");
+              continuation.complete();
+            }
+ catch (            Exception e) {
+              e.printStackTrace();
+            }
+          }
+        }
+;
+synchronized (_timer) {
+          _timer.schedule(complete,complete2_after);
+        }
+      }
+ else       if (complete2_after == 0) {
+        response.setStatus(200);
+        response.getOutputStream().println("COMPLETED\n");
+        continuation.complete();
+      }
+ else       if (resume2_after > 0) {
+        TimerTask resume=new TimerTask(){
+          @Override public void run(){
+            ((HttpServletResponse)response).addHeader("history","resume");
+            continuation.resume();
+          }
+        }
+;
+synchronized (_timer) {
+          _timer.schedule(resume,resume2_after);
+        }
+      }
+ else       if (resume2_after == 0) {
+        ((HttpServletResponse)response).addHeader("history","resume");
+        continuation.resume();
+      }
+      if (undispatch)       continuation.undispatch();
+      return;
+    }
+ else     if (continuation.isExpired()) {
+      response.setStatus(200);
+      response.getOutputStream().println("TIMEOUT\n");
+    }
+ else     if (continuation.isResumed()) {
+      response.setStatus(200);
+      response.getOutputStream().println("RESUMED\n");
+    }
+ else {
+      response.setStatus(200);
+      response.getOutputStream().println("unknown???\n");
+    }
   }
 }

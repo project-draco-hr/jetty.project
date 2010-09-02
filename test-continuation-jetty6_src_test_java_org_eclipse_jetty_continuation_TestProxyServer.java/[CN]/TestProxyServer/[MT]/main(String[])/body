@@ -1,0 +1,17 @@
+{
+  Server server=new Server();
+  SelectChannelConnector selectChannelConnector=new SelectChannelConnector();
+  server.setConnectors(new Connector[]{selectChannelConnector});
+  selectChannelConnector.setPort(8080);
+  Context servletContext=new Context(Context.NO_SECURITY | Context.NO_SESSIONS);
+  server.setHandler(servletContext);
+  ServletHandler servletHandler=servletContext.getServletHandler();
+  ServletHolder proxy=new ServletHolder(ProxyServlet.Transparent.class);
+  servletHandler.addServletWithMapping(proxy,"/ws/*");
+  proxy.setInitParameter("ProxyTo","http://www.webtide.com");
+  proxy.setInitParameter("Prefix","/ws");
+  FilterHolder filter=servletHandler.addFilterWithMapping(ContinuationFilter.class,"/*",0);
+  filter.setInitParameter("debug","true");
+  server.start();
+  server.join();
+}
