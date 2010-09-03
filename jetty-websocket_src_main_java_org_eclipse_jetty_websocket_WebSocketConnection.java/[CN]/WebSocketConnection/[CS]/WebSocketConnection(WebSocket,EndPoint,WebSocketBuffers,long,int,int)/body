@@ -1,0 +1,62 @@
+{
+  if (endpoint instanceof AsyncEndPoint)   ((AsyncEndPoint)endpoint).cancelIdle();
+  _endp=endpoint;
+  _endp.setMaxIdleTime(maxIdleTime);
+  _timestamp=timestamp;
+  _websocket=websocket;
+  final WebSocketParser.FrameHandler handler=new WebSocketParser.FrameHandler(){
+    Utf8StringBuilder _utf8=new Utf8StringBuilder();
+    public void onFrame(    boolean more,    byte flags,    byte opcode,    Buffer buffer){
+      try {
+        byte[] array=buffer.array();
+        if (opcode == 0) {
+          if (more)           _utf8.append(buffer.array(),buffer.getIndex(),buffer.length());
+ else           if (_utf8.length() == 0)           _websocket.onMessage(opcode,buffer.toString("utf-8"));
+ else {
+            _utf8.append(buffer.array(),buffer.getIndex(),buffer.length());
+            _websocket.onMessage(opcode,_utf8.toString());
+            _utf8.reset();
+          }
+        }
+ else {
+          if (more)           throw new IllegalStateException("not implemented");
+          _websocket.onMessage(opcode,array,buffer.getIndex(),buffer.length());
+        }
+      }
+ catch (      ThreadDeath th) {
+        throw th;
+      }
+catch (      Throwable th) {
+        Log.warn(th);
+      }
+    }
+  }
+;
+switch (draft) {
+case 1:
+    _generator=new WebSocketGeneratorD01(buffers,_endp);
+  _parser=new WebSocketParserD01(buffers,endpoint,handler);
+break;
+default :
+_generator=new WebSocketGeneratorD00(buffers,_endp);
+_parser=new WebSocketParserD00(buffers,endpoint,handler);
+}
+if (_endp instanceof SelectChannelEndPoint) {
+final SelectChannelEndPoint scep=(SelectChannelEndPoint)_endp;
+scep.cancelIdle();
+_idle=new IdleCheck(){
+public void access(EndPoint endp){
+scep.scheduleIdle();
+}
+}
+;
+scep.scheduleIdle();
+}
+ else {
+_idle=new IdleCheck(){
+public void access(EndPoint endp){
+}
+}
+;
+}
+}
