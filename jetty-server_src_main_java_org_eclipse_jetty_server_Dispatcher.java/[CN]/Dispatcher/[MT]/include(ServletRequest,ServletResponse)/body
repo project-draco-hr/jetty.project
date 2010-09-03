@@ -1,6 +1,8 @@
 {
   Request baseRequest=(request instanceof Request) ? ((Request)request) : HttpConnection.getCurrentConnection().getRequest();
   request.removeAttribute(__JSP_FILE);
+  if (!(request instanceof HttpServletRequest))   request=new ServletRequestHttpWrapper(request);
+  if (!(response instanceof HttpServletResponse))   response=new ServletResponseHttpWrapper(response);
   final DispatcherType old_type=baseRequest.getDispatcherType();
   final Attributes old_attr=baseRequest.getAttributes();
   MultiMap old_params=baseRequest.getParameters();
@@ -16,7 +18,7 @@
           old_params=baseRequest.getParameters();
         }
         MultiMap parameters=new MultiMap();
-        UrlEncoded.decodeTo(query,parameters,request.getCharacterEncoding());
+        UrlEncoded.decodeTo(query,parameters,baseRequest.getCharacterEncoding());
         if (old_params != null && old_params.size() > 0) {
           Iterator iter=old_params.entrySet().iterator();
           while (iter.hasNext()) {
