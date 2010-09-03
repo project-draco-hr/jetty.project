@@ -5,22 +5,36 @@
   _timestamp=timestamp;
   _websocket=websocket;
   final WebSocketParser.FrameHandler handler=new WebSocketParser.FrameHandler(){
+    boolean _fragmented=false;
     Utf8StringBuilder _utf8=new Utf8StringBuilder();
     public void onFrame(    boolean more,    byte flags,    byte opcode,    Buffer buffer){
       try {
         byte[] array=buffer.array();
         if (opcode == 0) {
-          if (more)           _utf8.append(buffer.array(),buffer.getIndex(),buffer.length());
- else           if (_utf8.length() == 0)           _websocket.onMessage(opcode,buffer.toString("utf-8"));
- else {
+          if (more) {
+            _utf8.append(buffer.array(),buffer.getIndex(),buffer.length());
+            _fragmented=true;
+          }
+ else           if (_fragmented) {
             _utf8.append(buffer.array(),buffer.getIndex(),buffer.length());
             _websocket.onMessage(opcode,_utf8.toString());
             _utf8.reset();
+            _fragmented=false;
+          }
+ else {
+            _websocket.onMessage(opcode,buffer.toString("utf-8"));
           }
         }
  else {
-          if (more)           throw new IllegalStateException("not implemented");
-          _websocket.onMessage(opcode,array,buffer.getIndex(),buffer.length());
+          if (more) {
+            _websocket.onFragment(true,opcode,array,buffer.getIndex(),buffer.length());
+          }
+ else           if (_fragmented) {
+            _websocket.onFragment(false,opcode,array,buffer.getIndex(),buffer.length());
+          }
+ else {
+            _websocket.onMessage(opcode,array,buffer.getIndex(),buffer.length());
+          }
         }
       }
  catch (      ThreadDeath th) {
