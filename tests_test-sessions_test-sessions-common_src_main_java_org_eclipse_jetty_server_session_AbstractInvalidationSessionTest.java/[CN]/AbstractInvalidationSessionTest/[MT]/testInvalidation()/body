@@ -1,2 +1,65 @@
 {
+  Random random=new Random(System.nanoTime());
+  String contextPath="";
+  String servletMapping="/server";
+  int port1=random.nextInt(50000) + 10000;
+  AbstractTestServer server1=createServer(port1);
+  server1.addContext(contextPath).addServlet(TestServlet.class,servletMapping);
+  server1.start();
+  try {
+    int port2=random.nextInt(50000) + 10000;
+    AbstractTestServer server2=createServer(port2);
+    server2.addContext(contextPath).addServlet(TestServlet.class,servletMapping);
+    server2.start();
+    try {
+      HttpClient client=new HttpClient();
+      client.setConnectorType(HttpClient.CONNECTOR_SOCKET);
+      client.start();
+      try {
+        String[] urls=new String[2];
+        urls[0]="http://localhost:" + port1 + contextPath+ servletMapping;
+        urls[1]="http://localhost:" + port2 + contextPath+ servletMapping;
+        ContentExchange exchange1=new ContentExchange(true);
+        exchange1.setMethod(HttpMethods.GET);
+        exchange1.setURL(urls[0] + "?action=init");
+        client.send(exchange1);
+        exchange1.waitForDone();
+        assertEquals(HttpServletResponse.SC_OK,exchange1.getResponseStatus());
+        String sessionCookie=exchange1.getResponseFields().getStringField("Set-Cookie");
+        assertTrue(sessionCookie != null);
+        sessionCookie=sessionCookie.replaceFirst("(\\W)(P|p)ath=","$1\\$Path=");
+        ContentExchange exchange2=new ContentExchange(true);
+        exchange2.setMethod(HttpMethods.GET);
+        exchange2.setURL(urls[1] + "?action=increment");
+        exchange2.getRequestFields().add("Cookie",sessionCookie);
+        client.send(exchange2);
+        exchange2.waitForDone();
+        assertEquals(HttpServletResponse.SC_OK,exchange2.getResponseStatus());
+        exchange1=new ContentExchange(true);
+        exchange1.setMethod(HttpMethods.GET);
+        exchange1.setURL(urls[0] + "?action=invalidate");
+        exchange1.getRequestFields().add("Cookie",sessionCookie);
+        client.send(exchange1);
+        exchange1.waitForDone();
+        assertEquals(HttpServletResponse.SC_OK,exchange1.getResponseStatus());
+        pause();
+        exchange2=new ContentExchange(true);
+        exchange2.setMethod(HttpMethods.GET);
+        exchange2.setURL(urls[1] + "?action=test");
+        exchange2.getRequestFields().add("Cookie",sessionCookie);
+        client.send(exchange2);
+        exchange2.waitForDone();
+        assertEquals(HttpServletResponse.SC_OK,exchange2.getResponseStatus());
+      }
+  finally {
+        client.stop();
+      }
+    }
+  finally {
+      server2.stop();
+    }
+  }
+  finally {
+    server1.stop();
+  }
 }
