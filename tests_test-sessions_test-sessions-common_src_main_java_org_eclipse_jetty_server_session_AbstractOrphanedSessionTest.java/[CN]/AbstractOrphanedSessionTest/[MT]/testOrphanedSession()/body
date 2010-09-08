@@ -1,2 +1,52 @@
 {
+  Random random=new Random(System.nanoTime());
+  String contextPath="";
+  String servletMapping="/server";
+  int inactivePeriod=5;
+  AbstractTestServer server1=createServer(0,inactivePeriod,-1);
+  server1.addContext(contextPath).addServlet(TestServlet.class,servletMapping);
+  server1.start();
+  int port1=server1.getPort();
+  try {
+    int scavengePeriod=2;
+    AbstractTestServer server2=createServer(0,inactivePeriod,scavengePeriod);
+    server2.addContext(contextPath).addServlet(TestServlet.class,servletMapping);
+    server2.start();
+    int port2=server2.getPort();
+    try {
+      HttpClient client=new HttpClient();
+      client.setConnectorType(HttpClient.CONNECTOR_SOCKET);
+      client.start();
+      try {
+        ContentExchange exchange1=new ContentExchange(true);
+        exchange1.setMethod(HttpMethods.GET);
+        exchange1.setURL("http://localhost:" + port1 + contextPath+ servletMapping+ "?action=init");
+        client.send(exchange1);
+        exchange1.waitForDone();
+        assertEquals(HttpServletResponse.SC_OK,exchange1.getResponseStatus());
+        String sessionCookie=exchange1.getResponseFields().getStringField("Set-Cookie");
+        assertTrue(sessionCookie != null);
+        sessionCookie=sessionCookie.replaceFirst("(\\W)(P|p)ath=","$1\\$Path=");
+        Thread.sleep(TimeUnit.SECONDS.toMillis(inactivePeriod + 2L * scavengePeriod));
+        System.err.println("FINISHED waiting for session to expire");
+        System.err.println("CHECKING NODE2");
+        ContentExchange exchange2=new ContentExchange(true);
+        exchange2.setMethod(HttpMethods.GET);
+        exchange2.setURL("http://localhost:" + port2 + contextPath+ servletMapping+ "?action=check");
+        exchange2.getRequestFields().add("Cookie",sessionCookie);
+        client.send(exchange2);
+        exchange2.waitForDone();
+        assertEquals(HttpServletResponse.SC_OK,exchange2.getResponseStatus());
+      }
+  finally {
+        client.stop();
+      }
+    }
+  finally {
+      server2.stop();
+    }
+  }
+  finally {
+    server1.stop();
+  }
 }

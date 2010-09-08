@@ -1,2 +1,30 @@
 {
+  HttpSession session=request.getSession(false);
+  if (session == null)   session=request.getSession(true);
+  String action=request.getParameter("action");
+  if ("reenter".equals(action)) {
+    int port=Integer.parseInt(request.getParameter("port"));
+    String path=request.getParameter("path");
+    try {
+      HttpClient client=new HttpClient();
+      client.setConnectorType(HttpClient.CONNECTOR_SOCKET);
+      client.start();
+      try {
+        ContentExchange exchange=new ContentExchange(true);
+        exchange.setMethod(HttpMethods.GET);
+        exchange.setURL("http://localhost:" + port + path+ "?action=none");
+        client.send(exchange);
+        exchange.waitForDone();
+        assertEquals(HttpServletResponse.SC_OK,exchange.getResponseStatus());
+      }
+  finally {
+        client.stop();
+      }
+    }
+ catch (    Exception x) {
+      throw new ServletException(x);
+    }
+  }
+ else {
+  }
 }

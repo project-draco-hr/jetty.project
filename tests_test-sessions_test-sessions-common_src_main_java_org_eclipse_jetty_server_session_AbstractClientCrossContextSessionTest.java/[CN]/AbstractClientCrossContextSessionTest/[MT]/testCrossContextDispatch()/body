@@ -1,2 +1,42 @@
 {
+  Random random=new Random(System.nanoTime());
+  String contextA="/contextA";
+  String contextB="/contextB";
+  String servletMapping="/server";
+  int port=random.nextInt(50000) + 10000;
+  AbstractTestServer server=createServer(port);
+  ServletContextHandler ctxA=server.addContext(contextA);
+  ctxA.addServlet(TestServletA.class,servletMapping);
+  ServletContextHandler ctxB=server.addContext(contextB);
+  ctxB.addServlet(TestServletB.class,servletMapping);
+  server.start();
+  try {
+    HttpClient client=new HttpClient();
+    client.setConnectorType(HttpClient.CONNECTOR_SOCKET);
+    client.start();
+    try {
+      ContentExchange exchangeA=new ContentExchange(true);
+      exchangeA.setMethod(HttpMethods.GET);
+      exchangeA.setURL("http://localhost:" + port + contextA+ servletMapping);
+      client.send(exchangeA);
+      exchangeA.waitForDone();
+      assertEquals(HttpServletResponse.SC_OK,exchangeA.getResponseStatus());
+      String sessionCookie=exchangeA.getResponseFields().getStringField("Set-Cookie");
+      assertTrue(sessionCookie != null);
+      sessionCookie=sessionCookie.replaceFirst("(\\W)(P|p)ath=","$1\\$Path=");
+      ContentExchange exchangeB=new ContentExchange(true);
+      exchangeB.setMethod(HttpMethods.GET);
+      exchangeB.setURL("http://localhost:" + port + contextB+ servletMapping);
+      exchangeB.getRequestFields().add("Cookie",sessionCookie);
+      client.send(exchangeB);
+      exchangeB.waitForDone();
+      assertEquals(HttpServletResponse.SC_OK,exchangeB.getResponseStatus());
+    }
+  finally {
+      client.stop();
+    }
+  }
+  finally {
+    server.stop();
+  }
 }

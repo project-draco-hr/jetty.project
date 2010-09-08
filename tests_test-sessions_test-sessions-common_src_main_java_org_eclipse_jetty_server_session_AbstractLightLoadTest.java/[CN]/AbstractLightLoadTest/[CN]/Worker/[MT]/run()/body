@@ -1,2 +1,20 @@
 {
+  try {
+    barrier.await();
+    Random random=new Random(System.nanoTime());
+    for (int i=0; i < requestsCount; ++i) {
+      int urlIndex=random.nextInt(urls.length);
+      ContentExchange exchange=new ContentExchange(true);
+      exchange.setMethod(HttpMethods.GET);
+      exchange.setURL(urls[urlIndex] + "?action=increment");
+      exchange.getRequestFields().add("Cookie",sessionCookie);
+      client.send(exchange);
+      exchange.waitForDone();
+      assertEquals(HttpServletResponse.SC_OK,exchange.getResponseStatus());
+    }
+    barrier.await();
+  }
+ catch (  Exception x) {
+    throw new RuntimeException(x);
+  }
 }

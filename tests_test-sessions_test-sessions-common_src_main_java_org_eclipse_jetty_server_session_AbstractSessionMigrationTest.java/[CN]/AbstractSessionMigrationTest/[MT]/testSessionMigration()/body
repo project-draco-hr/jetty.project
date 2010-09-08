@@ -1,2 +1,50 @@
 {
+  Random random=new Random(System.nanoTime());
+  String contextPath="";
+  String servletMapping="/server";
+  int port1=random.nextInt(50000) + 10000;
+  AbstractTestServer server1=createServer(port1);
+  server1.addContext(contextPath).addServlet(TestServlet.class,servletMapping);
+  server1.start();
+  try {
+    int port2=random.nextInt(50000) + 10000;
+    AbstractTestServer server2=createServer(port2);
+    server2.addContext(contextPath).addServlet(TestServlet.class,servletMapping);
+    server2.start();
+    try {
+      HttpClient client=new HttpClient();
+      client.setConnectorType(HttpClient.CONNECTOR_SOCKET);
+      client.start();
+      try {
+        int value=1;
+        ContentExchange exchange1=new ContentExchange(true);
+        exchange1.setMethod(HttpMethods.POST);
+        exchange1.setURL("http://localhost:" + port1 + contextPath+ servletMapping+ "?action=set&value="+ value);
+        client.send(exchange1);
+        exchange1.waitForDone();
+        assertEquals(HttpServletResponse.SC_OK,exchange1.getResponseStatus());
+        String sessionCookie=exchange1.getResponseFields().getStringField("Set-Cookie");
+        assertTrue(sessionCookie != null);
+        sessionCookie=sessionCookie.replaceFirst("(\\W)(P|p)ath=","$1\\$Path=");
+        ContentExchange exchange2=new ContentExchange(true);
+        exchange2.setMethod(HttpMethods.GET);
+        exchange2.setURL("http://localhost:" + port2 + contextPath+ servletMapping+ "?action=get");
+        exchange2.getRequestFields().add("Cookie",sessionCookie);
+        client.send(exchange2);
+        exchange2.waitForDone();
+        assertEquals(HttpServletResponse.SC_OK,exchange2.getResponseStatus());
+        String response=exchange2.getResponseContent();
+        assertEquals(response.trim(),String.valueOf(value));
+      }
+  finally {
+        client.stop();
+      }
+    }
+  finally {
+      server2.stop();
+    }
+  }
+  finally {
+    server1.stop();
+  }
 }

@@ -1,2 +1,73 @@
 {
+  if (_stress) {
+    Random random=new Random(System.nanoTime());
+    String contextPath="";
+    String servletMapping="/server";
+    int port1=random.nextInt(50000) + 10000;
+    AbstractTestServer server1=createServer(port1);
+    server1.addContext(contextPath).addServlet(TestServlet.class,servletMapping);
+    server1.start();
+    try {
+      int port2=random.nextInt(50000) + 10000;
+      AbstractTestServer server2=createServer(port2);
+      server2.addContext(contextPath).addServlet(TestServlet.class,servletMapping);
+      server2.start();
+      try {
+        HttpClient client=new HttpClient();
+        client.setConnectorType(HttpClient.CONNECTOR_SOCKET);
+        client.start();
+        try {
+          String[] urls=new String[2];
+          urls[0]="http://localhost:" + port1 + contextPath+ servletMapping;
+          urls[1]="http://localhost:" + port2 + contextPath+ servletMapping;
+          ContentExchange exchange1=new ContentExchange(true);
+          exchange1.setMethod(HttpMethods.GET);
+          exchange1.setURL(urls[0] + "?action=init");
+          client.send(exchange1);
+          exchange1.waitForDone();
+          assertEquals(HttpServletResponse.SC_OK,exchange1.getResponseStatus());
+          String sessionCookie=exchange1.getResponseFields().getStringField("Set-Cookie");
+          assertTrue(sessionCookie != null);
+          sessionCookie=sessionCookie.replaceFirst("(\\W)(P|p)ath=","$1\\$Path=");
+          ExecutorService executor=Executors.newCachedThreadPool();
+          int clientsCount=50;
+          CyclicBarrier barrier=new CyclicBarrier(clientsCount + 1);
+          int requestsCount=100;
+          Worker[] workers=new Worker[clientsCount];
+          for (int i=0; i < clientsCount; ++i) {
+            workers[i]=new Worker(barrier,requestsCount,sessionCookie,urls);
+            workers[i].start();
+            executor.execute(workers[i]);
+          }
+          barrier.await();
+          long start=System.nanoTime();
+          barrier.await();
+          long end=System.nanoTime();
+          long elapsed=TimeUnit.NANOSECONDS.toMillis(end - start);
+          System.out.println("elapsed ms: " + elapsed);
+          for (          Worker worker : workers)           worker.stop();
+          executor.shutdownNow();
+          ContentExchange exchange2=new ContentExchange(true);
+          exchange2.setMethod(HttpMethods.GET);
+          exchange2.setURL(urls[0] + "?action=result");
+          exchange2.getRequestFields().add("Cookie",sessionCookie);
+          client.send(exchange2);
+          exchange2.waitForDone();
+          assertEquals(HttpServletResponse.SC_OK,exchange2.getResponseStatus());
+          String response=exchange2.getResponseContent();
+          System.out.println("get = " + response);
+          assertEquals(response.trim(),String.valueOf(clientsCount * requestsCount));
+        }
+  finally {
+          client.stop();
+        }
+      }
+  finally {
+        server2.stop();
+      }
+    }
+  finally {
+      server1.stop();
+    }
+  }
 }

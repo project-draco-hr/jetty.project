@@ -1,2 +1,32 @@
 {
+  Random random=new Random(System.nanoTime());
+  String contextA="/contextA";
+  String contextB="/contextB";
+  String servletMapping="/server";
+  int port=random.nextInt(50000) + 10000;
+  AbstractTestServer server=createServer(port);
+  ServletContextHandler ctxA=server.addContext(contextA);
+  ctxA.addServlet(TestServletA.class,servletMapping);
+  ServletContextHandler ctxB=server.addContext(contextB);
+  ctxB.addServlet(TestServletB.class,servletMapping);
+  server.start();
+  try {
+    HttpClient client=new HttpClient();
+    client.setConnectorType(HttpClient.CONNECTOR_SOCKET);
+    client.start();
+    try {
+      ContentExchange exchange=new ContentExchange(true);
+      exchange.setMethod(HttpMethods.GET);
+      exchange.setURL("http://localhost:" + port + contextA+ servletMapping);
+      client.send(exchange);
+      exchange.waitForDone();
+      assertEquals(HttpServletResponse.SC_OK,exchange.getResponseStatus());
+    }
+  finally {
+      client.stop();
+    }
+  }
+  finally {
+    server.stop();
+  }
 }
