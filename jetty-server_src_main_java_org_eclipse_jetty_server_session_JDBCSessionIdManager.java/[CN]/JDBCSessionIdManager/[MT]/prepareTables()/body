@@ -11,6 +11,7 @@
     connection.setAutoCommit(true);
     DatabaseMetaData metaData=connection.getMetaData();
     _dbAdaptor=new DatabaseAdaptor(metaData);
+    _sessionTableRowId=(_dbAdaptor.getDBName() != null && _dbAdaptor.getDBName().contains("oracle") ? "srowId" : _sessionTableRowId);
     String tableName=_dbAdaptor.convertIdentifier(_sessionIdTable);
     ResultSet result=metaData.getTables(null,null,tableName,null);
     if (!result.next()) {
@@ -20,7 +21,7 @@
     result=metaData.getTables(null,null,tableName,null);
     if (!result.next()) {
       String blobType=_dbAdaptor.getBlobType();
-      _createSessionTable="create table " + _sessionTable + " (srowId varchar(120), sessionId varchar(120), "+ " contextPath varchar(60), virtualHost varchar(60), lastNode varchar(60), accessTime bigint, "+ " lastAccessTime bigint, createTime bigint, cookieTime bigint, "+ " lastSavedTime bigint, expiryTime bigint, map "+ blobType+ ", primary key(srowId))";
+      _createSessionTable="create table " + _sessionTable + " ("+ _sessionTableRowId+ " varchar(120), sessionId varchar(120), "+ " contextPath varchar(60), virtualHost varchar(60), lastNode varchar(60), accessTime bigint, "+ " lastAccessTime bigint, createTime bigint, cookieTime bigint, "+ " lastSavedTime bigint, expiryTime bigint, map "+ blobType+ ", primary key("+ _sessionTableRowId+ "))";
       connection.createStatement().executeUpdate(_createSessionTable);
     }
     String index1="idx_" + _sessionTable + "_expiry";
