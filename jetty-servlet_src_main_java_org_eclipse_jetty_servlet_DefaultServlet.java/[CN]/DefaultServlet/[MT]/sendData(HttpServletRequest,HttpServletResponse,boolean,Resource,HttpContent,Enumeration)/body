@@ -22,7 +22,8 @@
       resource.writeTo(out,0,content_length);
     }
  else {
-      if (out instanceof HttpConnection.Output && content != null) {
+      boolean written=out instanceof HttpOutput ? !((HttpOutput)out).isWritten() : HttpConnection.getCurrentConnection().getGenerator().isContentWritten();
+      if (content != null && !written && out instanceof HttpOutput) {
         if (response instanceof Response) {
           writeOptionHeaders(((Response)response).getHttpFields());
           ((HttpConnection.Output)out).sendContent(content);
@@ -40,7 +41,7 @@
         }
       }
  else {
-        writeHeaders(response,content,content_length);
+        writeHeaders(response,content,written ? -1 : content_length);
         Buffer buffer=(content == null) ? null : content.getIndirectBuffer();
         if (buffer != null)         buffer.writeTo(out);
  else         resource.writeTo(out,0,content_length);
