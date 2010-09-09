@@ -1,34 +1,30 @@
 {
-  boolean progress=true;
   try {
-    if (_hixie != null) {
-      while (progress) {
-        Buffer buffer=_parser.getBuffer();
-        if (buffer != null && buffer.length() > 0) {
-          int l=buffer.length();
-          if (l > 8)           l=8;
-          _hixie.put(buffer.peek(buffer.getIndex(),l));
-          buffer.skip(l);
-          progress=true;
-        }
-        if (_hixie.length() < 8) {
-          int filled=_endp.fill(_hixie);
-          progress|=filled > 0;
-          if (filled < 0) {
-            _endp.close();
-            break;
-          }
-        }
-        if (_hixie.length() == 8) {
+    if (_hixieBytes != null) {
+      Buffer buffer=_parser.getBuffer();
+      if (buffer != null && buffer.length() > 0) {
+        int l=buffer.length();
+        if (l > (8 - _hixieBytes.length()))         l=8 - _hixieBytes.length();
+        _hixieBytes.put(buffer.peek(buffer.getIndex(),l));
+        buffer.skip(l);
+      }
+      while (_endp.isOpen()) {
+        if (_hixieBytes.length() == 8) {
           doTheHixieHixieShake();
-          _endp.flush(_hixie);
-          _hixie=null;
+          _endp.flush(_hixieBytes);
+          _hixieBytes=null;
           _endp.flush();
+          break;
+        }
+        int filled=_endp.fill(_hixieBytes);
+        if (filled < 0) {
+          _endp.close();
           break;
         }
       }
       return this;
     }
+    boolean progress=true;
     while (progress) {
       int flushed=_generator.flush();
       int filled=_parser.parseNext();
@@ -40,6 +36,12 @@
     }
   }
  catch (  IOException e) {
+    try {
+      _endp.close();
+    }
+ catch (    IOException e2) {
+      Log.ignore(e2);
+    }
     throw e;
   }
  finally {
