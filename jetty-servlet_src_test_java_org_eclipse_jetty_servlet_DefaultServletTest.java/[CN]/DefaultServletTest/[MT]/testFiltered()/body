@@ -12,14 +12,19 @@
   defholder.setInitParameter("welcomeServlets","false");
   defholder.setInitParameter("gzip","false");
   defholder.setInitParameter("resourceBase",resBasePath);
-  ServletHolder jspholder=context.addServlet(NoJspServlet.class,"*.jsp");
   String response=connector.getResponses("GET /context/data0.txt HTTP/1.1\r\nHost:localhost:8080\r\n\r\n");
   assertResponseContains("Content-Length: 12",response);
   assertResponseNotContains("Extra Info",response);
-  context.addFilter(AddingFilter.class,"/*",0);
+  context.addFilter(OutputFilter.class,"/*",0);
   response=connector.getResponses("GET /context/data0.txt HTTP/1.1\r\nHost:localhost:8080\r\n\r\n");
-  System.err.println(response);
-  assertResponseContains("Content-Length: 24",response);
+  assertResponseContains("Content-Length: 2",response);
+  assertResponseContains("Extra Info",response);
+  assertResponseNotContains("Content-Length: 12",response);
+  context.getServletHandler().setFilterMappings(new FilterMapping[]{});
+  context.getServletHandler().setFilters(new FilterHolder[]{});
+  context.addFilter(WriterFilter.class,"/*",0);
+  response=connector.getResponses("GET /context/data0.txt HTTP/1.1\r\nHost:localhost:8080\r\n\r\n");
+  assertResponseContains("Content-Length: 2",response);
   assertResponseContains("Extra Info",response);
   assertResponseNotContains("Content-Length: 12",response);
 }

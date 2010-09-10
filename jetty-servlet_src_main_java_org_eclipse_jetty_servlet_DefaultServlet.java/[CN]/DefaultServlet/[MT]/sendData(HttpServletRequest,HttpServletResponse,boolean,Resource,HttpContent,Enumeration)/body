@@ -11,18 +11,20 @@
     content_length=content.getContentLength();
   }
   OutputStream out=null;
+  boolean written;
   try {
     out=response.getOutputStream();
+    written=out instanceof HttpOutput ? !((HttpOutput)out).isWritten() : HttpConnection.getCurrentConnection().getGenerator().isContentWritten();
   }
  catch (  IllegalStateException e) {
     out=new WriterOutputStream(response.getWriter());
+    written=true;
   }
   if (reqRanges == null || !reqRanges.hasMoreElements() || content_length < 0) {
     if (include) {
       resource.writeTo(out,0,content_length);
     }
  else {
-      boolean written=out instanceof HttpOutput ? !((HttpOutput)out).isWritten() : HttpConnection.getCurrentConnection().getGenerator().isContentWritten();
       if (content != null && !written && out instanceof HttpOutput) {
         if (response instanceof Response) {
           writeOptionHeaders(((Response)response).getHttpFields());
