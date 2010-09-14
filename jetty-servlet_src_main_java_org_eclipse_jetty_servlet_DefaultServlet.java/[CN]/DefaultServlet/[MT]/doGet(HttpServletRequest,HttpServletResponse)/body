@@ -57,7 +57,12 @@
       }
     }
     if (Log.isDebugEnabled())     Log.debug("resource=" + resource + (content != null ? " content" : ""));
-    if (resource == null || !resource.exists())     response.sendError(HttpServletResponse.SC_NOT_FOUND);
+    if (resource == null || !resource.exists())     if (included) {
+      throw new FileNotFoundException("Nothing at " + pathInContext);
+    }
+ else {
+      response.sendError(HttpServletResponse.SC_NOT_FOUND);
+    }
  else     if (!resource.isDirectory()) {
       if (endsWithSlash && _contextHandler.isAliases() && pathInContext.length() > 1) {
         String q=request.getQueryString();
