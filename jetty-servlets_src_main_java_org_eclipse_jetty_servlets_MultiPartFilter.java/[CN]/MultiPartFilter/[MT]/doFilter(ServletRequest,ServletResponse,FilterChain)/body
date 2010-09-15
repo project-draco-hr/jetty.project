@@ -4,7 +4,7 @@
     chain.doFilter(request,response);
     return;
   }
-  BufferedInputStream in=new BufferedInputStream(request.getInputStream());
+  InputStream in=new BufferedInputStream(request.getInputStream());
   String content_type=srequest.getContentType();
   String boundary="--" + value(content_type.substring(content_type.indexOf("boundary=")));
   byte[] byteBoundary=(boundary + "--").getBytes(StringUtil.__ISO_8859_1);
@@ -23,6 +23,7 @@
     }
     boolean lastPart=false;
     String content_disposition=null;
+    String content_transfer_encoding=null;
     outer:     while (!lastPart) {
       while (true) {
         bytes=TypeUtil.readLine(in);
@@ -34,6 +35,7 @@
           String key=line.substring(0,c).trim().toLowerCase();
           String value=line.substring(c + 1,line.length()).trim();
           if (key.equals("content-disposition"))           content_disposition=value;
+ else           if (key.equals("content-transfer-encoding"))           content_transfer_encoding=value;
         }
       }
       boolean form_data=false;
@@ -76,6 +78,25 @@
           }
         }
  else         out=new ByteArrayOutputStream();
+        if ("base64".equalsIgnoreCase(content_transfer_encoding))         in=new Base64InputStream(in);
+ else         if ("quoted-printable".equalsIgnoreCase(content_transfer_encoding)) {
+          in=new FilterInputStream(in){
+            @Override public int read() throws IOException {
+              int c=in.read();
+              if (c >= 0 && c == '=') {
+                int hi=in.read();
+                int lo=in.read();
+                if (hi < 0 || lo < 0) {
+                  throw new IOException("Unexpected end to quoted-printable byte");
+                }
+                char[] chars=new char[]{(char)hi,(char)lo};
+                c=Integer.parseInt(new String(chars),16);
+              }
+              return c;
+            }
+          }
+;
+        }
         int state=-2;
         int c;
         boolean cr=false;
