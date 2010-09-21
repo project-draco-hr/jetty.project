@@ -16,7 +16,6 @@
         String nuri;
 synchronized (session) {
           nuri=(String)session.getAttribute(__J_URI);
-          session.removeAttribute(__J_URI);
         }
         if (nuri == null || nuri.length() == 0) {
           nuri=request.getContextPath();
@@ -45,8 +44,27 @@ synchronized (session) {
     }
     Authentication authentication=(Authentication)session.getAttribute(SessionAuthentication.__J_AUTHENTICATED);
     if (authentication != null) {
-      if (authentication instanceof Authentication.User && _loginService != null && !_loginService.validate(((Authentication.User)authentication).getUserIdentity()))       session.removeAttribute(SessionAuthentication.__J_AUTHENTICATED);
- else       return authentication;
+      if (authentication instanceof Authentication.User && _loginService != null && !_loginService.validate(((Authentication.User)authentication).getUserIdentity())) {
+        session.removeAttribute(SessionAuthentication.__J_AUTHENTICATED);
+      }
+ else {
+        String j_uri=(String)session.getAttribute(__J_URI);
+        if (j_uri != null) {
+          MultiMap<String> j_post=(MultiMap<String>)session.getAttribute(__J_POST);
+          if (j_post != null) {
+            StringBuffer buf=request.getRequestURL();
+            if (request.getQueryString() != null)             buf.append("?").append(request.getQueryString());
+            if (j_uri.equals(buf.toString())) {
+              session.removeAttribute(__J_POST);
+              Request base_request=(req instanceof Request) ? (Request)req : HttpConnection.getCurrentConnection().getRequest();
+              base_request.setMethod(HttpMethods.POST);
+              base_request.setParameters(j_post);
+            }
+          }
+ else           session.removeAttribute(__J_URI);
+        }
+        return authentication;
+      }
     }
     if (_deferred.isDeferred(response))     return Authentication.UNAUTHENTICATED;
 synchronized (session) {
@@ -54,6 +72,11 @@ synchronized (session) {
         StringBuffer buf=request.getRequestURL();
         if (request.getQueryString() != null)         buf.append("?").append(request.getQueryString());
         session.setAttribute(__J_URI,buf.toString());
+        if (MimeTypes.FORM_ENCODED.equalsIgnoreCase(req.getContentType()) && HttpMethods.POST.equals(request.getMethod())) {
+          Request base_request=(req instanceof Request) ? (Request)req : HttpConnection.getCurrentConnection().getRequest();
+          base_request.extractParameters();
+          session.setAttribute(__J_POST,new MultiMap<String>(base_request.getParameters()));
+        }
       }
     }
     if (_dispatch) {
