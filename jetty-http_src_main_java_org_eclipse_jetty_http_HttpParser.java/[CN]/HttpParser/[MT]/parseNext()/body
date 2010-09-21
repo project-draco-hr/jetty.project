@@ -77,6 +77,7 @@ break;
 case STATE_FIELD0:
 if (ch == HttpTokens.SPACE) {
 _tok0.update(_buffer.markIndex(),_buffer.getIndex() - 1);
+_responseStatus=HttpVersions.CACHE.get(_tok0) == null ? -1 : 0;
 _state=STATE_SPACE1;
 continue;
 }
@@ -87,13 +88,39 @@ break;
 case STATE_SPACE1:
 if (ch > HttpTokens.SPACE || ch < 0) {
 _buffer.mark();
-_state=STATE_FIELD1;
+if (_responseStatus >= 0) {
+_state=STATE_STATUS;
+_responseStatus=ch - '0';
+}
+ else _state=STATE_URI;
 }
  else if (ch < HttpTokens.SPACE) {
 throw new HttpException(HttpStatus.BAD_REQUEST_400);
 }
 break;
-case STATE_FIELD1:
+case STATE_STATUS:
+if (ch == HttpTokens.SPACE) {
+_tok1.update(_buffer.markIndex(),_buffer.getIndex() - 1);
+_state=STATE_SPACE2;
+continue;
+}
+ else if (ch >= '0' && ch <= '9') {
+_responseStatus=_responseStatus * 10 + (ch - '0');
+continue;
+}
+ else if (ch < HttpTokens.SPACE && ch >= 0) {
+_handler.startResponse(HttpMethods.CACHE.lookup(_tok0),_responseStatus,null);
+_eol=ch;
+_state=STATE_HEADER;
+_tok0.setPutIndex(_tok0.getIndex());
+_tok1.setPutIndex(_tok1.getIndex());
+_multiLineValue=null;
+continue;
+}
+_state=STATE_URI;
+_responseStatus=-1;
+break;
+case STATE_URI:
 if (ch == HttpTokens.SPACE) {
 _tok1.update(_buffer.markIndex(),_buffer.getIndex() - 1);
 _state=STATE_SPACE2;
@@ -113,21 +140,27 @@ _buffer.mark();
 _state=STATE_FIELD2;
 }
  else if (ch < HttpTokens.SPACE) {
+if (_responseStatus > 0) {
+_handler.startResponse(HttpMethods.CACHE.lookup(_tok0),_responseStatus,null);
+_eol=ch;
+_state=STATE_HEADER;
+_tok0.setPutIndex(_tok0.getIndex());
+_tok1.setPutIndex(_tok1.getIndex());
+_multiLineValue=null;
+}
+ else {
 _handler.startRequest(HttpMethods.CACHE.lookup(_tok0),_tok1,null);
 _state=STATE_END;
 _handler.headerComplete();
 _handler.messageComplete(_contentPosition);
 return total_filled;
 }
+}
 break;
 case STATE_FIELD2:
 if (ch == HttpTokens.CARRIAGE_RETURN || ch == HttpTokens.LINE_FEED) {
-final Buffer method=HttpMethods.CACHE.lookup(_tok0);
-if (method == _tok0 && _tok1.length() == 3 && Character.isDigit(_tok1.peek())) {
-_responseStatus=BufferUtil.toInt(_tok1);
-_handler.startResponse(HttpVersions.CACHE.lookup(_tok0),_responseStatus,_buffer.sliceFromMark());
-}
- else _handler.startRequest(method,_tok1,HttpVersions.CACHE.lookup(_buffer.sliceFromMark()));
+if (_responseStatus > 0) _handler.startResponse(HttpVersions.CACHE.lookup(_tok0),_responseStatus,_buffer.sliceFromMark());
+ else _handler.startRequest(HttpMethods.CACHE.lookup(_tok0),_tok1,HttpVersions.CACHE.lookup(_buffer.sliceFromMark()));
 _eol=ch;
 _state=STATE_HEADER;
 _tok0.setPutIndex(_tok0.getIndex());
