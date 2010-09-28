@@ -1,12 +1,14 @@
 {
 synchronized (this) {
-    String requested_id=request.getRequestedSessionId();
-    if (requested_id != null) {
-      String cluster_id=getClusterId(requested_id);
-      if (idInUse(cluster_id))       return cluster_id;
+    if (request != null) {
+      String requested_id=request.getRequestedSessionId();
+      if (requested_id != null) {
+        String cluster_id=getClusterId(requested_id);
+        if (idInUse(cluster_id))         return cluster_id;
+      }
+      String new_id=(String)request.getAttribute(__NEW_SESSION_ID);
+      if (new_id != null && idInUse(new_id))       return new_id;
     }
-    String new_id=(String)request.getAttribute(__NEW_SESSION_ID);
-    if (new_id != null && idInUse(new_id))     return new_id;
     String id=null;
     while (id == null || id.length() == 0 || idInUse(id)) {
       long r0=_weakRandom ? (hashCode() ^ Runtime.getRuntime().freeMemory() ^ _random.nextInt()^ (((long)request.hashCode()) << 32)) : _random.nextLong();

@@ -13,8 +13,8 @@
     }
     Object stale=null;
 synchronized (HashSessionManager.this) {
-      for (Iterator i=_sessions.values().iterator(); i.hasNext(); ) {
-        Session session=(Session)i.next();
+      for (Iterator<HashedSession> i=_sessions.values().iterator(); i.hasNext(); ) {
+        HashedSession session=i.next();
         long idleTime=session._maxIdleMs;
         if (idleTime > 0 && session._accessed + idleTime < now) {
           stale=LazyList.add(stale,session);
@@ -22,7 +22,7 @@ synchronized (HashSessionManager.this) {
       }
     }
     for (int i=LazyList.size(stale); i-- > 0; ) {
-      Session session=(Session)LazyList.get(stale,i);
+      HashedSession session=(HashedSession)LazyList.get(stale,i);
       long idleTime=session._maxIdleMs;
       if (idleTime > 0 && session._accessed + idleTime < System.currentTimeMillis()) {
         session.timeout();
