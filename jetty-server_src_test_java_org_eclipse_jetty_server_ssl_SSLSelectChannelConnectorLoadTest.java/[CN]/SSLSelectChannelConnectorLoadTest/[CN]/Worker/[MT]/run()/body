@@ -1,0 +1,65 @@
+{
+  try {
+    Random random=new Random();
+    StringBuilder builder=new StringBuilder();
+    OutputStream out=null;
+    InputStream in=null;
+    if (!closeConnection) {
+      open();
+      out=sslSocket.getOutputStream();
+      in=sslSocket.getInputStream();
+    }
+    for (int i=0; i < iterations; ++i) {
+      if (closeConnection) {
+        open();
+        out=sslSocket.getOutputStream();
+        in=sslSocket.getInputStream();
+      }
+      int contentSize=random.nextInt(maxContent - minContent) + minContent;
+      out.write("POST / HTTP/1.1\r\n".getBytes());
+      out.write("Host: localhost\r\n".getBytes());
+      out.write(("Content-Length: " + contentSize + "\r\n").getBytes());
+      out.write("Content-Type: application/octect-stream\r\n".getBytes());
+      if (closeConnection)       out.write("Connection: close\r\n".getBytes());
+      out.write("\r\n".getBytes());
+      out.flush();
+      byte[] contentChunk=new byte[minContent];
+      int content=contentSize;
+      while (content > 0) {
+        int chunk=Math.min(content,contentChunk.length);
+        Arrays.fill(contentChunk,0,chunk,(byte)'x');
+        out.write(contentChunk,0,chunk);
+        content-=chunk;
+      }
+      out.flush();
+      BufferedReader reader=new BufferedReader(new InputStreamReader(in));
+      int responseLength=0;
+      String line;
+      while ((line=reader.readLine()) != null) {
+        String contentLength="Content-Length:";
+        if (line.startsWith(contentLength)) {
+          responseLength=Integer.parseInt(line.substring(contentLength.length()).trim());
+        }
+ else         if (line.length() == 0) {
+          if (responseLength == 0)           line=reader.readLine();
+          break;
+        }
+      }
+      builder.setLength(0);
+      if (responseLength > 0) {
+        for (int j=0; j < responseLength; ++j)         builder.append((char)reader.read());
+      }
+ else {
+        builder.append(line);
+      }
+      if (closeConnection)       close();
+      if (contentSize != Integer.parseInt(builder.toString()))       throw new IllegalStateException();
+      Thread.sleep(random.nextInt(1000));
+      totalIterations.incrementAndGet();
+    }
+    if (!closeConnection)     close();
+  }
+ catch (  Exception x) {
+    throw new RuntimeException(x);
+  }
+}
