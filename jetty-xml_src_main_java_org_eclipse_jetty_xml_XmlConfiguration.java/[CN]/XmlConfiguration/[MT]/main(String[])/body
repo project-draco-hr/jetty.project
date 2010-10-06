@@ -2,7 +2,22 @@
   AccessController.doPrivileged(new PrivilegedAction(){
     public Object run(){
       try {
-        Properties properties=new Properties();
+        Properties properties=null;
+        try {
+          Class<?> config=XmlConfiguration.class.getClassLoader().loadClass("org.eclipse.jetty.start.Config");
+          properties=(Properties)config.getMethod("getProperties").invoke(null);
+          Log.debug("org.eclipse.jetty.start.Config properties = {}",properties);
+        }
+ catch (        NoClassDefFoundError e) {
+          Log.ignore(e);
+        }
+catch (        ClassNotFoundException e) {
+          Log.ignore(e);
+        }
+catch (        Exception e) {
+          Log.warn(e);
+        }
+        if (properties == null)         properties=new Properties();
         XmlConfiguration last=null;
         Object[] obj=new Object[args.length];
         for (int i=0; i < args.length; i++) {
