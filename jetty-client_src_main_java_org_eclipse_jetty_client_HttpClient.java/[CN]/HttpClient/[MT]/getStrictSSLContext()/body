@@ -4,29 +4,24 @@
       _trustStoreLocation=_keyStoreLocation;
       _trustStoreType=_keyStoreType;
     }
-    KeyManager[] keyManagers=null;
-    InputStream keystoreInputStream=null;
-    keystoreInputStream=Resource.newResource(_keyStoreLocation).getInputStream();
+    InputStream keyStoreInputStream=Resource.newResource(_keyStoreLocation).getInputStream();
     KeyStore keyStore=KeyStore.getInstance(_keyStoreType);
-    keyStore.load(keystoreInputStream,_keyStorePassword == null ? null : _keyStorePassword.toString().toCharArray());
+    keyStore.load(keyStoreInputStream,_keyStorePassword == null ? null : _keyStorePassword.toCharArray());
     KeyManagerFactory keyManagerFactory=KeyManagerFactory.getInstance(_keyManagerAlgorithm);
-    keyManagerFactory.init(keyStore,_keyManagerPassword == null ? null : _keyManagerPassword.toString().toCharArray());
-    keyManagers=keyManagerFactory.getKeyManagers();
-    TrustManager[] trustManagers=null;
-    InputStream truststoreInputStream=null;
-    truststoreInputStream=Resource.newResource(_trustStoreLocation).getInputStream();
+    keyManagerFactory.init(keyStore,_keyManagerPassword == null ? null : _keyManagerPassword.toCharArray());
+    KeyManager[] keyManagers=keyManagerFactory.getKeyManagers();
+    InputStream trustStoreInputStream=Resource.newResource(_trustStoreLocation).getInputStream();
     KeyStore trustStore=KeyStore.getInstance(_trustStoreType);
-    trustStore.load(truststoreInputStream,_trustStorePassword == null ? null : _trustStorePassword.toString().toCharArray());
+    trustStore.load(trustStoreInputStream,_trustStorePassword == null ? null : _trustStorePassword.toCharArray());
     TrustManagerFactory trustManagerFactory=TrustManagerFactory.getInstance(_trustManagerAlgorithm);
     trustManagerFactory.init(trustStore);
-    trustManagers=trustManagerFactory.getTrustManagers();
+    TrustManager[] trustManagers=trustManagerFactory.getTrustManagers();
     SecureRandom secureRandom=_secureRandomAlgorithm == null ? null : SecureRandom.getInstance(_secureRandomAlgorithm);
     SSLContext context=_provider == null ? SSLContext.getInstance(_protocol) : SSLContext.getInstance(_protocol,_provider);
     context.init(keyManagers,trustManagers,secureRandom);
     return context;
   }
- catch (  Exception e) {
-    e.printStackTrace();
-    throw new IOException("error generating ssl context for " + _keyStoreLocation + " "+ e.getMessage());
+ catch (  Exception x) {
+    throw (IOException)new IOException("Error generating SSLContext for keystore " + _keyStoreLocation).initCause(x);
   }
 }
