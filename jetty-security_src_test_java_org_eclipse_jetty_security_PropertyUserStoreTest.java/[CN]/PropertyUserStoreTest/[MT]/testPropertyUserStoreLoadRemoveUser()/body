@@ -1,0 +1,27 @@
+{
+  writeAdditionalUser(testFile);
+  final AtomicInteger userCount=new AtomicInteger();
+  final List<String> users=new ArrayList<String>();
+  PropertyUserStore store=new PropertyUserStore();
+  store.setRefreshInterval(2);
+  store.setConfig(testFile);
+  store.registerUserListener(new PropertyUserStore.UserListener(){
+    public void update(    String username,    Credential credential,    String[] roleArray){
+      if (!users.contains(username)) {
+        users.add(username);
+        userCount.getAndIncrement();
+      }
+    }
+    public void remove(    String username){
+      users.remove(username);
+      userCount.getAndDecrement();
+    }
+  }
+);
+  store.start();
+  Assert.assertEquals(4,userCount.get());
+  Thread.sleep(2000);
+  writeInitialUsers(testFile);
+  Thread.sleep(3000);
+  Assert.assertEquals(3,userCount.get());
+}

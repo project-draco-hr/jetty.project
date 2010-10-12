@@ -1,0 +1,37 @@
+{
+  if (_config == null)   return;
+  if (Log.isDebugEnabled())   Log.debug("Load " + this + " from "+ _config);
+  Properties properties=new Properties();
+  properties.load(getConfigResource().getInputStream());
+  Set<String> known=new HashSet<String>();
+  for (  Map.Entry<Object,Object> entry : properties.entrySet()) {
+    String username=((String)entry.getKey()).trim();
+    String credentials=((String)entry.getValue()).trim();
+    String roles=null;
+    int c=credentials.indexOf(',');
+    if (c > 0) {
+      roles=credentials.substring(c + 1).trim();
+      credentials=credentials.substring(0,c).trim();
+    }
+    if (username != null && username.length() > 0 && credentials != null && credentials.length() > 0) {
+      String[] roleArray=IdentityService.NO_ROLES;
+      if (roles != null && roles.length() > 0)       roleArray=roles.split(",");
+      known.add(username);
+      notifyUpdate(username,Credential.getCredential(credentials),roleArray);
+    }
+  }
+synchronized (_knownUsers) {
+    if (!_firstLoad) {
+      Iterator<String> users=_knownUsers.iterator();
+      while (users.hasNext()) {
+        String user=users.next();
+        if (!known.contains(user)) {
+          notifyRemove(user);
+        }
+      }
+    }
+    _knownUsers.clear();
+    _knownUsers.addAll(known);
+  }
+  _firstLoad=false;
+}
