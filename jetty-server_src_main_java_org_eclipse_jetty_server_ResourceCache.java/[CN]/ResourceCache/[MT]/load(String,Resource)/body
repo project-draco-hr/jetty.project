@@ -2,7 +2,7 @@
   Content content=null;
   if (resource != null && resource.exists() && !resource.isDirectory()) {
     long len=resource.length();
-    if (len > 0 && len < _maxCachedFileSize && len < _maxCacheSize) {
+    if (isCacheable(resource)) {
       content=new Content(pathInContext,resource);
       shrinkCache();
       Content added=_cache.putIfAbsent(pathInContext,content);
@@ -12,6 +12,7 @@
       }
       return content;
     }
+    return new HttpContent.ResourceAsHttpContent(resource,_mimeTypes);
   }
   return null;
 }

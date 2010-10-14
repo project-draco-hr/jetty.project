@@ -1,7 +1,25 @@
 {
+  final Resource directory;
+  File[] files=new File[10];
+  String[] names=new String[files.length];
+  ResourceCache cache;
+  for (int i=0; i < files.length; i++) {
+    files[i]=File.createTempFile("R-" + i + "-",".txt");
+    files[i].deleteOnExit();
+    names[i]=files[i].getName();
+    FileOutputStream out=new FileOutputStream(files[i]);
+    for (int j=0; j < (i * 10 - 1); j++)     out.write(' ');
+    out.write('\n');
+    out.close();
+  }
+  directory=Resource.newResource(files[0].getParentFile().getAbsolutePath());
+  cache=new ResourceCache(null,directory,new MimeTypes(),false);
+  cache.setMaxCacheSize(95);
+  cache.setMaxCachedFileSize(85);
+  cache.setMaxCachedFiles(4);
   assertTrue(cache.lookup("does not exist") == null);
-  assertTrue(cache.lookup(names[9]) == null);
-  Content content;
+  assertTrue(cache.lookup(names[9]) instanceof HttpContent.ResourceAsHttpContent);
+  HttpContent content;
   content=cache.lookup(names[8]);
   assertTrue(content != null);
   assertEquals(80,content.getContentLength());
@@ -62,4 +80,5 @@
   cache.flushCache();
   assertEquals(0,cache.getCachedSize());
   assertEquals(0,cache.getCachedFiles());
+  cache.flushCache();
 }

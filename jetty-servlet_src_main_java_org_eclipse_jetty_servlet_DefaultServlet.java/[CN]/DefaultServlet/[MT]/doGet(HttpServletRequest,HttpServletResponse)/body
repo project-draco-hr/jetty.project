@@ -36,14 +36,9 @@
       }
  else {
         content=_cache.lookup(pathInContextGz);
-        if (content != null)         resource=content.getResource();
- else         if (!(content instanceof ResourceCache.Miss))         resource=getResource(pathInContextGz);
+        resource=(content == null) ? null : content.getResource();
       }
       if (resource == null || !resource.exists() || resource.isDirectory()) {
-        if (_cache != null && content == null) {
-          String real_path=_servletContext.getRealPath(pathInContextGz);
-          if (real_path != null)           _cache.miss(pathInContextGz,_contextHandler.newResource(real_path));
-        }
         gzip=false;
         pathInContextGz=null;
       }
@@ -52,15 +47,12 @@
       if (_cache == null)       resource=getResource(pathInContext);
  else {
         content=_cache.lookup(pathInContext);
-        if (content != null)         resource=content.getResource();
- else         resource=getResource(pathInContext);
+        resource=content == null ? null : content.getResource();
       }
     }
     if (Log.isDebugEnabled())     Log.debug("resource=" + resource + (content != null ? " content" : ""));
-    if (resource == null || !resource.exists())     if (included) {
-      throw new FileNotFoundException("Nothing at " + pathInContext);
-    }
- else {
+    if (resource == null || !resource.exists()) {
+      if (included)       throw new FileNotFoundException("!" + pathInContext);
       response.sendError(HttpServletResponse.SC_NOT_FOUND);
     }
  else     if (!resource.isDirectory()) {
@@ -71,7 +63,7 @@
         response.sendRedirect(response.encodeRedirectURL(URIUtil.addPaths(_servletContext.getContextPath(),pathInContext)));
       }
  else {
-        if (content == null)         content=new UnCachedContent(resource);
+        if (content == null)         content=new HttpContent.ResourceAsHttpContent(resource,_mimeTypes);
         if (included.booleanValue() || passConditionalHeaders(request,response,resource,content)) {
           if (gzip) {
             response.setHeader(HttpHeaders.CONTENT_ENCODING,"gzip");
@@ -118,7 +110,7 @@ synchronized (buf) {
         }
       }
  else {
-        content=new UnCachedContent(resource);
+        content=new HttpContent.ResourceAsHttpContent(resource,_mimeTypes);
         if (included.booleanValue() || passConditionalHeaders(request,response,resource,content))         sendDirectory(request,response,resource,pathInContext);
       }
     }
