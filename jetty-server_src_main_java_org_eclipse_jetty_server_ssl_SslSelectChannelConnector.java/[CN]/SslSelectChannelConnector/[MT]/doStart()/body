@@ -4,10 +4,12 @@
   SSLSession ssl_session=engine.getSession();
   ThreadLocalBuffers buffers=new ThreadLocalBuffers(){
     @Override protected Buffer newBuffer(    int size){
-      return new DirectNIOBuffer(size);
+      if (getUseDirectBuffers())       return new DirectNIOBuffer(size);
+      return new IndirectNIOBuffer(size);
     }
     @Override protected Buffer newHeader(    int size){
-      return new DirectNIOBuffer(size);
+      if (getUseDirectBuffers())       return new DirectNIOBuffer(size);
+      return new IndirectNIOBuffer(size);
     }
     @Override protected boolean isHeader(    Buffer buffer){
       return true;
