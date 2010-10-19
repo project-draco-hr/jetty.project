@@ -1,18 +1,15 @@
 {
   Content content=null;
-  if (resource != null && resource.exists() && !resource.isDirectory()) {
-    long len=resource.length();
-    if (isCacheable(resource)) {
-      content=new Content(pathInContext,resource);
-      shrinkCache();
-      Content added=_cache.putIfAbsent(pathInContext,content);
-      if (added != null) {
-        content.invalidate();
-        content=added;
-      }
-      return content;
+  if (resource == null || !resource.exists())   return null;
+  if (!resource.isDirectory() && isCacheable(resource)) {
+    content=new Content(pathInContext,resource);
+    shrinkCache();
+    Content added=_cache.putIfAbsent(pathInContext,content);
+    if (added != null) {
+      content.invalidate();
+      content=added;
     }
-    return new HttpContent.ResourceAsHttpContent(resource,_mimeTypes);
+    return content;
   }
-  return null;
+  return new HttpContent.ResourceAsHttpContent(resource,_mimeTypes);
 }
