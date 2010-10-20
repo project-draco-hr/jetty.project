@@ -1,28 +1,19 @@
 {
-  boolean selecting=true;
-  while (selecting) {
-    wakeup();
-    selecting=_selecting != null;
-  }
-  for (  SelectionKey key : _selector.keys()) {
-    if (key == null)     continue;
-    Object att=key.attachment();
-    if (att instanceof EndPoint) {
-      EndPoint endpoint=(EndPoint)att;
+  final CountDownLatch closed=new CountDownLatch(1);
+  Closer close=new Closer(){
+    public void close(){
       try {
-        endpoint.close();
+        super.close();
       }
- catch (      IOException e) {
-        Log.ignore(e);
+  finally {
+        closed.countDown();
       }
     }
   }
+;
+  addChange(close);
+  if (!closed.await(1,TimeUnit.SECONDS))   close.close();
 synchronized (this) {
-    selecting=_selecting != null;
-    while (selecting) {
-      wakeup();
-      selecting=_selecting != null;
-    }
     _timeout.cancelAll();
     try {
       if (_selector != null)       _selector.close();
