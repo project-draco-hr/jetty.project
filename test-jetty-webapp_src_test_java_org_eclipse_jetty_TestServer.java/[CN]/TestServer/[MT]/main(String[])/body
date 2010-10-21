@@ -40,7 +40,9 @@
   ContextHandlerCollection contexts=new ContextHandlerCollection();
   RequestLogHandler requestLogHandler=new RequestLogHandler();
   handlers.setHandlers(new Handler[]{contexts,new DefaultHandler(),requestLogHandler});
-  server.setHandler(handlers);
+  RestartHandler restart=new RestartHandler();
+  restart.setHandler(handlers);
+  server.setHandler(restart);
   HashLoginService login=new HashLoginService();
   login.setName("Test Realm");
   login.setConfig(jetty_root + "/test-jetty-webapp/src/main/config/etc/realm.properties");
@@ -55,6 +57,12 @@
   webapp.setParentLoaderPriority(true);
   webapp.setResourceBase("./src/main/webapp");
   webapp.setAttribute("testAttribute","testValue");
+  File sessiondir=File.createTempFile("sessions",null);
+  if (sessiondir.exists())   sessiondir.delete();
+  sessiondir.mkdir();
+  sessiondir.deleteOnExit();
+  ((HashSessionManager)webapp.getSessionHandler().getSessionManager()).setStoreDirectory(sessiondir);
+  ((HashSessionManager)webapp.getSessionHandler().getSessionManager()).setSavePeriod(10);
   contexts.addHandler(webapp);
   server.start();
   server.join();
