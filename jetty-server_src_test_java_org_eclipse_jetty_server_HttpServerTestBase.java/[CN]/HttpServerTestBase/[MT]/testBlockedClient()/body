@@ -1,0 +1,19 @@
+{
+  configureServer(new HelloWorldHandler());
+  Socket client=newSocket(HOST,_connector.getLocalPort());
+  try {
+    OutputStream os=client.getOutputStream();
+    InputStream is=client.getInputStream();
+    os.write(("GET / HTTP/1.1\r\n" + "Host: " + HOST + ":"+ _connector.getLocalPort()+ "\r\n"+ "Transfer-Encoding: chunked\r\n"+ "Expect: 100-continue\r\n"+ "Connection: Keep-Alive\r\n"+ "\r\n").getBytes());
+    os.flush();
+    client.setSoTimeout(2000);
+    long start=System.currentTimeMillis();
+    String in=IO.toString(is);
+    assertTrue(System.currentTimeMillis() - start < 1000);
+    assertTrue(in.indexOf("Connection: close") > 0);
+    assertTrue(in.indexOf("Hello world") > 0);
+  }
+  finally {
+    client.close();
+  }
+}
