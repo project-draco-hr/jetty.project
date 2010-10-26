@@ -36,7 +36,23 @@ case WebOverride:
   }
 case WebFragment:
 {
-  throw new IllegalStateException("Conflicting message-destination-ref " + jndiName + " in "+ descriptor.getResource());
+  Descriptor otherFragment=context.getMetaData().getOriginDescriptor("message-destination-ref." + jndiName);
+  XmlParser.Node otherFragmentRoot=otherFragment.getRoot();
+  Iterator iter=otherFragmentRoot.iterator();
+  XmlParser.Node otherNode=null;
+  while (iter.hasNext() && otherNode == null) {
+    Object obj=iter.next();
+    if (!(obj instanceof XmlParser.Node))     continue;
+    XmlParser.Node n=(XmlParser.Node)obj;
+    if ("message-destination-ref".equals(n.getTag()) && jndiName.equals(n.getString("message-destination-ref-name",false,true)))     otherNode=n;
+  }
+  if (otherNode != null) {
+    String otherType=node.getString("message-destination-type",false,true);
+    String otherUsage=node.getString("message-destination-usage",false,true);
+    type=(type == null ? "" : type);
+    usage=(usage == null ? "" : usage);
+    if (!type.equals(otherType) || !usage.equalsIgnoreCase(otherUsage))     throw new IllegalStateException("Conflicting message-destination-ref " + jndiName + " in "+ descriptor.getResource());
+  }
 }
 }
 }

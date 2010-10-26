@@ -34,7 +34,22 @@ case WebOverride:
   }
 case WebFragment:
 {
-  throw new IllegalStateException("Conflicting resource-env-ref " + jndiName + " in "+ descriptor.getResource());
+  Descriptor otherFragment=context.getMetaData().getOriginDescriptor("resource-env-ref." + jndiName);
+  XmlParser.Node otherFragmentRoot=otherFragment.getRoot();
+  Iterator iter=otherFragmentRoot.iterator();
+  XmlParser.Node otherNode=null;
+  while (iter.hasNext() && otherNode == null) {
+    Object obj=iter.next();
+    if (!(obj instanceof XmlParser.Node))     continue;
+    XmlParser.Node n=(XmlParser.Node)obj;
+    if ("resource-env-ref".equals(n.getTag()) && jndiName.equals(n.getString("resource-env-ref-name",false,true)))     otherNode=n;
+  }
+  if (otherNode != null) {
+    String otherType=otherNode.getString("resource-env-ref-type",false,true);
+    type=(type == null ? "" : type);
+    otherType=(otherType == null ? "" : otherType);
+    if (!type.equals(otherType))     throw new IllegalStateException("Conflicting resource-env-ref " + jndiName + " in "+ descriptor.getResource());
+  }
 }
 }
 }

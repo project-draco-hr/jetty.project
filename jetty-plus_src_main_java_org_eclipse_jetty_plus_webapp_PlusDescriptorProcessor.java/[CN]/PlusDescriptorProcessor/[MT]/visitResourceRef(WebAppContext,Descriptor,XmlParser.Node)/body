@@ -37,7 +37,28 @@ case WebOverride:
   }
 case WebFragment:
 {
-  throw new IllegalStateException("Conflicting resource-ref " + jndiName + " in "+ descriptor.getResource());
+  Descriptor otherFragment=context.getMetaData().getOriginDescriptor("resource-ref." + jndiName);
+  XmlParser.Node otherFragmentRoot=otherFragment.getRoot();
+  Iterator iter=otherFragmentRoot.iterator();
+  XmlParser.Node otherNode=null;
+  while (iter.hasNext() && otherNode == null) {
+    Object obj=iter.next();
+    if (!(obj instanceof XmlParser.Node))     continue;
+    XmlParser.Node n=(XmlParser.Node)obj;
+    if ("resource-ref".equals(n.getTag()) && jndiName.equals(n.getString("res-ref-name",false,true)))     otherNode=n;
+  }
+  if (otherNode != null) {
+    String otherType=otherNode.getString("res-type",false,true);
+    String otherAuth=otherNode.getString("res-auth",false,true);
+    String otherShared=otherNode.getString("res-sharing-scope",false,true);
+    type=(type == null ? "" : type);
+    otherType=(otherType == null ? "" : otherType);
+    auth=(auth == null ? "" : auth);
+    otherAuth=(otherAuth == null ? "" : otherAuth);
+    shared=(shared == null ? "" : shared);
+    otherShared=(otherShared == null ? "" : otherShared);
+    if (!type.equals(otherType) || !auth.equals(otherAuth) || !shared.equals(otherShared))     throw new IllegalStateException("Conflicting resource-ref " + jndiName + " in "+ descriptor.getResource());
+  }
 }
 }
 }
