@@ -7,7 +7,6 @@
     holder.setName(servlet_name);
     context.getServletHandler().addServlet(holder);
   }
-  ServletRegistration.Dynamic registration=holder.getRegistration();
   Iterator iParamsIter=node.iterator("init-param");
   while (iParamsIter.hasNext()) {
     XmlParser.Node paramNode=(XmlParser.Node)iParamsIter.next();
@@ -17,7 +16,7 @@
 switch (origin) {
 case NotSet:
 {
-        registration.setInitParameter(pname,pvalue);
+        holder.setInitParameter(pname,pvalue);
         context.getMetaData().setOrigin(servlet_name + ".servlet.init-param." + pname,descriptor);
         break;
       }
@@ -26,14 +25,14 @@ case WebDefaults:
 case WebOverride:
 {
       if (!(descriptor instanceof FragmentDescriptor)) {
-        registration.setInitParameter(pname,pvalue);
+        holder.setInitParameter(pname,pvalue);
         context.getMetaData().setOrigin(servlet_name + ".servlet.init-param." + pname,descriptor);
       }
       break;
     }
 case WebFragment:
 {
-    if (!registration.getInitParameter(pname).equals(pvalue))     throw new IllegalStateException("Mismatching init-param " + pname + "="+ pvalue+ " in "+ descriptor.getResource());
+    if (!holder.getInitParameter(pname).equals(pvalue))     throw new IllegalStateException("Mismatching init-param " + pname + "="+ pvalue+ " in "+ descriptor.getResource());
     break;
   }
 }
@@ -54,19 +53,19 @@ hasJSP=true;
 Log.info("NO JSP Support for {}, did not find {}",context.getContextPath(),servlet_class);
 jspServletClass=servlet_class="org.eclipse.jetty.servlet.NoJspServlet";
 }
-if (registration.getInitParameter("scratchdir") == null) {
+if (holder.getInitParameter("scratchdir") == null) {
 File tmp=context.getTempDirectory();
 File scratch=new File(tmp,"jsp");
 if (!scratch.exists()) scratch.mkdir();
-registration.setInitParameter("scratchdir",scratch.getAbsolutePath());
-if ("?".equals(registration.getInitParameter("classpath"))) {
+holder.setInitParameter("scratchdir",scratch.getAbsolutePath());
+if ("?".equals(holder.getInitParameter("classpath"))) {
   String classpath=context.getClassPath();
   Log.debug("classpath=" + classpath);
-  if (classpath != null)   registration.setInitParameter("classpath",classpath);
+  if (classpath != null)   holder.setInitParameter("classpath",classpath);
 }
 }
 context.setAttribute("org.apache.catalina.jsp_classpath",context.getClassPath());
-registration.setInitParameter("com.sun.appserv.jsp.classpath",getSystemClassPath(context));
+holder.setInitParameter("com.sun.appserv.jsp.classpath",getSystemClassPath(context));
 }
 if (servlet_class != null) {
 ((WebDescriptor)descriptor).addClassName(servlet_class);
@@ -121,7 +120,7 @@ Origin o=context.getMetaData().getOrigin(servlet_name + ".servlet.load-on-startu
 switch (o) {
 case NotSet:
 {
-registration.setLoadOnStartup(order);
+holder.setInitOrder(order);
 context.getMetaData().setOrigin(servlet_name + ".servlet.load-on-startup",descriptor);
 break;
 }
@@ -130,7 +129,7 @@ case WebDefaults:
 case WebOverride:
 {
 if (!(descriptor instanceof FragmentDescriptor)) {
-registration.setLoadOnStartup(order);
+holder.setInitOrder(order);
 context.getMetaData().setOrigin(servlet_name + ".servlet.load-on-startup",descriptor);
 }
 break;
@@ -186,7 +185,7 @@ Origin o=context.getMetaData().getOrigin(servlet_name + ".servlet.run-as");
 switch (o) {
 case NotSet:
 {
-registration.setRunAsRole(roleName);
+holder.setRunAsRole(roleName);
 context.getMetaData().setOrigin(servlet_name + ".servlet.run-as",descriptor);
 break;
 }
@@ -195,14 +194,14 @@ case WebDefaults:
 case WebOverride:
 {
 if (!(descriptor instanceof FragmentDescriptor)) {
-registration.setRunAsRole(roleName);
+holder.setRunAsRole(roleName);
 context.getMetaData().setOrigin(servlet_name + ".servlet.run-as",descriptor);
 }
 break;
 }
 case WebFragment:
 {
-if (!registration.getRunAsRole().equals(roleName)) throw new IllegalStateException("Conflicting run-as role " + roleName + " for servlet "+ servlet_name+ " in "+ descriptor.getResource());
+if (!holder.getRunAsRole().equals(roleName)) throw new IllegalStateException("Conflicting run-as role " + roleName + " for servlet "+ servlet_name+ " in "+ descriptor.getResource());
 break;
 }
 }
