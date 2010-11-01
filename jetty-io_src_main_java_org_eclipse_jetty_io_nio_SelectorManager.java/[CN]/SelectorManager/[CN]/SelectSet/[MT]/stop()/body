@@ -1,19 +1,27 @@
 {
-  final CountDownLatch closed=new CountDownLatch(1);
-  Closer close=new Closer(){
-    public void close(){
-      try {
-        super.close();
-      }
-  finally {
-        closed.countDown();
-      }
+  try {
+    for (int i=0; i < 100 && _selecting != null; i++) {
+      wakeup();
+      Thread.sleep(1);
     }
   }
-;
-  addChange(close);
-  if (!closed.await(1,TimeUnit.SECONDS))   close.close();
+ catch (  Exception e) {
+    Log.ignore(e);
+  }
 synchronized (this) {
+    for (    SelectionKey key : _selector.keys()) {
+      if (key == null)       continue;
+      Object att=key.attachment();
+      if (att instanceof EndPoint) {
+        EndPoint endpoint=(EndPoint)att;
+        try {
+          endpoint.close();
+        }
+ catch (        IOException e) {
+          Log.ignore(e);
+        }
+      }
+    }
     _timeout.cancelAll();
     try {
       if (_selector != null)       _selector.close();
