@@ -12,7 +12,7 @@
     String id=entry.getKey();
     HashedSession session=entry.getValue();
 synchronized (session) {
-      if (!session.isIdled()) {
+      if (!session.isIdled() && !session.isSaveFailed()) {
         File file=null;
         FileOutputStream fos=null;
         try {
@@ -26,6 +26,7 @@ synchronized (session) {
           fos.close();
         }
  catch (        Exception e) {
+          session.saveFailed();
           Log.warn("Problem persisting session " + id,e);
           if (fos != null) {
             IO.close(fos);
