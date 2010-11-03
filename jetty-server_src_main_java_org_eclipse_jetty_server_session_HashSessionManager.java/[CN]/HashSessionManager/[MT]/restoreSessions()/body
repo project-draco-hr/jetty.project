@@ -1,4 +1,5 @@
 {
+  _sessionsLoaded=true;
   if (_storeDir == null || !_storeDir.exists()) {
     return;
   }
@@ -6,26 +7,18 @@
     Log.warn("Unable to restore Sessions: Cannot read from Session storage directory " + _storeDir.getAbsolutePath());
     return;
   }
-  Runnable restore=new Runnable(){
-    public void run(){
-      File[] files=_storeDir.listFiles();
-      for (int i=0; files != null && i < files.length; i++) {
-        try {
-          FileInputStream in=new FileInputStream(files[i]);
-          HashedSession session=restoreSession(in);
-          in.close();
-          addSession(session,false);
-          session.didActivate();
-          files[i].delete();
-        }
- catch (        Exception e) {
-          Log.warn("Problem restoring session " + files[i].getName(),e);
-        }
-      }
-      _sessionsLoaded=true;
+  File[] files=_storeDir.listFiles();
+  for (int i=0; files != null && i < files.length; i++) {
+    try {
+      FileInputStream in=new FileInputStream(files[i]);
+      HashedSession session=restoreSession(in,null);
+      in.close();
+      addSession(session,false);
+      session.didActivate();
+      files[i].delete();
+    }
+ catch (    Exception e) {
+      Log.warn("Problem restoring session " + files[i].getName(),e);
     }
   }
-;
-  if (_context == null)   restore.run();
- else   _context.getContextHandler().handle(restore);
 }

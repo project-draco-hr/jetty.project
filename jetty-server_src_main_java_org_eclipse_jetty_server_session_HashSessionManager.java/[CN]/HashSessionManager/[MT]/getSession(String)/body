@@ -1,11 +1,16 @@
 {
-  try {
-    if (!_sessionsLoaded && _lazyLoad)     restoreSessions();
-  }
- catch (  Exception e) {
-    Log.warn(e);
+  if (_lazyLoad && !_sessionsLoaded) {
+    try {
+      restoreSessions();
+    }
+ catch (    Exception e) {
+      Log.warn(e);
+    }
   }
   Map<String,HashedSession> sessions=_sessions;
   if (sessions == null)   return null;
-  return sessions.get(idInCluster);
+  HashedSession session=sessions.get(idInCluster);
+  if (session == null)   return null;
+  if (_idleSavePeriodMs != 0)   session.deIdle();
+  return session;
 }

@@ -8,24 +8,19 @@
   long accessed=in.readLong();
   long lastAccessed=in.readLong();
   int requests=in.readInt();
-  HashedSession session=(HashedSession)newSession(created,System.currentTimeMillis(),clusterId);
+  if (session == null)   session=(HashedSession)newSession(created,System.currentTimeMillis(),clusterId);
   session._cookieSet=cookieSet;
   session._lastAccessed=lastAccessed;
   int size=in.readInt();
   if (size > 0) {
-    ArrayList<String> keys=new ArrayList<String>();
-    for (int i=0; i < size; i++) {
-      String key=in.readUTF();
-      keys.add(key);
-    }
     ClassLoadingObjectInputStream ois=new ClassLoadingObjectInputStream(in);
     for (int i=0; i < size; i++) {
+      String key=ois.readUTF();
       Object value=ois.readObject();
-      session.setAttribute(keys.get(i),value);
+      session.setAttribute(key,value);
     }
     ois.close();
   }
- else   session.initValues();
-  in.close();
+ else   in.close();
   return session;
 }

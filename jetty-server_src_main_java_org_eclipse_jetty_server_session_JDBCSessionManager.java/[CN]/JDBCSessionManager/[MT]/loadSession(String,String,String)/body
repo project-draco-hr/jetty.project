@@ -1,6 +1,6 @@
 {
-  final AtomicReference<SessionData> reference=new AtomicReference<SessionData>();
-  final AtomicReference<Exception> exception=new AtomicReference<Exception>();
+  final AtomicReference<SessionData> _reference=new AtomicReference<SessionData>();
+  final AtomicReference<Exception> _exception=new AtomicReference<Exception>();
   Runnable load=new Runnable(){
     public void run(){
       SessionData data=null;
@@ -28,14 +28,14 @@
           InputStream is=((JDBCSessionIdManager)getIdManager())._dbAdaptor.getBlobInputStream(result,"map");
           ClassLoadingObjectInputStream ois=new ClassLoadingObjectInputStream(is);
           Object o=ois.readObject();
-          data.setAttributeMap((ConcurrentHashMap)o);
+          data.setAttributeMap((Map<String,Object>)o);
           ois.close();
           if (Log.isDebugEnabled())           Log.debug("LOADED session " + data);
         }
-        reference.set(data);
+        _reference.set(data);
       }
  catch (      Exception e) {
-        exception.set(e);
+        _exception.set(e);
       }
  finally {
         if (connection != null) {
@@ -52,5 +52,6 @@
 ;
   if (_context == null)   load.run();
  else   _context.getContextHandler().handle(load);
-  return reference.get();
+  if (_exception.get() != null)   throw _exception.get();
+  return _reference.get();
 }

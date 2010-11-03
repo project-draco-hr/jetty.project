@@ -8,26 +8,17 @@
   out.writeLong(_accessed);
   out.writeLong(_lastAccessed);
   out.writeInt(_requests);
-  if (_values != null) {
-    out.writeInt(_values.size());
-    Iterator itor=_values.keySet().iterator();
-    while (itor.hasNext()) {
-      String key=(String)itor.next();
-      out.writeUTF(key);
-    }
-    itor=_values.values().iterator();
+  if (_attributes != null) {
+    out.writeInt(_attributes.size());
     ObjectOutputStream oos=new ObjectOutputStream(out);
-    while (itor.hasNext()) {
-      Object o=itor.next();
-      try {
-        oos.writeObject(o);
-      }
- catch (      Exception e) {
-        Log.warn("Failed to save " + o + " of type "+ o.getClass()+ " for "+ getId(),e);
-      }
+    for (    Map.Entry<String,Object> entry : _attributes.entrySet()) {
+      oos.writeUTF(entry.getKey());
+      oos.writeObject(entry.getValue());
     }
     oos.close();
   }
- else   out.writeInt(0);
-  out.close();
+ else {
+    out.writeInt(0);
+    out.close();
+  }
 }
