@@ -4,19 +4,15 @@
   while (tokenizer.hasMoreTokens()) {
     Resource resource=_context.newResource(tokenizer.nextToken());
     if (Log.isDebugEnabled())     Log.debug("Path resource=" + resource);
-    File file=resource.getFile();
-    if (file != null) {
-      URL url=resource.getURL();
-      addURL(url);
-    }
+    if (resource.isDirectory() && resource instanceof ResourceCollection)     addClassPath(resource);
  else {
-      if (!resource.isDirectory() && file == null) {
-        throw new IllegalArgumentException("!file: " + resource);
-      }
- else {
+      File file=resource.getFile();
+      if (file != null) {
         URL url=resource.getURL();
         addURL(url);
       }
+ else       if (resource.isDirectory())       addURL(resource.getURL());
+ else       throw new IllegalArgumentException("!file: " + resource);
     }
   }
 }
