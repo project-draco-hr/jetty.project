@@ -3,17 +3,21 @@
   if (_handlers != null) {
     if (_parallelStart) {
       final CountDownLatch latch=new CountDownLatch(_handlers.length);
+      final ClassLoader loader=Thread.currentThread().getContextClassLoader();
       for (int i=0; i < _handlers.length; i++) {
         final int h=i;
         getServer().getThreadPool().dispatch(new Runnable(){
           public void run(){
+            ClassLoader orig=Thread.currentThread().getContextClassLoader();
             try {
+              Thread.currentThread().setContextClassLoader(loader);
               _handlers[h].start();
             }
  catch (            Throwable e) {
               mex.add(e);
             }
  finally {
+              Thread.currentThread().setContextClassLoader(orig);
               latch.countDown();
             }
           }
