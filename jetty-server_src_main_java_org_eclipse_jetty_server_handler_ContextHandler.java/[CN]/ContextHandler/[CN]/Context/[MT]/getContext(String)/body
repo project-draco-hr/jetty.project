@@ -1,14 +1,37 @@
 {
-  ContextHandler context=null;
+  List<ContextHandler> contexts=new ArrayList<ContextHandler>();
   Handler[] handlers=getServer().getChildHandlersByClass(ContextHandler.class);
+  String matched_path=null;
   for (int i=0; i < handlers.length; i++) {
     if (handlers[i] == null || !handlers[i].isStarted())     continue;
     ContextHandler ch=(ContextHandler)handlers[i];
     String context_path=ch.getContextPath();
     if (uripath.equals(context_path) || (uripath.startsWith(context_path) && uripath.charAt(context_path.length()) == '/') || "/".equals(context_path)) {
-      if (context == null || context_path.length() > context.getContextPath().length())       context=ch;
+      if (matched_path == null || context_path.length() > matched_path.length()) {
+        contexts.clear();
+        matched_path=context_path;
+      }
+      if (matched_path.equals(context_path))       contexts.add(ch);
     }
   }
-  if (context != null)   return context._scontext;
-  return null;
+switch (contexts.size()) {
+case 0:
+    return null;
+case 1:
+  return contexts.get(0)._scontext;
+default :
+if (contexts.contains(ContextHandler.this)) {
+  return _scontext;
+}
+if (getVirtualHosts() != null && getVirtualHosts().length > 0) {
+for (ContextHandler ch : contexts) {
+  if (ch.getVirtualHosts() != null && ch.getVirtualHosts().length > 0) {
+    for (    String h1 : getVirtualHosts())     for (    String h2 : ch.getVirtualHosts())     if (h1.equals(h2)) {
+      return ch._scontext;
+    }
+  }
+}
+}
+}
+return null;
 }
