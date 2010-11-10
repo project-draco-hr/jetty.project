@@ -1,4 +1,5 @@
 {
+  final AtomicReference<Throwable> exception=new AtomicReference<Throwable>();
   AccessController.doPrivileged(new PrivilegedAction(){
     public Object run(){
       try {
@@ -45,12 +46,22 @@ catch (        Exception e) {
       }
  catch (      AccessControlException ace) {
         ace.printStackTrace(System.err);
+        exception.set(ace);
       }
 catch (      Exception e) {
-        Log.warn(Log.EXCEPTION,e);
+        Log.debug(Log.EXCEPTION,e);
+        exception.set(e);
       }
       return null;
     }
   }
 );
+  Throwable th=exception.get();
+  if (th != null) {
+    if (th instanceof Exception)     throw (Exception)th;
+ else     if (th instanceof Error)     throw (Error)th;
+ else     if (th instanceof RuntimeException)     throw (RuntimeException)th;
+ else     if (th instanceof ThreadDeath)     throw (ThreadDeath)th;
+    throw new Error(th);
+  }
 }
