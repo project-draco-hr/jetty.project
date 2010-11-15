@@ -1,0 +1,55 @@
+{
+  configureServer(new BigBlockHandler());
+  Socket client=newSocket(HOST,_connector.getLocalPort());
+  client.setSoTimeout(10000);
+  try {
+    OutputStream os=client.getOutputStream();
+    BufferedReader in=new BufferedReader(new InputStreamReader(client.getInputStream()));
+    os.write(("GET / HTTP/1.1\r\n" + "host: " + HOST + ":"+ _connector.getLocalPort()+ "\r\n"+ "\r\n"+ "GET / HTTP/1.1\r\n"+ "host: "+ HOST+ ":"+ _connector.getLocalPort()+ "\r\n"+ "connection: close\r\n"+ "\r\n").getBytes());
+    os.flush();
+    boolean chunked=false;
+    boolean closed=false;
+    while (true) {
+      String line=in.readLine();
+      if (line == null || line.length() == 0)       break;
+      chunked|="Transfer-Encoding: chunked".equals(line);
+      closed|="Connection: close".equals(line);
+    }
+    Assert.assertTrue(chunked);
+    Assert.assertFalse(closed);
+    int max=Integer.MIN_VALUE;
+    while (true) {
+      String chunk=in.readLine();
+      String line=in.readLine();
+      if (line.length() == 0)       break;
+      int len=line.length();
+      Assert.assertEquals(Integer.valueOf(chunk,16).intValue(),len);
+      if (max < len)       max=len;
+    }
+    Assert.assertEquals(1024 * 1024,max);
+    String[] times=in.readLine().split(",");
+    for (    String t : times)     Assert.assertTrue(Integer.valueOf(t).intValue() < 900);
+    String end=in.readLine();
+    Assert.assertEquals("0",end);
+    end=in.readLine();
+    Assert.assertEquals(0,end.length());
+    chunked=false;
+    closed=false;
+    while (true) {
+      String line=in.readLine();
+      if (line == null || line.length() == 0)       break;
+      chunked|="Transfer-Encoding: chunked".equals(line);
+      closed|="Connection: close".equals(line);
+    }
+    Assert.assertFalse(chunked);
+    Assert.assertTrue(closed);
+    String bigline=in.readLine();
+    Assert.assertEquals(10 * 1024 * 1024,bigline.length());
+    times=in.readLine().split(",");
+    for (    String t : times)     Assert.assertTrue(Integer.valueOf(t).intValue() < 900);
+    Assert.assertTrue(in.readLine() == null);
+  }
+  finally {
+    client.close();
+  }
+}

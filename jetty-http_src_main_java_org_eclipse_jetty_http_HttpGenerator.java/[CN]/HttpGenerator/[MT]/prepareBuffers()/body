@@ -1,35 +1,49 @@
 {
   if (!_bufferChunked) {
-    if (_content != null && _content.length() > 0 && _buffer != null && _buffer.space() > 0) {
+    if (!_bypass && _content != null && _content.length() > 0 && _buffer != null && _buffer.space() > 0) {
       int len=_buffer.put(_content);
       _content.skip(len);
       if (_content.length() == 0)       _content=null;
     }
     if (_contentLength == HttpTokens.CHUNKED_CONTENT) {
-      int size=_buffer == null ? 0 : _buffer.length();
-      if (size > 0) {
+      if ((_buffer == null || _buffer.length() == 0) && _content != null) {
+        int size=_content.length();
         _bufferChunked=true;
-        if (_buffer.getIndex() == CHUNK_SPACE) {
-          _buffer.poke(_buffer.getIndex() - 2,HttpTokens.CRLF,0,2);
-          _buffer.setGetIndex(_buffer.getIndex() - 2);
-          BufferUtil.prependHexInt(_buffer,size);
-          if (_needCRLF) {
+        if (_needCRLF) {
+          if (_header.length() > 0)           throw new IllegalStateException("EOC");
+          _header.put(HttpTokens.CRLF);
+          _needCRLF=false;
+        }
+        BufferUtil.putHexInt(_header,size);
+        _header.put(HttpTokens.CRLF);
+        _needCRLF=true;
+      }
+ else       if (_buffer != null) {
+        int size=_buffer.length();
+        if (size > 0) {
+          _bufferChunked=true;
+          if (_buffer.getIndex() == CHUNK_SPACE) {
             _buffer.poke(_buffer.getIndex() - 2,HttpTokens.CRLF,0,2);
             _buffer.setGetIndex(_buffer.getIndex() - 2);
-            _needCRLF=false;
+            BufferUtil.prependHexInt(_buffer,size);
+            if (_needCRLF) {
+              _buffer.poke(_buffer.getIndex() - 2,HttpTokens.CRLF,0,2);
+              _buffer.setGetIndex(_buffer.getIndex() - 2);
+              _needCRLF=false;
+            }
           }
-        }
  else {
-          if (_needCRLF) {
-            if (_header.length() > 0)             throw new IllegalStateException("EOC");
+            if (_needCRLF) {
+              if (_header.length() > 0)               throw new IllegalStateException("EOC");
+              _header.put(HttpTokens.CRLF);
+              _needCRLF=false;
+            }
+            BufferUtil.putHexInt(_header,size);
             _header.put(HttpTokens.CRLF);
-            _needCRLF=false;
           }
-          BufferUtil.putHexInt(_header,size);
-          _header.put(HttpTokens.CRLF);
+          if (_buffer.space() >= 2)           _buffer.put(HttpTokens.CRLF);
+ else           _needCRLF=true;
         }
-        if (_buffer.space() >= 2)         _buffer.put(HttpTokens.CRLF);
- else         _needCRLF=true;
       }
       if (_needEOC && (_content == null || _content.length() == 0)) {
         if (_needCRLF) {
