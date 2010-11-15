@@ -1,28 +1,26 @@
 {
   String filter_name=node.getString("filter-name",false,true);
-  FilterMapping mapping=new FilterMapping();
-  mapping.setFilterName(filter_name);
-  List<String> paths=new ArrayList<String>();
-  Iterator<XmlParser.Node> iter=node.iterator("url-pattern");
-  while (iter.hasNext()) {
-    String p=iter.next().toString(false,true);
-    p=normalizePattern(p);
-    paths.add(p);
+  Origin origin=context.getMetaData().getOrigin(filter_name + ".filter.mappings");
+switch (origin) {
+case NotSet:
+{
+      context.getMetaData().setOrigin(filter_name + ".filter.mappings",descriptor);
+      addFilterMapping(filter_name,node,context);
+      break;
+    }
+case WebDefaults:
+case WebOverride:
+case WebXml:
+{
+    if (!(descriptor instanceof FragmentDescriptor)) {
+      addFilterMapping(filter_name,node,context);
+    }
+    break;
   }
-  mapping.setPathSpecs((String[])paths.toArray(new String[paths.size()]));
-  List<String> names=new ArrayList<String>();
-  iter=node.iterator("servlet-name");
-  while (iter.hasNext()) {
-    String n=((XmlParser.Node)iter.next()).toString(false,true);
-    names.add(n);
-  }
-  mapping.setServletNames((String[])names.toArray(new String[names.size()]));
-  List<DispatcherType> dispatches=new ArrayList<DispatcherType>();
-  iter=node.iterator("dispatcher");
-  while (iter.hasNext()) {
-    String d=((XmlParser.Node)iter.next()).toString(false,true);
-    dispatches.add(FilterMapping.dispatch(d));
-  }
-  if (dispatches.size() > 0)   mapping.setDispatcherTypes(EnumSet.copyOf(dispatches));
-  context.getServletHandler().addFilterMapping(mapping);
+case WebFragment:
+{
+  addFilterMapping(filter_name,node,context);
+  break;
+}
+}
 }

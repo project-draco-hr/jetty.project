@@ -4,7 +4,13 @@
   _webFragmentResourceMap.put(jarResource,descriptor);
   _webFragmentRoots.add(descriptor);
   descriptor.parse();
-  if (descriptor.getName() != null)   _webFragmentNameMap.put(descriptor.getName(),descriptor);
+  if (descriptor.getName() != null) {
+    Descriptor existing=_webFragmentNameMap.get(descriptor.getName());
+    if (existing != null && !isAllowDuplicateFragmentNames()) {
+      throw new IllegalStateException("Duplicate fragment name: " + descriptor.getName() + " for "+ existing.getResource()+ " and "+ descriptor.getResource());
+    }
+ else     _webFragmentNameMap.put(descriptor.getName(),descriptor);
+  }
   if (_ordering != null && _ordering.isAbsolute())   return;
   if (_ordering == null && descriptor.isOrdered())   _ordering=new Ordering.RelativeOrdering(this);
 }

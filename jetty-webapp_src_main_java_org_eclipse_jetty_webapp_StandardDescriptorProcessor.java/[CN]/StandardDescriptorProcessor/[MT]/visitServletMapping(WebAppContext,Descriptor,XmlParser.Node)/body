@@ -1,15 +1,26 @@
 {
   String servlet_name=node.getString("servlet-name",false,true);
-  ServletMapping mapping=new ServletMapping();
-  mapping.setServletName(servlet_name);
-  if (context.getMetaData().getOrigin(servlet_name + ".servlet.mappings") == Origin.NotSet)   context.getMetaData().setOrigin(servlet_name + ".servlet.mappings",descriptor);
-  List<String> paths=new ArrayList<String>();
-  Iterator<XmlParser.Node> iter=node.iterator("url-pattern");
-  while (iter.hasNext()) {
-    String p=iter.next().toString(false,true);
-    p=normalizePattern(p);
-    paths.add(p);
+  Origin origin=context.getMetaData().getOrigin(servlet_name + ".servlet.mappings");
+switch (origin) {
+case NotSet:
+{
+      context.getMetaData().setOrigin(servlet_name + ".servlet.mappings",descriptor);
+      addServletMapping(servlet_name,node,context);
+      break;
+    }
+case WebXml:
+case WebDefaults:
+case WebOverride:
+{
+    if (!(descriptor instanceof FragmentDescriptor)) {
+      addServletMapping(servlet_name,node,context);
+    }
+    break;
   }
-  mapping.setPathSpecs((String[])paths.toArray(new String[paths.size()]));
-  context.getServletHandler().addServletMapping(mapping);
+case WebFragment:
+{
+  addServletMapping(servlet_name,node,context);
+  break;
+}
+}
 }
