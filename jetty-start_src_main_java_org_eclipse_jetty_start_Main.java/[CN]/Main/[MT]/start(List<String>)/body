@@ -1,5 +1,7 @@
 {
-  startMonitor();
+  int port=Integer.parseInt(_config.getProperty("STOP.PORT",System.getProperty("STOP.PORT","-1")));
+  String key=_config.getProperty("STOP.KEY",System.getProperty("STOP.KEY",null));
+  Monitor monitor=new Monitor(port,key);
   List<String> configuredXmls=loadConfig(xmls);
   if (configuredXmls.isEmpty()) {
     throw new FileNotFoundException("No XML configuration files specified in start.config or command line.");
@@ -49,6 +51,7 @@
     copyInThread(process.getErrorStream(),System.err);
     copyInThread(process.getInputStream(),System.out);
     copyInThread(System.in,process.getOutputStream());
+    monitor.setProcess(process);
     process.waitFor();
     return;
   }
