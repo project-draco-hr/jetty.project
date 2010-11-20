@@ -1,5 +1,19 @@
 {
+  String appName=getContextHandlerAppName(context);
   App app=getDeployedApps().remove(context.getDisplayName());
+  if (app == null) {
+    appName=null;
+    for (    Entry<String,App> deployedApp : getDeployedApps().entrySet()) {
+      if (deployedApp.getValue().getContextHandler() == context) {
+        app=deployedApp.getValue();
+        appName=deployedApp.getKey();
+        break;
+      }
+    }
+    if (appName != null) {
+      getDeployedApps().remove(appName);
+    }
+  }
   if (app != null) {
     getDeploymentManager().removeApp(app);
   }
