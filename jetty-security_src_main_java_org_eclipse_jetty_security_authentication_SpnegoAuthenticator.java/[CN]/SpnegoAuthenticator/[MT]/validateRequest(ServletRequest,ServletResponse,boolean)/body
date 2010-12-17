@@ -1,0 +1,30 @@
+{
+  HttpServletRequest req=(HttpServletRequest)request;
+  HttpServletResponse res=(HttpServletResponse)response;
+  String header=req.getHeader(HttpHeaders.AUTHORIZATION);
+  if (!mandatory) {
+    return _deferred;
+  }
+  if (header == null) {
+    try {
+      if (_deferred.isDeferred(res)) {
+        return Authentication.UNAUTHENTICATED;
+      }
+      Log.debug("SpengoAuthenticator: sending challenge");
+      res.setHeader(HttpHeaders.WWW_AUTHENTICATE,HttpHeaders.NEGOTIATE);
+      res.sendError(HttpServletResponse.SC_UNAUTHORIZED);
+      return Authentication.SEND_CONTINUE;
+    }
+ catch (    IOException ioe) {
+      throw new ServerAuthException(ioe);
+    }
+  }
+ else   if (header != null && header.startsWith(HttpHeaders.NEGOTIATE)) {
+    String spnegoToken=header.substring(10);
+    UserIdentity user=_loginService.login(null,spnegoToken);
+    if (user != null) {
+      return new UserAuthentication(getAuthMethod(),user);
+    }
+  }
+  return Authentication.UNAUTHENTICATED;
+}
