@@ -10,8 +10,27 @@
     }
   }
   if (jettyEnvXmlUrl != null) {
-    XmlConfiguration configuration=new XmlConfiguration(jettyEnvXmlUrl);
-    configuration.configure(context);
+synchronized (localContextRoot.getRoot()) {
+      final List<Bound> bindings=new ArrayList<Bound>();
+      NamingContext.Listener listener=new NamingContext.Listener(){
+        public void unbind(        NamingContext ctx,        Binding binding){
+        }
+        public Binding bind(        NamingContext ctx,        Binding binding){
+          bindings.add(new Bound(ctx,binding.getName()));
+          return binding;
+        }
+      }
+;
+      try {
+        localContextRoot.getRoot().addListener(listener);
+        XmlConfiguration configuration=new XmlConfiguration(jettyEnvXmlUrl);
+        configuration.configure(context);
+      }
+  finally {
+        localContextRoot.getRoot().removeListener(listener);
+        context.setAttribute(JETTY_ENV_BINDINGS,bindings);
+      }
+    }
   }
   bindEnvEntries(context);
 }

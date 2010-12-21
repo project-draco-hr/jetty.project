@@ -5,17 +5,17 @@
     Context ic=new InitialContext();
     Context compCtx=(Context)ic.lookup("java:comp");
     compCtx.destroySubcontext("env");
+    List<Bound> bindings=(List<Bound>)context.getAttribute(JETTY_ENV_BINDINGS);
+    context.setAttribute(JETTY_ENV_BINDINGS,null);
+    if (bindings != null) {
+      Collections.reverse(bindings);
+      for (      Bound b : bindings)       b._context.destroySubcontext(b._name);
+    }
   }
  catch (  NameNotFoundException e) {
     Log.warn(e);
   }
-  try {
-    NamingContext scopeContext=(NamingContext)NamingEntryUtil.getContextForScope(context);
-    scopeContext.getParent().destroySubcontext(scopeContext.getName());
+ finally {
+    Thread.currentThread().setContextClassLoader(oldLoader);
   }
- catch (  NameNotFoundException e) {
-    Log.ignore(e);
-    Log.debug("No naming entries configured in environment for webapp " + context);
-  }
-  Thread.currentThread().setContextClassLoader(oldLoader);
 }
