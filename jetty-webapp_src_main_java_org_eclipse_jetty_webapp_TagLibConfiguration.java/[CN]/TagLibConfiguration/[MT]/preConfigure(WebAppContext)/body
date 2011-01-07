@@ -5,44 +5,6 @@
  catch (  Exception e) {
     return;
   }
-  Set tlds=new HashSet();
-  if (context.getResourceAliases() != null && context.getBaseResource() != null && context.getBaseResource().exists()) {
-    Iterator iter=context.getResourceAliases().values().iterator();
-    while (iter.hasNext()) {
-      String location=(String)iter.next();
-      if (location != null && location.toLowerCase().endsWith(".tld")) {
-        if (!location.startsWith("/"))         location="/WEB-INF/" + location;
-        Resource l=context.getBaseResource().addPath(location);
-        tlds.add(l);
-      }
-    }
-  }
-  Resource web_inf=context.getWebInf();
-  if (web_inf != null) {
-    String[] contents=web_inf.list();
-    for (int i=0; contents != null && i < contents.length; i++) {
-      if (contents[i] != null && contents[i].toLowerCase().endsWith(".tld")) {
-        Resource l=web_inf.addPath(contents[i]);
-        tlds.add(l);
-      }
-    }
-  }
-  Collection<Resource> tld_resources=(Collection<Resource>)context.getAttribute(TLD_RESOURCES);
-  if (tld_resources != null)   tlds.addAll(tld_resources);
-  _descriptors.clear();
-  Resource tld=null;
-  Iterator iter=tlds.iterator();
-  while (iter.hasNext()) {
-    try {
-      tld=(Resource)iter.next();
-      if (Log.isDebugEnabled())       Log.debug("TLD=" + tld);
-      TldDescriptor d=new TldDescriptor(tld);
-      d.parse();
-      _descriptors.add(d);
-    }
- catch (    Exception e) {
-      Log.warn("Unable to parse TLD: " + tld,e);
-    }
-  }
-  _processor=new TldProcessor();
+  TagLibListener tagLibListener=new TagLibListener(context);
+  context.addEventListener(tagLibListener);
 }

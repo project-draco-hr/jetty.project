@@ -1,0 +1,39 @@
+{
+  Set<Resource> tlds=new HashSet<Resource>();
+  if (_context.getResourceAliases() != null && _context.getBaseResource() != null && _context.getBaseResource().exists()) {
+    Iterator iter=_context.getResourceAliases().values().iterator();
+    while (iter.hasNext()) {
+      String location=(String)iter.next();
+      if (location != null && location.toLowerCase().endsWith(".tld")) {
+        if (!location.startsWith("/"))         location="/WEB-INF/" + location;
+        Resource l=_context.getBaseResource().addPath(location);
+        tlds.add(l);
+      }
+    }
+  }
+  Resource web_inf=_context.getWebInf();
+  if (web_inf != null) {
+    String[] contents=web_inf.list();
+    for (int i=0; contents != null && i < contents.length; i++) {
+      if (contents[i] != null && contents[i].toLowerCase().endsWith(".tld")) {
+        Resource l=web_inf.addPath(contents[i]);
+        tlds.add(l);
+      }
+    }
+  }
+  if (web_inf != null) {
+    Resource web_inf_tlds=_context.getWebInf().addPath("/tlds/");
+    if (web_inf_tlds.exists() && web_inf_tlds.isDirectory()) {
+      String[] contents=web_inf_tlds.list();
+      for (int i=0; contents != null && i < contents.length; i++) {
+        if (contents[i] != null && contents[i].toLowerCase().endsWith(".tld")) {
+          Resource l=web_inf_tlds.addPath(contents[i]);
+          tlds.add(l);
+        }
+      }
+    }
+  }
+  Collection<Resource> tld_resources=(Collection<Resource>)_context.getAttribute(TLD_RESOURCES);
+  if (tld_resources != null)   tlds.addAll(tld_resources);
+  return tlds;
+}
