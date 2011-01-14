@@ -1,0 +1,22 @@
+{
+  super.setUp();
+  server=new Server();
+  Connector connector=new SelectChannelConnector();
+  server.addConnector(connector);
+  server.setHandler(new AbstractHandler(){
+    public void handle(    String target,    Request baseRequest,    HttpServletRequest request,    HttpServletResponse response) throws IOException, ServletException {
+      response.setStatus(HttpStatus.OK_200);
+      response.addHeader("For",request.getQueryString());
+      response.addHeader("Name","Value");
+      response.getOutputStream().print("blah");
+      response.flushBuffer();
+    }
+  }
+);
+  server.start();
+  port=server.getConnectors()[0].getLocalPort();
+  client=new HttpClient();
+  client.setConnectorType(HttpClient.CONNECTOR_SELECT_CHANNEL);
+  client.setConnectTimeout(5);
+  client.start();
+}
