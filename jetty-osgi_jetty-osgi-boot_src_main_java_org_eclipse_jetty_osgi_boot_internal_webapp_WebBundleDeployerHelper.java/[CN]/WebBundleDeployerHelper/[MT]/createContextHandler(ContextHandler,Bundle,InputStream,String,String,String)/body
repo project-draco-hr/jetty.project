@@ -1,0 +1,42 @@
+{
+  try {
+    XmlConfiguration xmlConfiguration=new XmlConfiguration(contextInputStream);
+    HashMap properties=new HashMap();
+    properties.put("Server",_wrapper.getServer());
+    setThisBundleHomeProperty(bundle,properties,overrideBundleInstallLocation);
+    xmlConfiguration.setProperties(properties);
+    ContextHandler context=null;
+    if (handlerToConfigure == null) {
+      context=(ContextHandler)xmlConfiguration.configure();
+    }
+ else {
+      xmlConfiguration.configure(handlerToConfigure);
+      context=handlerToConfigure;
+    }
+    if (context instanceof WebAppContext) {
+      ((WebAppContext)context).setExtraClasspath(extraClasspath);
+      ((WebAppContext)context).setParentLoaderPriority(_wrapper.getOSGiAppProvider().isParentLoaderPriority());
+      if (_wrapper.getOSGiAppProvider().getDefaultsDescriptor() != null && _wrapper.getOSGiAppProvider().getDefaultsDescriptor().length() != 0) {
+        ((WebAppContext)context).setDefaultsDescriptor(_wrapper.getOSGiAppProvider().getDefaultsDescriptor());
+      }
+    }
+    configureWebAppContext(context,bundle,requireTldBundle);
+    return context;
+  }
+ catch (  FileNotFoundException e) {
+    return null;
+  }
+catch (  SAXException e) {
+    e.printStackTrace();
+  }
+catch (  IOException e) {
+    e.printStackTrace();
+  }
+catch (  Throwable e) {
+    e.printStackTrace();
+  }
+ finally {
+    IO.close(contextInputStream);
+  }
+  return null;
+}

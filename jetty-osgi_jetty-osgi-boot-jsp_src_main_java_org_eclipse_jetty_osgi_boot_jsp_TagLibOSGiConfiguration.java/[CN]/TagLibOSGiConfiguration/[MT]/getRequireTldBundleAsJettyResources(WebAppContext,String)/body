@@ -1,0 +1,31 @@
+{
+  Bundle bundle=(Bundle)context.getAttribute(OSGiWebappConstants.JETTY_OSGI_BUNDLE);
+  PackageAdmin packAdmin=getBundleAdmin();
+  String[] symbNames=requireTldBundle.split(", ");
+  Collection<Resource> tlds=new LinkedHashSet<Resource>();
+  for (  String symbName : symbNames) {
+    Bundle[] bs=packAdmin.getBundles(symbName,null);
+    if (bs == null || bs.length == 0) {
+      throw new IllegalArgumentException("Unable to locate the bundle '" + symbName + "' specified in the "+ OSGiWebappConstants.REQUIRE_TLD_BUNDLE+ " of the manifest of "+ bundle.getSymbolicName());
+    }
+    Enumeration<URL> en=bs[0].findEntries("META-INF","*.tld",false);
+    boolean atLeastOneTldFound=false;
+    while (en.hasMoreElements()) {
+      atLeastOneTldFound=true;
+      URL oriUrl=en.nextElement();
+      URL url=DefaultFileLocatorHelper.getLocalURL(oriUrl);
+      Resource tldResource;
+      try {
+        tldResource=Resource.newResource(url);
+      }
+ catch (      IOException e) {
+        throw new IllegalArgumentException("Unable to locate the " + "tld resource in '" + url.toString() + "' in the bundle '"+ bs[0].getSymbolicName()+ "' while registering the "+ OSGiWebappConstants.REQUIRE_TLD_BUNDLE+ " of the manifest of "+ bundle.getSymbolicName(),e);
+      }
+      tlds.add(tldResource);
+    }
+    if (!atLeastOneTldFound) {
+      Log.warn("No '/META-INF/*.tld' resources were found " + " in the bundle '" + bs[0].getSymbolicName() + "' while registering the "+ OSGiWebappConstants.REQUIRE_TLD_BUNDLE+ " of the manifest of "+ bundle.getSymbolicName());
+    }
+  }
+  return tlds;
+}
