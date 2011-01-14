@@ -1,4 +1,27 @@
 {
   JettyPolicy ap=new JettyPolicy(Collections.singleton(MavenTestingUtils.getBasedir().getAbsolutePath() + "/src/test/resources/multiple-codebase-mixed-permission.policy"),evaluator);
   ap.refresh();
+  URL url=new URL("file:///bar.jar");
+  CodeSource cs=new CodeSource(url,new Certificate[0]);
+  PermissionCollection barPermissionCollection=ap.getPermissions(cs);
+  assertNotNull(barPermissionCollection);
+  Permission testBarPerm=new FilePermission("/tmp/*","read,write");
+  Permission testBarPerm2=new FilePermission("/usr/*","read");
+  assertTrue(barPermissionCollection.implies(testBarPerm));
+  assertTrue(barPermissionCollection.implies(testBarPerm2));
+  PermissionCollection globalPermissionCollection=ap.getPermissions(new ProtectionDomain(null,null));
+  assertNotNull(globalPermissionCollection);
+  Permission testPropertyPermission=new PropertyPermission("main.class","read");
+  assertTrue(globalPermissionCollection.implies(testPropertyPermission));
+  assertTrue(barPermissionCollection.implies(testPropertyPermission));
+  URL fooUrl=new URL("file:///foo.jar");
+  CodeSource fooCodeSource=new CodeSource(fooUrl,new Certificate[0]);
+  PermissionCollection fooPermissionCollection=ap.getPermissions(fooCodeSource);
+  assertNotNull(fooPermissionCollection);
+  Permission testFooPerm=new FilePermission("/tmp/*","read,write");
+  Permission testFooPerm2=new FilePermission("/tmp/*","read,write,delete");
+  assertTrue(fooPermissionCollection.implies(testFooPerm));
+  assertFalse(fooPermissionCollection.implies(testFooPerm2));
+  assertFalse(fooPermissionCollection.implies(testBarPerm2));
+  assertTrue(fooPermissionCollection.implies(testPropertyPermission));
 }
