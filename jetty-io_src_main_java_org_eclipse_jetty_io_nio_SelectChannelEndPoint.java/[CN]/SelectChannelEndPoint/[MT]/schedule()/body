@@ -10,7 +10,7 @@ synchronized (this) {
       if (_readBlocked && _key.isReadable())       _readBlocked=false;
       if (_writeBlocked && _key.isWritable())       _writeBlocked=false;
       this.notifyAll();
-      _key.interestOps(0);
+      if (_dispatched)       _key.interestOps(0);
       return;
     }
     if (!isReadyForDispatch()) {
@@ -22,13 +22,9 @@ synchronized (this) {
       _key.interestOps(_interestOps);
       _writable=true;
     }
-    if (_selectSet.getManager().isDeferringInterestedOps0()) {
-      if (_dispatched)       _key.interestOps(0);
- else       dispatch();
-    }
- else {
-      _key.interestOps(0);
-      if (!_dispatched)       dispatch();
+    if (!_dispatched) {
+      dispatch();
+      if (_dispatched && !_selectSet.getManager().isDeferringInterestedOps0())       _key.interestOps(0);
     }
   }
 }
