@@ -1,8 +1,7 @@
 {
-  File testDir=new File("target/tests/" + DefaultServletTest.class.getSimpleName());
-  prepareEmptyTestDir(testDir);
-  File resBase=new File(testDir,"docroot");
-  assertTrue(resBase.mkdirs());
+  testdir.ensureEmpty();
+  File resBase=testdir.getFile("docroot");
+  FS.ensureDirExists(resBase);
   File inde=new File(resBase,"index.htm");
   File index=new File(resBase,"index.html");
   String resBasePath=resBase.getAbsolutePath();
@@ -12,7 +11,7 @@
   defholder.setInitParameter("welcomeServlets","true");
   defholder.setInitParameter("gzip","false");
   defholder.setInitParameter("resourceBase",resBasePath);
-  ServletHolder jspholder=context.addServlet(NoJspServlet.class,"*.jsp");
+  @SuppressWarnings("unused") ServletHolder jspholder=context.addServlet(NoJspServlet.class,"*.jsp");
   String response;
   response=connector.getResponses("GET /context/ HTTP/1.0\r\n\r\n");
   assertResponseContains("JSP support not configured",response);
@@ -22,10 +21,10 @@
   createFile(inde,"<h1>Hello Inde</h1>");
   response=connector.getResponses("GET /context/ HTTP/1.0\r\n\r\n");
   assertResponseContains("<h1>Hello Index</h1>",response);
-  assertTrue(index.delete());
+  deleteFile(index);
   response=connector.getResponses("GET /context/ HTTP/1.0\r\n\r\n");
   assertResponseContains("<h1>Hello Inde</h1>",response);
-  assertTrue(inde.delete());
+  deleteFile(inde);
   response=connector.getResponses("GET /context/ HTTP/1.0\r\n\r\n");
   assertResponseContains("JSP support not configured",response);
 }

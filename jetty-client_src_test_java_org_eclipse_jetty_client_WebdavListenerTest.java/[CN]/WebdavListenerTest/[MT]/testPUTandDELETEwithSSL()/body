@@ -1,4 +1,34 @@
 {
-  File file=new File("src/test/resources/foo.txt");
-  assertTrue(file.exists());
+  File file=MavenTestingUtils.getTestResourceFile("foo.txt");
+  PathAssert.assertFileExists("WebDAV test file",file);
+  ContentExchange singleFileExchange=new ContentExchange();
+  singleFileExchange.setURL(_singleFileURL);
+  singleFileExchange.setMethod(HttpMethods.PUT);
+  singleFileExchange.setFileForUpload(file);
+  singleFileExchange.setRequestHeader("Content-Type","application/octet-stream");
+  singleFileExchange.setRequestHeader("Content-Length",String.valueOf(file.length()));
+  _httpClient.send(singleFileExchange);
+  singleFileExchange.waitForDone();
+  String result=singleFileExchange.getResponseContent();
+  Assert.assertEquals(201,singleFileExchange.getResponseStatus());
+  ContentExchange dirFileExchange=new ContentExchange();
+  dirFileExchange.setURL(_dirFileURL);
+  dirFileExchange.setMethod(HttpMethods.PUT);
+  dirFileExchange.setFileForUpload(file);
+  dirFileExchange.setRequestHeader("Content-Type","application/octet-stream");
+  dirFileExchange.setRequestHeader("Content-Length",String.valueOf(file.length()));
+  _httpClient.send(dirFileExchange);
+  dirFileExchange.waitForDone();
+  result=dirFileExchange.getResponseContent();
+  Assert.assertEquals(201,singleFileExchange.getResponseStatus());
+  HttpExchange del=new HttpExchange();
+  del.setURL(_singleFileURL);
+  del.setMethod(HttpMethods.DELETE);
+  _httpClient.send(del);
+  del.waitForDone();
+  del.setURL(_dirURL);
+  del.setMethod(HttpMethods.DELETE);
+  del.setRequestHeader("Depth","infinity");
+  _httpClient.send(del);
+  del.waitForDone();
 }

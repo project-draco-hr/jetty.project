@@ -4,19 +4,18 @@
   defholder.setInitParameter("redirectWelcome","false");
   defholder.setInitParameter("gzip","false");
   defholder.setInitParameter("aliases","true");
-  File testDir=new File("target/tests/" + DefaultServletTest.class.getSimpleName());
-  prepareEmptyTestDir(testDir);
-  File resBase=new File(testDir,"docroot");
+  testdir.ensureEmpty();
+  File resBase=testdir.getFile("docroot");
   assertTrue(resBase.mkdirs());
   File index=new File(resBase,"index.html");
   createFile(index,"<h1>Hello Index</h1>");
   File wackyDir=new File(resBase,"dir?");
-  if (!_runningOnWindows) {
-    assertTrue(wackyDir.mkdirs());
+  if (!OS.IS_WINDOWS) {
+    FS.ensureDirExists(wackyDir);
   }
   wackyDir=new File(resBase,"dir;");
   assertTrue(wackyDir.mkdirs());
-  File sekret=new File(testDir,"sekret");
+  File sekret=testdir.getFile("sekret");
   assertTrue(sekret.mkdirs());
   File pass=new File(sekret,"pass");
   createFile(pass,"Sssh, you shouldn't be seeing this");
@@ -27,7 +26,7 @@
   assertResponseContains("<h1>Hello Index</h1>",response);
   response=connector.getResponses("GET /context/dir?/ HTTP/1.0\r\n\r\n");
   assertResponseContains("404",response);
-  if (!_runningOnWindows) {
+  if (!OS.IS_WINDOWS) {
     response=connector.getResponses("GET /context/dir%3F/ HTTP/1.0\r\n\r\n");
     assertResponseContains("Directory: /context/dir?/<",response);
   }

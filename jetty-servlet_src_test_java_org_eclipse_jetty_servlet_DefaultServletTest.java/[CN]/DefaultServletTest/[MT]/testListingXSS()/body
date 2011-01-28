@@ -3,14 +3,15 @@
   defholder.setInitParameter("dirAllowed","true");
   defholder.setInitParameter("redirectWelcome","false");
   defholder.setInitParameter("gzip","false");
-  File testDir=new File("target/tests/" + DefaultServletTest.class.getSimpleName());
-  prepareEmptyTestDir(testDir);
-  File resBase=new File(testDir,"docroot");
-  assertTrue(resBase.mkdirs());
+  testdir.ensureEmpty();
+  File resBase=testdir.getFile("docroot");
+  FS.ensureDirExists(resBase);
   assertTrue(new File(resBase,"one").mkdir());
   assertTrue(new File(resBase,"two").mkdir());
   assertTrue(new File(resBase,"three").mkdir());
-  if (!_runningOnWindows)   assertTrue("Creating dir 'f??r' (Might not work in Windows)",new File(resBase,"f??r").mkdir());
+  if (!OS.IS_WINDOWS) {
+    assertTrue("Creating dir 'f??r' (Might not work in Windows)",new File(resBase,"f??r").mkdir());
+  }
   String resBasePath=resBase.getAbsolutePath();
   defholder.setInitParameter("resourceBase",resBasePath);
   StringBuffer req1=new StringBuffer();
@@ -21,6 +22,8 @@
   assertResponseContains("/one/",response);
   assertResponseContains("/two/",response);
   assertResponseContains("/three/",response);
-  if (!_runningOnWindows)   assertResponseContains("/f%3F%3Fr",response);
+  if (!OS.IS_WINDOWS) {
+    assertResponseContains("/f%3F%3Fr",response);
+  }
   assertResponseNotContains("<script>",response);
 }
