@@ -30,6 +30,21 @@ case WRITE_UTF8:
   if (bytes + chars > buffer.length)   chars=buffer.length - bytes;
   for (int i=0; i < chars; i++) {
     int code=s[offset + i];
+    if (_surrogate == 0) {
+      if (Character.isHighSurrogate((char)code)) {
+        _surrogate=code;
+        continue;
+      }
+    }
+ else     if (Character.isLowSurrogate((char)code)) {
+      code=Character.toCodePoint((char)_surrogate,(char)code);
+      _surrogate=0;
+    }
+ else {
+      code=_surrogate;
+      _surrogate=0;
+      i--;
+    }
     if ((code & 0xffffff80) == 0) {
       if (bytes >= buffer.length) {
         chars=i;
