@@ -1,0 +1,31 @@
+{
+  List<Object> dump=new ArrayList<Object>(getMaxThreads());
+  for (  final Thread thread : _threads) {
+    final StackTraceElement[] trace=thread.getStackTrace();
+    boolean inIdleJobPoll=false;
+    for (    StackTraceElement t : trace) {
+      if ("idleJobPoll".equals(t.getMethodName())) {
+        inIdleJobPoll=true;
+        break;
+      }
+    }
+    final boolean idle=inIdleJobPoll;
+    if (_detailedDump) {
+      dump.add(new Dumpable(){
+        public void dump(        Appendable out,        String indent) throws IOException {
+          out.append(String.valueOf(thread.getId())).append(' ').append(thread.getName()).append(' ').append(thread.getState().toString()).append(idle ? " IDLE" : "").append('\n');
+          if (!idle)           AggregateLifeCycle.dump(out,indent,Arrays.asList(trace));
+        }
+        public String dump(){
+          return null;
+        }
+      }
+);
+    }
+ else {
+      dump.add(thread.getId() + " " + thread.getName()+ " "+ thread.getState()+ " @ "+ trace[0]+ (idle ? " IDLE" : ""));
+    }
+  }
+  out.append(String.valueOf(this)).append("\n");
+  AggregateLifeCycle.dump(out,indent,dump);
+}
