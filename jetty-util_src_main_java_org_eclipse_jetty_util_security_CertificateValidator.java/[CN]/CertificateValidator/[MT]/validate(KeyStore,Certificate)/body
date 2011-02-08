@@ -1,0 +1,35 @@
+{
+  if (cert != null && cert instanceof X509Certificate) {
+    ((X509Certificate)cert).checkValidity();
+    String certAlias="[none]";
+    try {
+      certAlias=keyStore.getCertificateAlias((X509Certificate)cert);
+      Certificate[] certChain=keyStore.getCertificateChain(certAlias);
+      ArrayList<X509Certificate> certList=new ArrayList<X509Certificate>();
+      for (      Certificate item : certChain) {
+        if (!(item instanceof X509Certificate)) {
+          throw new CertificateException("Invalid certificate type in chain");
+        }
+        certList.add((X509Certificate)item);
+      }
+      if (certList.isEmpty()) {
+        throw new CertificateException("Invalid certificate chain");
+      }
+      X509CertSelector certSelect=new X509CertSelector();
+      certSelect.setCertificate(certList.get(0));
+      PKIXBuilderParameters pbParams=new PKIXBuilderParameters(_trustStore,certSelect);
+      pbParams.addCertStore(CertStore.getInstance("Collection",new CollectionCertStoreParameters(certList)));
+      if (_crls != null && !_crls.isEmpty()) {
+        pbParams.addCertStore(CertStore.getInstance("Collection",new CollectionCertStoreParameters(_crls)));
+      }
+      pbParams.setRevocationEnabled(true);
+      pbParams.setMaxPathLength(_maxCertPathLength);
+      CertPathBuilderResult buildResult=CertPathBuilder.getInstance("PKIX").build(pbParams);
+      CertPathValidator.getInstance("PKIX").validate(buildResult.getCertPath(),pbParams);
+    }
+ catch (    Exception ex) {
+      Log.debug(ex);
+      throw new CertificateException("Unable to validate certificate for alias [" + certAlias + "]: "+ ex.getMessage());
+    }
+  }
+}
