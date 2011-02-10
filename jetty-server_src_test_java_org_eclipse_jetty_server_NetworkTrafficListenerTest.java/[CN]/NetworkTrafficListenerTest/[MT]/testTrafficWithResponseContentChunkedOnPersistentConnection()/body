@@ -1,0 +1,46 @@
+{
+  final String responseContent="response_content";
+  final String responseChunk1="response_content".substring(0,responseContent.length() / 2);
+  final String responseChunk2="response_content".substring(responseContent.length() / 2,responseContent.length());
+  initConnector(new AbstractHandler(){
+    public void handle(    String uri,    Request request,    HttpServletRequest servletRequest,    HttpServletResponse servletResponse) throws IOException, ServletException {
+      request.setHandled(true);
+      ServletOutputStream output=servletResponse.getOutputStream();
+      output.write(responseChunk1.getBytes("UTF-8"));
+      output.flush();
+      output.write(responseChunk2.getBytes("UTF-8"));
+      output.flush();
+    }
+  }
+);
+  final AtomicReference<String> incomingData=new AtomicReference<String>();
+  final CountDownLatch incomingLatch=new CountDownLatch(1);
+  final AtomicReference<String> outgoingData=new AtomicReference<String>("");
+  final CountDownLatch outgoingLatch=new CountDownLatch(4);
+  connector.addNetworkTrafficListener(new NetworkTrafficListener.Empty(){
+    public void incoming(    Socket socket,    Buffer bytes){
+      incomingData.set(bytes.toString("UTF-8"));
+      incomingLatch.countDown();
+    }
+    public void outgoing(    Socket socket,    Buffer bytes){
+      outgoingData.set(outgoingData.get() + bytes.toString("UTF-8"));
+      outgoingLatch.countDown();
+    }
+  }
+);
+  int port=connector.getLocalPort();
+  String request="" + "GET / HTTP/1.1\r\n" + "Host: localhost:" + port + "\r\n"+ "\r\n";
+  String expectedResponse="" + "HTTP/1.1 200 OK\r\n" + "Transfer-Encoding: chunked\r\n"+ "\r\n" + responseChunk1.length() + "\r\n"+ responseChunk1+ "\r\n"+ responseChunk2.length()+ "\r\n"+ responseChunk2+ "\r\n"+ "0\r\n"+ "\r\n";
+  Socket socket=new Socket("localhost",port);
+  OutputStream output=socket.getOutputStream();
+  output.write(request.getBytes("UTF-8"));
+  output.flush();
+  assertTrue(incomingLatch.await(1,TimeUnit.SECONDS));
+  assertEquals(request,incomingData.get());
+  assertTrue(outgoingLatch.await(1,TimeUnit.SECONDS));
+  assertEquals(expectedResponse,outgoingData.get());
+  byte[] responseBytes=readResponse(socket);
+  String response=new String(responseBytes,"UTF-8");
+  assertEquals(expectedResponse,response);
+  socket.close();
+}
