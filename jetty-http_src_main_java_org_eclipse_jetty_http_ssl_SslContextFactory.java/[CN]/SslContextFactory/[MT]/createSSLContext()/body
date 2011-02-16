@@ -1,0 +1,23 @@
+{
+  checkConfig();
+  KeyStore keyStore=getKeyStore(_keystoreInputStream,_keystorePath,_keystoreType,_keystoreProvider,_keystorePassword == null ? null : _keystorePassword.toString());
+  KeyStore trustStore=getKeyStore(_truststoreInputStream,_truststorePath,_truststoreType,_truststoreProvider,_truststorePassword == null ? null : _truststorePassword.toString());
+  Collection<? extends CRL> crls=loadCRL(_crlPath);
+  if (_validateCerts && keyStore != null) {
+    if (_certAlias == null) {
+      List<String> aliases=Collections.list(keyStore.aliases());
+      _certAlias=aliases.size() == 1 ? aliases.get(0) : null;
+    }
+    Certificate cert=_certAlias == null ? null : keyStore.getCertificate(_certAlias);
+    if (cert == null) {
+      throw new Exception("No certificate found in the keystore" + (_certAlias == null ? "" : " for alias " + _certAlias));
+    }
+    CertificateValidator validator=new CertificateValidator(trustStore,crls);
+    validator.validate(keyStore,cert);
+  }
+  KeyManager[] keyManagers=getKeyManagers(keyStore);
+  TrustManager[] trustManagers=getTrustManagers(trustStore,crls);
+  SecureRandom secureRandom=_secureRandomAlgorithm == null ? null : SecureRandom.getInstance(_secureRandomAlgorithm);
+  _context=_sslProvider == null ? SSLContext.getInstance(_sslProtocol) : SSLContext.getInstance(_sslProtocol,_sslProvider);
+  _context.init(keyManagers,trustManagers,secureRandom);
+}

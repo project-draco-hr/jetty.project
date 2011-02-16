@@ -1,0 +1,24 @@
+{
+  TrustManager[] managers=null;
+  if (trustStore != null) {
+    if (_validateCerts && _trustManagerFactoryAlgorithm.equalsIgnoreCase("PKIX")) {
+      PKIXBuilderParameters pbParams=new PKIXBuilderParameters(trustStore,new X509CertSelector());
+      pbParams.setRevocationEnabled(true);
+      pbParams.setMaxPathLength(_maxCertPathLength);
+      if (crls != null && !crls.isEmpty()) {
+        pbParams.addCertStore(CertStore.getInstance("Collection",new CollectionCertStoreParameters(crls)));
+      }
+      Security.setProperty("ocsp.enable","true");
+      System.setProperty("com.sun.security.enableCRLDP","true");
+      TrustManagerFactory trustManagerFactory=TrustManagerFactory.getInstance(_trustManagerFactoryAlgorithm);
+      trustManagerFactory.init(new CertPathTrustManagerParameters(pbParams));
+      managers=trustManagerFactory.getTrustManagers();
+    }
+ else {
+      TrustManagerFactory trustManagerFactory=TrustManagerFactory.getInstance(_trustManagerFactoryAlgorithm);
+      trustManagerFactory.init(trustStore);
+      managers=trustManagerFactory.getTrustManagers();
+    }
+  }
+  return managers;
+}

@@ -1,7 +1,14 @@
 {
-  if (_context == null)   _context=createSSLContext();
-  SSLEngine engine=createSSLEngine();
-  SSLSession ssl_session=engine.getSession();
+  if (!_sslContextFactory.checkConfig()) {
+    throw new IllegalStateException("SSL context is not configured correctly.");
+  }
+  _sslContextFactory.start();
+  SSLEngine sslEngine=_sslContextFactory.getSslContext().createSSLEngine();
+  sslEngine.setUseClientMode(false);
+  sslEngine.setWantClientAuth(_sslContextFactory.getWantClientAuth());
+  sslEngine.setNeedClientAuth(_sslContextFactory.getNeedClientAuth());
+  sslEngine.setEnabledCipherSuites(_sslContextFactory.selectCipherSuites(sslEngine.getEnabledCipherSuites(),sslEngine.getSupportedCipherSuites()));
+  SSLSession sslSession=sslEngine.getSession();
   ThreadLocalBuffers buffers=new ThreadLocalBuffers(){
     @Override protected Buffer newBuffer(    int size){
       if (getUseDirectBuffers())       return new DirectNIOBuffer(size);
@@ -16,10 +23,10 @@
     }
   }
 ;
-  buffers.setBufferSize(ssl_session.getApplicationBufferSize());
-  buffers.setHeaderSize(ssl_session.getApplicationBufferSize());
+  buffers.setBufferSize(sslSession.getApplicationBufferSize());
+  buffers.setHeaderSize(sslSession.getApplicationBufferSize());
   _sslBuffers=buffers;
-  if (getRequestHeaderSize() < ssl_session.getApplicationBufferSize())   setRequestHeaderSize(ssl_session.getApplicationBufferSize());
-  if (getRequestBufferSize() < ssl_session.getApplicationBufferSize())   setRequestBufferSize(ssl_session.getApplicationBufferSize());
+  if (getRequestHeaderSize() < sslSession.getApplicationBufferSize())   setRequestHeaderSize(sslSession.getApplicationBufferSize());
+  if (getRequestBufferSize() < sslSession.getApplicationBufferSize())   setRequestBufferSize(sslSession.getApplicationBufferSize());
   super.doStart();
 }

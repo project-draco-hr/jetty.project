@@ -1,0 +1,16 @@
+{
+  KeyManager[] managers=null;
+  if (keyStore != null) {
+    KeyManagerFactory keyManagerFactory=KeyManagerFactory.getInstance(_keyManagerFactoryAlgorithm);
+    keyManagerFactory.init(keyStore,_keymanagerPassword == null ? (_keystorePassword == null ? null : _keystorePassword.toString().toCharArray()) : _keymanagerPassword.toString().toCharArray());
+    managers=keyManagerFactory.getKeyManagers();
+    if (_certAlias != null) {
+      for (int idx=0; idx < managers.length; idx++) {
+        if (managers[idx] instanceof X509KeyManager) {
+          managers[idx]=new AliasedX509ExtendedKeyManager(_certAlias,(X509KeyManager)managers[idx]);
+        }
+      }
+    }
+  }
+  return managers;
+}
