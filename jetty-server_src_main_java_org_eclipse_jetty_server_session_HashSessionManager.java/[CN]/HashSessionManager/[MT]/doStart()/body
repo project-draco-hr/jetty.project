@@ -1,7 +1,12 @@
 {
   _sessions=new ConcurrentHashMap<String,HashedSession>();
   super.doStart();
-  _timer=new Timer("HashSessionScavenger-" + __id++,true);
+  _timerStop=false;
+  _timer=(Timer)getSessionHandler().getServer().getAttribute("org.eclipse.jetty.server.session.timer");
+  if (_timer == null) {
+    _timerStop=true;
+    _timer=new Timer("HashSessionScavenger-" + __id++,true);
+  }
   setScavengePeriod(getScavengePeriod());
   if (_storeDir != null) {
     if (!_storeDir.exists())     _storeDir.mkdirs();
