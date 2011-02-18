@@ -1,9 +1,7 @@
 {
   Assume.assumeTrue(!OS.IS_WINDOWS);
-  JettyPolicy ap=new JettyPolicy(getSinglePolicy("jetty-certificate.policy"),evaluator);
+  JettyPolicy ap=new JettyPolicy(MavenTestingUtils.getTestResourceDir("runtime-test-4").getAbsolutePath(),evaluator);
   ap.refresh();
-  Policy.setPolicy(ap);
-  System.setSecurityManager(new SecurityManager());
   URL url=MavenTestingUtils.getTargetURL("test-policy/jetty-test-policy.jar");
   URLClassLoader loader;
   if (Thread.currentThread().getContextClassLoader() != null) {
@@ -13,7 +11,10 @@
     loader=new URLClassLoader(new URL[]{url},ClassLoader.getSystemClassLoader());
   }
   Thread.currentThread().setContextClassLoader(loader);
+  Policy.setPolicy(ap);
+  System.setSecurityManager(new SecurityManager());
   ap.refresh();
+  ap.dump(System.out);
   Class<?> clazz=loader.loadClass("org.eclipse.jetty.toolchain.test.policy.Tester");
   Method m=clazz.getMethod("testEcho",new Class[]{String.class});
   String foo=(String)m.invoke(clazz.newInstance(),"foo");
