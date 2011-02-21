@@ -50,14 +50,18 @@
   int l=to_send.length();
   out.write(to_send.substring(0,l - 10).getBytes());
   out.flush();
+  Thread.sleep(100);
   out.write(to_send.substring(l - 10,l - 5).getBytes());
   out.flush();
-  Thread.sleep(100);
-  request.setMethod("GET");
-  request.setVersion("HTTP/1.0");
-  request.setHeader("Host","tester");
-  request.setURI("/context/file.txt");
-  response.parse(tester.getResponses(request.generate()));
+  do {
+    Thread.sleep(100);
+    request.setMethod("GET");
+    request.setVersion("HTTP/1.0");
+    request.setHeader("Host","tester");
+    request.setURI("/context/file.txt");
+    response.parse(tester.getResponses(request.generate()));
+  }
+ while (response.getStatus() == 200);
   assertTrue(response.getMethod() == null);
   assertEquals(HttpServletResponse.SC_NOT_FOUND,response.getStatus());
   out.write(to_send.substring(l - 5).getBytes());
