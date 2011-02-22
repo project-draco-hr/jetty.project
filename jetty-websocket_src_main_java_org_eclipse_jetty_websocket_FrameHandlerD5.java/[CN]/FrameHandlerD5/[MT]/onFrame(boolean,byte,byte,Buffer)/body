@@ -1,0 +1,42 @@
+{
+  try {
+    byte[] array=buffer.array();
+    if (opcode == 0) {
+      if (more) {
+        _utf8.append(buffer.array(),buffer.getIndex(),buffer.length());
+        _fragmented=true;
+      }
+ else       if (_fragmented) {
+        _utf8.append(buffer.array(),buffer.getIndex(),buffer.length());
+        _websocket.onMessage(opcode,_utf8.toString());
+        _utf8.reset();
+        _fragmented=false;
+      }
+ else {
+        _websocket.onMessage(opcode,buffer.toString("utf-8"));
+      }
+    }
+ else     if (opcode == PING) {
+      _connection.sendMessage(PONG,buffer.array(),buffer.getIndex(),buffer.length());
+    }
+ else     if (opcode == PONG) {
+    }
+ else {
+      if (more) {
+        _websocket.onFragment(true,opcode,array,buffer.getIndex(),buffer.length());
+      }
+ else       if (_fragmented) {
+        _websocket.onFragment(false,opcode,array,buffer.getIndex(),buffer.length());
+      }
+ else {
+        _websocket.onMessage(opcode,array,buffer.getIndex(),buffer.length());
+      }
+    }
+  }
+ catch (  ThreadDeath th) {
+    throw th;
+  }
+catch (  Throwable th) {
+    Log.warn(th);
+  }
+}

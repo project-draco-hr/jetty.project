@@ -1,0 +1,27 @@
+{
+  if (endpoint instanceof AsyncEndPoint)   ((AsyncEndPoint)endpoint).cancelIdle();
+  _endp=endpoint;
+  _endp.setMaxIdleTime(maxIdleTime);
+  _timestamp=timestamp;
+  _websocket=websocket;
+  _generator=new WebSocketGeneratorD05(buffers,_endp);
+  _parser=new WebSocketParserD05(buffers,endpoint,new FrameHandlerD5(this,_websocket),true);
+  if (_endp instanceof SelectChannelEndPoint) {
+    final SelectChannelEndPoint scep=(SelectChannelEndPoint)_endp;
+    scep.cancelIdle();
+    _idle=new IdleCheck(){
+      public void access(      EndPoint endp){
+        scep.scheduleIdle();
+      }
+    }
+;
+    scep.scheduleIdle();
+  }
+ else {
+    _idle=new IdleCheck(){
+      public void access(      EndPoint endp){
+      }
+    }
+;
+  }
+}

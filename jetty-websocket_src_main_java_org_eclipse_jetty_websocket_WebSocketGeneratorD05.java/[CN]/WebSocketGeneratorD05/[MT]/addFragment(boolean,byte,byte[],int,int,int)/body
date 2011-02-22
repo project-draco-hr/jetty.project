@@ -1,0 +1,51 @@
+{
+  if (_buffer == null)   _buffer=_buffers.getDirectBuffer();
+  if (_buffer.space() == 0)   expelBuffer(blockFor);
+  opcode=(byte)(opcode & 0x0f);
+  while (length > 0) {
+    int fragment=length;
+    if (fragment + 10 > _buffer.capacity()) {
+      fragment=_buffer.capacity() - 10;
+      bufferPut((byte)(0x80 | opcode),blockFor);
+    }
+ else     if (more)     bufferPut((byte)(0x80 | opcode),blockFor);
+ else     bufferPut(opcode,blockFor);
+    if (fragment > 0xffff) {
+      bufferPut((byte)0x7f,blockFor);
+      bufferPut((byte)((fragment >> 56) & 0x7f),blockFor);
+      bufferPut((byte)((fragment >> 48) & 0xff),blockFor);
+      bufferPut((byte)((fragment >> 40) & 0xff),blockFor);
+      bufferPut((byte)((fragment >> 32) & 0xff),blockFor);
+      bufferPut((byte)((fragment >> 24) & 0xff),blockFor);
+      bufferPut((byte)((fragment >> 16) & 0xff),blockFor);
+      bufferPut((byte)((fragment >> 8) & 0xff),blockFor);
+      bufferPut((byte)(fragment & 0xff),blockFor);
+    }
+ else     if (fragment >= 0x7e) {
+      bufferPut((byte)126,blockFor);
+      bufferPut((byte)(fragment >> 8),blockFor);
+      bufferPut((byte)(fragment & 0xff),blockFor);
+    }
+ else {
+      bufferPut((byte)fragment,blockFor);
+    }
+    int remaining=fragment;
+    while (remaining > 0) {
+      _buffer.compact();
+      int chunk=remaining < _buffer.space() ? remaining : _buffer.space();
+      _buffer.put(content,offset + (fragment - remaining),chunk);
+      remaining-=chunk;
+      if (_buffer.space() > 0) {
+        flushBuffer();
+      }
+ else {
+        expelBuffer(blockFor);
+        if (remaining == 0) {
+          flushBuffer();
+        }
+      }
+    }
+    offset+=fragment;
+    length-=fragment;
+  }
+}
