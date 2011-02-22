@@ -1,5 +1,24 @@
 {
   super.doStart();
+  _connectTimer.setDuration(_httpClient.getConnectTimeout());
+  _connectTimer.setNow();
+  if (_httpClient.isAsyncConnects()) {
+    _httpClient._threadPool.dispatch(new Runnable(){
+      public void run(){
+        while (isRunning()) {
+          _connectTimer.tick(System.currentTimeMillis());
+          try {
+            Thread.sleep(200);
+          }
+ catch (          InterruptedException x) {
+            Thread.currentThread().interrupt();
+            break;
+          }
+        }
+      }
+    }
+);
+  }
   _selectorManager.start();
   final boolean direct=_httpClient.getUseDirectBuffers();
   SSLEngine sslEngine=_selectorManager.newSslEngine();

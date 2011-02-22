@@ -2,13 +2,23 @@
   try {
     SocketChannel channel=SocketChannel.open();
     Address address=destination.isProxied() ? destination.getProxy() : destination.getAddress();
-    channel.configureBlocking(true);
     channel.socket().setTcpNoDelay(true);
-    channel.socket().setSoTimeout(_httpClient.getConnectTimeout());
-    channel.connect(address.toSocketAddress());
-    channel.configureBlocking(false);
-    channel.socket().setSoTimeout((int)_httpClient.getTimeout());
-    _selectorManager.register(channel,destination);
+    if (_httpClient.isAsyncConnects()) {
+      channel.configureBlocking(false);
+      channel.connect(address.toSocketAddress());
+      _selectorManager.register(channel,destination);
+      ConnectTimeout connectTimeout=new ConnectTimeout(channel,destination);
+      _connectTimer.schedule(connectTimeout);
+      _connectingChannels.put(channel,connectTimeout);
+    }
+ else {
+      channel.configureBlocking(true);
+      channel.socket().setSoTimeout(_httpClient.getConnectTimeout());
+      channel.socket().connect(address.toSocketAddress(),_httpClient.getConnectTimeout());
+      channel.configureBlocking(false);
+      channel.socket().setSoTimeout((int)_httpClient.getTimeout());
+      _selectorManager.register(channel,destination);
+    }
   }
  catch (  IOException ex) {
     destination.onConnectionFailed(ex);
