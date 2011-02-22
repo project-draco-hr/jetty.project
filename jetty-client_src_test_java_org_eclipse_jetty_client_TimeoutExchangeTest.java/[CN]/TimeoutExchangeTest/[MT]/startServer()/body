@@ -1,21 +1,22 @@
 {
   _server=new Server();
   _server.setGracefulShutdown(500);
-  _connector=new SelectChannelConnector();
-  _connector.setPort(0);
-  _server.setConnectors(new Connector[]{_connector});
+  Connector _connector=new SelectChannelConnector();
+  _server.addConnector(_connector);
   Handler handler=new AbstractHandler(){
     public void handle(    String target,    Request baseRequest,    HttpServletRequest request,    HttpServletResponse response) throws IOException, ServletException {
       try {
-        Thread.sleep(700);
+        Long sleep=Long.parseLong(request.getParameter("sleep"));
+        Thread.sleep(sleep);
+        response.setContentType("text/html");
+        response.setStatus(HttpServletResponse.SC_OK);
+        response.getWriter().println("<h1>Hello</h1>");
+        baseRequest.setHandled(true);
       }
- catch (      Exception e) {
-        e.printStackTrace();
+ catch (      InterruptedException x) {
+        Thread.currentThread().interrupt();
+        throw new ServletException(x);
       }
-      response.setContentType("text/html");
-      response.setStatus(HttpServletResponse.SC_OK);
-      response.getWriter().println("<h1>Hello</h1>");
-      ((Request)request).setHandled(true);
     }
   }
 ;

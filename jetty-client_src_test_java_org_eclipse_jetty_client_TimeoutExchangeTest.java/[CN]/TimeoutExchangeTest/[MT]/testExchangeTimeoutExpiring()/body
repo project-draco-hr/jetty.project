@@ -1,0 +1,15 @@
+{
+  startClient(2000);
+  long serverSleep=1000;
+  long exchangeTimeout=500;
+  CustomContentExchange httpExchange=new CustomContentExchange();
+  httpExchange.setURL("http://localhost:" + _port + "/?sleep="+ serverSleep);
+  httpExchange.setMethod(HttpMethods.POST);
+  httpExchange.setRequestContent(new ByteArrayBuffer("<h1>??</h1>"));
+  httpExchange.setTimeout(exchangeTimeout);
+  _httpClient.send(httpExchange);
+  Assert.assertTrue(httpExchange.getDoneLatch().await(2 * serverSleep,TimeUnit.MILLISECONDS));
+  Assert.assertTrue(httpExchange.isTimeoutOccurred());
+  Assert.assertFalse(httpExchange.isResponseReceived());
+  Assert.assertFalse(httpExchange.isErrorOccurred());
+}
