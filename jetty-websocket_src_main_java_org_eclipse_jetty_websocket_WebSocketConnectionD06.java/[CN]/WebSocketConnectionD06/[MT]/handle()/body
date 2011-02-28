@@ -1,0 +1,31 @@
+{
+  try {
+    boolean progress=true;
+    while (progress) {
+      int flushed=_generator.flush();
+      int filled=_parser.parseNext();
+      progress=flushed > 0 || filled > 0;
+      if (filled < 0 || flushed < 0) {
+        _endp.close();
+        break;
+      }
+    }
+  }
+ catch (  IOException e) {
+    try {
+      _endp.close();
+    }
+ catch (    IOException e2) {
+      Log.ignore(e2);
+    }
+    throw e;
+  }
+ finally {
+    if (_endp.isOpen()) {
+      _idle.access(_endp);
+      if (_closedIn && _closedOut && _generator.isBufferEmpty())       _endp.close();
+ else       checkWriteable();
+    }
+  }
+  return this;
+}

@@ -1,0 +1,38 @@
+{
+  WebSocketBuffers buffers=new WebSocketBuffers(1024);
+  ByteArrayEndPoint endPoint=new ByteArrayEndPoint();
+  _handler=new Handler();
+  _parser=new WebSocketParserD06(buffers,endPoint,_handler,true);
+  _in=new ByteArrayBuffer(2048){
+{
+      super.put(_mask,0,4);
+    }
+    @Override public void poke(    int index,    byte b){
+      super.poke(index,(byte)(b ^ _mask[index % 4]));
+    }
+    @Override public int poke(    int index,    Buffer src){
+      return poke(index,src.asArray(),0,src.length());
+    }
+    @Override public int poke(    int index,    byte[] b,    int offset,    int length){
+      byte[] mb=new byte[b.length];
+      for (int i=length; i-- > 0; )       mb[offset + i]=(byte)(b[offset + i] ^ _mask[(index + i) % 4]);
+      return super.poke(index,mb,offset,length);
+    }
+    @Override public int put(    Buffer src){
+      return put(src.asArray(),0,src.length());
+    }
+    @Override public void put(    byte b){
+      super.put((byte)(b ^ _mask[getIndex() % 4]));
+    }
+    @Override public int put(    byte[] b,    int offset,    int length){
+      byte[] mb=new byte[b.length];
+      for (int i=length; i-- > 0; )       mb[offset + i]=(byte)(b[offset + i] ^ _mask[(getIndex() + i) % 4]);
+      return super.put(mb,offset,length);
+    }
+    @Override public int put(    byte[] b){
+      return put(b,0,b.length);
+    }
+  }
+;
+  endPoint.setIn(_in);
+}
