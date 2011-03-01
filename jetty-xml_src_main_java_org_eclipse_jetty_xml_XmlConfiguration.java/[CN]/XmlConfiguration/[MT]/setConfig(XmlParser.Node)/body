@@ -3,12 +3,23 @@
   if ("Configure".equals(config.getTag())) {
     _processor=new JettyXmlConfiguration();
   }
- else {
-    for (    ConfigurationProcessorFactory factory : __factoryLoader) {
-      _processor=factory.getConfigurationProcessor(_dtd,config.getTag());
+ else   if (__factoryLoader != null) {
+    for (    Object factory : __factoryLoader) {
+      Method gcp;
+      try {
+        gcp=factory.getClass().getMethod("getConfigurationProcessor",String.class,String.class);
+        _processor=(ConfigurationProcessor)gcp.invoke(factory,_dtd,config.getTag());
+      }
+ catch (      Exception e) {
+        e.printStackTrace();
+        Log.ignore(e);
+      }
       if (_processor != null)       break;
     }
     if (_processor == null)     throw new IllegalStateException("Unknown configuration type: " + config.getTag() + " in "+ this);
+  }
+ else {
+    throw new IllegalArgumentException("Unknown XML tag:" + config.getTag());
   }
   _processor.init(_url,_config,_idMap,_propertyMap);
 }
