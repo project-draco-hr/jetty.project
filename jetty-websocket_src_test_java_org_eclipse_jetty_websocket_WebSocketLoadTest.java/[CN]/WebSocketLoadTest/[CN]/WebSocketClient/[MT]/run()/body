@@ -2,9 +2,11 @@
   try {
     String message="0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF";
     for (int i=0; i < iterations; ++i) {
-      writeString(message);
-      String result=readString();
-      assertEquals(message,result);
+      _generator.addFrame(WebSocket.OP_TEXT,message,10000);
+      _generator.flush(10000);
+      _response=null;
+      while (_response == null)       _parser.parseNext();
+      Assert.assertEquals(message,_response.toString());
       latch.countDown();
     }
   }

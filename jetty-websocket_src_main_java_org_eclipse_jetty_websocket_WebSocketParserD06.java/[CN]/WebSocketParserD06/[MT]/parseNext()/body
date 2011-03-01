@@ -80,11 +80,12 @@ Buffer data=_buffer.get(_count);
 if (_masked) {
 if (data.array() == null) data=_buffer.asMutableBuffer();
 byte[] array=data.array();
-for (int i=data.length(); i-- > 0; ) array[data.getIndex() + i]^=_mask[_m++ % 4];
+final int end=data.putIndex();
+for (int i=data.getIndex(); i < end; i++) array[i]^=_mask[_m++ % 4];
 }
 _handler.onFrame(!_fin,_flags,_opcode,data);
 _count=0;
-_state=State.OPCODE;
+_state=_masked ? State.MASK : State.OPCODE;
 if (_buffer.length() == 0) {
 _buffers.returnBuffer(_buffer);
 _buffer=null;
