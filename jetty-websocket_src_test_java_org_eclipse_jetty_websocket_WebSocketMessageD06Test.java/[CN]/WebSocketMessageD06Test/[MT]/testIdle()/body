@@ -10,14 +10,14 @@
   lookFor("s3pPLMBiTxaQ9kYGzzhZRbK+xOo=",input);
   skipTo("\r\n\r\n",input);
   assertTrue(_serverWebSocket.awaitConnected(1000));
-  assertNotNull(_serverWebSocket.outbound);
+  assertNotNull(_serverWebSocket.connection);
   assertEquals(0x84,input.read());
   assertEquals(0x0f,input.read());
   lookFor("sent on connect",input);
   assertEquals((byte)0x81,(byte)input.read());
   assertEquals(0x06,input.read());
-  assertEquals(1000 / 0xff,input.read());
-  assertEquals(1000 % 0xff,input.read());
+  assertEquals(1000 / 0x100,input.read());
+  assertEquals(1000 % 0x100,input.read());
   lookFor("Idle",input);
   output.write(0xff);
   output.write(0xff);
@@ -28,7 +28,7 @@
   output.flush();
   assertTrue(_serverWebSocket.awaitDisconnected(5000));
   try {
-    _serverWebSocket.outbound.sendMessage("Don't send");
+    _serverWebSocket.connection.sendMessage("Don't send");
     assertTrue(false);
   }
  catch (  IOException e) {

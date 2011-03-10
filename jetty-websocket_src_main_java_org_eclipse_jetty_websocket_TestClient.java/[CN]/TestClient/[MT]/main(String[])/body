@@ -1,0 +1,35 @@
+{
+  try {
+    String host="localhost";
+    int port=8080;
+    boolean verbose=false;
+    String protocol=null;
+    int count=10;
+    int size=64;
+    int fragment=4000;
+    for (int i=0; i < args.length; i++) {
+      String a=args[i];
+      if ("-p".equals(a) || "--port".equals(a))       port=Integer.parseInt(args[++i]);
+ else       if ("-h".equals(a) || "--host".equals(a))       port=Integer.parseInt(args[++i]);
+ else       if ("-c".equals(a) || "--count".equals(a))       count=Integer.parseInt(args[++i]);
+ else       if ("-s".equals(a) || "--size".equals(a))       size=Integer.parseInt(args[++i]);
+ else       if ("-f".equals(a) || "--fragment".equals(a))       fragment=Integer.parseInt(args[++i]);
+ else       if ("-P".equals(a) || "--protocol".equals(a))       protocol=args[++i];
+ else       if ("-v".equals(a) || "--verbose".equals(a))       verbose=true;
+ else       if (a.startsWith("-"))       usage(args);
+    }
+    TestClient client=new TestClient(host,port,protocol == null ? null : ("org.ietf.websocket.test-" + protocol),10000);
+    client.setSize(size);
+    try {
+      client.open();
+      if ("echo".equals(protocol))       client.ping(count,WebSocketConnectionD06.OP_BINARY,fragment);
+ else       client.ping(count,WebSocketConnectionD06.OP_PING,-1);
+    }
+  finally {
+      client.dump();
+    }
+  }
+ catch (  Exception e) {
+    Log.warn(e);
+  }
+}

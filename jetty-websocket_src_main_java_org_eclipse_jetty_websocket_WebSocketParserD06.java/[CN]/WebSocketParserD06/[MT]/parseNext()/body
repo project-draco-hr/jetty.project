@@ -3,12 +3,12 @@
   int total_filled=0;
   while (true) {
     int available=_buffer.length();
-    if (available < (_state.getMinSize() + (_masked ? 4 : 0)) || _state == State.DATA && available < _count) {
+    while (available < (_state == State.SKIP ? 1 : _bytesNeeded)) {
       _buffer.compact();
-      if (_buffer.space() == 0)       throw new IllegalStateException("FULL");
+      if (_buffer.space() == 0)       throw new IllegalStateException("FULL: " + _state + " "+ _bytesNeeded+ ">"+ _buffer.capacity());
       try {
         int filled=_endp.isOpen() ? _endp.fill(_buffer) : -1;
-        if (filled <= 0)         return total_filled;
+        if (filled <= 0)         return total_filled > 0 ? total_filled : filled;
         total_filled+=filled;
         available=_buffer.length();
       }
@@ -18,74 +18,104 @@
       }
     }
     byte b;
-    while (_state != State.DATA && available-- > 0) {
+    while (_state != State.DATA && available >= (_state == State.SKIP ? 1 : _bytesNeeded)) {
 switch (_state) {
+case START:
+        _state=_masked ? State.MASK : State.OPCODE;
+      _bytesNeeded=_state.getNeeds();
+    continue;
 case MASK:
-        _buffer.get(_mask,0,4);
-      _state=State.OPCODE;
-    _m=0;
-  continue;
+  _buffer.get(_mask,0,4);
+available-=4;
+_state=State.OPCODE;
+_bytesNeeded=_state.getNeeds();
+_m=0;
+continue;
 case OPCODE:
 b=_buffer.get();
+available--;
 if (_masked) b^=_mask[_m++ % 4];
 _opcode=(byte)(b & 0xf);
-_flags=(byte)(b >> 4);
-_fin=(_flags & 8) != 0;
-_state=State.LENGTH_7;
+_flags=(byte)(0xf & (b >> 4));
+if (WebSocketConnectionD06.isControlFrame(_opcode) && !WebSocketConnectionD06.isLastFrame(_flags)) {
+_state=State.SKIP;
+_handler.close(WebSocketConnectionD06.CLOSE_PROTOCOL,"fragmented control");
+}
+ else _state=State.LENGTH_7;
+_bytesNeeded=_state.getNeeds();
 continue;
 case LENGTH_7:
 b=_buffer.get();
+available--;
 if (_masked) b^=_mask[_m++ % 4];
 switch (b) {
 case 127:
 _length=0;
-_count=8;
 _state=State.LENGTH_63;
+_bytesNeeded=_state.getNeeds();
 break;
 case 126:
 _length=0;
-_count=2;
 _state=State.LENGTH_16;
+_bytesNeeded=_state.getNeeds();
 break;
 default :
 _length=(0x7f & b);
-_count=(int)_length;
+_bytesNeeded=(int)_length;
 _state=State.DATA;
 }
 continue;
 case LENGTH_16:
 b=_buffer.get();
+available--;
 if (_masked) b^=_mask[_m++ % 4];
-_length=_length << 8 | b;
-if (--_count == 0) {
-if (_length >= _buffer.capacity() - 4) throw new IllegalStateException("TOO LARGE");
-_count=(int)_length;
+_length=_length * 0x100 + (0xff & b);
+if (--_bytesNeeded == 0) {
+_bytesNeeded=(int)_length;
+if (_length > _buffer.capacity()) {
+_state=State.SKIP;
+_handler.close(WebSocketConnectionD06.CLOSE_LARGE,"frame size " + _length + ">"+ _buffer.capacity());
+}
+ else {
 _state=State.DATA;
+}
 }
 continue;
 case LENGTH_63:
 b=_buffer.get();
+available--;
 if (_masked) b^=_mask[_m++ % 4];
-_length=_length << 8 | b;
-if (--_count == 0) {
-if (_length >= _buffer.capacity() - 10) throw new IllegalStateException("TOO LARGE");
-_count=(int)_length;
+_length=_length * 0x100 + (0xff & b);
+if (--_bytesNeeded == 0) {
+_bytesNeeded=(int)_length;
+if (_length >= _buffer.capacity()) {
+_state=State.SKIP;
+_handler.close(WebSocketConnectionD06.CLOSE_LARGE,"frame size " + _length + ">"+ _buffer.capacity());
+}
+ else {
 _state=State.DATA;
 }
+}
 continue;
+case SKIP:
+int skip=Math.min(available,_bytesNeeded);
+_buffer.skip(skip);
+available-=skip;
+_bytesNeeded-=skip;
+if (_bytesNeeded == 0) _state=State.START;
 }
 }
-if (_state == State.DATA && available >= _count) {
-Buffer data=_buffer.get(_count);
+if (_state == State.DATA && available >= _bytesNeeded) {
+Buffer data=_buffer.get(_bytesNeeded);
 if (_masked) {
 if (data.array() == null) data=_buffer.asMutableBuffer();
 byte[] array=data.array();
 final int end=data.putIndex();
 for (int i=data.getIndex(); i < end; i++) array[i]^=_mask[_m++ % 4];
 }
-_handler.onFrame(!_fin,_flags,_opcode,data);
-_count=0;
-_state=_masked ? State.MASK : State.OPCODE;
+_handler.onFrame(_flags,_opcode,data);
+_bytesNeeded=0;
+_state=State.START;
 if (_buffer.length() == 0) {
 _buffers.returnBuffer(_buffer);
 _buffer=null;

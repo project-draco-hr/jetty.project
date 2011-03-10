@@ -1,0 +1,26 @@
+{
+  _start=System.currentTimeMillis();
+  for (int i=0; i < count && !_socket.isClosed(); i++) {
+    if (_socket.isClosed())     break;
+    try {
+      byte data[]=new byte[_size];
+      __random.nextBytes(data);
+      _starts.add(System.nanoTime());
+      _pending.add(TypeUtil.toHexString(data));
+      int off=0;
+      int len=data.length;
+      if (fragment > 0 && len > fragment)       len=fragment;
+      while (off < data.length) {
+        _generator.addFrame((byte)(off == 0 ? 0x8 : 0),(byte)(off == 0 ? opcode : WebSocketConnectionD06.OP_CONTINUATION),data,off,len,_socket.getSoTimeout());
+        _sent++;
+        off+=len;
+        if (data.length - off > len)         len=data.length - off;
+      }
+      _generator.flush(_socket.getSoTimeout());
+      Thread.sleep(1000);
+    }
+ catch (    Exception x) {
+      throw new RuntimeException(x);
+    }
+  }
+}

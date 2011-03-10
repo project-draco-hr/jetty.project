@@ -1,0 +1,42 @@
+{
+  try {
+    byte[] array=buffer.array();
+    if (opcode == 0) {
+      if (isMore(flags)) {
+        _utf8.append(buffer.array(),buffer.getIndex(),buffer.length());
+        _fragmented=true;
+      }
+ else       if (_fragmented) {
+        _utf8.append(buffer.array(),buffer.getIndex(),buffer.length());
+        if (_websocket instanceof WebSocket.OnTextMessage)         ((WebSocket.OnTextMessage)_websocket).onMessage(_utf8.toString());
+        _utf8.reset();
+        _fragmented=false;
+      }
+ else {
+        if (_websocket instanceof WebSocket.OnTextMessage)         ((WebSocket.OnTextMessage)_websocket).onMessage(buffer.toString(StringUtil.__UTF8));
+      }
+    }
+ else     if (opcode == PING) {
+      sendFrame(flags,PONG,buffer.array(),buffer.getIndex(),buffer.length());
+    }
+ else     if (opcode == PONG) {
+    }
+ else {
+      if (isMore(flags)) {
+        if (_websocket instanceof WebSocket.OnFrame)         ((WebSocket.OnFrame)_websocket).onFrame(flags,opcode,array,buffer.getIndex(),buffer.length());
+      }
+ else       if (_fragmented) {
+        if (_websocket instanceof WebSocket.OnFrame)         ((WebSocket.OnFrame)_websocket).onFrame(flags,opcode,array,buffer.getIndex(),buffer.length());
+      }
+ else {
+        if (_websocket instanceof WebSocket.OnBinaryMessage)         ((WebSocket.OnBinaryMessage)_websocket).onMessage(array,buffer.getIndex(),buffer.length());
+      }
+    }
+  }
+ catch (  ThreadDeath th) {
+    throw th;
+  }
+catch (  Throwable th) {
+    Log.warn(th);
+  }
+}

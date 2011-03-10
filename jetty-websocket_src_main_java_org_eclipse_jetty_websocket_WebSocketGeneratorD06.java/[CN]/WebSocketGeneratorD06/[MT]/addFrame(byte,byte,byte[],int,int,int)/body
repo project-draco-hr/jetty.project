@@ -1,0 +1,55 @@
+{
+  if (_buffer == null)   _buffer=(_maskGen != null) ? _buffers.getBuffer() : _buffers.getDirectBuffer();
+  boolean last=WebSocketConnectionD06.isLastFrame(flags);
+  opcode=(byte)(((0xf & flags) << 4) + 0xf & opcode);
+  int space=(_maskGen != null) ? 14 : 10;
+  do {
+    opcode=_opsent ? WebSocketConnectionD06.OP_CONTINUATION : opcode;
+    _opsent=true;
+    int payload=length;
+    if (payload + space > _buffer.capacity()) {
+      opcode&=(byte)0x7F;
+      payload=_buffer.capacity() - space;
+    }
+ else     if (last)     opcode|=(byte)0x80;
+    if (_buffer.space() <= space)     expelBuffer(blockFor);
+    if ((_maskGen != null)) {
+      _maskGen.genMask(_mask);
+      _m=0;
+      _buffer.put(_mask);
+    }
+    if (payload > 0xffff) {
+      bufferPut(new byte[]{opcode,(byte)0x7f,(byte)((payload >> 56) & 0x7f),(byte)((payload >> 48) & 0xff),(byte)((payload >> 40) & 0xff),(byte)((payload >> 32) & 0xff),(byte)((payload >> 24) & 0xff),(byte)((payload >> 16) & 0xff),(byte)((payload >> 8) & 0xff),(byte)(payload & 0xff)});
+    }
+ else     if (payload >= 0x7e) {
+      bufferPut(new byte[]{opcode,(byte)0x7e,(byte)(payload >> 8),(byte)(payload & 0xff)});
+    }
+ else {
+      bufferPut(opcode);
+      bufferPut((byte)payload);
+    }
+    int remaining=payload;
+    while (remaining > 0) {
+      _buffer.compact();
+      int chunk=remaining < _buffer.space() ? remaining : _buffer.space();
+      if ((_maskGen != null)) {
+        for (int i=0; i < chunk; i++)         bufferPut(content[offset + (payload - remaining) + i]);
+      }
+ else       _buffer.put(content,offset + (payload - remaining),chunk);
+      remaining-=chunk;
+      if (_buffer.space() > 0) {
+        flushBuffer();
+      }
+ else {
+        expelBuffer(blockFor);
+        if (remaining == 0) {
+          flushBuffer();
+        }
+      }
+    }
+    offset+=payload;
+    length-=payload;
+  }
+ while (length > 0);
+  _opsent=!last;
+}
