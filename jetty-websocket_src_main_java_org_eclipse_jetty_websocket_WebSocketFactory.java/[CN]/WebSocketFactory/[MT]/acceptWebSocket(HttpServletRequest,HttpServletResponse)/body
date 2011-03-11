@@ -1,0 +1,23 @@
+{
+  if ("websocket".equalsIgnoreCase(request.getHeader("Upgrade"))) {
+    String protocol=request.getHeader("Sec-WebSocket-Protocol");
+    if (protocol == null)     protocol=request.getHeader("WebSocket-Protocol");
+    WebSocket websocket=null;
+    for (    String p : WebSocketFactory.parseProtocols(protocol)) {
+      websocket=_acceptor.doWebSocketConnect(request,p);
+      if (websocket != null) {
+        protocol=p;
+        break;
+      }
+    }
+    String host=request.getHeader("Host");
+    String origin=request.getHeader("Origin");
+    origin=_acceptor.checkOrigin(request,host,origin);
+    if (websocket != null) {
+      upgrade(request,response,websocket,origin,protocol);
+      return true;
+    }
+    response.sendError(503);
+  }
+  return false;
+}
