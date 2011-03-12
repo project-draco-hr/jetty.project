@@ -1,0 +1,32 @@
+{
+  try {
+    ArrayList<X509Certificate> certList=new ArrayList<X509Certificate>();
+    for (    Certificate item : certChain) {
+      if (item == null)       continue;
+      if (!(item instanceof X509Certificate)) {
+        throw new IllegalStateException("Invalid certificate type in chain");
+      }
+      certList.add((X509Certificate)item);
+    }
+    if (certList.isEmpty()) {
+      throw new IllegalStateException("Invalid certificate chain");
+    }
+    X509CertSelector certSelect=new X509CertSelector();
+    certSelect.setCertificate(certList.get(0));
+    PKIXBuilderParameters pbParams=new PKIXBuilderParameters(_trustStore,certSelect);
+    pbParams.addCertStore(CertStore.getInstance("Collection",new CollectionCertStoreParameters(certList)));
+    pbParams.setMaxPathLength(_maxCertPathLength);
+    pbParams.setRevocationEnabled(true);
+    if (_crls != null && !_crls.isEmpty()) {
+      pbParams.addCertStore(CertStore.getInstance("Collection",new CollectionCertStoreParameters(_crls)));
+    }
+    Security.setProperty("ocsp.enable","true");
+    System.setProperty("com.sun.security.enableCRLDP","true");
+    CertPathBuilderResult buildResult=CertPathBuilder.getInstance("PKIX").build(pbParams);
+    CertPathValidator.getInstance("PKIX").validate(buildResult.getCertPath(),pbParams);
+  }
+ catch (  GeneralSecurityException gse) {
+    Log.debug(gse);
+    throw new CertificateException("Unable to validate certificate: " + gse.getMessage(),gse);
+  }
+}

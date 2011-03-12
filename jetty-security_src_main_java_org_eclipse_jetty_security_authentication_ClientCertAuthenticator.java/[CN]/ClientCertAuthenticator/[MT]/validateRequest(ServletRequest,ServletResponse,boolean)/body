@@ -5,6 +5,12 @@
   X509Certificate[] certs=(X509Certificate[])request.getAttribute("javax.servlet.request.X509Certificate");
   try {
     if (certs != null && certs.length > 0) {
+      if (_validateCerts) {
+        KeyStore trustStore=CertificateUtils.getKeyStore(null,_trustStorePath,_trustStoreType,_trustStoreProvider,_trustStorePassword == null ? null : _trustStorePassword.toString());
+        Collection<? extends CRL> crls=CertificateUtils.loadCRL(_crlPath);
+        CertificateValidator validator=new CertificateValidator(trustStore,crls);
+        validator.validate(certs);
+      }
       for (      X509Certificate cert : certs) {
         if (cert == null)         continue;
         Principal principal=cert.getSubjectDN();
@@ -24,7 +30,7 @@
     }
     return Authentication.UNAUTHENTICATED;
   }
- catch (  IOException e) {
+ catch (  Exception e) {
     throw new ServerAuthException(e.getMessage());
   }
 }

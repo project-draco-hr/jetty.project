@@ -1,8 +1,8 @@
 {
   checkConfig();
-  KeyStore keyStore=getKeyStore(_keyStoreInputStream,_keyStorePath,_keyStoreType,_keyStoreProvider,_keyStorePassword == null ? null : _keyStorePassword.toString());
-  KeyStore trustStore=getKeyStore(_trustStoreInputStream,_trustStorePath,_trustStoreType,_trustStoreProvider,_trustStorePassword == null ? null : _trustStorePassword.toString());
-  Collection<? extends CRL> crls=loadCRL(_crlPath);
+  KeyStore keyStore=CertificateUtils.getKeyStore(_keyStoreInputStream,_keyStorePath,_keyStoreType,_keyStoreProvider,_keyStorePassword == null ? null : _keyStorePassword.toString());
+  KeyStore trustStore=CertificateUtils.getKeyStore(_trustStoreInputStream,_trustStorePath,_trustStoreType,_trustStoreProvider,_trustStorePassword == null ? null : _trustStorePassword.toString());
+  Collection<? extends CRL> crls=CertificateUtils.loadCRL(_crlPath);
   if (_validateCerts && keyStore != null) {
     if (_certAlias == null) {
       List<String> aliases=Collections.list(keyStore.aliases());
@@ -13,6 +13,10 @@
       throw new Exception("No certificate found in the keystore" + (_certAlias == null ? "" : " for alias " + _certAlias));
     }
     CertificateValidator validator=new CertificateValidator(trustStore,crls);
+    validator.setMaxCertPathLength(_maxCertPathLength);
+    validator.setEnableCRLDP(_enableCRLDP);
+    validator.setEnableOCSP(_enableOCSP);
+    validator.setOcspResponderURL(_ocspResponderURL);
     validator.validate(keyStore,cert);
   }
   KeyManager[] keyManagers=getKeyManagers(keyStore);

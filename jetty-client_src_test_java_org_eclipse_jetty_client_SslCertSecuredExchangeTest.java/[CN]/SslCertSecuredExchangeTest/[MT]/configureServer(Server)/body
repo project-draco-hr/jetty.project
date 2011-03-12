@@ -1,0 +1,86 @@
+{
+  setProtocol("https");
+  SslSelectChannelConnector connector=new SslSelectChannelConnector();
+  SslContextFactory cf=connector.getSslContextFactory();
+  cf.setValidateCerts(true);
+  cf.setCrlPath(_crlpath);
+  cf.setNeedClientAuth(true);
+  cf.setKeyStore(_keypath);
+  cf.setKeyStorePassword(_password);
+  cf.setKeyManagerPassword(_password);
+  cf.setTrustStore(_trustpath);
+  cf.setTrustStorePassword(_password);
+  server.addConnector(connector);
+  LoginService loginService=new LoginService(){
+    public String getName(){
+      return "MyLoginService";
+    }
+    public UserIdentity login(    String username,    Object credentials){
+      return new UserIdentity(){
+        public Subject getSubject(){
+          Subject subject=new Subject();
+          subject.getPrincipals().add(getUserPrincipal());
+          subject.setReadOnly();
+          return subject;
+        }
+        public Principal getUserPrincipal(){
+          return new KnownUser("client",new Credential(){
+            @Override public boolean check(            Object credentials){
+              return true;
+            }
+          }
+);
+        }
+        public boolean isUserInRole(        String role,        Scope scope){
+          return true;
+        }
+      }
+;
+    }
+    public boolean validate(    UserIdentity user){
+      return true;
+    }
+    public IdentityService getIdentityService(){
+      return null;
+    }
+    public void setIdentityService(    IdentityService service){
+    }
+    public void logout(    UserIdentity user){
+    }
+  }
+;
+  server.addBean(loginService);
+  ConstraintSecurityHandler security=new ConstraintSecurityHandler();
+  server.setHandler(security);
+  Constraint constraint=new Constraint();
+  constraint.setName("auth");
+  constraint.setAuthenticate(true);
+  constraint.setRoles(new String[]{"user","admin"});
+  ConstraintMapping mapping=new ConstraintMapping();
+  mapping.setPathSpec("/*");
+  mapping.setConstraint(constraint);
+  Set<String> knownRoles=new HashSet<String>();
+  knownRoles.add("user");
+  knownRoles.add("admin");
+  security.setConstraintMappings(Collections.singletonList(mapping),knownRoles);
+  security.setLoginService(loginService);
+  ClientCertAuthenticator auth=new ClientCertAuthenticator();
+  auth.setValidateCerts(true);
+  auth.setCrlPath(_crlpath);
+  auth.setTrustStore(_trustpath);
+  auth.setTrustStorePassword(_password);
+  security.setAuthenticator(auth);
+  security.setAuthMethod(auth.getAuthMethod());
+  security.setRealmName("MyRealm");
+  security.setStrict(true);
+  ServletContextHandler root=new ServletContextHandler();
+  root.setContextPath("/");
+  root.setResourceBase(getBasePath());
+  ServletHolder servletHolder=new ServletHolder(new DefaultServlet());
+  servletHolder.setInitParameter("gzip","true");
+  root.addServlet(servletHolder,"/*");
+  Handler handler=new TestHandler(getBasePath());
+  HandlerCollection handlers=new HandlerCollection();
+  handlers.setHandlers(new Handler[]{handler,root});
+  security.setHandler(handlers);
+}
