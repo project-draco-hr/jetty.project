@@ -3,18 +3,27 @@
   for (int i=0; i < count && !_socket.isClosed(); i++) {
     if (_socket.isClosed())     break;
     try {
-      byte data[]=new byte[_size];
-      __random.nextBytes(data);
+      byte data[]=null;
+      if (opcode == WebSocketConnectionD06.OP_TEXT) {
+        StringBuilder b=new StringBuilder();
+        while (b.length() < _size)         b.append('A' + __random.nextInt(26));
+        data=b.toString().getBytes(StringUtil.__UTF8);
+      }
+ else {
+        data=new byte[_size];
+        __random.nextBytes(data);
+      }
       _starts.add(System.nanoTime());
-      _pending.add(TypeUtil.toHexString(data));
       int off=0;
       int len=data.length;
       if (fragment > 0 && len > fragment)       len=fragment;
+      _messagesSent++;
       while (off < data.length) {
-        _generator.addFrame((byte)(off == 0 ? 0x8 : 0),(byte)(off == 0 ? opcode : WebSocketConnectionD06.OP_CONTINUATION),data,off,len,_socket.getSoTimeout());
-        _sent++;
+        _framesSent++;
+        _generator.addFrame((byte)(off + len == data.length ? 0x8 : 0),(byte)(off == 0 ? opcode : WebSocketConnectionD06.OP_CONTINUATION),data,off,len,_socket.getSoTimeout());
         off+=len;
         if (data.length - off > len)         len=data.length - off;
+        if (fragment > 0 && len > fragment)         len=fragment;
       }
       _generator.flush(_socket.getSoTimeout());
       Thread.sleep(1000);

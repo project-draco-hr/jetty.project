@@ -7,6 +7,7 @@
     int count=10;
     int size=64;
     int fragment=4000;
+    boolean binary=false;
     for (int i=0; i < args.length; i++) {
       String a=args[i];
       if ("-p".equals(a) || "--port".equals(a))       port=Integer.parseInt(args[++i]);
@@ -16,13 +17,14 @@
  else       if ("-f".equals(a) || "--fragment".equals(a))       fragment=Integer.parseInt(args[++i]);
  else       if ("-P".equals(a) || "--protocol".equals(a))       protocol=args[++i];
  else       if ("-v".equals(a) || "--verbose".equals(a))       verbose=true;
+ else       if ("-b".equals(a) || "--binary".equals(a))       binary=true;
  else       if (a.startsWith("-"))       usage(args);
     }
     TestClient client=new TestClient(host,port,protocol == null ? null : ("org.ietf.websocket.test-" + protocol),10000);
     client.setSize(size);
     try {
       client.open();
-      if ("echo".equals(protocol))       client.ping(count,WebSocketConnectionD06.OP_BINARY,fragment);
+      if (protocol.startsWith("echo"))       client.ping(count,binary ? WebSocketConnectionD06.OP_BINARY : WebSocketConnectionD06.OP_TEXT,fragment);
  else       client.ping(count,WebSocketConnectionD06.OP_PING,-1);
     }
   finally {
