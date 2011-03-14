@@ -9,23 +9,7 @@
   sslEngine.setNeedClientAuth(_sslContextFactory.getNeedClientAuth());
   sslEngine.setEnabledCipherSuites(_sslContextFactory.selectCipherSuites(sslEngine.getEnabledCipherSuites(),sslEngine.getSupportedCipherSuites()));
   SSLSession sslSession=sslEngine.getSession();
-  ThreadLocalBuffers buffers=new ThreadLocalBuffers(){
-    @Override protected Buffer newBuffer(    int size){
-      if (getUseDirectBuffers())       return new DirectNIOBuffer(size);
-      return new IndirectNIOBuffer(size);
-    }
-    @Override protected Buffer newHeader(    int size){
-      if (getUseDirectBuffers())       return new DirectNIOBuffer(size);
-      return new IndirectNIOBuffer(size);
-    }
-    @Override protected boolean isHeader(    Buffer buffer){
-      return true;
-    }
-  }
-;
-  buffers.setBufferSize(sslSession.getApplicationBufferSize());
-  buffers.setHeaderSize(sslSession.getApplicationBufferSize());
-  _sslBuffers=buffers;
+  _sslBuffers=BuffersFactory.newBuffers(getUseDirectBuffers() ? Type.DIRECT : Type.INDIRECT,sslSession.getApplicationBufferSize(),getUseDirectBuffers() ? Type.DIRECT : Type.INDIRECT,sslSession.getApplicationBufferSize(),getUseDirectBuffers() ? Type.DIRECT : Type.INDIRECT,getMaxBuffers());
   if (getRequestHeaderSize() < sslSession.getApplicationBufferSize())   setRequestHeaderSize(sslSession.getApplicationBufferSize());
   if (getRequestBufferSize() < sslSession.getApplicationBufferSize())   setRequestBufferSize(sslSession.getApplicationBufferSize());
   super.doStart();
