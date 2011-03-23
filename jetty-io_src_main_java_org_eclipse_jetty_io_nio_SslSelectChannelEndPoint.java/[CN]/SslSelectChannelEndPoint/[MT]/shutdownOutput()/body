@@ -1,10 +1,12 @@
 {
-  long end=System.currentTimeMillis() + ((SocketChannel)_channel).socket().getSoTimeout();
+  if (_closing)   return;
+  _closing=true;
+  long end=System.currentTimeMillis() + getMaxIdleTime();
   try {
     while (isOpen() && isBufferingOutput() && System.currentTimeMillis() < end) {
       flush();
       if (isBufferingOutput()) {
-        Thread.sleep(100);
+        Thread.sleep(50);
         flush();
       }
     }
@@ -12,7 +14,7 @@
     loop:     while (isOpen() && !(_engine.isInboundDone() && _engine.isOutboundDone()) && System.currentTimeMillis() < end) {
       while (isOpen() && isBufferingOutput() && System.currentTimeMillis() < end) {
         flush();
-        if (isBufferingOutput())         Thread.sleep(100);
+        if (isBufferingOutput())         Thread.sleep(50);
       }
       if (_debug)       __log.debug(_session + " closing " + _engine.getHandshakeStatus());
 switch (_engine.getHandshakeStatus()) {

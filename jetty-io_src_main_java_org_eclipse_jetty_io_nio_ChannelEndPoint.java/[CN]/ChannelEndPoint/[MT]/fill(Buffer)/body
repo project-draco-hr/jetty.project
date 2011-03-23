@@ -8,7 +8,20 @@ synchronized (bbuf) {
       try {
         bbuf.position(buffer.putIndex());
         len=_channel.read(bbuf);
-        if (len < 0)         _channel.close();
+        if (len < 0 && isOpen() && !isInputShutdown()) {
+          try {
+            shutdownInput();
+          }
+ catch (          IOException e) {
+            Log.ignore(e);
+            try {
+              close();
+            }
+ catch (            IOException e2) {
+              Log.ignore(e2);
+            }
+          }
+        }
       }
   finally {
         buffer.setPutIndex(bbuf.position());

@@ -1,6 +1,6 @@
 {
-  long total_filled=-1;
-  if (_state == STATE_END)   return -1;
+  int progress=0;
+  if (_state == STATE_END)   return 0;
   if (_buffer == null) {
     if (_header == null) {
       _header=_buffers.getHeader();
@@ -14,7 +14,7 @@
   if (_state == STATE_CONTENT && _contentPosition == _contentLength) {
     _state=STATE_END;
     _handler.messageComplete(_contentPosition);
-    return total_filled;
+    return 1;
   }
   int length=_buffer.length();
   if (length == 0) {
@@ -29,9 +29,8 @@
       if (_buffer == _body)       _buffer.compact();
       if (_buffer.space() == 0)       throw new HttpException(HttpStatus.REQUEST_ENTITY_TOO_LARGE_413,"FULL " + (_buffer == _body ? "body" : "head"));
       try {
-        if (total_filled < 0)         total_filled=0;
         filled=_endp.fill(_buffer);
-        if (filled > 0)         total_filled+=filled;
+        if (filled > 0)         progress++;
       }
  catch (      IOException e) {
         Log.debug(e);
@@ -40,6 +39,11 @@
       }
     }
     if (filled < 0) {
+      if (_headResponse && _state > STATE_END) {
+        _state=STATE_END;
+        _handler.messageComplete(_contentPosition);
+        return 1;
+      }
       if (_state == STATE_EOF_CONTENT) {
         if (_buffer.length() > 0) {
           Buffer chunk=_buffer.get(_buffer.length());
@@ -49,16 +53,20 @@
         }
         _state=STATE_END;
         _handler.messageComplete(_contentPosition);
-        return total_filled;
+        return 1;
       }
-      reset(true);
-      throw new EofException(ioex);
+      return -1;
     }
     length=_buffer.length();
   }
   byte ch;
   byte[] array=_buffer.array();
+  int last=_state;
   while (_state < STATE_END && length-- > 0) {
+    if (last != _state) {
+      progress++;
+      last=_state;
+    }
     ch=_buffer.get();
     if (_eol == HttpTokens.CARRIAGE_RETURN && ch == HttpTokens.LINE_FEED) {
       _eol=HttpTokens.LINE_FEED;
@@ -131,7 +139,7 @@ _handler.startRequest(HttpMethods.CACHE.lookup(_tok0),_buffer.sliceFromMark(),nu
 _state=STATE_END;
 _handler.headerComplete();
 _handler.messageComplete(_contentPosition);
-return total_filled;
+return 1;
 }
 break;
 case STATE_SPACE2:
@@ -153,7 +161,7 @@ _handler.startRequest(HttpMethods.CACHE.lookup(_tok0),_tok1,null);
 _state=STATE_END;
 _handler.headerComplete();
 _handler.messageComplete(_contentPosition);
-return total_filled;
+return 1;
 }
 }
 break;
@@ -248,7 +256,7 @@ if (_forceContentBuffer || (_buffers != null && _body == null && _buffer == _hea
 _handler.headerComplete();
 break;
 }
-return total_filled;
+return 1;
 }
  else {
 _length=1;
@@ -372,7 +380,12 @@ _handler.messageComplete(_contentLength);
 }
 length=_buffer.length();
 Buffer chunk;
+last=_state;
 while (_state > STATE_END && length > 0) {
+if (last != _state) {
+progress++;
+last=_state;
+}
 if (_eol == HttpTokens.CARRIAGE_RETURN && _buffer.peek() == HttpTokens.LINE_FEED) {
 _eol=_buffer.get();
 length=_buffer.length();
@@ -385,14 +398,14 @@ chunk=_buffer.get(_buffer.length());
 _contentPosition+=chunk.length();
 _contentView.update(chunk);
 _handler.content(chunk);
-return total_filled;
+return 1;
 case STATE_CONTENT:
 {
 long remaining=_contentLength - _contentPosition;
 if (remaining == 0) {
 _state=STATE_END;
 _handler.messageComplete(_contentPosition);
-return total_filled;
+return 1;
 }
 if (length > remaining) {
 length=(int)remaining;
@@ -405,7 +418,7 @@ if (_contentPosition == _contentLength) {
 _state=STATE_END;
 _handler.messageComplete(_contentPosition);
 }
-return total_filled;
+return 1;
 }
 case STATE_CHUNKED_CONTENT:
 {
@@ -428,7 +441,7 @@ if (_chunkLength == 0) {
 if (_eol == HttpTokens.CARRIAGE_RETURN && _buffer.hasContent() && _buffer.peek() == HttpTokens.LINE_FEED) _eol=_buffer.get();
 _state=STATE_END;
 _handler.messageComplete(_contentPosition);
-return total_filled;
+return 1;
 }
  else _state=STATE_CHUNK;
 }
@@ -448,7 +461,7 @@ if (_chunkLength == 0) {
 if (_eol == HttpTokens.CARRIAGE_RETURN && _buffer.hasContent() && _buffer.peek() == HttpTokens.LINE_FEED) _eol=_buffer.get();
 _state=STATE_END;
 _handler.messageComplete(_contentPosition);
-return total_filled;
+return 1;
 }
  else _state=STATE_CHUNK;
 }
@@ -467,10 +480,10 @@ _contentPosition+=chunk.length();
 _chunkPosition+=chunk.length();
 _contentView.update(chunk);
 _handler.content(chunk);
-return total_filled;
+return 1;
 }
 }
 length=_buffer.length();
 }
-return total_filled;
+return progress;
 }
