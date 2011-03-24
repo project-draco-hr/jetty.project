@@ -1,0 +1,31 @@
+{
+  int rmiPort=1099;
+  String rmiHost=hostPath;
+  int idx=hostPath.indexOf(':');
+  if (idx > 0) {
+    rmiPort=Integer.parseInt(hostPath.substring(idx + 1));
+    rmiHost=hostPath.substring(0,idx);
+  }
+  InetAddress hostAddress=InetAddress.getByName(rmiHost);
+  if (hostAddress.isLoopbackAddress()) {
+    if (rmiPort == 0) {
+      ServerSocket socket=new ServerSocket(0);
+      rmiPort=socket.getLocalPort();
+      socket.close();
+    }
+ else {
+      try {
+        LocateRegistry.getRegistry(rmiPort).list();
+        return null;
+      }
+ catch (      Exception ex) {
+        Log.ignore(ex);
+      }
+    }
+    _registry=LocateRegistry.createRegistry(rmiPort);
+    Thread.sleep(1000);
+    rmiHost=InetAddress.getLocalHost().getCanonicalHostName();
+    return rmiHost + ':' + Integer.toString(rmiPort);
+  }
+  return null;
+}
