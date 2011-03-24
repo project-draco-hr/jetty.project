@@ -1,6 +1,14 @@
 {
   setProtocol("https");
-  SslContextFactory srvFactory=new SslContextFactory();
+  SslContextFactory srvFactory=new SslContextFactory(){
+    @Override protected KeyStore getKeyStore(    InputStream storeStream,    String storePath,    String storeType,    String storeProvider,    String storePassword) throws Exception {
+      return CertificateUtils.getKeyStore(storeStream,storePath,storeType,storeProvider,storePassword);
+    }
+    @Override protected Collection<? extends CRL> loadCRL(    String crlPath) throws Exception {
+      return CertificateUtils.loadCRL(crlPath);
+    }
+  }
+;
   srvFactory.setValidateCerts(true);
   srvFactory.setCrlPath(_crlpath);
   srvFactory.setNeedClientAuth(true);
