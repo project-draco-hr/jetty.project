@@ -1,0 +1,24 @@
+{
+  Log.debug("completeHeader: {}",fields);
+  if (_state != STATE_HEADER)   return;
+  if (_last && !allContentAdded)   throw new IllegalStateException("last?");
+  _last=_last | allContentAdded;
+  if (_persistent == null)   _persistent=(_version > HttpVersions.HTTP_1_0_ORDINAL);
+  if (_reason == null)   _response.setStatus(_status);
+ else   _response.setStatus(_status,_reason.toString());
+  if (_status == 100 || _status == 204 || _status == 304) {
+    _noContent=true;
+    _content=null;
+  }
+  boolean has_server=false;
+  if (fields != null) {
+    int s=fields.size();
+    for (int f=0; f < s; f++) {
+      HttpFields.Field field=fields.getField(f);
+      if (field == null)       continue;
+      _response.setHeader(field.getName(),field.getValue());
+    }
+  }
+  if (!has_server && _status > 100 && getSendServerVersion())   _response.setHeader(HttpHeaders.SERVER,"Jetty(" + Server.getVersion() + ",nested in "+ _nestedIn+ ")");
+  _state=STATE_CONTENT;
+}

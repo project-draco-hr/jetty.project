@@ -1,0 +1,15 @@
+{
+  if (_state == STATE_HEADER)   throw new IllegalStateException("State==HEADER");
+  if (_content != null && _content.length() < _buffer.space() && _state != STATE_FLUSHING) {
+    initContent();
+    _buffer.put(_content);
+    _content.clear();
+    _content=null;
+  }
+  if (_buffer == null)   return 0;
+  int size=_buffer.length();
+  int len=_buffer == null ? 0 : _endp.flush(_buffer);
+  Log.debug("flushBuffer {} of {}",len,size);
+  if (len > 0)   _buffer.skip(len);
+  return len;
+}

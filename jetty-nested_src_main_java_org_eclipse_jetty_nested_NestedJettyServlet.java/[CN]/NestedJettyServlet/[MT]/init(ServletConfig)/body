@@ -1,0 +1,36 @@
+{
+  ClassLoader orig=Thread.currentThread().getContextClassLoader();
+  try {
+    Thread.currentThread().setContextClassLoader(NestedJettyServlet.class.getClassLoader());
+    _config=config;
+    _context=config.getServletContext();
+    Log.getLog().setDebugEnabled(Boolean.parseBoolean(_config.getInitParameter("debug")));
+    String jetty_xml=config.getInitParameter("jetty.xml");
+    if (jetty_xml != null) {
+      XmlConfiguration xml_config=new XmlConfiguration(_context.getResourceAsStream(jetty_xml));
+      _server=(Server)xml_config.configure();
+    }
+    if (_server == null)     _server=new Server();
+    if (_server.getConnectors().length == 0) {
+      _connector=new NestedConnector();
+      _server.addConnector(_connector);
+    }
+ else     _connector=(NestedConnector)_server.getConnectors()[0];
+    WebAppContext webapp=new WebAppContext();
+    webapp.setContextPath(_context.getContextPath());
+    webapp.setTempDirectory(new File((File)_context.getAttribute("javax.servlet.context.tempdir"),"jetty"));
+    String docroot=config.getInitParameter("webapp");
+    String realpath=_context.getRealPath(docroot);
+    if (realpath != null)     webapp.setWar(realpath);
+ else     webapp.setWar(_context.getResource(docroot).toString());
+    _server.setHandler(webapp);
+    _server.start();
+    _context.log("Started Jetty/" + _server.getVersion() + " for "+ webapp.getWar()+ " nested in "+ _context.getServerInfo());
+  }
+ catch (  Exception e) {
+    throw new ServletException(e);
+  }
+ finally {
+    Thread.currentThread().setContextClassLoader(orig);
+  }
+}
