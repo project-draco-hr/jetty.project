@@ -1,0 +1,33 @@
+{
+  touch("tsc0");
+  Event event=_queue.poll(2100,TimeUnit.MILLISECONDS);
+  Assert.assertTrue(event != null);
+  Assert.assertEquals(_directory + "/tsc0",event._filename);
+  Assert.assertEquals(Notification.ADDED,event._notification);
+  long now=System.currentTimeMillis();
+  File file=new File(_directory,"st");
+  FileOutputStream out=new FileOutputStream(file,true);
+  out.write('x');
+  out.flush();
+  file.setLastModified(now);
+  event=_queue.poll(1100,TimeUnit.MILLISECONDS);
+  Assert.assertTrue(event == null);
+  out.write('x');
+  out.flush();
+  file.setLastModified(now);
+  event=_queue.poll(1100,TimeUnit.MILLISECONDS);
+  Assert.assertTrue(event == null);
+  event=_queue.poll(1100,TimeUnit.MILLISECONDS);
+  Assert.assertTrue(event != null);
+  Assert.assertEquals(_directory + "/st",event._filename);
+  Assert.assertEquals(Notification.ADDED,event._notification);
+  out.write('x');
+  out.flush();
+  file.setLastModified(now);
+  event=_queue.poll(1100,TimeUnit.MILLISECONDS);
+  Assert.assertTrue(event == null);
+  event=_queue.poll(1100,TimeUnit.MILLISECONDS);
+  Assert.assertTrue(event != null);
+  Assert.assertEquals(_directory + "/st",event._filename);
+  Assert.assertEquals(Notification.CHANGED,event._notification);
+}

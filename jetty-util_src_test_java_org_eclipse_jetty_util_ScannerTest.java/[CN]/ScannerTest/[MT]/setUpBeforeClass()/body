@@ -1,0 +1,30 @@
+{
+  _directory=File.createTempFile("scan","");
+  _directory.delete();
+  _directory.mkdir();
+  _directory.deleteOnExit();
+  _scanner=new Scanner();
+  _scanner.addScanDir(_directory);
+  _scanner.setScanInterval(1);
+  _scanner.addListener(new Scanner.DiscreteListener(){
+    public void fileRemoved(    String filename) throws Exception {
+      _queue.add(new Event(filename,Notification.REMOVED));
+    }
+    public void fileChanged(    String filename) throws Exception {
+      _queue.add(new Event(filename,Notification.CHANGED));
+    }
+    public void fileAdded(    String filename) throws Exception {
+      _queue.add(new Event(filename,Notification.ADDED));
+    }
+  }
+);
+  _scanner.addListener(new Scanner.BulkListener(){
+    public void filesChanged(    List<String> filenames) throws Exception {
+      _bulk.add(filenames);
+    }
+  }
+);
+  _scanner.start();
+  Assert.assertTrue(_queue.isEmpty());
+  Assert.assertTrue(_bulk.isEmpty());
+}
