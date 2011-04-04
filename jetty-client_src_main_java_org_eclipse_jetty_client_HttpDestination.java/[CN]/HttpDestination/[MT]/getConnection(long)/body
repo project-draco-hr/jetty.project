@@ -1,20 +1,22 @@
 {
   HttpConnection connection=null;
   while ((connection == null) && (connection=getIdleConnection()) == null && timeout > 0) {
-    boolean starting=false;
+    boolean startConnection=false;
 synchronized (this) {
       int totalConnections=_connections.size() + _pendingConnections;
       if (totalConnections < _maxConnections) {
         _newConnection++;
-        startNewConnection();
-        starting=true;
+        startConnection=true;
       }
     }
-    if (!starting) {
+    if (startConnection) {
+      startNewConnection();
       try {
-        Thread.currentThread();
-        Thread.sleep(200);
-        timeout-=200;
+        Object o=_newQueue.take();
+        if (o instanceof HttpConnection) {
+          connection=(HttpConnection)o;
+        }
+ else         throw (IOException)o;
       }
  catch (      InterruptedException e) {
         Log.ignore(e);
@@ -22,11 +24,9 @@ synchronized (this) {
     }
  else {
       try {
-        Object o=_newQueue.take();
-        if (o instanceof HttpConnection) {
-          connection=(HttpConnection)o;
-        }
- else         throw (IOException)o;
+        Thread.currentThread();
+        Thread.sleep(200);
+        timeout-=200;
       }
  catch (      InterruptedException e) {
         Log.ignore(e);

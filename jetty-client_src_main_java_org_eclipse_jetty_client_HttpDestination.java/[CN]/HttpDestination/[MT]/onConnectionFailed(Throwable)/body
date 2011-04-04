@@ -1,5 +1,6 @@
 {
   Throwable connect_failure=null;
+  boolean startConnection=false;
 synchronized (this) {
     _pendingConnections--;
     if (_newConnection > 0) {
@@ -10,9 +11,10 @@ synchronized (this) {
       HttpExchange ex=_queue.removeFirst();
       ex.setStatus(HttpExchange.STATUS_EXCEPTED);
       ex.getEventListener().onConnectionFailed(throwable);
-      if (!_queue.isEmpty() && _client.isStarted())       startNewConnection();
+      if (!_queue.isEmpty() && _client.isStarted())       startConnection=true;
     }
   }
+  if (startConnection)   startNewConnection();
   if (connect_failure != null) {
     try {
       _newQueue.put(connect_failure);
