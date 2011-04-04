@@ -1,10 +1,13 @@
 {
   if (_type.isEnum()) {
-    if (value instanceof Enum)     _method.invoke(obj,new Object[]{value});
- else     _method.invoke(obj,new Object[]{Enum.valueOf((Class<? extends Enum>)_type,value.toString())});
+    if (value instanceof Enum)     _setter.invoke(obj,new Object[]{value});
+ else     _setter.invoke(obj,new Object[]{Enum.valueOf((Class<? extends Enum>)_type,value.toString())});
   }
  else   if (_numberType != null && value instanceof Number) {
-    _method.invoke(obj,new Object[]{_numberType.getActualValue((Number)value)});
+    _setter.invoke(obj,new Object[]{_numberType.getActualValue((Number)value)});
+  }
+ else   if (Character.TYPE.equals(_type) || Character.class.equals(_type)) {
+    _setter.invoke(obj,new Object[]{String.valueOf(value).charAt(0)});
   }
  else   if (_componentType != null && value.getClass().isArray()) {
     if (_numberType == null) {
@@ -15,10 +18,10 @@
       }
  catch (      Exception e) {
         Log.ignore(e);
-        _method.invoke(obj,new Object[]{value});
+        _setter.invoke(obj,new Object[]{value});
         return;
       }
-      _method.invoke(obj,new Object[]{array});
+      _setter.invoke(obj,new Object[]{array});
     }
  else {
       Object[] old=(Object[])value;
@@ -28,11 +31,11 @@
       }
  catch (      Exception e) {
         Log.ignore(e);
-        _method.invoke(obj,new Object[]{value});
+        _setter.invoke(obj,new Object[]{value});
         return;
       }
-      _method.invoke(obj,new Object[]{array});
+      _setter.invoke(obj,new Object[]{array});
     }
   }
- else   _method.invoke(obj,new Object[]{value});
+ else   _setter.invoke(obj,new Object[]{value});
 }
