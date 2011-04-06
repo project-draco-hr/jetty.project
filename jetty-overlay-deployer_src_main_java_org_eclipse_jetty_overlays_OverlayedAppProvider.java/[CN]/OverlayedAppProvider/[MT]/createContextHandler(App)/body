@@ -1,0 +1,111 @@
+{
+  final OverlayedApp overlayed=(OverlayedApp)app;
+  final String origin=overlayed.getOriginId();
+  final Instance instance=overlayed.getInstance();
+  final Template template=instance.getTemplate();
+  final Webapp webapp=template.getWebapp();
+  final Node node=_node;
+  ClassLoader orig_loader=Thread.currentThread().getContextClassLoader();
+  try {
+    String key=(node == null ? "" : node.getLoadedKey()) + template.getLoadedKey() + (webapp == null ? "" : webapp.getLoadedKey());
+    instance.setSharedKey(key);
+    TemplateContext shared=_shared.get(key);
+    if (shared == null)     shared=createTemplateContext(key,webapp,template,node,orig_loader);
+    ClassLoader shared_loader=shared.getWebappLoader() != null ? shared.getWebappLoader() : (shared.getLibLoader() != null ? shared.getLibLoader() : orig_loader);
+    ClassLoader loader=shared_loader;
+    Resource instance_lib=instance.getResource("lib");
+    if (instance_lib.exists()) {
+      List<URL> libs=new ArrayList<URL>();
+      for (      String jar : instance_lib.list()) {
+        if (!jar.toLowerCase().endsWith(".jar"))         continue;
+        libs.add(instance_lib.addPath(jar).getURL());
+      }
+      __log.debug("{}: libs={}",origin,libs);
+      loader=URLClassLoader.newInstance(libs.toArray(new URL[]{}),loader);
+    }
+    Thread.currentThread().setContextClassLoader(loader);
+    Map<String,Object> idMap=new HashMap<String,Object>();
+    idMap.putAll(shared.getIdMap());
+    idMap.put(_serverID,getDeploymentManager().getServer());
+    ContextHandler context=null;
+    Resource template_context_xml=template.getResource("context.xml");
+    if (template_context_xml.exists()) {
+      __log.debug("{}: context.xml={}",origin,template_context_xml);
+      XmlConfiguration xmlc=newXmlConfiguration(template_context_xml.getURL(),idMap,template,instance);
+      context=(ContextHandler)xmlc.configure();
+      idMap=xmlc.getIdMap();
+    }
+ else     if (webapp == null)     context=new ContextHandler();
+ else     context=new WebAppContext();
+    final Resource instance_webapp=instance.getResource("webapp");
+    if (instance_webapp.exists()) {
+      context.setBaseResource(new ResourceCollection(instance_webapp,shared.getBaseResource()));
+      ResourceCache cache=new ResourceCache(shared.getResourceCache(),instance_webapp,context.getMimeTypes());
+      context.setAttribute(ResourceCache.class.getCanonicalName(),cache);
+    }
+ else {
+      context.setBaseResource(shared.getBaseResource());
+      context.setAttribute(ResourceCache.class.getCanonicalName(),shared.getResourceCache());
+    }
+    __log.debug("{}: baseResource={}",origin,context.getResourceBase());
+    context.setAttribute("org.eclipse.jetty.server.session.timer",_sessionScavenger);
+    for (    Resource context_xml : getLayeredResources("context.xml",node,instance)) {
+      __log.debug("{}: context.xml={}",origin,context_xml);
+      XmlConfiguration xmlc=newXmlConfiguration(context_xml.getURL(),idMap,template,instance);
+      xmlc.getIdMap().put("Cache",context.getAttribute(ResourceCache.class.getCanonicalName()));
+      xmlc.configure(context);
+      idMap=xmlc.getIdMap();
+    }
+    if (context instanceof WebAppContext) {
+      final WebAppContext webappcontext=(WebAppContext)context;
+      if (Arrays.asList(((WebAppContext)context).getServerClasses()).toString().equals(Arrays.asList(WebAppContext.__dftServerClasses).toString())) {
+        __log.debug("clear server classes");
+        webappcontext.setServerClasses(null);
+      }
+      webappcontext.setCopyWebDir(false);
+      webappcontext.setCopyWebInf(false);
+      webappcontext.setExtractWAR(false);
+      if (instance_webapp.exists()) {
+        final Resource classes=instance_webapp.addPath("WEB-INF/classes");
+        final Resource lib=instance_webapp.addPath("WEB-INF/lib");
+        if (classes.exists() || lib.exists()) {
+          final AtomicBoolean locked=new AtomicBoolean(false);
+          WebAppClassLoader webapp_loader=new WebAppClassLoader(loader,webappcontext){
+            @Override public void addClassPath(            Resource resource) throws IOException {
+              if (!locked.get())               super.addClassPath(resource);
+            }
+            @Override public void addClassPath(            String classPath) throws IOException {
+              if (!locked.get())               super.addClassPath(classPath);
+            }
+            @Override public void addJars(            Resource lib){
+              if (!locked.get())               super.addJars(lib);
+            }
+          }
+;
+          if (classes.exists())           webapp_loader.addClassPath(classes);
+          if (lib.exists())           webapp_loader.addJars(lib);
+          locked.set(true);
+          loader=webapp_loader;
+        }
+      }
+      if (loader == shared_loader)       loader=new URLClassLoader(new URL[]{},shared_loader);
+      List<Resource> webdefaults=getLayeredResources("webdefault.xml",instance,node,template);
+      if (webdefaults.size() > 0) {
+        Resource webdefault=webdefaults.get(0);
+        __log.debug("{}: defaultweb={}",origin,webdefault);
+        webappcontext.setDefaultsDescriptor(webdefault.toString());
+      }
+      for (      Resource override : getLayeredResources("web.xml",template,node,instance)) {
+        __log.debug("{}: web override={}",origin,override);
+        webappcontext.addOverrideDescriptor(override.toString());
+      }
+    }
+    context.setClassLoader(loader);
+    __log.debug("{}: baseResource={}",origin,context.getBaseResource());
+    System.err.println("created:\n" + context.dump());
+    return context;
+  }
+  finally {
+    Thread.currentThread().setContextClassLoader(orig_loader);
+  }
+}

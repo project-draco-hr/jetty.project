@@ -1,0 +1,41 @@
+{
+  __log.info("created {}",key);
+  List<URL> libs=new ArrayList<URL>();
+  for (  Resource lib : getLayeredResources("lib",node,template)) {
+    for (    String jar : lib.list()) {
+      if (!jar.toLowerCase().endsWith(".jar"))       continue;
+      libs.add(lib.addPath(jar).getURL());
+    }
+  }
+  final ClassLoader libLoader;
+  if (libs.size() > 0) {
+    __log.debug("{}: libs={}",key,libs);
+    libLoader=new URLClassLoader(libs.toArray(new URL[]{}),parent){
+      public String toString(){
+        return "libLoader@" + Long.toHexString(hashCode()) + "-lib-"+ key;
+      }
+    }
+;
+  }
+ else   libLoader=parent;
+  Thread.currentThread().setContextClassLoader(libLoader);
+  List<Resource> bases=new ArrayList<Resource>();
+  for (  Resource wa : getLayeredResources("webapp",node,template))   bases.add(wa);
+  if (webapp != null)   bases.add(webapp.getBaseResource());
+  Resource baseResource=bases.size() == 1 ? bases.get(0) : new ResourceCollection(bases.toArray(new Resource[bases.size()]));
+  __log.debug("{}: baseResource={}",key,baseResource);
+  TemplateContext shared=new TemplateContext(key,getDeploymentManager().getServer(),baseResource,libLoader);
+  _shared.put(key,shared);
+  Map<String,Object> idMap=new HashMap<String,Object>();
+  idMap.put(_serverID,getDeploymentManager().getServer());
+  for (  Resource template_xml : getLayeredResources("template.xml",template,node)) {
+    __log.debug("{}: template.xml={}",key,template_xml);
+    XmlConfiguration xmlc=newXmlConfiguration(template_xml.getURL(),idMap,template,null);
+    xmlc.getIdMap().putAll(idMap);
+    xmlc.configure(shared);
+    idMap=xmlc.getIdMap();
+  }
+  shared.setIdMap(idMap);
+  shared.start();
+  return shared;
+}

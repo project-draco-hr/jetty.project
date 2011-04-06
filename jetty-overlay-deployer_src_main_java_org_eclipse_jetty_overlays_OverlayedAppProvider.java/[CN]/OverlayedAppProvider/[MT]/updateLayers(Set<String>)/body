@@ -1,0 +1,78 @@
+{
+  _loading=System.currentTimeMillis();
+  for (  String ruri : layerURIs) {
+    try {
+      File directory;
+      File archive;
+      File origin=new File(new URI(_scanDir.toURI() + ruri));
+      String name=origin.getName();
+      Monitor monitor=Monitor.valueOf(origin.getParentFile().getName().toUpperCase());
+      String ext=monitor == Monitor.WEBAPPS ? ".war" : ".jar";
+      if (origin.isDirectory() || !origin.exists() && !ruri.toLowerCase().endsWith(ext)) {
+        directory=origin;
+        archive=new File(directory.toString() + ext);
+      }
+ else {
+        if (!ruri.toLowerCase().endsWith(ext))         continue;
+        name=name.substring(0,name.length() - 4);
+        archive=origin;
+        directory=new File(new URI(_scanDir.toURI() + ruri.substring(0,ruri.length() - 4)));
+        if (directory.exists()) {
+          __log.info("Directory exists, ignoring change to {}",ruri);
+          continue;
+        }
+      }
+      Layer layer=null;
+switch (monitor) {
+case WEBAPPS:
+        if (origin.exists())         layer=loadWebapp(name,origin);
+ else {
+          removeWebapp(name);
+          if (origin == directory && archive.exists())           layer=loadWebapp(name,archive);
+        }
+      break;
+case TEMPLATES:
+    if (origin.exists())     layer=loadTemplate(name,origin);
+ else {
+      removeTemplate(name);
+      if (origin == directory && archive.exists())       layer=loadTemplate(name,archive);
+    }
+  break;
+case NODES:
+if (name.equalsIgnoreCase(_nodeName)) {
+  if (origin.exists())   layer=loadNode(origin);
+ else {
+    removeNode();
+    if (origin == directory && archive.exists())     layer=loadNode(archive);
+  }
+}
+break;
+case INSTANCES:
+if (origin.exists()) layer=loadInstance(name,origin);
+ else {
+removeInstance(name);
+if (origin == directory && archive.exists()) layer=loadInstance(name,archive);
+}
+break;
+}
+if (layer != null) __log.info("loaded {}",layer.getLoadedKey());
+}
+ catch (Exception e) {
+__log.warn(e);
+}
+}
+redeploy();
+for (Layer layer : _removedLayers) {
+if (layer != null) {
+__log.info("unload {}",layer.getLoadedKey());
+layer.release();
+}
+}
+_removedLayers.clear();
+if (__log.isDebugEnabled()) {
+System.err.println("updated:");
+System.err.println("java:" + javaRootURLContext.getRoot().dump());
+System.err.println("local:" + localContextRoot.getRoot().dump());
+if (getDeploymentManager() != null && getDeploymentManager().getServer() != null) System.err.println(getDeploymentManager().getServer().dump());
+}
+}

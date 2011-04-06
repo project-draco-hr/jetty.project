@@ -1,0 +1,172 @@
+{
+  final BlockingQueue<String> scanned=new LinkedBlockingQueue<String>();
+  OverlayedAppProvider provider=new OverlayedAppProvider(){
+    protected void removeInstance(    String name){
+      scanned.add("removeInstance " + name);
+    }
+    protected Instance loadInstance(    String name,    File origin){
+      scanned.add("loadInstance " + name);
+      scanned.add(origin.getAbsolutePath());
+      return null;
+    }
+    protected void removeNode(){
+      scanned.add("removeNode");
+    }
+    protected Node loadNode(    File origin){
+      scanned.add("loadNode");
+      scanned.add(origin.getAbsolutePath());
+      return null;
+    }
+    protected void removeTemplate(    String name){
+      scanned.add("removeTemplate " + name);
+    }
+    protected Template loadTemplate(    String name,    File origin){
+      scanned.add("loadTemplate " + name);
+      scanned.add(origin.getAbsolutePath());
+      return null;
+    }
+    protected void removeWebapp(    String name){
+      scanned.add("removeWebapp " + name);
+    }
+    protected Webapp loadWebapp(    String name,    File origin){
+      scanned.add("loadWebapp " + name);
+      scanned.add(origin.getAbsolutePath());
+      return null;
+    }
+    protected void redeploy(){
+    }
+  }
+;
+  provider.setScanInterval(0);
+  provider.setNodeName("nodeA");
+  provider.setScanDir(_scan);
+  provider.start();
+  provider.scan();
+  assertTrue(scanned.isEmpty());
+  File war=new File(_webapps,"foo-1.2.3.war");
+  touch(war);
+  provider.scan();
+  provider.scan();
+  assertEquals("loadWebapp foo-1.2.3",scanned.poll(1,TimeUnit.SECONDS));
+  assertEquals(war.getAbsolutePath(),scanned.poll(1,TimeUnit.SECONDS));
+  File template=new File(_templates,"foo=foo-1.2.3.jar");
+  touch(template);
+  provider.scan();
+  provider.scan();
+  assertEquals("loadTemplate foo=foo-1.2.3",scanned.poll(1,TimeUnit.SECONDS));
+  assertEquals(template.getAbsolutePath(),scanned.poll(1,TimeUnit.SECONDS));
+  File nodeA=new File(_nodes,"nodeA.jar");
+  touch(nodeA);
+  provider.scan();
+  provider.scan();
+  assertEquals("loadNode",scanned.poll(1,TimeUnit.SECONDS));
+  assertEquals(nodeA.getAbsolutePath(),scanned.poll(1,TimeUnit.SECONDS));
+  File nodeB=new File(_nodes,"nodeB.jar");
+  provider.scan();
+  provider.scan();
+  assertTrue(scanned.isEmpty());
+  File instance=new File(_instances,"foo=instance.jar");
+  touch(instance);
+  provider.scan();
+  provider.scan();
+  assertEquals("loadInstance foo=instance",scanned.poll(1,TimeUnit.SECONDS));
+  assertEquals(instance.getAbsolutePath(),scanned.poll(1,TimeUnit.SECONDS));
+  File warDir=new File(_webapps,"foo-1.2.3");
+  warDir.mkdir();
+  provider.scan();
+  provider.scan();
+  assertEquals("loadWebapp foo-1.2.3",scanned.poll(1,TimeUnit.SECONDS));
+  assertEquals(warDir.getAbsolutePath(),scanned.poll(1,TimeUnit.SECONDS));
+  File templateDir=new File(_templates,"foo=foo-1.2.3");
+  templateDir.mkdir();
+  provider.scan();
+  provider.scan();
+  assertEquals("loadTemplate foo=foo-1.2.3",scanned.poll(1,TimeUnit.SECONDS));
+  assertEquals(templateDir.getAbsolutePath(),scanned.poll(1,TimeUnit.SECONDS));
+  File nodeADir=new File(_nodes,"nodeA");
+  nodeADir.mkdir();
+  provider.scan();
+  provider.scan();
+  assertEquals("loadNode",scanned.poll(1,TimeUnit.SECONDS));
+  assertEquals(nodeADir.getAbsolutePath(),scanned.poll(1,TimeUnit.SECONDS));
+  File nodeBDir=new File(_nodes,"nodeB");
+  nodeBDir.mkdir();
+  provider.scan();
+  provider.scan();
+  assertTrue(scanned.isEmpty());
+  File instanceDir=new File(_instances,"foo=instance");
+  instanceDir.mkdir();
+  provider.scan();
+  provider.scan();
+  assertEquals("loadInstance foo=instance",scanned.poll(1,TimeUnit.SECONDS));
+  assertEquals(instanceDir.getAbsolutePath(),scanned.poll(1,TimeUnit.SECONDS));
+  Thread.sleep(1000);
+  touch(war);
+  touch(template);
+  touch(nodeA);
+  touch(nodeB);
+  touch(instance);
+  provider.scan();
+  provider.scan();
+  assertTrue(scanned.isEmpty());
+  touch(warDir,"WEB-INF/web.xml");
+  touch(templateDir,"context.xml");
+  touch(nodeADir,"context.xml");
+  touch(nodeBDir,"context.xml");
+  touch(instanceDir,"context.xml");
+  provider.scan();
+  provider.scan();
+  assertEquals(8,scanned.size());
+  scanned.clear();
+  IO.delete(warDir);
+  provider.scan();
+  provider.scan();
+  assertEquals("removeWebapp foo-1.2.3",scanned.poll(1,TimeUnit.SECONDS));
+  assertEquals("loadWebapp foo-1.2.3",scanned.poll(1,TimeUnit.SECONDS));
+  assertEquals(war.getAbsolutePath(),scanned.poll(1,TimeUnit.SECONDS));
+  IO.delete(templateDir);
+  provider.scan();
+  provider.scan();
+  assertEquals("removeTemplate foo=foo-1.2.3",scanned.poll(1,TimeUnit.SECONDS));
+  assertEquals("loadTemplate foo=foo-1.2.3",scanned.poll(1,TimeUnit.SECONDS));
+  assertEquals(template.getAbsolutePath(),scanned.poll(1,TimeUnit.SECONDS));
+  IO.delete(nodeADir);
+  provider.scan();
+  provider.scan();
+  assertEquals("removeNode",scanned.poll(1,TimeUnit.SECONDS));
+  assertEquals("loadNode",scanned.poll(1,TimeUnit.SECONDS));
+  assertEquals(nodeA.getAbsolutePath(),scanned.poll(1,TimeUnit.SECONDS));
+  IO.delete(nodeBDir);
+  provider.scan();
+  provider.scan();
+  assertTrue(scanned.isEmpty());
+  IO.delete(instanceDir);
+  provider.scan();
+  provider.scan();
+  assertEquals("removeInstance foo=instance",scanned.poll(1,TimeUnit.SECONDS));
+  assertEquals("loadInstance foo=instance",scanned.poll(1,TimeUnit.SECONDS));
+  assertEquals(instance.getAbsolutePath(),scanned.poll(1,TimeUnit.SECONDS));
+  IO.delete(war);
+  provider.scan();
+  provider.scan();
+  assertEquals("removeWebapp foo-1.2.3",scanned.poll(1,TimeUnit.SECONDS));
+  IO.delete(template);
+  provider.scan();
+  provider.scan();
+  assertEquals("removeTemplate foo=foo-1.2.3",scanned.poll(1,TimeUnit.SECONDS));
+  IO.delete(nodeA);
+  provider.scan();
+  provider.scan();
+  assertEquals("removeNode",scanned.poll(1,TimeUnit.SECONDS));
+  IO.delete(nodeB);
+  provider.scan();
+  provider.scan();
+  assertTrue(scanned.isEmpty());
+  IO.delete(instance);
+  provider.scan();
+  provider.scan();
+  assertEquals("removeInstance foo=instance",scanned.poll(1,TimeUnit.SECONDS));
+  provider.scan();
+  provider.scan();
+  assertTrue(scanned.isEmpty());
+}

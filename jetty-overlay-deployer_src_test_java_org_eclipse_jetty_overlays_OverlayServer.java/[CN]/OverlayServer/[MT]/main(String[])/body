@@ -1,0 +1,28 @@
+{
+  String jetty_home=System.getProperty("jetty.home","target/test-classes/home");
+  System.setProperty("jetty.home",jetty_home);
+  Server server=new Server();
+  server.setAttribute("org.eclipse.jetty.webapp.configuration",new String[]{org.eclipse.jetty.webapp.WebInfConfiguration.class.getCanonicalName(),org.eclipse.jetty.webapp.WebXmlConfiguration.class.getCanonicalName(),org.eclipse.jetty.webapp.MetaInfConfiguration.class.getCanonicalName(),org.eclipse.jetty.webapp.FragmentConfiguration.class.getCanonicalName(),org.eclipse.jetty.plus.webapp.EnvConfiguration.class.getCanonicalName(),org.eclipse.jetty.plus.webapp.PlusConfiguration.class.getCanonicalName(),org.eclipse.jetty.webapp.JettyWebXmlConfiguration.class.getCanonicalName(),org.eclipse.jetty.webapp.TagLibConfiguration.class.getCanonicalName()});
+  SelectChannelConnector connector=new SelectChannelConnector();
+  connector.setPort(8080);
+  server.addConnector(connector);
+  HandlerCollection handlers=new HandlerCollection();
+  ContextHandlerCollection contexts=new ContextHandlerCollection();
+  RequestLogHandler requestLogHandler=new RequestLogHandler();
+  handlers.setHandlers(new Handler[]{contexts,new DefaultHandler(),requestLogHandler});
+  StatisticsHandler stats=new StatisticsHandler();
+  stats.setHandler(handlers);
+  server.setHandler(stats);
+  DeploymentManager deployer=new DeploymentManager();
+  deployer.setContexts(contexts);
+  server.addBean(deployer);
+  OverlayedAppProvider provider=new OverlayedAppProvider();
+  provider.setNodeName("nodeA");
+  provider.setScanDir(new File(jetty_home + "/overlays"));
+  provider.setScanInterval(2);
+  deployer.addAppProvider(provider);
+  server.setStopAtShutdown(true);
+  server.setSendServerVersion(true);
+  server.start();
+  server.join();
+}

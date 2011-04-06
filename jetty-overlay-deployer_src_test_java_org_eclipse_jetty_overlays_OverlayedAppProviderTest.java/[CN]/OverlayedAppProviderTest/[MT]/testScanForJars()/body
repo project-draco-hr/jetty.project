@@ -1,0 +1,51 @@
+{
+  final ConcurrentLinkedQueue<Set<String>> scanned=new ConcurrentLinkedQueue<Set<String>>();
+  OverlayedAppProvider provider=new OverlayedAppProvider(){
+    /** 
+ * @see org.eclipse.jetty.overlays.OverlayedAppProvider#updateLayers(java.util.List)
+ */
+    @Override protected void updateLayers(    Set<String> filenames){
+      scanned.offer(filenames);
+    }
+  }
+;
+  provider.setScanInterval(0);
+  provider.setScanDir(_scan);
+  provider.start();
+  provider.scan();
+  provider.scan();
+  assertTrue(scanned.isEmpty());
+  File war=new File(_webapps,"foo-1.2.3.war");
+  touch(war);
+  File template=new File(_templates,"foo=foo-1.2.3.jar");
+  touch(template);
+  File node=new File(_nodes,"nodeA.jar");
+  touch(node);
+  File instance=new File(_instances,"foo=instance.jar");
+  touch(instance);
+  provider.scan();
+  provider.scan();
+  Set<String> results=scanned.poll();
+  assertTrue(results != null);
+  assertEquals(4,results.size());
+  assertTrue(results.contains("webapps/foo-1.2.3.war"));
+  assertTrue(results.contains("templates/foo=foo-1.2.3.jar"));
+  assertTrue(results.contains("nodes/nodeA.jar"));
+  assertTrue(results.contains("instances/foo=instance.jar"));
+  provider.scan();
+  provider.scan();
+  assertTrue(scanned.isEmpty());
+  IO.delete(war);
+  IO.delete(template);
+  IO.delete(node);
+  IO.delete(instance);
+  provider.scan();
+  provider.scan();
+  results=scanned.poll();
+  assertTrue(results != null);
+  assertEquals(4,results.size());
+  assertTrue(results.contains("webapps/foo-1.2.3.war"));
+  assertTrue(results.contains("templates/foo=foo-1.2.3.jar"));
+  assertTrue(results.contains("nodes/nodeA.jar"));
+  assertTrue(results.contains("instances/foo=instance.jar"));
+}

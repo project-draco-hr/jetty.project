@@ -1,0 +1,121 @@
+{
+  final ConcurrentLinkedQueue<Set<String>> scanned=new ConcurrentLinkedQueue<Set<String>>();
+  OverlayedAppProvider provider=new OverlayedAppProvider(){
+    /** 
+ * @see org.eclipse.jetty.overlays.OverlayedAppProvider#updateLayers(java.util.List)
+ */
+    @Override protected void updateLayers(    Set<String> filenames){
+      scanned.offer(filenames);
+    }
+  }
+;
+  provider.setScanInterval(0);
+  provider.setScanDir(_scan);
+  provider.start();
+  provider.scan();
+  assertTrue(scanned.isEmpty());
+  File war=new File(_webapps,"foo-1.2.3");
+  war.mkdir();
+  File template=new File(_templates,"foo=foo-1.2.3");
+  template.mkdir();
+  File node=new File(_nodes,"nodeA");
+  node.mkdir();
+  File instance=new File(_instances,"foo=instance");
+  instance.mkdir();
+  provider.scan();
+  provider.scan();
+  Set<String> results=scanned.poll();
+  assertTrue(results != null);
+  assertEquals(4,results.size());
+  assertTrue(results.contains("webapps/foo-1.2.3"));
+  assertTrue(results.contains("templates/foo=foo-1.2.3"));
+  assertTrue(results.contains("nodes/nodeA"));
+  assertTrue(results.contains("instances/foo=instance"));
+  provider.scan();
+  provider.scan();
+  assertTrue(scanned.isEmpty());
+  touch(war,"WEB-INF/web.xml");
+  touch(war,"WEB-INF/spring.XML");
+  touch(war,"WEB-INF/other");
+  touch(war,"WEB-INF/lib/bar.jar");
+  touch(war,"WEB-INF/classes/bar.class");
+  for (  File d : new File[]{template,node,instance}) {
+    touch(d,"web.xml");
+    touch(d,"context.xml");
+    touch(d,"other");
+    touch(d,"webapp/WEB-INF/lib/bar.jar");
+  }
+  provider.scan();
+  provider.scan();
+  results=scanned.poll();
+  assertTrue(results != null);
+  assertEquals(4,results.size());
+  assertTrue(results.contains("webapps/foo-1.2.3"));
+  assertTrue(results.contains("templates/foo=foo-1.2.3"));
+  assertTrue(results.contains("nodes/nodeA"));
+  assertTrue(results.contains("instances/foo=instance"));
+  Thread.sleep(1000);
+  touch(war,"WEB-INF/web.xml");
+  for (  File d : new File[]{template,node,instance})   touch(d,"context.xml");
+  provider.scan();
+  provider.scan();
+  results=scanned.poll();
+  assertTrue(results != null);
+  assertEquals(4,results.size());
+  assertTrue(results.contains("webapps/foo-1.2.3"));
+  assertTrue(results.contains("templates/foo=foo-1.2.3"));
+  assertTrue(results.contains("nodes/nodeA"));
+  assertTrue(results.contains("instances/foo=instance"));
+  Thread.sleep(1000);
+  touch(war,"WEB-INF/spring.XML");
+  for (  File d : new File[]{template,node,instance})   touch(d,"webapp/WEB-INF/spring.XML");
+  provider.scan();
+  provider.scan();
+  results=scanned.poll();
+  assertTrue(results != null);
+  assertEquals(4,results.size());
+  assertTrue(results.contains("webapps/foo-1.2.3"));
+  assertTrue(results.contains("templates/foo=foo-1.2.3"));
+  assertTrue(results.contains("nodes/nodeA"));
+  assertTrue(results.contains("instances/foo=instance"));
+  touch(war,"index.html");
+  for (  File d : new File[]{template,node,instance})   touch(d,"webapp/index.html");
+  provider.scan();
+  provider.scan();
+  results=scanned.poll();
+  assertEquals(1,results.size());
+  assertTrue(results.contains("webapps/foo-1.2.3"));
+  Thread.sleep(1000);
+  touch(war,"WEB-INF/lib/bar.jar");
+  for (  File d : new File[]{template,node,instance})   touch(d,"webapp/WEB-INF/lib/bar.jar");
+  provider.scan();
+  provider.scan();
+  results=scanned.poll();
+  assertTrue(results != null);
+  assertEquals(4,results.size());
+  assertTrue(results.contains("webapps/foo-1.2.3"));
+  assertTrue(results.contains("templates/foo=foo-1.2.3"));
+  assertTrue(results.contains("nodes/nodeA"));
+  assertTrue(results.contains("instances/foo=instance"));
+  Thread.sleep(1000);
+  touch(war,"WEB-INF/other.txt");
+  touch(war,"index.html");
+  for (  File d : new File[]{template,node,instance})   touch(d,"index.html");
+  provider.scan();
+  provider.scan();
+  results=scanned.poll();
+  assertTrue(scanned.isEmpty());
+  IO.delete(war);
+  IO.delete(template);
+  IO.delete(node);
+  IO.delete(instance);
+  provider.scan();
+  provider.scan();
+  results=scanned.poll();
+  assertTrue(results != null);
+  assertEquals(4,results.size());
+  assertTrue(results.contains("webapps/foo-1.2.3"));
+  assertTrue(results.contains("templates/foo=foo-1.2.3"));
+  assertTrue(results.contains("nodes/nodeA"));
+  assertTrue(results.contains("instances/foo=instance"));
+}
