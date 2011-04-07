@@ -1,12 +1,10 @@
 {
   Buffer buffer=_directBuffer.get();
   if (buffer == null) {
-synchronized (_directBuffer) {
-      if (_directBuffer.get() == null) {
-        buffer=ResourceCache.this.getDirectBuffer(_resource);
-        _directBuffer.set(buffer);
-      }
-    }
+    Buffer buffer2=ResourceCache.this.getDirectBuffer(_resource);
+    if (buffer2 == null)     Log.warn("Could not load " + this);
+ else     if (_directBuffer.compareAndSet(null,buffer2))     buffer=buffer2;
+ else     buffer=_directBuffer.get();
   }
   if (buffer == null)   return null;
   return new View(buffer);
