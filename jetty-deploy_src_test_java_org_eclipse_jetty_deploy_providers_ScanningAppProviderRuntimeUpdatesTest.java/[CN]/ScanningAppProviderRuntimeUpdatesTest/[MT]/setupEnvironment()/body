@@ -4,4 +4,16 @@
   jetty.addConfiguration("jetty-deploymgr-contexts.xml");
   jetty.load();
   jetty.start();
+  DeploymentManager dm=jetty.getServer().getBeans(DeploymentManager.class).get(0);
+  for (  AppProvider provider : dm.getAppProviders()) {
+    if (provider instanceof ScanningAppProvider) {
+      _providers++;
+      ((ScanningAppProvider)provider).addScannerListener(new Scanner.ScanListener(){
+        public void scan(){
+          _scans.incrementAndGet();
+        }
+      }
+);
+    }
+  }
 }
