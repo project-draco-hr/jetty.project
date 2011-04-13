@@ -22,7 +22,8 @@
           break;
         }
       }
-      _websocket.onConnect(this);
+      if (_websocket instanceof OnFrame)       ((OnFrame)_websocket).onHandshake(this);
+      _websocket.onOpen(this);
       return this;
     }
     boolean progress=true;
@@ -37,6 +38,7 @@
     }
   }
  catch (  IOException e) {
+    Log.debug(e);
     try {
       _endp.close();
     }
@@ -48,6 +50,8 @@
  finally {
     if (_endp.isOpen()) {
       _idle.access(_endp);
+      if (_endp.isInputShutdown() && _generator.isBufferEmpty())       _endp.close();
+ else       checkWriteable();
       checkWriteable();
     }
   }
