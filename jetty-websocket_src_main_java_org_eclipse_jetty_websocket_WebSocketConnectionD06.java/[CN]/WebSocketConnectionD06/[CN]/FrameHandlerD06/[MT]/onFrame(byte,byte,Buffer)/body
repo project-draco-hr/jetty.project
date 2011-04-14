@@ -1,5 +1,5 @@
 {
-  boolean more=(flags & 0x8) == 0;
+  boolean lastFrame=isLastFrame(flags);
 synchronized (WebSocketConnectionD06.this) {
     if (_closedIn)     return;
     try {
@@ -15,7 +15,7 @@ case WebSocketConnectionD06.OP_CONTINUATION:
 {
           if (_opcode == WebSocketConnectionD06.OP_TEXT && _connection.getMaxTextMessageSize() >= 0) {
             if (_utf8.append(buffer.array(),buffer.getIndex(),buffer.length(),_connection.getMaxTextMessageSize())) {
-              if (more && _onTextMessage != null) {
+              if (lastFrame && _onTextMessage != null) {
                 _opcode=-1;
                 String msg=_utf8.toString();
                 _utf8.reset();
@@ -36,7 +36,7 @@ case WebSocketConnectionD06.OP_CONTINUATION:
             }
  else {
               _aggregate.put(buffer);
-              if (!more && _onBinaryMessage != null) {
+              if (lastFrame && _onBinaryMessage != null) {
                 try {
                   _onBinaryMessage.onMessage(_aggregate.array(),_aggregate.getIndex(),_aggregate.length());
                 }
@@ -74,7 +74,10 @@ case WebSocketConnectionD06.OP_CLOSE:
 case WebSocketConnectionD06.OP_TEXT:
 {
   if (_onTextMessage != null) {
-    if (more) {
+    if (lastFrame) {
+      _onTextMessage.onMessage(buffer.toString(StringUtil.__UTF8));
+    }
+ else {
       if (_connection.getMaxTextMessageSize() >= 0) {
         if (_utf8.append(buffer.array(),buffer.getIndex(),buffer.length(),_connection.getMaxTextMessageSize()))         _opcode=WebSocketConnectionD06.OP_TEXT;
  else {
@@ -84,16 +87,16 @@ case WebSocketConnectionD06.OP_TEXT:
         }
       }
     }
- else {
-      _onTextMessage.onMessage(buffer.toString(StringUtil.__UTF8));
-    }
   }
   break;
 }
 default :
 {
 if (_onBinaryMessage != null) {
-  if (more) {
+  if (lastFrame) {
+    _onBinaryMessage.onMessage(array,buffer.getIndex(),buffer.length());
+  }
+ else {
     if (_connection.getMaxBinaryMessageSize() >= 0) {
       if (buffer.length() > _connection.getMaxBinaryMessageSize()) {
         _connection.close(WebSocketConnectionD06.CLOSE_LARGE,"Message size > " + _connection.getMaxBinaryMessageSize());
@@ -106,9 +109,6 @@ if (_onBinaryMessage != null) {
         _aggregate.put(buffer);
       }
     }
-  }
- else {
-    _onBinaryMessage.onMessage(array,buffer.getIndex(),buffer.length());
   }
 }
 }
