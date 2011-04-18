@@ -1,6 +1,7 @@
 {
   super(connector,endp,connector.getServer(),new NestedParser(),new NestedGenerator(connector.getResponseBuffers(),endp,response,nestedIn),new NestedRequest());
   ((NestedRequest)_request).setConnection(this);
+  _request.setDispatcherType(DispatcherType.REQUEST);
   _request.setScheme(request.getScheme());
   _request.setMethod(request.getMethod());
   String uri=request.getQueryString() == null ? request.getRequestURI() : (request.getRequestURI() + "?" + request.getQueryString());
@@ -8,6 +9,7 @@
   _request.setPathInfo(request.getRequestURI());
   _request.setQueryString(request.getQueryString());
   _request.setProtocol(request.getProtocol());
+  _request.setAttribute("isSecure",new Boolean(request.isSecure()));
   HttpFields fields=getRequestFields();
   for (Enumeration<String> e=request.getHeaderNames(); e.hasMoreElements(); ) {
     String header=e.nextElement();
@@ -15,4 +17,8 @@
     fields.add(header,value);
   }
   _request.setCookies(request.getCookies());
+  for (Enumeration<String> e=request.getAttributeNames(); e.hasMoreElements(); ) {
+    String attr=e.nextElement();
+    _request.setAttribute(attr,request.getAttribute(attr));
+  }
 }
