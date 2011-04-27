@@ -1,18 +1,21 @@
 {
 synchronized (this) {
-    long start=_selectSet.getNow();
+    long now=_selectSet.getNow();
+    long end=now + timeoutMs;
     try {
       _writeBlocked=true;
       while (isOpen() && _writeBlocked) {
         try {
           updateKey();
-          this.wait(timeoutMs);
+          this.wait(end - now);
         }
  catch (        InterruptedException e) {
           Log.warn(e);
         }
-        timeoutMs-=_selectSet.getNow() - start;
-        if (_writeBlocked && timeoutMs <= 0)         return false;
+ finally {
+          now=_selectSet.getNow();
+        }
+        if (_writeBlocked && now >= end)         return false;
       }
     }
   finally {
