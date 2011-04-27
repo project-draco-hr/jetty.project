@@ -23,29 +23,15 @@
   }
   String method=node.getAttribute("name");
   if (Log.isDebugEnabled())   Log.debug("XML call " + method);
-  Method[] methods=oClass.getMethods();
-  for (int c=0; methods != null && c < methods.length; c++) {
-    if (!methods[c].getName().equals(method))     continue;
-    if (methods[c].getParameterTypes().length != size)     continue;
-    if (Modifier.isStatic(methods[c].getModifiers()) != (obj == null))     continue;
-    if ((obj == null) && methods[c].getDeclaringClass() != oClass)     continue;
-    Object n=null;
-    boolean called=false;
-    try {
-      n=methods[c].invoke(obj,arg);
-      called=true;
-    }
- catch (    IllegalAccessException e) {
-      Log.ignore(e);
-    }
-catch (    IllegalArgumentException e) {
-      Log.ignore(e);
-    }
-    if (called) {
-      if (id != null)       _idMap.put(id,n);
-      configure(n,node,argi);
-      return n;
-    }
+  try {
+    Object n=TypeUtil.call(oClass,method,obj,arg);
+    if (id != null)     _idMap.put(id,n);
+    configure(n,node,argi);
+    return n;
   }
-  throw new IllegalStateException("No Method: " + node + " on "+ oClass);
+ catch (  NoSuchMethodException e) {
+    IllegalStateException ise=new IllegalStateException("No Method: " + node + " on "+ oClass);
+    ise.initCause(e);
+    throw ise;
+  }
 }

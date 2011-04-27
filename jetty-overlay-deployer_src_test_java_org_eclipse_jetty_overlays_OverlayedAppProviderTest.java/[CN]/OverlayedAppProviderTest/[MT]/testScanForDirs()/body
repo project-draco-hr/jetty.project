@@ -22,6 +22,11 @@
   node.mkdir();
   File instance=new File(_instances,"foo=instance");
   instance.mkdir();
+  for (  File f : new File[]{war,template,node,instance}) {
+    File webinf=new File(f,"WEB-INF");
+    webinf.mkdir();
+    touch(webinf,"web.xml");
+  }
   provider.scan();
   provider.scan();
   Set<String> results=scanned.poll();
@@ -40,10 +45,10 @@
   touch(war,"WEB-INF/lib/bar.jar");
   touch(war,"WEB-INF/classes/bar.class");
   for (  File d : new File[]{template,node,instance}) {
-    touch(d,"web.xml");
-    touch(d,"context.xml");
-    touch(d,"other");
-    touch(d,"webapp/WEB-INF/lib/bar.jar");
+    touch(d,"WEB-INF/web-fragment.xml");
+    touch(d,"WEB-INF/overlay.xml");
+    touch(d,"WEB-INF/other");
+    touch(d,"WEB-INF/lib/bar.jar");
   }
   provider.scan();
   provider.scan();
@@ -55,8 +60,7 @@
   assertTrue(results.contains("nodes/nodeA"));
   assertTrue(results.contains("instances/foo=instance"));
   Thread.sleep(1000);
-  touch(war,"WEB-INF/web.xml");
-  for (  File d : new File[]{template,node,instance})   touch(d,"context.xml");
+  for (  File d : new File[]{war,template,node,instance})   touch(d,"WEB-INF/web.xml");
   provider.scan();
   provider.scan();
   results=scanned.poll();
@@ -67,8 +71,7 @@
   assertTrue(results.contains("nodes/nodeA"));
   assertTrue(results.contains("instances/foo=instance"));
   Thread.sleep(1000);
-  touch(war,"WEB-INF/spring.XML");
-  for (  File d : new File[]{template,node,instance})   touch(d,"webapp/WEB-INF/spring.XML");
+  for (  File d : new File[]{war,template,node,instance})   touch(d,"WEB-INF/spring.XML");
   provider.scan();
   provider.scan();
   results=scanned.poll();
@@ -78,16 +81,13 @@
   assertTrue(results.contains("templates/foo=foo-1.2.3"));
   assertTrue(results.contains("nodes/nodeA"));
   assertTrue(results.contains("instances/foo=instance"));
-  touch(war,"index.html");
-  for (  File d : new File[]{template,node,instance})   touch(d,"webapp/index.html");
+  for (  File d : new File[]{war,template,node,instance})   touch(d,"index.html");
   provider.scan();
   provider.scan();
   results=scanned.poll();
-  assertEquals(1,results.size());
-  assertTrue(results.contains("webapps/foo-1.2.3"));
+  assertEquals(null,results);
   Thread.sleep(1000);
-  touch(war,"WEB-INF/lib/bar.jar");
-  for (  File d : new File[]{template,node,instance})   touch(d,"webapp/WEB-INF/lib/bar.jar");
+  for (  File d : new File[]{war,template,node,instance})   touch(d,"WEB-INF/lib/bar.jar");
   provider.scan();
   provider.scan();
   results=scanned.poll();
@@ -98,9 +98,7 @@
   assertTrue(results.contains("nodes/nodeA"));
   assertTrue(results.contains("instances/foo=instance"));
   Thread.sleep(1000);
-  touch(war,"WEB-INF/other.txt");
-  touch(war,"index.html");
-  for (  File d : new File[]{template,node,instance})   touch(d,"index.html");
+  for (  File d : new File[]{war,template,node,instance})   touch(d,"index.html");
   provider.scan();
   provider.scan();
   results=scanned.poll();
