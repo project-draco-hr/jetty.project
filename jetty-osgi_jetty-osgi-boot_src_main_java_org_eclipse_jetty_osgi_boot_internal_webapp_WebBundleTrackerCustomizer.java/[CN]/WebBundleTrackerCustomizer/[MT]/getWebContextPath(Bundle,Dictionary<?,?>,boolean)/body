@@ -1,0 +1,33 @@
+{
+  String rfc66ContextPath=(String)dic.get(OSGiWebappConstants.RFC66_WEB_CONTEXTPATH);
+  if (rfc66ContextPath == null) {
+    if (!webinfWebxmlExists) {
+      return null;
+    }
+    String location=bundle.getLocation();
+    String toks[]=location.replace('\\','/').split("/");
+    rfc66ContextPath=toks[toks.length - 1];
+    int lastDot=rfc66ContextPath.lastIndexOf('.');
+    if (lastDot != -1) {
+      rfc66ContextPath=rfc66ContextPath.substring(0,lastDot);
+    }
+  }
+  if (rfc66ContextPath.startsWith("${") && rfc66ContextPath.endsWith("}")) {
+    String sysProperty=rfc66ContextPath.substring(2,rfc66ContextPath.length() - 1);
+    String[] keyAndDefaultValue=sysProperty.split(",");
+    String defaultValue=null;
+    if (keyAndDefaultValue.length == 2) {
+      sysProperty=keyAndDefaultValue[0];
+      defaultValue=keyAndDefaultValue[1];
+    }
+    String sysValue=System.getProperty(sysProperty,defaultValue);
+    if (sysValue == null) {
+      throw new IllegalArgumentException("Could not resolve the system property " + sysProperty + " defined in the manifest of the bundle "+ bundle.getSymbolicName());
+    }
+    rfc66ContextPath=sysValue;
+  }
+  if (!rfc66ContextPath.startsWith("/")) {
+    rfc66ContextPath="/" + rfc66ContextPath;
+  }
+  return rfc66ContextPath;
+}
