@@ -4,42 +4,7 @@
   try {
     OSGiWebappClassLoader composite=createWebappClassLoader(contributor);
     Thread.currentThread().setContextClassLoader(composite);
-    Bundle[] fragments=PackageAdminServiceTracker.INSTANCE.getFragments(contributor);
-    if (fragments != null && fragments.length != 0) {
-      TreeMap<String,Resource> patchResourcesPath=new TreeMap<String,Resource>();
-      TreeMap<String,Resource> appendedResourcesPath=new TreeMap<String,Resource>();
-      for (      Bundle frag : fragments) {
-        String fragFolder=(String)frag.getHeaders().get(OSGiWebappConstants.JETTY_WAR_FRAGMENT_FOLDER_PATH);
-        String patchFragFolder=(String)frag.getHeaders().get(OSGiWebappConstants.JETTY_WAR_PATCH_FRAGMENT_FOLDER_PATH);
-        if (fragFolder != null) {
-          URL fragUrl=frag.getEntry(fragFolder);
-          if (fragUrl == null) {
-            throw new IllegalArgumentException("Unable to locate " + fragFolder + " inside "+ " the fragment '"+ frag.getSymbolicName()+ "'");
-          }
-          fragUrl=DefaultFileLocatorHelper.getLocalURL(fragUrl);
-          String key=patchFragFolder.startsWith("/") ? patchFragFolder.substring(1) : patchFragFolder;
-          appendedResourcesPath.put(key + ";" + frag.getSymbolicName(),Resource.newResource(fragUrl));
-        }
-        if (patchFragFolder != null) {
-          URL patchFragUrl=frag.getEntry(patchFragFolder);
-          if (patchFragUrl == null) {
-            throw new IllegalArgumentException("Unable to locate " + patchFragUrl + " inside "+ " the fragment '"+ frag.getSymbolicName()+ "'");
-          }
-          patchFragUrl=DefaultFileLocatorHelper.getLocalURL(patchFragUrl);
-          String key=patchFragFolder.startsWith("/") ? patchFragFolder.substring(1) : patchFragFolder;
-          patchResourcesPath.put(key + ";" + frag.getSymbolicName(),Resource.newResource(patchFragUrl));
-        }
-      }
-      LinkedList<Resource> resourcesPath=new LinkedList<Resource>();
-      resourcesPath.addAll(patchResourcesPath.values());
-      resourcesPath.add(Resource.newResource(baseWebappInstallURL));
-      resourcesPath.addAll(appendedResourcesPath.values());
-      ResourceCollection rc=new ResourceCollection(resourcesPath.toArray(new Resource[resourcesPath.size()]));
-      context.setBaseResource(rc);
-    }
- else {
-      context.setWar(baseWebappInstallURL.toString());
-    }
+    context.setWar(baseWebappInstallURL.toString());
     context.setContextPath(contextPath);
     context.setExtraClasspath(extraClasspath);
     if (webXmlPath != null && webXmlPath.length() != 0) {
@@ -75,6 +40,22 @@
     oldServerClasses=context.getServerClasses();
     context.setServerClasses(null);
     _wrapper.getOSGiAppProvider().addContext(contributor,pathInBundleToWebApp,context);
+    List<Resource> patchResources=(List<Resource>)context.getAttribute(WebInfConfiguration.RESOURCE_URLS + ".patch");
+    if (patchResources != null) {
+      LinkedList<Resource> resourcesPath=new LinkedList<Resource>();
+      resourcesPath.addAll(patchResources);
+      Resource hostResources=context.getBaseResource();
+      if (hostResources instanceof ResourceCollection) {
+        for (        Resource re : ((ResourceCollection)hostResources).getResources()) {
+          resourcesPath.add(re);
+        }
+      }
+ else {
+        resourcesPath.add(hostResources);
+      }
+      ResourceCollection rc=new ResourceCollection(resourcesPath.toArray(new Resource[resourcesPath.size()]));
+      context.setBaseResource(rc);
+    }
     return context;
   }
   finally {

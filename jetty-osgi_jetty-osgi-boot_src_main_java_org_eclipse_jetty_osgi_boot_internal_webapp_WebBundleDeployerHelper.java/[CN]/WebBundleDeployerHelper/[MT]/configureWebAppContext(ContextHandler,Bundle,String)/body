@@ -3,4 +3,37 @@
   wah.setAttribute("org.springframework.osgi.web." + BundleContext.class.getName(),contributor.getBundleContext());
   wah.setAttribute(OSGiWebappConstants.JETTY_OSGI_BUNDLE,contributor);
   wah.setAttribute(OSGiWebappConstants.REQUIRE_TLD_BUNDLE,requireTldBundle);
+  Bundle[] fragments=PackageAdminServiceTracker.INSTANCE.getFragments(contributor);
+  if (fragments != null && fragments.length != 0) {
+    TreeMap<String,Resource> patchResourcesPath=new TreeMap<String,Resource>();
+    TreeMap<String,Resource> appendedResourcesPath=new TreeMap<String,Resource>();
+    for (    Bundle frag : fragments) {
+      String fragFolder=(String)frag.getHeaders().get(OSGiWebappConstants.JETTY_WAR_FRAGMENT_FOLDER_PATH);
+      String patchFragFolder=(String)frag.getHeaders().get(OSGiWebappConstants.JETTY_WAR_PATCH_FRAGMENT_FOLDER_PATH);
+      if (fragFolder != null) {
+        URL fragUrl=frag.getEntry(fragFolder);
+        if (fragUrl == null) {
+          throw new IllegalArgumentException("Unable to locate " + fragFolder + " inside "+ " the fragment '"+ frag.getSymbolicName()+ "'");
+        }
+        fragUrl=DefaultFileLocatorHelper.getLocalURL(fragUrl);
+        String key=patchFragFolder.startsWith("/") ? patchFragFolder.substring(1) : patchFragFolder;
+        appendedResourcesPath.put(key + ";" + frag.getSymbolicName(),Resource.newResource(fragUrl));
+      }
+      if (patchFragFolder != null) {
+        URL patchFragUrl=frag.getEntry(patchFragFolder);
+        if (patchFragUrl == null) {
+          throw new IllegalArgumentException("Unable to locate " + patchFragUrl + " inside "+ " the fragment '"+ frag.getSymbolicName()+ "'");
+        }
+        patchFragUrl=DefaultFileLocatorHelper.getLocalURL(patchFragUrl);
+        String key=patchFragFolder.startsWith("/") ? patchFragFolder.substring(1) : patchFragFolder;
+        patchResourcesPath.put(key + ";" + frag.getSymbolicName(),Resource.newResource(patchFragUrl));
+      }
+    }
+    if (!appendedResourcesPath.isEmpty()) {
+      wah.setAttribute(WebInfConfiguration.RESOURCE_URLS,new ArrayList<Resource>(appendedResourcesPath.values()));
+    }
+    if (!patchResourcesPath.isEmpty()) {
+      wah.setAttribute(WebInfConfiguration.RESOURCE_URLS + ".patch",new ArrayList<Resource>(patchResourcesPath.values()));
+    }
+  }
 }
