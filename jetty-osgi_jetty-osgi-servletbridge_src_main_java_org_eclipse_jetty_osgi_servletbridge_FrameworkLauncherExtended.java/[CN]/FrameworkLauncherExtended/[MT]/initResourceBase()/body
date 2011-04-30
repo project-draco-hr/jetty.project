@@ -1,0 +1,32 @@
+{
+  try {
+    String resourceBaseStr=System.getProperty(OSGI_INSTALL_AREA,config.getInitParameter(OSGI_INSTALL_AREA));
+    if (resourceBaseStr != null) {
+      resourceBaseStr=resolveSystemProperty(resourceBaseStr);
+      if (resourceBaseStr.startsWith("file://")) {
+        resourceBaseAsURL=new URL(resourceBaseStr.replace(" ","%20"));
+      }
+ else       if (new File(resourceBaseStr).exists()) {
+        resourceBaseAsURL=new URL("file://" + new File(resourceBaseStr).getCanonicalPath().replace(" ","%20"));
+      }
+ else {
+        resourceBaseAsURL=context.getResource(resourceBaseStr);
+      }
+    }
+ else {
+      super.initResourceBase();
+      resourceBaseAsURL=context.getResource(resourceBaseStr);
+    }
+  }
+ catch (  MalformedURLException e) {
+  }
+catch (  IOException e) {
+  }
+  if (resourceBaseAsURL != null && resourceBaseAsURL.getProtocol().equals("file")) {
+    File resBase=new File(resourceBaseAsURL.getPath());
+    if (resBase.exists() && resBase.isDirectory() && !Boolean.FALSE.toString().equalsIgnoreCase(System.getProperty(DEPLOY_IN_PLACE_WHEN_INSTALL_AREA_IS_FOLDER))) {
+      __setPlatformDirectory(resBase);
+      deployedInPlace=true;
+    }
+  }
+}
