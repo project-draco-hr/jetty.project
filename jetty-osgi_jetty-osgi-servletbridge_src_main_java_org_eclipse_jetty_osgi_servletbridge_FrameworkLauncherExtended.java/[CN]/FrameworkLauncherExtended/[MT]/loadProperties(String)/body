@@ -6,10 +6,40 @@
       props.put(OSGI_INSTALL_AREA,getPlatformDirectory().getAbsolutePath());
     }
     String osgiFramework=props.getProperty(OSGI_FRAMEWORK);
+    File pluginsFolder=null;
     if (osgiFramework == null && getPlatformDirectory() != null) {
       File osgiFrameworkF=findOsgiFramework(getPlatformDirectory());
+      pluginsFolder=osgiFrameworkF.getParentFile();
       props.put(OSGI_FRAMEWORK,osgiFrameworkF.getAbsoluteFile().getAbsolutePath());
     }
+    String osgiFrameworkExtensions=props.getProperty(OSGI_FRAMEWORK_EXTENSIONS);
+    if (osgiFrameworkExtensions == null) {
+      osgiFrameworkExtensions="org.eclipse.equinox.servletbridge.extensionbundle";
+    }
+    File configIni=new File(getPlatformDirectory(),"configuration/config.ini");
+    if (configIni.exists()) {
+      Properties configIniProps=new Properties();
+      InputStream configIniStream=null;
+      try {
+        configIniStream=new FileInputStream(configIni);
+        configIniProps.load(configIniStream);
+      }
+ catch (      IOException ioe) {
+      }
+ finally {
+        try {
+          configIniStream.close();
+        }
+ catch (        IOException ioe2) {
+        }
+      }
+      String confIniFrameworkExt=configIniProps.getProperty(OSGI_FRAMEWORK_EXTENSIONS);
+      if (confIniFrameworkExt != null) {
+        osgiFrameworkExtensions=osgiFrameworkExtensions + "," + confIniFrameworkExt;
+      }
+    }
+    props.setProperty(OSGI_FRAMEWORK_EXTENSIONS,osgiFrameworkExtensions);
+    __deployExtensionBundle(pluginsFolder);
     String jettyHome=System.getProperty("jetty.home");
     if (jettyHome == null) {
       System.setProperty("jetty.home",getPlatformDirectory().getAbsolutePath());
@@ -21,5 +51,7 @@
     System.setProperty("java.naming.factory.initial","org.eclipse.jetty.jndi.InitialContextFactory");
     System.setProperty("java.naming.factory.url.pkgs","org.eclipse.jetty.jndi");
   }
+  String sysPackagesExtra="org.osgi.framework.system.packages.extra";
+  props.setProperty(sysPackagesExtra,"javax.servlet,javax.servlet.http");
   return props;
 }
