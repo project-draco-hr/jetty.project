@@ -1,0 +1,27 @@
+{
+  if (getConnection().isControl(opcode) || !isFlag(flags,0)) {
+    super.onFrame(flags,opcode,buffer);
+    return;
+  }
+  if (buffer.array() == null)   buffer=buffer.asMutableBuffer();
+  int length=0xff & buffer.get();
+  if (length >= 0x7e) {
+    int b=(length == 0x7f) ? 8 : 2;
+    length=0;
+    while (b-- > 0)     length=0x100 * length + (0xff & buffer.get());
+  }
+  _inflater.setInput(buffer.array(),buffer.getIndex(),buffer.length());
+  ByteArrayBuffer buf=new ByteArrayBuffer(length);
+  try {
+    while (_inflater.getRemaining() > 0) {
+      int inflated=_inflater.inflate(buf.array(),buf.putIndex(),buf.space());
+      if (inflated == 0)       throw new DataFormatException("insufficient data");
+      buf.setPutIndex(buf.putIndex() + inflated);
+    }
+    super.onFrame(clearFlag(flags,0),opcode,buf);
+  }
+ catch (  DataFormatException e) {
+    Log.warn(e);
+    getConnection().close(WebSocketConnectionD07.CLOSE_PROTOCOL,e.toString());
+  }
+}

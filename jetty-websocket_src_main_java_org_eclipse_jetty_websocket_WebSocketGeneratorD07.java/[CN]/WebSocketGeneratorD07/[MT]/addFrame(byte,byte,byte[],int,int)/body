@@ -2,17 +2,18 @@
   boolean mask=_maskGen != null;
   if (_buffer == null)   _buffer=mask ? _buffers.getBuffer() : _buffers.getDirectBuffer();
   boolean last=WebSocketConnectionD07.isLastFrame(flags);
-  opcode=(byte)(((0xf & flags) << 4) + 0xf & opcode);
+  byte orig=opcode;
   int space=mask ? 14 : 10;
   do {
     opcode=_opsent ? WebSocketConnectionD07.OP_CONTINUATION : opcode;
+    opcode=(byte)(((0xf & flags) << 4) + (0xf & opcode));
     _opsent=true;
     int payload=length;
     if (payload + space > _buffer.capacity()) {
-      opcode&=(byte)0x7F;
+      opcode=(byte)(opcode & 0x7F);
       payload=_buffer.capacity() - space;
     }
- else     if (last)     opcode|=(byte)0x80;
+ else     if (last)     opcode=(byte)(opcode | 0x80);
     if (_buffer.space() <= space) {
       flushBuffer();
       if (_buffer.space() <= space)       flush();

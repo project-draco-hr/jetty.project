@@ -1,0 +1,33 @@
+{
+  if (getConnection().isControl(opcode) && length < _minLength) {
+    super.addFrame(clearFlag(flags,0),opcode,content,offset,length);
+    return;
+  }
+  _deflater.reset();
+  _deflater.setInput(content,offset,length);
+  _deflater.finish();
+  byte[] out=new byte[length];
+  int out_offset=0;
+  if (length > 0xffff) {
+    out[out_offset++]=0x7f;
+    out[out_offset++]=(byte)((length >> 56) & 0x7f);
+    out[out_offset++]=(byte)((length >> 48) & 0xff);
+    out[out_offset++]=(byte)((length >> 40) & 0xff);
+    out[out_offset++]=(byte)((length >> 32) & 0xff);
+    out[out_offset++]=(byte)((length >> 24) & 0xff);
+    out[out_offset++]=(byte)((length >> 16) & 0xff);
+    out[out_offset++]=(byte)((length >> 8) & 0xff);
+    out[out_offset++]=(byte)(length & 0xff);
+  }
+ else   if (length >= 0x7e) {
+    out[out_offset++]=0x7e;
+    out[out_offset++]=(byte)(byte)(length >> 8);
+    out[out_offset++]=(byte)(length & 0xff);
+  }
+ else {
+    out[out_offset++]=(byte)(length & 0x7f);
+  }
+  int l=_deflater.deflate(out,out_offset,length - out_offset);
+  if (_deflater.finished())   super.addFrame(setFlag(flags,0),opcode,out,0,l + out_offset);
+ else   super.addFrame(clearFlag(flags,0),opcode,content,offset,length);
+}

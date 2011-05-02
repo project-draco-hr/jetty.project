@@ -5,17 +5,26 @@
   if (draft < 0)   draft=request.getIntHeader("Sec-WebSocket-Draft");
   HttpConnection http=HttpConnection.getCurrentConnection();
   ConnectedEndPoint endp=(ConnectedEndPoint)http.getEndPoint();
+  List<String> extensions_requested=new ArrayList<String>();
+  for (Enumeration e=request.getHeaders("Sec-WebSocket-Extensions"); e.hasMoreElements(); ) {
+    QuotedStringTokenizer tok=new QuotedStringTokenizer((String)e.nextElement(),",");
+    while (tok.hasMoreTokens())     extensions_requested.add(tok.nextToken());
+  }
   final WebSocketConnection connection;
+  final List<Extension> extensions;
 switch (draft) {
 case -1:
 case 0:
-    connection=new WebSocketConnectionD00(websocket,endp,_buffers,http.getTimeStamp(),_maxIdleTime,protocol);
-  break;
+    extensions=Collections.emptyList();
+  connection=new WebSocketConnectionD00(websocket,endp,_buffers,http.getTimeStamp(),_maxIdleTime,protocol);
+break;
 case 6:
+extensions=Collections.emptyList();
 connection=new WebSocketConnectionD06(websocket,endp,_buffers,http.getTimeStamp(),_maxIdleTime,protocol);
 break;
 case 7:
-connection=new WebSocketConnectionD07(websocket,endp,_buffers,http.getTimeStamp(),_maxIdleTime,protocol,null);
+extensions=initExtensions(extensions_requested,8 - WebSocketConnectionD07.OP_EXT_DATA,16 - WebSocketConnectionD07.OP_EXT_CTRL,3);
+connection=new WebSocketConnectionD07(websocket,endp,_buffers,http.getTimeStamp(),_maxIdleTime,protocol,extensions);
 break;
 default :
 Log.warn("Unsupported Websocket version: " + draft);

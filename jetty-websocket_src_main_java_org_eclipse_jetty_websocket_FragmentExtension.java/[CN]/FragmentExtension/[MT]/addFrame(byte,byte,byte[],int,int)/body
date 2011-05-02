@@ -1,0 +1,23 @@
+{
+  if (getConnection().isControl(opcode)) {
+    super.addFrame(flags,opcode,content,offset,length);
+    return;
+  }
+  int fragments=1;
+  while (_maxLength > 0 && length > _maxLength) {
+    fragments++;
+    super.addFrame((byte)(flags & ~getConnection().finMask()),opcode,content,offset,_maxLength);
+    length-=_maxLength;
+    offset+=_maxLength;
+    opcode=getConnection().continuationOpcode();
+  }
+  while (fragments < _fragments) {
+    int frag=length / 2;
+    fragments++;
+    super.addFrame((byte)(flags & 0x7),opcode,content,offset,frag);
+    length-=frag;
+    offset+=frag;
+    opcode=getConnection().continuationOpcode();
+  }
+  super.addFrame((byte)(flags | getConnection().finMask()),opcode,content,offset,length);
+}
