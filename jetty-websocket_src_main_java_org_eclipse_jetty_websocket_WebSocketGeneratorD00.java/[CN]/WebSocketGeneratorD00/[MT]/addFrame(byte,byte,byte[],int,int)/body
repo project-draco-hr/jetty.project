@@ -1,0 +1,31 @@
+{
+  long blockFor=_endp.getMaxIdleTime();
+  if (_buffer == null)   _buffer=_buffers.getDirectBuffer();
+  if (_buffer.space() == 0)   expelBuffer(blockFor);
+  bufferPut(opcode,blockFor);
+  if (isLengthFrame(opcode)) {
+    int lengthBytes=new BigInteger(String.valueOf(length)).bitLength() / 7 + 1;
+    for (int i=lengthBytes - 1; i > 0; --i) {
+      byte lengthByte=(byte)(0x80 | (0x7F & (length >> 7 * i)));
+      bufferPut(lengthByte,blockFor);
+    }
+    bufferPut((byte)(0x7F & length),blockFor);
+  }
+  int remaining=length;
+  while (remaining > 0) {
+    int chunk=remaining < _buffer.space() ? remaining : _buffer.space();
+    _buffer.put(content,offset + (length - remaining),chunk);
+    remaining-=chunk;
+    if (_buffer.space() > 0) {
+      if (!isLengthFrame(opcode))       _buffer.put((byte)0xFF);
+      flushBuffer();
+    }
+ else {
+      expelBuffer(blockFor);
+      if (remaining == 0) {
+        if (!isLengthFrame(opcode))         _buffer.put((byte)0xFF);
+        flushBuffer();
+      }
+    }
+  }
+}
