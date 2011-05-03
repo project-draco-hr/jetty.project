@@ -5,8 +5,13 @@ synchronized (this) {
       _pipeline=ex;
       return true;
     }
-    if (!_endp.isOpen())     return false;
     _exchange=ex;
+    _exchange.associate(this);
+    if (!_endp.isOpen()) {
+      _exchange.disassociate();
+      _exchange=null;
+      return false;
+    }
     _exchange.setStatus(HttpExchange.STATUS_WAITING_FOR_COMMIT);
     if (_endp.isBlocking()) {
       this.notify();
@@ -15,7 +20,7 @@ synchronized (this) {
       AsyncEndPoint scep=(AsyncEndPoint)_endp;
       scep.scheduleWrite();
     }
-    scheduleTimeout();
+    adjustIdleTimeout();
     return true;
   }
 }

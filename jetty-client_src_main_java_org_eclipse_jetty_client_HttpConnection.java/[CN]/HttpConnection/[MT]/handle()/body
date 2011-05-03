@@ -1,5 +1,4 @@
 {
-  if (_exchange != null)   _exchange.associate(this);
   try {
     int no_progress=0;
     boolean failed=false;
@@ -29,7 +28,6 @@ synchronized (this) {
             return this;
           }
         }
-        if (!_exchange.isAssociated())         _exchange.associate(this);
       }
       try {
         if (_exchange.getStatus() == HttpExchange.STATUS_WAITING_FOR_COMMIT) {
@@ -56,7 +54,6 @@ synchronized (this) {
               if (in != null) {
                 if (_requestContentChunk == null || _requestContentChunk.length() == 0) {
                   _requestContentChunk=_exchange.getRequestContentChunk();
-                  _destination.getHttpClient().schedule(_timeout);
                   if (_requestContentChunk != null)                   _generator.addContent(_requestContentChunk,false);
  else                   _generator.complete();
                   flushed=_generator.flushBuffer();
@@ -91,7 +88,7 @@ synchronized (this) {
         failed=true;
 synchronized (this) {
           if (_exchange != null) {
-            if (_exchange.getStatus() != HttpExchange.STATUS_CANCELLING) {
+            if (_exchange.getStatus() != HttpExchange.STATUS_CANCELLING && _exchange.getStatus() != HttpExchange.STATUS_CANCELLED) {
               _exchange.setStatus(HttpExchange.STATUS_EXCEPTED);
               _exchange.getEventListener().onException(e);
             }
@@ -114,7 +111,7 @@ synchronized (this) {
               _exchange.getEventListener().onRequestComplete();
             }
             if (_parser.isComplete()) {
-              _destination.getHttpClient().cancel(_timeout);
+              _exchange.cancelTimeout(_destination.getHttpClient());
               complete=true;
             }
           }
@@ -133,7 +130,6 @@ synchronized (this) {
             no_progress=0;
             if (_exchange != null) {
               HttpExchange exchange=_exchange;
-              exchange.disassociate();
               _exchange=null;
               if (!close)               _endp.setMaxIdleTime((int)_destination.getHttpClient().getIdleTimeout());
               if (_status == HttpStatus.SWITCHING_PROTOCOLS_101) {
@@ -168,9 +164,6 @@ synchronized (this) {
     }
   }
   finally {
-    if (_exchange != null && _exchange.isAssociated()) {
-      _exchange.disassociate();
-    }
     if (!_generator.isComplete() && _generator.getBytesBuffered() > 0 && _endp instanceof AsyncEndPoint) {
       ((AsyncEndPoint)_endp).scheduleWrite();
     }

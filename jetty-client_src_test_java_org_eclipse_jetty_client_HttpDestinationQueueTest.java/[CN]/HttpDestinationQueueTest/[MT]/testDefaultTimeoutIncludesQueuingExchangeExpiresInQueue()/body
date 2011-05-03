@@ -1,0 +1,34 @@
+{
+  HttpClient client=new HttpClient();
+  client.setMaxConnectionsPerAddress(1);
+  client.setMaxQueueSizePerAddress(1);
+  long timeout=1000;
+  client.setTimeout(timeout);
+  client.start();
+  ServerSocket server=new ServerSocket(0);
+  HttpExchange exchange1=new HttpExchange();
+  exchange1.setTimeout(timeout * 3);
+  exchange1.setMethod("GET");
+  exchange1.setURL("http://localhost:" + server.getLocalPort() + "/exchange1");
+  client.send(exchange1);
+  Socket socket=server.accept();
+  byte[] buffer=new byte[1024];
+  StringBuilder request=new StringBuilder();
+  while (true) {
+    int read=socket.getInputStream().read(buffer);
+    request.append(new String(buffer,0,read,"UTF-8"));
+    if (request.toString().endsWith("\r\n\r\n"))     break;
+  }
+  Assert.assertTrue(request.toString().contains("exchange1"));
+  HttpExchange exchange2=new HttpExchange();
+  exchange2.setMethod("GET");
+  exchange2.setURL("http://localhost:" + server.getLocalPort() + "/exchange2");
+  client.send(exchange2);
+  Thread.sleep(timeout * 2);
+  Assert.assertEquals(HttpExchange.STATUS_EXPIRED,exchange2.getStatus());
+  socket.getOutputStream().write("HTTP/1.1 200 OK\r\nContent-Length: 0\r\n\r\n".getBytes("UTF-8"));
+  Assert.assertEquals(HttpExchange.STATUS_COMPLETED,exchange1.waitForDone());
+  socket.close();
+  server.close();
+  client.stop();
+}
