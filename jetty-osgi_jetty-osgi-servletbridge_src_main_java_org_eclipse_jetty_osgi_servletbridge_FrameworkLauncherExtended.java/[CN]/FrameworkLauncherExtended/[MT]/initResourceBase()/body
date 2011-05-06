@@ -6,6 +6,15 @@
     }
     if (resourceBaseStr != null && resourceBaseStr.length() != 0) {
       resourceBaseStr=resolveSystemProperty(resourceBaseStr);
+      if (resourceBaseStr.startsWith("/WEB-INF/")) {
+        String rpath=context.getRealPath(resourceBaseStr);
+        if (rpath != null) {
+          File rpathFile=new File(rpath);
+          if (rpathFile.exists() && rpathFile.isDirectory() && rpathFile.canWrite()) {
+            resourceBaseStr=rpath;
+          }
+        }
+      }
       if (resourceBaseStr.startsWith("file://")) {
         resourceBaseAsURL=new URL(resourceBaseStr.replace(" ","%20"));
       }
@@ -17,8 +26,13 @@
       }
     }
  else {
-      super.initResourceBase();
-      resourceBaseAsURL=context.getResource(resourceBaseStr);
+      if (context.getResource(RESOURCE_BASE + ECLIPSE) != null) {
+        resourceBase=RESOURCE_BASE + ECLIPSE;
+      }
+ else {
+        super.initResourceBase();
+      }
+      resourceBaseAsURL=context.getResource(resourceBase);
     }
   }
  catch (  MalformedURLException e) {
