@@ -19,7 +19,13 @@ synchronized (this) {
         if (_writeBlocked && now >= end)         return false;
       }
     }
-  finally {
+ catch (    Throwable e) {
+      Log.warn(e);
+      if (e instanceof RuntimeException)       throw (RuntimeException)e;
+      if (e instanceof Error)       throw (Error)e;
+      throw new RuntimeException(e);
+    }
+ finally {
       _writeBlocked=false;
       if (_idleTimestamp != -1)       scheduleIdle();
     }

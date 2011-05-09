@@ -1,5 +1,5 @@
 {
-  super(connector,endp,connector.getServer(),new NestedParser(),new NestedGenerator(connector.getResponseBuffers(),endp,outerResponse,nestedIn),new NestedRequest());
+  super(connector,endp,connector.getServer(),new NestedParser(),new NestedGenerator(connector.getResponseBuffers(),endp,outerResponse,nestedIn),new NestedRequest(outerRequest));
   ((NestedRequest)_request).setConnection(this);
   _request.setDispatcherType(DispatcherType.REQUEST);
   _request.setScheme(outerRequest.getScheme());
@@ -9,16 +9,17 @@
   _request.setPathInfo(outerRequest.getRequestURI());
   _request.setQueryString(outerRequest.getQueryString());
   _request.setProtocol(outerRequest.getProtocol());
-  _request.setAttribute("isSecure",new Boolean(outerRequest.isSecure()));
   HttpFields fields=getRequestFields();
   for (Enumeration<String> e=outerRequest.getHeaderNames(); e.hasMoreElements(); ) {
     String header=e.nextElement();
     String value=outerRequest.getHeader(header);
     fields.add(header,value);
   }
+  if (!fields.containsKey("x-forwarded-for") && outerRequest.getHeader("x-forwarded_for") != null)   fields.add("x-forwarded-for",outerRequest.getHeader("x-forwarded_for"));
   _request.setCookies(outerRequest.getCookies());
   for (Enumeration<String> e=outerRequest.getAttributeNames(); e.hasMoreElements(); ) {
     String attr=e.nextElement();
     _request.setAttribute(attr,outerRequest.getAttribute(attr));
   }
+  connector.customize(endp,_request);
 }
