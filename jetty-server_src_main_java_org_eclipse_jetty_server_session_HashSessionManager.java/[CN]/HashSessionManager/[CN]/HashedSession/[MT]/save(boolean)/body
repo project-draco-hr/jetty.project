@@ -1,0 +1,26 @@
+{
+  if (!isIdled() && !_saveFailed) {
+    if (Log.isDebugEnabled())     Log.debug("Saving {} {}",super.getId(),reactivate);
+    File file=null;
+    FileOutputStream fos=null;
+    try {
+      file=new File(_storeDir,super.getId());
+      if (file.exists())       file.delete();
+      file.createNewFile();
+      fos=new FileOutputStream(file);
+      willPassivate();
+      save(fos);
+      if (reactivate)       didActivate();
+ else       clearAttributes();
+    }
+ catch (    Exception e) {
+      saveFailed();
+      Log.warn("Problem saving session " + super.getId(),e);
+      if (fos != null) {
+        IO.close(fos);
+        file.delete();
+        _idled=false;
+      }
+    }
+  }
+}

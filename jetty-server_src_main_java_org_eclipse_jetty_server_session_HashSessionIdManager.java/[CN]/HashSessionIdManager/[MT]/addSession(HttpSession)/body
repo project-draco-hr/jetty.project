@@ -1,3 +1,12 @@
 {
-  _sessions.add(getClusterId(session.getId()),session);
+  String id=getClusterId(session.getId());
+  WeakReference<HttpSession> ref=new WeakReference<HttpSession>(session);
+synchronized (this) {
+    Set<WeakReference<HttpSession>> sessions=_sessions.get(id);
+    if (sessions == null) {
+      sessions=new HashSet<WeakReference<HttpSession>>();
+      _sessions.put(id,sessions);
+    }
+    sessions.add(ref);
+  }
 }

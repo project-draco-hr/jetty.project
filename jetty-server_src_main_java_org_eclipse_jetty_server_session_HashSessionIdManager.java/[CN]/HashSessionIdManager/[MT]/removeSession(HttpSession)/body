@@ -1,3 +1,21 @@
 {
-  _sessions.removeValue(getClusterId(session.getId()),session);
+  String id=getClusterId(session.getId());
+synchronized (this) {
+    Collection<WeakReference<HttpSession>> sessions=_sessions.get(id);
+    if (sessions != null) {
+      for (Iterator<WeakReference<HttpSession>> iter=sessions.iterator(); iter.hasNext(); ) {
+        WeakReference<HttpSession> ref=iter.next();
+        HttpSession s=ref.get();
+        if (s == null) {
+          iter.remove();
+          continue;
+        }
+        if (s == session) {
+          iter.remove();
+          break;
+        }
+      }
+      if (sessions.isEmpty())       _sessions.remove(id);
+    }
+  }
 }

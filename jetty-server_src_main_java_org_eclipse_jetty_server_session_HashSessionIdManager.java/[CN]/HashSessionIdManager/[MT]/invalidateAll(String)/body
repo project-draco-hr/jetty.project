@@ -1,9 +1,13 @@
 {
-  while (_sessions.containsKey(id)) {
-    Session session=(Session)_sessions.getValue(id,0);
-    if (session.isValid()) {
-      session.invalidate();
+  Collection<WeakReference<HttpSession>> sessions;
+synchronized (this) {
+    sessions=_sessions.remove(id);
+  }
+  if (sessions != null) {
+    for (    WeakReference<HttpSession> ref : sessions) {
+      Session session=(Session)ref.get();
+      if (session != null && session.isValid())       session.invalidate();
     }
-    _sessions.removeValue(id,session);
+    sessions.clear();
   }
 }
