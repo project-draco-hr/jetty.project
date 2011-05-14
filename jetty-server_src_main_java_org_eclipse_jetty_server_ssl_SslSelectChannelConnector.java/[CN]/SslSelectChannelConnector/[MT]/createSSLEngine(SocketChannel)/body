@@ -1,0 +1,20 @@
+{
+  SSLEngine engine=null;
+  if (channel == null) {
+    engine=createSSLEngine();
+  }
+ else {
+    try {
+      String peerHost=channel.socket().getInetAddress().getCanonicalHostName();
+      int peerPort=channel.socket().getPort();
+      engine=_sslContextFactory.getSslContext().createSSLEngine(peerHost,peerPort);
+      customizeEngine(engine);
+    }
+ catch (    Exception e) {
+      Log.warn("Error creating sslEngine -- closing this connector",e);
+      close();
+      throw new IllegalStateException(e);
+    }
+  }
+  return engine;
+}

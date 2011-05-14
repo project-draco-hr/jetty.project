@@ -1,0 +1,18 @@
+{
+  if (_sslContext == null) {
+    _sslContext=_httpClient.getSslContextFactory().getSslContext();
+    _enableSslSessionCaching=_httpClient.getSslContextFactory().isEnableSessionCaching();
+  }
+  SSLEngine sslEngine=null;
+  if (channel != null && _enableSslSessionCaching) {
+    String peerHost=channel.socket().getInetAddress().getCanonicalHostName();
+    int peerPort=channel.socket().getPort();
+    sslEngine=_sslContext.createSSLEngine(peerHost,peerPort);
+  }
+ else {
+    sslEngine=_sslContext.createSSLEngine();
+  }
+  sslEngine.setUseClientMode(true);
+  sslEngine.beginHandshake();
+  return sslEngine;
+}
