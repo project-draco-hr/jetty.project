@@ -1,0 +1,37 @@
+{
+  try {
+    JarOutputStream jos=null;
+    try {
+      jos=new JarOutputStream(new FileOutputStream(jarFile),mf);
+      if (configureEquinoxHook) {
+        ZipEntry e=new ZipEntry("hookconfigurators.properties");
+        jos.putNextEntry(e);
+        Properties props=new Properties();
+        props.put("hook.configurators","org.eclipse.jetty.osgi.servletbridge.hook.ServletBridgeClassLoaderDelegateHook");
+        props.store(jos,"");
+        jos.closeEntry();
+        e=new ZipEntry("org/eclipse/jetty/osgi/servletbridge/hook/ServletBridgeClassLoaderDelegateHook.class");
+        jos.putNextEntry(e);
+        InputStream in=getClass().getResourceAsStream("/org/eclipse/jetty/osgi/servletbridge/hook/ServletBridgeClassLoaderDelegateHook.class");
+        byte[] buffer=new byte[512];
+        try {
+          int n;
+          while ((n=in.read(buffer)) != -1) {
+            jos.write(buffer,0,n);
+          }
+        }
+  finally {
+          in.close();
+        }
+        jos.closeEntry();
+      }
+      jos.finish();
+    }
+  finally {
+      if (jos != null)       jos.close();
+    }
+  }
+ catch (  IOException e) {
+    context.log("Error writing extension bundle",e);
+  }
+}
