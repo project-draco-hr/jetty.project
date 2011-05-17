@@ -28,7 +28,7 @@
   }
   if (maxAge >= 0) {
     buf.append(";Expires=");
-    if (maxAge == 0)     buf.append(__01Jan1970);
+    if (maxAge == 0)     buf.append(__01Jan1970_COOKIE);
  else     formatCookieDate(buf,System.currentTimeMillis() + 1000L * maxAge);
     if (version > 0) {
       buf.append(";Max-Age=");
@@ -45,13 +45,14 @@
   if (field != null) {
     final int revision=_revision;
     while (field != null) {
-      if (field._revision != revision || field._value != null && field._value.toString().startsWith(start)) {
+      if (field._revision == revision && field._value != null && field._value.toString().startsWith(start)) {
         field.reset(new ByteArrayBuffer(name_value_params),-1,revision);
-        return;
+        name_value_params=null;
+        break;
       }
       field=field._next;
     }
   }
-  add(HttpHeaders.SET_COOKIE_BUFFER,new ByteArrayBuffer(name_value_params));
+  if (name_value_params != null)   add(HttpHeaders.SET_COOKIE_BUFFER,new ByteArrayBuffer(name_value_params));
   put(HttpHeaders.EXPIRES_BUFFER,__01Jan1970_BUFFER);
 }
