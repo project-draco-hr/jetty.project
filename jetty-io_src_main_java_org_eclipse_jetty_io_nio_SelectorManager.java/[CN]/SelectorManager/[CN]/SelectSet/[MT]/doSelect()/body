@@ -5,28 +5,33 @@
     Object change;
     int changes=_changes.size();
     while (changes-- > 0 && (change=_changes.poll()) != null) {
+      Channel ch=null;
+      SelectionKey key=null;
       try {
         if (change instanceof EndPoint) {
           SelectChannelEndPoint endpoint=(SelectChannelEndPoint)change;
+          ch=endpoint.getChannel();
           endpoint.doUpdateKey();
         }
  else         if (change instanceof ChannelAndAttachment) {
           final ChannelAndAttachment asc=(ChannelAndAttachment)change;
           final SelectableChannel channel=asc._channel;
+          ch=channel;
           final Object att=asc._attachment;
           if ((channel instanceof SocketChannel) && ((SocketChannel)channel).isConnected()) {
-            SelectionKey key=channel.register(selector,SelectionKey.OP_READ,att);
+            key=channel.register(selector,SelectionKey.OP_READ,att);
             SelectChannelEndPoint endpoint=createEndPoint((SocketChannel)channel,key);
             key.attach(endpoint);
             endpoint.schedule();
           }
  else           if (channel.isOpen()) {
-            channel.register(selector,SelectionKey.OP_CONNECT,att);
+            key=channel.register(selector,SelectionKey.OP_CONNECT,att);
           }
         }
  else         if (change instanceof SocketChannel) {
           final SocketChannel channel=(SocketChannel)change;
-          SelectionKey key=channel.register(selector,SelectionKey.OP_READ,null);
+          ch=channel;
+          key=channel.register(selector,SelectionKey.OP_READ,null);
           SelectChannelEndPoint endpoint=createEndPoint(channel,key);
           key.attach(endpoint);
           endpoint.schedule();
@@ -36,13 +41,18 @@
         }
  else         throw new IllegalArgumentException(change.toString());
       }
- catch (      Exception e) {
+ catch (      Throwable e) {
+        if (e instanceof ThreadDeath)         throw (ThreadDeath)e;
         if (isRunning())         Log.warn(e);
  else         Log.debug(e);
-      }
-catch (      Error e) {
-        if (isRunning())         Log.warn(e);
- else         Log.debug(e);
+        if (ch != null && key == null) {
+          try {
+            ch.close();
+          }
+ catch (          IOException e2) {
+            Log.debug(e2);
+          }
+        }
       }
     }
     int selected=selector.selectNow();

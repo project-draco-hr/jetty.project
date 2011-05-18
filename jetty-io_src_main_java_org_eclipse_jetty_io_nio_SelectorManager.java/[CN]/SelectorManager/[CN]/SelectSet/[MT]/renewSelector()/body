@@ -1,0 +1,21 @@
+{
+  try {
+synchronized (this) {
+      Selector selector=_selector;
+      if (selector == null)       return;
+      final Selector new_selector=Selector.open();
+      for (      SelectionKey k : selector.keys()) {
+        if (!k.isValid() || k.interestOps() == 0)         continue;
+        final SelectableChannel channel=k.channel();
+        final Object attachment=k.attachment();
+        if (attachment == null)         addChange(channel);
+ else         addChange(channel,attachment);
+      }
+      _selector.close();
+      _selector=new_selector;
+    }
+  }
+ catch (  IOException e) {
+    throw new RuntimeException("recreating selector",e);
+  }
+}
