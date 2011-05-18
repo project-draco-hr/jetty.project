@@ -1,0 +1,33 @@
+{
+  ServiceReference sr=_context.getServiceReference(PackageAdmin.class.getName());
+  if (sr == null) {
+    return null;
+  }
+  PackageAdmin admin=(PackageAdmin)_context.getService(sr);
+  Bundle[] fragments=admin.getFragments(bundle);
+  List<Bundle> requiredBundles=getRequiredBundles(bundle,admin);
+  if (fragments != null) {
+    Set<String> already=new HashSet<String>();
+    for (    Bundle b : requiredBundles) {
+      already.add(b.getSymbolicName());
+    }
+    for (    Bundle f : fragments) {
+      List<Bundle> requiredBundlesByFragment=getRequiredBundles(f,admin);
+      for (      Bundle b : requiredBundlesByFragment) {
+        if (already.add(b.getSymbolicName())) {
+          requiredBundles.add(b);
+        }
+      }
+    }
+  }
+  ArrayList<Bundle> bundles=new ArrayList<Bundle>((fragments != null ? fragments.length : 0) + (requiredBundles != null ? requiredBundles.size() : 0));
+  if (fragments != null) {
+    for (    Bundle f : fragments) {
+      bundles.add(f);
+    }
+  }
+  if (requiredBundles != null) {
+    bundles.addAll(requiredBundles);
+  }
+  return bundles.toArray(new Bundle[bundles.size()]);
+}
