@@ -4,10 +4,12 @@
   if (_inNIOBuffer.hasContent())   _inNIOBuffer.compact();
  else   _inNIOBuffer.clear();
   int total_filled=0;
+  boolean remoteClosed=false;
   while (_inNIOBuffer.space() > 0 && super.isOpen()) {
     try {
       int filled=super.fill(_inNIOBuffer);
       if (_debug)       __log.debug(_session + " unwrap filled " + filled);
+      if (filled < 0)       remoteClosed=true;
       if (filled <= 0)       break;
       total_filled+=filled;
     }
@@ -23,7 +25,18 @@
     }
   }
   if (total_filled == 0 && _inNIOBuffer.length() == 0) {
-    if (!isOpen()) {
+    if (isOpen()) {
+      if (remoteClosed) {
+        try {
+          _engine.closeInbound();
+        }
+ catch (        SSLException x) {
+          freeOutBuffer();
+          super.close();
+        }
+      }
+    }
+ else {
       freeOutBuffer();
       throw new EofException();
     }
