@@ -1,0 +1,32 @@
+{
+  cmd=cmd.trim();
+  while (cmd.startsWith("osgi>")) {
+    cmd=cmd.substring("osgi>".length()).trim();
+  }
+  if (cmd.equals("clear")) {
+    clearOutput();
+  }
+ else {
+    getOutputAsWriter().append(cmd + "\n");
+    int originalOutputLength=getOutputAsWriter().getBuffer().length();
+    issueCommand(cmd);
+    if (wait) {
+      int waitLoopNumber=0;
+      int lastWaitOutputLength=-1;
+      while (waitLoopNumber < 10) {
+        waitLoopNumber++;
+        try {
+          Thread.sleep(100);
+        }
+ catch (        InterruptedException e) {
+          break;
+        }
+        int newOutputLength=getOutputAsWriter().getBuffer().length();
+        if (newOutputLength > originalOutputLength && newOutputLength == lastWaitOutputLength) {
+          break;
+        }
+        lastWaitOutputLength=newOutputLength;
+      }
+    }
+  }
+}
