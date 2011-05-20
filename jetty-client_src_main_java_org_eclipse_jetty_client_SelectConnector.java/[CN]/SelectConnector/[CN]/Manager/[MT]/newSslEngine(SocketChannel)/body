@@ -1,14 +1,10 @@
 {
-  if (_sslContext == null) {
-    SslContextFactory factory=_httpClient.getSslContextFactory();
-    _sslContext=factory.getSslContext();
-    _enableSslSessionCaching=factory.isEnableSessionCaching();
-  }
-  SSLEngine sslEngine=null;
-  if (channel != null && _enableSslSessionCaching) {
-    InetSocketAddress remoteAddr=(InetSocketAddress)channel.socket().getRemoteSocketAddress();
-    String peerHost=remoteAddr.getHostName();
-    int peerPort=remoteAddr.getPort();
+  SslContextFactory sslContextFactory=_httpClient.getSslContextFactory();
+  if (_sslContext == null)   _sslContext=sslContextFactory.getSslContext();
+  SSLEngine sslEngine;
+  if (channel != null && sslContextFactory.isSessionCachingEnabled()) {
+    String peerHost=channel.socket().getInetAddress().getHostAddress();
+    int peerPort=channel.socket().getPort();
     sslEngine=_sslContext.createSSLEngine(peerHost,peerPort);
   }
  else {
