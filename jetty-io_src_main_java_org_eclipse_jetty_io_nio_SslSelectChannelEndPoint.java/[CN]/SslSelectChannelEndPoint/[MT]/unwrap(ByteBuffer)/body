@@ -9,7 +9,10 @@
     try {
       int filled=super.fill(_inNIOBuffer);
       if (_debug)       __log.debug(_session + " unwrap filled " + filled);
-      if (filled < 0)       remoteClosed=true;
+      if (filled < 0) {
+        __log.info("{} fill() returned -1, _inNIOBuffer {}",_socket,_inNIOBuffer);
+        remoteClosed=true;
+      }
       if (filled <= 0)       break;
       total_filled+=filled;
     }
@@ -40,8 +43,10 @@
       freeOutBuffer();
       throw new EofException();
     }
+    __log.info("{} uwrap() returning false, _inNIOBuffer {}",_socket,_inNIOBuffer);
     return false;
   }
+  if (remoteClosed)   __log.info("{} uwrapping, _inNIOBuffer {}",_socket,_inNIOBuffer);
   try {
     in_buffer.position(_inNIOBuffer.getIndex());
     in_buffer.limit(_inNIOBuffer.putIndex());
