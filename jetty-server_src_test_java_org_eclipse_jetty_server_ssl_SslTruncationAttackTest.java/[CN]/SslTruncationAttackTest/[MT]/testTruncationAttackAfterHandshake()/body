@@ -1,0 +1,19 @@
+{
+  Socket socket=new Socket("localhost",connector.getLocalPort());
+  SSLSocket sslSocket=(SSLSocket)sslContext.getSocketFactory().createSocket(socket,socket.getInetAddress().getHostName(),socket.getPort(),true);
+  sslSocket.setUseClientMode(true);
+  final CountDownLatch handshakeLatch=new CountDownLatch(1);
+  sslSocket.addHandshakeCompletedListener(new HandshakeCompletedListener(){
+    public void handshakeCompleted(    HandshakeCompletedEvent handshakeCompletedEvent){
+      handshakeLatch.countDown();
+    }
+  }
+);
+  sslSocket.startHandshake();
+  Assert.assertTrue(handshakeLatch.await(1,TimeUnit.SECONDS));
+  handleCount.set(0);
+  socket.close();
+  TimeUnit.SECONDS.sleep(1);
+  Assert.assertEquals("handle() invocations",1,handleCount.get());
+  Assert.assertTrue("endpoint not closed",endPointClosed.get());
+}

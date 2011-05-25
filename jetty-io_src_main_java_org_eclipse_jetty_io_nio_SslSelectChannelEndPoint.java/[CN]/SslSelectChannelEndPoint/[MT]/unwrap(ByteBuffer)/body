@@ -15,6 +15,7 @@
     }
  catch (    IOException e) {
       if (_inNIOBuffer.length() == 0) {
+        freeInBuffer();
         if (_outNIOBuffer != null) {
           _outNIOBuffer.clear();
           freeOutBuffer();
@@ -25,33 +26,29 @@
     }
   }
   if (total_filled == 0 && _inNIOBuffer.length() == 0) {
-    if (isOpen()) {
-      if (remoteClosed) {
-        try {
-          _engine.closeInbound();
-        }
- catch (        SSLException x) {
-          freeOutBuffer();
-          super.close();
-        }
+    if (isOpen() && remoteClosed) {
+      try {
+        _engine.closeInbound();
+      }
+ catch (      SSLException x) {
+        super.close();
       }
     }
- else {
-      freeOutBuffer();
-      throw new EofException();
-    }
+    freeInBuffer();
+    freeOutBuffer();
+    if (!isOpen())     throw new EofException();
     return false;
   }
   try {
     in_buffer.position(_inNIOBuffer.getIndex());
     in_buffer.limit(_inNIOBuffer.putIndex());
-    _result=null;
     _result=_engine.unwrap(in_buffer,buffer);
     if (_debug)     __log.debug(_session + " unwrap unwrap " + _result);
     _inNIOBuffer.skip(_result.bytesConsumed());
   }
  catch (  SSLException e) {
     Log.warn(getRemoteAddr() + ":" + getRemotePort()+ " "+ e);
+    freeOutBuffer();
     super.close();
     throw e;
   }
