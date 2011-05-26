@@ -1,0 +1,23 @@
+{
+  ByteArrayEndPoint out=new ByteArrayEndPoint(new byte[]{},4096);
+  HttpConnection connection=new HttpConnection(connector,out,connector.getServer());
+  Response response=new Response(connection);
+  Request request=connection.getRequest();
+  request.setServerName("myhost");
+  request.setServerPort(8888);
+  request.setUri(new HttpURI("/path/info;param;jsessionid=12345?query=0&more=1#target"));
+  request.setContextPath("/path");
+  request.setRequestedSessionId("12345");
+  request.setRequestedSessionIdFromCookie(false);
+  AbstractSessionManager manager=new HashSessionManager();
+  manager.setIdManager(new HashSessionIdManager());
+  request.setSessionManager(manager);
+  request.setSession(new TestSession(manager,"12345"));
+  manager.setCheckingRemoteSessionIdEncoding(false);
+  response.sendRedirect("/other/location");
+  String location=out.getOut().toString();
+  int l=location.indexOf("Location: ");
+  int e=location.indexOf('\n',l);
+  location=location.substring(l + 10,e).trim();
+  assertEquals("http://myhost:8888/other/location;jsessionid=12345",location);
+}
