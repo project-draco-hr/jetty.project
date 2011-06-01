@@ -44,17 +44,18 @@
         }
  else         throw new IllegalArgumentException(change.toString());
       }
- catch (      Throwable e) {
+ catch (      CancelledKeyException e) {
+        Log.ignore(e);
+      }
+catch (      Throwable e) {
         if (e instanceof ThreadDeath)         throw (ThreadDeath)e;
         if (isRunning())         Log.warn(e);
  else         Log.debug(e);
-        if (ch != null && key == null) {
-          try {
-            ch.close();
-          }
- catch (          IOException e2) {
-            Log.debug(e2);
-          }
+        try {
+          ch.close();
+        }
+ catch (        IOException e2) {
+          Log.debug(e2);
         }
       }
     }
@@ -86,6 +87,7 @@
     }
     if (_selector == null || !selector.isOpen())     return;
     for (    SelectionKey key : selector.selectedKeys()) {
+      SocketChannel channel=null;
       try {
         if (!key.isValid()) {
           key.cancel();
@@ -98,7 +100,7 @@
           if (key.isReadable() || key.isWritable())           ((SelectChannelEndPoint)att).schedule();
         }
  else         if (key.isConnectable()) {
-          SocketChannel channel=(SocketChannel)key.channel();
+          channel=(SocketChannel)key.channel();
           boolean connected=false;
           try {
             connected=channel.finishConnect();
@@ -119,7 +121,7 @@
           }
         }
  else {
-          SocketChannel channel=(SocketChannel)key.channel();
+          channel=(SocketChannel)key.channel();
           SelectChannelEndPoint endpoint=createEndPoint(channel,key);
           key.attach(endpoint);
           if (key.isReadable())           endpoint.schedule();
@@ -132,6 +134,12 @@
 catch (      Exception e) {
         if (isRunning())         Log.warn(e);
  else         Log.ignore(e);
+        try {
+          if (channel != null)           channel.close();
+        }
+ catch (        IOException e2) {
+          Log.debug(e2);
+        }
         if (key != null && !(key.channel() instanceof ServerSocketChannel) && key.isValid())         key.cancel();
       }
     }
