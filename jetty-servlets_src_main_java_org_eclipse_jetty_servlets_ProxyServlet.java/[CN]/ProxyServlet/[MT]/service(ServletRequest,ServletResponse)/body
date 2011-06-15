@@ -11,7 +11,6 @@
     final Continuation continuation=ContinuationSupport.getContinuation(request);
     if (!continuation.isInitial())     response.sendError(HttpServletResponse.SC_GATEWAY_TIMEOUT);
  else {
-      customizeContinuation(continuation);
       String uri=request.getRequestURI();
       if (request.getQueryString() != null)       uri+="?" + request.getQueryString();
       HttpURI url=proxyHttpURI(request.getScheme(),request.getServerName(),request.getServerPort(),uri);
@@ -70,7 +69,6 @@
       exchange.setMethod(request.getMethod());
       exchange.setURL(url.toString());
       exchange.setVersion(request.getProtocol());
-      customizeExchange(exchange,request);
       if (debug != 0)       _log.debug(debug + " " + request.getMethod()+ " "+ url+ " "+ request.getProtocol());
       String connectionHdr=request.getHeader("Connection");
       if (connectionHdr != null) {
@@ -112,6 +110,10 @@
         exchange.addRequestHeader("X-Forwarded-Server",request.getLocalName());
       }
       if (hasContent)       exchange.setRequestContentSource(in);
+      customizeExchange(exchange,request);
+      long ctimeout=(_client.getConnectTimeout() > exchange.getTimeout()) ? _client.getConnectTimeout() : exchange.getTimeout();
+      continuation.setTimeout(ctimeout + 1000);
+      customizeContinuation(continuation);
       continuation.suspend(response);
       _client.send(exchange);
     }
