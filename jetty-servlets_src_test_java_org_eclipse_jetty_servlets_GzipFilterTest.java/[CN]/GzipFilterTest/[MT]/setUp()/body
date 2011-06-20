@@ -1,0 +1,15 @@
+{
+  testdir.ensureEmpty();
+  File testFile=testdir.getFile("file.txt");
+  BufferedOutputStream testOut=new BufferedOutputStream(new FileOutputStream(testFile));
+  ByteArrayInputStream testIn=new ByteArrayInputStream(_content.getBytes("ISO8859_1"));
+  IO.copy(testIn,testOut);
+  testOut.close();
+  tester=new ServletTester();
+  tester.setContextPath("/context");
+  tester.setResourceBase(testdir.getDir().getCanonicalPath());
+  tester.addServlet(org.eclipse.jetty.servlet.DefaultServlet.class,"/");
+  FilterHolder holder=tester.addFilter(GzipFilter.class,"/*",0);
+  holder.setInitParameter("mimeTypes","text/plain");
+  tester.start();
+}
