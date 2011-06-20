@@ -1,0 +1,46 @@
+{
+  if (_handler != null && isStarted()) {
+    String ae=request.getHeader("accept-encoding");
+    if (ae != null && ae.indexOf("gzip") >= 0 && !response.containsHeader("Content-Encoding") && !HttpMethods.HEAD.equalsIgnoreCase(request.getMethod())) {
+      if (_excluded != null) {
+        String ua=request.getHeader("User-Agent");
+        if (_excluded.contains(ua)) {
+          _handler.handle(target,baseRequest,request,response);
+          return;
+        }
+      }
+      final GZIPResponseWrapper wrappedResponse=newGZIPResponseWrapper(request,response);
+      boolean exceptional=true;
+      try {
+        _handler.handle(target,baseRequest,request,wrappedResponse);
+        exceptional=false;
+      }
+  finally {
+        Continuation continuation=ContinuationSupport.getContinuation(request);
+        if (continuation.isSuspended() && continuation.isResponseWrapped()) {
+          continuation.addContinuationListener(new ContinuationListener(){
+            public void onComplete(            Continuation continuation){
+              try {
+                wrappedResponse.finish();
+              }
+ catch (              IOException e) {
+                Log.warn(e);
+              }
+            }
+            public void onTimeout(            Continuation continuation){
+            }
+          }
+);
+        }
+ else         if (exceptional && !response.isCommitted()) {
+          wrappedResponse.resetBuffer();
+          wrappedResponse.noGzip();
+        }
+ else         wrappedResponse.finish();
+      }
+    }
+ else {
+      _handler.handle(target,baseRequest,request,response);
+    }
+  }
+}
