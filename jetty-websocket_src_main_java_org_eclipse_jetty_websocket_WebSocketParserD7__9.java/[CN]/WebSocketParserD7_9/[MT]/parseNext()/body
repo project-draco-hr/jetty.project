@@ -1,0 +1,140 @@
+{
+  if (_buffer == null)   _buffer=_buffers.getBuffer();
+  int total_filled=0;
+  int events=0;
+  while (true) {
+    int available=_buffer.length();
+    while (available < (_state == State.SKIP ? 1 : _bytesNeeded)) {
+      _buffer.compact();
+      if (_buffer.space() == 0)       throw new IllegalStateException("FULL: " + _state + " "+ _bytesNeeded+ ">"+ _buffer.capacity());
+      try {
+        int filled=_endp.isOpen() ? _endp.fill(_buffer) : -1;
+        if (filled <= 0)         return (total_filled + events) > 0 ? (total_filled + events) : filled;
+        total_filled+=filled;
+        available=_buffer.length();
+      }
+ catch (      IOException e) {
+        Log.debug(e);
+        return (total_filled + events) > 0 ? (total_filled + events) : -1;
+      }
+    }
+    byte b;
+    while (_state != State.DATA && available >= (_state == State.SKIP ? 1 : _bytesNeeded)) {
+switch (_state) {
+case START:
+        _skip=false;
+      _state=State.OPCODE;
+    _bytesNeeded=_state.getNeeds();
+  continue;
+case OPCODE:
+b=_buffer.get();
+available--;
+_opcode=(byte)(b & 0xf);
+_flags=(byte)(0xf & (b >> 4));
+if (WebSocketConnectionD7_9.isControlFrame(_opcode) && !WebSocketConnectionD7_9.isLastFrame(_flags)) {
+events++;
+Log.warn("Fragmented Control from " + _endp);
+_handler.close(WebSocketConnectionD7_9.CLOSE_PROTOCOL,"Fragmented control");
+_skip=true;
+}
+_state=State.LENGTH_7;
+_bytesNeeded=_state.getNeeds();
+continue;
+case LENGTH_7:
+b=_buffer.get();
+available--;
+_masked=(b & 0x80) != 0;
+b=(byte)(0x7f & b);
+switch (b) {
+case 0x7f:
+_length=0;
+_state=State.LENGTH_63;
+break;
+case 0x7e:
+_length=0;
+_state=State.LENGTH_16;
+break;
+default :
+_length=(0x7f & b);
+_state=_masked ? State.MASK : State.PAYLOAD;
+}
+_bytesNeeded=_state.getNeeds();
+continue;
+case LENGTH_16:
+b=_buffer.get();
+available--;
+_length=_length * 0x100 + (0xff & b);
+if (--_bytesNeeded == 0) {
+if (_length > _buffer.capacity()) {
+events++;
+_handler.close(WebSocketConnectionD7_9.CLOSE_LARGE,"frame size " + _length + ">"+ _buffer.capacity());
+_skip=true;
+}
+_state=_masked ? State.MASK : State.PAYLOAD;
+_bytesNeeded=_state.getNeeds();
+}
+continue;
+case LENGTH_63:
+b=_buffer.get();
+available--;
+_length=_length * 0x100 + (0xff & b);
+if (--_bytesNeeded == 0) {
+_bytesNeeded=(int)_length;
+if (_length >= _buffer.capacity()) {
+events++;
+_handler.close(WebSocketConnectionD7_9.CLOSE_LARGE,"frame size " + _length + ">"+ _buffer.capacity());
+_skip=true;
+}
+_state=_masked ? State.MASK : State.PAYLOAD;
+_bytesNeeded=_state.getNeeds();
+}
+continue;
+case MASK:
+_buffer.get(_mask,0,4);
+_m=0;
+available-=4;
+_state=State.PAYLOAD;
+_bytesNeeded=_state.getNeeds();
+break;
+case PAYLOAD:
+_bytesNeeded=(int)_length;
+_state=_skip ? State.SKIP : State.DATA;
+break;
+case DATA:
+break;
+case SKIP:
+int skip=Math.min(available,_bytesNeeded);
+_buffer.skip(skip);
+available-=skip;
+_bytesNeeded-=skip;
+if (_bytesNeeded == 0) _state=State.START;
+}
+}
+if (_state == State.DATA && available >= _bytesNeeded) {
+if (_masked != _shouldBeMasked) {
+_buffer.skip(_bytesNeeded);
+_state=State.START;
+events++;
+_handler.close(WebSocketConnectionD7_9.CLOSE_PROTOCOL,"bad mask");
+}
+ else {
+Buffer data=_buffer.get(_bytesNeeded);
+if (_masked) {
+if (data.array() == null) data=_buffer.asMutableBuffer();
+byte[] array=data.array();
+final int end=data.putIndex();
+for (int i=data.getIndex(); i < end; i++) array[i]^=_mask[_m++ % 4];
+}
+events++;
+_handler.onFrame(_flags,_opcode,data);
+_bytesNeeded=0;
+_state=State.START;
+}
+if (_buffer.length() == 0) {
+_buffers.returnBuffer(_buffer);
+_buffer=null;
+}
+return total_filled + events;
+}
+}
+}
