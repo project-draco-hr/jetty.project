@@ -1,9 +1,10 @@
 {
+  __log.debug("removeBean {}",obj);
   ObjectName bean=_beans.remove(obj);
   if (bean != null) {
-    List<?> beanRelations=_relations.getValues(bean);
-    if (beanRelations != null && beanRelations.size() > 0) {
-      Log.debug("Unregister {}",beanRelations);
+    List<Container.Relationship> beanRelations=_relations.remove(bean);
+    if (beanRelations != null) {
+      __log.debug("Unregister {}",beanRelations);
       List<?> removeList=new ArrayList<Object>(beanRelations);
       for (      Object r : removeList) {
         Container.Relationship relation=(Relationship)r;
@@ -12,13 +13,13 @@
     }
     try {
       _server.unregisterMBean(bean);
-      Log.debug("Unregistered {}",bean);
+      __log.debug("Unregistered {}",bean);
     }
  catch (    javax.management.InstanceNotFoundException e) {
-      Log.ignore(e);
+      __log.ignore(e);
     }
 catch (    Exception e) {
-      Log.warn(e);
+      __log.warn(e);
     }
   }
 }
