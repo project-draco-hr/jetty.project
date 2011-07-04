@@ -1,0 +1,14 @@
+{
+  int port=server.getPort();
+  ContentExchange exchange1=new ContentExchange(true);
+  exchange1.setMethod(HttpMethods.GET);
+  exchange1.setURL("http://localhost:" + port + ""+ "/test");
+  if (sessionCookie != null)   exchange1.getRequestFields().add("Cookie",sessionCookie);
+  client.send(exchange1);
+  exchange1.waitForDone();
+  assertEquals(HttpServletResponse.SC_OK,exchange1.getResponseStatus());
+  sessionCookie=exchange1.getResponseFields().getStringField("Set-Cookie");
+  assertTrue(sessionCookie != null);
+  sessionCookie=sessionCookie.replaceFirst("(\\W)(P|p)ath=","$1\\$Path=");
+  return exchange1.getResponseContent();
+}
