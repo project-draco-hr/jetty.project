@@ -1,0 +1,38 @@
+{
+  int total=0;
+  _continue=true;
+  _response=new StringBuffer();
+  configureServer(new HelloWorldHandler());
+  Socket client=newSocket(HOST,_connector.getLocalPort());
+  try {
+    OutputStream os=client.getOutputStream();
+    ResponseReader reader=new ResponseReader(client);
+    Thread runner=new Thread(reader);
+    runner.start();
+    for (int pipeline=1; pipeline < 32; pipeline++) {
+      if (pipeline == 16)       _connector.close();
+      total+=pipeline;
+      String request="";
+      for (int i=0; i < pipeline; i++) {
+        request+="GET /data?writes=1&block=16&id=" + i + " HTTP/1.1\r\n"+ "host: "+ HOST+ ":"+ _connector.getLocalPort()+ "\r\n"+ "user-agent: testharness/1.0 (blah foo/bar)\r\n"+ "accept-encoding: nothing\r\n"+ "cookie: aaa=1234567890\r\n"+ "\r\n";
+      }
+      os.write(request.getBytes());
+      os.flush();
+      Thread.sleep(50);
+    }
+    _continue=false;
+    runner.join();
+  }
+  finally {
+    client.close();
+    int count=0;
+    StringTokenizer lines=new StringTokenizer(_response.toString(),"\r\n");
+    while (lines.hasMoreTokens()) {
+      String line=lines.nextToken();
+      if (line.equals("HTTP/1.1 200 OK")) {
+        ++count;
+      }
+    }
+    assertEquals(total,count);
+  }
+}
