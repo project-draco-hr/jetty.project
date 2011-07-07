@@ -1,0 +1,13 @@
+{
+  boolean removed=removeSession(session.getClusterId());
+  if (removed) {
+    _sessionsStats.decrement();
+    _sessionTimeStats.set(round((System.currentTimeMillis() - session.getCreationTime()) / 1000.0));
+    _sessionIdManager.removeSession(session);
+    if (invalidate)     _sessionIdManager.invalidateAll(session.getClusterId());
+    if (invalidate && _sessionListeners != null) {
+      HttpSessionEvent event=new HttpSessionEvent(session);
+      for (      HttpSessionListener listener : _sessionListeners)       listener.sessionCreated(event);
+    }
+  }
+}
