@@ -1,0 +1,20 @@
+{
+  if (!(_context.getSecurityHandler() instanceof ConstraintAware)) {
+    Log.warn("SecurityHandler not ConstraintAware, skipping security annotation processing");
+    return;
+  }
+  ServletSecurity servletSecurity=(ServletSecurity)clazz.getAnnotation(ServletSecurity.class);
+  if (servletSecurity == null)   return;
+  List<ServletMapping> servletMappings=getServletMappings(clazz.getCanonicalName());
+  List<ConstraintMapping> constraintMappings=((ConstraintAware)_context.getSecurityHandler()).getConstraintMappings();
+  if (constraintsExist(servletMappings,constraintMappings)) {
+    Log.warn("Constraints already defined for " + clazz.getName() + ", skipping ServletSecurity annotation");
+    return;
+  }
+  constraintMappings=new ArrayList<ConstraintMapping>();
+  HttpConstraint defaults=servletSecurity.value();
+  Constraint defaultConstraint=makeConstraint(clazz,defaults.rolesAllowed(),defaults.value(),defaults.transportGuarantee());
+  constraintMappings.addAll(makeMethodMappings(clazz,defaultConstraint,servletMappings,servletSecurity.httpMethodConstraints()));
+  ConstraintAware securityHandler=(ConstraintAware)_context.getSecurityHandler();
+  for (  ConstraintMapping m : constraintMappings)   securityHandler.addConstraintMapping(m);
+}

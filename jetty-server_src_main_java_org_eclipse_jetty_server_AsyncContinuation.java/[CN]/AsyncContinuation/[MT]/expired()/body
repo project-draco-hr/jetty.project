@@ -1,20 +1,32 @@
 {
-  final List<ContinuationListener> listeners;
+  final List<ContinuationListener> cListeners;
+  final List<AsyncListener> aListeners;
 synchronized (this) {
 switch (_state) {
 case __ASYNCSTARTED:
 case __ASYNCWAIT:
-      listeners=_continuationListeners;
-    break;
+      cListeners=_continuationListeners;
+    aListeners=_asyncListeners;
+  break;
 default :
-  listeners=null;
+cListeners=null;
+aListeners=null;
 return;
 }
 _expired=true;
 }
-if (listeners != null) {
-for (int i=0; i < listeners.size(); i++) {
-ContinuationListener listener=listeners.get(i);
+if (aListeners != null) {
+for (AsyncListener listener : aListeners) {
+try {
+listener.onTimeout(_event);
+}
+ catch (Exception e) {
+Log.warn(e);
+}
+}
+}
+if (cListeners != null) {
+for (ContinuationListener listener : cListeners) {
 try {
 listener.onTimeout(this);
 }
@@ -27,7 +39,8 @@ synchronized (this) {
 switch (_state) {
 case __ASYNCSTARTED:
 case __ASYNCWAIT:
-dispatch();
+if (_continuation) dispatch();
+ else complete();
 }
 }
 scheduleDispatch();

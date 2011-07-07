@@ -1,0 +1,24 @@
+{
+  Log.debug("Scanning container jars");
+  clearAnnotationList(parser.getAnnotationHandlers());
+  ArrayList<URI> containerUris=new ArrayList<URI>();
+  for (  Resource r : context.getMetaData().getOrderedContainerJars()) {
+    URI uri=r.getURI();
+    containerUris.add(uri);
+  }
+  parser.parse(containerUris.toArray(new URI[containerUris.size()]),new ClassNameResolver(){
+    public boolean isExcluded(    String name){
+      if (context.isSystemClass(name))       return false;
+      if (context.isServerClass(name))       return true;
+      return false;
+    }
+    public boolean shouldOverride(    String name){
+      if (context.isParentLoaderPriority())       return true;
+      return false;
+    }
+  }
+);
+  List<DiscoveredAnnotation> annotations=new ArrayList<DiscoveredAnnotation>();
+  gatherAnnotations(annotations,parser.getAnnotationHandlers());
+  context.getMetaData().addDiscoveredAnnotations(annotations);
+}

@@ -1,0 +1,33 @@
+{
+  List<String> classes=new ArrayList<String>();
+  classes.add("org.eclipse.jetty.annotations.ServletC");
+  AnnotationParser parser=new AnnotationParser();
+  WebAppContext wac=new WebAppContext();
+  WebServletAnnotationHandler handler=new WebServletAnnotationHandler(wac);
+  parser.registerAnnotationHandler("javax.servlet.annotation.WebServlet",handler);
+  parser.parse(classes,new ClassNameResolver(){
+    public boolean isExcluded(    String name){
+      return false;
+    }
+    public boolean shouldOverride(    String name){
+      return false;
+    }
+  }
+);
+  assertEquals(1,handler.getAnnotationList().size());
+  assertTrue(handler.getAnnotationList().get(0) instanceof WebServletAnnotation);
+  handler.getAnnotationList().get(0).apply();
+  ServletHolder[] holders=wac.getServletHandler().getServlets();
+  assertNotNull(holders);
+  assertEquals(1,holders.length);
+  assertEquals("CServlet",holders[0].getName());
+  ServletMapping[] mappings=wac.getServletHandler().getServletMappings();
+  assertNotNull(mappings);
+  assertEquals(1,mappings.length);
+  String[] paths=mappings[0].getPathSpecs();
+  assertNotNull(paths);
+  assertEquals(2,paths.length);
+  assertEquals("y",holders[0].getInitParameter("x"));
+  assertEquals(2,holders[0].getInitOrder());
+  assertFalse(holders[0].isAsyncSupported());
+}

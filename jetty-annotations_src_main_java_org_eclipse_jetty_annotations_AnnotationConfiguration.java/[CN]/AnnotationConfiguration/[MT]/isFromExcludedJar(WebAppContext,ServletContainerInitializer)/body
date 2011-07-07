@@ -1,0 +1,18 @@
+{
+  List<Resource> orderedJars=context.getMetaData().getOrderedWebInfJars();
+  if (context.getMetaData().getOrdering() == null)   return false;
+  if (orderedJars.isEmpty())   return true;
+  String loadingJarName=Thread.currentThread().getContextClassLoader().getResource(service.getClass().getName().replace('.','/') + ".class").toString();
+  int i=loadingJarName.indexOf(".jar");
+  if (i < 0)   return false;
+  loadingJarName=loadingJarName.substring(0,i + 4);
+  loadingJarName=(loadingJarName.startsWith("jar:") ? loadingJarName.substring(4) : loadingJarName);
+  URI loadingJarURI=Resource.newResource(loadingJarName).getURI();
+  boolean found=false;
+  Iterator<Resource> itor=orderedJars.iterator();
+  while (!found && itor.hasNext()) {
+    Resource r=itor.next();
+    found=r.getURI().equals(loadingJarURI);
+  }
+  return !found;
+}
