@@ -41,18 +41,18 @@
   if (isSecure)   buf.append(";Secure");
   if (isHttpOnly)   buf.append(";HttpOnly");
   name_value_params=buf.toString();
-  Field field=getField(HttpHeaders.SET_COOKIE_BUFFER);
-  if (field != null) {
-    final int revision=_revision;
-    while (field != null) {
-      if (field._revision == revision && field._value != null && field._value.toString().startsWith(start)) {
-        field.reset(new ByteArrayBuffer(name_value_params),-1,revision);
-        name_value_params=null;
-        break;
-      }
-      field=field._next;
+  Field field=getField(HttpHeaders.SET_COOKIE);
+  Field last=null;
+  while (field != null) {
+    if (field._value != null && field._value.toString().startsWith(start)) {
+      _fields.remove(field);
+      if (last == null)       _names.put(HttpHeaders.SET_COOKIE_BUFFER,field._next);
+ else       last._next=field._next;
+      break;
     }
+    last=field;
+    field=field._next;
   }
-  if (name_value_params != null)   add(HttpHeaders.SET_COOKIE_BUFFER,new ByteArrayBuffer(name_value_params));
+  add(HttpHeaders.SET_COOKIE_BUFFER,new ByteArrayBuffer(name_value_params));
   put(HttpHeaders.EXPIRES_BUFFER,__01Jan1970_BUFFER);
 }

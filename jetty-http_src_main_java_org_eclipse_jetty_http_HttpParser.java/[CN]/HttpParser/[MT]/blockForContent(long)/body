@@ -1,29 +1,22 @@
 {
   if (_contentView.length() > 0)   return _contentView;
   if (getState() <= HttpParser.STATE_END)   return null;
-  if (_endp == null)   parseNext();
- else   if (_endp.isBlocking()) {
-    try {
-      parseNext();
-      while (_contentView.length() == 0 && !isState(HttpParser.STATE_END) && _endp.isOpen()) {
-        parseNext();
+  try {
+    parseNext();
+    while (_contentView.length() == 0 && !isState(HttpParser.STATE_END) && _endp != null && _endp.isOpen()) {
+      if (!_endp.isBlocking()) {
+        if (_endp.isBufferingInput() && parseNext() > 0)         continue;
+        if (!_endp.blockReadable(maxIdleTime)) {
+          _endp.close();
+          throw new EofException("timeout");
+        }
       }
-    }
- catch (    IOException e) {
-      _endp.close();
-      throw e;
+      parseNext();
     }
   }
- else {
-    parseNext();
-    while (_contentView.length() == 0 && !isState(HttpParser.STATE_END) && _endp.isOpen()) {
-      if (_endp.isBufferingInput() && parseNext() > 0)       continue;
-      if (!_endp.blockReadable(maxIdleTime)) {
-        _endp.close();
-        throw new EofException("timeout");
-      }
-      parseNext();
-    }
+ catch (  IOException e) {
+    _endp.close();
+    throw e;
   }
   return _contentView.length() > 0 ? _contentView : null;
 }

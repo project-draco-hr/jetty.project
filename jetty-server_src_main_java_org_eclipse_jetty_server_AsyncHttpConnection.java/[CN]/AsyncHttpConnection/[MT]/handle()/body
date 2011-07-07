@@ -1,0 +1,61 @@
+{
+  Connection connection=this;
+  try {
+    setCurrentConnection(this);
+    boolean progress=true;
+    boolean more_in_buffer=false;
+    while (_endp.isOpen() && (more_in_buffer || progress)) {
+      progress=false;
+      try {
+        Log.debug("async request",_request);
+        if (_request._async.isAsync() && !_request._async.isComplete())         handleRequest();
+ else         if (!_parser.isComplete() && _parser.parseAvailable() > 0)         progress=true;
+        if (_generator.isCommitted() && !_generator.isComplete() && _generator.flushBuffer() > 0)         progress=true;
+        if (_endp.isBufferingOutput())         _endp.flush();
+      }
+ catch (      HttpException e) {
+        if (Log.isDebugEnabled()) {
+          Log.debug("uri=" + _uri);
+          Log.debug("fields=" + _requestFields);
+          Log.debug(e);
+        }
+        _generator.sendError(e.getStatus(),e.getReason(),null,true);
+        _parser.reset();
+        _endp.close();
+      }
+ finally {
+        if (_endp.isInputShutdown() && (_parser.isIdle() || _parser.isComplete())) {
+          Log.debug("complete half close {}",this);
+          more_in_buffer=false;
+          _endp.close();
+          reset(true);
+        }
+ else         if (_parser.isComplete() && _generator.isComplete() && !_endp.isBufferingOutput()) {
+          if (_response.getStatus() == HttpStatus.SWITCHING_PROTOCOLS_101) {
+            Connection switched=(Connection)_request.getAttribute("org.eclipse.jetty.io.Connection");
+            if (switched != null) {
+              _parser.reset();
+              _generator.reset(true);
+              return switched;
+            }
+          }
+          progress=true;
+          reset(false);
+          more_in_buffer=_parser.isMoreInBuffer() || _endp.isBufferingInput();
+        }
+ else         if (_request.isAsyncStarted()) {
+          Log.debug("suspended {}",this);
+          more_in_buffer=false;
+          progress=false;
+        }
+ else         more_in_buffer=_parser.isMoreInBuffer() || _endp.isBufferingInput();
+      }
+    }
+  }
+  finally {
+    setCurrentConnection(null);
+    _parser.returnBuffers();
+    if (_generator.isCommitted() && !_generator.isComplete())     ((AsyncEndPoint)_endp).scheduleWrite();
+  }
+  return connection;
+}

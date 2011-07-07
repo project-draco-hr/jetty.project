@@ -4,22 +4,26 @@
     _tok0=new View.CaseInsensitive(_buffer);
     _tok1=new View.CaseInsensitive(_buffer);
   }
-  if (_body != null && _buffer != _body)   _buffer=_body;
-  if (_buffer == _body)   _buffer.compact();
-  int space=_buffer.space();
-  if (space == 0)   throw new HttpException(HttpStatus.REQUEST_ENTITY_TOO_LARGE_413,"FULL " + (_buffer == _body ? "body" : "head"));
- else {
-    int filled=-1;
-    if (_endp != null) {
-      try {
-        filled=_endp.fill(_buffer);
-      }
- catch (      IOException e) {
-        Log.debug(e);
-        reset(true);
-        throw (e instanceof EofException) ? e : new EofException(e);
-      }
-    }
-    return filled;
+  if (_state > STATE_END && _buffer == _header && _body != null && _body.hasContent() && _header != null && !_header.hasContent()) {
+    _buffer=_body;
+    return _buffer.length();
   }
+  if (_buffer == _header && _state > STATE_END && (_forceContentBuffer || _header.space() == 0) && (_body != null || _buffers != null)) {
+    if (_body == null)     _body=_buffers.getBuffer();
+    _buffer=_body;
+  }
+  if (_endp != null) {
+    if (_buffer == _body || _state > STATE_END) {
+      _buffer.compact();
+    }
+    if (_buffer.space() == 0)     throw new HttpException(HttpStatus.REQUEST_ENTITY_TOO_LARGE_413,"FULL " + (_buffer == _body ? "body" : "head"));
+    try {
+      return _endp.fill(_buffer);
+    }
+ catch (    IOException e) {
+      Log.debug(e);
+      throw (e instanceof EofException) ? e : new EofException(e);
+    }
+  }
+  return -1;
 }
