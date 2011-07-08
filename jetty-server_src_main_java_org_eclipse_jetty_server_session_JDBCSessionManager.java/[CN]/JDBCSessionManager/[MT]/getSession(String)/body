@@ -6,7 +6,7 @@ synchronized (this) {
       long now=System.currentTimeMillis();
       if (Log.isDebugEnabled()) {
         if (session == null)         Log.debug("getSession(" + idInCluster + "): not in session map,"+ " now="+ now+ " lastSaved="+ (session == null ? 0 : session._data._lastSaved)+ " interval="+ (_saveIntervalSec * 1000));
- else         Log.debug("getSession(" + idInCluster + "): in session map, "+ " now="+ now+ " lastSaved="+ (session == null ? 0 : session._data._lastSaved)+ " interval="+ (_saveIntervalSec * 1000)+ " lastNode="+ session._data.getLastNode()+ " thisNode="+ getIdManager().getWorkerName()+ " difference="+ (now - session._data._lastSaved));
+ else         Log.debug("getSession(" + idInCluster + "): in session map, "+ " now="+ now+ " lastSaved="+ (session == null ? 0 : session._data._lastSaved)+ " interval="+ (_saveIntervalSec * 1000)+ " lastNode="+ session._data.getLastNode()+ " thisNode="+ getSessionIdManager().getWorkerName()+ " difference="+ (now - session._data._lastSaved));
       }
       if (session == null || ((now - session._data._lastSaved) >= (_saveIntervalSec * 1000))) {
         Log.debug("getSession(" + idInCluster + "): no session in session map or stale session. Reloading session data from db.");
@@ -21,10 +21,10 @@ synchronized (this) {
         data=session._data;
       }
       if (data != null) {
-        if (!data.getLastNode().equals(getIdManager().getWorkerName()) || session == null) {
+        if (!data.getLastNode().equals(getSessionIdManager().getWorkerName()) || session == null) {
           if (data._expiryTime <= 0 || data._expiryTime > now) {
-            Log.debug("getSession(" + idInCluster + "): lastNode="+ data.getLastNode()+ " thisNode="+ getIdManager().getWorkerName());
-            data.setLastNode(getIdManager().getWorkerName());
+            Log.debug("getSession(" + idInCluster + "): lastNode="+ data.getLastNode()+ " thisNode="+ getSessionIdManager().getWorkerName());
+            data.setLastNode(getSessionIdManager().getWorkerName());
             session=new Session(now,data);
             _sessions.put(idInCluster,session);
             session.didActivate();
