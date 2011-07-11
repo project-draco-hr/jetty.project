@@ -1,6 +1,6 @@
 {
-  if (getConnection().isControl(opcode) && length < _minLength) {
-    super.addFrame(clearFlag(flags,0),opcode,content,offset,length);
+  if (getConnection().isControl(opcode) || length < _minLength) {
+    super.addFrame(clearFlag(flags,1),opcode,content,offset,length);
     return;
   }
   _deflater.reset();
@@ -28,6 +28,6 @@
     out[out_offset++]=(byte)(length & 0x7f);
   }
   int l=_deflater.deflate(out,out_offset,length - out_offset);
-  if (_deflater.finished())   super.addFrame(setFlag(flags,0),opcode,out,0,l + out_offset);
- else   super.addFrame(clearFlag(flags,0),opcode,content,offset,length);
+  if (_deflater.finished())   super.addFrame(setFlag(flags,1),opcode,out,0,l + out_offset);
+ else   super.addFrame(clearFlag(flags,1),opcode,content,offset,length);
 }

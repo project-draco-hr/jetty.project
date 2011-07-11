@@ -2,11 +2,14 @@
   final Request request=_connection.getRequest();
   SessionManager sessionManager=request.getSessionManager();
   if (sessionManager == null)   return url;
+  HttpURI uri=null;
   if (sessionManager.isCheckingRemoteSessionIdEncoding() && URIUtil.hasScheme(url)) {
-    HttpURI uri=new HttpURI(url);
+    uri=new HttpURI(url);
+    String path=uri.getPath();
+    path=(path == null ? "" : path);
     int port=uri.getPort();
     if (port < 0)     port=HttpSchemes.HTTPS.equalsIgnoreCase(uri.getScheme()) ? 443 : 80;
-    if (!request.getServerName().equalsIgnoreCase(uri.getHost()) || request.getServerPort() != port || !uri.getPath().startsWith(request.getContextPath()))     return url;
+    if (!request.getServerName().equalsIgnoreCase(uri.getHost()) || request.getServerPort() != port || !path.startsWith(request.getContextPath()))     return url;
   }
   String sessionURLPrefix=sessionManager.getSessionIdPathParameterNamePrefix();
   if (sessionURLPrefix == null)   return url;
@@ -25,6 +28,7 @@
   if (session == null)   return url;
   if (!sessionManager.isValid(session))   return url;
   String id=sessionManager.getNodeId(session);
+  if (uri == null)   uri=new HttpURI(url);
   int prefix=url.indexOf(sessionURLPrefix);
   if (prefix != -1) {
     int suffix=url.indexOf("?",prefix);
@@ -34,6 +38,8 @@
   }
   int suffix=url.indexOf('?');
   if (suffix < 0)   suffix=url.indexOf('#');
-  if (suffix < 0)   return url + sessionURLPrefix + id;
-  return url.substring(0,suffix) + sessionURLPrefix + id+ url.substring(suffix);
+  if (suffix < 0) {
+    return url + ((HttpSchemes.HTTPS.equalsIgnoreCase(uri.getScheme()) || HttpSchemes.HTTP.equalsIgnoreCase(uri.getScheme())) && uri.getPath() == null ? "/" : "") + sessionURLPrefix+ id;
+  }
+  return url.substring(0,suffix) + ((HttpSchemes.HTTPS.equalsIgnoreCase(uri.getScheme()) || HttpSchemes.HTTP.equalsIgnoreCase(uri.getScheme())) && uri.getPath() == null ? "/" : "") + sessionURLPrefix+ id+ url.substring(suffix);
 }

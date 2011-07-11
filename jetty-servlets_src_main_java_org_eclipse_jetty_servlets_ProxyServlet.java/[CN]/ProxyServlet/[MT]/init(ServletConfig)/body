@@ -1,18 +1,10 @@
 {
   _config=config;
   _context=config.getServletContext();
-  _client=new HttpClient();
-  _client.setConnectorType(HttpClient.CONNECTOR_SELECT_CHANNEL);
   _hostHeader=config.getInitParameter("HostHeader");
   try {
-    _log=Log.getLogger("org.eclipse.jetty.servlets." + config.getServletName());
-    String t=config.getInitParameter("maxThreads");
-    if (t != null)     _client.setThreadPool(new QueuedThreadPool(Integer.parseInt(t)));
- else     _client.setThreadPool(new QueuedThreadPool());
-    ((QueuedThreadPool)_client.getThreadPool()).setName(config.getServletName());
-    t=config.getInitParameter("maxConnections");
-    if (t != null)     _client.setMaxConnectionsPerAddress(Integer.parseInt(t));
-    _client.start();
+    _log=createLogger(config);
+    _client=createHttpClient(config);
     if (_context != null) {
       _context.setAttribute(config.getServletName() + ".Logger",_log);
       _context.setAttribute(config.getServletName() + ".ThreadPool",_client.getThreadPool());

@@ -7,7 +7,7 @@ synchronized (this) {
       while (isOpen() && _readBlocked) {
         try {
           updateKey();
-          this.wait(end - now);
+          this.wait(timeoutMs >= 0 ? (end - now) : 10000);
         }
  catch (        InterruptedException e) {
           Log.warn(e);
@@ -15,7 +15,7 @@ synchronized (this) {
  finally {
           now=_selectSet.getNow();
         }
-        if (_readBlocked && now >= end)         return false;
+        if (_readBlocked && timeoutMs > 0 && now >= end)         return false;
       }
     }
   finally {

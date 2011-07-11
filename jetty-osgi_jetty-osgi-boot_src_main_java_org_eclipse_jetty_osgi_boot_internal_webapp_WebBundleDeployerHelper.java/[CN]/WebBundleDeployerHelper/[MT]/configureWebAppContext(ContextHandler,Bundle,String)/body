@@ -21,7 +21,7 @@
           throw new IllegalArgumentException("Unable to locate " + fragFolder + " inside "+ " the fragment '"+ frag.getSymbolicName()+ "'");
         }
         fragUrl=DefaultFileLocatorHelper.getLocalURL(fragUrl);
-        String key=patchFragFolder.startsWith("/") ? patchFragFolder.substring(1) : patchFragFolder;
+        String key=fragFolder.startsWith("/") ? fragFolder.substring(1) : fragFolder;
         appendedResourcesPath.put(key + ";" + frag.getSymbolicName(),Resource.newResource(fragUrl));
       }
       if (patchFragFolder != null) {
@@ -62,11 +62,16 @@
               frags.add(fragFileAsResource);
             }
             if (resEnum != null && resEnum.hasMoreElements()) {
-              if (resfrags == null) {
-                resfrags=new ArrayList<Resource>();
-                wah.setAttribute(WebInfConfiguration.RESOURCE_URLS,resfrags);
+              URL resourcesEntry=frag.getEntry("/META-INF/resources/");
+              if (resourcesEntry == null) {
               }
-              resfrags.add(Resource.newResource(DefaultFileLocatorHelper.getLocalURL(frag.getEntry("/META-INF/resources"))));
+ else {
+                if (resfrags == null) {
+                  resfrags=new ArrayList<Resource>();
+                  wah.setAttribute(WebInfConfiguration.RESOURCE_URLS,resfrags);
+                }
+                resfrags.add(Resource.newResource(DefaultFileLocatorHelper.getLocalURL(resourcesEntry)));
+              }
             }
             if (tldEnum != null && tldEnum.hasMoreElements()) {
               if (tldfrags == null) {

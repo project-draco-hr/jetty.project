@@ -48,20 +48,23 @@
  else           if (debug != 0)           _log.debug(debug + " " + name+ "! "+ value);
         }
         protected void onConnectionFailed(        Throwable ex){
-          onException(ex);
+          handleOnConnectionFailed(ex,request,response);
+          if (!continuation.isInitial()) {
+            continuation.complete();
+          }
         }
         protected void onException(        Throwable ex){
           if (ex instanceof EofException) {
             Log.ignore(ex);
             return;
           }
-          Log.warn(ex.toString());
-          Log.debug(ex);
-          if (!response.isCommitted())           response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-          continuation.complete();
+          handleOnException(ex,request,response);
+          if (!continuation.isInitial()) {
+            continuation.complete();
+          }
         }
         protected void onExpire(){
-          if (!response.isCommitted())           response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+          handleOnExpire(request,response);
           continuation.complete();
         }
       }
@@ -111,6 +114,15 @@
         exchange.addRequestHeader("X-Forwarded-Server",request.getLocalName());
       }
       if (hasContent)       exchange.setRequestContentSource(in);
+      customizeExchange(exchange,request);
+      long ctimeout=(_client.getTimeout() > exchange.getTimeout()) ? _client.getTimeout() : exchange.getTimeout();
+      if (ctimeout == 0) {
+        continuation.setTimeout(0);
+      }
+ else {
+        continuation.setTimeout(ctimeout + 1000);
+      }
+      customizeContinuation(continuation);
       continuation.suspend(response);
       _client.send(exchange);
     }

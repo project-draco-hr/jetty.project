@@ -1,0 +1,20 @@
+{
+  String message="0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF";
+  final AtomicReference<String> received=new AtomicReference<String>();
+  ByteArrayEndPoint endp=new ByteArrayEndPoint(new byte[0],4096);
+  WebSocketGeneratorD7_9.MaskGen maskGen=new WebSocketGeneratorD7_9.RandomMaskGen();
+  WebSocketGeneratorD7_9 gen=new WebSocketGeneratorD7_9(new WebSocketBuffers(8096),endp,maskGen);
+  byte[] data=message.getBytes(StringUtil.__UTF8);
+  gen.addFrame((byte)0x8,(byte)0x1,data,0,data.length);
+  endp=new ByteArrayEndPoint(endp.getOut().asArray(),4096);
+  WebSocketParserD7_9 parser=new WebSocketParserD7_9(new WebSocketBuffers(8096),endp,new WebSocketParser.FrameHandler(){
+    public void onFrame(    byte flags,    byte opcode,    Buffer buffer){
+      received.set(buffer.toString());
+    }
+    public void close(    int code,    String message){
+    }
+  }
+,true);
+  parser.parseNext();
+  assertEquals(message,received.get());
+}

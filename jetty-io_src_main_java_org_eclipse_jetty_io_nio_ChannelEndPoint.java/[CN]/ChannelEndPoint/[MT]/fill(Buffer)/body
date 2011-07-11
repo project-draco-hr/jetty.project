@@ -4,38 +4,27 @@
   if (buf instanceof NIOBuffer) {
     final NIOBuffer nbuf=(NIOBuffer)buf;
     final ByteBuffer bbuf=nbuf.getByteBuffer();
+    try {
 synchronized (bbuf) {
-      try {
-        bbuf.position(buffer.putIndex());
-        len=_channel.read(bbuf);
-        if (len < 0 && isOpen() && !isInputShutdown()) {
-          try {
-            shutdownInput();
-          }
- catch (          IOException x) {
-            Log.ignore(x);
-            try {
-              close();
-            }
- catch (            IOException xx) {
-              Log.ignore(xx);
-            }
-          }
-        }
-      }
- catch (      IOException x) {
         try {
-          close();
+          bbuf.position(buffer.putIndex());
+          len=_channel.read(bbuf);
         }
- catch (        IOException xx) {
-          Log.ignore(xx);
+  finally {
+          buffer.setPutIndex(bbuf.position());
+          bbuf.position(0);
         }
-        throw x;
       }
- finally {
-        buffer.setPutIndex(bbuf.position());
-        bbuf.position(0);
+      if (len < 0 && isOpen() && !isInputShutdown())       shutdownInput();
+    }
+ catch (    IOException x) {
+      try {
+        close();
       }
+ catch (      IOException xx) {
+        Log.ignore(xx);
+      }
+      if (len >= 0)       throw x;
     }
   }
  else {
