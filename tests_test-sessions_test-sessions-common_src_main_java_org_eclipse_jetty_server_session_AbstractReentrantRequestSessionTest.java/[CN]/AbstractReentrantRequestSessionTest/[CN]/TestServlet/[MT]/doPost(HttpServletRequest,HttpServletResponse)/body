@@ -1,8 +1,8 @@
 {
   HttpSession session=request.getSession(false);
-  if (session == null)   session=request.getSession(true);
   String action=request.getParameter("action");
   if ("reenter".equals(action)) {
+    if (session == null)     session=request.getSession(true);
     int port=Integer.parseInt(request.getParameter("port"));
     String path=request.getParameter("path");
     try {
@@ -12,10 +12,11 @@
       try {
         ContentExchange exchange=new ContentExchange(true);
         exchange.setMethod(HttpMethods.GET);
-        exchange.setURL("http://localhost:" + port + path+ "?action=none");
+        exchange.setURL("http://localhost:" + port + path+ ";jsessionid="+ session.getId()+ "?action=none");
         client.send(exchange);
         exchange.waitForDone();
         assertEquals(HttpServletResponse.SC_OK,exchange.getResponseStatus());
+        assertEquals("true",session.getAttribute("reentrant"));
       }
   finally {
         client.stop();
@@ -26,5 +27,7 @@
     }
   }
  else {
+    assertTrue(session != null);
+    session.setAttribute("reentrant","true");
   }
 }
