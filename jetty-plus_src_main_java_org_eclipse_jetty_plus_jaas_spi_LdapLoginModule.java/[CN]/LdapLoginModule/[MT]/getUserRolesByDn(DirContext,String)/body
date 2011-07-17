@@ -1,5 +1,5 @@
 {
-  ArrayList roleList=new ArrayList();
+  List<String> roleList=new ArrayList<String>();
   if (dirContext == null || _roleBaseDn == null || _roleMemberAttribute == null || _roleObjectClass == null) {
     return roleList;
   }
@@ -8,7 +8,7 @@
   ctls.setSearchScope(SearchControls.SUBTREE_SCOPE);
   String filter="(&(objectClass={0})({1}={2}))";
   Object[] filterArguments={_roleObjectClass,_roleMemberAttribute,userDn};
-  NamingEnumeration results=dirContext.search(_roleBaseDn,filter,filterArguments,ctls);
+  NamingEnumeration<SearchResult> results=dirContext.search(_roleBaseDn,filter,filterArguments,ctls);
   Log.debug("Found user roles?: " + results.hasMoreElements());
   while (results.hasMoreElements()) {
     SearchResult result=(SearchResult)results.nextElement();
@@ -20,9 +20,9 @@
     if (roleAttribute == null) {
       continue;
     }
-    NamingEnumeration roles=roleAttribute.getAll();
+    NamingEnumeration<?> roles=roleAttribute.getAll();
     while (roles.hasMore()) {
-      roleList.add(roles.next());
+      roleList.add(roles.next().toString());
     }
   }
   return roleList;
