@@ -1,0 +1,40 @@
+{
+  if (threadInfo != null) {
+    try {
+      long[] allThreadId=getAllThreadIds();
+      for (int idx=0; idx < allThreadId.length; idx++) {
+        long currId=allThreadId[idx];
+        if (currId == _runner.getId()) {
+          continue;
+        }
+        long currCpuTime=getThreadCpuTime(currId);
+        long currNanoTime=System.nanoTime();
+        ExtThreadInfo currExtInfo=_extInfo.get(Long.valueOf(currId));
+        if (currExtInfo != null) {
+          long elapsedCpuTime=currCpuTime - currExtInfo.getLastCpuTime();
+          long elapsedNanoTime=currNanoTime - currExtInfo.getLastSampleTime();
+          if (((elapsedCpuTime * 100.0) / elapsedNanoTime) > _busyThreshold) {
+            ThreadInfo currInfo=getThreadInfo(currId,Integer.MAX_VALUE);
+            if (currInfo != null) {
+              StackTraceElement[] lastStackTrace=currExtInfo.getStackTrace();
+              currExtInfo.setStackTrace(currInfo.getStackTrace());
+              if (lastStackTrace != null && matchStackTraces(lastStackTrace,currInfo.getStackTrace())) {
+                threadInfo.add(currInfo);
+              }
+            }
+          }
+        }
+ else {
+          currExtInfo=new ExtThreadInfo(currId);
+          _extInfo.put(Long.valueOf(currId),currExtInfo);
+        }
+        currExtInfo.setLastCpuTime(currCpuTime);
+        currExtInfo.setLastSampleTime(currNanoTime);
+      }
+    }
+ catch (    Exception ex) {
+      Log.debug(ex);
+    }
+  }
+  return threadInfo;
+}
