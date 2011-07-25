@@ -18,26 +18,7 @@
   }
   int length=_buffer.length();
   if (length == 0) {
-    int filled=-1;
-    if (_body != null && _buffer != _body) {
-      _buffer=_body;
-      filled=_buffer.length();
-    }
-    if (_buffer.markIndex() == 0 && _buffer.putIndex() == _buffer.capacity())     throw new HttpException(HttpStatus.REQUEST_ENTITY_TOO_LARGE_413,"FULL");
-    IOException ioex=null;
-    if (_endp != null && filled <= 0) {
-      if (_buffer == _body)       _buffer.compact();
-      if (_buffer.space() == 0)       throw new HttpException(HttpStatus.REQUEST_ENTITY_TOO_LARGE_413,"FULL " + (_buffer == _body ? "body" : "head"));
-      try {
-        filled=_endp.fill(_buffer);
-        if (filled > 0)         progress++;
-      }
- catch (      IOException e) {
-        Log.debug(e);
-        ioex=e;
-        filled=-1;
-      }
-    }
+    long filled=fill();
     if (filled < 0) {
       if (_headResponse && _state > STATE_END) {
         _state=STATE_END;
@@ -226,6 +207,7 @@ _tok0.setPutIndex(_tok0.getIndex());
 _tok1.setPutIndex(_tok1.getIndex());
 _multiLineValue=null;
 }
+_buffer.setMarkIndex(-1);
 if (ch == HttpTokens.CARRIAGE_RETURN || ch == HttpTokens.LINE_FEED) {
 if (_contentLength == HttpTokens.UNKNOWN_CONTENT) {
 if (_responseStatus == 0 || _responseStatus == 304 || _responseStatus == 204 || _responseStatus < 200) _contentLength=HttpTokens.NO_CONTENT;
@@ -237,22 +219,20 @@ if (_eol == HttpTokens.CARRIAGE_RETURN && _buffer.hasContent() && _buffer.peek()
 switch (_contentLength > Integer.MAX_VALUE ? Integer.MAX_VALUE : (int)_contentLength) {
 case HttpTokens.EOF_CONTENT:
 _state=STATE_EOF_CONTENT;
-if (_body == null && _buffers != null) _body=_buffers.getBuffer();
 _handler.headerComplete();
 break;
 case HttpTokens.CHUNKED_CONTENT:
 _state=STATE_CHUNKED_CONTENT;
-if (_body == null && _buffers != null) _body=_buffers.getBuffer();
 _handler.headerComplete();
 break;
 case HttpTokens.NO_CONTENT:
 _state=STATE_END;
+returnBuffers();
 _handler.headerComplete();
 _handler.messageComplete(_contentPosition);
 break;
 default :
 _state=STATE_CONTENT;
-if (_forceContentBuffer || (_buffers != null && _body == null && _buffer == _header && _contentLength >= (_header.capacity() - _header.getIndex()))) _body=_buffers.getBuffer();
 _handler.headerComplete();
 break;
 }

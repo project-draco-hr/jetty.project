@@ -1,3 +1,17 @@
 {
-  add(name,value,-1);
+  if (value == null)   throw new IllegalArgumentException("null value");
+  if (!(name instanceof CachedBuffer))   name=HttpHeaders.CACHE.lookup(name);
+  name=name.asImmutableBuffer();
+  if (!(value instanceof CachedBuffer) && HttpHeaderValues.hasKnownValues(HttpHeaders.CACHE.getOrdinal(name)))   value=HttpHeaderValues.CACHE.lookup(value);
+  value=value.asImmutableBuffer();
+  Field field=_names.get(name);
+  Field last=null;
+  while (field != null) {
+    last=field;
+    field=field._next;
+  }
+  field=new Field(name,value);
+  _fields.add(field);
+  if (last != null)   last._next=field;
+ else   _names.put(name,field);
 }

@@ -1,6 +1,7 @@
 {
-  if (_exchange != null && !_exchange.isDone()) {
-switch (_exchange.getStatus()) {
+  HttpExchange exchange=_exchange;
+  if (exchange != null && !exchange.isDone()) {
+switch (exchange.getStatus()) {
 case HttpExchange.STATUS_CANCELLED:
 case HttpExchange.STATUS_CANCELLING:
 case HttpExchange.STATUS_COMPLETED:
@@ -8,8 +9,10 @@ case HttpExchange.STATUS_EXCEPTED:
 case HttpExchange.STATUS_EXPIRED:
       break;
 default :
-    _exchange.setStatus(HttpExchange.STATUS_EXCEPTED);
-  _exchange.getEventListener().onException(new EOFException("local close"));
+    String exch=exchange.toString();
+  String reason=_endp.isOpen() ? (_endp.isInputShutdown() ? "half closed: " : "local close: ") : "closed: ";
+exchange.setStatus(HttpExchange.STATUS_EXCEPTED);
+exchange.getEventListener().onException(new EOFException(reason + exch));
 }
 }
 _endp.close();
