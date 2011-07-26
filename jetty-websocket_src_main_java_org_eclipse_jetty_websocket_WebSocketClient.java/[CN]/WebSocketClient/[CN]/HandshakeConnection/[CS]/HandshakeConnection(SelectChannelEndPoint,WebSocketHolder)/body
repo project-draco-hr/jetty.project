@@ -1,0 +1,44 @@
+{
+  super(endpoint,System.currentTimeMillis());
+  _endp=endpoint;
+  _holder=holder;
+  byte[] bytes=new byte[16];
+  __random.nextBytes(bytes);
+  _key=new String(B64Code.encode(bytes));
+  Buffers buffers=new SimpleBuffers(_buffers.getBuffer(),null);
+  _parser=new HttpParser(buffers,_endp,new HttpParser.EventHandler(){
+    @Override public void startResponse(    Buffer version,    int status,    Buffer reason) throws IOException {
+      if (status != 101) {
+        _error="Bad response status " + status + " "+ reason;
+        _endp.close();
+      }
+    }
+    @Override public void parsedHeader(    Buffer name,    Buffer value) throws IOException {
+      if (__ACCEPT.equals(name))       _accept=value.toString();
+    }
+    @Override public void startRequest(    Buffer method,    Buffer url,    Buffer version) throws IOException {
+      _error="Bad response";
+      _endp.close();
+    }
+    @Override public void content(    Buffer ref) throws IOException {
+      _error="Bad response";
+      _endp.close();
+    }
+  }
+);
+  String request="GET " + _holder.getURI().getPath() + " HTTP/1.1\r\n"+ "Host: "+ holder.getURI().getHost()+ ":"+ _holder.getURI().getPort()+ "\r\n"+ "Upgrade: websocket\r\n"+ "Connection: Upgrade\r\n"+ "Sec-WebSocket-Key: "+ _key+ "\r\n"+ "Sec-WebSocket-Origin: http://example.com\r\n"+ "Sec-WebSocket-Version: 8\r\n";
+  if (holder.getProtocol() != null)   request+="Sec-WebSocket-Protocol: " + holder.getProtocol() + "\r\n";
+  if (holder.getCookies() != null && holder.getCookies().size() > 0) {
+    for (    String cookie : holder.getCookies().keySet())     request+="Cookie: " + QuotedStringTokenizer.quoteIfNeeded(cookie,HttpFields.__COOKIE_DELIM) + "="+ QuotedStringTokenizer.quoteIfNeeded(holder.getCookies().get(cookie),HttpFields.__COOKIE_DELIM)+ "\r\n";
+  }
+  request+="\r\n";
+  try {
+    ByteArrayBuffer handshake=new ByteArrayBuffer(request);
+    int len=handshake.length();
+    if (len != _endp.flush(handshake))     throw new IOException("incomplete");
+  }
+ catch (  IOException e) {
+    Log.debug(e);
+    _holder.getWebSocket().onClose(WebSocketConnectionD10.CLOSE_PROTOCOL,"Handshake failed: " + e.toString());
+  }
+}
