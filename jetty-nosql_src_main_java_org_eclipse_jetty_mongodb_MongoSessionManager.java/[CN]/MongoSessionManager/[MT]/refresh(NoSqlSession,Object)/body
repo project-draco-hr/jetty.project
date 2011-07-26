@@ -1,0 +1,48 @@
+{
+  __log.debug("MongoSessionManager:refresh " + session);
+  if (version != null) {
+    DBObject o=_sessions.findOne(new BasicDBObject(__ID,session.getClusterId()),__version_1);
+    if (o != null) {
+      Object saved=getNestedValue(o,getContextKey(__VERSION));
+      if (saved != null && saved.equals(version)) {
+        __log.debug("MongoSessionManager:refresh not needed");
+        return version;
+      }
+      version=saved;
+    }
+  }
+  DBObject o=_sessions.findOne(new BasicDBObject(__ID,session.getClusterId()));
+  if (o == null) {
+    __log.debug("MongoSessionManager:refresh:marking invalid, no object");
+    session.invalidate();
+    return null;
+  }
+  Boolean valid=(Boolean)o.get(__VALID);
+  if (valid == null || !valid) {
+    __log.debug("MongoSessionManager:refresh:marking invalid, valid flag " + valid);
+    session.invalidate();
+    return null;
+  }
+  session.willPassivate();
+  try {
+    session.clearAttributes();
+    DBObject attrs=(DBObject)getNestedValue(o,getContextKey());
+    if (attrs != null) {
+      for (      String name : attrs.keySet()) {
+        if (__METADATA.equals(name)) {
+          continue;
+        }
+        String attr=decodeName(name);
+        Object value=decodeValue(attrs.get(name));
+        session.doPutOrRemove(attr,value);
+        session.bindValue(attr,value);
+      }
+    }
+    session.didActivate();
+    return version;
+  }
+ catch (  Exception e) {
+    Log.warn(e);
+  }
+  return null;
+}

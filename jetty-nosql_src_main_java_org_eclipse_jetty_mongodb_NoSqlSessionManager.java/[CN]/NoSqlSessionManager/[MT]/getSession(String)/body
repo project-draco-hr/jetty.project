@@ -1,0 +1,16 @@
+{
+  NoSqlSession session=_sessions.get(idInCluster);
+  __log.debug("getSession: " + session);
+  if (session == null) {
+    session=loadSession(idInCluster);
+    if (session != null) {
+      NoSqlSession race=_sessions.putIfAbsent(idInCluster,session);
+      if (race != null) {
+        session.willPassivate();
+        session.clearAttributes();
+        session=race;
+      }
+    }
+  }
+  return session;
+}

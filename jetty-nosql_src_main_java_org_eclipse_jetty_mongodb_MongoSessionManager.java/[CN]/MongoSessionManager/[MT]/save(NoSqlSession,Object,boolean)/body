@@ -1,0 +1,51 @@
+{
+  try {
+    __log.debug("MongoSessionManager:save:" + session);
+    session.willPassivate();
+    ByteArrayOutputStream bout=new ByteArrayOutputStream();
+    ObjectOutputStream out=new ObjectOutputStream(bout);
+    BasicDBObject key=new BasicDBObject(__ID,session.getClusterId());
+    key.put(__VALID,true);
+    BasicDBObject update=new BasicDBObject();
+    boolean upsert=false;
+    BasicDBObject sets=new BasicDBObject();
+    BasicDBObject unsets=new BasicDBObject();
+    if (version == null) {
+      upsert=true;
+      version=new Long(1);
+      sets.put(__CREATED,session.getCreationTime());
+      sets.put(getContextKey(__VERSION),version);
+    }
+ else {
+      version=new Long(((Long)version).intValue() + 1);
+      update.put("$inc",__version_1);
+    }
+    if (session.isValid()) {
+      sets.put(__ACCESSED,session.getAccessed());
+      Set<String> names=session.takeDirty();
+      if (isSaveAllAttributes() || upsert) {
+        names.addAll(session.getNames());
+      }
+      for (      String name : names) {
+        Object value=session.getAttribute(name);
+        if (value == null)         unsets.put(getContextKey() + "." + encodeName(name),1);
+ else         sets.put(getContextKey() + "." + encodeName(name),encodeName(out,bout,value));
+      }
+    }
+ else {
+      sets.put(__VALID,false);
+      sets.put(__INVALIDATED,System.currentTimeMillis());
+      unsets.put(getContextKey(),1);
+    }
+    if (!sets.isEmpty())     update.put("$set",sets);
+    if (!unsets.isEmpty())     update.put("$unset",unsets);
+    _sessions.update(key,update,upsert,false);
+    __log.debug("MongoSessionManager:save:db.sessions.update(" + key + ","+ update+ ",true)");
+    if (activateAfterSave)     session.didActivate();
+    return version;
+  }
+ catch (  Exception e) {
+    Log.warn(e);
+  }
+  return null;
+}

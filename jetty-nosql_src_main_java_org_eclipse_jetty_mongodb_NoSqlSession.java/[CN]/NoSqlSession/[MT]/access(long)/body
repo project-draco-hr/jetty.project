@@ -1,0 +1,13 @@
+{
+  __log.debug("NoSqlSession:access:active " + _active);
+  if (_active.incrementAndGet() == 1) {
+    int period=_manager.getStalePeriod() * 1000;
+    if (period == 0)     refresh();
+ else     if (period > 0) {
+      long stale=time - _lastSync;
+      __log.debug("NoSqlSession:access:stale " + stale);
+      if (stale > period)       refresh();
+    }
+  }
+  return super.access(time);
+}

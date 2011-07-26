@@ -1,0 +1,33 @@
+{
+  __log.debug("MongoSessionIdManager:starting");
+  if (_scavengeDelay > 0) {
+    _scavengeTimer=new Timer("MongoSessionIdScavenger",true);
+synchronized (this) {
+      if (_scavengerTask != null) {
+        _scavengerTask.cancel();
+      }
+      _scavengerTask=new TimerTask(){
+        @Override public void run(){
+          scavenge();
+        }
+      }
+;
+      _scavengeTimer.schedule(_scavengerTask,_scavengeDelay,_scavengePeriod);
+    }
+  }
+  if (_purge) {
+    _purgeTimer=new Timer("MongoSessionPurger",true);
+synchronized (this) {
+      if (_purgeTask != null) {
+        _purgeTask.cancel();
+      }
+      _purgeTask=new TimerTask(){
+        @Override public void run(){
+          purge();
+        }
+      }
+;
+      _purgeTimer.schedule(_purgeTask,_purgeDelay);
+    }
+  }
+}
