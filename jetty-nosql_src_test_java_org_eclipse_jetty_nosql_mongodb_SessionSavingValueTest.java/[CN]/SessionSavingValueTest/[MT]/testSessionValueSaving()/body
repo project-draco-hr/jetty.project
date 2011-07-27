@@ -1,0 +1,53 @@
+{
+  String contextPath="";
+  String servletMapping="/server";
+  int maxInactivePeriod=10000;
+  int scavengePeriod=20000;
+  AbstractTestServer server1=createServer(0,maxInactivePeriod,scavengePeriod);
+  server1.addContext(contextPath).addServlet(TestServlet.class,servletMapping);
+  server1.start();
+  int port1=server1.getPort();
+  try {
+    HttpClient client=new HttpClient();
+    client.setConnectorType(HttpClient.CONNECTOR_SOCKET);
+    client.start();
+    try {
+      String[] sessionTestValue=new String[]{"0","null"};
+      ContentExchange exchange1=new ContentExchange(true);
+      exchange1.setMethod(HttpMethods.GET);
+      exchange1.setURL("http://localhost:" + port1 + contextPath+ servletMapping+ "?action=init");
+      client.send(exchange1);
+      exchange1.waitForDone();
+      assertEquals(HttpServletResponse.SC_OK,exchange1.getResponseStatus());
+      String[] sessionTestResponse=exchange1.getResponseContent().split("/");
+      assertTrue(Long.parseLong(sessionTestValue[0]) < Long.parseLong(sessionTestResponse[0]));
+      sessionTestValue=sessionTestResponse;
+      String sessionCookie=exchange1.getResponseFields().getStringField("Set-Cookie");
+      assertTrue(sessionCookie != null);
+      sessionCookie=sessionCookie.replaceFirst("(\\W)(P|p)ath=","$1\\$Path=");
+      int requestInterval=500;
+      for (int i=0; i < 10; ++i) {
+        ContentExchange exchange2=new ContentExchange(true);
+        exchange2.setMethod(HttpMethods.GET);
+        exchange2.setURL("http://localhost:" + port1 + contextPath+ servletMapping);
+        exchange2.getRequestFields().add("Cookie",sessionCookie);
+        client.send(exchange2);
+        exchange2.waitForDone();
+        assertEquals(HttpServletResponse.SC_OK,exchange2.getResponseStatus());
+        sessionTestResponse=exchange2.getResponseContent().split("/");
+        assertTrue(Long.parseLong(sessionTestValue[0]) < Long.parseLong(sessionTestResponse[0]));
+        assertTrue(Long.parseLong(sessionTestValue[1]) < Long.parseLong(sessionTestResponse[1]));
+        sessionTestValue=sessionTestResponse;
+        String setCookie=exchange1.getResponseFields().getStringField("Set-Cookie");
+        if (setCookie != null)         sessionCookie=setCookie.replaceFirst("(\\W)(P|p)ath=","$1\\$Path=");
+        Thread.sleep(requestInterval);
+      }
+    }
+  finally {
+      client.stop();
+    }
+  }
+  finally {
+    server1.stop();
+  }
+}

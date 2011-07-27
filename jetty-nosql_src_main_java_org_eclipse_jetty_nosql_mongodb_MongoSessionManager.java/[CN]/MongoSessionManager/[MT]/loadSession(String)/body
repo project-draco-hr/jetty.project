@@ -1,0 +1,36 @@
+{
+  DBObject o=_sessions.findOne(new BasicDBObject(__ID,clusterId));
+  __log.debug("MongoSessionManager:loaded " + o);
+  if (o == null) {
+    return null;
+  }
+  Boolean valid=(Boolean)o.get(__VALID);
+  if (valid == null || !valid) {
+    return null;
+  }
+  try {
+    Object version=o.get(getContextKey(__VERSION));
+    Long created=(Long)o.get(__CREATED);
+    Long accessed=(Long)o.get(__ACCESSED);
+    NoSqlSession session=new NoSqlSession(this,created,accessed,clusterId,version);
+    DBObject attrs=(DBObject)getNestedValue(o,getContextKey());
+    __log.debug("MongoSessionManager:attrs: " + attrs);
+    if (attrs != null) {
+      for (      String name : attrs.keySet()) {
+        if (__METADATA.equals(name)) {
+          continue;
+        }
+        String attr=decodeName(name);
+        Object value=decodeValue(attrs.get(name));
+        session.doPutOrRemove(attr,value);
+        session.bindValue(attr,value);
+      }
+    }
+    session.didActivate();
+    return session;
+  }
+ catch (  Exception e) {
+    Log.warn(e);
+  }
+  return null;
+}
