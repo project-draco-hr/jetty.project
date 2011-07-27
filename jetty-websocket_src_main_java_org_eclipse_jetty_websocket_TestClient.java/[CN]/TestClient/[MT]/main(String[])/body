@@ -8,6 +8,7 @@
   int fragment=4000;
   boolean binary=false;
   int clients=1;
+  int delay=1000;
   for (int i=0; i < args.length; i++) {
     String a=args[i];
     if ("-p".equals(a) || "--port".equals(a))     port=Integer.parseInt(args[++i]);
@@ -19,6 +20,8 @@
  else     if ("-v".equals(a) || "--verbose".equals(a))     _verbose=true;
  else     if ("-b".equals(a) || "--binary".equals(a))     binary=true;
  else     if ("-C".equals(a) || "--clients".equals(a))     clients=Integer.parseInt(args[++i]);
+ else     if ("-d".equals(a) || "--delay".equals(a))     delay=Integer.parseInt(args[++i]);
+ else     if ("-q".equals(a) || "--quiet".equals(a))     __quiet=true;
  else     if (a.startsWith("-"))     usage(args);
   }
   TestClient[] client=new TestClient[clients];
@@ -30,7 +33,7 @@
     }
     System.out.println("Jetty WebSocket PING " + host + ":"+ port+ " ("+ new InetSocketAddress(host,port)+ ") "+ clients+ " clients");
     for (int p=0; p < count; p++) {
-      long next=System.currentTimeMillis() + 1000;
+      long next=System.currentTimeMillis() + delay;
       byte opcode=binary ? WebSocketConnectionD10.OP_BINARY : WebSocketConnectionD10.OP_TEXT;
       byte data[]=null;
       if (opcode == WebSocketConnectionD10.OP_TEXT) {
@@ -50,7 +53,7 @@
     for (int i=0; i < clients; i++)     if (client[i] != null)     client[i].disconnect();
     long duration=System.currentTimeMillis() - __start;
     System.out.println("--- " + host + " websocket ping statistics using "+ clients+ " connection"+ (clients > 1 ? "s" : "")+ " ---");
-    System.out.println(__framesSent + " frames transmitted, " + __framesReceived+ " received, "+ __messagesSent+ " messages transmitted, "+ __messagesReceived+ " received, "+ "time "+ duration+ "ms");
+    System.out.println(__framesSent + " frames transmitted, " + __framesReceived+ " received, "+ __messagesSent+ " messages transmitted, "+ __messagesReceived+ " received, "+ "time "+ duration+ "ms "+ (1000L * __messagesReceived.get() / duration)+ " req/s");
     System.out.printf("rtt min/ave/max = %.3f/%.3f/%.3f ms\n",__minDuration.get() / 1000000.0,__messagesReceived.get() == 0 ? 0.0 : (__totalTime.get() / __messagesReceived.get() / 1000000.0),__maxDuration.get() / 1000000.0);
     __client.stop();
   }
