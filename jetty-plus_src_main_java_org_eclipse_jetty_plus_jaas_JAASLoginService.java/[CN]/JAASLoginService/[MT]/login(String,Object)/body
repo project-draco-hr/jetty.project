@@ -1,21 +1,28 @@
 {
   try {
-    CallbackHandler callbackHandler=new CallbackHandler(){
-      public void handle(      Callback[] callbacks) throws IOException, UnsupportedCallbackException {
-        for (        Callback callback : callbacks) {
-          if (callback instanceof NameCallback) {
-            ((NameCallback)callback).setName(username);
-          }
- else           if (callback instanceof PasswordCallback) {
-            ((PasswordCallback)callback).setPassword((char[])credentials.toString().toCharArray());
-          }
- else           if (callback instanceof ObjectCallback) {
-            ((ObjectCallback)callback).setObject(credentials);
+    CallbackHandler callbackHandler=null;
+    if (_callbackHandlerClass == null) {
+      callbackHandler=new CallbackHandler(){
+        public void handle(        Callback[] callbacks) throws IOException, UnsupportedCallbackException {
+          for (          Callback callback : callbacks) {
+            if (callback instanceof NameCallback) {
+              ((NameCallback)callback).setName(username);
+            }
+ else             if (callback instanceof PasswordCallback) {
+              ((PasswordCallback)callback).setPassword((char[])credentials.toString().toCharArray());
+            }
+ else             if (callback instanceof ObjectCallback) {
+              ((ObjectCallback)callback).setObject(credentials);
+            }
           }
         }
       }
-    }
 ;
+    }
+ else {
+      Class clazz=Loader.loadClass(getClass(),_callbackHandlerClass);
+      callbackHandler=(CallbackHandler)clazz.newInstance();
+    }
     Subject subject=new Subject();
     LoginContext loginContext=new LoginContext(_loginModuleName,subject,callbackHandler);
     loginContext.login();
@@ -30,6 +37,15 @@ catch (  IOException e) {
     Log.warn(e);
   }
 catch (  UnsupportedCallbackException e) {
+    Log.warn(e);
+  }
+catch (  InstantiationException e) {
+    Log.warn(e);
+  }
+catch (  IllegalAccessException e) {
+    Log.warn(e);
+  }
+catch (  ClassNotFoundException e) {
     Log.warn(e);
   }
   return null;
