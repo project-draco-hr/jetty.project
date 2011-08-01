@@ -1,0 +1,17 @@
+{
+  _starts.add(System.nanoTime());
+  int off=0;
+  int len=data.length;
+  if (fragment > 0 && len > fragment)   len=fragment;
+  __messagesSent++;
+  while (off < data.length) {
+    __framesSent++;
+    byte flags=(byte)(off + len == data.length ? 0x8 : 0);
+    byte op=(byte)(off == 0 ? opcode : WebSocketConnectionD10.OP_CONTINUATION);
+    if (_verbose)     System.err.printf("%s#addFrame %s|%s %s\n",this.getClass().getSimpleName(),TypeUtil.toHexString(flags),TypeUtil.toHexString(op),TypeUtil.toHexString(data,off,len));
+    _connection.sendFrame(flags,op,data,off,len);
+    off+=len;
+    if (data.length - off > len)     len=data.length - off;
+    if (fragment > 0 && len > fragment)     len=fragment;
+  }
+}

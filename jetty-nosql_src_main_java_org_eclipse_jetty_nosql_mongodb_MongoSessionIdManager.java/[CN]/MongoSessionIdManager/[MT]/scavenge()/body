@@ -1,0 +1,12 @@
+{
+  __log.debug("SessionIdManager:scavenge:called with delay" + _scavengeDelay);
+synchronized (_sessionsIds) {
+    BasicDBObject query=new BasicDBObject();
+    query.put(MongoSessionManager.__ID,new BasicDBObject("$in",_sessionsIds));
+    query.put(MongoSessionManager.__ACCESSED,new BasicDBObject("$lt",System.currentTimeMillis() - _scavengeDelay));
+    DBCursor checkSessions=_sessions.find(query,new BasicDBObject(MongoSessionManager.__ID,1));
+    for (    DBObject session : checkSessions) {
+      invalidateAll((String)session.get(MongoSessionManager.__ID));
+    }
+  }
+}

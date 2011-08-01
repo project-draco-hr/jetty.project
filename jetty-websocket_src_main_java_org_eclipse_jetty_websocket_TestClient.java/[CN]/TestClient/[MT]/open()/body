@@ -1,32 +1,4 @@
 {
-  System.out.println("Jetty WebSocket PING " + _host + ":"+ _port+ " ("+ _socket.getRemoteSocketAddress()+ ") "+ _size+ " bytes of data.");
-  byte[] key=new byte[16];
-  __random.nextBytes(key);
-  _output.write("GET /chat HTTP/1.1\r\n" + "Host: " + _host + ":"+ _port+ "\r\n"+ "Upgrade: websocket\r\n"+ "Connection: Upgrade\r\n"+ "Sec-WebSocket-Key: "+ new String(B64Code.encode(key))+ "\r\n"+ "Sec-WebSocket-Origin: http://example.com\r\n"+ "Sec-WebSocket-Protocol: "+ _protocol+ "\r\n"+ "Sec-WebSocket-Version: 7\r\n"+ "\r\n");
-  _output.flush();
-  String responseLine=_input.readLine();
-  if (!responseLine.startsWith("HTTP/1.1 101 Switching Protocols"))   throw new IOException(responseLine);
-  String line;
-  boolean accepted=false;
-  String protocol="";
-  while ((line=_input.readLine()) != null) {
-    if (line.length() == 0)     break;
-    if (line.startsWith("Sec-WebSocket-Accept:")) {
-      String accept=line.substring(21).trim();
-      accepted=accept.equals(WebSocketConnectionD7_9.hashKey(new String(B64Code.encode(key))));
-    }
- else     if (line.startsWith("Sec-WebSocket-Protocol:")) {
-      protocol=line.substring(24).trim();
-    }
-  }
-  if (!accepted)   throw new IOException("Bad Sec-WebSocket-Accept");
-  System.out.println("handshake OK for protocol '" + protocol + "'");
-  new Thread(){
-    public void run(){
-      while (_endp.isOpen()) {
-        _parser.parseNext();
-      }
-    }
-  }
-.start();
+  __client.open(new URI("ws://" + _host + ":"+ _port+ "/"),this,_protocol,_timeout);
+  _handshook.await(10,TimeUnit.SECONDS);
 }

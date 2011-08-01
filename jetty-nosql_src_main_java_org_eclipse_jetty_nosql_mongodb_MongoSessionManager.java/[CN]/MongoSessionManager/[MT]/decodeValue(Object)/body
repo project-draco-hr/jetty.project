@@ -1,0 +1,20 @@
+{
+  if (value == null || value instanceof Number || value instanceof String || value instanceof Boolean || value instanceof Date) {
+    return value;
+  }
+ else   if (value instanceof byte[]) {
+    ObjectInputStream in=new ObjectInputStream(new ByteArrayInputStream((byte[])value));
+    return in.readObject();
+  }
+ else   if (value instanceof DBObject) {
+    Map<String,Object> map=new HashMap<String,Object>();
+    for (    String name : ((DBObject)value).keySet()) {
+      String attr=decodeName(name);
+      map.put(attr,decodeValue(((DBObject)value).get(name)));
+    }
+    return map;
+  }
+ else {
+    throw new IllegalStateException(value.getClass().toString());
+  }
+}

@@ -1,0 +1,28 @@
+{
+  if (!isStarted())   throw new IllegalStateException("!started");
+  String scheme=uri.getScheme();
+  if (!("ws".equalsIgnoreCase(scheme) || "wss".equalsIgnoreCase(scheme)))   throw new IllegalArgumentException("Bad WebSocket scheme '" + scheme + "'");
+  if ("wss".equalsIgnoreCase(scheme))   throw new IOException("wss not supported");
+  SocketChannel channel=SocketChannel.open();
+  channel.socket().setTcpNoDelay(true);
+  channel.socket().setSoTimeout(getMaxIdleTime());
+  InetSocketAddress address=new InetSocketAddress(uri.getHost(),uri.getPort());
+  WebSocketHolder holder=new WebSocketHolder(websocket,uri,protocol,maxIdleTime,cookies,extensions,channel);
+  _connectQ.schedule(holder);
+  boolean thrown=true;
+  try {
+    if (isBlockingConnect()) {
+      channel.socket().connect(address,0);
+      channel.configureBlocking(false);
+    }
+ else {
+      channel.configureBlocking(false);
+      channel.connect(address);
+    }
+    _selector.register(channel,holder);
+    thrown=false;
+  }
+  finally {
+    if (thrown)     holder.cancel();
+  }
+}
