@@ -1,0 +1,35 @@
+{
+  WebSocketClient client=new WebSocketClient();
+  client.setConnectTimeout(1000);
+  client.start();
+  client.setBlockingConnect(false);
+  boolean bad=false;
+  final AtomicBoolean open=new AtomicBoolean();
+  final AtomicReference<String> error=new AtomicReference<String>(null);
+  final AtomicInteger close=new AtomicInteger();
+  final CountDownLatch latch=new CountDownLatch(1);
+  try {
+    client.open(new URI("ws://127.0.0.1:1"),new WebSocket(){
+      public void onOpen(      Connection connection){
+        open.set(true);
+        latch.countDown();
+      }
+      public void onError(      String message,      Throwable ex){
+        error.set(message);
+        latch.countDown();
+      }
+      public void onClose(      int closeCode,      String message){
+        close.set(closeCode);
+        latch.countDown();
+      }
+    }
+);
+  }
+ catch (  IOException e) {
+    bad=true;
+  }
+  Assert.assertFalse(bad);
+  Assert.assertFalse(open.get());
+  Assert.assertTrue(latch.await(1,TimeUnit.SECONDS));
+  Assert.assertNotNull(error.get());
+}

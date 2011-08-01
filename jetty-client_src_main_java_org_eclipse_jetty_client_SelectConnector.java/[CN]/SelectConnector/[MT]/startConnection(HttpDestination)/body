@@ -3,18 +3,18 @@
     SocketChannel channel=SocketChannel.open();
     Address address=destination.isProxied() ? destination.getProxy() : destination.getAddress();
     channel.socket().setTcpNoDelay(true);
-    if (!_httpClient.isConnectBlocking()) {
+    if (_httpClient.isConnectBlocking()) {
+      channel.socket().connect(address.toSocketAddress(),_httpClient.getConnectTimeout());
+      channel.configureBlocking(false);
+      _selectorManager.register(channel,destination);
+    }
+ else {
       channel.configureBlocking(false);
       channel.connect(address.toSocketAddress());
       _selectorManager.register(channel,destination);
       ConnectTimeout connectTimeout=new ConnectTimeout(channel,destination);
       _httpClient.schedule(connectTimeout,_httpClient.getConnectTimeout());
       _connectingChannels.put(channel,connectTimeout);
-    }
- else {
-      channel.socket().connect(address.toSocketAddress(),_httpClient.getConnectTimeout());
-      channel.configureBlocking(false);
-      _selectorManager.register(channel,destination);
     }
   }
  catch (  IOException ex) {
