@@ -13,7 +13,9 @@
         if (currExtInfo != null) {
           long elapsedCpuTime=currCpuTime - currExtInfo.getLastCpuTime();
           long elapsedNanoTime=currNanoTime - currExtInfo.getLastSampleTime();
-          if (((elapsedCpuTime * 100.0) / elapsedNanoTime) > _busyThreshold) {
+          float cpuUtilization=Math.min((elapsedCpuTime * 100.0f) / elapsedNanoTime,100.0f);
+          currExtInfo.setCpuUtilization(cpuUtilization);
+          if (cpuUtilization > _busyThreshold) {
             ThreadInfo currInfo=getThreadInfo(currId,Integer.MAX_VALUE);
             if (currInfo != null) {
               StackTraceElement[] lastStackTrace=currExtInfo.getStackTrace();
@@ -25,7 +27,11 @@
           }
         }
  else {
-          currExtInfo=new ExtThreadInfo(currId);
+          currExtInfo=new ExtThreadInfo(getThreadInfo(currId,0));
+          currExtInfo.setFirstCpuTime(currCpuTime);
+          currExtInfo.setFirstSampleTime(currNanoTime);
+          currExtInfo.setDumpCpuTime(currCpuTime);
+          currExtInfo.setDumpSampleTime(currNanoTime);
           _extInfo.put(Long.valueOf(currId),currExtInfo);
         }
         currExtInfo.setLastCpuTime(currCpuTime);
