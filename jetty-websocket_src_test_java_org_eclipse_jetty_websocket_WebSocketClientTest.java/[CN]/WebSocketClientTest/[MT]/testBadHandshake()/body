@@ -3,42 +3,33 @@
   client.setBlockingConnect(true);
   client.setConnectTimeout(300);
   client.start();
-  ServerSocket server=new ServerSocket();
-  server.bind(null);
-  int port=server.getLocalPort();
-  boolean bad=false;
   final AtomicBoolean open=new AtomicBoolean();
   final AtomicReference<String> error=new AtomicReference<String>(null);
   final AtomicInteger close=new AtomicInteger();
   final CountDownLatch latch=new CountDownLatch(1);
-  try {
-    client.open(new URI("ws://127.0.0.1:" + port),new WebSocket(){
-      public void onOpen(      Connection connection){
-        open.set(true);
-        latch.countDown();
-      }
-      public void onError(      String message,      Throwable ex){
-        error.set(message);
-        latch.countDown();
-      }
-      public void onClose(      int closeCode,      String message){
-        close.set(closeCode);
-        latch.countDown();
-      }
+  client.open(new URI("ws://127.0.0.1:" + serverPort),new WebSocket(){
+    public void onOpen(    Connection connection){
+      open.set(true);
+      latch.countDown();
     }
+    public void onError(    String message,    Throwable ex){
+      error.set(message);
+      latch.countDown();
+    }
+    public void onClose(    int closeCode,    String message){
+      close.set(closeCode);
+      latch.countDown();
+    }
+  }
 );
-  }
- catch (  IOException e) {
-    bad=true;
-  }
   Socket connection=server.accept();
   BufferedReader in=new BufferedReader(new InputStreamReader(connection.getInputStream()));
   for (String line=in.readLine(); line != null; line=in.readLine()) {
+    System.err.println(line);
     if (line.length() == 0)     break;
   }
-  connection.getOutputStream().write("HTTP/1.1 404 NOT FOUND\r\n\r\n".getBytes());
-  Assert.assertFalse(bad);
+  write(connection,"HTTP/1.1 404 NOT FOUND\r\n\r\n");
   Assert.assertFalse(open.get());
-  Assert.assertTrue(latch.await(1,TimeUnit.SECONDS));
-  Assert.assertNotNull(error.get());
+  Assert.assertTrue(latch.await(15,TimeUnit.SECONDS));
+  Assert.assertThat("error.get()",error.get(),notNullValue());
 }
