@@ -10,16 +10,17 @@
   client.open(new URI("ws://127.0.0.1:" + serverPort),new WebSocket(){
     public void onOpen(    Connection connection){
       System.out.printf("onOpen(%s)%n",connection);
-      open.set(true);
-      latch.countDown();
+      System.out.flush();
     }
     public void onError(    String message,    Throwable ex){
       System.out.printf("onError(%s, %s)%n",message,ex);
+      System.out.flush();
       error.set(message);
       latch.countDown();
     }
     public void onClose(    int closeCode,    String message){
       System.out.printf("onClose(%d, %s)%n",closeCode,message);
+      System.out.flush();
       close.set(closeCode);
       latch.countDown();
     }
@@ -28,6 +29,6 @@
   Socket connection=server.accept();
   respondToClient(connection,"HTTP/1.1 404 NOT FOUND\r\n\r\n");
   Assert.assertFalse(open.get());
-  Assert.assertTrue(latch.await(2,TimeUnit.SECONDS));
+  Assert.assertTrue(latch.await(10,TimeUnit.SECONDS));
   Assert.assertThat("error.get()",error.get(),containsString("404 NOT FOUND"));
 }
