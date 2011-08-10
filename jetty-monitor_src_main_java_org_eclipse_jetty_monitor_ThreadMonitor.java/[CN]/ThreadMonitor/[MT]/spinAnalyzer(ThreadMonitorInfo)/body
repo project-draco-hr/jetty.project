@@ -1,0 +1,18 @@
+{
+  info.setSpinning(true);
+  if (_detectPeriod > 0 && _detectInterval > 0) {
+    long threadId=info.getThreadId();
+    long sampleTime=info.getSampleTime() / 1000000;
+    long endTime=System.currentTimeMillis() + _detectPeriod;
+    do {
+      if (sampleTime + _detectInterval < System.currentTimeMillis()) {
+        ThreadInfo threadInfo=getThreadInfo(threadId,Integer.MAX_VALUE);
+        if (threadInfo != null) {
+          info.addStackTrace(threadInfo.getStackTrace());
+          sampleTime=System.currentTimeMillis();
+        }
+      }
+    }
+ while (System.currentTimeMillis() < endTime);
+  }
+}

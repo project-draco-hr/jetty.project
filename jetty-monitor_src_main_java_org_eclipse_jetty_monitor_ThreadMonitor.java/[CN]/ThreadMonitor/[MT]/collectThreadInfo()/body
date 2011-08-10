@@ -1,0 +1,36 @@
+{
+  try {
+    long[] allThreadId=getAllThreadIds();
+    for (int idx=0; idx < allThreadId.length; idx++) {
+      long currId=allThreadId[idx];
+      if (currId == _runner.getId()) {
+        continue;
+      }
+      ThreadMonitorInfo currMonitorInfo=_monitorInfo.get(Long.valueOf(currId));
+      if (currMonitorInfo == null) {
+        currMonitorInfo=new ThreadMonitorInfo(getThreadInfo(currId,0));
+        currMonitorInfo.setCpuTime(getThreadCpuTime(currId));
+        currMonitorInfo.setSampleTime(System.nanoTime());
+        _monitorInfo.put(Long.valueOf(currId),currMonitorInfo);
+      }
+ else {
+        currMonitorInfo.setCpuTime(getThreadCpuTime(currId));
+        currMonitorInfo.setSampleTime(System.nanoTime());
+        if (currMonitorInfo.getCpuUtilization() < _busyThreshold) {
+          currMonitorInfo.setInfo(getThreadInfo(currId,0));
+        }
+ else {
+          ThreadInfo threadInfo=getThreadInfo(currId,Integer.MAX_VALUE);
+          StackTraceElement[] lastStackTrace=currMonitorInfo.getStackTrace();
+          currMonitorInfo.setInfo(threadInfo);
+          if (lastStackTrace != null && matchStackTraces(lastStackTrace,threadInfo.getStackTrace())) {
+            spinAnalyzer(currMonitorInfo);
+          }
+        }
+      }
+    }
+  }
+ catch (  Exception ex) {
+    Log.debug(ex);
+  }
+}
