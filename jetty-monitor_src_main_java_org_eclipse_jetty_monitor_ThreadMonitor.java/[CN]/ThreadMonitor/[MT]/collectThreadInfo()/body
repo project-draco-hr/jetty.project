@@ -1,30 +1,29 @@
 {
   try {
-    long[] allThreadId=getAllThreadIds();
-    for (int idx=0; idx < allThreadId.length; idx++) {
-      long currId=allThreadId[idx];
-      if (currId == _runner.getId()) {
+    Map<Thread,StackTraceElement[]> all=Thread.getAllStackTraces();
+    for (    Map.Entry<Thread,StackTraceElement[]> entry : all.entrySet()) {
+      Thread thread=entry.getKey();
+      long threadId=thread.getId();
+      if (threadId == _runner.getId()) {
         continue;
       }
-      ThreadMonitorInfo currMonitorInfo=_monitorInfo.get(Long.valueOf(currId));
+      ThreadMonitorInfo currMonitorInfo=_monitorInfo.get(Long.valueOf(threadId));
       if (currMonitorInfo == null) {
-        currMonitorInfo=new ThreadMonitorInfo(getThreadInfo(currId,0));
-        currMonitorInfo.setCpuTime(getThreadCpuTime(currId));
+        currMonitorInfo=new ThreadMonitorInfo(thread);
+        currMonitorInfo.setStackTrace(entry.getValue());
+        currMonitorInfo.setCpuTime(getThreadCpuTime(threadId));
         currMonitorInfo.setSampleTime(System.nanoTime());
-        _monitorInfo.put(Long.valueOf(currId),currMonitorInfo);
+        _monitorInfo.put(Long.valueOf(threadId),currMonitorInfo);
       }
  else {
-        currMonitorInfo.setCpuTime(getThreadCpuTime(currId));
+        currMonitorInfo.setStackTrace(entry.getValue());
+        currMonitorInfo.setCpuTime(getThreadCpuTime(threadId));
         currMonitorInfo.setSampleTime(System.nanoTime());
-        if (currMonitorInfo.getCpuUtilization() < _busyThreshold) {
-          currMonitorInfo.setInfo(getThreadInfo(currId,0));
-        }
- else {
-          ThreadInfo threadInfo=getThreadInfo(currId,Integer.MAX_VALUE);
+        currMonitorInfo.setSpinning(false);
+        if (currMonitorInfo.getCpuUtilization() > _busyThreshold) {
           StackTraceElement[] lastStackTrace=currMonitorInfo.getStackTrace();
-          currMonitorInfo.setInfo(threadInfo);
-          if (lastStackTrace != null && matchStackTraces(lastStackTrace,threadInfo.getStackTrace())) {
-            spinAnalyzer(currMonitorInfo);
+          if (lastStackTrace != null && matchStackTraces(lastStackTrace,entry.getValue())) {
+            currMonitorInfo.setSpinning(true);
           }
         }
       }

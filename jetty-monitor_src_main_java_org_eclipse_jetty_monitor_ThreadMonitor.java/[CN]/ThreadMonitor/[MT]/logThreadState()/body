@@ -1,31 +1,11 @@
 {
   if (_monitorInfo.size() > 0) {
-    String format="Thread %1$s[id:%2$d,%3$s] is SPINNING";
     long[] all=getAllThreadIds();
     for (int idx=0; idx < all.length; idx++) {
       ThreadMonitorInfo info=_monitorInfo.get(all[idx]);
       if (info != null && info.isSpinning()) {
-        String message=String.format(format,info.getThreadName(),info.getThreadId(),info.getThreadState());
+        String message=String.format("%1$s[id:%2$d,%3$s] is SPINNING",info.getThreadName(),info.getThreadId(),info.getThreadState());
         _logger.warn(new ThreadMonitorException(message,info.getStackTrace()));
-        List<StackTraceElement[]> stackTraces=info.getStackTraces();
-        int size=stackTraces.size();
-        for (int sti=1; sti < size; sti++) {
-          message=String.format("Stack Trace %d",sti);
-          _logger.warn(new ThreadMonitorException(message,stackTraces.get(sti)));
-        }
-      }
-    }
-    long[] locked=findDeadlockedThreads();
-    if (locked != null && locked.length > 0) {
-      for (int idx=0; idx < locked.length; idx++) {
-        ThreadMonitorInfo info=_monitorInfo.get(locked[idx]);
-        if (info != null && info.getLockOwnerId() >= 0) {
-          StringBuilder builder=new StringBuilder();
-          builder.append(String.format("Thread %s[id:%d,%s] is DEADLOCKED",info.getThreadName(),info.getThreadId(),info.getThreadState()));
-          builder.append(String.format(" on %s owned by %s[id:%d]",info.getLockName(),info.getLockOwnerName(),info.getLockOwnerId()));
-          StackTraceElement[] stackTrace=getThreadInfo(locked[idx],Integer.MAX_VALUE).getStackTrace();
-          _logger.warn(new ThreadMonitorException(builder.toString(),stackTrace));
-        }
       }
     }
   }
