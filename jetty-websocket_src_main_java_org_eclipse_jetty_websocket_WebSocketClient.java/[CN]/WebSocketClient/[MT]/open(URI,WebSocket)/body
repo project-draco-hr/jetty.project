@@ -1,3 +1,17 @@
 {
-  open(uri,websocket,null,(int)_selector.getMaxIdleTime(),null,null);
+  if (!isStarted())   throw new IllegalStateException("!started");
+  String scheme=uri.getScheme();
+  if (!("ws".equalsIgnoreCase(scheme) || "wss".equalsIgnoreCase(scheme)))   throw new IllegalArgumentException("Bad WebSocket scheme '" + scheme + "'");
+  if ("wss".equalsIgnoreCase(scheme))   throw new IOException("wss not supported");
+  SocketChannel channel=SocketChannel.open();
+  channel.socket().setTcpNoDelay(true);
+  int maxIdleTime=getMaxIdleTime();
+  if (maxIdleTime < 0)   maxIdleTime=(int)_selector.getMaxIdleTime();
+  if (maxIdleTime > 0)   channel.socket().setSoTimeout(maxIdleTime);
+  InetSocketAddress address=new InetSocketAddress(uri.getHost(),uri.getPort());
+  final WebSocketHolder holder=new WebSocketHolder(websocket,uri,_protocol,maxIdleTime,_cookies,_extensions,channel);
+  channel.configureBlocking(false);
+  channel.connect(address);
+  _selector.register(channel,holder);
+  return holder;
 }

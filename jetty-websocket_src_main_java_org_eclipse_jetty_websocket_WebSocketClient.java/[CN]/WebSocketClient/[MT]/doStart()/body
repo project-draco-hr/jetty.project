@@ -1,15 +1,33 @@
 {
+  if (_parent != null && !_parent.isRunning())   throw new IllegalStateException("parent:" + getState());
   _buffers=new WebSocketBuffers(_bufferSize);
   super.doStart();
-  for (int i=0; i < _selector.getSelectSets(); i++) {
-    final int id=i;
+  if (_parent == null) {
+    for (int i=0; i < _selector.getSelectSets(); i++) {
+      final int id=i;
+      _threadPool.dispatch(new Runnable(){
+        public void run(){
+          while (isRunning()) {
+            try {
+              _selector.doSelect(id);
+            }
+ catch (            IOException e) {
+              __log.warn(e);
+            }
+          }
+        }
+      }
+);
+    }
+    _connectQ.setDuration(0);
     _threadPool.dispatch(new Runnable(){
       public void run(){
         while (isRunning()) {
           try {
-            _selector.doSelect(id);
+            Thread.sleep(200);
+            _connectQ.tick(System.currentTimeMillis());
           }
- catch (          IOException e) {
+ catch (          Exception e) {
             __log.warn(e);
           }
         }
@@ -17,19 +35,4 @@
     }
 );
   }
-  _connectQ.setDuration(_connectTimeout);
-  _threadPool.dispatch(new Runnable(){
-    public void run(){
-      while (isRunning()) {
-        try {
-          Thread.sleep(200);
-          _connectQ.tick(System.currentTimeMillis());
-        }
- catch (        Exception e) {
-          __log.warn(e);
-        }
-      }
-    }
-  }
-);
 }
