@@ -1,0 +1,26 @@
+{
+  WebSocketClient client=new WebSocketClient();
+  client.start();
+  final AtomicBoolean open=new AtomicBoolean();
+  final AtomicInteger close=new AtomicInteger();
+  Future<WebSocket.Connection> future=client.open(new URI("ws://127.0.0.1:" + _serverPort),new WebSocket(){
+    public void onOpen(    Connection connection){
+      open.set(true);
+    }
+    public void onClose(    int closeCode,    String message){
+      close.set(closeCode);
+    }
+  }
+);
+  Throwable error=null;
+  try {
+    future.get(250,TimeUnit.MILLISECONDS);
+    Assert.fail();
+  }
+ catch (  TimeoutException e) {
+    error=e;
+  }
+  Assert.assertFalse(open.get());
+  Assert.assertEquals(WebSocketConnectionD10.CLOSE_NOCLOSE,close.get());
+  Assert.assertTrue(error instanceof TimeoutException);
+}
