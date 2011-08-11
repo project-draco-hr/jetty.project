@@ -1,16 +1,18 @@
 {
-  ThreadMonitor monitor=new ThreadMonitor(1000,50,2){
-    @Override protected void dump(    List<ThreadInfo> threads){
-      count.incrementAndGet();
-      super.dump(threads);
+  final AtomicInteger countCpuLogs=new AtomicInteger(0);
+  final AtomicInteger countStateLogs=new AtomicInteger(0);
+  ThreadMonitor monitor=new ThreadMonitor(1000,50,1){
+    @Override protected void logCpuUsage(){
+      countCpuLogs.incrementAndGet();
+      super.logCpuUsage();
     }
-    @Override protected void dumpAll(){
-      countDump.incrementAndGet();
-      super.dumpAll();
+    @Override protected void logThreadState(){
+      countStateLogs.incrementAndGet();
+      super.logThreadState();
     }
   }
 ;
-  monitor.enableDumpAll(2000,1);
+  monitor.logCpuUsage(2000,1);
   monitor.start();
   Spinner spinner=new Spinner();
   Thread runner=new Thread(spinner);
@@ -18,6 +20,6 @@
   Thread.sleep(DURATION);
   spinner.setDone();
   monitor.stop();
-  assertTrue(count.get() >= 2);
-  assertTrue(countDump.get() >= 1);
+  assertTrue(countCpuLogs.get() >= 1);
+  assertTrue(countStateLogs.get() >= 1);
 }

@@ -1,0 +1,25 @@
+{
+  if (_monitorInfo.size() > 0) {
+    long[] running=getAllThreadIds();
+    List<ThreadMonitorInfo> all=new ArrayList<ThreadMonitorInfo>();
+    for (int idx=0; idx < running.length; idx++) {
+      ThreadMonitorInfo info=_monitorInfo.get(running[idx]);
+      if (info != null) {
+        all.add(info);
+      }
+    }
+    Collections.sort(all,new Comparator<ThreadMonitorInfo>(){
+      public int compare(      ThreadMonitorInfo info1,      ThreadMonitorInfo info2){
+        return (int)Math.signum(info2.getCpuUtilization() - info1.getCpuUtilization());
+      }
+    }
+);
+    String format="Thread %1$s[id:%2$d,%3$s] - %4$.2f%%";
+    for (    ThreadMonitorInfo info : all) {
+      if (info.getCpuUtilization() > _logThreshold) {
+        String message=String.format(format,info.getThreadName(),info.getThreadId(),info.getThreadState(),info.getCpuUtilization());
+        _logger.info(message);
+      }
+    }
+  }
+}

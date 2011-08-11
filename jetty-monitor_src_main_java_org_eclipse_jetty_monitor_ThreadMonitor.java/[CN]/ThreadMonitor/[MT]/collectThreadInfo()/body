@@ -1,0 +1,35 @@
+{
+  try {
+    Map<Thread,StackTraceElement[]> all=Thread.getAllStackTraces();
+    for (    Map.Entry<Thread,StackTraceElement[]> entry : all.entrySet()) {
+      Thread thread=entry.getKey();
+      long threadId=thread.getId();
+      if (threadId == _runner.getId()) {
+        continue;
+      }
+      ThreadMonitorInfo currMonitorInfo=_monitorInfo.get(Long.valueOf(threadId));
+      if (currMonitorInfo == null) {
+        currMonitorInfo=new ThreadMonitorInfo(thread);
+        currMonitorInfo.setStackTrace(entry.getValue());
+        currMonitorInfo.setCpuTime(getThreadCpuTime(threadId));
+        currMonitorInfo.setSampleTime(System.nanoTime());
+        _monitorInfo.put(Long.valueOf(threadId),currMonitorInfo);
+      }
+ else {
+        currMonitorInfo.setStackTrace(entry.getValue());
+        currMonitorInfo.setCpuTime(getThreadCpuTime(threadId));
+        currMonitorInfo.setSampleTime(System.nanoTime());
+        currMonitorInfo.setSpinning(false);
+        if (currMonitorInfo.getCpuUtilization() > _busyThreshold) {
+          StackTraceElement[] lastStackTrace=currMonitorInfo.getStackTrace();
+          if (lastStackTrace != null && matchStackTraces(lastStackTrace,entry.getValue())) {
+            currMonitorInfo.setSpinning(true);
+          }
+        }
+      }
+    }
+  }
+ catch (  Exception ex) {
+    Log.debug(ex);
+  }
+}
