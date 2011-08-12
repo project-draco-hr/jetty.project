@@ -15,11 +15,16 @@
     }
 );
     String format="Thread '%2$s'[%3$s,id:%1$d,cpu:%4$.2f%%]%5$s";
+    boolean spinning=false;
     for (    ThreadMonitorInfo info : all) {
       if (logAll && info.getCpuUtilization() > _logThreshold || info.isSpinning() && info.getTraceCount() == 0) {
         String message=String.format(format,info.getThreadId(),info.getThreadName(),info.getThreadState(),info.getCpuUtilization(),info.isSpinning() ? " SPINNING" : "");
         _logger.info(message);
+        spinning=true;
       }
+    }
+    if (spinning && _dumpable != null) {
+      System.err.println(_dumpable.dump());
     }
     for (    ThreadMonitorInfo info : all) {
       if (info.isSpinning() && info.getTraceCount() >= 0) {
