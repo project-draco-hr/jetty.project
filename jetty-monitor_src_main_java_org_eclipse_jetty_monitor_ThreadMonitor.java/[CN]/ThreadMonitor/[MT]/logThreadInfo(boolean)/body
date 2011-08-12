@@ -1,0 +1,31 @@
+{
+  if (_monitorInfo.size() > 0) {
+    long[] running=getAllThreadIds();
+    List<ThreadMonitorInfo> all=new ArrayList<ThreadMonitorInfo>();
+    for (int idx=0; idx < running.length; idx++) {
+      ThreadMonitorInfo info=_monitorInfo.get(running[idx]);
+      if (info != null) {
+        all.add(info);
+      }
+    }
+    Collections.sort(all,new Comparator<ThreadMonitorInfo>(){
+      public int compare(      ThreadMonitorInfo info1,      ThreadMonitorInfo info2){
+        return (int)Math.signum(info2.getCpuUtilization() - info1.getCpuUtilization());
+      }
+    }
+);
+    String format="Thread '%2$s'[%3$s,id:%1$d,cpu:%4$.2f%%]%5$s";
+    for (    ThreadMonitorInfo info : all) {
+      if (logAll && info.getCpuUtilization() > _logThreshold || info.isSpinning() && info.getTraceCount() == 0) {
+        String message=String.format(format,info.getThreadId(),info.getThreadName(),info.getThreadState(),info.getCpuUtilization(),info.isSpinning() ? " SPINNING" : "");
+        _logger.info(message);
+      }
+    }
+    for (    ThreadMonitorInfo info : all) {
+      if (info.isSpinning() && info.getTraceCount() >= 0) {
+        String message=String.format(format,info.getThreadId(),info.getThreadName(),info.getThreadState(),info.getCpuUtilization()," STACK TRACE");
+        _logger.warn(new ThreadMonitorException(message,info.getStackTrace()));
+      }
+    }
+  }
+}

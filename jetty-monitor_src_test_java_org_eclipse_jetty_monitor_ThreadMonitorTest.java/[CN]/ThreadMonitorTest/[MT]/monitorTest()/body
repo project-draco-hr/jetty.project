@@ -1,25 +1,30 @@
 {
-  final AtomicInteger countCpuLogs=new AtomicInteger(0);
-  final AtomicInteger countStateLogs=new AtomicInteger(0);
-  ThreadMonitor monitor=new ThreadMonitor(1000,50,1){
-    @Override protected void logCpuUsage(){
-      countCpuLogs.incrementAndGet();
-      super.logCpuUsage();
-    }
-    @Override protected void logThreadState(){
-      countStateLogs.incrementAndGet();
-      super.logThreadState();
+  final AtomicInteger countLogs=new AtomicInteger(0);
+  final AtomicInteger countSpin=new AtomicInteger(0);
+  ThreadMonitor monitor=new ThreadMonitor(1000,50,1,1){
+    @Override protected void logThreadInfo(    boolean logAll){
+      if (logAll)       countLogs.incrementAndGet();
+ else       countSpin.incrementAndGet();
+      super.logThreadInfo(logAll);
     }
   }
 ;
-  monitor.logCpuUsage(2000,1);
+  monitor.logCpuUsage(2000,0);
   monitor.start();
+  Random rnd=new Random();
+  for (long cnt=0; cnt < 100; cnt++) {
+    long value=rnd.nextLong() % 50 + 50;
+    Sleeper sleeper=new Sleeper(value);
+    Thread runner=new Thread(sleeper);
+    runner.setDaemon(true);
+    runner.start();
+  }
   Spinner spinner=new Spinner();
   Thread runner=new Thread(spinner);
   runner.start();
   Thread.sleep(DURATION);
   spinner.setDone();
   monitor.stop();
-  assertTrue(countCpuLogs.get() >= 1);
-  assertTrue(countStateLogs.get() >= 1);
+  assertTrue(countLogs.get() >= 1);
+  assertTrue(countSpin.get() >= 2);
 }
