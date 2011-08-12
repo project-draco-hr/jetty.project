@@ -1,44 +1,29 @@
 {
   WebSocketClient client=new WebSocketClient();
-  client.setBlockingConnect(true);
-  client.setConnectTimeout(10000);
   client.start();
-  ServerSocket server=new ServerSocket();
-  server.bind(null);
-  int port=server.getLocalPort();
-  boolean bad=false;
   final AtomicBoolean open=new AtomicBoolean();
-  final AtomicReference<String> error=new AtomicReference<String>(null);
   final AtomicInteger close=new AtomicInteger();
-  final CountDownLatch latch=new CountDownLatch(1);
-  try {
-    client.open(new URI("ws://127.0.0.1:" + port),new WebSocket(){
-      public void onOpen(      Connection connection){
-        open.set(true);
-        latch.countDown();
-      }
-      public void onError(      String message,      Throwable ex){
-        error.set(message);
-        latch.countDown();
-      }
-      public void onClose(      int closeCode,      String message){
-        close.set(closeCode);
-        latch.countDown();
-      }
+  Future<WebSocket.Connection> future=client.open(new URI("ws://127.0.0.1:" + _serverPort + "/"),new WebSocket(){
+    public void onOpen(    Connection connection){
+      open.set(true);
     }
+    public void onClose(    int closeCode,    String message){
+      close.set(closeCode);
+    }
+  }
 );
+  Socket connection=_server.accept();
+  respondToClient(connection,"HTTP/1.1 101 Upgrade\r\n" + "Sec-WebSocket-Accept: rubbish\r\n" + "\r\n");
+  Throwable error=null;
+  try {
+    future.get(250,TimeUnit.MILLISECONDS);
+    Assert.fail();
   }
- catch (  IOException e) {
-    bad=true;
+ catch (  ExecutionException e) {
+    error=e.getCause();
   }
-  Socket connection=server.accept();
-  BufferedReader in=new BufferedReader(new InputStreamReader(connection.getInputStream()));
-  for (String line=in.readLine(); line != null; line=in.readLine()) {
-    if (line.length() == 0)     break;
-  }
-  connection.getOutputStream().write(("HTTP/1.1 101 Upgrade\r\n" + "Sec-WebSocket-Accept: rubbish\r\n" + "\r\n").getBytes());
-  Assert.assertFalse(bad);
   Assert.assertFalse(open.get());
-  Assert.assertTrue(latch.await(1,TimeUnit.SECONDS));
-  Assert.assertNotNull(error.get());
+  Assert.assertEquals(WebSocketConnectionD10.CLOSE_PROTOCOL,close.get());
+  Assert.assertTrue(error instanceof IOException);
+  Assert.assertTrue(error.getMessage().indexOf("Bad Sec-WebSocket-Accept") >= 0);
 }

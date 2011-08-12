@@ -6,7 +6,23 @@
     int available=_buffer.length();
     while (available < (_state == State.SKIP ? 1 : _bytesNeeded)) {
       _buffer.compact();
-      if (_buffer.space() == 0)       throw new IllegalStateException("FULL: " + _state + " "+ _bytesNeeded+ ">"+ _buffer.capacity());
+      if (_buffer.space() == 0) {
+        if (_fakeFragments && _state == State.DATA) {
+          Buffer data=_buffer.get(4 * (available / 4));
+          _buffer.compact();
+          if (_masked) {
+            if (data.array() == null)             data=_buffer.asMutableBuffer();
+            byte[] array=data.array();
+            final int end=data.putIndex();
+            for (int i=data.getIndex(); i < end; i++)             array[i]^=_mask[_m++ % 4];
+          }
+          events++;
+          _bytesNeeded-=data.length();
+          _handler.onFrame((byte)(_flags & (0xff ^ WebSocketConnectionD10.FLAG_FIN)),_opcode,data);
+          _opcode=WebSocketConnectionD10.OP_CONTINUATION;
+        }
+        if (_buffer.space() == 0)         throw new IllegalStateException("FULL: " + _state + " "+ _bytesNeeded+ ">"+ _buffer.capacity());
+      }
       try {
         int filled=_endp.isOpen() ? _endp.fill(_buffer) : -1;
         if (filled <= 0)         return (total_filled + events) > 0 ? (total_filled + events) : filled;
@@ -65,7 +81,7 @@ b=_buffer.get();
 available--;
 _length=_length * 0x100 + (0xff & b);
 if (--_bytesNeeded == 0) {
-if (_length > _buffer.capacity()) {
+if (_length > _buffer.capacity() && !_fakeFragments) {
 events++;
 _handler.close(WebSocketConnectionD10.CLOSE_LARGE,"frame size " + _length + ">"+ _buffer.capacity());
 _skip=true;

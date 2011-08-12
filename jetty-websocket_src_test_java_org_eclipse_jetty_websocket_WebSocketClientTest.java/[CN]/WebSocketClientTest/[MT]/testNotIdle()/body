@@ -1,61 +1,35 @@
 {
   WebSocketClient client=new WebSocketClient();
-  client.setBlockingConnect(true);
-  client.setConnectTimeout(10000);
   client.setMaxIdleTime(500);
   client.start();
-  ServerSocket server=new ServerSocket();
-  server.bind(null);
-  int port=server.getLocalPort();
-  boolean bad=false;
   final AtomicBoolean open=new AtomicBoolean();
-  final Exchanger<Integer> close=new Exchanger<Integer>();
-  final CountDownLatch latch=new CountDownLatch(1);
-  final AtomicReference<WebSocket.Connection> connection=new AtomicReference<WebSocket.Connection>();
+  final AtomicInteger close=new AtomicInteger();
+  final CountDownLatch _latch=new CountDownLatch(1);
   final BlockingQueue<String> queue=new BlockingArrayQueue<String>();
-  try {
-    client.open(new URI("ws://127.0.0.1:" + port),new WebSocket.OnTextMessage(){
-      public void onOpen(      Connection c){
-        open.set(true);
-        connection.set(c);
-        latch.countDown();
-      }
-      public void onError(      String message,      Throwable ex){
-        latch.countDown();
-      }
-      public void onClose(      int closeCode,      String message){
-        try {
-          close.exchange(closeCode);
-        }
- catch (        InterruptedException ex) {
-        }
-        latch.countDown();
-      }
-      public void onMessage(      String data){
-        queue.add(data);
-      }
+  Future<WebSocket.Connection> future=client.open(new URI("ws://127.0.0.1:" + _serverPort + "/"),new WebSocket.OnTextMessage(){
+    public void onOpen(    Connection connection){
+      open.set(true);
     }
+    public void onClose(    int closeCode,    String message){
+      close.set(closeCode);
+      _latch.countDown();
+    }
+    public void onMessage(    String data){
+      queue.add(data);
+    }
+  }
 );
-  }
- catch (  IOException e) {
-    bad=true;
-  }
-  Assert.assertFalse(bad);
-  String key="not sent";
-  Socket socket=server.accept();
-  BufferedReader in=new BufferedReader(new InputStreamReader(socket.getInputStream()));
-  for (String line=in.readLine(); line != null; line=in.readLine()) {
-    if (line.length() == 0)     break;
-    if (line.startsWith("Sec-WebSocket-Key:"))     key=line.substring(18).trim();
-  }
-  socket.getOutputStream().write(("HTTP/1.1 101 Upgrade\r\n" + "Sec-WebSocket-Accept: " + WebSocketConnectionD10.hashKey(key) + "\r\n"+ "\r\n").getBytes());
-  Assert.assertTrue(latch.await(10,TimeUnit.SECONDS));
+  Socket socket=_server.accept();
+  accept(socket);
+  WebSocket.Connection connection=future.get(250,TimeUnit.MILLISECONDS);
+  Assert.assertNotNull(connection);
   Assert.assertTrue(open.get());
+  Assert.assertEquals(0,close.get());
   byte[] recv=new byte[1024];
   int len=-1;
   for (int i=0; i < 10; i++) {
     Thread.sleep(250);
-    connection.get().sendMessage("Hello");
+    connection.sendMessage("Hello");
     len=socket.getInputStream().read(recv,0,recv.length);
     Assert.assertTrue(len > 0);
   }
@@ -66,7 +40,10 @@
     socket.getOutputStream().flush();
     Assert.assertEquals("Hi",queue.poll(1,TimeUnit.SECONDS));
   }
+  long start=System.currentTimeMillis();
   socket.getOutputStream().write(new byte[]{(byte)0x88,(byte)0x02,(byte)4,(byte)87},0,4);
   socket.getOutputStream().flush();
-  Assert.assertEquals(new Integer(1111),close.exchange(null,1,TimeUnit.SECONDS));
+  _latch.await(10,TimeUnit.SECONDS);
+  Assert.assertTrue(System.currentTimeMillis() - start < 5000);
+  Assert.assertEquals(1111,close.get());
 }

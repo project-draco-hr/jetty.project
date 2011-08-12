@@ -1,0 +1,50 @@
+{
+  boolean repeat=false;
+  try {
+    Map<Thread,StackTraceElement[]> all=Thread.getAllStackTraces();
+    for (    Map.Entry<Thread,StackTraceElement[]> entry : all.entrySet()) {
+      Thread thread=entry.getKey();
+      long threadId=thread.getId();
+      if (threadId == _runner.getId()) {
+        continue;
+      }
+      ThreadMonitorInfo currMonitorInfo=_monitorInfo.get(Long.valueOf(threadId));
+      if (currMonitorInfo == null) {
+        currMonitorInfo=new ThreadMonitorInfo(thread);
+        currMonitorInfo.setStackTrace(entry.getValue());
+        currMonitorInfo.setCpuTime(getThreadCpuTime(threadId));
+        currMonitorInfo.setSampleTime(System.nanoTime());
+        _monitorInfo.put(Long.valueOf(threadId),currMonitorInfo);
+      }
+ else {
+        currMonitorInfo.setStackTrace(entry.getValue());
+        currMonitorInfo.setCpuTime(getThreadCpuTime(threadId));
+        currMonitorInfo.setSampleTime(System.nanoTime());
+        int count=currMonitorInfo.getTraceCount();
+        if (count >= 0 && currMonitorInfo.isSpinning()) {
+          if (count < _trailLength) {
+            currMonitorInfo.setTraceCount(count + 1);
+            repeat=true;
+            continue;
+          }
+          currMonitorInfo.setSpinning(false);
+          currMonitorInfo.setTraceCount(-1);
+        }
+        if (currMonitorInfo.getCpuUtilization() > _busyThreshold) {
+          StackTraceElement[] lastStackTrace=currMonitorInfo.getStackTrace();
+          if (lastStackTrace != null && matchStackTraces(lastStackTrace,entry.getValue())) {
+            currMonitorInfo.setSpinning(true);
+            if (count < 0) {
+              currMonitorInfo.setTraceCount(0);
+              repeat=(_trailLength > 0);
+            }
+          }
+        }
+      }
+    }
+  }
+ catch (  Exception ex) {
+    Log.debug(ex);
+  }
+  return repeat;
+}

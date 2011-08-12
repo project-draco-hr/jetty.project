@@ -1,17 +1,41 @@
 {
-  ThreadMonitor monitor=new ThreadMonitor(1000,50,2){
-    @Override protected void dump(    List<ThreadInfo> threads){
-      count.incrementAndGet();
-      super.dump(threads);
+  ((StdErrLog)Log.getLogger(ThreadMonitor.class.getName())).setHideStacks(true);
+  ((StdErrLog)Log.getLogger(ThreadMonitor.class.getName())).setSource(false);
+  final AtomicInteger countLogs=new AtomicInteger(0);
+  final AtomicInteger countSpin=new AtomicInteger(0);
+  ThreadMonitor monitor=new ThreadMonitor(1000,50,1,1){
+    @Override protected void logThreadInfo(    boolean logAll){
+      if (logAll)       countLogs.incrementAndGet();
+ else       countSpin.incrementAndGet();
+      super.logThreadInfo(logAll);
     }
   }
 ;
+  monitor.setDumpable(new Dumpable(){
+    public void dump(    Appendable out,    String indent) throws IOException {
+      out.append(dump());
+    }
+    public String dump(){
+      return "Dump Spinning";
+    }
+  }
+);
+  monitor.logCpuUsage(2000,0);
   monitor.start();
+  Random rnd=new Random();
+  for (long cnt=0; cnt < 100; cnt++) {
+    long value=rnd.nextLong() % 50 + 50;
+    Sleeper sleeper=new Sleeper(value);
+    Thread runner=new Thread(sleeper);
+    runner.setDaemon(true);
+    runner.start();
+  }
   Spinner spinner=new Spinner();
   Thread runner=new Thread(spinner);
   runner.start();
   Thread.sleep(DURATION);
   spinner.setDone();
   monitor.stop();
-  assertTrue(count.get() >= 2);
+  assertTrue(countLogs.get() >= 1);
+  assertTrue(countSpin.get() >= 2);
 }

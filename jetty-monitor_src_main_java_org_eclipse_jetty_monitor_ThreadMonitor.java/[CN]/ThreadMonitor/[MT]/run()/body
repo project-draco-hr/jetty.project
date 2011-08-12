@@ -1,23 +1,29 @@
 {
-  long currTime;
-  long lastTime=0;
+  boolean repeat=false;
+  boolean scanNow, logNow;
+  long nextScanTime=System.currentTimeMillis();
+  long nextLogTime=nextScanTime + _logInterval;
   while (!_done) {
-    currTime=System.currentTimeMillis();
-    if (currTime < lastTime + _scanInterval) {
+    long currTime=System.currentTimeMillis();
+    scanNow=(currTime > nextScanTime);
+    logNow=(_logInterval > 0 && currTime > nextLogTime);
+    if (repeat || scanNow || logNow) {
+      repeat=collectThreadInfo();
+      logThreadInfo(logNow);
+      if (scanNow) {
+        nextScanTime=System.currentTimeMillis() + _scanInterval;
+      }
+      if (logNow) {
+        nextLogTime=System.currentTimeMillis() + _logInterval;
+      }
+    }
+    if (!repeat) {
       try {
-        Thread.sleep(50);
+        Thread.sleep(100);
       }
  catch (      InterruptedException ex) {
         Log.ignore(ex);
       }
-      continue;
-    }
-    List<ThreadInfo> threadInfo=new ArrayList<ThreadInfo>();
-    findSpinningThreads(threadInfo);
-    findDeadlockedThreads(threadInfo);
-    lastTime=System.currentTimeMillis();
-    if (threadInfo.size() > 0) {
-      dump(threadInfo);
     }
   }
 }
