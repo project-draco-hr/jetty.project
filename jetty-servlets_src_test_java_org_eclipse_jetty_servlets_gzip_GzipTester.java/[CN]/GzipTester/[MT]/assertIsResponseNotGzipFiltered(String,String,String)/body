@@ -1,0 +1,36 @@
+{
+  System.err.printf("[GzipTester] requesting /context/%s%n",requestedFilename);
+  HttpTester request=new HttpTester();
+  HttpTester response=new HttpTester();
+  request.setMethod("GET");
+  request.setVersion("HTTP/1.0");
+  request.setHeader("Host","tester");
+  request.setHeader("Accept-Encoding","gzip");
+  request.setURI("/context/" + requestedFilename);
+  ByteArrayBuffer reqsBuff=new ByteArrayBuffer(request.generate().getBytes());
+  ByteArrayBuffer respBuff=servletTester.getResponses(reqsBuff);
+  response.parse(respBuff.asArray());
+  dumpHeaders(requestedFilename + " / Response Headers",response);
+  String prefix=requestedFilename + " / Response";
+  Assert.assertThat(prefix + ".method",response.getMethod(),nullValue());
+  Assert.assertThat(prefix + ".status",response.getStatus(),is(HttpServletResponse.SC_OK));
+  Assert.assertThat(prefix + ".header[Content-Length]",response.getHeader("Content-Length"),notNullValue());
+  Assert.assertThat(prefix + ".header[Content-Encoding] (should not be recompressed by GzipFilter)",response.getHeader("Content-Encoding"),nullValue());
+  Assert.assertThat(prefix + ".header[Content-Type] (should have a Content-Type associated with it)",response.getHeader("Content-Type"),notNullValue());
+  Assert.assertThat(prefix + ".header[Content-Type]",response.getHeader("Content-Type"),is(expectedContentType));
+  ByteArrayInputStream bais=null;
+  DigestOutputStream digester=null;
+  try {
+    MessageDigest digest=MessageDigest.getInstance("SHA1");
+    bais=new ByteArrayInputStream(response.getContentBytes());
+    digester=new DigestOutputStream(new NoOpOutputStream(),digest);
+    IO.copy(bais,digester);
+    String actualSha1Sum=Hex.asHex(digest.digest());
+    String expectedSha1Sum=loadExpectedSha1Sum(testResourceSha1Sum);
+    Assert.assertEquals(requestedFilename + " / SHA1Sum of content",expectedSha1Sum,actualSha1Sum);
+  }
+  finally {
+    IO.close(digester);
+    IO.close(bais);
+  }
+}
