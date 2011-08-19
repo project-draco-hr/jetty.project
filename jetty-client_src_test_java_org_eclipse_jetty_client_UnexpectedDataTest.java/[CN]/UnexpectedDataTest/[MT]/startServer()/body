@@ -1,0 +1,48 @@
+{
+  newServer();
+  _server.setHandler(new AbstractHandler(){
+    public void handle(    String target,    Request baseRequest,    HttpServletRequest request,    HttpServletResponse response) throws IOException, ServletException {
+      int i=0;
+      try {
+        baseRequest.setHandled(true);
+        response.setStatus(200);
+        _count.incrementAndGet();
+        if (request.getMethod().equalsIgnoreCase("GET")) {
+          StringBuffer buffer=new StringBuffer();
+          buffer.append("<hello>\r\n");
+          for (; i < 100; i++) {
+            buffer.append("  <world>" + i + "</world>\r\n");
+          }
+          buffer.append("</hello>\r\n");
+          byte[] buff=buffer.toString().getBytes();
+          response.setContentLength(buff.length);
+          buffer.append("extra data");
+          buff=buffer.toString().getBytes();
+          OutputStream out=response.getOutputStream();
+          out.write(buff,0,buff.length);
+          out.flush();
+        }
+ else {
+          response.setContentType(request.getContentType());
+          int size=request.getContentLength();
+          ByteArrayOutputStream bout=new ByteArrayOutputStream(size > 0 ? size : 32768);
+          IO.copy(request.getInputStream(),bout);
+          response.getOutputStream().write(bout.toByteArray());
+        }
+      }
+ catch (      IOException e) {
+        e.printStackTrace();
+        throw e;
+      }
+catch (      Throwable e) {
+        e.printStackTrace();
+        throw new ServletException(e);
+      }
+ finally {
+      }
+    }
+  }
+);
+  _server.start();
+  _port=_connector.getLocalPort();
+}
