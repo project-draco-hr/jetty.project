@@ -1,0 +1,37 @@
+{
+  ByteArrayOutputStream reqStream=null;
+  ByteArrayInputStream resStream=null;
+  Properties response=null;
+  try {
+    ContentExchange reqEx=new ContentExchange();
+    reqEx.setURL(_url);
+    reqEx.setMethod(HttpMethods.POST);
+    reqEx.addRequestHeader("Connection","close");
+    reqStream=new ByteArrayOutputStream();
+    request.storeToXML(reqStream,null);
+    ByteArrayBuffer reqBuff=new ByteArrayBuffer(reqStream.toByteArray());
+    reqEx.setRequestContent(reqBuff);
+    _client.send(reqEx);
+    reqEx.waitForDone();
+    if (reqEx.getResponseStatus() == HttpStatus.OK_200) {
+      response=new Properties();
+      resStream=new ByteArrayInputStream(reqEx.getResponseContentBytes());
+      response.loadFromXML(resStream);
+    }
+  }
+  finally {
+    try {
+      if (reqStream != null)       reqStream.close();
+    }
+ catch (    IOException ex) {
+      Log.ignore(ex);
+    }
+    try {
+      if (resStream != null)       resStream.close();
+    }
+ catch (    IOException ex) {
+      Log.ignore(ex);
+    }
+  }
+  return response;
+}
