@@ -1,0 +1,107 @@
+{
+  boolean lastFrame=isLastFrame(flags);
+synchronized (WebSocketConnectionD12.this) {
+    if (_closedIn)     return;
+  }
+  try {
+    byte[] array=buffer.array();
+    if (_onFrame != null) {
+      if (_onFrame.onFrame(flags,opcode,array,buffer.getIndex(),buffer.length()))       return;
+    }
+    if (_onControl != null && isControlFrame(opcode)) {
+      if (_onControl.onControl(opcode,array,buffer.getIndex(),buffer.length()))       return;
+    }
+switch (opcode) {
+case WebSocketConnectionD12.OP_CONTINUATION:
+{
+        if (_onTextMessage != null && _opcode == WebSocketConnectionD12.OP_TEXT) {
+          if (_utf8.append(buffer.array(),buffer.getIndex(),buffer.length(),_connection.getMaxTextMessageSize())) {
+            if (lastFrame) {
+              _opcode=-1;
+              String msg=_utf8.toString();
+              _utf8.reset();
+              _onTextMessage.onMessage(msg);
+            }
+          }
+ else           textMessageTooLarge();
+        }
+        if (_opcode >= 0 && _connection.getMaxBinaryMessageSize() >= 0) {
+          if (checkBinaryMessageSize(_aggregate.length(),buffer.length())) {
+            _aggregate.put(buffer);
+            if (lastFrame && _onBinaryMessage != null) {
+              try {
+                _onBinaryMessage.onMessage(_aggregate.array(),_aggregate.getIndex(),_aggregate.length());
+              }
+  finally {
+                _opcode=-1;
+                _aggregate.clear();
+              }
+            }
+          }
+        }
+        break;
+      }
+case WebSocketConnectionD12.OP_PING:
+{
+      Log.debug("PING {}",this);
+      if (!_closedOut)       _connection.sendControl(WebSocketConnectionD12.OP_PONG,buffer.array(),buffer.getIndex(),buffer.length());
+      break;
+    }
+case WebSocketConnectionD12.OP_PONG:
+{
+    Log.debug("PONG {}",this);
+    break;
+  }
+case WebSocketConnectionD12.OP_CLOSE:
+{
+  int code=WebSocketConnectionD12.CLOSE_NOCODE;
+  String message=null;
+  if (buffer.length() >= 2) {
+    code=buffer.array()[buffer.getIndex()] * 0x100 + buffer.array()[buffer.getIndex() + 1];
+    if (buffer.length() > 2)     message=new String(buffer.array(),buffer.getIndex() + 2,buffer.length() - 2,StringUtil.__UTF8);
+  }
+  closeIn(code,message);
+  break;
+}
+case WebSocketConnectionD12.OP_TEXT:
+{
+if (_onTextMessage != null) {
+  if (_connection.getMaxTextMessageSize() <= 0) {
+    if (lastFrame)     _onTextMessage.onMessage(buffer.toString(StringUtil.__UTF8));
+  }
+ else   if (_utf8.append(buffer.array(),buffer.getIndex(),buffer.length(),_connection.getMaxTextMessageSize())) {
+    if (lastFrame) {
+      String msg=_utf8.toString();
+      _utf8.reset();
+      _onTextMessage.onMessage(msg);
+    }
+ else {
+      _opcode=WebSocketConnectionD12.OP_TEXT;
+    }
+  }
+ else   textMessageTooLarge();
+}
+break;
+}
+default :
+{
+if (_onBinaryMessage != null && checkBinaryMessageSize(0,buffer.length())) {
+if (lastFrame) {
+  _onBinaryMessage.onMessage(array,buffer.getIndex(),buffer.length());
+}
+ else if (_connection.getMaxBinaryMessageSize() >= 0) {
+  _opcode=opcode;
+  if (_aggregate == null)   _aggregate=new ByteArrayBuffer(_connection.getMaxBinaryMessageSize());
+  _aggregate.put(buffer);
+}
+}
+}
+}
+}
+ catch (ThreadDeath th) {
+throw th;
+}
+catch (Throwable th) {
+Log.warn(th);
+}
+}

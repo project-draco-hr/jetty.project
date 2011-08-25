@@ -1,0 +1,33 @@
+{
+  Log.debug("ClosedOut {} {}",this,message);
+  final boolean close;
+  final boolean closed;
+synchronized (this) {
+    close=_closedIn || _closedOut;
+    _closedOut=true;
+    closed=_closeCode == 0;
+    if (closed) {
+      _closeCode=code;
+      _closeMessage=message;
+    }
+  }
+  try {
+    if (closed)     _webSocket.onClose(code,message);
+  }
+  finally {
+    try {
+      if (close)       _endp.close();
+ else {
+        if (code <= 0)         code=WebSocketConnectionD12.CLOSE_NORMAL;
+        byte[] bytes=("xx" + (message == null ? "" : message)).getBytes(StringUtil.__ISO_8859_1);
+        bytes[0]=(byte)(code / 0x100);
+        bytes[1]=(byte)(code % 0x100);
+        _outbound.addFrame((byte)FLAG_FIN,WebSocketConnectionD12.OP_CLOSE,bytes,0,bytes.length);
+      }
+      _outbound.flush();
+    }
+ catch (    IOException e) {
+      Log.ignore(e);
+    }
+  }
+}

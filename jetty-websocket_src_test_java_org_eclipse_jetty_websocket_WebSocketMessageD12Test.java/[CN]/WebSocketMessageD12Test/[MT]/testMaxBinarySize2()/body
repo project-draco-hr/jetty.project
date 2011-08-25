@@ -1,0 +1,29 @@
+{
+  Socket socket=new Socket("localhost",_connector.getLocalPort());
+  OutputStream output=socket.getOutputStream();
+  output.write(("GET /chat HTTP/1.1\r\n" + "Host: server.example.com\r\n" + "Upgrade: websocket\r\n"+ "Connection: Upgrade\r\n"+ "Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\n"+ "Sec-WebSocket-Origin: http://example.com\r\n"+ "Sec-WebSocket-Protocol: other\r\n"+ "Sec-WebSocket-Version: 7\r\n"+ "\r\n").getBytes("ISO-8859-1"));
+  output.flush();
+  socket.setSoTimeout(100000);
+  InputStream input=socket.getInputStream();
+  lookFor("HTTP/1.1 101 Switching Protocols\r\n",input);
+  skipTo("Sec-WebSocket-Accept: ",input);
+  lookFor("s3pPLMBiTxaQ9kYGzzhZRbK+xOo=",input);
+  skipTo("\r\n\r\n",input);
+  assertTrue(_serverWebSocket.awaitConnected(1000));
+  assertNotNull(_serverWebSocket.connection);
+  _serverWebSocket.getConnection().setMaxBinaryMessageSize(15);
+  output.write(0x02);
+  output.write(0x94);
+  output.write(0xff);
+  output.write(0xff);
+  output.write(0xff);
+  output.write(0xff);
+  byte[] bytes="01234567890123456789".getBytes(StringUtil.__ISO_8859_1);
+  for (int i=0; i < bytes.length; i++)   output.write(bytes[i] ^ 0xff);
+  output.flush();
+  assertEquals(0x80 | WebSocketConnectionD12.OP_CLOSE,input.read());
+  assertEquals(19,input.read());
+  int code=(0xff & input.read()) * 0x100 + (0xff & input.read());
+  assertEquals(1004,code);
+  lookFor("Message size > 15",input);
+}
