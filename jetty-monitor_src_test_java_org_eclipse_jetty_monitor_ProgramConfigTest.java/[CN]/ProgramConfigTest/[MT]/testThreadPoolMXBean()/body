@@ -1,0 +1,34 @@
+{
+  int testRangeLow=4;
+  int testRangeHigh=7;
+  LessThanOrEqualToAttrEventTrigger<Integer> trigger1=new LessThanOrEqualToAttrEventTrigger<Integer>("org.eclipse.jetty.util.thread:type=queuedthreadpool,id=0","idleThreads",testRangeLow);
+  GreaterThanAttrEventTrigger<Integer> trigger2=new GreaterThanAttrEventTrigger<Integer>("org.eclipse.jetty.util.thread:type=queuedthreadpool,id=0","idleThreads",testRangeHigh);
+  OrEventTrigger trigger=new OrEventTrigger(trigger1,trigger2);
+  EventNotifier notifier=new ConsoleNotifier("%s");
+  final AtomicLong counter=new AtomicLong();
+  MonitorAction action=new MonitorAction(trigger,notifier,500){
+    @Override public void execute(    EventTrigger trigger,    EventState<?> state,    long timestamp){
+      System.out.println(counter.incrementAndGet());
+    }
+  }
+;
+  JMXMonitor.addMonitorActions(action);
+  final int threadCount=100;
+  final long requestCount=100;
+  final String requestUrl=jetty.getBaseUri().resolve("d.txt").toASCIIString();
+  final CountDownLatch gate=new CountDownLatch(threadCount);
+  ThreadPool worker=new ExecutorThreadPool(threadCount,threadCount,60,TimeUnit.SECONDS);
+  for (int idx=0; idx < threadCount; idx++) {
+    worker.dispatch(new Runnable(){
+      public void run(){
+        runTest(requestUrl,requestCount);
+        gate.countDown();
+      }
+    }
+);
+    Thread.sleep(100);
+  }
+  gate.await();
+  JMXMonitor.removeMonitorActions(action);
+  assertTrue(true);
+}
