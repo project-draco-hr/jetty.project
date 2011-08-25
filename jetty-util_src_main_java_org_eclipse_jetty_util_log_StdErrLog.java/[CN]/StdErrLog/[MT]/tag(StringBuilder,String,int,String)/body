@@ -4,7 +4,14 @@
   if (ms > 99)   buffer.append('.');
  else   if (ms > 9)   buffer.append(".0");
  else   buffer.append(".00");
-  buffer.append(ms).append(tag).append(_name).append(':');
+  buffer.append(ms).append(tag);
+  if (_printLongNames) {
+    buffer.append(_name);
+  }
+ else {
+    buffer.append(_abbrevname);
+  }
+  buffer.append(':');
   if (_source) {
     Throwable source=new Throwable();
     StackTraceElement[] frames=source.getStackTrace();
@@ -12,8 +19,12 @@
       final StackTraceElement frame=frames[i];
       String clazz=frame.getClassName();
       if (clazz.equals(StdErrLog.class.getName()) || clazz.equals(Log.class.getName()))       continue;
-      if (clazz.startsWith("org.eclipse.jetty."))       buffer.append("o.e.j.").append(clazz,18,clazz.length());
- else       buffer.append(clazz);
+      if (!_printLongNames && clazz.startsWith("org.eclipse.jetty.")) {
+        buffer.append(condensePackageString(clazz));
+      }
+ else {
+        buffer.append(clazz);
+      }
       buffer.append('#').append(frame.getMethodName());
       if (frame.getFileName() != null)       buffer.append('(').append(frame.getFileName()).append(':').append(frame.getLineNumber()).append(')');
       buffer.append(':');
