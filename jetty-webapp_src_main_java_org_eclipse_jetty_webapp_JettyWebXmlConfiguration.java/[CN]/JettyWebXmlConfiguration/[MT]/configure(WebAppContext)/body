@@ -20,18 +20,18 @@
         }
         XmlConfiguration jetty_config=(XmlConfiguration)context.getAttribute(XML_CONFIGURATION);
         if (jetty_config == null) {
-          String jettyXml=IO.toString(jetty.getURL().openStream());
-          if (jettyXml.contains("org.mortbay.")) {
-            Log.warn("Detected jetty 6 configuration, attempting to automatically convert");
-            jettyXml=convertFromJetty6(jettyXml);
-          }
-          jetty_config=new XmlConfiguration(jettyXml);
+          jetty_config=new XmlConfiguration(jetty.getURL());
         }
  else {
           context.removeAttribute(XML_CONFIGURATION);
         }
         setupXmlConfiguration(context,jetty_config,web_inf);
-        jetty_config.configure(context);
+        try {
+          jetty_config.configure(context);
+        }
+ catch (        ClassNotFoundException e) {
+          Log.warn("Unable to process jetty-web.xml",e);
+        }
       }
   finally {
         if (context.getServerClasses() == null)         context.setServerClasses(old_server_classes);
