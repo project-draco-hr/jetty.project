@@ -15,12 +15,23 @@
       String[] old_server_classes=context.getServerClasses();
       try {
         context.setServerClasses(null);
-        if (LOG.isDebugEnabled())         LOG.debug("Configure: " + jetty);
+        if (LOG.isDebugEnabled()) {
+          LOG.debug("Configure: " + jetty);
+        }
         XmlConfiguration jetty_config=(XmlConfiguration)context.getAttribute(XML_CONFIGURATION);
-        if (jetty_config == null)         jetty_config=new XmlConfiguration(jetty.getURL());
- else         context.removeAttribute(XML_CONFIGURATION);
+        if (jetty_config == null) {
+          jetty_config=new XmlConfiguration(jetty.getURL());
+        }
+ else {
+          context.removeAttribute(XML_CONFIGURATION);
+        }
         setupXmlConfiguration(context,jetty_config,web_inf);
-        jetty_config.configure(context);
+        try {
+          jetty_config.configure(context);
+        }
+ catch (        ClassNotFoundException e) {
+          LOG.warn("Unable to process jetty-web.xml",e);
+        }
       }
   finally {
         if (context.getServerClasses() == null)         context.setServerClasses(old_server_classes);
