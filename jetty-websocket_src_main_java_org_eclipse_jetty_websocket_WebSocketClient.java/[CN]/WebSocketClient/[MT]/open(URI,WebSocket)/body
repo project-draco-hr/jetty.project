@@ -4,10 +4,9 @@
   if (!("ws".equalsIgnoreCase(scheme) || "wss".equalsIgnoreCase(scheme)))   throw new IllegalArgumentException("Bad WebSocket scheme '" + scheme + "'");
   if ("wss".equalsIgnoreCase(scheme))   throw new IOException("wss not supported");
   SocketChannel channel=SocketChannel.open();
+  if (_bindAddress != null)   channel.socket().bind(_bindAddress);
   channel.socket().setTcpNoDelay(true);
   int maxIdleTime=getMaxIdleTime();
-  if (maxIdleTime < 0)   maxIdleTime=(int)_factory.getSelectorManager().getMaxIdleTime();
-  if (maxIdleTime > 0)   channel.socket().setSoTimeout(maxIdleTime);
   InetSocketAddress address=new InetSocketAddress(uri.getHost(),uri.getPort());
   final WebSocketFuture holder=new WebSocketFuture(websocket,uri,_protocol,_origin,_maskGen,maxIdleTime,_cookies,_extensions,channel);
   channel.configureBlocking(false);
