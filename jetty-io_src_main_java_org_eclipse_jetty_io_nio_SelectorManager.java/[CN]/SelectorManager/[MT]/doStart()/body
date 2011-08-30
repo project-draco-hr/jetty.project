@@ -2,4 +2,37 @@
   _selectSet=new SelectSet[_selectSets];
   for (int i=0; i < _selectSet.length; i++)   _selectSet[i]=new SelectSet(i);
   super.doStart();
+  for (int i=0; i < getSelectSets(); i++) {
+    final int id=i;
+    dispatch(new Runnable(){
+      public void run(){
+        SelectSet set=_selectSet[id];
+        String name=Thread.currentThread().getName();
+        int priority=Thread.currentThread().getPriority();
+        try {
+          Thread.currentThread().setName(name + " Selector" + id);
+          if (getSelectorPriorityDelta() != 0)           Thread.currentThread().setPriority(Thread.currentThread().getPriority() + getSelectorPriorityDelta());
+          while (isRunning()) {
+            try {
+              set.doSelect();
+            }
+ catch (            ThreadDeath e) {
+              throw e;
+            }
+catch (            IOException e) {
+              LOG.ignore(e);
+            }
+catch (            Exception e) {
+              LOG.warn(e);
+            }
+          }
+        }
+  finally {
+          Thread.currentThread().setName(name);
+          if (getSelectorPriorityDelta() != 0)           Thread.currentThread().setPriority(priority);
+        }
+      }
+    }
+);
+  }
 }

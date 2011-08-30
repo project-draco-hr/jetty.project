@@ -11,10 +11,10 @@
     _monitorNext=now + __MONITOR_PERIOD;
   }
   if (now > _log) {
-    if (_paused > 0)     __log.debug(this + " Busy selector - injecting delay " + _paused+ " times");
-    if (_jvmFix2 > 0)     __log.debug(this + " JVM BUG(s) - injecting delay" + _jvmFix2+ " times");
-    if (_jvmFix1 > 0)     __log.debug(this + " JVM BUG(s) - recreating selector " + _jvmFix1+ " times, cancelled keys "+ _jvmFix0+ " times");
- else     if (__log.isDebugEnabled() && _jvmFix0 > 0)     __log.debug(this + " JVM BUG(s) - cancelled keys " + _jvmFix0+ " times");
+    if (_paused > 0)     LOG.debug(this + " Busy selector - injecting delay " + _paused+ " times");
+    if (_jvmFix2 > 0)     LOG.debug(this + " JVM BUG(s) - injecting delay" + _jvmFix2+ " times");
+    if (_jvmFix1 > 0)     LOG.debug(this + " JVM BUG(s) - recreating selector " + _jvmFix1+ " times, cancelled keys "+ _jvmFix0+ " times");
+ else     if (LOG.isDebugEnabled() && _jvmFix0 > 0)     LOG.debug(this + " JVM BUG(s) - cancelled keys " + _jvmFix0+ " times");
     _paused=0;
     _jvmFix2=0;
     _jvmFix1=0;
@@ -29,7 +29,7 @@
         Thread.sleep(__BUSY_PAUSE);
       }
  catch (      InterruptedException e) {
-        __log.ignore(e);
+        LOG.ignore(e);
       }
     }
  else     if (_jvmBug == __JVMBUG_THRESHHOLD) {
@@ -52,7 +52,7 @@
     if (busy == _busyKey) {
       if (++_busyKeyCount > __BUSY_KEY && !(busy.channel() instanceof ServerSocketChannel)) {
         final SelectChannelEndPoint endpoint=(SelectChannelEndPoint)busy.attachment();
-        __log.warn("Busy Key " + busy.channel() + " "+ endpoint);
+        LOG.warn("Busy Key " + busy.channel() + " "+ endpoint);
         busy.cancel();
         if (endpoint != null) {
           dispatch(new Runnable(){
@@ -61,7 +61,7 @@
                 endpoint.close();
               }
  catch (              IOException e) {
-                __log.ignore(e);
+                LOG.ignore(e);
               }
             }
           }
