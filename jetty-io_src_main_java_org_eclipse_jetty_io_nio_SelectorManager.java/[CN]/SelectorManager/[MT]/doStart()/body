@@ -6,12 +6,15 @@
     final int id=i;
     dispatch(new Runnable(){
       public void run(){
-        SelectSet set=_selectSet[id];
         String name=Thread.currentThread().getName();
         int priority=Thread.currentThread().getPriority();
         try {
+          SelectSet[] sets=_selectSet;
+          if (sets == null)           return;
+          SelectSet set=sets[id];
           Thread.currentThread().setName(name + " Selector" + id);
           if (getSelectorPriorityDelta() != 0)           Thread.currentThread().setPriority(Thread.currentThread().getPriority() + getSelectorPriorityDelta());
+          LOG.debug("Starting {} on {}",Thread.currentThread(),this);
           while (isRunning()) {
             try {
               set.doSelect();
@@ -28,6 +31,7 @@ catch (            Exception e) {
           }
         }
   finally {
+          LOG.debug("Stopped {} on {}",Thread.currentThread(),this);
           Thread.currentThread().setName(name);
           if (getSelectorPriorityDelta() != 0)           Thread.currentThread().setPriority(priority);
         }

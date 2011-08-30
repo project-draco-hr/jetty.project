@@ -6,16 +6,13 @@
   requests="GET /R1?read=1&ISE=true HTTP/1.1\n" + "Host: localhost\n" + "Transfer-Encoding: chunked\n"+ "Content-Type: text/plain; charset=utf-8\n"+ "\015\012"+ "5;\015\012"+ "12345\015\012"+ "5;\015\012"+ "67890\015\012"+ "0;\015\012\015\012"+ "GET /R2 HTTP/1.1\n"+ "Host: localhost\n"+ "Content-Type: text/plain; charset=utf-8\n"+ "Content-Length: 10\n"+ "\n"+ "abcdefghij\n";
   Logger logger=null;
   try {
-    if (!LOG.isDebugEnabled()) {
-      logger=Log.getLog();
-      Log.setLog(null);
-    }
+    ((StdErrLog)Log.getLogger(HttpConnection.class)).setHideStacks(true);
     response=connector.getResponses(requests);
     offset=checkContains(response,offset,"HTTP/1.1 500");
     offset=checkContains(response,offset,"Connection: close");
     checkNotContained(response,offset,"HTTP/1.1 200");
   }
   finally {
-    if (logger != null)     Log.setLog(logger);
+    ((StdErrLog)Log.getLogger(HttpConnection.class)).setHideStacks(false);
   }
 }
