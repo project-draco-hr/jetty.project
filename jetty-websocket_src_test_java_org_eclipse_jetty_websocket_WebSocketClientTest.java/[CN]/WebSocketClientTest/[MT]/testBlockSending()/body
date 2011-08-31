@@ -1,0 +1,65 @@
+{
+  WebSocketClient client=new WebSocketClient(_factory);
+  client.setMaxIdleTime(10000);
+  final AtomicBoolean open=new AtomicBoolean();
+  final AtomicInteger close=new AtomicInteger();
+  final CountDownLatch _latch=new CountDownLatch(1);
+  Future<WebSocket.Connection> future=client.open(new URI("ws://127.0.0.1:" + _serverPort + "/"),new WebSocket.OnTextMessage(){
+    public void onOpen(    Connection connection){
+      open.set(true);
+    }
+    public void onClose(    int closeCode,    String message){
+      close.set(closeCode);
+      _latch.countDown();
+    }
+    public void onMessage(    String data){
+    }
+  }
+);
+  final Socket socket=_server.accept();
+  accept(socket);
+  WebSocket.Connection connection=future.get(250,TimeUnit.MILLISECONDS);
+  Assert.assertNotNull(connection);
+  Assert.assertTrue(open.get());
+  Assert.assertEquals(0,close.get());
+  final int messages=20000;
+  final AtomicLong totalB=new AtomicLong();
+  Thread consumer=new Thread(){
+    public void run(){
+      try {
+        Thread.sleep(2000);
+        byte[] recv=new byte[32 * 1024];
+        int len=0;
+        while (len >= 0) {
+          totalB.addAndGet(len);
+          len=socket.getInputStream().read(recv,0,recv.length);
+          Thread.sleep(10);
+        }
+      }
+ catch (      InterruptedException e) {
+        return;
+      }
+catch (      Exception e) {
+        e.printStackTrace();
+      }
+    }
+  }
+;
+  consumer.start();
+  long max=0;
+  long start=System.currentTimeMillis();
+  String mesg="This is a test message to send";
+  for (int i=0; i < messages; i++) {
+    connection.sendMessage("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX");
+    if (i % 100 == 0) {
+      long now=System.currentTimeMillis();
+      long duration=now - start;
+      start=now;
+      if (duration > max)       max=duration;
+    }
+  }
+  while (totalB.get() < messages * (mesg.length() + 6L))   Thread.sleep(10);
+  Assert.assertTrue(max > 1000);
+  Assert.assertEquals(messages * (mesg.length() + 6L),totalB.get());
+  consumer.interrupt();
+}
