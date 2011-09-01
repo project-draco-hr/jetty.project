@@ -1,5 +1,5 @@
 {
-  __client.start();
+  __clientFactory.start();
   String host="localhost";
   int port=8080;
   String protocol=null;
@@ -12,7 +12,7 @@
   for (int i=0; i < args.length; i++) {
     String a=args[i];
     if ("-p".equals(a) || "--port".equals(a))     port=Integer.parseInt(args[++i]);
- else     if ("-h".equals(a) || "--host".equals(a))     port=Integer.parseInt(args[++i]);
+ else     if ("-h".equals(a) || "--host".equals(a))     host=args[++i];
  else     if ("-c".equals(a) || "--count".equals(a))     count=Integer.parseInt(args[++i]);
  else     if ("-s".equals(a) || "--size".equals(a))     size=Integer.parseInt(args[++i]);
  else     if ("-f".equals(a) || "--fragment".equals(a))     fragment=Integer.parseInt(args[++i]);
@@ -34,9 +34,9 @@
     System.out.println("Jetty WebSocket PING " + host + ":"+ port+ " ("+ new InetSocketAddress(host,port)+ ") "+ clients+ " clients");
     for (int p=0; p < count; p++) {
       long next=System.currentTimeMillis() + delay;
-      byte opcode=binary ? WebSocketConnectionD10.OP_BINARY : WebSocketConnectionD10.OP_TEXT;
+      byte opcode=binary ? WebSocketConnectionD12.OP_BINARY : WebSocketConnectionD12.OP_TEXT;
       byte data[]=null;
-      if (opcode == WebSocketConnectionD10.OP_TEXT) {
+      if (opcode == WebSocketConnectionD12.OP_TEXT) {
         StringBuilder b=new StringBuilder();
         while (b.length() < size)         b.append('A' + __random.nextInt(26));
         data=b.toString().getBytes(StringUtil.__UTF8);
@@ -45,7 +45,7 @@
         data=new byte[size];
         __random.nextBytes(data);
       }
-      for (int i=0; i < clients; i++)       client[i].ping(opcode,data,opcode == WebSocketConnectionD10.OP_PING ? -1 : fragment);
+      for (int i=0; i < clients; i++)       client[i].ping(opcode,data,opcode == WebSocketConnectionD12.OP_PING ? -1 : fragment);
       while (System.currentTimeMillis() < next)       Thread.sleep(10);
     }
   }
@@ -55,6 +55,6 @@
     System.out.println("--- " + host + " websocket ping statistics using "+ clients+ " connection"+ (clients > 1 ? "s" : "")+ " ---");
     System.out.println(__framesSent + " frames transmitted, " + __framesReceived+ " received, "+ __messagesSent+ " messages transmitted, "+ __messagesReceived+ " received, "+ "time "+ duration+ "ms "+ (1000L * __messagesReceived.get() / duration)+ " req/s");
     System.out.printf("rtt min/ave/max = %.3f/%.3f/%.3f ms\n",__minDuration.get() / 1000000.0,__messagesReceived.get() == 0 ? 0.0 : (__totalTime.get() / __messagesReceived.get() / 1000000.0),__maxDuration.get() / 1000000.0);
-    __client.stop();
+    __clientFactory.stop();
   }
 }

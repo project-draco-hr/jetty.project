@@ -1,0 +1,19 @@
+{
+  final int threadCount=100;
+  final long requestCount=500;
+  final String requestUrl=jetty.getBaseUri().resolve("d.txt").toASCIIString();
+  final CountDownLatch gate=new CountDownLatch(threadCount);
+  ThreadPool worker=new ExecutorThreadPool(threadCount,threadCount,60,TimeUnit.SECONDS);
+  for (int idx=0; idx < threadCount; idx++) {
+    worker.dispatch(new Runnable(){
+      public void run(){
+        runTest(requestUrl,requestCount);
+        gate.countDown();
+      }
+    }
+);
+    Thread.sleep(500);
+  }
+  gate.await();
+  assertTrue(true);
+}

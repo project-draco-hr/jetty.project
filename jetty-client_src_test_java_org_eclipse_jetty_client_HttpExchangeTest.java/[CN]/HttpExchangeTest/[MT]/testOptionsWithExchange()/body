@@ -1,0 +1,19 @@
+{
+  ContentExchange httpExchange=new ContentExchange(true);
+  httpExchange.setURL(_scheme + "://localhost:" + _port);
+  httpExchange.setRequestURI("*");
+  httpExchange.setMethod(HttpMethods.OPTIONS);
+  _httpClient.send(httpExchange);
+  int state=httpExchange.waitForDone();
+  assertEquals(HttpExchange.STATUS_COMPLETED,state);
+  assertEquals(HttpStatus.OK_200,httpExchange.getResponseStatus());
+  HttpFields headers=httpExchange.getResponseFields();
+  assertTrue("Response contains Allow header",headers.containsKey("Allow"));
+  String allow=headers.getStringField("Allow");
+  String expectedMethods[]={"GET","HEAD","POST","PUT","DELETE","MOVE","OPTIONS","TRACE"};
+  for (  String expectedMethod : expectedMethods) {
+    assertThat(allow,containsString(expectedMethod));
+  }
+  assertTrue("Response contains Content-Length header",headers.containsKey("Content-Length"));
+  assertEquals("Content-Length header value",0,headers.getLongField("Content-Length"));
+}

@@ -1,0 +1,39 @@
+{
+  HttpClient client=new HttpClient();
+  client.setConnectorType(HttpClient.CONNECTOR_SELECT_CHANNEL);
+  try {
+    client.start();
+  }
+ catch (  Exception ex) {
+    LOG.debug(ex);
+  }
+  if (client != null) {
+    for (long cnt=0; cnt < count; cnt++) {
+      try {
+        ContentExchange getExchange=new ContentExchange();
+        getExchange.setURL(requestUrl);
+        getExchange.setMethod(HttpMethods.GET);
+        client.send(getExchange);
+        int state=getExchange.waitForDone();
+        String content="";
+        int responseStatus=getExchange.getResponseStatus();
+        if (responseStatus == HttpStatus.OK_200) {
+          content=getExchange.getResponseContent();
+        }
+        Thread.sleep(100);
+      }
+ catch (      InterruptedException ex) {
+        break;
+      }
+catch (      IOException ex) {
+        LOG.debug(ex);
+      }
+    }
+    try {
+      client.stop();
+    }
+ catch (    Exception ex) {
+      LOG.debug(ex);
+    }
+  }
+}

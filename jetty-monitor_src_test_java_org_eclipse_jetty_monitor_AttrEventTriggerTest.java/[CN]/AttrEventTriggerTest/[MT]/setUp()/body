@@ -1,0 +1,23 @@
+{
+  File docRoot=new File("target/test-output/docroot/");
+  docRoot.mkdirs();
+  docRoot.deleteOnExit();
+  System.setProperty("org.eclipse.jetty.util.log.DEBUG","");
+  _server=new Server();
+  SelectChannelConnector connector=new SelectChannelConnector();
+  _server.addConnector(connector);
+  _handler=new TestHandler();
+  _server.setHandler(_handler);
+  MBeanServer mBeanServer=ManagementFactory.getPlatformMBeanServer();
+  MBeanContainer mBeanContainer=new MBeanContainer(mBeanServer);
+  mBeanContainer.addBean(Log.getLog());
+  _counter=_handler.getRequestCounter();
+  mBeanContainer.addBean(_counter);
+  _server.addBean(mBeanContainer);
+  _server.getContainer().addEventListener(mBeanContainer);
+  _server.start();
+  startClient(null);
+  _monitor=new JMXMonitor();
+  int port=_server.getConnectors()[0].getLocalPort();
+  _requestUrl="http://localhost:" + port + "/";
+}

@@ -1,0 +1,34 @@
+{
+  int bufferSize=512;
+  WebSocketClientFactory factory=new WebSocketClientFactory(new QueuedThreadPool(),new ZeroMaskGen(),bufferSize);
+  factory.start();
+  WebSocketClient client=new WebSocketClient(factory);
+  final CountDownLatch openLatch=new CountDownLatch(1);
+  final CountDownLatch dataLatch=new CountDownLatch(1);
+  WebSocket.OnTextMessage websocket=new WebSocket.OnTextMessage(){
+    public void onOpen(    Connection connection){
+      openLatch.countDown();
+    }
+    public void onMessage(    String data){
+      System.out.println("data = " + data);
+      dataLatch.countDown();
+    }
+    public void onClose(    int closeCode,    String message){
+    }
+  }
+;
+  Future<WebSocket.Connection> future=client.open(new URI("ws://127.0.0.1:" + _serverPort + "/"),websocket);
+  Socket socket=_server.accept();
+  accept(socket);
+  Assert.assertTrue(openLatch.await(1,TimeUnit.SECONDS));
+  OutputStream serverOutput=socket.getOutputStream();
+  int length=bufferSize + bufferSize / 2;
+  serverOutput.write(0x80 | 0x01);
+  serverOutput.write(0x7E);
+  serverOutput.write(length >> 8);
+  serverOutput.write(length & 0xFF);
+  for (int i=0; i < length; ++i)   serverOutput.write('x');
+  serverOutput.flush();
+  Assert.assertTrue(dataLatch.await(1000,TimeUnit.SECONDS));
+  factory.stop();
+}

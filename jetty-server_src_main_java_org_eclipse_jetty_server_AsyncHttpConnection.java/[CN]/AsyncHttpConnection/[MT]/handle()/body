@@ -7,17 +7,17 @@
     while (_endp.isOpen() && (more_in_buffer || progress)) {
       progress=false;
       try {
-        Log.debug("async request",_request);
+        LOG.debug("async request",_request);
         if (_request._async.isAsync() && !_request._async.isComplete())         handleRequest();
  else         if (!_parser.isComplete() && _parser.parseAvailable() > 0)         progress=true;
         if (_generator.isCommitted() && !_generator.isComplete() && _generator.flushBuffer() > 0)         progress=true;
         if (_endp.isBufferingOutput())         _endp.flush();
       }
  catch (      HttpException e) {
-        if (Log.isDebugEnabled()) {
-          Log.debug("uri=" + _uri);
-          Log.debug("fields=" + _requestFields);
-          Log.debug(e);
+        if (LOG.isDebugEnabled()) {
+          LOG.debug("uri=" + _uri);
+          LOG.debug("fields=" + _requestFields);
+          LOG.debug(e);
         }
         _generator.sendError(e.getStatus(),e.getReason(),null,true);
         _parser.reset();
@@ -25,7 +25,7 @@
       }
  finally {
         if (_endp.isInputShutdown() && (_parser.isIdle() || _parser.isComplete())) {
-          Log.debug("complete half close {}",this);
+          LOG.debug("complete half close {}",this);
           more_in_buffer=false;
           _endp.close();
           reset(true);
@@ -44,7 +44,7 @@
           more_in_buffer=_parser.isMoreInBuffer() || _endp.isBufferingInput();
         }
  else         if (_request.isAsyncStarted()) {
-          Log.debug("suspended {}",this);
+          LOG.debug("suspended {}",this);
           more_in_buffer=false;
           progress=false;
         }
@@ -56,6 +56,7 @@
     setCurrentConnection(null);
     _parser.returnBuffers();
     if (_generator.isCommitted() && !_generator.isComplete())     ((AsyncEndPoint)_endp).scheduleWrite();
+ else     _generator.returnBuffers();
   }
   return connection;
 }
