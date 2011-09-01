@@ -68,6 +68,10 @@ case WebSocketConnectionD12.OP_TEXT:
 if (_onTextMessage != null) {
   if (_connection.getMaxTextMessageSize() <= 0) {
     if (lastFrame)     _onTextMessage.onMessage(buffer.toString(StringUtil.__UTF8));
+ else {
+      LOG.warn("Frame discarded. Text aggregation disabed for {}",_endp);
+      _connection.close(WebSocketConnectionD12.CLOSE_BADDATA,"Text frame aggregation disabled");
+    }
   }
  else   if (_utf8.append(buffer.array(),buffer.getIndex(),buffer.length(),_connection.getMaxTextMessageSize())) {
     if (lastFrame) {
@@ -93,6 +97,10 @@ if (lastFrame) {
   _opcode=opcode;
   if (_aggregate == null)   _aggregate=new ByteArrayBuffer(_connection.getMaxBinaryMessageSize());
   _aggregate.put(buffer);
+}
+ else {
+  LOG.warn("Frame discarded. Binary aggregation disabed for {}",_endp);
+  _connection.close(WebSocketConnectionD12.CLOSE_BADDATA,"Binary frame aggregation disabled");
 }
 }
 }
