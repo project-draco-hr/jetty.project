@@ -2,7 +2,7 @@
   while (_endp.isOpen() && !_parser.isComplete()) {
 switch (_parser.parseAvailable()) {
 case -1:
-      _holder.handshakeFailed(new IOException("Incomplete handshake response"));
+      _future.handshakeFailed(new IOException("Incomplete handshake response"));
     return this;
 case 0:
   return this;
@@ -15,11 +15,11 @@ if (_accept == null) _error="No Sec-WebSocket-Accept";
  else if (!WebSocketConnectionD13.hashKey(_key).equals(_accept)) _error="Bad Sec-WebSocket-Accept";
  else {
 Buffer header=_parser.getHeaderBuffer();
-MaskGen maskGen=_holder.getMaskGen();
-WebSocketConnectionD13 connection=new WebSocketConnectionD13(_holder.getWebSocket(),_endp,_buffers,System.currentTimeMillis(),_holder.getMaxIdleTime(),_holder.getProtocol(),null,10,maskGen);
+MaskGen maskGen=_future.getMaskGen();
+WebSocketConnectionD13 connection=new WebSocketConnectionD13(_future.getWebSocket(),_endp,_buffers,System.currentTimeMillis(),_future.getMaxIdleTime(),_future.getProtocol(),null,10,maskGen);
 if (header.hasContent()) connection.fillBuffersFrom(header);
 _buffers.returnBuffer(header);
-_holder.onConnection(connection);
+_future.onConnection(connection);
 return connection;
 }
 }
