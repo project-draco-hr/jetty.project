@@ -1,0 +1,22 @@
+{
+  int count=50;
+  int iterations=100;
+  ExecutorService threadPool=Executors.newCachedThreadPool();
+  try {
+    CountDownLatch latch=new CountDownLatch(count * iterations);
+    WebSocketClient[] clients=new WebSocketClient[count];
+    for (int i=0; i < clients.length; ++i) {
+      clients[i]=new WebSocketClient("localhost",_connector.getLocalPort(),1000,latch,iterations);
+      clients[i].open();
+    }
+    for (    WebSocketClient client : clients)     threadPool.execute(client);
+    int parallelism=ManagementFactory.getOperatingSystemMXBean().getAvailableProcessors();
+    long maxTimePerIteration=5;
+    assertTrue(latch.await(iterations * (count / parallelism + 1) * maxTimePerIteration,TimeUnit.MILLISECONDS));
+    for (    WebSocketClient client : clients)     client.close();
+  }
+  finally {
+    threadPool.shutdown();
+    assertTrue(threadPool.awaitTermination(2,TimeUnit.SECONDS));
+  }
+}

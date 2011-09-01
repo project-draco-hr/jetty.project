@@ -1,0 +1,63 @@
+{
+  boolean mask=_maskGen != null;
+  if (_buffer == null)   _buffer=mask ? _buffers.getBuffer() : _buffers.getDirectBuffer();
+  boolean last=WebSocketConnectionD13.isLastFrame(flags);
+  byte orig=opcode;
+  int space=mask ? 14 : 10;
+  do {
+    opcode=_opsent ? WebSocketConnectionD13.OP_CONTINUATION : opcode;
+    opcode=(byte)(((0xf & flags) << 4) + (0xf & opcode));
+    _opsent=true;
+    int payload=length;
+    if (payload + space > _buffer.capacity()) {
+      opcode=(byte)(opcode & 0x7F);
+      payload=_buffer.capacity() - space;
+    }
+ else     if (last)     opcode=(byte)(opcode | 0x80);
+    if (_buffer.space() <= space) {
+      flushBuffer();
+      if (_buffer.space() <= space)       flush();
+    }
+    if (payload > 0xffff) {
+      _buffer.put(new byte[]{opcode,mask ? (byte)0xff : (byte)0x7f,(byte)((payload >> 56) & 0x7f),(byte)((payload >> 48) & 0xff),(byte)((payload >> 40) & 0xff),(byte)((payload >> 32) & 0xff),(byte)((payload >> 24) & 0xff),(byte)((payload >> 16) & 0xff),(byte)((payload >> 8) & 0xff),(byte)(payload & 0xff)});
+    }
+ else     if (payload >= 0x7e) {
+      _buffer.put(new byte[]{opcode,mask ? (byte)0xfe : (byte)0x7e,(byte)(payload >> 8),(byte)(payload & 0xff)});
+    }
+ else {
+      _buffer.put(new byte[]{opcode,(byte)(mask ? (0x80 | payload) : payload)});
+    }
+    if (mask) {
+      _maskGen.genMask(_mask);
+      _m=0;
+      _buffer.put(_mask);
+    }
+    int remaining=payload;
+    while (remaining > 0) {
+      _buffer.compact();
+      int chunk=remaining < _buffer.space() ? remaining : _buffer.space();
+      if (mask) {
+        for (int i=0; i < chunk; i++)         _buffer.put((byte)(content[offset + (payload - remaining) + i] ^ _mask[+_m++ % 4]));
+      }
+ else       _buffer.put(content,offset + (payload - remaining),chunk);
+      remaining-=chunk;
+      if (_buffer.space() > 0) {
+        flushBuffer();
+      }
+ else {
+        flush();
+        if (remaining == 0) {
+          flushBuffer();
+        }
+      }
+    }
+    offset+=payload;
+    length-=payload;
+  }
+ while (length > 0);
+  _opsent=!last;
+  if (_buffer != null && _buffer.length() == 0) {
+    _buffers.returnBuffer(_buffer);
+    _buffer=null;
+  }
+}
