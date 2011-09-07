@@ -5,6 +5,8 @@
   AbstractTestServer server=createServer(0,1,scavengePeriod);
   ServletContextHandler context=server.addContext(contextPath);
   context.addServlet(TestServlet.class,servletMapping);
+  TestEventListener testListener=new TestEventListener();
+  context.getSessionHandler().addEventListener(testListener);
   server.start();
   int port=server.getPort();
   try {
@@ -21,6 +23,7 @@
       String sessionCookie=exchange.getResponseFields().getStringField("Set-Cookie");
       assertTrue(sessionCookie != null);
       sessionCookie=sessionCookie.replaceFirst("(\\W)(P|p)ath=","$1\\$Path=");
+      assertTrue(testListener.isCreated());
       exchange=new ContentExchange(true);
       exchange.setMethod(HttpMethods.GET);
       exchange.setURL("http://localhost:" + port + contextPath+ servletMapping+ "?action=delete");
@@ -28,6 +31,7 @@
       client.send(exchange);
       exchange.waitForDone();
       assertEquals(HttpServletResponse.SC_OK,exchange.getResponseStatus());
+      assertTrue(testListener.isDestroyed());
       exchange=new ContentExchange(true);
       exchange.setMethod(HttpMethods.GET);
       exchange.setURL("http://localhost:" + port + contextPath+ servletMapping+ "?action=check");
