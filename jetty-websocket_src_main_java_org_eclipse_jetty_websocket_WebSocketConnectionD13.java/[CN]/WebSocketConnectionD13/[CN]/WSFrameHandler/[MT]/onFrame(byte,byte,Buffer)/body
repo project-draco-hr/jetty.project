@@ -57,7 +57,7 @@ case WebSocketConnectionD13.OP_CLOSE:
   int code=WebSocketConnectionD13.CLOSE_NO_CODE;
   String message=null;
   if (buffer.length() >= 2) {
-    code=buffer.array()[buffer.getIndex()] * 0x100 + buffer.array()[buffer.getIndex() + 1];
+    code=(0xff & buffer.array()[buffer.getIndex()]) * 0x100 + (0xff & buffer.array()[buffer.getIndex() + 1]);
     if (buffer.length() > 2)     message=new String(buffer.array(),buffer.getIndex() + 2,buffer.length() - 2,StringUtil.__UTF8);
   }
   closeIn(code,message);
@@ -106,7 +106,12 @@ if (lastFrame) {
 }
 }
 }
- catch (ThreadDeath th) {
+ catch (Utf8Appendable.NotUtf8Exception notUtf8) {
+LOG.warn("{} for {}",notUtf8,_endp);
+LOG.debug(notUtf8);
+_connection.close(WebSocketConnectionD13.CLOSE_NOT_UTF8,"Invalid UTF-8");
+}
+catch (ThreadDeath th) {
 throw th;
 }
 catch (Throwable th) {
