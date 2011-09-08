@@ -7,7 +7,7 @@
     while (available < (_state == State.SKIP ? 1 : _bytesNeeded)) {
       _buffer.compact();
       if (_buffer.space() == 0) {
-        if (_fakeFragments && _state == State.DATA) {
+        if (_fragmentFrames && _state == State.DATA) {
           Buffer data=_buffer.get(4 * (available / 4));
           _buffer.compact();
           if (_masked) {
@@ -81,7 +81,7 @@ b=_buffer.get();
 available--;
 _length=_length * 0x100 + (0xff & b);
 if (--_bytesNeeded == 0) {
-if (_length > _buffer.capacity() && !_fakeFragments) {
+if (_length > _buffer.capacity() && !_fragmentFrames) {
 events++;
 _handler.close(WebSocketConnectionD13.CLOSE_POLICY_VIOLATION,"frame size " + _length + ">"+ _buffer.capacity());
 _skip=true;
@@ -96,7 +96,7 @@ available--;
 _length=_length * 0x100 + (0xff & b);
 if (--_bytesNeeded == 0) {
 _bytesNeeded=(int)_length;
-if (_length >= _buffer.capacity()) {
+if (_length >= _buffer.capacity() && !_fragmentFrames) {
 events++;
 _handler.close(WebSocketConnectionD13.CLOSE_POLICY_VIOLATION,"frame size " + _length + ">"+ _buffer.capacity());
 _skip=true;
