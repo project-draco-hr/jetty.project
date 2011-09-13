@@ -1,5 +1,11 @@
 {
-  Map<?,?> userInfoMap=(Map<?,?>)fileMap.get(propertyFileName);
-  if (userInfoMap == null)   return null;
-  return (UserInfo)userInfoMap.get(username);
+  PropertyUserStore propertyUserStore=_propertyUserStores.get(_filename);
+  if (propertyUserStore == null)   throw new IllegalStateException("PropertyUserStore should never be null here!");
+  UserIdentity userIdentity=propertyUserStore.getUserIdentity(userName);
+  if (userIdentity == null)   return null;
+  Set<Principal> principals=userIdentity.getSubject().getPrincipals();
+  String[] roles=principals.toArray(new String[principals.size()]);
+  Credential credential=(Credential)userIdentity.getSubject().getPrivateCredentials().iterator().next();
+  LOG.debug("Found: " + userName + " in PropertyUserStore");
+  return new UserInfo(userName,credential,Arrays.asList(roles));
 }
