@@ -1,5 +1,53 @@
 {
 synchronized (__root) {
-    return __root.lookupLink(getSuffix(name));
+    Name cname=__root.toCanonicalName(name);
+    if (cname == null) {
+      NamingContext ctx=new NamingContext(_env,null,null,__root.getNameParser(""));
+      ctx.setBindings(__root.getBindings());
+      return ctx;
+    }
+    if (cname.size() == 0)     throw new NamingException("Name is empty");
+    if (cname.size() == 1) {
+      Binding binding=__root.getBinding(cname);
+      if (binding == null)       throw new NameNotFoundException();
+      Object o=binding.getObject();
+      if (o instanceof Reference) {
+        try {
+          return NamingManager.getObjectInstance(o,cname.getPrefix(1),__root,_env);
+        }
+ catch (        NamingException e) {
+          throw e;
+        }
+catch (        Exception e) {
+          __log.warn("",e);
+          throw new NamingException(e.getMessage());
+        }
+      }
+ else {
+        return o;
+      }
+    }
+    String firstComponent=cname.get(0);
+    Object ctx=null;
+    if (firstComponent.equals(""))     ctx=this;
+ else {
+      Binding binding=__root.getBinding(firstComponent);
+      if (binding == null)       throw new NameNotFoundException();
+      ctx=binding.getObject();
+      if (ctx instanceof Reference) {
+        try {
+          ctx=NamingManager.getObjectInstance(ctx,getNameParser("").parse(firstComponent),__root,_env);
+        }
+ catch (        NamingException e) {
+          throw e;
+        }
+catch (        Exception e) {
+          __log.warn("",e);
+          throw new NamingException(e.getMessage());
+        }
+      }
+    }
+    if (!(ctx instanceof Context))     throw new NotContextException();
+    return ((Context)ctx).lookup(cname.getSuffix(1));
   }
 }
