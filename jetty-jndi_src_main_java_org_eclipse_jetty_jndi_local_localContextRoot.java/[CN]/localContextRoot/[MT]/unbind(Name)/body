@@ -1,5 +1,39 @@
 {
 synchronized (__root) {
-    __root.unbind(getSuffix(name));
+    if (name.size() == 0)     return;
+    if (__root.isLocked())     throw new NamingException("This context is immutable");
+    Name cname=__root.toCanonicalName(name);
+    if (cname == null)     throw new NamingException("Name is null");
+    if (cname.size() == 0)     throw new NamingException("Name is empty");
+    if (cname.size() == 1) {
+      __root.removeBinding(cname);
+    }
+ else {
+      if (__log.isDebugEnabled())       __log.debug("Checking for existing binding for name=" + cname + " for first element of name="+ cname.get(0));
+      String firstComponent=cname.get(0);
+      Object ctx=null;
+      if (firstComponent.equals(""))       ctx=this;
+ else {
+        Binding binding=__root.getBinding(name.get(0));
+        if (binding == null)         throw new NameNotFoundException(name.get(0) + " is not bound");
+        ctx=binding.getObject();
+        if (ctx instanceof Reference) {
+          try {
+            ctx=NamingManager.getObjectInstance(ctx,getNameParser("").parse(firstComponent),__root,_env);
+          }
+ catch (          NamingException e) {
+            throw e;
+          }
+catch (          Exception e) {
+            __log.warn("",e);
+            throw new NamingException(e.getMessage());
+          }
+        }
+      }
+      if (ctx instanceof Context) {
+        ((Context)ctx).unbind(cname.getSuffix(1));
+      }
+ else       throw new NotContextException("Object bound at " + firstComponent + " is not a Context");
+    }
   }
 }
