@@ -133,15 +133,17 @@ if (STRICT) errorClose(WebSocketConnectionD13.CLOSE_PROTOCOL,"Bad opcode 0x" + I
 return;
 }
 }
- catch (Utf8Appendable.NotUtf8Exception notUtf8) {
+ catch (ThreadDeath th) {
+throw th;
+}
+catch (Utf8Appendable.NotUtf8Exception notUtf8) {
 LOG.warn("{} for {}",notUtf8,_endp);
 LOG.debug(notUtf8);
 errorClose(WebSocketConnectionD13.CLOSE_BAD_PAYLOAD,"Invalid UTF-8");
 }
-catch (ThreadDeath th) {
-throw th;
-}
-catch (Throwable th) {
-LOG.warn(th);
+catch (Throwable probablyNotUtf8) {
+LOG.warn("{} for {}",probablyNotUtf8,_endp);
+LOG.debug(probablyNotUtf8);
+errorClose(WebSocketConnectionD13.CLOSE_BAD_PAYLOAD,"Invalid Payload: " + probablyNotUtf8);
 }
 }
