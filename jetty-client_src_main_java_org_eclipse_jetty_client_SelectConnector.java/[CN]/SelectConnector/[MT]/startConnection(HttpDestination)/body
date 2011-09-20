@@ -10,7 +10,13 @@
     }
  else {
       channel.configureBlocking(false);
-      channel.connect(address.toSocketAddress());
+      try {
+        channel.connect(address.toSocketAddress());
+      }
+ catch (      UnresolvedAddressException ex) {
+        channel.close();
+        throw ex;
+      }
       _selectorManager.register(channel,destination);
       ConnectTimeout connectTimeout=new ConnectTimeout(channel,destination);
       _httpClient.schedule(connectTimeout,_httpClient.getConnectTimeout());
