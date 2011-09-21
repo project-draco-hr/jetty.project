@@ -1,70 +1,24 @@
 {
-  if (b == (byte)0xc0 || b == (byte)0xc1 || (int)b >= 0xf5) {
-    _appendable.append(REPLACEMENT);
-    _expectedContinuationBytes=0;
-    _codePoint=0;
-    throw new NotUtf8Exception();
+  if (b > 0 && isUtf8SequenceComplete()) {
+    _appendable.append((char)(b & 0xFF));
   }
-  if (b >= 0) {
-    if (_expectedContinuationBytes > 0) {
-      _appendable.append(REPLACEMENT);
-      _expectedContinuationBytes=0;
-      _codePoint=0;
-      throw new NotUtf8Exception();
-    }
- else     _appendable.append((char)(0x7f & b));
-  }
- else   if (_expectedContinuationBytes == 0) {
-    if ((b & 0xe0) == 0xc0) {
-      _expectedContinuationBytes=1;
-      _codePoint=b & 0x1f;
-      _minCodePoint=0x80;
-    }
- else     if ((b & 0xf0) == 0xe0) {
-      _expectedContinuationBytes=2;
-      _codePoint=b & 0x0f;
-      _minCodePoint=0x800;
-    }
- else     if ((b & 0xf8) == 0xf0) {
-      _expectedContinuationBytes=3;
-      _codePoint=b & 0x07;
-      _minCodePoint=0x10000;
-    }
- else     if ((b & 0xfc) == 0xf8) {
-      _expectedContinuationBytes=4;
-      _codePoint=b & 0x03;
-      _minCodePoint=0x200000;
-    }
- else     if ((b & 0xfe) == 0xfc) {
-      _expectedContinuationBytes=5;
-      _codePoint=b & 0x01;
-      _minCodePoint=0x400000;
-    }
  else {
-      _appendable.append(REPLACEMENT);
-      _expectedContinuationBytes=0;
-      _codePoint=0;
-      throw new NotUtf8Exception();
-    }
-  }
- else   if ((b & 0xc0) == 0x80) {
-    _codePoint=(_codePoint << 6) | (b & 0x3f);
-    if (--_expectedContinuationBytes == 0) {
-      if (_codePoint < _minCodePoint || (_codePoint >= 0xD800 && _codePoint <= 0xDFFF)) {
-        _appendable.append(REPLACEMENT);
-        _expectedContinuationBytes=0;
-        _codePoint=0;
-        throw new NotUtf8Exception();
+    int i=b & 0xFF;
+    int type=BYTE_TABLE[i];
+    _codep=isUtf8SequenceComplete() ? (0xFF >> type) & i : (i & 0x3F) | (_codep << 6);
+    _state=TRANS_TABLE[_state + type];
+    if (isUtf8SequenceComplete()) {
+      if (_codep < Character.MIN_HIGH_SURROGATE) {
+        _appendable.append((char)_codep);
       }
-      _minCodePoint=0;
-      char[] chars=Character.toChars(_codePoint);
-      for (      char c : chars)       _appendable.append(c);
-    }
-  }
  else {
-    _appendable.append(REPLACEMENT);
-    _expectedContinuationBytes=0;
-    _codePoint=0;
-    throw new NotUtf8Exception();
+        for (        char c : Character.toChars(_codep))         _appendable.append(c);
+      }
+    }
+ else     if (_state == UTF8_REJECT) {
+      _state=UTF8_ACCEPT;
+      _appendable.append(REPLACEMENT);
+      throw new NotUtf8Exception();
+    }
   }
 }
