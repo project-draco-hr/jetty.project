@@ -12,10 +12,7 @@ synchronized (this) {
   final int debug=_log.isDebugEnabled() ? request.hashCode() : 0;
   final InputStream in=request.getInputStream();
   final OutputStream out=response.getOutputStream();
-  String uri=request.getRequestURI();
-  if (request.getQueryString() != null)   uri+="?" + request.getQueryString();
-  HttpURI url=proxyHttpURI(uri);
-  if (debug != 0)   _log.debug(debug + " proxy " + uri+ "-->"+ url);
+  HttpURI url=createUrl(request,debug);
   if (url == null) {
     response.sendError(HttpServletResponse.SC_FORBIDDEN);
     return target;
@@ -79,12 +76,13 @@ synchronized (this) {
   boolean hasContent=createHeaders(request,debug,exchange);
   if (hasContent)   exchange.setRequestContentSource(in);
   long ctimeout=(_client.getTimeout() > exchange.getTimeout()) ? _client.getTimeout() : exchange.getTimeout();
+  exchange.setTimeout(ctimeout);
   _client.send(exchange);
   try {
     exchange.waitForDone();
   }
  catch (  InterruptedException e) {
-    _log.info(e);
+    _log.info("Exception while waiting for response on proxied request",e);
   }
   return target;
 }
