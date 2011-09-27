@@ -1,7 +1,7 @@
 {
-  if (_debug)   LOG.debug("process {} {} {}",inbuf != null,header != null,buffer != null);
-  if (inbuf == null) {
-    inbuf=__ZERO_BUFFER;
+  if (_debug)   LOG.debug("process {} {}",inBBuf != null,outBuf != null);
+  if (inBBuf == null) {
+    inBBuf=__ZERO_BUFFER;
   }
   int received=0;
   int sent=0;
@@ -21,24 +21,19 @@ case FINISHED:
 case NOT_HANDSHAKING:
     _handshook=true;
   if (_closing)   break;
-if (header != null || buffer != null) {
+if (outBuf != null) {
   int c=0;
-  if (header != null && header.hasContent()) {
-    if (buffer != null && buffer.hasContent())     c=wrap(header,buffer);
- else     c=wrap(header);
-    progress=_result.bytesProduced() > 0 || _result.bytesConsumed() > 0;
-  }
- else   if (buffer != null && buffer.hasContent()) {
-    c=wrap(buffer);
+  if (outBuf != null && outBuf.hasContent()) {
+    c=wrap(outBuf);
     progress=_result.bytesProduced() > 0 || _result.bytesConsumed() > 0;
   }
   if (c > 0)   sent+=c;
  else   if (c < 0 && sent == 0)   sent=-1;
 }
-if (inbuf.remaining() > 0 && _inNIOBuffer != null && _inNIOBuffer.hasContent()) {
-int space=inbuf.remaining();
-progress|=unwrap(inbuf);
-received+=space - inbuf.remaining();
+if (inBBuf.remaining() > 0 && _inNIOBuffer != null && _inNIOBuffer.hasContent()) {
+int space=inBBuf.remaining();
+progress|=unwrap(inBBuf);
+received+=space - inBBuf.remaining();
 }
 break;
 case NEED_TASK:
@@ -58,11 +53,7 @@ case NEED_WRAP:
 {
 checkRenegotiate();
 int c=0;
-if (header != null && header.hasContent()) {
-if (buffer != null && buffer.hasContent()) c=wrap(header,buffer);
- else c=wrap(header);
-}
- else if (buffer != null && buffer.hasContent()) c=wrap(buffer);
+if (outBuf != null && outBuf.hasContent()) c=wrap(outBuf);
  else c=wrap(__EMPTY_BUFFER);
 progress=_result.bytesProduced() > 0 || _result.bytesConsumed() > 0;
 if (c > 0) sent+=c;
@@ -72,8 +63,8 @@ break;
 case NEED_UNWRAP:
 {
 checkRenegotiate();
-progress|=unwrap(inbuf);
-if (_closing) inbuf.clear();
+progress|=unwrap(inBBuf);
+if (_closing) inBBuf.clear();
 break;
 }
 }
