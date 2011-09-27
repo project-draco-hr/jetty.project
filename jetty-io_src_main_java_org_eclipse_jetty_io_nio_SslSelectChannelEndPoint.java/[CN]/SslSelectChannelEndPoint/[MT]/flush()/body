@@ -1,15 +1,15 @@
 {
   if (isBufferingOutput()) {
     int flushed=super.flush(_outNIOBuffer);
-    if (_debug)     __log.debug(_session + " Flushed " + flushed+ " left="+ _outNIOBuffer.length());
+    if (_debug)     LOG.debug(_session + " flushed " + flushed+ " left="+ _outNIOBuffer.length());
   }
  else   if (_closing) {
-    if (_engine.isOutboundDone()) {
-      if (_debug)       __log.debug(_session + " close");
-      super.close();
+    if (_engine.isOutboundDone() && !super.isOutputShutdown()) {
+      if (_debug)       LOG.debug(_session + " flush shutdownOutput");
+      super.shutdownOutput();
     }
  else {
-      if (_debug)       __log.debug(_session + " closeOutbound");
+      if (_debug)       LOG.debug(_session + " flush closeOutbound");
       _engine.closeOutbound();
     }
   }

@@ -1,0 +1,84 @@
+{
+  if (_debug)   LOG.debug("process {} {} {}",inbuf != null,header != null,buffer != null);
+  if (inbuf == null) {
+    inbuf=__ZERO_BUFFER;
+  }
+  int received=0;
+  int sent=0;
+  HandshakeStatus initialStatus=_engine.getHandshakeStatus();
+  boolean progress=true;
+  while (progress) {
+    progress=false;
+{
+      int len=_outNIOBuffer == null ? 0 : _outNIOBuffer.length();
+      flush();
+      progress|=(_outNIOBuffer == null ? 0 : _outNIOBuffer.length()) < len;
+    }
+    if (_debug)     LOG.debug("status {} {}",_engine,_engine.getHandshakeStatus());
+switch (_engine.getHandshakeStatus()) {
+case FINISHED:
+      throw new IllegalStateException();
+case NOT_HANDSHAKING:
+    _handshook=true;
+  if (_closing)   break;
+if (header != null || buffer != null) {
+  int c=0;
+  if (header != null && header.hasContent()) {
+    if (buffer != null && buffer.hasContent())     c=wrap(header,buffer);
+ else     c=wrap(header);
+    progress=_result.bytesProduced() > 0 || _result.bytesConsumed() > 0;
+  }
+ else   if (buffer != null && buffer.hasContent()) {
+    c=wrap(buffer);
+    progress=_result.bytesProduced() > 0 || _result.bytesConsumed() > 0;
+  }
+  if (c > 0)   sent+=c;
+ else   if (c < 0 && sent == 0)   sent=-1;
+}
+if (inbuf.remaining() > 0 && _inNIOBuffer != null && _inNIOBuffer.hasContent()) {
+int space=inbuf.remaining();
+progress|=unwrap(inbuf);
+received+=space - inbuf.remaining();
+}
+break;
+case NEED_TASK:
+{
+Runnable task;
+while ((task=_engine.getDelegatedTask()) != null) {
+progress=true;
+task.run();
+}
+if (initialStatus == HandshakeStatus.NOT_HANDSHAKING && _engine.getHandshakeStatus() == HandshakeStatus.NEED_UNWRAP && sent == 0) {
+if (_debug) LOG.warn(_session + " JETTY-567");
+return -1;
+}
+break;
+}
+case NEED_WRAP:
+{
+checkRenegotiate();
+int c=0;
+if (header != null && header.hasContent()) {
+if (buffer != null && buffer.hasContent()) c=wrap(header,buffer);
+ else c=wrap(header);
+}
+ else if (buffer != null && buffer.hasContent()) c=wrap(buffer);
+ else c=wrap(__EMPTY_BUFFER);
+progress=_result.bytesProduced() > 0 || _result.bytesConsumed() > 0;
+if (c > 0) sent+=c;
+ else if (c < 0 && sent == 0) sent=-1;
+break;
+}
+case NEED_UNWRAP:
+{
+checkRenegotiate();
+progress|=unwrap(inbuf);
+if (_closing) inbuf.clear();
+break;
+}
+}
+if (_debug) LOG.debug("{} progress {}",_session,progress);
+}
+if (_debug) LOG.debug("{} received {} sent {}",_session,received,sent);
+return (received < 0 || sent < 0) ? -1 : (received + sent);
+}

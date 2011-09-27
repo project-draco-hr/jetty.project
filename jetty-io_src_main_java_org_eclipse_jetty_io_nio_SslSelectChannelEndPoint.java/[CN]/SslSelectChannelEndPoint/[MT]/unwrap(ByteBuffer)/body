@@ -8,7 +8,7 @@
   while (_inNIOBuffer.space() > 0 && super.isOpen()) {
     try {
       int filled=super.fill(_inNIOBuffer);
-      if (_debug)       __log.debug(_session + " unwrap filled " + filled);
+      if (_debug)       LOG.debug(_session + " filled " + filled);
       if (filled < 0)       remoteClosed=true;
       if (filled <= 0)       break;
       total_filled+=filled;
@@ -43,7 +43,7 @@
     in_buffer.position(_inNIOBuffer.getIndex());
     in_buffer.limit(_inNIOBuffer.putIndex());
     _result=_engine.unwrap(in_buffer,buffer);
-    if (_debug)     __log.debug(_session + " unwrap unwrap " + _result);
+    if (_debug)     LOG.debug(_session + " unwrap " + _result);
     _inNIOBuffer.skip(_result.bytesConsumed());
   }
  catch (  SSLException e) {
@@ -59,13 +59,14 @@
   }
 switch (_result.getStatus()) {
 case BUFFER_OVERFLOW:
-    throw new IllegalStateException(_result.toString() + " " + buffer.position()+ " "+ buffer.limit());
+    LOG.debug("{} BUFFER_OVERFLOW",_session);
+  return false;
 case BUFFER_UNDERFLOW:
-  if (LOG.isDebugEnabled())   LOG.debug("unwrap {}",_result);
+if (LOG.isDebugEnabled()) LOG.debug("unwrap {}",_result);
 if (!isOpen()) {
-  _inNIOBuffer.clear();
-  if (_outNIOBuffer != null)   _outNIOBuffer.clear();
-  throw new EofException();
+_inNIOBuffer.clear();
+if (_outNIOBuffer != null) _outNIOBuffer.clear();
+throw new EofException();
 }
 return (total_filled > 0);
 case CLOSED:
