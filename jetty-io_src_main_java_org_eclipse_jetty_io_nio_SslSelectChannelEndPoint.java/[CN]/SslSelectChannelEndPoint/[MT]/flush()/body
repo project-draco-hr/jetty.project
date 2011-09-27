@@ -1,15 +1,15 @@
 {
-  if (_outNIOBuffer == null)   return;
-  int len=_outNIOBuffer.length();
   if (isBufferingOutput()) {
     int flushed=super.flush(_outNIOBuffer);
-    if (_debug)     __log.debug(_session + " Flushed " + flushed+ "/"+ len);
-    if (isBufferingOutput()) {
-      Thread.yield();
-      flushed=super.flush(_outNIOBuffer);
-      if (_debug)       __log.debug(_session + " flushed " + flushed+ "/"+ len);
+    if (_debug)     __log.debug(_session + " Flushed " + flushed+ " left="+ _outNIOBuffer.length());
+  }
+ else   if (_closing) {
+    if (_engine.isOutboundDone()) {
+      if (_debug)       __log.debug(_session + " close");
+      super.close();
     }
- else     if (_closing && !_engine.isOutboundDone()) {
+ else {
+      if (_debug)       __log.debug(_session + " closeOutbound");
       _engine.closeOutbound();
     }
   }
