@@ -6,18 +6,25 @@
         int read;
         @Override public int flush(        Buffer header,        Buffer buffer,        Buffer trailer) throws IOException {
           int x=write++ & 0xff;
-          if (x < 8)           return 0;
+          if (x < 8) {
+            clearWritable();
+            return 0;
+          }
           if (x < 32)           return flush(header);
           return super.flush(header,buffer,trailer);
         }
         @Override public int flush(        Buffer buffer) throws IOException {
           int x=write++ & 0xff;
-          if (x < 8)           return 0;
+          if (x < 8) {
+            clearWritable();
+            return 0;
+          }
           if (x < 32) {
             View v=new View(buffer);
             v.setPutIndex(v.getIndex() + 1);
             int l=super.flush(v);
             if (l > 0)             buffer.skip(l);
+            clearWritable();
             return l;
           }
           return super.flush(buffer);

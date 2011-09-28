@@ -19,21 +19,20 @@ switch (_engine.getHandshakeStatus()) {
 case FINISHED:
       throw new IllegalStateException();
 case NOT_HANDSHAKING:
-    _handshook=true;
-  if (_closing) {
-    if (outBuf != null && outBuf.hasContent())     throw new IOException("Write while closing");
-    break;
+    if (_closing) {
+      if (outBuf != null && outBuf.hasContent())       throw new IOException("Write while closing");
+      break;
+    }
+  if (outBuf != null && outBuf.hasContent()) {
+    int c=wrap(outBuf);
+    progress=c > 0 || _result.bytesProduced() > 0 || _result.bytesConsumed() > 0;
+    if (c > 0)     sent+=c;
+ else     if (c < 0 && sent == 0)     sent=-1;
   }
-if (outBuf != null && outBuf.hasContent()) {
-  int c=wrap(outBuf);
-  progress=c > 0 || _result.bytesProduced() > 0 || _result.bytesConsumed() > 0;
-  if (c > 0)   sent+=c;
- else   if (c < 0 && sent == 0)   sent=-1;
-}
 if (inBBuf.remaining() > 0 && _inNIOBuffer != null && _inNIOBuffer.hasContent()) {
-int space=inBBuf.remaining();
-progress|=unwrap(inBBuf);
-received+=space - inBBuf.remaining();
+  int space=inBBuf.remaining();
+  progress|=unwrap(inBBuf);
+  received+=space - inBBuf.remaining();
 }
 break;
 case NEED_TASK:
