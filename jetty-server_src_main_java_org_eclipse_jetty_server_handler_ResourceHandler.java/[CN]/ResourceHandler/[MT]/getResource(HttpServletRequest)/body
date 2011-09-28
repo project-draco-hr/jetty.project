@@ -1,12 +1,20 @@
 {
+  String servletPath;
   String pathInfo;
   Boolean included=request.getAttribute(Dispatcher.INCLUDE_REQUEST_URI) != null;
   if (included != null && included.booleanValue()) {
+    servletPath=(String)request.getAttribute(Dispatcher.INCLUDE_SERVLET_PATH);
     pathInfo=(String)request.getAttribute(Dispatcher.INCLUDE_PATH_INFO);
+    if (servletPath == null && pathInfo == null) {
+      servletPath=request.getServletPath();
+      pathInfo=request.getPathInfo();
+    }
   }
  else {
     included=Boolean.FALSE;
+    servletPath=request.getServletPath();
     pathInfo=request.getPathInfo();
   }
-  return getResource(pathInfo);
+  String pathInContext=URIUtil.addPaths(servletPath,pathInfo);
+  return getResource(pathInContext);
 }
