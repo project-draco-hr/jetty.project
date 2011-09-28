@@ -4,57 +4,68 @@
   final CountDownLatch latch=new CountDownLatch(nb);
   HttpExchange[] httpExchange=new HttpExchange[nb];
   long start=System.currentTimeMillis();
+  final boolean verbose=false;
   for (int i=0; i < nb; i++) {
     final int n=i;
     httpExchange[n]=new HttpExchange(){
       String result="pending";
       int len=0;
       @Override protected void onRequestCommitted(){
+        if (verbose)         System.err.println("[ ");
         result="committed";
       }
       @Override protected void onRequestComplete() throws IOException {
+        if (verbose)         System.err.println("[ ==");
         result="sent";
       }
       @Override protected void onResponseStatus(      Buffer version,      int status,      Buffer reason){
+        if (verbose)         System.err.println("] " + version + " "+ status+ " "+ reason);
         result="status";
       }
       @Override protected void onResponseHeader(      Buffer name,      Buffer value){
+        if (verbose)         System.err.println("] " + name + ": "+ value);
       }
       @Override protected void onResponseHeaderComplete() throws IOException {
+        if (verbose)         System.err.println("] -");
         result="content";
         super.onResponseHeaderComplete();
       }
       @Override protected void onResponseContent(      Buffer content){
         len+=content.length();
+        if (verbose)         System.err.println("] " + content.length() + " -> "+ len);
       }
       @Override protected void onResponseComplete(){
+        if (verbose)         System.err.println("] ==");
         result="complete";
         if (len == 2009)         latch.countDown();
  else {
-          System.err.println(n + " ONLY " + len);
+          System.err.println(n + " ONLY " + len+ "/2009");
         }
         complete.countDown();
       }
       @Override protected void onConnectionFailed(      Throwable ex){
+        if (verbose)         System.err.println("] " + ex);
         complete.countDown();
         result="failed";
         System.err.println(n + " FAILED " + ex);
         super.onConnectionFailed(ex);
       }
       @Override protected void onException(      Throwable ex){
+        if (verbose)         System.err.println("] " + ex);
         complete.countDown();
         result="excepted";
         System.err.println(n + " EXCEPTED " + ex);
         super.onException(ex);
       }
       @Override protected void onExpire(){
+        if (verbose)         System.err.println("] expired");
         complete.countDown();
         result="expired";
         System.err.println(n + " EXPIRED " + len);
         super.onExpire();
       }
       @Override public String toString(){
-        return n + " " + result+ " "+ len;
+        return n + "/" + result+ "/"+ len+ "/"+ super.toString();
       }
     }
 ;

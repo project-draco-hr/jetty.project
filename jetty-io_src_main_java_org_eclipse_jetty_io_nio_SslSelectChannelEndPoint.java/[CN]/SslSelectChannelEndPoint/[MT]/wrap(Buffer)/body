@@ -1,2 +1,52 @@
 {
+  ByteBuffer bbuf=extractOutputBuffer(buffer);
+synchronized (bbuf) {
+    int consumed=0;
+    needOutBuffer();
+    _outNIOBuffer.compact();
+    ByteBuffer out_buffer=_outNIOBuffer.getByteBuffer();
+synchronized (out_buffer) {
+      try {
+        bbuf.position(buffer.getIndex());
+        bbuf.limit(buffer.putIndex());
+        out_buffer.position(_outNIOBuffer.putIndex());
+        _result=null;
+        _result=_engine.wrap(bbuf,out_buffer);
+        if (_debug)         LOG.debug(_session + " wrap " + _result);
+        _outNIOBuffer.setPutIndex(out_buffer.position());
+        consumed=_result.bytesConsumed();
+      }
+ catch (      SSLException e) {
+        LOG.warn(getRemoteAddr() + ":" + getRemotePort()+ " "+ e);
+        super.close();
+        throw e;
+      }
+ finally {
+        out_buffer.position(0);
+        bbuf.position(0);
+        bbuf.limit(bbuf.capacity());
+        if (consumed > 0) {
+          int len=consumed < buffer.length() ? consumed : buffer.length();
+          buffer.skip(len);
+          consumed-=len;
+        }
+      }
+    }
+  }
+switch (_result.getStatus()) {
+case BUFFER_UNDERFLOW:
+    throw new IllegalStateException();
+case BUFFER_OVERFLOW:
+  LOG.debug("wrap {}",_result);
+flush();
+return 0;
+case OK:
+return _result.bytesConsumed();
+case CLOSED:
+_closing=true;
+return _result.bytesConsumed() > 0 ? _result.bytesConsumed() : -1;
+default :
+LOG.warn("wrap default " + _result);
+throw new IOException(_result.toString());
+}
 }

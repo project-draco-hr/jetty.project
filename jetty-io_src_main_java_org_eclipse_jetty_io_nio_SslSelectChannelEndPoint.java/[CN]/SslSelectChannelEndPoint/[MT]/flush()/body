@@ -1,11 +1,18 @@
 {
   LOG.debug(_session + " flush");
+  if (!isOpen())   throw new EofException();
   if (isBufferingOutput()) {
     int flushed=super.flush(_outNIOBuffer);
     if (_debug)     LOG.debug(_session + " flushed " + flushed+ " left="+ _outNIOBuffer.length());
   }
- else   if (_engine.isOutboundDone() && !super.isOutputShutdown()) {
+ else   if (_engine.isOutboundDone() && super.isOpen()) {
     if (_debug)     LOG.debug(_session + " flush shutdownOutput");
-    super.shutdownOutput();
+    try {
+      super.shutdownOutput();
+    }
+ catch (    IOException e) {
+      LOG.ignore(e);
+    }
   }
+  freeOutBuffer();
 }

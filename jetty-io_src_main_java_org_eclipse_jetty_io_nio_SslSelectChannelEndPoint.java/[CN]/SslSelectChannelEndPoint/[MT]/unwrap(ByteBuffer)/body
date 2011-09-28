@@ -1,29 +1,15 @@
 {
   needInBuffer();
   ByteBuffer in_buffer=_inNIOBuffer.getByteBuffer();
-  if (_inNIOBuffer.hasContent())   _inNIOBuffer.compact();
- else   _inNIOBuffer.clear();
+  _inNIOBuffer.compact();
   int total_filled=0;
   boolean remoteClosed=false;
   while (_inNIOBuffer.space() > 0 && super.isOpen()) {
-    try {
-      int filled=super.fill(_inNIOBuffer);
-      if (_debug)       LOG.debug(_session + " filled " + filled);
-      if (filled < 0)       remoteClosed=true;
-      if (filled <= 0)       break;
-      total_filled+=filled;
-    }
- catch (    IOException e) {
-      if (_inNIOBuffer.length() == 0) {
-        freeInBuffer();
-        if (_outNIOBuffer != null) {
-          _outNIOBuffer.clear();
-          freeOutBuffer();
-        }
-        throw e;
-      }
-      break;
-    }
+    int filled=super.fill(_inNIOBuffer);
+    if (_debug)     LOG.debug(_session + " filled " + filled);
+    if (filled < 0)     remoteClosed=true;
+    if (filled <= 0)     break;
+    total_filled+=filled;
   }
   if (total_filled == 0 && _inNIOBuffer.length() == 0) {
     if (isOpen() && remoteClosed) {
@@ -34,8 +20,6 @@
         super.close();
       }
     }
-    freeInBuffer();
-    freeOutBuffer();
     if (!isOpen())     throw new EofException();
     return false;
   }
@@ -48,14 +32,12 @@
   }
  catch (  SSLException e) {
     LOG.warn(getRemoteAddr() + ":" + getRemotePort()+ " "+ e);
-    freeOutBuffer();
     super.close();
     throw e;
   }
  finally {
     in_buffer.position(0);
     in_buffer.limit(in_buffer.capacity());
-    freeInBuffer();
   }
 switch (_result.getStatus()) {
 case BUFFER_OVERFLOW:
