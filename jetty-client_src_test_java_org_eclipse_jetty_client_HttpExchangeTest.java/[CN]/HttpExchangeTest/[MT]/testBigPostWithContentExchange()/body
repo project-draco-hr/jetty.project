@@ -1,15 +1,20 @@
 {
   int size=32;
   ContentExchange httpExchange=new ContentExchange(){
+    int total;
     @Override protected synchronized void onResponseStatus(    Buffer version,    int status,    Buffer reason) throws IOException {
-      if (verbose)       super.onResponseStatus(version,status,reason);
+      if (verbose)       System.err.println("] " + version + " "+ status+ " "+ reason);
+      super.onResponseStatus(version,status,reason);
     }
     @Override protected synchronized void onResponseHeader(    Buffer name,    Buffer value) throws IOException {
       if (verbose)       System.err.println("] " + name + ": "+ value);
       super.onResponseHeader(name,value);
     }
     @Override protected synchronized void onResponseContent(    Buffer content) throws IOException {
-      if (verbose)       System.err.println("] " + content.length());
+      if (verbose) {
+        total+=content.length();
+        System.err.println("] " + content.length() + " -> "+ total);
+      }
       super.onResponseContent(content);
     }
     @Override protected void onRequestComplete() throws IOException {
