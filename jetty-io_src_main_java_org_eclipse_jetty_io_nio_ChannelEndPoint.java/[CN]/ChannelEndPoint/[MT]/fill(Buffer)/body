@@ -9,17 +9,20 @@ synchronized (bbuf) {
         try {
           bbuf.position(buffer.putIndex());
           len=_channel.read(bbuf);
+          LOG.debug("{} {} {} read={}",this.getChannel().isOpen(),this.isInputShutdown(),this.isOutputShutdown(),this.getChannel().isOpen(),len);
         }
   finally {
           buffer.setPutIndex(bbuf.position());
           bbuf.position(0);
         }
       }
-      if (len < 0 && isOpen() && !isInputShutdown()) {
-        shutdownInput();
+      if (len < 0 && isOpen()) {
+        if (!isInputShutdown())         shutdownInput();
+ else         if (isOutputShutdown())         _channel.close();
       }
     }
  catch (    IOException x) {
+      LOG.debug(x);
       try {
         close();
       }
@@ -27,7 +30,6 @@ synchronized (bbuf) {
         LOG.ignore(xx);
       }
       if (len > 0)       throw x;
-      LOG.ignore(x);
       len=-1;
     }
   }
