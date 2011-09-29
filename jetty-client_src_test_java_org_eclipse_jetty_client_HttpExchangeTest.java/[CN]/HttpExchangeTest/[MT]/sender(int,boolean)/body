@@ -1,7 +1,7 @@
 {
   _count.set(0);
   final CountDownLatch complete=new CountDownLatch(nb);
-  final CountDownLatch latch=new CountDownLatch(nb);
+  final AtomicInteger allcontent=new AtomicInteger(nb);
   HttpExchange[] httpExchange=new HttpExchange[nb];
   long start=System.currentTimeMillis();
   for (int i=0; i < nb; i++) {
@@ -34,12 +34,10 @@
         if (verbose)         System.err.println("] " + content.length() + " -> "+ len);
       }
       @Override protected void onResponseComplete(){
-        if (verbose)         System.err.println("] ==");
+        if (verbose)         System.err.println("] == " + len + " "+ complete.getCount()+ "/"+ nb);
         result="complete";
-        if (len == 2009)         latch.countDown();
- else {
-          System.err.println(n + " ONLY " + len+ "/2009");
-        }
+        if (len == 2009)         allcontent.decrementAndGet();
+ else         System.err.println(n + " ONLY " + len+ "/2009");
         complete.countDown();
       }
       @Override protected void onConnectionFailed(      Throwable ex){
@@ -73,9 +71,7 @@
     if (close)     httpExchange[n].setRequestHeader("Connection","close");
     _httpClient.send(httpExchange[n]);
   }
-  Thread.sleep(2000);
-  System.err.println(_httpClient.dump());
-  assertTrue(complete.await(10,TimeUnit.SECONDS));
-  long elapsed=System.currentTimeMillis() - start;
-  assertEquals("nb=" + nb + " close="+ close,0,latch.getCount());
+  if (!complete.await(2,TimeUnit.SECONDS))   System.err.println(_httpClient.dump());
+  assertTrue(complete.await(20,TimeUnit.SECONDS));
+  assertEquals("nb=" + nb + " close="+ close,0,allcontent.get());
 }
