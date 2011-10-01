@@ -10,15 +10,15 @@ synchronized (out_buffer) {
         bbuf.position(buffer.getIndex());
         bbuf.limit(buffer.putIndex());
         out_buffer.position(_outNIOBuffer.putIndex());
-        _result=null;
+        out_buffer.limit(out_buffer.capacity());
         _result=_engine.wrap(bbuf,out_buffer);
-        if (_debug)         LOG.debug(_session + " wrap " + _result);
+        if (_debug)         LOG.debug("{} wrap {}",_session,_result);
         if (!_handshook && _result.getHandshakeStatus() == SSLEngineResult.HandshakeStatus.FINISHED)         _handshook=true;
         _outNIOBuffer.setPutIndex(out_buffer.position());
         consumed=_result.bytesConsumed();
       }
  catch (      SSLException e) {
-        LOG.warn(getRemoteAddr() + ":" + getRemotePort()+ " "+ e);
+        LOG.warn(getRemoteAddr() + ":" + getRemotePort()+ " ",e);
         super.close();
         throw e;
       }
@@ -38,7 +38,7 @@ switch (_result.getStatus()) {
 case BUFFER_UNDERFLOW:
     throw new IllegalStateException();
 case BUFFER_OVERFLOW:
-  LOG.debug("wrap {}",_result);
+  LOG.debug("{} wrap {}",_session,_result);
 flush();
 return 0;
 case OK:
@@ -47,7 +47,7 @@ case CLOSED:
 _closing=true;
 return _result.bytesConsumed() > 0 ? _result.bytesConsumed() : -1;
 default :
-LOG.warn("wrap default " + _result);
+LOG.warn("{} wrap default {}",_session,_result);
 throw new IOException(_result.toString());
 }
 }
