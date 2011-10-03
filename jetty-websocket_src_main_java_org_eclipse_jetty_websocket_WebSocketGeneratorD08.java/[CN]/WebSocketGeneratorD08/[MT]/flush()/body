@@ -1,0 +1,19 @@
+{
+  if (_buffer == null)   return 0;
+  int result=flushBuffer();
+  if (!_endp.isBlocking()) {
+    long now=System.currentTimeMillis();
+    long end=now + _endp.getMaxIdleTime();
+    while (_buffer.length() > 0) {
+      boolean ready=_endp.blockWritable(end - now);
+      if (!ready) {
+        now=System.currentTimeMillis();
+        if (now < end)         continue;
+        throw new IOException("Write timeout");
+      }
+      result+=flushBuffer();
+    }
+  }
+  _buffer.compact();
+  return result;
+}
