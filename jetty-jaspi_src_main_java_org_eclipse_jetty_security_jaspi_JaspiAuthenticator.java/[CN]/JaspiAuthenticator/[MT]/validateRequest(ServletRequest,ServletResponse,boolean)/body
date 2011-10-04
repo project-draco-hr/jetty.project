@@ -1,7 +1,9 @@
 {
-  System.err.println("JaspiAuthenticator.validateRequest, uri=" + ((javax.servlet.http.HttpServletRequest)request).getRequestURI() + "lazy="+ _allowLazyAuthentication+ " mandatory="+ mandatory);
-  new Throwable().printStackTrace();
+  System.err.println("\nJaspiAuthenticator.validateRequest, uri=" + ((javax.servlet.http.HttpServletRequest)request).getRequestURI() + " lazy="+ _allowLazyAuthentication+ " mandatory="+ mandatory);
   JaspiMessageInfo info=new JaspiMessageInfo(request,response,mandatory);
   request.setAttribute("org.eclipse.jetty.security.jaspi.info",info);
-  return validateRequest(info);
+  Authentication a=validateRequest(info);
+  if (_allowLazyAuthentication && !info.isAuthMandatory() && a == Authentication.UNAUTHENTICATED)   a=_deferred;
+  System.err.println("JaspiAuthenticator.validateRequest returning " + a);
+  return a;
 }

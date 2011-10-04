@@ -1,24 +1,29 @@
 {
-  System.err.println("FormAuthModule.validateRequest(info,subject,serviceSubject)");
   HttpServletRequest request=(HttpServletRequest)messageInfo.getRequestMessage();
   HttpServletResponse response=(HttpServletResponse)messageInfo.getResponseMessage();
-  HttpSession session=request.getSession(isMandatory(messageInfo));
   String uri=request.getRequestURI();
-  if (session == null || isLoginOrErrorPage(uri))   return AuthStatus.SUCCESS;
-  System.err.println("FormAuthModule.validateRequest(info,subect,serviceSubject), uri=" + uri);
+  if (uri == null)   uri=URIUtil.SLASH;
+  boolean mandatory=isMandatory(messageInfo);
+  mandatory|=isJSecurityCheck(uri);
+  HttpSession session=request.getSession(mandatory);
+  System.err.println("FormAuthModule.validateRequest(info,subject,serviceSubject) for uri=" + uri + " mandatory="+ mandatory+ " isLoginOrError="+ isLoginOrErrorPage(uri));
+  if (!mandatory || isLoginOrErrorPage(uri))   return AuthStatus.SUCCESS;
   try {
-    if (uri != null && isJSecurityCheck(uri)) {
+    if (isJSecurityCheck(uri)) {
       final String username=request.getParameter(__J_USERNAME);
       final String password=request.getParameter(__J_PASSWORD);
       System.err.println("Try login username=" + username + " password="+ password);
       boolean success=tryLogin(messageInfo,clientSubject,response,session,username,new Password(password));
       if (success) {
-        String nuri=(String)session.getAttribute(__J_URI);
+        String nuri=null;
+synchronized (session) {
+          nuri=(String)session.getAttribute(__J_URI);
+        }
         if (nuri == null || nuri.length() == 0) {
           nuri=request.getContextPath();
           if (nuri.length() == 0)           nuri=URIUtil.SLASH;
         }
-        session.removeAttribute(__J_URI);
+        System.err.println("FormAuthModule succesful login, sending redirect to " + nuri);
         response.setContentLength(0);
         response.sendRedirect(response.encodeRedirectURL(nuri));
         return AuthStatus.SEND_CONTINUE;
@@ -50,10 +55,12 @@
         }
       }
     }
-    if (!isMandatory(messageInfo) || isLoginOrErrorPage(uri))     return AuthStatus.SUCCESS;
-    System.err.println("Redirecting to login page");
-    if (request.getQueryString() != null)     uri+="?" + request.getQueryString();
-    session.setAttribute(__J_URI,request.getScheme() + "://" + request.getServerName()+ ":"+ request.getServerPort()+ URIUtil.addPaths(request.getContextPath(),uri));
+    StringBuffer buf=request.getRequestURL();
+    if (request.getQueryString() != null)     buf.append("?").append(request.getQueryString());
+synchronized (session) {
+      session.setAttribute(__J_URI,buf.toString());
+    }
+    System.err.println("Redirecting to login page " + _formLoginPage + " and remembering juri="+ buf.toString());
     response.setContentLength(0);
     response.sendRedirect(response.encodeRedirectURL(URIUtil.addPaths(request.getContextPath(),_formLoginPage)));
     return AuthStatus.SEND_CONTINUE;
