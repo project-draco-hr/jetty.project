@@ -3,7 +3,10 @@
     int oldStatus=_status.get();
     boolean set=false;
     if (oldStatus != newStatus) {
-      _lastStateChange=System.currentTimeMillis();
+      long now=System.currentTimeMillis();
+      _lastStatePeriod=(int)(now - _lastStateChange);
+      _lastState=oldStatus;
+      _lastStateChange=now;
       if (newStatus == STATUS_SENDING_REQUEST)       _sent=_lastStateChange;
     }
 switch (oldStatus) {
@@ -16,7 +19,10 @@ case STATUS_CANCELLING:
 case STATUS_EXCEPTED:
         set=_status.compareAndSet(oldStatus,newStatus);
       break;
-  }
+case STATUS_EXPIRED:
+    set=setStatusExpired(newStatus,oldStatus);
+  break;
+}
 break;
 case STATUS_WAITING_FOR_CONNECTION:
 switch (newStatus) {
@@ -26,7 +32,7 @@ case STATUS_EXCEPTED:
 set=_status.compareAndSet(oldStatus,newStatus);
 break;
 case STATUS_EXPIRED:
-if (set=_status.compareAndSet(oldStatus,newStatus)) getEventListener().onExpire();
+set=setStatusExpired(newStatus,oldStatus);
 break;
 }
 break;
@@ -38,7 +44,7 @@ case STATUS_EXCEPTED:
 set=_status.compareAndSet(oldStatus,newStatus);
 break;
 case STATUS_EXPIRED:
-if (set=_status.compareAndSet(oldStatus,newStatus)) getEventListener().onExpire();
+set=setStatusExpired(newStatus,oldStatus);
 break;
 }
 break;
@@ -52,7 +58,7 @@ case STATUS_EXCEPTED:
 set=_status.compareAndSet(oldStatus,newStatus);
 break;
 case STATUS_EXPIRED:
-if (set=_status.compareAndSet(oldStatus,newStatus)) getEventListener().onExpire();
+set=setStatusExpired(newStatus,oldStatus);
 break;
 }
 break;
@@ -64,7 +70,7 @@ case STATUS_EXCEPTED:
 set=_status.compareAndSet(oldStatus,newStatus);
 break;
 case STATUS_EXPIRED:
-if (set=_status.compareAndSet(oldStatus,newStatus)) getEventListener().onExpire();
+set=setStatusExpired(newStatus,oldStatus);
 break;
 }
 break;
@@ -78,7 +84,7 @@ case STATUS_EXCEPTED:
 set=_status.compareAndSet(oldStatus,newStatus);
 break;
 case STATUS_EXPIRED:
-if (set=_status.compareAndSet(oldStatus,newStatus)) getEventListener().onExpire();
+set=setStatusExpired(newStatus,oldStatus);
 break;
 }
 break;
@@ -92,7 +98,7 @@ case STATUS_EXCEPTED:
 set=_status.compareAndSet(oldStatus,newStatus);
 break;
 case STATUS_EXPIRED:
-if (set=_status.compareAndSet(oldStatus,newStatus)) getEventListener().onExpire();
+set=setStatusExpired(newStatus,oldStatus);
 break;
 }
 break;

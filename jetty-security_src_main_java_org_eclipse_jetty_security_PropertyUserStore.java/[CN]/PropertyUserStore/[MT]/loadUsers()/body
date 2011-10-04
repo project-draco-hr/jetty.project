@@ -15,9 +15,23 @@
     }
     if (username != null && username.length() > 0 && credentials != null && credentials.length() > 0) {
       String[] roleArray=IdentityService.NO_ROLES;
-      if (roles != null && roles.length() > 0)       roleArray=roles.split(",");
+      if (roles != null && roles.length() > 0) {
+        roleArray=roles.split(",");
+      }
       known.add(username);
-      notifyUpdate(username,Credential.getCredential(credentials),roleArray);
+      Credential credential=Credential.getCredential(credentials);
+      Principal userPrincipal=new KnownUser(username,credential);
+      Subject subject=new Subject();
+      subject.getPrincipals().add(userPrincipal);
+      subject.getPrivateCredentials().add(credential);
+      if (roles != null) {
+        for (        String role : roleArray) {
+          subject.getPrincipals().add(new RolePrincipal(role));
+        }
+      }
+      subject.setReadOnly();
+      _knownUserIdentities.put(username,_identityService.newUserIdentity(subject,userPrincipal,roleArray));
+      notifyUpdate(username,credential,roleArray);
     }
   }
 synchronized (_knownUsers) {
@@ -26,6 +40,7 @@ synchronized (_knownUsers) {
       while (users.hasNext()) {
         String user=users.next();
         if (!known.contains(user)) {
+          _knownUserIdentities.remove(user);
           notifyRemove(user);
         }
       }

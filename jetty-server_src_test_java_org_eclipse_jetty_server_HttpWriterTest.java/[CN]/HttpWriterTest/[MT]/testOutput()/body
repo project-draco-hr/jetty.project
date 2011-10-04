@@ -5,7 +5,15 @@
   ByteArrayEndPoint endp=new ByteArrayEndPoint(new byte[0],4096);
   HttpGenerator hb=new HttpGenerator(new SimpleBuffers(sb,bb),endp);
   hb.setResponse(200,"OK");
-  HttpOutput output=new HttpOutput(hb,10000);
+  HttpConnection connection=new HttpConnection(null,endp,new Server(),null,hb,null){
+    @Override public Connection handle() throws IOException {
+      return null;
+    }
+  }
+;
+  endp.setMaxIdleTime(10000);
+  hb.setSendServerVersion(false);
+  HttpOutput output=new HttpOutput(connection);
   HttpWriter writer=new HttpWriter(output);
   writer.setCharacterEncoding(StringUtil.__UTF8);
   char[] chars=new char[1024];

@@ -18,8 +18,16 @@
   }
   int length=_buffer.length();
   if (length == 0) {
-    long filled=fill();
-    if (filled < 0) {
+    long filled=-1;
+    IOException ex=null;
+    try {
+      filled=fill();
+    }
+ catch (    IOException e) {
+      LOG.debug(this.toString(),e);
+      ex=e;
+    }
+    if (filled < 0 || _endp.isInputShutdown()) {
       if (_headResponse && _state > STATE_END) {
         _state=STATE_END;
         _handler.messageComplete(_contentPosition);
@@ -36,6 +44,7 @@
         _handler.messageComplete(_contentPosition);
         return 1;
       }
+      if (ex != null)       throw ex;
       return -1;
     }
     length=_buffer.length();

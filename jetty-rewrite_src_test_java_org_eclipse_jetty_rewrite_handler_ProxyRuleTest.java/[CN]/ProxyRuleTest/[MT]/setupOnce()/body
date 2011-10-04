@@ -1,0 +1,23 @@
+{
+  _targetServer.addConnector(_targetServerConnector);
+  _targetServer.setHandler(new AbstractHandler(){
+    public void handle(    String target,    Request baseRequest,    HttpServletRequest request,    HttpServletResponse response) throws IOException, ServletException {
+      baseRequest.setHandled(true);
+      String responseString="uri: " + request.getRequestURI() + " some content";
+      response.getOutputStream().write(responseString.getBytes());
+      response.setStatus(201);
+    }
+  }
+);
+  _targetServer.start();
+  _rule=new ProxyRule();
+  _rule.setPattern("/foo/*");
+  _rule.setProxyTo("http://localhost:" + _targetServerConnector.getLocalPort());
+  _handler=new RewriteHandler();
+  _handler.setRewriteRequestURI(true);
+  _handler.setRules(new Rule[]{_rule});
+  _proxyServer.addConnector(_proxyServerConnector);
+  _proxyServer.setHandler(_handler);
+  _proxyServer.start();
+  _httpClient.start();
+}

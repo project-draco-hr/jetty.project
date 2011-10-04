@@ -1,16 +1,18 @@
 {
-  if (_outNIOBuffer == null)   return;
-  int len=_outNIOBuffer.length();
+  LOG.debug("{} flush",_session);
+  if (!isOpen())   throw new EofException();
   if (isBufferingOutput()) {
     int flushed=super.flush(_outNIOBuffer);
-    if (_debug)     __log.debug(_session + " Flushed " + flushed+ "/"+ len);
-    if (isBufferingOutput()) {
-      Thread.yield();
-      flushed=super.flush(_outNIOBuffer);
-      if (_debug)       __log.debug(_session + " flushed " + flushed+ "/"+ len);
+    if (_debug)     LOG.debug("{} flushed={} left={}",_session,flushed,_outNIOBuffer.length());
+  }
+ else   if (_engine.isOutboundDone() && super.isOpen()) {
+    if (_debug)     LOG.debug("{} flush shutdownOutput",_session);
+    try {
+      super.shutdownOutput();
     }
- else     if (_closing && !_engine.isOutboundDone()) {
-      _engine.closeOutbound();
+ catch (    IOException e) {
+      LOG.ignore(e);
     }
   }
+  freeOutBuffer();
 }

@@ -1,12 +1,14 @@
 {
-  Utf8StringBuilder buffer=new Utf8StringBuilder();
-  buffer.append((byte)0xED);
-  buffer.append((byte)0xA0);
-  try {
-    buffer.append((byte)0x80);
-    assertTrue(false);
-  }
- catch (  Utf8Appendable.NotUtf8Exception e) {
-    assertTrue(true);
+  String[] invalids={"c0af","EDA080","f08080af","f8808080af","e080af","F4908080","fbbfbfbfbf","10FFFF"};
+  for (  String i : invalids) {
+    byte[] bytes=TypeUtil.fromHexString(i);
+    try {
+      Utf8StringBuilder buffer=new Utf8StringBuilder();
+      buffer.append(bytes,0,bytes.length);
+      assertEquals(i,"not expected",buffer.toString());
+    }
+ catch (    Utf8Appendable.NotUtf8Exception e) {
+      assertTrue(i,true);
+    }
   }
 }

@@ -1,13 +1,8 @@
 {
-  if (!_sslContextFactory.checkConfig()) {
-    throw new IllegalStateException("SSL context is not configured correctly.");
-  }
+  _sslContextFactory.checkKeyStore();
   _sslContextFactory.start();
-  SSLEngine sslEngine=_sslContextFactory.getSslContext().createSSLEngine();
+  SSLEngine sslEngine=_sslContextFactory.newSslEngine();
   sslEngine.setUseClientMode(false);
-  sslEngine.setWantClientAuth(_sslContextFactory.getWantClientAuth());
-  sslEngine.setNeedClientAuth(_sslContextFactory.getNeedClientAuth());
-  sslEngine.setEnabledCipherSuites(_sslContextFactory.selectCipherSuites(sslEngine.getEnabledCipherSuites(),sslEngine.getSupportedCipherSuites()));
   SSLSession sslSession=sslEngine.getSession();
   _sslBuffers=BuffersFactory.newBuffers(getUseDirectBuffers() ? Type.DIRECT : Type.INDIRECT,sslSession.getApplicationBufferSize(),getUseDirectBuffers() ? Type.DIRECT : Type.INDIRECT,sslSession.getApplicationBufferSize(),getUseDirectBuffers() ? Type.DIRECT : Type.INDIRECT,getMaxBuffers());
   if (getRequestHeaderSize() < sslSession.getApplicationBufferSize())   setRequestHeaderSize(sslSession.getApplicationBufferSize());

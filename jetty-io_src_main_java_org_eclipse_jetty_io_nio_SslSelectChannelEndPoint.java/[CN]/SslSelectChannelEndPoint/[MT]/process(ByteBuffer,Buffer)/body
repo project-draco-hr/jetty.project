@@ -1,0 +1,73 @@
+{
+  if (_debug)   LOG.debug("{} process closing={} in={} out={}",_session,_closing,inBBuf,outBuf);
+  if (inBBuf == null) {
+    inBBuf=__ZERO_BUFFER;
+  }
+  int received=0;
+  int sent=0;
+  HandshakeStatus initialStatus=_engine.getHandshakeStatus();
+  boolean progress=true;
+  while (progress) {
+    progress=false;
+    int len=_outNIOBuffer == null ? 0 : _outNIOBuffer.length();
+    flush();
+    progress|=(_outNIOBuffer == null ? 0 : _outNIOBuffer.length()) < len;
+    if (_debug)     LOG.debug("status {} {}",_engine,_engine.getHandshakeStatus());
+switch (_engine.getHandshakeStatus()) {
+case FINISHED:
+      throw new IllegalStateException();
+case NOT_HANDSHAKING:
+    if (_closing) {
+      if (outBuf != null && outBuf.hasContent())       throw new IOException("Write while closing");
+      break;
+    }
+  if (outBuf != null && outBuf.hasContent()) {
+    int c=wrap(outBuf);
+    progress=c > 0 || _result.bytesProduced() > 0 || _result.bytesConsumed() > 0;
+    if (c > 0)     sent+=c;
+ else     if (c < 0 && sent == 0)     sent=-1;
+  }
+if (inBBuf.remaining() > 0 && _inNIOBuffer != null && _inNIOBuffer.hasContent()) {
+  int space=inBBuf.remaining();
+  progress|=unwrap(inBBuf);
+  received+=space - inBBuf.remaining();
+}
+break;
+case NEED_TASK:
+{
+Runnable task;
+while ((task=_engine.getDelegatedTask()) != null) {
+progress=true;
+task.run();
+}
+if (initialStatus == HandshakeStatus.NOT_HANDSHAKING && _engine.getHandshakeStatus() == HandshakeStatus.NEED_UNWRAP && sent == 0) {
+if (_debug) LOG.warn("{} JETTY-567",_session);
+return -1;
+}
+break;
+}
+case NEED_WRAP:
+{
+checkRenegotiate();
+int c=0;
+if (outBuf != null && outBuf.hasContent()) c=wrap(outBuf);
+ else c=wrap(__EMPTY_BUFFER);
+progress=_result.bytesProduced() > 0 || _result.bytesConsumed() > 0;
+if (c > 0) sent+=c;
+ else if (c < 0 && sent == 0) sent=-1;
+break;
+}
+case NEED_UNWRAP:
+{
+checkRenegotiate();
+progress|=unwrap(inBBuf);
+if (_closing) inBBuf.clear();
+break;
+}
+}
+if (_debug) LOG.debug("{} progress {}",_session,progress);
+}
+if (_debug) LOG.debug("{} received {} sent {}",_session,received,sent);
+freeInBuffer();
+return (received < 0 || sent < 0) ? -1 : (received + sent);
+}

@@ -1,12 +1,14 @@
 {
   for (int i=0; i < 10; i++) {
     ContentExchange httpExchange=new ContentExchange();
-    httpExchange.setURL(_scheme + "://localhost:" + _port+ "/?i="+ i);
+    URI uri=getBaseURI().resolve("?i=" + i);
+    httpExchange.setURI(uri);
     httpExchange.setMethod(HttpMethods.GET);
     _httpClient.send(httpExchange);
     int status=httpExchange.waitForDone();
     assertNotNull(httpExchange.getLocalAddress());
     String result=httpExchange.getResponseContent();
+    assertNotNull("Should have received response content",result);
     assertEquals("i=" + i,0,result.indexOf("<hello>"));
     assertEquals("i=" + i,result.length() - 10,result.indexOf("</hello>"));
     assertEquals(HttpExchange.STATUS_COMPLETED,status);

@@ -1,13 +1,14 @@
 {
+  LOG.debug("handle {}",this);
   Connection connection=this;
+  boolean some_progress=false;
+  boolean progress=true;
   try {
     setCurrentConnection(this);
-    boolean progress=true;
     boolean more_in_buffer=false;
-    while (_endp.isOpen() && (more_in_buffer || progress)) {
+    while (_endp.isOpen() && (more_in_buffer || progress) && connection == this) {
       progress=false;
       try {
-        LOG.debug("async request",_request);
         if (_request._async.isAsync() && !_request._async.isComplete())         handleRequest();
  else         if (!_parser.isComplete() && _parser.parseAvailable() > 0)         progress=true;
         if (_generator.isCommitted() && !_generator.isComplete() && _generator.flushBuffer() > 0)         progress=true;
@@ -36,7 +37,7 @@
             if (switched != null) {
               _parser.reset();
               _generator.reset(true);
-              return switched;
+              connection=switched;
             }
           }
           progress=true;
@@ -49,14 +50,32 @@
           progress=false;
         }
  else         more_in_buffer=_parser.isMoreInBuffer() || _endp.isBufferingInput();
+        some_progress|=progress | ((SelectChannelEndPoint)_endp).isProgressing();
       }
     }
   }
   finally {
     setCurrentConnection(null);
     _parser.returnBuffers();
-    if (_generator.isCommitted() && !_generator.isComplete())     ((AsyncEndPoint)_endp).scheduleWrite();
+    if (_generator.isCommitted() && !_generator.isComplete() && _endp.isOpen())     ((AsyncEndPoint)_endp).scheduleWrite();
  else     _generator.returnBuffers();
+    if (!some_progress) {
+      _total_no_progress++;
+      if (NO_PROGRESS_INFO > 0 && _total_no_progress % NO_PROGRESS_INFO == 0 && (NO_PROGRESS_CLOSE <= 0 || _total_no_progress < NO_PROGRESS_CLOSE)) {
+        LOG.info("EndPoint making no progress: " + _total_no_progress + " "+ _endp);
+        LOG.setDebugEnabled(true);
+        Log.getLogger("org.eclipse.jetty.io.nio").getLogger("ssl").setDebugEnabled(true);
+        Log.getLogger(ChannelEndPoint.class).setDebugEnabled(true);
+      }
+      if (NO_PROGRESS_CLOSE > 0 && _total_no_progress > NO_PROGRESS_CLOSE) {
+        LOG.warn("Closing EndPoint making no progress: " + _total_no_progress + " "+ _endp);
+        _endp.close();
+        if (_endp instanceof SelectChannelEndPoint) {
+          System.err.println(((SelectChannelEndPoint)_endp).getSelectManager().dump());
+        }
+      }
+    }
+    LOG.debug("unhandle {}",this);
   }
   return connection;
 }
