@@ -120,7 +120,10 @@ synchronized (this) {
             _parser.parseAvailable();
             if (!(_parser.isComplete() || _parser.isIdle())) {
               LOG.warn("Incomplete {} {}",_parser,_endp);
-              if (_exchange != null)               _exchange.cancel();
+              if (_exchange != null) {
+                _exchange.setStatus(HttpExchange.STATUS_EXCEPTED);
+                _exchange.getEventListener().onException(new EOFException("Incomplete"));
+              }
             }
           }
         }
