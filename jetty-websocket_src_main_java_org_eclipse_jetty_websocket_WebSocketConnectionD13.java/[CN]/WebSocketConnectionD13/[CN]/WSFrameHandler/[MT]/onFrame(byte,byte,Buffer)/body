@@ -7,15 +7,11 @@ synchronized (WebSocketConnectionD13.this) {
     byte[] array=buffer.array();
     if (STRICT) {
       if (isControlFrame(opcode) && buffer.length() > 125) {
-        _connection.close(WebSocketConnectionD13.CLOSE_PROTOCOL,"Control frame too large");
+        errorClose(WebSocketConnectionD13.CLOSE_PROTOCOL,"Control frame too large");
         return;
       }
       if ((flags & 0x7) != 0) {
-        _connection.close(WebSocketConnectionD13.CLOSE_PROTOCOL,"RSV bits set 0x" + Integer.toHexString(flags));
-        return;
-      }
-      if (_opcode != -1 && opcode != WebSocketConnectionD13.OP_CONTINUATION) {
-        _connection.close(WebSocketConnectionD13.CLOSE_PROTOCOL,"Bad continuation" + Integer.toHexString(opcode));
+        errorClose(WebSocketConnectionD13.CLOSE_PROTOCOL,"RSV bits set 0x" + Integer.toHexString(flags));
         return;
       }
       if (_closeCode != 0 && _closeCode != CLOSE_NORMAL && opcode != OP_CLOSE)       return;
@@ -30,7 +26,7 @@ switch (opcode) {
 case WebSocketConnectionD13.OP_CONTINUATION:
 {
         if (_opcode == -1) {
-          _connection.close(WebSocketConnectionD13.CLOSE_PROTOCOL,"Bad Continuation");
+          errorClose(WebSocketConnectionD13.CLOSE_PROTOCOL,"Bad Continuation");
           return;
         }
         if (_onTextMessage != null && _opcode == WebSocketConnectionD13.OP_TEXT) {
@@ -84,12 +80,16 @@ case WebSocketConnectionD13.OP_CLOSE:
 }
 case WebSocketConnectionD13.OP_TEXT:
 {
+if (STRICT && _opcode != -1) {
+  errorClose(WebSocketConnectionD13.CLOSE_PROTOCOL,"Expected Continuation" + Integer.toHexString(opcode));
+  return;
+}
 if (_onTextMessage != null) {
   if (_connection.getMaxTextMessageSize() <= 0) {
     if (lastFrame)     _onTextMessage.onMessage(buffer.toString(StringUtil.__UTF8));
  else {
       LOG.warn("Frame discarded. Text aggregation disabled for {}",_endp);
-      _connection.close(WebSocketConnectionD13.CLOSE_POLICY_VIOLATION,"Text frame aggregation disabled");
+      errorClose(WebSocketConnectionD13.CLOSE_POLICY_VIOLATION,"Text frame aggregation disabled");
     }
   }
  else   if (_utf8.append(buffer.array(),buffer.getIndex(),buffer.length(),_connection.getMaxTextMessageSize())) {
@@ -108,6 +108,10 @@ break;
 }
 case WebSocketConnectionD13.OP_BINARY:
 {
+if (STRICT && _opcode != -1) {
+errorClose(WebSocketConnectionD13.CLOSE_PROTOCOL,"Expected Continuation" + Integer.toHexString(opcode));
+return;
+}
 if (_onBinaryMessage != null && checkBinaryMessageSize(0,buffer.length())) {
 if (lastFrame) {
   _onBinaryMessage.onMessage(array,buffer.getIndex(),buffer.length());
@@ -119,26 +123,27 @@ if (lastFrame) {
 }
  else {
   LOG.warn("Frame discarded. Binary aggregation disabed for {}",_endp);
-  _connection.close(WebSocketConnectionD13.CLOSE_POLICY_VIOLATION,"Binary frame aggregation disabled");
+  errorClose(WebSocketConnectionD13.CLOSE_POLICY_VIOLATION,"Binary frame aggregation disabled");
 }
 }
 break;
 }
 default :
-if (STRICT) _connection.close(WebSocketConnectionD13.CLOSE_PROTOCOL,"Bad opcode 0x" + Integer.toHexString(opcode));
+if (STRICT) errorClose(WebSocketConnectionD13.CLOSE_PROTOCOL,"Bad opcode 0x" + Integer.toHexString(opcode));
 return;
 }
 }
- catch (Utf8Appendable.NotUtf8Exception notUtf8) {
-LOG.warn(notUtf8);
-LOG.warn("{} for {}",notUtf8,_endp);
-LOG.debug(notUtf8);
-_connection.close(WebSocketConnectionD13.CLOSE_NOT_UTF8,"Invalid UTF-8");
-}
-catch (ThreadDeath th) {
+ catch (ThreadDeath th) {
 throw th;
 }
-catch (Throwable th) {
-LOG.warn(th);
+catch (Utf8Appendable.NotUtf8Exception notUtf8) {
+LOG.warn("{} for {}",notUtf8,_endp);
+LOG.debug(notUtf8);
+errorClose(WebSocketConnectionD13.CLOSE_BAD_PAYLOAD,"Invalid UTF-8");
+}
+catch (Throwable probablyNotUtf8) {
+LOG.warn("{} for {}",probablyNotUtf8,_endp);
+LOG.debug(probablyNotUtf8);
+errorClose(WebSocketConnectionD13.CLOSE_BAD_PAYLOAD,"Invalid Payload: " + probablyNotUtf8);
 }
 }

@@ -1,5 +1,34 @@
 {
 synchronized (__root) {
-    return __root.listBindings(getSuffix(name));
+    Name cname=__root.toCanonicalName(name);
+    if (cname == null) {
+      List<Binding> empty=Collections.emptyList();
+      return new BindingEnumeration(empty.iterator());
+    }
+    if (cname.size() == 0) {
+      return new BindingEnumeration(__root.getBindings().values().iterator());
+    }
+    String firstComponent=cname.get(0);
+    Object ctx=null;
+    if (firstComponent.equals(""))     ctx=this;
+ else {
+      Binding binding=__root.getBinding(firstComponent);
+      if (binding == null)       throw new NameNotFoundException();
+      ctx=binding.getObject();
+      if (ctx instanceof Reference) {
+        try {
+          ctx=NamingManager.getObjectInstance(ctx,getNameParser("").parse(firstComponent),__root,_env);
+        }
+ catch (        NamingException e) {
+          throw e;
+        }
+catch (        Exception e) {
+          __log.warn("",e);
+          throw new NamingException(e.getMessage());
+        }
+      }
+    }
+    if (!(ctx instanceof Context))     throw new NotContextException();
+    return ((Context)ctx).listBindings(cname.getSuffix(1));
   }
 }
