@@ -1,5 +1,44 @@
 {
 synchronized (__root) {
-    return __root.createSubcontext(getSuffix(name));
+    if (__root.isLocked()) {
+      NamingException ne=new NamingException("This context is immutable");
+      ne.setRemainingName(name);
+      throw ne;
+    }
+    Name cname=__root.toCanonicalName(name);
+    if (cname == null)     throw new NamingException("Name is null");
+    if (cname.size() == 0)     throw new NamingException("Name is empty");
+    if (cname.size() == 1) {
+      Binding binding=__root.getBinding(cname);
+      if (binding != null)       throw new NameAlreadyBoundException(cname.toString());
+      Context ctx=new NamingContext((Hashtable)_env.clone(),cname.get(0),__root,__root.getNameParser(""));
+      __root.addBinding(cname,ctx);
+      return ctx;
+    }
+    String firstComponent=cname.get(0);
+    Object ctx=null;
+    if (firstComponent.equals(""))     ctx=this;
+ else {
+      Binding binding=__root.getBinding(firstComponent);
+      if (binding == null)       throw new NameNotFoundException(firstComponent + " is not bound");
+      ctx=binding.getObject();
+      if (ctx instanceof Reference) {
+        if (__log.isDebugEnabled())         __log.debug("Object bound at " + firstComponent + " is a Reference");
+        try {
+          ctx=NamingManager.getObjectInstance(ctx,getNameParser("").parse(firstComponent),__root,_env);
+        }
+ catch (        NamingException e) {
+          throw e;
+        }
+catch (        Exception e) {
+          __log.warn("",e);
+          throw new NamingException(e.getMessage());
+        }
+      }
+    }
+    if (ctx instanceof Context) {
+      return ((Context)ctx).createSubcontext(cname.getSuffix(1));
+    }
+ else     throw new NotContextException(firstComponent + " is not a Context");
   }
 }

@@ -1,59 +1,24 @@
 {
-  if (b >= 0) {
-    if (_more > 0) {
-      _appendable.append('?');
-      _more=0;
-      _bits=0;
-      throw new NotUtf8Exception();
-    }
- else     _appendable.append((char)(0x7f & b));
-  }
- else   if (_more == 0) {
-    if ((b & 0xc0) != 0xc0) {
-      _appendable.append('?');
-      _more=0;
-      _bits=0;
-      throw new NotUtf8Exception();
-    }
- else {
-      if ((b & 0xe0) == 0xc0) {
-        _more=1;
-        _bits=b & 0x1f;
-      }
- else       if ((b & 0xf0) == 0xe0) {
-        _more=2;
-        _bits=b & 0x0f;
-      }
- else       if ((b & 0xf8) == 0xf0) {
-        _more=3;
-        _bits=b & 0x07;
-      }
- else       if ((b & 0xfc) == 0xf8) {
-        _more=4;
-        _bits=b & 0x03;
-      }
- else       if ((b & 0xfe) == 0xfc) {
-        _more=5;
-        _bits=b & 0x01;
-      }
- else {
-        throw new NotUtf8Exception();
-      }
-    }
+  if (b > 0 && isUtf8SequenceComplete()) {
+    _appendable.append((char)(b & 0xFF));
   }
  else {
-    if ((b & 0xc0) == 0xc0) {
-      _appendable.append('?');
-      _more=0;
-      _bits=0;
-      throw new NotUtf8Exception();
-    }
- else {
-      _bits=(_bits << 6) | (b & 0x3f);
-      if (--_more == 0) {
-        if (_bits >= 0xD800 && _bits <= 0xDFFF)         throw new NotUtf8Exception();
-        _appendable.append(new String(Character.toChars(_bits)));
+    int i=b & 0xFF;
+    int type=BYTE_TABLE[i];
+    _codep=isUtf8SequenceComplete() ? (0xFF >> type) & i : (i & 0x3F) | (_codep << 6);
+    _state=TRANS_TABLE[_state + type];
+    if (isUtf8SequenceComplete()) {
+      if (_codep < Character.MIN_HIGH_SURROGATE) {
+        _appendable.append((char)_codep);
       }
+ else {
+        for (        char c : Character.toChars(_codep))         _appendable.append(c);
+      }
+    }
+ else     if (_state == UTF8_REJECT) {
+      _state=UTF8_ACCEPT;
+      _appendable.append(REPLACEMENT);
+      throw new NotUtf8Exception();
     }
   }
 }

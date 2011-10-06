@@ -72,6 +72,7 @@ synchronized (this) {
         if (!_parser.isComplete() && (_generator.isComplete() || _generator.isCommitted() && !_endp.isBlocking())) {
           long filled=_parser.parseAvailable();
           io+=filled;
+          if (_parser.isIdle() && (_endp.isInputShutdown() || !_endp.isOpen()))           throw new EOFException();
         }
         if (io > 0)         no_progress=0;
  else         if (no_progress++ >= 1 && !_endp.isBlocking()) {
@@ -115,13 +116,24 @@ synchronized (this) {
               complete=true;
             }
           }
-        }
-        if (_generator.isComplete() && !_parser.isComplete()) {
-          if (!_endp.isOpen() || _endp.isInputShutdown()) {
+          if (!_endp.isOpen() && !(_parser.isComplete() || _parser.isIdle())) {
             complete=true;
-            close=true;
-            close();
+            _parser.parseAvailable();
+            if (!(_parser.isComplete() || _parser.isIdle())) {
+              LOG.warn("Incomplete {} {}",_parser,_endp);
+              if (_exchange != null && !_exchange.isDone()) {
+                _exchange.setStatus(HttpExchange.STATUS_EXCEPTED);
+                _exchange.getEventListener().onException(new EOFException("Incomplete"));
+              }
+            }
           }
+        }
+        if (_endp.isInputShutdown() && !_parser.isComplete() && !_parser.isIdle()) {
+          if (_exchange != null && !_exchange.isDone()) {
+            _exchange.setStatus(HttpExchange.STATUS_EXCEPTED);
+            _exchange.getEventListener().onException(new EOFException("Incomplete"));
+          }
+          _endp.close();
         }
         if (complete || failed) {
 synchronized (this) {
@@ -165,7 +177,7 @@ synchronized (this) {
   }
   finally {
     _parser.returnBuffers();
-    if (!_generator.isComplete() && _generator.getBytesBuffered() > 0 && _endp instanceof AsyncEndPoint) {
+    if (!_generator.isComplete() && _generator.getBytesBuffered() > 0 && _endp.isOpen() && _endp instanceof AsyncEndPoint) {
       ((AsyncEndPoint)_endp).scheduleWrite();
     }
   }
