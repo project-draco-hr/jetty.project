@@ -120,9 +120,19 @@ synchronized (this) {
             _parser.parseAvailable();
             if (!(_parser.isComplete() || _parser.isIdle())) {
               LOG.warn("Incomplete {} {}",_parser,_endp);
-              if (_exchange != null)               _exchange.cancel();
+              if (_exchange != null && !_exchange.isDone()) {
+                _exchange.setStatus(HttpExchange.STATUS_EXCEPTED);
+                _exchange.getEventListener().onException(new EOFException("Incomplete"));
+              }
             }
           }
+        }
+        if (_endp.isInputShutdown() && !_parser.isComplete()) {
+          if (_exchange != null && !_exchange.isDone()) {
+            _exchange.setStatus(HttpExchange.STATUS_EXCEPTED);
+            _exchange.getEventListener().onException(new EOFException("Incomplete"));
+          }
+          _endp.close();
         }
         if (complete || failed) {
 synchronized (this) {
