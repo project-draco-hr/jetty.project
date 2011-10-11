@@ -18,7 +18,10 @@ case FINISHED:
       throw new IllegalStateException();
 case NOT_HANDSHAKING:
     if (_closing) {
-      if (outBuf != null && outBuf.hasContent())       throw new IOException("Write while closing");
+      if (outBuf != null && outBuf.hasContent()) {
+        LOG.debug("Write while closing");
+        outBuf.clear();
+      }
       break;
     }
   if (outBuf != null && outBuf.hasContent()) {
@@ -61,7 +64,7 @@ case NEED_UNWRAP:
 {
 checkRenegotiate();
 progress|=unwrap(inBBuf);
-if (_closing) inBBuf.clear();
+if (_closing && inBBuf.hasRemaining()) inBBuf.clear();
 break;
 }
 }

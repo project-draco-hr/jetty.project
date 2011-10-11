@@ -1,0 +1,25 @@
+{
+  if (!target.startsWith(getContextPath()))   return;
+  JettyHttpExchange jettyHttpExchange=new JettyHttpExchange(_httpContext,req,resp);
+  try {
+    Authenticator auth=_httpContext.getAuthenticator();
+    if (auth != null)     handleAuthentication(resp,jettyHttpExchange,auth);
+ else     _httpHandler.handle(jettyHttpExchange);
+  }
+ catch (  Exception ex) {
+    PrintWriter writer=new PrintWriter(jettyHttpExchange.getResponseBody());
+    resp.setStatus(500);
+    writer.println("<h2>HTTP ERROR: 500</h2>");
+    writer.println("<pre>INTERNAL_SERVER_ERROR</pre>");
+    writer.println("<p>RequestURI=" + req.getRequestURI() + "</p>");
+    writer.println("<pre>");
+    ex.printStackTrace(writer);
+    writer.println("</pre>");
+    writer.println("<p><i><small><a href=\"http://jetty.mortbay.org\">Powered by jetty://</a></small></i></p>");
+    writer.close();
+  }
+ finally {
+    Request base_request=(req instanceof Request) ? (Request)req : HttpConnection.getCurrentConnection().getRequest();
+    base_request.setHandled(true);
+  }
+}
