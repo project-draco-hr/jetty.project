@@ -1,2 +1,35 @@
 {
+  ServerSocket serverSocket=new ServerSocket();
+  serverSocket.bind(null);
+  int port=serverSocket.getLocalPort();
+  HttpClient httpClient=this.newHttpClient();
+  httpClient.setMaxConnectionsPerAddress(1);
+  httpClient.start();
+  try {
+    CountDownLatch latch=new CountDownLatch(1);
+    HttpExchange exchange=new ConnectionExchange(latch);
+    exchange.setAddress(new Address("localhost",port));
+    exchange.setRequestURI("/");
+    httpClient.send(exchange);
+    Socket remote=serverSocket.accept();
+    InputStream input=remote.getInputStream();
+    BufferedReader reader=new BufferedReader(new InputStreamReader(input,"UTF-8"));
+    String line;
+    while ((line=reader.readLine()) != null) {
+      if (line.length() == 0)       break;
+    }
+    OutputStream output=remote.getOutputStream();
+    output.write("HTTP/1.1 200 OK\r\n".getBytes("UTF-8"));
+    output.write("Content-Length: 0\r\n".getBytes("UTF-8"));
+    output.write("\r\n".getBytes("UTF-8"));
+    output.flush();
+    assertEquals(HttpExchange.STATUS_COMPLETED,exchange.waitForDone());
+    remote.close();
+    exchange.reset();
+    httpClient.send(exchange);
+    assertEquals(HttpExchange.STATUS_EXCEPTED,exchange.waitForDone());
+  }
+  finally {
+    httpClient.stop();
+  }
 }

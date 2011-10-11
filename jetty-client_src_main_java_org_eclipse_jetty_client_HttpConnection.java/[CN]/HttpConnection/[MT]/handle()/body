@@ -72,6 +72,7 @@ synchronized (this) {
         if (!_parser.isComplete() && (_generator.isComplete() || _generator.isCommitted() && !_endp.isBlocking())) {
           long filled=_parser.parseAvailable();
           io+=filled;
+          if (_parser.isIdle() && (_endp.isInputShutdown() || !_endp.isOpen()))           throw new EOFException();
         }
         if (io > 0)         no_progress=0;
  else         if (no_progress++ >= 1 && !_endp.isBlocking()) {
@@ -120,9 +121,19 @@ synchronized (this) {
             _parser.parseAvailable();
             if (!(_parser.isComplete() || _parser.isIdle())) {
               LOG.warn("Incomplete {} {}",_parser,_endp);
-              if (_exchange != null)               _exchange.cancel();
+              if (_exchange != null && !_exchange.isDone()) {
+                _exchange.setStatus(HttpExchange.STATUS_EXCEPTED);
+                _exchange.getEventListener().onException(new EOFException("Incomplete"));
+              }
             }
           }
+        }
+        if (_endp.isInputShutdown() && !_parser.isComplete() && !_parser.isIdle()) {
+          if (_exchange != null && !_exchange.isDone()) {
+            _exchange.setStatus(HttpExchange.STATUS_EXCEPTED);
+            _exchange.getEventListener().onException(new EOFException("Incomplete"));
+          }
+          _endp.close();
         }
         if (complete || failed) {
 synchronized (this) {
