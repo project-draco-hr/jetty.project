@@ -1,13 +1,17 @@
 {
   StdErrLog log=new StdErrLog(StdErrLogTest.class.getName());
   log.setHideStacks(true);
-  Log.__ignored=false;
-  log.setDebugEnabled(false);
+  ByteArrayOutputStream test=new ByteArrayOutputStream();
+  PrintStream err=new PrintStream(test);
+  log.setStdErrStream(err);
   log.ignore(new Throwable("IGNORE ME"));
-  Log.__ignored=true;
-  log.setDebugEnabled(false);
+  log.setLevel(StdErrLog.LEVEL_ALL);
   log.ignore(new Throwable("Don't ignore me"));
-  Log.__ignored=false;
-  log.setDebugEnabled(true);
+  log.setLevel(StdErrLog.LEVEL_DEBUG);
   log.ignore(new Throwable("Debug me"));
+  String output=new String(test.toByteArray(),"UTF-8");
+  System.err.print(output);
+  Assert.assertThat(output,not(containsString("IGNORE ME")));
+  Assert.assertThat(output,containsString("Don't ignore me"));
+  Assert.assertThat(output,not(containsString("Debug me")));
 }
