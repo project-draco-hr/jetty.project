@@ -1,0 +1,34 @@
+{
+  _server=new Server();
+  _server.setSendServerVersion(false);
+  _connector=new SelectChannelConnector();
+  _connector.setPort(8080);
+  _rewriteHandler=new RewriteHandler();
+  _rewriteHandler.setRewriteRequestURI(true);
+  _rewriteHandler.setRewritePathInfo(false);
+  _rewriteHandler.setOriginalPathAttribute("requestedPath");
+  RewritePatternRule rule0=new RewritePatternRule();
+  rule0.setPattern("/sample/*");
+  rule0.setReplacement("/context");
+  rule0.setTerminating(true);
+  RewritePatternRule rule1=new RewritePatternRule();
+  rule1.setPattern("/goodies/*");
+  rule1.setReplacement("/context");
+  rule1.setTerminating(true);
+  RewritePatternRule rule2=new RewritePatternRule();
+  rule2.setPattern("/*");
+  rule2.setReplacement("/context");
+  _rewriteHandler.setRules(new Rule[]{rule0,rule1,rule2});
+  _handlerCollection=new HandlerCollection();
+  _contextHandler=new ServletContextHandler();
+  _contextHandler.setContextPath("/context");
+  _handlerCollection.addHandler(_contextHandler);
+  _contextHandler.addServlet(RogerThatServlet.class,"/*");
+  _contextHandler.addServlet(ReserveEchoServlet.class,"/recho/*");
+  _contextHandler.addServlet(EchoServlet.class,"/echo/*");
+  _contextHandler.addFilter(ForwardFilter.class,"/*",FilterMapping.REQUEST);
+  _rewriteHandler.setHandler(_handlerCollection);
+  _server.setHandler(_rewriteHandler);
+  _server.addConnector(_connector);
+  _server.start();
+}
