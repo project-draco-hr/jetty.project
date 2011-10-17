@@ -59,13 +59,16 @@
     _parser.returnBuffers();
     _generator.returnBuffers();
     if (_generator.isCommitted() && !_generator.isComplete() && _endp.isOpen()&& !_endp.isOutputShutdown())     ((AsyncEndPoint)_endp).scheduleWrite();
-    if (!some_progress) {
-      _total_no_progress++;
-      if (NO_PROGRESS_INFO > 0 && _total_no_progress % NO_PROGRESS_INFO == 0 && (NO_PROGRESS_CLOSE <= 0 || _total_no_progress < NO_PROGRESS_CLOSE)) {
-        LOG.info("EndPoint making no progress: " + _total_no_progress + " "+ _endp);
+    if (some_progress) {
+      _total_no_progress=0;
+    }
+ else {
+      int totalNoProgress=++_total_no_progress;
+      if (NO_PROGRESS_INFO > 0 && totalNoProgress == NO_PROGRESS_INFO && (NO_PROGRESS_CLOSE <= 0 || totalNoProgress < NO_PROGRESS_CLOSE)) {
+        LOG.info("EndPoint making no progress: {} {}",totalNoProgress,_endp);
       }
-      if (NO_PROGRESS_CLOSE > 0 && _total_no_progress == NO_PROGRESS_CLOSE) {
-        LOG.warn("Closing EndPoint making no progress: " + _total_no_progress + " "+ _endp);
+      if (NO_PROGRESS_CLOSE > 0 && totalNoProgress == NO_PROGRESS_CLOSE) {
+        LOG.warn("Closing EndPoint making no progress: {} {}",totalNoProgress,_endp);
         if (_endp instanceof SelectChannelEndPoint) {
           System.err.println(((SelectChannelEndPoint)_endp).getSelectManager().dump());
           ((SelectChannelEndPoint)_endp).getChannel().close();
