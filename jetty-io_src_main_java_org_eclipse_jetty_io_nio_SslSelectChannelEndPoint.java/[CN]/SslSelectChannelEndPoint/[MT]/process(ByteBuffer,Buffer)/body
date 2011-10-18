@@ -1,5 +1,5 @@
 {
-  if (_debug)   LOG.debug("{} process closing={} in={} out={}",_session,_closing,inBBuf,outBuf);
+  if (_debug)   LOG.debug("{} process ishut={} oshut={} in={} out={}",_session,_ishut,_oshut,inBBuf,outBuf);
   if (inBBuf == null) {
     inBBuf=__ZERO_BUFFER;
   }
@@ -17,11 +17,8 @@ switch (_engine.getHandshakeStatus()) {
 case FINISHED:
       throw new IllegalStateException();
 case NOT_HANDSHAKING:
-    if (_closing) {
-      if (outBuf != null && outBuf.hasContent()) {
-        LOG.debug("Write while closing");
-        outBuf.clear();
-      }
+    if (isOutputShutdown()) {
+      if (outBuf != null && outBuf.hasContent())       throw new EofException("Write while closing");
       break;
     }
   if (outBuf != null && outBuf.hasContent()) {
@@ -64,7 +61,7 @@ case NEED_UNWRAP:
 {
 checkRenegotiate();
 progress|=unwrap(inBBuf);
-if (_closing && inBBuf.hasRemaining()) inBBuf.clear();
+if (isInputShutdown()) inBBuf.clear();
 break;
 }
 }

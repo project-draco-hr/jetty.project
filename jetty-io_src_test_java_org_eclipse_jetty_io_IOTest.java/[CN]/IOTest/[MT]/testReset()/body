@@ -1,0 +1,24 @@
+{
+  ServerSocket connector;
+  Socket client;
+  Socket server;
+  connector=new ServerSocket(9123);
+  client=new Socket("192.168.1.13",connector.getLocalPort());
+  server=connector.accept();
+  client.setTcpNoDelay(true);
+  client.setSoLinger(true,0);
+  server.setTcpNoDelay(true);
+  server.setSoLinger(true,0);
+  client.getOutputStream().write(1);
+  assertEquals(1,server.getInputStream().read());
+  server.getOutputStream().write(1);
+  assertEquals(1,client.getInputStream().read());
+  server.shutdownOutput();
+  assertEquals(-1,client.getInputStream().read());
+  client.shutdownInput();
+  client.shutdownOutput();
+  client.close();
+  assertEquals(-1,server.getInputStream().read());
+  server.shutdownInput();
+  server.close();
+}

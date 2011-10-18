@@ -7,10 +7,18 @@ case HttpVersions.HTTP_0_9_ORDINAL:
     break;
 case HttpVersions.HTTP_1_0_ORDINAL:
   _generator.setHead(_head);
+if (_parser.isPersistent()) {
+  _responseFields.add(HttpHeaders.CONNECTION_BUFFER,HttpHeaderValues.KEEP_ALIVE_BUFFER);
+  _generator.setPersistent(true);
+}
 if (_server.getSendDateHeader()) _generator.setDate(_request.getTimeStampBuffer());
 break;
 case HttpVersions.HTTP_1_1_ORDINAL:
 _generator.setHead(_head);
+if (!_parser.isPersistent()) {
+_responseFields.add(HttpHeaders.CONNECTION_BUFFER,HttpHeaderValues.CLOSE_BUFFER);
+_generator.setPersistent(false);
+}
 if (_server.getSendDateHeader()) _generator.setDate(_request.getTimeStampBuffer());
 if (!_host) {
 _generator.setResponse(HttpStatus.BAD_REQUEST_400,null);
