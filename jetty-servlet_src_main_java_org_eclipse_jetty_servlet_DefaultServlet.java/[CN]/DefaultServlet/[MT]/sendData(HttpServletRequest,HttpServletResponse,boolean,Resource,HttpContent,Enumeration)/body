@@ -6,7 +6,7 @@
     content_length=resource.length();
   }
  else {
-    Connector connector=HttpConnection.getCurrentConnection().getConnector();
+    Connector connector=AbstractHttpConnection.getCurrentConnection().getConnector();
     direct=connector instanceof NIOConnector && ((NIOConnector)connector).getUseDirectBuffers() && !(connector instanceof SslConnector);
     content_length=content.getContentLength();
   }
@@ -14,7 +14,7 @@
   boolean written;
   try {
     out=response.getOutputStream();
-    written=out instanceof HttpOutput ? ((HttpOutput)out).isWritten() : HttpConnection.getCurrentConnection().getGenerator().isWritten();
+    written=out instanceof HttpOutput ? ((HttpOutput)out).isWritten() : AbstractHttpConnection.getCurrentConnection().getGenerator().isWritten();
   }
  catch (  IllegalStateException e) {
     out=new WriterOutputStream(response.getWriter());
@@ -28,13 +28,13 @@
       if (content != null && !written && out instanceof HttpOutput) {
         if (response instanceof Response) {
           writeOptionHeaders(((Response)response).getHttpFields());
-          ((HttpConnection.Output)out).sendContent(content);
+          ((AbstractHttpConnection.Output)out).sendContent(content);
         }
  else {
           Buffer buffer=direct ? content.getDirectBuffer() : content.getIndirectBuffer();
           if (buffer != null) {
             writeHeaders(response,content,content_length);
-            ((HttpConnection.Output)out).sendContent(buffer);
+            ((AbstractHttpConnection.Output)out).sendContent(buffer);
           }
  else {
             writeHeaders(response,content,content_length);

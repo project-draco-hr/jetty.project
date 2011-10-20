@@ -1,28 +1,34 @@
 {
-  _contentView.setGetIndex(_contentView.putIndex());
-  _state=_persistent ? STATE_START : (_endp.isInputShutdown() ? STATE_END : STATE_SEEKING_EOF);
-  _contentLength=HttpTokens.UNKNOWN_CONTENT;
-  _contentPosition=0;
-  _length=0;
-  _responseStatus=0;
-  if (_eol == HttpTokens.CARRIAGE_RETURN && _buffer != null && _buffer.hasContent() && _buffer.peek() == HttpTokens.LINE_FEED)   _eol=_buffer.get();
-  if (_body != null && _body.hasContent()) {
-    if (_header == null) {
-      _header=_buffers.getHeader();
-    }
+  _lock.lock();
+  try {
+    _contentView.setGetIndex(_contentView.putIndex());
+    _state=_persistent ? STATE_START : (_endp.isInputShutdown() ? STATE_END : STATE_SEEKING_EOF);
+    _contentLength=HttpTokens.UNKNOWN_CONTENT;
+    _contentPosition=0;
+    _length=0;
+    _responseStatus=0;
+    if (_eol == HttpTokens.CARRIAGE_RETURN && _buffer != null && _buffer.hasContent() && _buffer.peek() == HttpTokens.LINE_FEED)     _eol=_buffer.get();
+    if (_body != null && _body.hasContent()) {
+      if (_header == null) {
+        _header=_buffers.getHeader();
+      }
  else {
+        _header.setMarkIndex(-1);
+        _header.compact();
+      }
+      int take=_header.space();
+      if (take > _body.length())       take=_body.length();
+      _body.peek(_body.getIndex(),take);
+      _body.skip(_header.put(_body.peek(_body.getIndex(),take)));
+    }
+    if (_header != null) {
       _header.setMarkIndex(-1);
       _header.compact();
     }
-    int take=_header.space();
-    if (take > _body.length())     take=_body.length();
-    _body.peek(_body.getIndex(),take);
-    _body.skip(_header.put(_body.peek(_body.getIndex(),take)));
+    if (_body != null)     _body.setMarkIndex(-1);
+    _buffer=_header;
   }
-  if (_header != null) {
-    _header.setMarkIndex(-1);
-    _header.compact();
+  finally {
+    _lock.unlock();
   }
-  if (_body != null)   _body.setMarkIndex(-1);
-  _buffer=_header;
 }

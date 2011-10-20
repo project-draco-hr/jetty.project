@@ -1,51 +1,53 @@
 {
-  int progress=0;
-  if (_state == STATE_END)   return 0;
-  if (_buffer == null) {
-    if (_header == null) {
-      _header=_buffers.getHeader();
-    }
-    _buffer=_header;
-    _tok0=new View.CaseInsensitive(_header);
-    _tok1=new View.CaseInsensitive(_header);
-    _tok0.setPutIndex(_tok0.getIndex());
-    _tok1.setPutIndex(_tok1.getIndex());
-  }
-  if (_state == STATE_CONTENT && _contentPosition == _contentLength) {
-    _state=STATE_END;
-    _handler.messageComplete(_contentPosition);
-    return 1;
-  }
-  int length=_buffer.length();
-  if (length == 0) {
-    long filled=-1;
-    IOException ex=null;
-    try {
-      filled=fill();
-    }
- catch (    IOException e) {
-      LOG.debug(this.toString(),e);
-      ex=e;
-    }
-    if (filled < 0 || _endp.isInputShutdown()) {
-      _persistent=false;
-      if (_state > STATE_END) {
-        if (_buffer.length() > 0 && !_headResponse) {
-          Buffer chunk=_buffer.get(_buffer.length());
-          _contentPosition+=chunk.length();
-          _contentView.update(chunk);
-          _handler.content(chunk);
-        }
+  _lock.lock();
+  try {
+    int progress=0;
+    if (_state == STATE_END)     return 0;
+    if (_buffer == null) {
+      if (_header == null) {
+        _header=_buffers.getHeader();
       }
+      _buffer=_header;
+      _tok0=new View.CaseInsensitive(_header);
+      _tok1=new View.CaseInsensitive(_header);
+      _tok0.setPutIndex(_tok0.getIndex());
+      _tok1.setPutIndex(_tok1.getIndex());
+    }
+    if (_state == STATE_CONTENT && _contentPosition == _contentLength) {
+      _state=STATE_END;
+      _handler.messageComplete(_contentPosition);
+      return 1;
+    }
+    int length=_buffer.length();
+    if (length == 0) {
+      int filled=-1;
+      IOException ex=null;
+      try {
+        filled=fill();
+      }
+ catch (      IOException e) {
+        LOG.debug(this.toString(),e);
+        ex=e;
+      }
+      if (filled < 0 || _endp.isInputShutdown()) {
+        _persistent=false;
+        if (_state > STATE_END) {
+          if (_buffer.length() > 0 && !_headResponse) {
+            Buffer chunk=_buffer.get(_buffer.length());
+            _contentPosition+=chunk.length();
+            _contentView.update(chunk);
+            _handler.content(chunk);
+          }
+        }
 switch (_state) {
 case STATE_END:
 case STATE_SEEKING_EOF:
-        _state=STATE_END;
-      break;
+          _state=STATE_END;
+        break;
 case STATE_EOF_CONTENT:
-    _state=STATE_END;
-  _handler.messageComplete(_contentPosition);
-break;
+      _state=STATE_END;
+    _handler.messageComplete(_contentPosition);
+  break;
 default :
 _state=STATE_END;
 _handler.earlyEOF();
@@ -270,8 +272,8 @@ _state=STATE_CHUNKED_CONTENT;
 _handler.headerComplete();
 break;
 case HttpTokens.NO_CONTENT:
-_state=_persistent || (_responseStatus >= 100 && _responseStatus < 200) ? STATE_END : STATE_SEEKING_EOF;
 _handler.headerComplete();
+_state=_persistent || (_responseStatus >= 100 && _responseStatus < 200) ? STATE_END : STATE_SEEKING_EOF;
 _handler.messageComplete(_contentPosition);
 break;
 default :
@@ -514,4 +516,8 @@ break;
 length=_buffer.length();
 }
 return progress;
+}
+  finally {
+_lock.unlock();
+}
 }
