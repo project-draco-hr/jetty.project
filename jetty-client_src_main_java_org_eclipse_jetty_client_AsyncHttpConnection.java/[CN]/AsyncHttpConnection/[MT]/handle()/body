@@ -1,71 +1,62 @@
 {
+  Connection connection=this;
+  boolean progress=true;
   try {
-    boolean progress=true;
     boolean failed=false;
+    int loops=1000;
     while (_endp.isOpen() && (_parser.isMoreInBuffer() || _endp.isBufferingInput() || progress)) {
-      HttpExchange exchange;
-synchronized (this) {
-        exchange=_exchange;
+      if (loops-- < 0) {
+        System.err.println("LOOPING!!!");
+        System.err.println(this);
+        System.err.println(_endp);
+        System.err.println(((SelectChannelEndPoint)_endp).getSelectManager().dump());
+        System.exit(1);
       }
-      if (exchange == null) {
-        long filled=-1;
-        if (filled < 0)         close();
- else {
-          if (_parser.isMoreInBuffer()) {
-            LOG.warn("Unexpected data received but no request sent");
-            close();
-          }
-        }
-        return this;
-      }
+      progress=false;
+      HttpExchange exchange=_exchange;
       try {
-        if (exchange.getStatus() == HttpExchange.STATUS_WAITING_FOR_COMMIT) {
+        if (!_generator.isCommitted() && exchange != null && exchange.getStatus() == HttpExchange.STATUS_WAITING_FOR_COMMIT) {
           progress=true;
           commitRequest();
         }
-        _endp.flush();
-        if (_generator.isComplete()) {
-          if (!_requestComplete) {
-            _requestComplete=true;
-            exchange.getEventListener().onRequestComplete();
-          }
-        }
+        if (_generator.isCommitted() && !_generator.isComplete()) {
+          int flushed=_generator.flushBuffer();
+          if (flushed > 0)           progress=true;
+          if (!_generator.isComplete() && _generator.isEmpty()) {
+            if (exchange != null) {
+              Buffer chunk=_exchange.getRequestContentChunk();
+              if (chunk != null)               _generator.addContent(chunk,false);
  else {
-          long flushed=_generator.flushBuffer();
-          progress|=(flushed > 0);
-          if (_generator.isComplete()) {
-            InputStream in=exchange.getRequestContentSource();
-            if (in != null) {
-              if (_requestContentChunk == null || _requestContentChunk.length() == 0) {
-                _requestContentChunk=_exchange.getRequestContentChunk();
-                if (_requestContentChunk != null)                 _generator.addContent(_requestContentChunk,false);
- else                 _generator.complete();
-                flushed=_generator.flushBuffer();
-                progress|=(flushed > 0);
+                _generator.complete();
+                progress=true;
               }
             }
- else             _generator.complete();
+ else {
+              _generator.complete();
+              progress=true;
+            }
           }
- else           _generator.complete();
+ else {
+            _generator.complete();
+            progress=true;
+          }
         }
         if (_generator.isComplete() && !_requestComplete) {
           _requestComplete=true;
-          _exchange.getEventListener().onRequestComplete();
+          exchange.getEventListener().onRequestComplete();
         }
-        if (!_parser.isComplete() && (_generator.isComplete() || _generator.isCommitted() && !_endp.isBlocking())) {
-          if (_parser.parseAvailable())           progress=true;
-          if (_parser.isIdle() && (_endp.isInputShutdown() || !_endp.isOpen()))           throw new EOFException();
-        }
+        if (_endp.isBufferingOutput())         _endp.flush();
+        if (!_parser.isComplete() && _parser.parseAvailable())         progress=true;
       }
  catch (      Throwable e) {
         LOG.debug("Failure on " + _exchange,e);
         if (e instanceof ThreadDeath)         throw (ThreadDeath)e;
         failed=true;
 synchronized (this) {
-          if (_exchange != null) {
-            if (_exchange.getStatus() != HttpExchange.STATUS_CANCELLING && _exchange.getStatus() != HttpExchange.STATUS_CANCELLED) {
-              _exchange.setStatus(HttpExchange.STATUS_EXCEPTED);
-              _exchange.getEventListener().onException(e);
+          if (exchange != null) {
+            if (exchange.getStatus() != HttpExchange.STATUS_CANCELLING && exchange.getStatus() != HttpExchange.STATUS_CANCELLED) {
+              exchange.setStatus(HttpExchange.STATUS_EXCEPTED);
+              exchange.getEventListener().onException(e);
             }
           }
  else {
@@ -77,73 +68,34 @@ synchronized (this) {
         }
       }
  finally {
-        boolean complete=false;
-        boolean close=failed;
-        if (!failed) {
-          if (_generator.isComplete()) {
-            if (!_requestComplete) {
-              _requestComplete=true;
-              _exchange.getEventListener().onRequestComplete();
-            }
-            if (_parser.isComplete()) {
-              _exchange.cancelTimeout(_destination.getHttpClient());
-              complete=true;
-            }
-          }
-          if (!_endp.isOpen() && !(_parser.isComplete() || _parser.isIdle())) {
-            complete=true;
-            _parser.parseAvailable();
-            if (!(_parser.isComplete() || _parser.isIdle())) {
-              LOG.warn("Incomplete {} {}",_parser,_endp);
-              if (_exchange != null && !_exchange.isDone()) {
-                _exchange.setStatus(HttpExchange.STATUS_EXCEPTED);
-                _exchange.getEventListener().onException(new EOFException("Incomplete"));
-              }
-            }
-          }
-        }
-        if (_endp.isInputShutdown() && !_parser.isComplete() && !_parser.isIdle()) {
-          if (_exchange != null && !_exchange.isDone()) {
-            _exchange.setStatus(HttpExchange.STATUS_EXCEPTED);
-            _exchange.getEventListener().onException(new EOFException("Incomplete"));
-          }
-          _endp.close();
-        }
-        if (complete || failed) {
+        boolean complete=failed || _generator.isComplete() && _parser.isComplete();
+        if (complete) {
+          boolean persistent=!failed && _parser.isPersistent() && _generator.isPersistent();
+          _generator.setPersistent(persistent);
+          reset();
+          if (persistent)           _endp.setMaxIdleTime((int)_destination.getHttpClient().getIdleTimeout());
 synchronized (this) {
-            if (!close)             close=shouldClose();
-            reset(true);
-            progress=true;
-            if (_exchange != null) {
-              exchange=_exchange;
-              _exchange=null;
-              if (!close)               _endp.setMaxIdleTime((int)_destination.getHttpClient().getIdleTimeout());
-              if (_status == HttpStatus.SWITCHING_PROTOCOLS_101) {
-                Connection switched=exchange.onSwitchProtocol(_endp);
-                if (switched != null) {
-                  exchange=_pipeline;
-                  _pipeline=null;
-                  if (exchange != null)                   _destination.send(exchange);
-                  return switched;
-                }
-              }
-              if (_pipeline == null) {
-                if (!isReserved())                 _destination.returnConnection(this,close);
-              }
- else {
-                if (close) {
-                  if (!isReserved())                   _destination.returnConnection(this,close);
-                  exchange=_pipeline;
-                  _pipeline=null;
-                  _destination.send(exchange);
-                }
- else {
-                  exchange=_pipeline;
-                  _pipeline=null;
-                  send(exchange);
-                }
+            exchange=_exchange;
+            _exchange=null;
+            if (exchange != null) {
+              exchange.cancelTimeout(_destination.getHttpClient());
+            }
+            if (_status == HttpStatus.SWITCHING_PROTOCOLS_101) {
+              Connection switched=exchange.onSwitchProtocol(_endp);
+              if (switched != null)               connection=switched;
+{
+                _pipeline=null;
+                if (_pipeline != null)                 _destination.send(_pipeline);
+                _pipeline=null;
+                connection=switched;
               }
             }
+            if (_pipeline != null) {
+              if (!persistent || connection != this)               _destination.send(_pipeline);
+ else               _exchange=_pipeline;
+              _pipeline=null;
+            }
+            if (_exchange == null && !isReserved())             _destination.returnConnection(this,!persistent);
           }
         }
       }
@@ -151,9 +103,16 @@ synchronized (this) {
   }
   finally {
     _parser.returnBuffers();
-    if (!_generator.isComplete() && _generator.getBytesBuffered() > 0 && _endp.isOpen() && _endp instanceof AsyncEndPoint) {
-      ((AsyncEndPoint)_endp).scheduleWrite();
+    _generator.returnBuffers();
+    if (!_generator.isEmpty()) {
+      if (((SelectChannelEndPoint)_endp).isWritable()) {
+        System.err.println("early exit??? " + progress);
+        System.err.println(_endp);
+        System.err.println(_generator);
+        System.exit(1);
+      }
+      ((SelectChannelEndPoint)_endp).scheduleWrite();
     }
   }
-  return this;
+  return connection;
 }
