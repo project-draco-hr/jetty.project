@@ -5,18 +5,19 @@ synchronized (map) {
     int end=offset + length;
     for (int i=offset; i < end; i++) {
       byte b=raw[i];
+      try {
 switch ((char)(0xff & b)) {
 case '&':
-        value=buffer.length() == 0 ? "" : buffer.toString();
-      buffer.reset();
-    if (key != null) {
-      map.add(key,value);
-    }
- else     if (value != null && value.length() > 0) {
-      map.add(value,"");
-    }
-  key=null;
-value=null;
+          value=buffer.length() == 0 ? "" : buffer.toString();
+        buffer.reset();
+      if (key != null) {
+        map.add(key,value);
+      }
+ else       if (value != null && value.length() > 0) {
+        map.add(value,"");
+      }
+    key=null;
+  value=null;
 break;
 case '=':
 if (key != null) {
@@ -35,6 +36,11 @@ break;
 default :
 buffer.append(b);
 break;
+}
+}
+ catch (NotUtf8Exception e) {
+LOG.warn(e.toString());
+LOG.debug(e);
 }
 }
 if (key != null) {
