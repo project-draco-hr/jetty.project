@@ -3,7 +3,7 @@
   boolean progress=true;
   try {
     boolean failed=false;
-    int loops=1000;
+    int loops=10000;
     while (_endp.isOpen() && (_parser.isMoreInBuffer() || _endp.isBufferingInput() || progress)) {
       if (loops-- < 0) {
         System.err.println("LOOPING!!!");
@@ -20,33 +20,29 @@
           commitRequest();
         }
         if (_generator.isCommitted() && !_generator.isComplete()) {
-          int flushed=_generator.flushBuffer();
-          if (flushed > 0)           progress=true;
-          if (!_generator.isComplete() && _generator.isEmpty()) {
-            if (exchange != null) {
-              Buffer chunk=_exchange.getRequestContentChunk();
-              if (chunk != null)               _generator.addContent(chunk,false);
- else {
-                _generator.complete();
-                progress=true;
-              }
-            }
- else {
-              _generator.complete();
+          if (_generator.flushBuffer() > 0)           progress=true;
+          if (_generator.isState(AbstractGenerator.STATE_CONTENT)) {
+            if (_requestContentChunk == null)             _requestContentChunk=exchange.getRequestContentChunk(null);
+            if (_requestContentChunk == null) {
               progress=true;
+              _generator.complete();
             }
-          }
- else {
-            _generator.complete();
-            progress=true;
+ else             if (_generator.isEmpty()) {
+              progress=true;
+              Buffer chunk=_requestContentChunk;
+              _requestContentChunk=exchange.getRequestContentChunk(null);
+              _generator.addContent(chunk,_requestContentChunk == null);
+            }
           }
         }
         if (_generator.isComplete() && !_requestComplete) {
+          progress=true;
           _requestComplete=true;
           exchange.getEventListener().onRequestComplete();
         }
         if (_endp.isBufferingOutput())         _endp.flush();
         if (!_parser.isComplete() && _parser.parseAvailable())         progress=true;
+        if (_asyncEndp.hasProgressed())         progress=true;
       }
  catch (      Throwable e) {
         LOG.debug("Failure on " + _exchange,e);
@@ -54,7 +50,7 @@
         failed=true;
 synchronized (this) {
           if (exchange != null) {
-            if (exchange.getStatus() != HttpExchange.STATUS_CANCELLING && exchange.getStatus() != HttpExchange.STATUS_CANCELLED) {
+            if (exchange.getStatus() != HttpExchange.STATUS_CANCELLING && exchange.getStatus() != HttpExchange.STATUS_CANCELLED && !exchange.isDone()) {
               exchange.setStatus(HttpExchange.STATUS_EXCEPTED);
               exchange.getEventListener().onException(e);
             }
@@ -104,15 +100,6 @@ synchronized (this) {
   finally {
     _parser.returnBuffers();
     _generator.returnBuffers();
-    if (!_generator.isEmpty()) {
-      if (((SelectChannelEndPoint)_endp).isWritable()) {
-        System.err.println("early exit??? " + progress);
-        System.err.println(_endp);
-        System.err.println(_generator);
-        System.exit(1);
-      }
-      ((SelectChannelEndPoint)_endp).scheduleWrite();
-    }
   }
   return connection;
 }
