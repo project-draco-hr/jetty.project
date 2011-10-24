@@ -1,21 +1,19 @@
 {
-  if (__log != null)   return true;
+  if (LOG != null)   return true;
 synchronized (Log.class) {
-    if (__initialized)     return __log != null;
+    if (__initialized)     return LOG != null;
     __initialized=true;
   }
   try {
     Class<?> log_class=Loader.loadClass(Log.class,__logClass);
-    if (__log == null || !__log.getClass().equals(log_class)) {
-      __log=(Logger)log_class.newInstance();
-      __log.debug("Logging to {} via {}",__log,log_class.getName());
+    if (LOG == null || !LOG.getClass().equals(log_class)) {
+      LOG=(Logger)log_class.newInstance();
+      LOG.debug("Logging to {} via {}",LOG,log_class.getName());
     }
   }
- catch (  NoClassDefFoundError e) {
+ catch (  Throwable e) {
+    if (e instanceof ThreadDeath)     throw (ThreadDeath)e;
     initStandardLogging(e);
   }
-catch (  Exception e) {
-    initStandardLogging(e);
-  }
-  return __log != null;
+  return LOG != null;
 }
