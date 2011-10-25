@@ -1,0 +1,61 @@
+{
+  if (toFill == null) {
+    if (_unwrapBuf == null)     _unwrapBuf=new IndirectNIOBuffer(_session.getApplicationBufferSize());
+    toFill=_unwrapBuf;
+  }
+ else   if (_unwrapBuf != null && _unwrapBuf.hasContent()) {
+    _unwrapBuf.skip(toFill.put(_unwrapBuf));
+    return true;
+  }
+  if (toFlush == null)   toFlush=__ZERO_BUFFER;
+  HandshakeStatus initialStatus=_engine.getHandshakeStatus();
+  boolean progress=true;
+  boolean some_progress=false;
+  try {
+    allocateBuffers();
+    while (progress) {
+      progress=false;
+      LOG.debug("{} status {}",_session,_engine.getHandshakeStatus());
+switch (_engine.getHandshakeStatus()) {
+case FINISHED:
+        throw new IllegalStateException();
+case NOT_HANDSHAKING:
+{
+        if (toFlush.hasContent() && _outbound.space() > 0 && wrap(toFlush))         progress=true;
+        if (toFill.space() > 0 && _inbound.hasContent() && unwrap(toFill))         progress=true;
+      }
+    break;
+case NEED_TASK:
+{
+    Runnable task;
+    while ((task=_engine.getDelegatedTask()) != null) {
+      progress=true;
+      task.run();
+    }
+    if (initialStatus == HandshakeStatus.NOT_HANDSHAKING && _engine.getHandshakeStatus() == HandshakeStatus.NEED_UNWRAP) {
+      LOG.warn("{} JETTY-567",_session);
+      _endp.close();
+      return false;
+    }
+  }
+break;
+case NEED_WRAP:
+{
+if (wrap(toFlush)) progress=true;
+}
+break;
+case NEED_UNWRAP:
+{
+if (unwrap(toFill)) progress=true;
+}
+break;
+}
+LOG.debug("{} progress={}",_session,progress);
+some_progress|=progress;
+}
+}
+  finally {
+releaseBuffers();
+}
+return some_progress;
+}
