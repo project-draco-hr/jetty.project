@@ -36,21 +36,18 @@ case NEED_TASK:
       progress=true;
       task.run();
     }
-    if (initialStatus == HandshakeStatus.NOT_HANDSHAKING && _engine.getHandshakeStatus() == HandshakeStatus.NEED_UNWRAP) {
-      LOG.warn("{} JETTY-567",_session);
-      _endp.close();
-      return false;
-    }
   }
 break;
 case NEED_WRAP:
 {
-if (wrap(toFlush)) progress=true;
+if (_handshook && !_allowRenegotiate) _endp.close();
+ else if (wrap(toFlush)) progress=true;
 }
 break;
 case NEED_UNWRAP:
 {
-if (unwrap(toFill)) progress=true;
+if (_handshook && !_allowRenegotiate) _endp.close();
+ else if (unwrap(toFill)) progress=true;
 }
 break;
 }
