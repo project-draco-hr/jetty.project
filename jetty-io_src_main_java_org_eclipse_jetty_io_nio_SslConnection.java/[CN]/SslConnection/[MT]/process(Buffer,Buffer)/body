@@ -15,6 +15,10 @@
     allocateBuffers();
     while (progress) {
       progress=false;
+      int filled=0, flushed=0;
+      if (_inbound.space() > 0 && (filled=_endp.fill(_inbound)) > 0)       progress=true;
+      if (_outbound.hasContent() && (flushed=_endp.flush(_outbound)) > 0)       progress=true;
+      LOG.debug("{} filled={} flushed={}",_session,filled,flushed);
       LOG.debug("{} status {}",_session,_engine.getHandshakeStatus());
 switch (_engine.getHandshakeStatus()) {
 case FINISHED:
@@ -50,7 +54,9 @@ if (unwrap(toFill)) progress=true;
 }
 break;
 }
-LOG.debug("{} progress={}",_session,progress);
+if (!_inbound.hasContent() && _endp.isInputShutdown()) _engine.closeInbound();
+if (!_outbound.hasContent() && _engine.isOutboundDone()) _endp.shutdownOutput();
+LOG.debug("{} process progress={}",_session,progress);
 some_progress|=progress;
 }
 }

@@ -1,0 +1,25 @@
+{
+  Socket client=newClient();
+  client.setSoTimeout(200);
+  SocketChannel server=_connector.accept();
+  server.configureBlocking(false);
+  _manager.register(server);
+  _blockAt=10;
+  client.getOutputStream().write("12345678".getBytes("UTF-8"));
+  Thread.sleep(200);
+  long start=System.currentTimeMillis();
+  try {
+    client.getInputStream().read();
+    Assert.fail();
+  }
+ catch (  SocketTimeoutException e) {
+    System.err.println("blocked " + (System.currentTimeMillis() - start));
+    assertTrue(System.currentTimeMillis() - start >= 100);
+  }
+  client.getOutputStream().write("90ABCDEF".getBytes("UTF-8"));
+  for (  char c : "1234567890ABCDEF".toCharArray()) {
+    int b=client.getInputStream().read();
+    assertTrue(b > 0);
+    assertEquals(c,(char)b);
+  }
+}
