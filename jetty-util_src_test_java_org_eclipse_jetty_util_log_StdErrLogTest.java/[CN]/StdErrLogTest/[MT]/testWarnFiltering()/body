@@ -1,6 +1,6 @@
 {
   StdErrLog log=new StdErrLog(StdErrLogTest.class.getName());
-  log.setHideStacks(true);
+  log.setHideStacks(false);
   ByteArrayOutputStream test=new ByteArrayOutputStream();
   PrintStream err=new PrintStream(test);
   log.setStdErrStream(err);
@@ -9,9 +9,13 @@
   log.warn("Hear Me");
   log.setLevel(StdErrLog.LEVEL_WARN);
   log.warn("Cheer Me");
+  log.warn("<zoom>",new Throwable("out of focus"));
+  log.warn(new Throwable("scene lost"));
   String output=new String(test.toByteArray(),"UTF-8");
-  System.err.print(output);
   Assert.assertThat(output,containsString("See Me"));
   Assert.assertThat(output,containsString("Hear Me"));
   Assert.assertThat(output,containsString("Cheer Me"));
+  Assert.assertThat(output,containsString(".StdErrLogTest:<zoom>"));
+  Assert.assertThat(output,containsString("java.lang.Throwable: out of focus"));
+  Assert.assertThat(output,containsString("java.lang.Throwable: scene lost"));
 }
