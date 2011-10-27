@@ -1,0 +1,33 @@
+{
+  super(klass);
+  original=Thread.currentThread().getContextClassLoader();
+  File testJarDir=MavenTestingUtils.getTargetFile("test-jars");
+  Assume.assumeTrue(testJarDir.exists());
+  File jarfiles[]=testJarDir.listFiles(new FileFilter(){
+    public boolean accept(    File path){
+      if (!path.isFile()) {
+        return false;
+      }
+      return path.getName().endsWith(".jar");
+    }
+  }
+);
+  Assume.assumeTrue(jarfiles.length > 0);
+  try {
+    List<URL> urlist=new ArrayList<URL>();
+    for (    File path : jarfiles) {
+      urlist.add(path.toURI().toURL());
+    }
+    for (    String entry : System.getProperty("java.class.path").split(File.pathSeparator)) {
+      File path=new File(entry);
+      if (path.exists()) {
+        urlist.add(path.toURI().toURL());
+      }
+    }
+    URL urls[]=urlist.toArray(new URL[urlist.size()]);
+    slf4jClassLoader=new Slf4jTestClassLoader(urls);
+  }
+ catch (  MalformedURLException e) {
+    throw new InitializationError(e);
+  }
+}
