@@ -1,7 +1,7 @@
 {
   SelectChannelConnector connector=new SelectChannelConnector(){
     @Override protected SelectChannelEndPoint newEndPoint(    SocketChannel channel,    SelectSet selectSet,    SelectionKey key) throws IOException {
-      return new SelectChannelEndPoint(channel,selectSet,key,_maxIdleTime){
+      SelectChannelEndPoint endp=new SelectChannelEndPoint(channel,selectSet,key,_maxIdleTime){
         int write;
         int read;
         @Override public int flush(        Buffer header,        Buffer buffer,        Buffer trailer) throws IOException {
@@ -57,6 +57,8 @@
         }
       }
 ;
+      endp.setConnection(selectSet.getManager().newConnection(channel,endp,key.attachment()));
+      return endp;
     }
   }
 ;
