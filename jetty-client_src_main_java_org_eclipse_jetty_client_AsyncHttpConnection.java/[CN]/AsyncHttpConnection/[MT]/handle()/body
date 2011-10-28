@@ -4,30 +4,42 @@
   try {
     boolean failed=false;
     int loops=10000;
-    while (_endp.isOpen() && (_parser.isMoreInBuffer() || _endp.isBufferingInput() || progress)) {
+    while (progress && connection == this) {
+      LOG.debug("open={} more={} buffering={} progress={}",_endp.isOpen(),_parser.isMoreInBuffer(),_endp.isBufferingInput(),progress);
       if (loops-- < 0) {
         System.err.println("LOOPING!!!");
         System.err.println(this);
         System.err.println(_endp);
-        System.err.println(((SelectChannelEndPoint)_endp).getSelectManager().dump());
-        System.exit(1);
+        _endp.close();
+      }
+ else       if (loops == 10) {
+        LOG.setDebugEnabled(true);
+        Log.getLogger(HttpParser.class).setDebugEnabled(true);
+        Log.getLogger("org.eclipse.jetty.io.nio.ssl").setDebugEnabled(true);
       }
       progress=false;
       HttpExchange exchange=_exchange;
+      LOG.debug("exchange {}",exchange);
       try {
         if (!_generator.isCommitted() && exchange != null && exchange.getStatus() == HttpExchange.STATUS_WAITING_FOR_COMMIT) {
+          LOG.debug("commit");
           progress=true;
           commitRequest();
         }
         if (_generator.isCommitted() && !_generator.isComplete()) {
-          if (_generator.flushBuffer() > 0)           progress=true;
+          if (_generator.flushBuffer() > 0) {
+            LOG.debug("flushed");
+            progress=true;
+          }
           if (_generator.isState(AbstractGenerator.STATE_CONTENT)) {
             if (_requestContentChunk == null)             _requestContentChunk=exchange.getRequestContentChunk(null);
             if (_requestContentChunk == null) {
+              LOG.debug("complete");
               progress=true;
               _generator.complete();
             }
  else             if (_generator.isEmpty()) {
+              LOG.debug("addChunk");
               progress=true;
               Buffer chunk=_requestContentChunk;
               _requestContentChunk=exchange.getRequestContentChunk(null);
@@ -36,13 +48,20 @@
           }
         }
         if (_generator.isComplete() && !_requestComplete) {
+          LOG.debug("requestComplete");
           progress=true;
           _requestComplete=true;
           exchange.getEventListener().onRequestComplete();
         }
         if (_endp.isBufferingOutput())         _endp.flush();
-        if (!_parser.isComplete() && _parser.parseAvailable())         progress=true;
-        if (_asyncEndp.hasProgressed())         progress=true;
+        if (!_parser.isComplete() && _parser.parseAvailable()) {
+          LOG.debug("parsed");
+          progress=true;
+        }
+        if (_asyncEndp.hasProgressed()) {
+          LOG.debug("hasProgressed");
+          progress=true;
+        }
       }
  catch (      Throwable e) {
         LOG.debug("Failure on " + _exchange,e);
@@ -64,6 +83,8 @@ synchronized (this) {
         }
       }
  finally {
+        LOG.debug("{} {} progress={}",_generator,_parser,progress);
+        LOG.debug("{}",_endp);
         boolean complete=failed || _generator.isComplete() && _parser.isComplete();
         if (complete) {
           boolean persistent=!failed && _parser.isPersistent() && _generator.isPersistent();

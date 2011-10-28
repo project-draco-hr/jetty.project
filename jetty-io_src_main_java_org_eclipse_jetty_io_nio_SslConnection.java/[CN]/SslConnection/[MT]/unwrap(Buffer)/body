@@ -17,8 +17,9 @@ synchronized (in_buffer) {
         buffer.setPutIndex(buffer.putIndex() + result.bytesProduced());
       }
  catch (      SSLException e) {
-        LOG.warn(_endp + ":",e);
-        _endp.close();
+        LOG.warn(_endp + ":" + e);
+        LOG.debug(e);
+        if (_endp.isOpen())         _endp.close();
         throw e;
       }
  finally {
@@ -33,7 +34,7 @@ switch (result.getStatus()) {
 case BUFFER_UNDERFLOW:
     break;
 case BUFFER_OVERFLOW:
-  LOG.debug("{} wrap {}",_session,result);
+  LOG.debug("{} unwrap {} {}->{}",_session,result.getStatus(),_inbound.toDetailString(),buffer.toDetailString());
 break;
 case OK:
 if (result.getHandshakeStatus() == HandshakeStatus.FINISHED) _handshook=true;
