@@ -1,9 +1,7 @@
 {
   StdErrLog log=new StdErrLog(StdErrLogTest.class.getName());
   log.setHideStacks(false);
-  ByteArrayOutputStream test=new ByteArrayOutputStream();
-  PrintStream err=new PrintStream(test);
-  log.setStdErrStream(err);
+  StdErrCapture output=new StdErrCapture(log);
   log.info("I will not buy");
   log.setLevel(StdErrLog.LEVEL_DEBUG);
   log.info("this record");
@@ -14,14 +12,13 @@
   log.setLevel(StdErrLog.LEVEL_WARN);
   log.info("sorry?");
   log.info("<spoken line>",new Throwable("on editing room floor"));
-  String output=new String(test.toByteArray(),"UTF-8");
-  Assert.assertThat(output,containsString("I will not buy"));
-  Assert.assertThat(output,containsString("this record"));
-  Assert.assertThat(output,containsString("it is scratched."));
-  Assert.assertThat(output,not(containsString("sorry?")));
-  Assert.assertThat(output,not(containsString("<spoken line>")));
-  Assert.assertThat(output,not(containsString("on editing room floor")));
-  Assert.assertThat(output,containsString(".StdErrLogTest:<zoom>"));
-  Assert.assertThat(output,containsString("java.lang.Throwable: out of focus"));
-  Assert.assertThat(output,containsString("java.lang.Throwable: scene lost"));
+  output.assertContains("I will not buy");
+  output.assertContains("this record");
+  output.assertContains("it is scratched.");
+  output.assertNotContains("sorry?");
+  output.assertNotContains("<spoken line>");
+  output.assertNotContains("on editing room floor");
+  output.assertContains(".StdErrLogTest:<zoom>");
+  output.assertContains("java.lang.Throwable: out of focus");
+  output.assertContains("java.lang.Throwable: scene lost");
 }

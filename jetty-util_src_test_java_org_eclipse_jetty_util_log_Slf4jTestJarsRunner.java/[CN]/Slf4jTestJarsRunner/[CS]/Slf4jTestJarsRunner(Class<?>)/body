@@ -2,7 +2,10 @@
   super(klass);
   original=Thread.currentThread().getContextClassLoader();
   File testJarDir=MavenTestingUtils.getTargetFile("test-jars");
-  Assume.assumeTrue(testJarDir.exists());
+  if (!testJarDir.exists()) {
+    System.out.println("Directory not found: " + testJarDir.getAbsolutePath());
+    return;
+  }
   File jarfiles[]=testJarDir.listFiles(new FileFilter(){
     public boolean accept(    File path){
       if (!path.isFile()) {
@@ -12,7 +15,11 @@
     }
   }
 );
-  Assume.assumeTrue(jarfiles.length > 0);
+  if (jarfiles.length < 0) {
+    System.out.println("No slf4j test-jars found");
+    return;
+  }
+  foundSlf4jJars=true;
   try {
     List<URL> urlist=new ArrayList<URL>();
     for (    File path : jarfiles) {
@@ -20,11 +27,14 @@
     }
     for (    String entry : System.getProperty("java.class.path").split(File.pathSeparator)) {
       File path=new File(entry);
-      if (path.exists()) {
+      if (path.exists() && !path.getName().contains("slf4j-api")) {
         urlist.add(path.toURI().toURL());
       }
     }
     URL urls[]=urlist.toArray(new URL[urlist.size()]);
+    for (    URL url : urls) {
+      System.out.println("Classpath entry: " + url);
+    }
     slf4jClassLoader=new Slf4jTestClassLoader(urls);
   }
  catch (  MalformedURLException e) {
