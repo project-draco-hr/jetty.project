@@ -1,4 +1,25 @@
 {
   System.err.printf("[slf4j.cl] loadClass(%s)%n",name);
-  return super.loadClass(name);
+  Class<?> c=null;
+  try {
+    c=super.loadClass(name);
+    System.err.println("FOUND in slf4j classloader: " + name);
+  }
+ catch (  ClassNotFoundException e) {
+    System.err.println("Not found in slf4j classloader: " + name);
+  }
+  if (c == null) {
+    try {
+      c=parent.loadClass(name);
+      System.err.println("FOUND in parent classloader: " + name);
+    }
+ catch (    ClassNotFoundException e) {
+      System.err.println("Not found in parent classloader: " + name);
+    }
+  }
+  if (c != null) {
+    System.err.printf("[slf4j.cl] loadClass(%s) -> %s%n",name,c);
+    return c;
+  }
+  throw new ClassNotFoundException(name);
 }
