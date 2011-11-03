@@ -73,7 +73,12 @@ case WebSocketConnectionD13.OP_CLOSE:
   String message=null;
   if (buffer.length() >= 2) {
     code=(0xff & buffer.array()[buffer.getIndex()]) * 0x100 + (0xff & buffer.array()[buffer.getIndex() + 1]);
-    if (buffer.length() > 2)     message=new String(buffer.array(),buffer.getIndex() + 2,buffer.length() - 2,StringUtil.__UTF8);
+    if (buffer.length() > 2) {
+      if (_utf8.append(buffer.array(),buffer.getIndex() + 2,buffer.length() - 2,_connection.getMaxTextMessageSize())) {
+        message=_utf8.toString();
+        _utf8.reset();
+      }
+    }
   }
  else   if (buffer.length() == 1) {
     errorClose(WebSocketConnectionD13.CLOSE_PROTOCOL,"Invalid payload length of 1");
