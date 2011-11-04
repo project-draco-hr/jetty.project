@@ -4,7 +4,19 @@
     boolean failed=false;
     while (_endp.isOpen() && connection == this) {
       LOG.debug("open={} more={} buffering={}",_endp.isOpen(),_parser.isMoreInBuffer(),_endp.isBufferingInput());
-      HttpExchange exchange=_exchange;
+      HttpExchange exchange;
+synchronized (this) {
+        exchange=_exchange;
+        while (exchange == null) {
+          try {
+            this.wait();
+            exchange=_exchange;
+          }
+ catch (          InterruptedException e) {
+            throw new InterruptedIOException();
+          }
+        }
+      }
       LOG.debug("exchange {}",exchange);
       try {
         if (!_generator.isCommitted() && exchange != null && exchange.getStatus() == HttpExchange.STATUS_WAITING_FOR_COMMIT) {
