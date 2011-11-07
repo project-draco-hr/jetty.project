@@ -1,5 +1,5 @@
 {
-  LOG.debug("ClosedOut {} {}",this,message);
+  LOG.debug("ClosedOut {} {} {}",this,code,message);
   final boolean closed_out;
   final boolean tell_app;
 synchronized (this) {
@@ -17,8 +17,10 @@ synchronized (this) {
   finally {
     try {
       if (!closed_out) {
-        if (code <= 0)         code=WebSocketConnectionD13.CLOSE_NORMAL;
-        byte[] bytes=(message == null ? "xx" : ("xx" + message)).getBytes(StringUtil.__ISO_8859_1);
+        if ((code <= 0) || (code == WebSocketConnectionD13.CLOSE_NO_CODE)) {
+          code=WebSocketConnectionD13.CLOSE_NORMAL;
+        }
+        byte[] bytes=("xx" + (message == null ? "" : message)).getBytes(StringUtil.__ISO_8859_1);
         bytes[0]=(byte)(code / 0x100);
         bytes[1]=(byte)(code % 0x100);
         _outbound.addFrame((byte)FLAG_FIN,WebSocketConnectionD13.OP_CLOSE,bytes,0,bytes.length);

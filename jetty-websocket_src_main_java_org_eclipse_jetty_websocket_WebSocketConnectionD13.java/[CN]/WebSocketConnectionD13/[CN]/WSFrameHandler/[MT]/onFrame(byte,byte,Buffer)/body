@@ -5,16 +5,16 @@ synchronized (WebSocketConnectionD13.this) {
   }
   try {
     byte[] array=buffer.array();
-    if (STRICT) {
-      if (isControlFrame(opcode) && buffer.length() > 125) {
-        errorClose(WebSocketConnectionD13.CLOSE_PROTOCOL,"Control frame too large");
-        return;
-      }
-      if ((flags & 0x7) != 0) {
-        errorClose(WebSocketConnectionD13.CLOSE_PROTOCOL,"RSV bits set 0x" + Integer.toHexString(flags));
-        return;
-      }
-      if (_closeCode != 0 && _closeCode != CLOSE_NORMAL && opcode != OP_CLOSE)       return;
+    if (isControlFrame(opcode) && buffer.length() > MAX_CONTROL_FRAME_PAYLOAD) {
+      errorClose(WebSocketConnectionD13.CLOSE_PROTOCOL,"Control frame too large: " + buffer.length() + " > "+ MAX_CONTROL_FRAME_PAYLOAD);
+      return;
+    }
+    if ((flags & 0x7) != 0) {
+      errorClose(WebSocketConnectionD13.CLOSE_PROTOCOL,"RSV bits set 0x" + Integer.toHexString(flags));
+      return;
+    }
+    if (_closeCode != 0 && _closeCode != CLOSE_NORMAL && opcode != OP_CLOSE) {
+      return;
     }
     if (_onFrame != null) {
       if (_onFrame.onFrame(flags,opcode,array,buffer.getIndex(),buffer.length()))       return;
@@ -59,7 +59,9 @@ case WebSocketConnectionD13.OP_CONTINUATION:
 case WebSocketConnectionD13.OP_PING:
 {
       LOG.debug("PING {}",this);
-      if (!_closedOut)       _connection.sendControl(WebSocketConnectionD13.OP_PONG,buffer.array(),buffer.getIndex(),buffer.length());
+      if (!_closedOut) {
+        _connection.sendControl(WebSocketConnectionD13.OP_PONG,buffer.array(),buffer.getIndex(),buffer.length());
+      }
       break;
     }
 case WebSocketConnectionD13.OP_PONG:
@@ -73,14 +75,27 @@ case WebSocketConnectionD13.OP_CLOSE:
   String message=null;
   if (buffer.length() >= 2) {
     code=(0xff & buffer.array()[buffer.getIndex()]) * 0x100 + (0xff & buffer.array()[buffer.getIndex() + 1]);
-    if (buffer.length() > 2)     message=new String(buffer.array(),buffer.getIndex() + 2,buffer.length() - 2,StringUtil.__UTF8);
+    if (code < WebSocketConnectionD13.CLOSE_NORMAL || code == WebSocketConnectionD13.CLOSE_UNDEFINED || code == WebSocketConnectionD13.CLOSE_NO_CLOSE || code == WebSocketConnectionD13.CLOSE_NO_CODE || (code > 1010 && code <= 2999) || code >= 5000) {
+      errorClose(WebSocketConnectionD13.CLOSE_PROTOCOL,"Invalid close control status code " + code);
+      return;
+    }
+    if (buffer.length() > 2) {
+      if (_utf8.append(buffer.array(),buffer.getIndex() + 2,buffer.length() - 2,_connection.getMaxTextMessageSize())) {
+        message=_utf8.toString();
+        _utf8.reset();
+      }
+    }
+  }
+ else   if (buffer.length() == 1) {
+    errorClose(WebSocketConnectionD13.CLOSE_PROTOCOL,"Invalid payload length of 1");
+    return;
   }
   closeIn(code,message);
   break;
 }
 case WebSocketConnectionD13.OP_TEXT:
 {
-if (STRICT && _opcode != -1) {
+if (_opcode != -1) {
   errorClose(WebSocketConnectionD13.CLOSE_PROTOCOL,"Expected Continuation" + Integer.toHexString(opcode));
   return;
 }
@@ -108,7 +123,7 @@ break;
 }
 case WebSocketConnectionD13.OP_BINARY:
 {
-if (STRICT && _opcode != -1) {
+if (_opcode != -1) {
 errorClose(WebSocketConnectionD13.CLOSE_PROTOCOL,"Expected Continuation" + Integer.toHexString(opcode));
 return;
 }
@@ -129,7 +144,7 @@ if (lastFrame) {
 break;
 }
 default :
-if (STRICT) errorClose(WebSocketConnectionD13.CLOSE_PROTOCOL,"Bad opcode 0x" + Integer.toHexString(opcode));
+errorClose(WebSocketConnectionD13.CLOSE_PROTOCOL,"Bad opcode 0x" + Integer.toHexString(opcode));
 return;
 }
 }
