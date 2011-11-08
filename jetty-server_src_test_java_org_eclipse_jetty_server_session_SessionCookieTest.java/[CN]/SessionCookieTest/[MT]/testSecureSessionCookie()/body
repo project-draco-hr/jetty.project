@@ -1,0 +1,23 @@
+{
+  MockSessionIdManager idMgr=new MockSessionIdManager();
+  idMgr.setWorkerName("node1");
+  MockSessionManager mgr=new MockSessionManager();
+  mgr.setSessionIdManager(idMgr);
+  MockSession session=new MockSession(mgr,System.currentTimeMillis(),System.currentTimeMillis(),"node1123");
+  SessionCookieConfig sessionCookieConfig=mgr.getSessionCookieConfig();
+  sessionCookieConfig.setSecure(true);
+  HttpCookie cookie=mgr.getSessionCookie(session,"/foo",true);
+  assertTrue(cookie.isSecure());
+  cookie=mgr.getSessionCookie(session,"/foo",false);
+  assertTrue(cookie.isSecure());
+  sessionCookieConfig.setSecure(false);
+  cookie=mgr.getSessionCookie(session,"/foo",true);
+  assertTrue(cookie.isSecure());
+  cookie=mgr.getSessionCookie(session,"/foo",false);
+  assertFalse(cookie.isSecure());
+  mgr.setSecureRequestOnly(false);
+  cookie=mgr.getSessionCookie(session,"/foo",false);
+  assertFalse(cookie.isSecure());
+  cookie=mgr.getSessionCookie(session,"/foo",true);
+  assertFalse(cookie.isSecure());
+}
