@@ -4,13 +4,13 @@
   try {
     boolean failed=false;
     while (progress && connection == this) {
-      LOG.debug("open={} more={} buffering={} progress={}",_endp.isOpen(),_parser.isMoreInBuffer(),_endp.isBufferingInput(),progress);
+      LOG.debug("while open={} more={} buffering={} progress={}",_endp.isOpen(),_parser.isMoreInBuffer(),_endp.isBufferingInput(),progress);
       progress=false;
       HttpExchange exchange=_exchange;
-      LOG.debug("exchange {}",exchange);
+      LOG.debug("exchange {} on {}",exchange,this);
       try {
         if (!_generator.isCommitted() && exchange != null && exchange.getStatus() == HttpExchange.STATUS_WAITING_FOR_COMMIT) {
-          LOG.debug("commit");
+          LOG.debug("commit {}",exchange);
           progress=true;
           commitRequest();
         }
@@ -22,7 +22,7 @@
           if (_generator.isState(AbstractGenerator.STATE_CONTENT)) {
             if (_requestContentChunk == null)             _requestContentChunk=exchange.getRequestContentChunk(null);
             if (_requestContentChunk == null) {
-              LOG.debug("complete");
+              LOG.debug("complete {}",exchange);
               progress=true;
               _generator.complete();
             }
@@ -36,7 +36,7 @@
           }
         }
         if (_generator.isComplete() && !_requestComplete) {
-          LOG.debug("requestComplete");
+          LOG.debug("requestComplete {}",exchange);
           progress=true;
           _requestComplete=true;
           exchange.getEventListener().onRequestComplete();
@@ -47,7 +47,7 @@
           progress=true;
         }
         if (_asyncEndp.hasProgressed()) {
-          LOG.debug("hasProgressed");
+          LOG.debug("hasProgressed {}",exchange);
           progress=true;
         }
       }
@@ -71,8 +71,7 @@ synchronized (this) {
         }
       }
  finally {
-        LOG.debug("{} {} progress={}",_generator,_parser,progress);
-        LOG.debug("{}",_endp);
+        LOG.debug("finally {} on {} progress={} {}",exchange,this,progress,_endp);
         boolean complete=failed || _generator.isComplete() && _parser.isComplete();
         if (complete) {
           boolean persistent=!failed && _parser.isPersistent() && _generator.isPersistent();
@@ -109,6 +108,7 @@ synchronized (this) {
   finally {
     _parser.returnBuffers();
     _generator.returnBuffers();
+    LOG.debug("unhandle {} on {}",_exchange,_endp);
   }
   return connection;
 }
