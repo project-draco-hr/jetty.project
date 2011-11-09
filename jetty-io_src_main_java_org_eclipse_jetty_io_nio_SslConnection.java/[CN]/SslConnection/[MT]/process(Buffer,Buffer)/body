@@ -1,25 +1,25 @@
 {
-  if (toFill == null) {
-    if (_unwrapBuf == null)     _unwrapBuf=new IndirectNIOBuffer(_session.getApplicationBufferSize() * 2);
-    toFill=_unwrapBuf;
-  }
- else   if (toFill.capacity() < _session.getApplicationBufferSize()) {
-    boolean progress=process(null,toFlush);
-    if (_unwrapBuf != null && _unwrapBuf.hasContent()) {
-      _unwrapBuf.skip(toFill.put(_unwrapBuf));
-      return true;
-    }
- else     return progress;
-  }
- else   if (_unwrapBuf != null && _unwrapBuf.hasContent()) {
-    _unwrapBuf.skip(toFill.put(_unwrapBuf));
-    return true;
-  }
-  if (toFlush == null)   toFlush=__ZERO_BUFFER;
-  boolean progress=true;
   boolean some_progress=false;
   try {
     allocateBuffers();
+    if (toFill == null) {
+      _unwrapBuf.compact();
+      toFill=_unwrapBuf;
+    }
+ else     if (toFill.capacity() < _session.getApplicationBufferSize()) {
+      boolean progress=process(null,toFlush);
+      if (_unwrapBuf != null && _unwrapBuf.hasContent()) {
+        _unwrapBuf.skip(toFill.put(_unwrapBuf));
+        return true;
+      }
+ else       return progress;
+    }
+ else     if (_unwrapBuf != null && _unwrapBuf.hasContent()) {
+      _unwrapBuf.skip(toFill.put(_unwrapBuf));
+      return true;
+    }
+    if (toFlush == null)     toFlush=__ZERO_BUFFER;
+    boolean progress=true;
     while (progress) {
       progress=false;
       int filled=0, flushed=0;
