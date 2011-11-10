@@ -17,6 +17,24 @@
   }
   finally {
     releaseBuffers();
+    if (!_ishut && _sslEndPoint.isInputShutdown() && _sslEndPoint.isOpen()) {
+      _ishut=true;
+      try {
+        _connection.onInputShutdown();
+      }
+ catch (      ThreadDeath e) {
+        throw e;
+      }
+catch (      Throwable x) {
+        LOG.warn("onInputShutdown failed",x);
+        try {
+          _sslEndPoint.close();
+        }
+ catch (        IOException e2) {
+          LOG.ignore(e2);
+        }
+      }
+    }
   }
   return this;
 }
