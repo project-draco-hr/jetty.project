@@ -4,7 +4,7 @@
   try {
     boolean failed=false;
     while (progress && connection == this) {
-      LOG.debug("while open={} more={} progress={}",_endp.isOpen(),_parser.isMoreInBuffer(),progress);
+      LOG.debug("while open={} more={} buffering={} progress={}",_endp.isOpen(),_parser.isMoreInBuffer(),_endp.isBufferingInput(),progress);
       progress=false;
       HttpExchange exchange=_exchange;
       LOG.debug("exchange {} on {}",exchange,this);
@@ -51,11 +51,9 @@
           progress=true;
         }
       }
- catch (      ThreadDeath e) {
-        throw e;
-      }
-catch (      Throwable e) {
+ catch (      Throwable e) {
         LOG.debug("Failure on " + _exchange,e);
+        if (e instanceof ThreadDeath)         throw (ThreadDeath)e;
         failed=true;
 synchronized (this) {
           if (exchange != null) {

@@ -47,15 +47,14 @@ catch (      Throwable e) {
         }
       }
  finally {
+        dispatched=!undispatch();
         if (!_ishut && isInputShutdown() && isOpen()) {
           _ishut=true;
           try {
             _connection.onInputShutdown();
           }
- catch (          ThreadDeath e) {
-            throw e;
-          }
-catch (          Throwable x) {
+ catch (          Throwable x) {
+            if (x instanceof ThreadDeath)             throw (ThreadDeath)x;
             LOG.warn("onInputShutdown failed",x);
             try {
               close();
@@ -68,7 +67,6 @@ catch (          Throwable x) {
             updateKey();
           }
         }
-        dispatched=!undispatch();
       }
     }
   }
