@@ -1,25 +1,30 @@
 {
   Socket client=newClient();
-  client.setSoTimeout(200);
   SocketChannel server=_connector.accept();
   server.configureBlocking(false);
   _manager.register(server);
+  OutputStream clientOutputStream=client.getOutputStream();
+  InputStream clientInputStream=client.getInputStream();
+  int specifiedTimeout=200;
+  client.setSoTimeout(specifiedTimeout);
   _blockAt=10;
-  client.getOutputStream().write("12345678".getBytes("UTF-8"));
-  long specifiedTimeout=200L;
-  Thread.sleep(specifiedTimeout);
+  clientOutputStream.write("12345678".getBytes("UTF-8"));
+  clientOutputStream.flush();
+  Thread.sleep(2 * specifiedTimeout);
   long start=System.currentTimeMillis();
   try {
-    int b=client.getInputStream().read();
+    int b=clientInputStream.read();
     Assert.fail("Should have timed out waiting for a response, but read " + b);
   }
  catch (  SocketTimeoutException e) {
-    System.err.println("blocked " + (System.currentTimeMillis() - start));
-    Assert.assertThat("Expected timeout",System.currentTimeMillis() - start,greaterThanOrEqualTo(specifiedTimeout));
+    int elapsed=Long.valueOf(System.currentTimeMillis() - start).intValue();
+    System.err.println("blocked " + elapsed);
+    Assert.assertThat("Expected timeout",elapsed,greaterThanOrEqualTo(specifiedTimeout));
   }
-  client.getOutputStream().write("90ABCDEF".getBytes("UTF-8"));
+  clientOutputStream.write("90ABCDEF".getBytes("UTF-8"));
+  clientOutputStream.flush();
   for (  char c : "1234567890ABCDEF".toCharArray()) {
-    int b=client.getInputStream().read();
+    int b=clientInputStream.read();
     assertTrue(b > 0);
     assertEquals(c,(char)b);
   }
