@@ -1,5 +1,4 @@
 {
-  _lock.lock();
   try {
     int progress=0;
     if (_state == STATE_END)     return 0;
@@ -16,6 +15,7 @@
     if (_state == STATE_CONTENT && _contentPosition == _contentLength) {
       _state=STATE_END;
       _handler.messageComplete(_contentPosition);
+      returnBuffers();
       return 1;
     }
     int length=_buffer.length();
@@ -56,6 +56,7 @@ _handler.messageComplete(_contentPosition);
 }
 if (ex != null) throw ex;
 if (!isComplete() && !isIdle()) throw new EofException();
+returnBuffers();
 return -1;
 }
 length=_buffer.length();
@@ -141,6 +142,7 @@ _persistent=false;
 _state=STATE_SEEKING_EOF;
 _handler.headerComplete();
 _handler.messageComplete(_contentPosition);
+returnBuffers();
 return 1;
 }
 break;
@@ -164,6 +166,7 @@ _persistent=false;
 _state=STATE_SEEKING_EOF;
 _handler.headerComplete();
 _handler.messageComplete(_contentPosition);
+returnBuffers();
 return 1;
 }
 }
@@ -276,7 +279,8 @@ case HttpTokens.NO_CONTENT:
 _handler.headerComplete();
 _state=_persistent || (_responseStatus >= 100 && _responseStatus < 200) ? STATE_END : STATE_SEEKING_EOF;
 _handler.messageComplete(_contentPosition);
-break;
+returnBuffers();
+return 1;
 default :
 _state=STATE_CONTENT;
 _handler.headerComplete();
@@ -431,6 +435,7 @@ long remaining=_contentLength - _contentPosition;
 if (remaining == 0) {
 _state=_persistent ? STATE_END : STATE_SEEKING_EOF;
 _handler.messageComplete(_contentPosition);
+returnBuffers();
 return 1;
 }
 if (length > remaining) {
@@ -443,6 +448,7 @@ _handler.content(chunk);
 if (_contentPosition == _contentLength) {
 _state=_persistent ? STATE_END : STATE_SEEKING_EOF;
 _handler.messageComplete(_contentPosition);
+returnBuffers();
 }
 return 1;
 }
@@ -467,6 +473,7 @@ if (_chunkLength == 0) {
 if (_eol == HttpTokens.CARRIAGE_RETURN && _buffer.hasContent() && _buffer.peek() == HttpTokens.LINE_FEED) _eol=_buffer.get();
 _state=_persistent ? STATE_END : STATE_SEEKING_EOF;
 _handler.messageComplete(_contentPosition);
+returnBuffers();
 return 1;
 }
  else _state=STATE_CHUNK;
@@ -487,6 +494,7 @@ if (_chunkLength == 0) {
 if (_eol == HttpTokens.CARRIAGE_RETURN && _buffer.hasContent() && _buffer.peek() == HttpTokens.LINE_FEED) _eol=_buffer.get();
 _state=_persistent ? STATE_END : STATE_SEEKING_EOF;
 _handler.messageComplete(_contentPosition);
+returnBuffers();
 return 1;
 }
  else _state=STATE_CHUNK;
@@ -522,8 +530,5 @@ return progress;
 _persistent=false;
 _state=STATE_SEEKING_EOF;
 throw e;
-}
- finally {
-_lock.unlock();
 }
 }
