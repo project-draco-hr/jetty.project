@@ -1,6 +1,7 @@
 {
-  int current_ops=-1;
+  final boolean changed;
 synchronized (this) {
+    int current_ops=-1;
     if (getChannel().isOpen()) {
       boolean read_interest=_readBlocked || (!_dispatched && !_connection.isSuspended());
       boolean write_interest=_writeBlocked || (!_dispatched && !_writable);
@@ -13,8 +14,9 @@ synchronized (this) {
         LOG.ignore(e);
       }
     }
+    changed=_interestOps != current_ops;
   }
-  if (_interestOps != current_ops) {
+  if (changed) {
     _selectSet.addChange(this);
     _selectSet.wakeup();
   }
