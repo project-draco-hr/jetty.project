@@ -5,7 +5,7 @@
   _manager.register(server);
   OutputStream clientOutputStream=client.getOutputStream();
   InputStream clientInputStream=client.getInputStream();
-  int specifiedTimeout=200;
+  int specifiedTimeout=400;
   client.setSoTimeout(specifiedTimeout);
   _blockAt=10;
   clientOutputStream.write("12345678".getBytes("UTF-8"));
@@ -18,7 +18,8 @@
   }
  catch (  SocketTimeoutException e) {
     int elapsed=Long.valueOf(System.currentTimeMillis() - start).intValue();
-    Assert.assertThat("Expected timeout",elapsed,greaterThanOrEqualTo(specifiedTimeout));
+    System.err.println("blocked for " + elapsed + "ms");
+    Assert.assertThat("Expected timeout",elapsed,greaterThanOrEqualTo(3 * specifiedTimeout / 4));
   }
   clientOutputStream.write("90ABCDEF".getBytes("UTF-8"));
   clientOutputStream.flush();
