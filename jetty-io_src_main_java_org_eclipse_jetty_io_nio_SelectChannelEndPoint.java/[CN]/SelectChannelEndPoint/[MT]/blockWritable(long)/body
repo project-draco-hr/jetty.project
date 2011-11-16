@@ -1,11 +1,11 @@
 {
 synchronized (this) {
-    if (!isOpen() || isOutputShutdown())     throw new EofException();
+    if (isOutputShutdown())     throw new EofException();
     long now=_selectSet.getNow();
     long end=now + timeoutMs;
     try {
       _writeBlocked=true;
-      while (isOpen() && _writeBlocked && !isOutputShutdown()) {
+      while (_writeBlocked && !isOutputShutdown()) {
         try {
           updateKey();
           this.wait(timeoutMs >= 0 ? (end - now) : 10000);
@@ -19,13 +19,7 @@ synchronized (this) {
         if (_writeBlocked && timeoutMs > 0 && now >= end)         return false;
       }
     }
- catch (    Throwable e) {
-      LOG.warn(e);
-      if (e instanceof RuntimeException)       throw (RuntimeException)e;
-      if (e instanceof Error)       throw (Error)e;
-      throw new RuntimeException(e);
-    }
- finally {
+  finally {
       _writeBlocked=false;
       if (_idleTimestamp != -1)       scheduleIdle();
     }

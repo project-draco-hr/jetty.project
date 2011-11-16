@@ -1,0 +1,20 @@
+{
+  LOG.debug("oshut {}",this);
+  if (_channel.isOpen()) {
+    if (_channel instanceof SocketChannel) {
+      Socket socket=((SocketChannel)_channel).socket();
+      try {
+        if (!socket.isOutputShutdown())         socket.shutdownOutput();
+      }
+ catch (      SocketException e) {
+        LOG.warn(e.toString());
+        LOG.debug(e);
+        if (!socket.isClosed())         close();
+      }
+ finally {
+        if (socket.isInputShutdown() && !socket.isClosed())         close();
+      }
+    }
+ else     close();
+  }
+}

@@ -4,15 +4,14 @@
   boolean progress=true;
   try {
     setCurrentConnection(this);
-    boolean more_in_buffer=false;
-    while (_endp.isOpen() && (more_in_buffer || progress) && connection == this) {
+    while (progress && connection == this) {
       progress=false;
       try {
         if (_request._async.isAsync() && !_request._async.isComplete())         handleRequest();
- else         if (!_parser.isComplete() && _parser.parseAvailable() > 0)         progress=true;
-        if (_generator.isCommitted() && !_generator.isComplete() && _generator.flushBuffer() > 0)         progress=true;
-        if (_endp.isBufferingOutput())         _endp.flush();
-        if (!progress && !some_progress && (_endp.isInputShutdown() || _endp.isOutputShutdown()))         _endp.close();
+ else         if (!_parser.isComplete() && _parser.parseAvailable())         progress=true;
+        if (_generator.isCommitted() && !_generator.isComplete() && !_endp.isOutputShutdown())         if (_generator.flushBuffer() > 0)         progress=true;
+        _endp.flush();
+        if (_asyncEndp.hasProgressed())         progress=true;
       }
  catch (      HttpException e) {
         if (LOG.isDebugEnabled()) {
@@ -20,59 +19,39 @@
           LOG.debug("fields=" + _requestFields);
           LOG.debug(e);
         }
+        progress=true;
         _generator.sendError(e.getStatus(),e.getReason(),null,true);
-        _parser.reset();
-        _endp.close();
       }
  finally {
-        if (_endp.isInputShutdown() && (_parser.isIdle() || _parser.isComplete())) {
-          LOG.debug("complete half close {}",this);
-          more_in_buffer=false;
-          _endp.close();
-          reset(true);
-        }
- else         if (_parser.isComplete() && _generator.isComplete() && !_endp.isBufferingOutput()) {
+        some_progress|=progress;
+        if (_parser.isComplete() && _generator.isComplete()) {
+          progress=true;
           if (_response.getStatus() == HttpStatus.SWITCHING_PROTOCOLS_101) {
             Connection switched=(Connection)_request.getAttribute("org.eclipse.jetty.io.Connection");
-            if (switched != null) {
-              _parser.reset();
-              _generator.reset(true);
-              connection=switched;
-            }
+            if (switched != null)             connection=switched;
           }
-          progress=true;
-          reset(false);
-          more_in_buffer=_parser.isMoreInBuffer() || _endp.isBufferingInput();
+          reset();
+          if (!_generator.isPersistent() && !_endp.isOutputShutdown()) {
+            LOG.warn("Safety net oshut!!!");
+            _endp.shutdownOutput();
+          }
         }
- else         if (_request.isAsyncStarted()) {
-          LOG.debug("suspended {}",this);
-          more_in_buffer=false;
-          progress=false;
-        }
- else         more_in_buffer=_parser.isMoreInBuffer() || _endp.isBufferingInput();
-        some_progress|=progress | ((SelectChannelEndPoint)_endp).isProgressing();
       }
     }
   }
   finally {
     setCurrentConnection(null);
-    _parser.returnBuffers();
-    _generator.returnBuffers();
-    if (_generator.isCommitted() && !_generator.isComplete() && _endp.isOpen()&& !_endp.isOutputShutdown())     ((AsyncEndPoint)_endp).scheduleWrite();
-    if (some_progress) {
-      _total_no_progress=0;
+    if (!_request.isAsyncStarted()) {
+      _parser.returnBuffers();
+      _generator.returnBuffers();
     }
+    if (some_progress)     _total_no_progress=0;
  else {
-      int totalNoProgress=++_total_no_progress;
-      if (NO_PROGRESS_INFO > 0 && totalNoProgress == NO_PROGRESS_INFO && (NO_PROGRESS_CLOSE <= 0 || totalNoProgress < NO_PROGRESS_CLOSE)) {
-        LOG.info("EndPoint making no progress: {} {}",totalNoProgress,_endp);
-      }
-      if (NO_PROGRESS_CLOSE > 0 && totalNoProgress == NO_PROGRESS_CLOSE) {
-        LOG.warn("Closing EndPoint making no progress: {} {}",totalNoProgress,_endp);
-        if (_endp instanceof SelectChannelEndPoint) {
-          System.err.println(((SelectChannelEndPoint)_endp).getSelectManager().dump());
-          ((SelectChannelEndPoint)_endp).getChannel().close();
-        }
+      _total_no_progress++;
+      if (NO_PROGRESS_INFO > 0 && _total_no_progress % NO_PROGRESS_INFO == 0 && (NO_PROGRESS_CLOSE <= 0 || _total_no_progress < NO_PROGRESS_CLOSE))       LOG.info("EndPoint making no progress: " + _total_no_progress + " "+ _endp+ " "+ this);
+      if (NO_PROGRESS_CLOSE > 0 && _total_no_progress == NO_PROGRESS_CLOSE) {
+        LOG.warn("Closing EndPoint making no progress: " + _total_no_progress + " "+ _endp+ " "+ this);
+        if (_endp instanceof SelectChannelEndPoint)         ((SelectChannelEndPoint)_endp).getChannel().close();
       }
     }
   }

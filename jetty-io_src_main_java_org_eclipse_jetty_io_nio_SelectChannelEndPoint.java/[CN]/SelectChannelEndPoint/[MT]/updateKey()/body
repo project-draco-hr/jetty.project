@@ -1,18 +1,23 @@
 {
+  final boolean changed;
 synchronized (this) {
-    int ops=-1;
+    int current_ops=-1;
     if (getChannel().isOpen()) {
-      _interestOps=((!_socket.isInputShutdown() && (!_dispatched || _readBlocked)) ? SelectionKey.OP_READ : 0) | ((!_socket.isOutputShutdown() && (!_writable || _writeBlocked)) ? SelectionKey.OP_WRITE : 0);
+      boolean read_interest=_readBlocked || (!_dispatched && !_connection.isSuspended());
+      boolean write_interest=_writeBlocked || (!_dispatched && !_writable);
+      _interestOps=((!_socket.isInputShutdown() && read_interest) ? SelectionKey.OP_READ : 0) | ((!_socket.isOutputShutdown() && write_interest) ? SelectionKey.OP_WRITE : 0);
       try {
-        ops=((_key != null && _key.isValid()) ? _key.interestOps() : -1);
+        current_ops=((_key != null && _key.isValid()) ? _key.interestOps() : -1);
       }
  catch (      Exception e) {
         _key=null;
         LOG.ignore(e);
       }
     }
-    if (_interestOps == ops && getChannel().isOpen())     return;
+    changed=_interestOps != current_ops;
   }
-  _selectSet.addChange(this);
-  _selectSet.wakeup();
+  if (changed) {
+    _selectSet.addChange(this);
+    _selectSet.wakeup();
+  }
 }

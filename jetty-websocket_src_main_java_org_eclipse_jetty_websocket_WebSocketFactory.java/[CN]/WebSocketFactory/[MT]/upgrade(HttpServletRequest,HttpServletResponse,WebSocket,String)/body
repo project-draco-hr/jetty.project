@@ -3,7 +3,7 @@
   if (!"HTTP/1.1".equals(request.getProtocol()))   throw new IllegalStateException("!HTTP/1.1");
   int draft=request.getIntHeader("Sec-WebSocket-Version");
   if (draft < 0)   draft=request.getIntHeader("Sec-WebSocket-Draft");
-  HttpConnection http=HttpConnection.getCurrentConnection();
+  AbstractHttpConnection http=AbstractHttpConnection.getCurrentConnection();
   ConnectedEndPoint endp=(ConnectedEndPoint)http.getEndPoint();
   List<String> extensions_requested=new ArrayList<String>();
   for (Enumeration e=request.getHeaders("Sec-WebSocket-Extensions"); e.hasMoreElements(); ) {
@@ -47,5 +47,6 @@ connection.handshake(request,response,protocol);
 response.flushBuffer();
 connection.fillBuffersFrom(((HttpParser)http.getParser()).getHeaderBuffer());
 connection.fillBuffersFrom(((HttpParser)http.getParser()).getBodyBuffer());
+LOG.debug("Websocket upgrade {} {} {} {}",request.getRequestURI(),draft,protocol,connection);
 request.setAttribute("org.eclipse.jetty.io.Connection",connection);
 }

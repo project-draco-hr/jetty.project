@@ -1,7 +1,8 @@
 {
+  boolean set=false;
   try {
     int oldStatus=_status.get();
-    boolean set=false;
+    boolean ignored=false;
     if (oldStatus != newStatus) {
       long now=System.currentTimeMillis();
       _lastStatePeriod=(int)(now - _lastStateChange);
@@ -111,7 +112,7 @@ set=_status.compareAndSet(oldStatus,newStatus);
 break;
 case STATUS_CANCELLING:
 case STATUS_EXPIRED:
-set=true;
+ignored=true;
 break;
 }
 break;
@@ -122,7 +123,7 @@ case STATUS_CANCELLED:
 if (set=_status.compareAndSet(oldStatus,newStatus)) done();
 break;
 default :
-set=true;
+ignored=true;
 break;
 }
 break;
@@ -133,17 +134,23 @@ switch (newStatus) {
 case STATUS_START:
 set=_status.compareAndSet(oldStatus,newStatus);
 break;
+case STATUS_COMPLETED:
+ignored=true;
+done();
+break;
 default :
-set=true;
+ignored=true;
 break;
 }
 break;
 default :
 throw new AssertionError(oldStatus + " => " + newStatus);
 }
-if (!set) throw new IllegalStateException(toState(oldStatus) + " => " + toState(newStatus));
+if (!set && !ignored) throw new IllegalStateException(toState(oldStatus) + " => " + toState(newStatus));
+LOG.debug("setStatus {} {}",newStatus,this);
 }
  catch (IOException x) {
 LOG.warn(x);
 }
+return set;
 }
