@@ -1,0 +1,76 @@
+{
+  final SSLSocket client=newClient();
+  Future<Object> handshake=threadPool.submit(new Callable<Object>(){
+    public Object call() throws Exception {
+      client.startHandshake();
+      return null;
+    }
+  }
+);
+  TLSRecord record=proxy.readFromClient();
+  for (  byte b : record.getBytes()) {
+    proxy.flushToServer(b);
+    TimeUnit.MILLISECONDS.sleep(50);
+  }
+  record=proxy.readFromServer();
+  proxy.flushToClient(record);
+  record=proxy.readFromClient();
+  for (  byte b : record.getBytes()) {
+    proxy.flushToServer(b);
+    TimeUnit.MILLISECONDS.sleep(50);
+  }
+  record=proxy.readFromClient();
+  for (  byte b : record.getBytes()) {
+    proxy.flushToServer(b);
+    TimeUnit.MILLISECONDS.sleep(50);
+  }
+  record=proxy.readFromClient();
+  for (  byte b : record.getBytes()) {
+    proxy.flushToServer(b);
+    TimeUnit.MILLISECONDS.sleep(50);
+  }
+  record=proxy.readFromServer();
+  proxy.flushToClient(record);
+  record=proxy.readFromServer();
+  proxy.flushToClient(record);
+  Assert.assertNull(handshake.get(5,TimeUnit.SECONDS));
+  Future<Object> request=threadPool.submit(new Callable<Object>(){
+    public Object call() throws Exception {
+      OutputStream clientOutput=client.getOutputStream();
+      clientOutput.write(("" + "GET / HTTP/1.1\r\n" + "Host: localhost\r\n"+ "\r\n").getBytes("UTF-8"));
+      clientOutput.flush();
+      return null;
+    }
+  }
+);
+  record=proxy.readFromClient();
+  for (  byte b : record.getBytes()) {
+    proxy.flushToServer(b);
+    TimeUnit.MILLISECONDS.sleep(50);
+  }
+  Assert.assertNull(request.get(5,TimeUnit.SECONDS));
+  record=proxy.readFromServer();
+  Assert.assertEquals(TLSRecord.Type.APPLICATION,record.getType());
+  proxy.flushToClient(record);
+  BufferedReader reader=new BufferedReader(new InputStreamReader(client.getInputStream(),"UTF-8"));
+  String line=reader.readLine();
+  Assert.assertNotNull(line);
+  Assert.assertTrue(line.contains(" 200 "));
+  while ((line=reader.readLine()) != null) {
+    if (line.trim().length() == 0)     break;
+  }
+  client.close();
+  record=proxy.readFromClient();
+  for (  byte b : record.getBytes()) {
+    proxy.flushToServer(b);
+    TimeUnit.MILLISECONDS.sleep(50);
+  }
+  record=proxy.readFromClient();
+  Assert.assertNull(record);
+  proxy.flushToServer(record);
+  record=proxy.readFromServer();
+  proxy.flushToClient(record);
+  record=proxy.readFromServer();
+  Assert.assertNull(record);
+  proxy.flushToClient(record);
+}

@@ -1,0 +1,36 @@
+{
+  final CountDownLatch stopLatch=new CountDownLatch(2);
+  Future<Object> clientToServer=threadPool.submit(new Callable<Object>(){
+    public Object call() throws Exception {
+      try {
+        while (true) {
+          flushToServer(readFromClient());
+        }
+      }
+ catch (      InterruptedIOException x) {
+        return null;
+      }
+ finally {
+        stopLatch.countDown();
+      }
+    }
+  }
+);
+  Future<Object> serverToClient=threadPool.submit(new Callable<Object>(){
+    public Object call() throws Exception {
+      try {
+        while (true) {
+          flushToClient(readFromServer());
+        }
+      }
+ catch (      InterruptedIOException x) {
+        return null;
+      }
+ finally {
+        stopLatch.countDown();
+      }
+    }
+  }
+);
+  return new AutomaticFlow(stopLatch,clientToServer,serverToClient);
+}
