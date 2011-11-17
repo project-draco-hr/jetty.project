@@ -15,7 +15,11 @@
     }
     uris.add(arg);
   }
+  QueuedThreadPool pool=new QueuedThreadPool();
+  pool.setMaxThreads(500);
+  pool.setDaemon(true);
   HttpClient client=new HttpClient();
+  client.setThreadPool(pool);
   client.setConnectorType(HttpClient.CONNECTOR_SELECT_CHANNEL);
   client.setIdleTimeout(30000);
   client.setConnectTimeout(30000);
@@ -27,4 +31,6 @@
     if (!ex.next())     latch.countDown();
   }
   latch.await();
+  client.stop();
+  pool.stop();
 }
