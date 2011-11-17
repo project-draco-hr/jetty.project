@@ -1,0 +1,30 @@
+{
+  if (args.length == 0)   args=new String[]{"-c","2","-r","2","http://localhost:8080/dump","http://localhost:8080/d.txt"};
+  int concurrent=1;
+  int repeats=1;
+  final List<String> uris=new ArrayList<String>();
+  for (int i=0; i < args.length; i++) {
+    String arg=args[i];
+    if ("-c".equals(arg)) {
+      concurrent=Integer.parseInt(args[++i]);
+      continue;
+    }
+    if ("-r".equals(arg)) {
+      repeats=Integer.parseInt(args[++i]);
+      continue;
+    }
+    uris.add(arg);
+  }
+  HttpClient client=new HttpClient();
+  client.setConnectorType(HttpClient.CONNECTOR_SELECT_CHANNEL);
+  client.setIdleTimeout(30000);
+  client.setConnectTimeout(30000);
+  client.setMaxConnectionsPerAddress(concurrent * 2);
+  client.start();
+  final CountDownLatch latch=new CountDownLatch(concurrent);
+  for (int i=0; i < concurrent; i++) {
+    ConcurrentExchange ex=new ConcurrentExchange(client,latch,uris,repeats);
+    if (!ex.next())     latch.countDown();
+  }
+  latch.await();
+}
