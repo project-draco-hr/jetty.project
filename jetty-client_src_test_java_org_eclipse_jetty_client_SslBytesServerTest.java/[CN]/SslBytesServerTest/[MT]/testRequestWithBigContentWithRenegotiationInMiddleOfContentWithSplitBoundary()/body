@@ -22,7 +22,15 @@
   }
 );
   TLSRecord record=proxy.readFromClient();
-  proxy.flushToServer(record);
+  byte[] bytes=record.getBytes();
+  byte[] chunk1=new byte[2 * bytes.length / 3];
+  System.arraycopy(bytes,0,chunk1,0,chunk1.length);
+  byte[] chunk2=new byte[bytes.length - chunk1.length];
+  System.arraycopy(bytes,chunk1.length,chunk2,0,chunk2.length);
+  proxy.flushToServer(chunk1);
+  TimeUnit.MILLISECONDS.sleep(100);
+  proxy.flushToServer(chunk2);
+  TimeUnit.MILLISECONDS.sleep(100);
   record=proxy.readFromServer();
   proxy.flushToClient(record);
   record=proxy.readFromServer();
@@ -39,9 +47,24 @@
   }
   record=proxy.readFromClient();
   Assert.assertEquals(TLSRecord.Type.CHANGE_CIPHER_SPEC,record.getType());
-  proxy.flushToServer(record);
+  bytes=record.getBytes();
+  chunk1=new byte[2 * bytes.length / 3];
+  System.arraycopy(bytes,0,chunk1,0,chunk1.length);
+  chunk2=new byte[bytes.length - chunk1.length];
+  System.arraycopy(bytes,chunk1.length,chunk2,0,chunk2.length);
+  proxy.flushToServer(chunk1);
+  TimeUnit.MILLISECONDS.sleep(100);
+  proxy.flushToServer(chunk2);
+  TimeUnit.MILLISECONDS.sleep(100);
   record=proxy.readFromClient();
-  proxy.flushToServer(record);
+  Assert.assertEquals(TLSRecord.Type.HANDSHAKE,record.getType());
+  bytes=record.getBytes();
+  chunk1=new byte[2 * bytes.length / 3];
+  System.arraycopy(bytes,0,chunk1,0,chunk1.length);
+  chunk2=new byte[bytes.length - chunk1.length];
+  System.arraycopy(bytes,chunk1.length,chunk2,0,chunk2.length);
+  proxy.flushToServer(chunk1);
+  TimeUnit.MILLISECONDS.sleep(100);
   Assert.assertNull(renegotiation.get(5,TimeUnit.SECONDS));
   Future<Object> request=threadPool.submit(new Callable<Object>(){
     public Object call() throws Exception {
@@ -51,8 +74,16 @@
     }
   }
 );
-  for (int i=0; i < 3; ++i) {
+  record=proxy.readFromClient();
+  Assert.assertEquals(TLSRecord.Type.APPLICATION,record.getType());
+  byte[] dataBytes=record.getBytes();
+  byte[] mergedBytes=new byte[chunk2.length + dataBytes.length];
+  System.arraycopy(chunk2,0,mergedBytes,0,chunk2.length);
+  System.arraycopy(dataBytes,0,mergedBytes,chunk2.length,dataBytes.length);
+  proxy.flushToServer(mergedBytes);
+  for (int i=0; i < 2; ++i) {
     record=proxy.readFromClient();
+    Assert.assertEquals(TLSRecord.Type.APPLICATION,record.getType());
     proxy.flushToServer(record);
   }
   Assert.assertNull(request.get(5,TimeUnit.SECONDS));
