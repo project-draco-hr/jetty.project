@@ -1,7 +1,10 @@
 {
+  final CountDownLatch startLatch=new CountDownLatch(2);
   final CountDownLatch stopLatch=new CountDownLatch(2);
   Future<Object> clientToServer=threadPool.submit(new Callable<Object>(){
     public Object call() throws Exception {
+      startLatch.countDown();
+      logger.debug("Automatic flow C --> S started");
       try {
         while (true) {
           flushToServer(readFromClient());
@@ -12,12 +15,15 @@
       }
  finally {
         stopLatch.countDown();
+        logger.debug("Automatic flow C --> S finished");
       }
     }
   }
 );
   Future<Object> serverToClient=threadPool.submit(new Callable<Object>(){
     public Object call() throws Exception {
+      startLatch.countDown();
+      logger.debug("Automatic flow C <-- S started");
       try {
         while (true) {
           flushToClient(readFromServer());
@@ -28,9 +34,11 @@
       }
  finally {
         stopLatch.countDown();
+        logger.debug("Automatic flow C <-- S finished");
       }
     }
   }
 );
+  Assert.assertTrue(startLatch.await(5,TimeUnit.SECONDS));
   return new AutomaticFlow(stopLatch,clientToServer,serverToClient);
 }
