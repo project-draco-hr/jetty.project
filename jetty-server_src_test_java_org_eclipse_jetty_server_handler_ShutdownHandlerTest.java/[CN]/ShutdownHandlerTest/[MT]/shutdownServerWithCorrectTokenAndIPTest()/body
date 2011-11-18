@@ -1,5 +1,22 @@
 {
   setDefaultExpectations();
+  final CountDownLatch countDown=new CountDownLatch(1);
+  server.addLifeCycleListener(new AbstractLifeCycle.Listener(){
+    public void lifeCycleStarting(    LifeCycle event){
+    }
+    public void lifeCycleStarted(    LifeCycle event){
+    }
+    public void lifeCycleFailure(    LifeCycle event,    Throwable cause){
+    }
+    public void lifeCycleStopping(    LifeCycle event){
+    }
+    public void lifeCycleStopped(    LifeCycle event){
+      countDown.countDown();
+    }
+  }
+);
   shutdownHandler.handle("/shutdown",null,request,response);
+  boolean stopped=countDown.await(1000,TimeUnit.MILLISECONDS);
+  assertTrue("Server lifecycle stop listener called",stopped);
   assertEquals("Server should be stopped","STOPPED",server.getState());
 }
