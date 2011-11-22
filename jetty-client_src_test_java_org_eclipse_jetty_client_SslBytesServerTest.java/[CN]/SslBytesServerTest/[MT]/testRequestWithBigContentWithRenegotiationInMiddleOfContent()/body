@@ -22,13 +22,16 @@
   }
 );
   TLSRecord record=proxy.readFromClient();
+  Assert.assertEquals(TLSRecord.Type.HANDSHAKE,record.getType());
   proxy.flushToServer(record);
   record=proxy.readFromServer();
+  Assert.assertEquals(TLSRecord.Type.HANDSHAKE,record.getType());
   proxy.flushToClient(record);
   record=proxy.readFromServer();
   Assert.assertEquals(TLSRecord.Type.CHANGE_CIPHER_SPEC,record.getType());
   proxy.flushToClient(record);
   record=proxy.readFromServer();
+  Assert.assertEquals(TLSRecord.Type.HANDSHAKE,record.getType());
   proxy.flushToClient(record);
   client.setSoTimeout(100);
   try {
@@ -41,6 +44,7 @@
   Assert.assertEquals(TLSRecord.Type.CHANGE_CIPHER_SPEC,record.getType());
   proxy.flushToServer(record);
   record=proxy.readFromClient();
+  Assert.assertEquals(TLSRecord.Type.HANDSHAKE,record.getType());
   proxy.flushToServer(record);
   Assert.assertNull(renegotiation.get(5,TimeUnit.SECONDS));
   Future<Object> request=threadPool.submit(new Callable<Object>(){
