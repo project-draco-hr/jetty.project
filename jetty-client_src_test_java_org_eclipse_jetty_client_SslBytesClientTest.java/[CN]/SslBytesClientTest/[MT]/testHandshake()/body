@@ -1,0 +1,49 @@
+{
+  ContentExchange exchange=new ContentExchange(true);
+  exchange.setURL("https://localhost:" + proxy.getPort());
+  String method=HttpMethods.GET;
+  exchange.setMethod(method);
+  client.send(exchange);
+  final SSLSocket server=(SSLSocket)acceptor.accept();
+  server.setUseClientMode(false);
+  Future<Object> handshake=threadPool.submit(new Callable<Object>(){
+    public Object call() throws Exception {
+      server.startHandshake();
+      return null;
+    }
+  }
+);
+  TLSRecord record=proxy.readFromClient();
+  Assert.assertEquals(TLSRecord.Type.HANDSHAKE,record.getType());
+  proxy.flushToServer(record);
+  record=proxy.readFromServer();
+  Assert.assertEquals(TLSRecord.Type.HANDSHAKE,record.getType());
+  proxy.flushToClient(record);
+  record=proxy.readFromClient();
+  Assert.assertEquals(TLSRecord.Type.HANDSHAKE,record.getType());
+  proxy.flushToServer(record);
+  record=proxy.readFromClient();
+  Assert.assertEquals(TLSRecord.Type.CHANGE_CIPHER_SPEC,record.getType());
+  proxy.flushToServer(record);
+  record=proxy.readFromClient();
+  Assert.assertEquals(TLSRecord.Type.HANDSHAKE,record.getType());
+  proxy.flushToServer(record);
+  record=proxy.readFromServer();
+  Assert.assertEquals(TLSRecord.Type.CHANGE_CIPHER_SPEC,record.getType());
+  proxy.flushToClient(record);
+  record=proxy.readFromServer();
+  Assert.assertEquals(TLSRecord.Type.HANDSHAKE,record.getType());
+  proxy.flushToClient(record);
+  Assert.assertNull(handshake.get(5,TimeUnit.SECONDS));
+  SimpleProxy.AutomaticFlow automaticProxyFlow=proxy.startAutomaticFlow();
+  BufferedReader reader=new BufferedReader(new InputStreamReader(server.getInputStream(),"UTF-8"));
+  String line=reader.readLine();
+  Assert.assertTrue(line.startsWith(method));
+  while (line.length() > 0)   line=reader.readLine();
+  OutputStream output=server.getOutputStream();
+  output.write(("HTTP/1.1 200 OK\r\n" + "Content-Length: 0\r\n" + "\r\n").getBytes("UTF-8"));
+  output.flush();
+  Assert.assertTrue(automaticProxyFlow.stop(5,TimeUnit.SECONDS));
+  Assert.assertEquals(HttpExchange.STATUS_COMPLETED,exchange.waitForDone());
+  Assert.assertEquals(HttpStatus.OK_200,exchange.getResponseStatus());
+}
