@@ -1,13 +1,11 @@
 {
   Connection connection=this;
-  boolean progress=true;
   try {
     setCurrentConnection(this);
     while (_endp.isOpen() && connection == this) {
       try {
-        progress=false;
-        if (!_parser.isComplete() && !_endp.isInputShutdown())         progress|=_parser.parseAvailable();
-        if (_generator.isCommitted() && !_generator.isComplete() && !_endp.isOutputShutdown())         progress|=_generator.flushBuffer() > 0;
+        if (!_parser.isComplete() && !_endp.isInputShutdown())         _parser.parseAvailable();
+        if (_generator.isCommitted() && !_generator.isComplete() && !_endp.isOutputShutdown())         _generator.flushBuffer();
         _endp.flush();
       }
  catch (      HttpException e) {
@@ -22,9 +20,7 @@
       }
  finally {
         if (_parser.isComplete() && _generator.isComplete()) {
-          progress=true;
           reset();
-          _endp.flush();
           if (_response.getStatus() == HttpStatus.SWITCHING_PROTOCOLS_101) {
             Connection switched=(Connection)_request.getAttribute("org.eclipse.jetty.io.Connection");
             if (switched != null)             connection=switched;
@@ -36,11 +32,11 @@
         }
       }
     }
+    return connection;
   }
   finally {
     setCurrentConnection(null);
     _parser.returnBuffers();
     _generator.returnBuffers();
   }
-  return connection;
 }
