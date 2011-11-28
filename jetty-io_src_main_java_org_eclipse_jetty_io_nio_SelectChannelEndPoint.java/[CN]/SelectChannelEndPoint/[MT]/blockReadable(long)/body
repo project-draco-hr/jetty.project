@@ -3,6 +3,8 @@ synchronized (this) {
     if (isInputShutdown())     throw new EofException();
     long now=_selectSet.getNow();
     long end=now + timeoutMs;
+    boolean check=isCheckForIdle();
+    setCheckForIdle(true);
     try {
       _readBlocked=true;
       while (!isInputShutdown() && _readBlocked) {
@@ -21,6 +23,7 @@ synchronized (this) {
     }
   finally {
       _readBlocked=false;
+      setCheckForIdle(check);
     }
   }
   return true;

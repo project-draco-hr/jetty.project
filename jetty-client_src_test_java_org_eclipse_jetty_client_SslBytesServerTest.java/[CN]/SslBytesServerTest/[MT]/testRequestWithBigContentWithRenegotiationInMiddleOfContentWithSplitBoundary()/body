@@ -1,4 +1,5 @@
 {
+  assumeJavaVersionSupportsTLSRenegotiations();
   final SSLSocket client=newClient();
   final OutputStream clientOutput=client.getOutputStream();
   SimpleProxy.AutomaticFlow automaticProxyFlow=proxy.startAutomaticFlow();
@@ -22,6 +23,7 @@
   }
 );
   TLSRecord record=proxy.readFromClient();
+  Assert.assertEquals(TLSRecord.Type.HANDSHAKE,record.getType());
   byte[] bytes=record.getBytes();
   byte[] chunk1=new byte[2 * bytes.length / 3];
   System.arraycopy(bytes,0,chunk1,0,chunk1.length);
@@ -32,11 +34,13 @@
   proxy.flushToServer(chunk2);
   TimeUnit.MILLISECONDS.sleep(100);
   record=proxy.readFromServer();
+  Assert.assertEquals(TLSRecord.Type.HANDSHAKE,record.getType());
   proxy.flushToClient(record);
   record=proxy.readFromServer();
   Assert.assertEquals(TLSRecord.Type.CHANGE_CIPHER_SPEC,record.getType());
   proxy.flushToClient(record);
   record=proxy.readFromServer();
+  Assert.assertEquals(TLSRecord.Type.HANDSHAKE,record.getType());
   proxy.flushToClient(record);
   client.setSoTimeout(100);
   try {
@@ -98,6 +102,6 @@
     if (line.trim().length() == 0)     break;
   }
   Assert.assertThat(sslHandles.get(),lessThan(20));
-  Assert.assertThat(httpParses.get(),lessThan(50));
+  Assert.assertThat(httpParses.get(),lessThan(100));
   closeClient(client);
 }
