@@ -3,6 +3,8 @@ synchronized (this) {
     if (isOutputShutdown())     throw new EofException();
     long now=_selectSet.getNow();
     long end=now + timeoutMs;
+    boolean check=isCheckForIdle();
+    setCheckForIdle(true);
     try {
       _writeBlocked=true;
       while (_writeBlocked && !isOutputShutdown()) {
@@ -21,7 +23,7 @@ synchronized (this) {
     }
   finally {
       _writeBlocked=false;
-      if (_idleTimestamp != -1)       scheduleIdle();
+      setCheckForIdle(check);
     }
   }
   return true;
