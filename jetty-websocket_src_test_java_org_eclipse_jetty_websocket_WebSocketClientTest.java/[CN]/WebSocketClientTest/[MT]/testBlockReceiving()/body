@@ -4,6 +4,7 @@
   final AtomicBoolean open=new AtomicBoolean();
   final AtomicInteger close=new AtomicInteger();
   final CountDownLatch _latch=new CountDownLatch(1);
+  final StringBuilder closeMessage=new StringBuilder();
   final Exchanger<String> exchanger=new Exchanger<String>();
   Future<WebSocket.Connection> future=client.open(new URI("ws://127.0.0.1:" + _serverPort + "/"),new WebSocket.OnTextMessage(){
     public void onOpen(    Connection connection){
@@ -11,6 +12,7 @@
     }
     public void onClose(    int closeCode,    String message){
       close.set(closeCode);
+      closeMessage.append(message);
       _latch.countDown();
     }
     public void onMessage(    String data){
@@ -33,13 +35,20 @@
   final int messages=100000;
   final AtomicInteger m=new AtomicInteger();
   Thread consumer=new Thread(){
-    public void run(){
+    @Override public void run(){
       try {
-        Thread.sleep(2000);
+        Thread.sleep(200);
         while (m.get() < messages) {
           String msg=exchanger.exchange(null);
-          if ("Hello".equals(msg))           m.incrementAndGet();
- else           throw new IllegalStateException("exchanged " + msg);
+          if ("Hello".equals(msg)) {
+            m.incrementAndGet();
+          }
+ else {
+            throw new IllegalStateException("exchanged " + msg);
+          }
+          if (m.get() % 1000 == 0) {
+            Thread.sleep(10);
+          }
         }
       }
  catch (      InterruptedException e) {
@@ -52,25 +61,22 @@ catch (      Exception e) {
   }
 ;
   consumer.start();
-  long max=0;
   long start=System.currentTimeMillis();
   for (int i=0; i < messages; i++) {
     socket.getOutputStream().write(send,0,send.length);
     socket.getOutputStream().flush();
-    if (i % 100 == 0) {
-      long now=System.currentTimeMillis();
-      long duration=now - start;
-      start=now;
-      if (duration > max)       max=duration;
-    }
   }
-  while (consumer.isAlive())   Thread.sleep(10);
-  Assert.assertTrue(max > 1000);
+  while (consumer.isAlive()) {
+    Thread.sleep(10);
+  }
+  long readDur=(System.currentTimeMillis() - start);
+  Assert.assertThat("read duration",readDur,greaterThan(1000L));
   Assert.assertEquals(m.get(),messages);
   start=System.currentTimeMillis();
   socket.getOutputStream().write(new byte[]{(byte)0x88,(byte)0x02,(byte)4,(byte)87},0,4);
   socket.getOutputStream().flush();
   _latch.await(10,TimeUnit.SECONDS);
   Assert.assertTrue(System.currentTimeMillis() - start < 5000);
-  Assert.assertEquals(1111,close.get());
+  Assert.assertEquals(1002,close.get());
+  Assert.assertEquals("Invalid close code 1111",closeMessage.toString());
 }

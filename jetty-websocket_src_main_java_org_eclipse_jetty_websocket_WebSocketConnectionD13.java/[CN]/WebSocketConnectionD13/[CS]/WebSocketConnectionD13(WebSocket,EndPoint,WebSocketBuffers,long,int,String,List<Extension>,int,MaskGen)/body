@@ -1,7 +1,6 @@
 {
   super(endpoint,timestamp);
   _context=Thread.currentThread().getContextClassLoader();
-  if (endpoint instanceof AsyncEndPoint)   ((AsyncEndPoint)endpoint).cancelIdle();
   _draft=draft;
   _endp.setMaxIdleTime(maxIdleTime);
   _webSocket=websocket;
@@ -23,22 +22,4 @@
   WebSocketParser.FrameHandler inbound=(_extensions == null || _extensions.size() == 0) ? frameHandler : extensions.get(0);
   _parser=new WebSocketParserD13(buffers,endpoint,inbound,maskgen == null);
   _protocol=protocol;
-  if (_endp instanceof SelectChannelEndPoint) {
-    final SelectChannelEndPoint scep=(SelectChannelEndPoint)_endp;
-    scep.cancelIdle();
-    _idle=new IdleCheck(){
-      public void access(      EndPoint endp){
-        scep.scheduleIdle();
-      }
-    }
-;
-    scep.scheduleIdle();
-  }
- else {
-    _idle=new IdleCheck(){
-      public void access(      EndPoint endp){
-      }
-    }
-;
-  }
 }

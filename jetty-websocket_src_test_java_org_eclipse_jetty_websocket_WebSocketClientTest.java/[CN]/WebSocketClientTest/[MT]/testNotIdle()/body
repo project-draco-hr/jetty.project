@@ -5,12 +5,14 @@
   final AtomicInteger close=new AtomicInteger();
   final CountDownLatch _latch=new CountDownLatch(1);
   final BlockingQueue<String> queue=new BlockingArrayQueue<String>();
+  final StringBuilder closeMessage=new StringBuilder();
   Future<WebSocket.Connection> future=client.open(new URI("ws://127.0.0.1:" + _serverPort + "/"),new WebSocket.OnTextMessage(){
     public void onOpen(    Connection connection){
       open.set(true);
     }
     public void onClose(    int closeCode,    String message){
       close.set(closeCode);
+      closeMessage.append(message);
       _latch.countDown();
     }
     public void onMessage(    String data){
@@ -44,5 +46,6 @@
   socket.getOutputStream().flush();
   _latch.await(10,TimeUnit.SECONDS);
   Assert.assertTrue(System.currentTimeMillis() - start < 5000);
-  Assert.assertEquals(1111,close.get());
+  Assert.assertEquals(1002,close.get());
+  Assert.assertEquals("Invalid close code 1111",closeMessage.toString());
 }

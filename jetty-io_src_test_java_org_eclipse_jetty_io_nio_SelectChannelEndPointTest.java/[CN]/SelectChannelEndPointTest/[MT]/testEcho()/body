@@ -1,0 +1,33 @@
+{
+  Socket client=newClient();
+  client.setSoTimeout(500);
+  SocketChannel server=_connector.accept();
+  server.configureBlocking(false);
+  _manager.register(server);
+  client.getOutputStream().write("HelloWorld".getBytes("UTF-8"));
+  for (  char c : "HelloWorld".toCharArray()) {
+    int b=client.getInputStream().read();
+    assertTrue(b > 0);
+    assertEquals(c,(char)b);
+  }
+  long start=System.currentTimeMillis();
+  try {
+    client.getInputStream().read();
+    Assert.fail();
+  }
+ catch (  SocketTimeoutException e) {
+    assertTrue(System.currentTimeMillis() - start >= 400);
+  }
+  client.getOutputStream().write("Goodbye Cruel TLS".getBytes("UTF-8"));
+  for (  char c : "Goodbye Cruel TLS".toCharArray()) {
+    int b=client.getInputStream().read();
+    assertTrue(b > 0);
+    assertEquals(c,(char)b);
+  }
+  client.close();
+  int i=0;
+  while (server.isOpen()) {
+    assert(i++ < 10);
+    Thread.sleep(10);
+  }
+}

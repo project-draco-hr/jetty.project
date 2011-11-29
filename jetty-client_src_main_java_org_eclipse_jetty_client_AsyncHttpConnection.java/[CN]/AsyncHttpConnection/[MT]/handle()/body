@@ -1,0 +1,112 @@
+{
+  Connection connection=this;
+  boolean progress=true;
+  try {
+    boolean failed=false;
+    while (progress && connection == this) {
+      LOG.debug("while open={} more={} progress={}",_endp.isOpen(),_parser.isMoreInBuffer(),progress);
+      progress=false;
+      HttpExchange exchange=_exchange;
+      LOG.debug("exchange {} on {}",exchange,this);
+      try {
+        if (!_generator.isCommitted() && exchange != null && exchange.getStatus() == HttpExchange.STATUS_WAITING_FOR_COMMIT) {
+          LOG.debug("commit {}",exchange);
+          progress=true;
+          commitRequest();
+        }
+        if (_generator.isCommitted() && !_generator.isComplete()) {
+          if (_generator.flushBuffer() > 0) {
+            LOG.debug("flushed");
+            progress=true;
+          }
+          if (_generator.isState(AbstractGenerator.STATE_CONTENT)) {
+            if (_requestContentChunk == null)             _requestContentChunk=exchange.getRequestContentChunk(null);
+            if (_requestContentChunk == null) {
+              LOG.debug("complete {}",exchange);
+              progress=true;
+              _generator.complete();
+            }
+ else             if (_generator.isEmpty()) {
+              LOG.debug("addChunk");
+              progress=true;
+              Buffer chunk=_requestContentChunk;
+              _requestContentChunk=exchange.getRequestContentChunk(null);
+              _generator.addContent(chunk,_requestContentChunk == null);
+            }
+          }
+        }
+        if (_generator.isComplete() && !_requestComplete) {
+          LOG.debug("requestComplete {}",exchange);
+          progress=true;
+          _requestComplete=true;
+          exchange.getEventListener().onRequestComplete();
+        }
+        if (!_parser.isComplete() && _parser.parseAvailable()) {
+          LOG.debug("parsed {}",exchange);
+          progress=true;
+        }
+        _endp.flush();
+        if (_asyncEndp.hasProgressed()) {
+          LOG.debug("hasProgressed {}",exchange);
+          progress=true;
+        }
+      }
+ catch (      Throwable e) {
+        LOG.debug("Failure on " + _exchange,e);
+        failed=true;
+synchronized (this) {
+          if (exchange != null) {
+            if (exchange.getStatus() != HttpExchange.STATUS_CANCELLING && exchange.getStatus() != HttpExchange.STATUS_CANCELLED && !exchange.isDone()) {
+              if (exchange.setStatus(HttpExchange.STATUS_EXCEPTED))               exchange.getEventListener().onException(e);
+            }
+          }
+ else {
+            if (e instanceof IOException)             throw (IOException)e;
+            if (e instanceof Error)             throw (Error)e;
+            if (e instanceof RuntimeException)             throw (RuntimeException)e;
+            throw new RuntimeException(e);
+          }
+        }
+      }
+ finally {
+        LOG.debug("finally {} on {} progress={} {}",exchange,this,progress,_endp);
+        boolean complete=failed || _generator.isComplete() && _parser.isComplete();
+        if (complete) {
+          boolean persistent=!failed && _parser.isPersistent() && _generator.isPersistent();
+          _generator.setPersistent(persistent);
+          reset();
+          if (persistent)           _endp.setMaxIdleTime((int)_destination.getHttpClient().getIdleTimeout());
+synchronized (this) {
+            exchange=_exchange;
+            _exchange=null;
+            if (exchange != null) {
+              exchange.cancelTimeout(_destination.getHttpClient());
+            }
+            if (_status == HttpStatus.SWITCHING_PROTOCOLS_101) {
+              Connection switched=exchange.onSwitchProtocol(_endp);
+              if (switched != null)               connection=switched;
+{
+                _pipeline=null;
+                if (_pipeline != null)                 _destination.send(_pipeline);
+                _pipeline=null;
+                connection=switched;
+              }
+            }
+            if (_pipeline != null) {
+              if (!persistent || connection != this)               _destination.send(_pipeline);
+ else               _exchange=_pipeline;
+              _pipeline=null;
+            }
+            if (_exchange == null && !isReserved())             _destination.returnConnection(this,!persistent);
+          }
+        }
+      }
+    }
+  }
+  finally {
+    _parser.returnBuffers();
+    _generator.returnBuffers();
+    LOG.debug("unhandle {} on {}",_exchange,_endp);
+  }
+  return connection;
+}
