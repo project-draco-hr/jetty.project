@@ -1,6 +1,7 @@
 {
   boolean error=false;
   String threadName=null;
+  Throwable async_exception=null;
   try {
     if (LOG.isDebugEnabled()) {
       threadName=Thread.currentThread().getName();
@@ -31,11 +32,13 @@
         LOG.ignore(e);
       }
 catch (      EofException e) {
+        async_exception=e;
         LOG.debug(e);
         error=true;
         _request.setHandled(true);
       }
 catch (      RuntimeIOException e) {
+        async_exception=e;
         LOG.debug(e);
         error=true;
         _request.setHandled(true);
@@ -47,6 +50,7 @@ catch (      HttpException e) {
         _response.sendError(e.getStatus(),e.getReason());
       }
 catch (      Throwable e) {
+        async_exception=e;
         LOG.warn(String.valueOf(_uri),e);
         error=true;
         _request.setHandled(true);
@@ -60,7 +64,7 @@ catch (      Throwable e) {
   finally {
     if (threadName != null)     Thread.currentThread().setName(threadName);
     if (_request._async.isUncompleted()) {
-      _request._async.doComplete();
+      _request._async.doComplete(async_exception);
       if (_expect100Continue) {
         LOG.debug("100 continues not sent");
         _expect100Continue=false;

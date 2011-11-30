@@ -1,0 +1,24 @@
+{
+  LOG.debug("Scanning classes in WEB-INF/classes");
+  if (context.getWebInf() != null) {
+    Resource classesDir=context.getWebInf().addPath("classes/");
+    if (classesDir.exists()) {
+      clearAnnotationList(parser.getAnnotationHandlers());
+      parser.parse(classesDir,new ClassNameResolver(){
+        public boolean isExcluded(        String name){
+          if (context.isSystemClass(name))           return true;
+          if (context.isServerClass(name))           return false;
+          return false;
+        }
+        public boolean shouldOverride(        String name){
+          if (context.isParentLoaderPriority())           return false;
+          return true;
+        }
+      }
+);
+      List<DiscoveredAnnotation> annotations=new ArrayList<DiscoveredAnnotation>();
+      gatherAnnotations(annotations,parser.getAnnotationHandlers());
+      context.getMetaData().addDiscoveredAnnotations(annotations);
+    }
+  }
+}

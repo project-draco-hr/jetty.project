@@ -1,3 +1,22 @@
 {
+  boolean metadataComplete=context.getMetaData().isMetaDataComplete();
   context.addDecorator(new AnnotationDecorator(context));
+  AnnotationParser parser=null;
+  if (!metadataComplete) {
+    if (context.getServletContext().getEffectiveMajorVersion() >= 3 || context.isConfigurationDiscovered()) {
+      parser=createAnnotationParser();
+      parser.registerAnnotationHandler("javax.servlet.annotation.WebServlet",new WebServletAnnotationHandler(context));
+      parser.registerAnnotationHandler("javax.servlet.annotation.WebFilter",new WebFilterAnnotationHandler(context));
+      parser.registerAnnotationHandler("javax.servlet.annotation.WebListener",new WebListenerAnnotationHandler(context));
+    }
+  }
+ else   if (LOG.isDebugEnabled())   LOG.debug("Metadata-complete==true,  not processing discoverable servlet annotations for context " + context);
+  List<ServletContainerInitializer> nonExcludedInitializers=getNonExcludedInitializers(context);
+  parser=registerServletContainerInitializerAnnotationHandlers(context,parser,nonExcludedInitializers);
+  if (parser != null) {
+    if (LOG.isDebugEnabled())     LOG.debug("Scanning all classses for annotations: webxmlVersion=" + context.getServletContext().getEffectiveMajorVersion() + " configurationDiscovered="+ context.isConfigurationDiscovered());
+    parseContainerPath(context,parser);
+    parseWebInfClasses(context,parser);
+    parseWebInfLib(context,parser);
+  }
 }

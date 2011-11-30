@@ -1,0 +1,34 @@
+{
+  List<ContainerInitializer> initializers=(List<ContainerInitializer>)_context.getAttribute(AnnotationConfiguration.CONTAINER_INITIALIZERS);
+  MultiMap classMap=(MultiMap)_context.getAttribute(AnnotationConfiguration.CLASS_INHERITANCE_MAP);
+  if (initializers != null) {
+    for (    ContainerInitializer i : initializers) {
+      if (i.getAnnotatedTypeNames() != null) {
+        Set<String> annotatedClassNames=new HashSet<String>(i.getAnnotatedTypeNames());
+        for (        String name : annotatedClassNames) {
+          i.addApplicableTypeName(name);
+          if (classMap != null) {
+            List<String> implementsOrExtends=(List<String>)classMap.getValues(name);
+            if (implementsOrExtends != null && !implementsOrExtends.isEmpty())             addInheritedTypes(classMap,i,implementsOrExtends);
+          }
+        }
+      }
+      if (i.getInterestedTypes() != null) {
+        for (        Class c : i.getInterestedTypes()) {
+          if (!c.isAnnotation()) {
+            if (classMap != null) {
+              List<String> implementsOrExtends=(List<String>)classMap.getValues(c.getName());
+              if (implementsOrExtends != null && !implementsOrExtends.isEmpty())               addInheritedTypes(classMap,i,implementsOrExtends);
+            }
+          }
+        }
+      }
+      try {
+        i.callStartup(_context);
+      }
+ catch (      Exception e) {
+        e.printStackTrace();
+      }
+    }
+  }
+}
