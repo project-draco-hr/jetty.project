@@ -1,0 +1,105 @@
+{
+  Properties props=super.loadProperties(resource);
+  if (resource.equals(resourceBase + LAUNCH_INI) && deployedInPlace) {
+    String osgiInstall=props.getProperty(OSGI_INSTALL_AREA);
+    if (osgiInstall == null) {
+      props.put(OSGI_INSTALL_AREA,getPlatformDirectory().getAbsolutePath());
+    }
+    String osgiFramework=props.getProperty(OSGI_FRAMEWORK);
+    File pluginsFolder=null;
+    if (osgiFramework == null && getPlatformDirectory() != null) {
+      File osgiFrameworkF=findOsgiFramework(getPlatformDirectory());
+      pluginsFolder=osgiFrameworkF.getParentFile();
+      props.put(OSGI_FRAMEWORK,osgiFrameworkF.getAbsoluteFile().getAbsolutePath());
+    }
+    String osgiFrameworkExtensions=props.getProperty(OSGI_FRAMEWORK_EXTENSIONS);
+    if (osgiFrameworkExtensions == null) {
+      osgiFrameworkExtensions="org.eclipse.equinox.servletbridge.extensionbundle";
+    }
+    File configIni=new File(getPlatformDirectory(),"configuration/config.ini");
+    Properties configIniProps=new Properties();
+    if (configIni.exists()) {
+      System.out.println("Got the " + configIni.getAbsolutePath());
+      InputStream configIniStream=null;
+      try {
+        configIniStream=new FileInputStream(configIni);
+        configIniProps.load(configIniStream);
+      }
+ catch (      IOException ioe) {
+      }
+ finally {
+        try {
+          configIniStream.close();
+        }
+ catch (        IOException ioe2) {
+        }
+      }
+      String confIniFrameworkExt=configIniProps.getProperty(OSGI_FRAMEWORK_EXTENSIONS);
+      if (confIniFrameworkExt != null) {
+        osgiFrameworkExtensions=osgiFrameworkExtensions + "," + confIniFrameworkExt;
+      }
+    }
+ else {
+      System.out.println("Unable to locate the " + configIni.getAbsolutePath());
+    }
+    props.setProperty(OSGI_FRAMEWORK_EXTENSIONS,osgiFrameworkExtensions);
+    deployExtensionBundle(pluginsFolder,true);
+    String bootDeleg=props.getProperty(FRAMEWORK_BOOTDELEGATION);
+    if (bootDeleg == null) {
+      bootDeleg=configIniProps.getProperty(FRAMEWORK_BOOTDELEGATION);
+    }
+    if (bootDeleg == null || bootDeleg.indexOf("javax.servlet.http") == -1) {
+      String add="javax.servlet,javax.servlet.http,javax.servlet.resources";
+      if (bootDeleg != null) {
+        bootDeleg+=add;
+      }
+ else {
+        bootDeleg=add;
+      }
+      props.setProperty(FRAMEWORK_BOOTDELEGATION,bootDeleg);
+    }
+    String jettyHome=System.getProperty("jetty.home");
+    if (jettyHome == null) {
+      jettyHome=getPlatformDirectory().getAbsolutePath();
+      System.setProperty("jetty.home",jettyHome);
+      props.setProperty("jetty.home",jettyHome);
+    }
+ else {
+      jettyHome=resolveSystemProperty(jettyHome);
+    }
+    String etcJettyXml=System.getProperty("jetty.etc.config.urls");
+    if (etcJettyXml == null) {
+      if (new File(jettyHome,"etc/jetty-osgi-nested.xml").exists()) {
+        System.setProperty("jetty.etc.config.urls","etc/jetty-osgi-nested.xml");
+        props.setProperty("jetty.etc.config.urls","etc/jetty-osgi-nested.xml");
+      }
+    }
+    String startLevel=System.getProperty("osgi.startLevel");
+    if (startLevel == null) {
+      startLevel=props.getProperty("osgi.startLevel");
+      if (startLevel == null) {
+        startLevel=configIniProps.getProperty("osgi.startLevel");
+      }
+      if (startLevel != null) {
+        props.setProperty("osgi.startLevel",startLevel);
+        System.setProperty("osgi.startLevel",startLevel);
+      }
+    }
+    String logback=System.getProperty("logback.configurationFile");
+    if (logback == null) {
+      File etcLogback=new File(jettyHome,"etc/logback-nested.xml");
+      if (!etcLogback.exists()) {
+        etcLogback=new File(jettyHome,"etc/logback.xml");
+      }
+      if (etcLogback.exists()) {
+        System.setProperty("logback.configurationFile",etcLogback.getAbsolutePath());
+        props.setProperty("logback.configurationFile",etcLogback.getAbsolutePath());
+      }
+    }
+ else {
+      logback=resolveSystemProperty(logback);
+    }
+    System.out.println("sysout: logback.configurationFile=" + System.getProperty("logback.configurationFile"));
+  }
+  return props;
+}

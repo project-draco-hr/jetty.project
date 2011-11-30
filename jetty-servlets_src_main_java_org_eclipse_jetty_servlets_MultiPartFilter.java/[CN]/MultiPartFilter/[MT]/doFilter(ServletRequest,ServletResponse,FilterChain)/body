@@ -6,38 +6,152 @@
   }
   InputStream in=new BufferedInputStream(request.getInputStream());
   String content_type=srequest.getContentType();
-  MultiMap<String> params=new MultiMap<String>();
-  for (Iterator<Map.Entry<String,String[]>> i=request.getParameterMap().entrySet().iterator(); i.hasNext(); ) {
-    Map.Entry<String,String[]> entry=i.next();
+  String boundary="--" + QuotedStringTokenizer.unquote(value(content_type.substring(content_type.indexOf("boundary="))).trim());
+  byte[] byteBoundary=(boundary + "--").getBytes(StringUtil.__ISO_8859_1);
+  MultiMap params=new MultiMap();
+  for (Iterator i=request.getParameterMap().entrySet().iterator(); i.hasNext(); ) {
+    Map.Entry entry=(Map.Entry)i.next();
     Object value=entry.getValue();
     if (value instanceof String[])     params.addValues(entry.getKey(),(String[])value);
  else     params.add(entry.getKey(),value);
   }
-  MultipartConfigElement config=new MultipartConfigElement(tempdir.getCanonicalPath(),_maxFileSize,_maxRequestSize,_fileOutputBuffer);
-  MultiPartInputStream mpis=new MultiPartInputStream(in,content_type,config,tempdir);
   try {
-    Collection<Part> parts=mpis.getParts();
-    if (parts != null) {
-      for (      Part p : parts) {
-        MultiPartInputStream.MultiPart mp=(MultiPartInputStream.MultiPart)p;
-        if (mp.getFile() != null) {
-          request.setAttribute(mp.getName(),mp.getFile());
-          if (mp.getContentDispositionFilename() != null)           params.add(mp.getName(),mp.getContentDispositionFilename());
+    byte[] bytes=TypeUtil.readLine(in);
+    String line=bytes == null ? null : new String(bytes,"UTF-8");
+    if (line == null || !line.equals(boundary)) {
+      throw new IOException("Missing initial multi part boundary");
+    }
+    boolean lastPart=false;
+    String content_disposition=null;
+    String content_transfer_encoding=null;
+    outer:     while (!lastPart) {
+      String type_content=null;
+      while (true) {
+        bytes=TypeUtil.readLine(in);
+        if (bytes == null)         break outer;
+        if (bytes.length == 0)         break;
+        line=new String(bytes,"UTF-8");
+        int c=line.indexOf(':',0);
+        if (c > 0) {
+          String key=line.substring(0,c).trim().toLowerCase();
+          String value=line.substring(c + 1,line.length()).trim();
+          if (key.equals("content-disposition"))           content_disposition=value;
+ else           if (key.equals("content-transfer-encoding"))           content_transfer_encoding=value;
+ else           if (key.equals("content-type"))           type_content=value;
+        }
+      }
+      boolean form_data=false;
+      if (content_disposition == null) {
+        throw new IOException("Missing content-disposition");
+      }
+      QuotedStringTokenizer tok=new QuotedStringTokenizer(content_disposition,";");
+      String name=null;
+      String filename=null;
+      while (tok.hasMoreTokens()) {
+        String t=tok.nextToken().trim();
+        String tl=t.toLowerCase();
+        if (t.startsWith("form-data"))         form_data=true;
+ else         if (tl.startsWith("name="))         name=value(t);
+ else         if (tl.startsWith("filename="))         filename=value(t);
+      }
+      if (!form_data) {
+        continue;
+      }
+      if (name == null) {
+        continue;
+      }
+      OutputStream out=null;
+      File file=null;
+      try {
+        if (filename != null && filename.length() > 0) {
+          file=File.createTempFile("MultiPart","",tempdir);
+          out=new FileOutputStream(file);
+          if (_fileOutputBuffer > 0)           out=new BufferedOutputStream(out,_fileOutputBuffer);
+          request.setAttribute(name,file);
+          params.add(name,filename);
+          if (type_content != null)           params.add(name + CONTENT_TYPE_SUFFIX,type_content);
           if (_deleteFiles) {
-            mp.getFile().deleteOnExit();
+            file.deleteOnExit();
             ArrayList files=(ArrayList)request.getAttribute(FILES);
             if (files == null) {
               files=new ArrayList();
               request.setAttribute(FILES,files);
             }
-            files.add(mp.getFile());
+            files.add(file);
           }
         }
  else {
-          ByteArrayOutputStream bytes=new ByteArrayOutputStream();
-          IO.copy(p.getInputStream(),bytes);
-          params.add(p.getName(),bytes.toByteArray());
+          out=new ByteArrayOutputStream();
         }
+        if ("base64".equalsIgnoreCase(content_transfer_encoding)) {
+          in=new Base64InputStream(in);
+        }
+ else         if ("quoted-printable".equalsIgnoreCase(content_transfer_encoding)) {
+          in=new FilterInputStream(in){
+            @Override public int read() throws IOException {
+              int c=in.read();
+              if (c >= 0 && c == '=') {
+                int hi=in.read();
+                int lo=in.read();
+                if (hi < 0 || lo < 0) {
+                  throw new IOException("Unexpected end to quoted-printable byte");
+                }
+                char[] chars=new char[]{(char)hi,(char)lo};
+                c=Integer.parseInt(new String(chars),16);
+              }
+              return c;
+            }
+          }
+;
+        }
+        int state=-2;
+        int c;
+        boolean cr=false;
+        boolean lf=false;
+        while (true) {
+          int b=0;
+          while ((c=(state != -2) ? state : in.read()) != -1) {
+            state=-2;
+            if (c == 13 || c == 10) {
+              if (c == 13)               state=in.read();
+              break;
+            }
+            if (b >= 0 && b < byteBoundary.length && c == byteBoundary[b])             b++;
+ else {
+              if (cr)               out.write(13);
+              if (lf)               out.write(10);
+              cr=lf=false;
+              if (b > 0)               out.write(byteBoundary,0,b);
+              b=-1;
+              out.write(c);
+            }
+          }
+          if ((b > 0 && b < byteBoundary.length - 2) || (b == byteBoundary.length - 1)) {
+            if (cr)             out.write(13);
+            if (lf)             out.write(10);
+            cr=lf=false;
+            out.write(byteBoundary,0,b);
+            b=-1;
+          }
+          if (b > 0 || c == -1) {
+            if (b == byteBoundary.length)             lastPart=true;
+            if (state == 10)             state=-2;
+            break;
+          }
+          if (cr)           out.write(13);
+          if (lf)           out.write(10);
+          cr=(c == 13);
+          lf=(c == 10 || state == 10);
+          if (state == 10)           state=-2;
+        }
+      }
+  finally {
+        out.close();
+      }
+      if (file == null) {
+        bytes=((ByteArrayOutputStream)out).toByteArray();
+        params.add(name,bytes);
+        if (type_content != null)         params.add(name + CONTENT_TYPE_SUFFIX,type_content);
       }
     }
     chain.doFilter(new Wrapper(srequest,params),response);

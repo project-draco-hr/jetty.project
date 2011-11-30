@@ -1,0 +1,64 @@
+{
+  File[] fs=installFolder.listFiles();
+  for (int i=0; i < fs.length; i++) {
+    File f=fs[i];
+    if (f.isFile() && f.getName().endsWith(".ini") && !f.getName().equals(LAUNCH_INI)) {
+      BufferedReader br=null;
+      try {
+        br=new BufferedReader(new InputStreamReader(new FileInputStream(f)));
+        String line=null;
+        String pathToLauncherJar=null;
+        boolean gotStartArg=false;
+        while ((line=br.readLine()) != null) {
+          if (gotStartArg) {
+            pathToLauncherJar=line.trim();
+            if (pathToLauncherJar.length() == 0) {
+              continue;
+            }
+            break;
+          }
+ else           if (line.trim().equals("-startup")) {
+            gotStartArg=true;
+          }
+        }
+        if (pathToLauncherJar != null) {
+          File currFolder=getPlatformDirectory();
+          String oriStartup=pathToLauncherJar;
+          while (pathToLauncherJar.startsWith("../")) {
+            currFolder=currFolder.getParentFile();
+            pathToLauncherJar=pathToLauncherJar.substring(3);
+          }
+          File pluginsfolder=new File(currFolder,pathToLauncherJar).getParentFile();
+          if (!pluginsfolder.exists()) {
+            throw new IllegalStateException("The -startup argument in " + f.getPath() + " is "+ oriStartup+ ". It points to "+ pluginsfolder.getPath()+ " plugins directory that does not exists.");
+          }
+          TreeMap osgis=new TreeMap();
+          File[] plugins=pluginsfolder.listFiles();
+          for (int j=0; j < plugins.length; j++) {
+            File b=plugins[j];
+            if (b.isFile() && b.getName().startsWith(FRAMEWORK_BUNDLE_NAME + "_") && b.getName().endsWith(".jar")) {
+              osgis.put(b.getName(),b);
+            }
+          }
+          if (osgis.isEmpty()) {
+            throw new IllegalStateException("The -startup argument in " + f.getPath() + " is "+ oriStartup+ ". It points to "+ pluginsfolder.getPath()+ " plugins directory but there is no org.eclipse.osgi.*.jar files there.");
+          }
+          File osgiFramework=(File)osgis.values().iterator().next();
+          String path=osgiFramework.getPath();
+          System.err.println("Using " + path + " for the osgi framework.");
+          return osgiFramework;
+        }
+      }
+ catch (      IOException ioe) {
+      }
+ finally {
+        if (br != null)         try {
+          br.close();
+        }
+ catch (        IOException ii) {
+        }
+      }
+    }
+  }
+  return null;
+}

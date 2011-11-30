@@ -1,5 +1,10 @@
 {
   if (!isStarting())   throw new IllegalStateException();
-  if (!_enabled)   throw new UnsupportedOperationException();
-  super.addListener(className);
+  try {
+    Class<? extends EventListener> clazz=getClassLoader() == null ? Loader.loadClass(ContextHandler.class,className) : getClassLoader().loadClass(className);
+    addListener(clazz);
+  }
+ catch (  ClassNotFoundException e) {
+    throw new IllegalArgumentException(e);
+  }
 }

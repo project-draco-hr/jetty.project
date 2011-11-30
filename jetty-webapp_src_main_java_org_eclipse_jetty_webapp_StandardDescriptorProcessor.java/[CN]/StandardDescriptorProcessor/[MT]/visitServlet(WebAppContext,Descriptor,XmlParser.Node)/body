@@ -3,7 +3,7 @@
   String servlet_name=node.getString("servlet-name",false,true);
   ServletHolder holder=context.getServletHandler().getServlet(servlet_name);
   if (holder == null) {
-    holder=context.getServletHandler().newServletHolder(Holder.Source.DESCRIPTOR);
+    holder=context.getServletHandler().newServletHolder();
     holder.setName(servlet_name);
     context.getServletHandler().addServlet(holder);
   }
@@ -205,98 +205,6 @@ case WebFragment:
 if (!holder.getRunAsRole().equals(roleName)) throw new IllegalStateException("Conflicting run-as role " + roleName + " for servlet "+ servlet_name+ " in "+ descriptor.getResource());
 break;
 }
-}
-}
-}
-String async=node.getString("async-supported",false,true);
-if (async != null) {
-boolean val=async.length() == 0 || Boolean.valueOf(async);
-Origin o=context.getMetaData().getOrigin(servlet_name + ".servlet.async-supported");
-switch (o) {
-case NotSet:
-{
-holder.setAsyncSupported(val);
-context.getMetaData().setOrigin(servlet_name + ".servlet.async-supported",descriptor);
-break;
-}
-case WebXml:
-case WebDefaults:
-case WebOverride:
-{
-if (!(descriptor instanceof FragmentDescriptor)) {
-holder.setAsyncSupported(val);
-context.getMetaData().setOrigin(servlet_name + ".servlet.async-supported",descriptor);
-}
-break;
-}
-case WebFragment:
-{
-if (holder.isAsyncSupported() != val) throw new IllegalStateException("Conflicting async-supported=" + async + " for servlet "+ servlet_name+ " in "+ descriptor.getResource());
-break;
-}
-}
-}
-String enabled=node.getString("enabled",false,true);
-if (enabled != null) {
-boolean is_enabled=enabled.length() == 0 || Boolean.valueOf(enabled);
-Origin o=context.getMetaData().getOrigin(servlet_name + ".servlet.enabled");
-switch (o) {
-case NotSet:
-{
-holder.setEnabled(is_enabled);
-context.getMetaData().setOrigin(servlet_name + ".servlet.enabled",descriptor);
-break;
-}
-case WebXml:
-case WebDefaults:
-case WebOverride:
-{
-if (!(descriptor instanceof FragmentDescriptor)) {
-holder.setEnabled(is_enabled);
-context.getMetaData().setOrigin(servlet_name + ".servlet.enabled",descriptor);
-}
-break;
-}
-case WebFragment:
-{
-if (holder.isEnabled() != is_enabled) throw new IllegalStateException("Conflicting value of servlet enabled for servlet " + servlet_name + " in "+ descriptor.getResource());
-break;
-}
-}
-}
-XmlParser.Node multipart=node.get("multipart-config");
-if (multipart != null) {
-String location=multipart.getString("location",false,true);
-String maxFile=multipart.getString("max-file-size",false,true);
-String maxRequest=multipart.getString("max-request-size",false,true);
-String threshold=multipart.getString("file-size-threshold",false,true);
-MultipartConfigElement element=new MultipartConfigElement(location,(maxFile == null || "".equals(maxFile) ? -1L : Long.parseLong(maxFile)),(maxRequest == null || "".equals(maxRequest) ? -1L : Long.parseLong(maxRequest)),(threshold == null || "".equals(threshold) ? 0 : Integer.parseInt(threshold)));
-Origin o=context.getMetaData().getOrigin(servlet_name + ".servlet.multipart-config");
-switch (o) {
-case NotSet:
-{
-holder.getRegistration().setMultipartConfig(element);
-context.getMetaData().setOrigin(servlet_name + ".servlet.multipart-config",descriptor);
-break;
-}
-case WebXml:
-case WebDefaults:
-case WebOverride:
-{
-if (!(descriptor instanceof FragmentDescriptor)) {
-holder.getRegistration().setMultipartConfig(element);
-context.getMetaData().setOrigin(servlet_name + ".servlet.multipart-config",descriptor);
-}
-break;
-}
-case WebFragment:
-{
-MultipartConfigElement cfg=((ServletHolder.Registration)holder.getRegistration()).getMultipartConfig();
-if (cfg.getMaxFileSize() != element.getMaxFileSize()) throw new IllegalStateException("Conflicting multipart-config max-file-size for servlet " + servlet_name + " in "+ descriptor.getResource());
-if (cfg.getMaxRequestSize() != element.getMaxRequestSize()) throw new IllegalStateException("Conflicting multipart-config max-request-size for servlet " + servlet_name + " in "+ descriptor.getResource());
-if (cfg.getFileSizeThreshold() != element.getFileSizeThreshold()) throw new IllegalStateException("Conflicting multipart-config file-size-threshold for servlet " + servlet_name + " in "+ descriptor.getResource());
-if ((cfg.getLocation() != null && (element.getLocation() == null || element.getLocation().length() == 0)) || (cfg.getLocation() == null && (element.getLocation() != null || element.getLocation().length() > 0))) throw new IllegalStateException("Conflicting multipart-config location for servlet " + servlet_name + " in "+ descriptor.getResource());
-break;
 }
 }
 }

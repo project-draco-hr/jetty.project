@@ -1,116 +1,66 @@
 {
-  try {
-    if (DispatcherType.REQUEST.equals(baseRequest.getDispatcherType())) {
-      if (_read > 0) {
-        byte[] buf=new byte[_read];
-        request.getInputStream().read(buf);
-      }
- else       if (_read < 0) {
-        InputStream in=request.getInputStream();
-        int b=in.read();
-        while (b != -1)         b=in.read();
-      }
-      final AsyncContext asyncContext=baseRequest.startAsync();
-      response.getOutputStream().println("STARTASYNC");
-      asyncContext.addListener(__asyncListener);
-      asyncContext.addListener(__asyncListener1);
-      if (_suspendFor > 0)       asyncContext.setTimeout(_suspendFor);
-      if (_completeAfter > 0) {
-        new Thread(){
-          @Override public void run(){
-            try {
-              Thread.sleep(_completeAfter);
-              response.getOutputStream().println("COMPLETED");
-              response.setStatus(200);
-              baseRequest.setHandled(true);
-              asyncContext.complete();
-            }
- catch (            Exception e) {
-              e.printStackTrace();
-            }
-          }
-        }
-.start();
-      }
- else       if (_completeAfter == 0) {
-        response.getOutputStream().println("COMPLETED");
-        response.setStatus(200);
-        baseRequest.setHandled(true);
-        asyncContext.complete();
-      }
-      if (_resumeAfter > 0) {
-        new Thread(){
-          @Override public void run(){
-            try {
-              Thread.sleep(_resumeAfter);
-              if (((HttpServletRequest)asyncContext.getRequest()).getSession(true).getId() != null)               asyncContext.dispatch();
-            }
- catch (            Exception e) {
-              e.printStackTrace();
-            }
-          }
-        }
-.start();
-      }
- else       if (_resumeAfter == 0) {
-        asyncContext.dispatch();
-      }
+  if (DispatcherType.REQUEST.equals(baseRequest.getDispatcherType())) {
+    if (_read > 0) {
+      byte[] buf=new byte[_read];
+      request.getInputStream().read(buf);
     }
- else {
-      if (request.getAttribute("TIMEOUT") != null)       response.getOutputStream().println("TIMEOUT");
- else       response.getOutputStream().println("DISPATCHED");
-      if (_suspendFor2 >= 0) {
-        final AsyncContext asyncContext=baseRequest.startAsync();
-        response.getOutputStream().println("STARTASYNC2");
-        if (_suspendFor2 > 0)         asyncContext.setTimeout(_suspendFor2);
-        _suspendFor2=-1;
-        if (_completeAfter2 > 0) {
-          new Thread(){
-            @Override public void run(){
-              try {
-                Thread.sleep(_completeAfter2);
-                response.getOutputStream().println("COMPLETED2");
-                response.setStatus(200);
-                baseRequest.setHandled(true);
-                asyncContext.complete();
-              }
- catch (              Exception e) {
-                e.printStackTrace();
-              }
-            }
+ else     if (_read < 0) {
+      InputStream in=request.getInputStream();
+      int b=in.read();
+      while (b != -1)       b=in.read();
+    }
+    final AsyncContext asyncContext=baseRequest.startAsync();
+    asyncContext.addContinuationListener(__asyncListener);
+    if (_suspendFor > 0)     asyncContext.setTimeout(_suspendFor);
+    if (_completeAfter > 0) {
+      new Thread(){
+        @Override public void run(){
+          try {
+            Thread.sleep(_completeAfter);
+            response.getOutputStream().print("COMPLETED");
+            response.setStatus(200);
+            baseRequest.setHandled(true);
+            asyncContext.complete();
           }
-.start();
-        }
- else         if (_completeAfter2 == 0) {
-          response.getOutputStream().println("COMPLETED2");
-          response.setStatus(200);
-          baseRequest.setHandled(true);
-          asyncContext.complete();
-        }
-        if (_resumeAfter2 > 0) {
-          new Thread(){
-            @Override public void run(){
-              try {
-                Thread.sleep(_resumeAfter2);
-                asyncContext.dispatch();
-              }
- catch (              Exception e) {
-                e.printStackTrace();
-              }
-            }
+ catch (          Exception e) {
+            e.printStackTrace();
           }
-.start();
-        }
- else         if (_resumeAfter2 == 0) {
-          asyncContext.dispatch();
         }
       }
- else {
-        response.setStatus(200);
-        baseRequest.setHandled(true);
+.start();
+    }
+ else     if (_completeAfter == 0) {
+      response.getOutputStream().print("COMPLETED");
+      response.setStatus(200);
+      baseRequest.setHandled(true);
+      asyncContext.complete();
+    }
+    if (_resumeAfter > 0) {
+      new Thread(){
+        @Override public void run(){
+          try {
+            Thread.sleep(_resumeAfter);
+            if (((HttpServletRequest)asyncContext.getRequest()).getSession(true).getId() != null)             asyncContext.dispatch();
+          }
+ catch (          Exception e) {
+            e.printStackTrace();
+          }
+        }
       }
+.start();
+    }
+ else     if (_resumeAfter == 0) {
+      asyncContext.dispatch();
     }
   }
-  finally {
+ else   if (request.getAttribute("TIMEOUT") != null) {
+    response.setStatus(200);
+    response.getOutputStream().print("TIMEOUT");
+    baseRequest.setHandled(true);
+  }
+ else {
+    response.setStatus(200);
+    response.getOutputStream().print("RESUMED");
+    baseRequest.setHandled(true);
   }
 }

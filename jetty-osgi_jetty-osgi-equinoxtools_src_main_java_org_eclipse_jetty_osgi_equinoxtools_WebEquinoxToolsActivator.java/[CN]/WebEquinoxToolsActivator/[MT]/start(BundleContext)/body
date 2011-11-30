@@ -1,0 +1,33 @@
+{
+  WebEquinoxToolsActivator.context=bundleContext;
+  ServiceTrackerCustomizer httpServiceTrackerCustomizer=new ServiceTrackerCustomizer(){
+    public void removedService(    ServiceReference reference,    Object service){
+      _httpService=null;
+    }
+    public void modifiedService(    ServiceReference reference,    Object service){
+      _httpService=(HttpService)context.getService(reference);
+    }
+    public Object addingService(    ServiceReference reference){
+      _httpService=(HttpService)context.getService(reference);
+      try {
+        _httpService.registerResources("/equinoxconsole/ws/index.html","/equinoxconsole/ws/index.html",null);
+        _httpService.registerServlet("/equinoxconsole/ws",new EquinoxConsoleWebSocketServlet(),null,null);
+        _httpService.registerResources("/equinoxconsole/index.html","/equinoxconsole/index.html",null);
+        _httpService.registerServlet("/equinoxconsole",new EquinoxConsoleContinuationServlet(),null,null);
+        WebConsoleSession syncSession=new WebConsoleSession();
+        WebEquinoxToolsActivator.context.registerService(ConsoleSession.class.getName(),syncSession,null);
+        _httpService.registerServlet("/equinoxconsole/sync",new EquinoxConsoleSyncServlet(syncSession),null,null);
+      }
+ catch (      ServletException e) {
+        LOG.warn(e);
+      }
+catch (      NamespaceException e) {
+        LOG.warn(e);
+      }
+      return _httpService;
+    }
+  }
+;
+  _tracker=new ServiceTracker(context,HttpService.class.getName(),httpServiceTrackerCustomizer);
+  _tracker.open();
+}

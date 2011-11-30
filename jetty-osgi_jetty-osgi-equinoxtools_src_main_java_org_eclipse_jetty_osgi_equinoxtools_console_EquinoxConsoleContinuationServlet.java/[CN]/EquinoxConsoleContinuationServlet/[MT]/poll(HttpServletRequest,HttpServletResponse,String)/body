@@ -1,0 +1,42 @@
+{
+  ConsoleUser member=_consoleUsers.get(username);
+  if (member == null) {
+    response.sendError(503);
+    return;
+  }
+synchronized (member) {
+    if (member.getMessageQueue().size() > 0) {
+      response.setContentType("text/json;charset=utf-8");
+      StringBuilder buf=new StringBuilder();
+      buf.append("{\"action\":\"poll\",");
+      buf.append("\"from\":\"");
+      buf.append(member.getMessageQueue().poll());
+      buf.append("\",");
+      String message=member.getMessageQueue().poll();
+      int quote=message.indexOf('"');
+      while (quote >= 0) {
+        message=message.substring(0,quote) + '\\' + message.substring(quote);
+        quote=message.indexOf('"',quote + 2);
+      }
+      buf.append("\"chat\":\"");
+      buf.append(message);
+      buf.append("\"}");
+      byte[] bytes=buf.toString().getBytes("utf-8");
+      response.setContentLength(bytes.length);
+      response.getOutputStream().write(bytes);
+    }
+ else {
+      Continuation continuation=ContinuationSupport.getContinuation(request);
+      if (continuation.isInitial()) {
+        continuation.setTimeout(20000);
+        continuation.suspend();
+        member.setContinuation(continuation);
+      }
+ else {
+        response.setContentType("text/json;charset=utf-8");
+        PrintWriter out=response.getWriter();
+        out.print("{action:\"poll\"}");
+      }
+    }
+  }
+}
