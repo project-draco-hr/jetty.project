@@ -3,6 +3,7 @@
   boolean skipContentBody=false;
   if (!HttpMethods.GET.equals(request.getMethod())) {
     if (!HttpMethods.HEAD.equals(request.getMethod())) {
+      super.handle(target,baseRequest,request,response);
       return;
     }
     skipContentBody=true;
@@ -10,10 +11,14 @@
   Resource resource=getResource(request);
   if (resource == null || !resource.exists()) {
     if (target.endsWith("/jetty-dir.css")) {
-      response.setContentType("text/css");
       resource=getStylesheet();
+      if (resource == null)       return;
+      response.setContentType("text/css");
     }
- else     return;
+ else {
+      super.handle(target,baseRequest,request,response);
+      return;
+    }
   }
   if (!_aliases && resource.getAlias() != null) {
     LOG.info(resource + " aliased to " + resource.getAlias());
@@ -53,8 +58,8 @@
  catch (  IllegalStateException e) {
     out=new WriterOutputStream(response.getWriter());
   }
-  if (out instanceof HttpConnection.Output) {
-    ((HttpConnection.Output)out).sendContent(resource.getInputStream());
+  if (out instanceof AbstractHttpConnection.Output) {
+    ((AbstractHttpConnection.Output)out).sendContent(resource.getInputStream());
   }
  else {
     resource.writeTo(out,0,resource.length());

@@ -1,0 +1,28 @@
+{
+  Server server=new Server();
+  SocketConnector connector=new SocketConnector();
+  server.addConnector(connector);
+  SluggishHandler handler=new SluggishHandler(requestSize);
+  server.setHandler(handler);
+  server.start();
+  int port=connector.getLocalPort();
+  HttpClient client=new HttpClient();
+  client.setConnectorType(HttpClient.CONNECTOR_SELECT_CHANNEL);
+  client.setConnectTimeout(5000);
+  client.setIdleTimeout(60000);
+  client.start();
+  try {
+    for (int i=0; i < iterations; ++i) {
+      SluggishExchange exchange=new SluggishExchange(port,requestSize);
+      long startTime=System.currentTimeMillis();
+      client.send(exchange);
+      exchange.waitForDone();
+      long endTime=System.currentTimeMillis();
+      Assert.assertTrue(compareBuffers(exchange.getRequestBody(),handler.getAccumulatedRequest()));
+    }
+  }
+  finally {
+    server.stop();
+    server.join();
+  }
+}

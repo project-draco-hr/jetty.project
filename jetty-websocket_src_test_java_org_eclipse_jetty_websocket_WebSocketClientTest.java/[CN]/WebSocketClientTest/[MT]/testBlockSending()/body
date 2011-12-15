@@ -22,12 +22,12 @@
   Assert.assertNotNull(connection);
   Assert.assertTrue(open.get());
   Assert.assertEquals(0,close.get());
-  final int messages=20000;
+  final int messages=200000;
   final AtomicLong totalB=new AtomicLong();
   Thread consumer=new Thread(){
-    public void run(){
+    @Override public void run(){
       try {
-        Thread.sleep(2000);
+        Thread.sleep(200);
         byte[] recv=new byte[32 * 1024];
         int len=0;
         while (len >= 0) {
@@ -46,20 +46,16 @@ catch (      Exception e) {
   }
 ;
   consumer.start();
-  long max=0;
   long start=System.currentTimeMillis();
   String mesg="This is a test message to send";
   for (int i=0; i < messages; i++) {
-    connection.sendMessage("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX");
-    if (i % 100 == 0) {
-      long now=System.currentTimeMillis();
-      long duration=now - start;
-      start=now;
-      if (duration > max)       max=duration;
-    }
+    connection.sendMessage(mesg);
   }
-  while (totalB.get() < messages * (mesg.length() + 6L))   Thread.sleep(10);
-  Assert.assertTrue(max > 1000);
+  long writeDur=(System.currentTimeMillis() - start);
+  while (totalB.get() < messages * (mesg.length() + 6L)) {
+    Thread.sleep(10);
+  }
+  Assert.assertThat("write duration",writeDur,greaterThan(1000L));
   Assert.assertEquals(messages * (mesg.length() + 6L),totalB.get());
   consumer.interrupt();
 }

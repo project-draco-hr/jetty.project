@@ -1,0 +1,39 @@
+{
+  InputStream input=socket.getInputStream();
+  int first=-2;
+  while (true) {
+    try {
+      socket.setSoTimeout(500);
+      first=input.read();
+      break;
+    }
+ catch (    SocketTimeoutException x) {
+      if (Thread.currentThread().isInterrupted())       break;
+    }
+  }
+  if (first == -2)   throw new InterruptedIOException();
+ else   if (first == -1)   return null;
+  if (first >= 0x80) {
+    int hiLength=first & 0x3F;
+    int loLength=input.read();
+    int length=(hiLength << 8) + loLength;
+    byte[] bytes=new byte[2 + length];
+    bytes[0]=(byte)first;
+    bytes[1]=(byte)loLength;
+    return read(TLSRecord.Type.HANDSHAKE,input,bytes,2,length);
+  }
+ else {
+    int major=input.read();
+    int minor=input.read();
+    int hiLength=input.read();
+    int loLength=input.read();
+    int length=(hiLength << 8) + loLength;
+    byte[] bytes=new byte[1 + 2 + 2+ length];
+    bytes[0]=(byte)first;
+    bytes[1]=(byte)major;
+    bytes[2]=(byte)minor;
+    bytes[3]=(byte)hiLength;
+    bytes[4]=(byte)loLength;
+    return read(TLSRecord.Type.from(first),input,bytes,5,length);
+  }
+}

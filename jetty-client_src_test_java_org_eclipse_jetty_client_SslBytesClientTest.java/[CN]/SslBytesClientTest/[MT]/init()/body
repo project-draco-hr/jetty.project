@@ -1,0 +1,18 @@
+{
+  threadPool=Executors.newCachedThreadPool();
+  client=new HttpClient();
+  client.setMaxConnectionsPerAddress(1);
+  client.setConnectorType(HttpClient.CONNECTOR_SELECT_CHANNEL);
+  File keyStore=MavenTestingUtils.getTestResourceFile("keystore");
+  SslContextFactory cf=client.getSslContextFactory();
+  cf.setKeyStorePath(keyStore.getAbsolutePath());
+  cf.setKeyStorePassword("storepwd");
+  cf.setKeyManagerPassword("keypwd");
+  client.start();
+  SSLContext sslContext=cf.getSslContext();
+  acceptor=(SSLServerSocket)sslContext.getServerSocketFactory().createServerSocket(0);
+  int serverPort=acceptor.getLocalPort();
+  proxy=new SimpleProxy(threadPool,"localhost",serverPort);
+  proxy.start();
+  logger.debug(":{} <==> :{}",proxy.getPort(),serverPort);
+}

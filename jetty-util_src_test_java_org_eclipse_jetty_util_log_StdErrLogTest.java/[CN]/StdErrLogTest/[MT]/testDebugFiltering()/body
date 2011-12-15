@@ -1,20 +1,24 @@
 {
   StdErrLog log=new StdErrLog(StdErrLogTest.class.getName());
   log.setHideStacks(true);
-  ByteArrayOutputStream test=new ByteArrayOutputStream();
-  PrintStream err=new PrintStream(test);
-  log.setStdErrStream(err);
+  StdErrCapture output=new StdErrCapture(log);
   log.debug("Tobacconist");
+  log.debug("<spoken line>",new Throwable("on editing room floor"));
   log.setLevel(StdErrLog.LEVEL_DEBUG);
   log.debug("my hovercraft is");
+  log.debug("<zoom>",new Throwable("out of focus"));
+  log.debug(new Throwable("scene lost"));
   log.setLevel(StdErrLog.LEVEL_ALL);
   log.debug("full of eels.");
   log.setLevel(StdErrLog.LEVEL_WARN);
   log.debug("what?");
-  String output=new String(test.toByteArray(),"UTF-8");
-  System.err.print(output);
-  Assert.assertThat(output,not(containsString("Tobacconist")));
-  Assert.assertThat(output,containsString("my hovercraft is"));
-  Assert.assertThat(output,containsString("full of eels."));
-  Assert.assertThat(output,not(containsString("what?")));
+  output.assertNotContains("Tobacconist");
+  output.assertContains("my hovercraft is");
+  output.assertContains("full of eels.");
+  output.assertNotContains("what?");
+  output.assertNotContains("<spoken line>");
+  output.assertNotContains("on editing room floor");
+  output.assertContains(".StdErrLogTest:<zoom>");
+  output.assertContains("java.lang.Throwable: out of focus");
+  output.assertContains("java.lang.Throwable: scene lost");
 }
