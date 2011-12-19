@@ -41,6 +41,15 @@
     Assert.assertTrue("close sent",serverEndPoint.get().isOutputShutdown());
     Assert.assertTrue("close not received",serverEndPoint.get().isInputShutdown());
     Assert.assertEquals("one request handled",1,httpRequests.get());
+    try {
+      for (int i=0; i < 1000; i++) {
+        clientOutput.write(req.toString().getBytes("UTF-8"));
+        clientOutput.flush();
+      }
+      Assert.fail("Client should have seen a broken pipe");
+    }
+ catch (    IOException e) {
+    }
   }
   finally {
     IO.close(reader);
