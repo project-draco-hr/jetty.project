@@ -29,17 +29,18 @@
         break;
       }
     }
-    Assert.assertEquals("EOF received",-1,client.getInputStream().read());
     Assert.assertEquals("one request handled",1,httpRequests.get());
-    Assert.assertTrue("is open",serverEndPoint.get().isOpen());
-    Assert.assertTrue("close sent",serverEndPoint.get().isOutputShutdown());
-    Assert.assertFalse("close not received",serverEndPoint.get().isInputShutdown());
-    TimeUnit.SECONDS.sleep(3);
+    Assert.assertEquals("EOF received",-1,client.getInputStream().read());
+    client.shutdownOutput();
     int httpParseCount=httpParses.get();
     Assert.assertThat(httpParseCount,lessThan(50));
-    Assert.assertFalse("is open",serverEndPoint.get().isOpen());
-    Assert.assertTrue("close sent",serverEndPoint.get().isOutputShutdown());
-    Assert.assertTrue("close not received",serverEndPoint.get().isInputShutdown());
+    try {
+      clientOutput.write(req.toString().getBytes("UTF-8"));
+      clientOutput.flush();
+      Assert.fail("Should not have been able to send a second POST request (connection: close)");
+    }
+ catch (    SocketException e) {
+    }
     Assert.assertEquals("one request handled",1,httpRequests.get());
   }
   finally {

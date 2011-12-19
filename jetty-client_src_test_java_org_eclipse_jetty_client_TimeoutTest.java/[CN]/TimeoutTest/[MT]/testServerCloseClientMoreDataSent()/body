@@ -34,8 +34,13 @@
     Assert.assertTrue("is open",serverEndPoint.get().isOpen());
     Assert.assertTrue("close sent",serverEndPoint.get().isOutputShutdown());
     Assert.assertFalse("close not received",serverEndPoint.get().isInputShutdown());
-    TimeUnit.SECONDS.sleep(3);
+    TimeUnit.SECONDS.sleep(1);
     int httpParseCount=httpParses.get();
+    Assert.assertThat(httpParseCount,lessThan(50));
+    clientOutput.write(req.toString().getBytes("UTF-8"));
+    clientOutput.flush();
+    TimeUnit.SECONDS.sleep(1);
+    httpParseCount=httpParses.get();
     Assert.assertThat(httpParseCount,lessThan(50));
     Assert.assertFalse("is open",serverEndPoint.get().isOpen());
     Assert.assertTrue("close sent",serverEndPoint.get().isOutputShutdown());
