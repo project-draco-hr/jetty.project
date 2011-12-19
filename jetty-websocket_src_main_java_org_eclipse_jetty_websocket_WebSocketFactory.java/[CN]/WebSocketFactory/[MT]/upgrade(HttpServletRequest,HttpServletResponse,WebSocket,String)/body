@@ -2,7 +2,9 @@
   if (!"websocket".equalsIgnoreCase(request.getHeader("Upgrade")))   throw new IllegalStateException("!Upgrade:websocket");
   if (!"HTTP/1.1".equals(request.getProtocol()))   throw new IllegalStateException("!HTTP/1.1");
   int draft=request.getIntHeader("Sec-WebSocket-Version");
-  if (draft < 0)   draft=request.getIntHeader("Sec-WebSocket-Draft");
+  if (draft < 0) {
+    draft=request.getIntHeader("Sec-WebSocket-Draft");
+  }
   AbstractHttpConnection http=AbstractHttpConnection.getCurrentConnection();
   if (http instanceof BlockingHttpConnection)   throw new IllegalStateException("Websockets not supported on blocking connectors");
   ConnectedEndPoint endp=(ConnectedEndPoint)http.getEndPoint();
@@ -36,13 +38,13 @@ case 8:
 extensions=initExtensions(extensions_requested,8 - WebSocketConnectionD08.OP_EXT_DATA,16 - WebSocketConnectionD08.OP_EXT_CTRL,3);
 connection=new WebSocketServletConnectionD08(websocket,endp,_buffers,http.getTimeStamp(),_maxIdleTime,protocol,extensions,draft);
 break;
-case 13:
-extensions=initExtensions(extensions_requested,8 - WebSocketConnectionD13.OP_EXT_DATA,16 - WebSocketConnectionD13.OP_EXT_CTRL,3);
-connection=new WebSocketServletConnectionD13(websocket,endp,_buffers,http.getTimeStamp(),_maxIdleTime,protocol,extensions,draft);
+case WebSocketConnectionRFC6455.VERSION:
+extensions=initExtensions(extensions_requested,8 - WebSocketConnectionRFC6455.OP_EXT_DATA,16 - WebSocketConnectionRFC6455.OP_EXT_CTRL,3);
+connection=new WebSocketServletConnectionRFC6455(websocket,endp,_buffers,http.getTimeStamp(),_maxIdleTime,protocol,extensions,draft);
 break;
 default :
 LOG.warn("Unsupported Websocket version: " + draft);
-response.setHeader("Sec-WebSocket-Version","0,6,8,13");
+response.setHeader("Sec-WebSocket-Version","13, 8, 6, 0");
 throw new HttpException(400,"Unsupported draft specification: " + draft);
 }
 connection.getConnection().setMaxBinaryMessageSize(_maxBinaryMessageSize);
