@@ -8,6 +8,15 @@
           sslHandles.incrementAndGet();
           return super.handle();
         }
+        @Override protected SslEndPoint newSslEndPoint(){
+          return new SslEndPoint(){
+            @Override public int flush(            Buffer buffer) throws IOException {
+              sslFlushes.incrementAndGet();
+              return super.flush(buffer);
+            }
+          }
+;
+        }
       }
 ;
     }
@@ -27,7 +36,7 @@
     }
   }
 ;
-  connector.setMaxIdleTime(2000);
+  connector.setMaxIdleTime(5000);
   connector.setPort(0);
   File keyStore=MavenTestingUtils.getTestResourceFile("keystore");
   SslContextFactory cf=connector.getSslContextFactory();
@@ -41,8 +50,13 @@
       String contentLength=request.getHeader("Content-Length");
       if (contentLength != null) {
         int length=Integer.parseInt(contentLength);
-        ServletInputStream input=request.getInputStream();
-        for (int i=0; i < length; ++i)         input.read();
+        ServletInputStream input=httpRequest.getInputStream();
+        ServletOutputStream output=httpResponse.getOutputStream();
+        byte[] buffer=new byte[32 * 1024];
+        for (int i=0; i < length; ++i) {
+          int read=input.read(buffer);
+          if ("/echo".equals(target))           output.write(buffer,0,read);
+        }
       }
     }
   }

@@ -21,11 +21,10 @@
   byte[] bytes=new byte[dataBytes.length + closeBytes.length / 2];
   System.arraycopy(dataBytes,0,bytes,0,dataBytes.length);
   System.arraycopy(closeBytes,0,bytes,dataBytes.length,closeBytes.length / 2);
-  proxy.flushToServer(bytes);
-  TimeUnit.MILLISECONDS.sleep(100);
+  proxy.flushToServer(100,bytes);
   bytes=new byte[closeBytes.length - closeBytes.length / 2];
   System.arraycopy(closeBytes,closeBytes.length / 2,bytes,0,bytes.length);
-  proxy.flushToServer(bytes);
+  proxy.flushToServer(100,bytes);
   TLSRecord record=proxy.readFromServer();
   Assert.assertNotNull(record);
   Assert.assertEquals(TLSRecord.Type.APPLICATION,record.getType());
@@ -34,6 +33,7 @@
   Assert.assertNotNull(record);
   Assert.assertEquals(TLSRecord.Type.ALERT,record.getType());
   Assert.assertThat(sslHandles.get(),lessThan(20));
+  Assert.assertThat(sslFlushes.get(),lessThan(20));
   Assert.assertThat(httpParses.get(),lessThan(50));
   record=proxy.readFromClient();
   Assert.assertNull(String.valueOf(record),record);

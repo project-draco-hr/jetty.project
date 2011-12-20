@@ -29,10 +29,8 @@
   System.arraycopy(bytes,0,chunk1,0,chunk1.length);
   byte[] chunk2=new byte[bytes.length - chunk1.length];
   System.arraycopy(bytes,chunk1.length,chunk2,0,chunk2.length);
-  proxy.flushToServer(chunk1);
-  TimeUnit.MILLISECONDS.sleep(100);
-  proxy.flushToServer(chunk2);
-  TimeUnit.MILLISECONDS.sleep(100);
+  proxy.flushToServer(100,chunk1);
+  proxy.flushToServer(100,chunk2);
   record=proxy.readFromServer();
   Assert.assertEquals(TLSRecord.Type.HANDSHAKE,record.getType());
   proxy.flushToClient(record);
@@ -56,10 +54,8 @@
   System.arraycopy(bytes,0,chunk1,0,chunk1.length);
   chunk2=new byte[bytes.length - chunk1.length];
   System.arraycopy(bytes,chunk1.length,chunk2,0,chunk2.length);
-  proxy.flushToServer(chunk1);
-  TimeUnit.MILLISECONDS.sleep(100);
-  proxy.flushToServer(chunk2);
-  TimeUnit.MILLISECONDS.sleep(100);
+  proxy.flushToServer(100,chunk1);
+  proxy.flushToServer(100,chunk2);
   record=proxy.readFromClient();
   Assert.assertEquals(TLSRecord.Type.HANDSHAKE,record.getType());
   bytes=record.getBytes();
@@ -67,8 +63,7 @@
   System.arraycopy(bytes,0,chunk1,0,chunk1.length);
   chunk2=new byte[bytes.length - chunk1.length];
   System.arraycopy(bytes,chunk1.length,chunk2,0,chunk2.length);
-  proxy.flushToServer(chunk1);
-  TimeUnit.MILLISECONDS.sleep(100);
+  proxy.flushToServer(100,chunk1);
   Assert.assertNull(renegotiation.get(5,TimeUnit.SECONDS));
   Future<Object> request=threadPool.submit(new Callable<Object>(){
     public Object call() throws Exception {
@@ -84,7 +79,7 @@
   byte[] mergedBytes=new byte[chunk2.length + dataBytes.length];
   System.arraycopy(chunk2,0,mergedBytes,0,chunk2.length);
   System.arraycopy(dataBytes,0,mergedBytes,chunk2.length,dataBytes.length);
-  proxy.flushToServer(mergedBytes);
+  proxy.flushToServer(100,mergedBytes);
   for (int i=0; i < 2; ++i) {
     record=proxy.readFromClient();
     Assert.assertEquals(TLSRecord.Type.APPLICATION,record.getType());
@@ -102,6 +97,7 @@
     if (line.trim().length() == 0)     break;
   }
   Assert.assertThat(sslHandles.get(),lessThan(20));
+  Assert.assertThat(sslFlushes.get(),lessThan(20));
   Assert.assertThat(httpParses.get(),lessThan(100));
   closeClient(client);
 }
