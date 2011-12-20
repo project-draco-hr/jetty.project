@@ -14,7 +14,6 @@
   req.append(content);
   clientOutput.write(req.toString().getBytes("UTF-8"));
   clientOutput.flush();
-  System.out.println("Client request #1 flushed");
   InputStream in=null;
   InputStreamReader isr=null;
   BufferedReader reader=null;
@@ -30,14 +29,27 @@
         break;
       }
     }
-    System.out.println("Got response header");
+    Assert.assertEquals("EOF received",-1,client.getInputStream().read());
+    Assert.assertEquals("one request handled",1,httpRequests.get());
+    Assert.assertTrue("is open",serverEndPoint.get().isOpen());
+    Assert.assertTrue("close sent",serverEndPoint.get().isOutputShutdown());
+    Assert.assertFalse("close not received",serverEndPoint.get().isInputShutdown());
+    TimeUnit.SECONDS.sleep(3);
     int httpParseCount=httpParses.get();
-    System.out.printf("Got %d http parses%n",httpParseCount);
     Assert.assertThat(httpParseCount,lessThan(50));
-    TimeUnit.SECONDS.sleep(100);
-    clientOutput.write(req.toString().getBytes("UTF-8"));
-    clientOutput.flush();
-    Assert.fail("Should not have been able to send a second POST request (connection: close)");
+    Assert.assertFalse("is open",serverEndPoint.get().isOpen());
+    Assert.assertTrue("close sent",serverEndPoint.get().isOutputShutdown());
+    Assert.assertTrue("close not received",serverEndPoint.get().isInputShutdown());
+    Assert.assertEquals("one request handled",1,httpRequests.get());
+    try {
+      for (int i=0; i < 1000; i++) {
+        clientOutput.write(req.toString().getBytes("UTF-8"));
+        clientOutput.flush();
+      }
+      Assert.fail("Client should have seen a broken pipe");
+    }
+ catch (    IOException e) {
+    }
   }
   finally {
     IO.close(reader);

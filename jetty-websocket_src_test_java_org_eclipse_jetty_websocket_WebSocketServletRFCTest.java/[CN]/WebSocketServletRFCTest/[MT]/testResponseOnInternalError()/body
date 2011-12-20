@@ -1,0 +1,17 @@
+{
+  WebSocketClientFactory clientFactory=new WebSocketClientFactory();
+  clientFactory.start();
+  WebSocketClient wsc=clientFactory.newWebSocketClient();
+  MessageSender sender=new MessageSender();
+  wsc.open(serverUri,sender);
+  try {
+    sender.awaitConnect();
+    sender.sendMessage("CRASH");
+    TimeUnit.MILLISECONDS.sleep(500);
+    Assert.assertThat("WebSocket should be closed",sender.isConnected(),is(false));
+    Assert.assertThat("WebSocket close clode",sender.getCloseCode(),is(1011));
+  }
+  finally {
+    sender.close();
+  }
+}
