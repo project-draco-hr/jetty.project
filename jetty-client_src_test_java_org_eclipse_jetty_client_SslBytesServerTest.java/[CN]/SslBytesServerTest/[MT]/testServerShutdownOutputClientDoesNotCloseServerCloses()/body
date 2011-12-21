@@ -10,7 +10,6 @@
   automaticProxyFlow=proxy.startAutomaticFlow();
   clientOutput.write(("" + "POST / HTTP/1.1\r\n" + "Host: localhost\r\n"+ "Content-Type: text/plain\r\n"+ "Content-Length: " + content.length() + "\r\n"+ "Connection: close\r\n"+ "\r\n"+ content).getBytes("UTF-8"));
   clientOutput.flush();
-  Assert.assertTrue(automaticProxyFlow.stop(5,TimeUnit.SECONDS));
   BufferedReader reader=new BufferedReader(new InputStreamReader(client.getInputStream(),"UTF-8"));
   String line=reader.readLine();
   Assert.assertNotNull(line);
@@ -18,8 +17,11 @@
   while ((line=reader.readLine()) != null) {
     if (line.trim().length() == 0)     break;
   }
+  Assert.assertTrue(automaticProxyFlow.stop(5,TimeUnit.SECONDS));
   Assert.assertThat(sslHandles.get(),lessThan(20));
+  Assert.assertThat(sslFlushes.get(),lessThan(20));
   Assert.assertThat(httpParses.get(),lessThan(50));
-  TimeUnit.SECONDS.sleep(100);
+  TimeUnit.MILLISECONDS.sleep(idleTimeout + idleTimeout / 2);
+  Assert.assertFalse(serverEndPoint.get().isOpen());
   closeClient(client);
 }
