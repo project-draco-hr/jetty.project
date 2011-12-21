@@ -3,7 +3,8 @@
   server=new Server();
   SslSelectChannelConnector connector=new SslSelectChannelConnector(){
     @Override protected SslConnection newSslConnection(    AsyncEndPoint endPoint,    SSLEngine engine){
-      SslConnection connection=new SslConnection(engine,endPoint){
+      serverEndPoint.set(endPoint);
+      return new SslConnection(engine,endPoint){
         @Override public Connection handle() throws IOException {
           sslHandles.incrementAndGet();
           return super.handle();
@@ -19,8 +20,6 @@
         }
       }
 ;
-      sslConnection.set(connection);
-      return connection;
     }
     @Override protected AsyncConnection newPlainConnection(    SocketChannel channel,    AsyncEndPoint endPoint){
       return new org.eclipse.jetty.server.AsyncHttpConnection(this,endPoint,getServer()){
@@ -38,7 +37,7 @@
     }
   }
 ;
-  connector.setMaxIdleTime(MAX_IDLE_TIME);
+  connector.setMaxIdleTime(idleTimeout);
   connector.setPort(0);
   File keyStore=MavenTestingUtils.getTestResourceFile("keystore");
   SslContextFactory cf=connector.getSslContextFactory();
