@@ -31,16 +31,14 @@
       int flushed=_generator.flush();
       int filled=_parser.parseNext();
       progress=flushed > 0 || filled > 0;
-      if (filled < 0 || flushed < 0) {
-        _endp.close();
-        break;
-      }
+      _endp.flush();
+      if (_endp instanceof AsyncEndPoint && ((AsyncEndPoint)_endp).hasProgressed())       progress=true;
     }
   }
  catch (  IOException e) {
     LOG.debug(e);
     try {
-      _endp.close();
+      if (_endp.isOpen())       _endp.close();
     }
  catch (    IOException e2) {
       LOG.ignore(e2);
