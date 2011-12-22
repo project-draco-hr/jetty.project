@@ -1,4 +1,9 @@
 {
+  JspConfig config=(JspConfig)context.getServletContext().getJspConfigDescriptor();
+  if (config == null) {
+    config=new JspConfig();
+    context.getServletContext().setJspConfigDescriptor(config);
+  }
   for (int i=0; i < node.size(); i++) {
     Object o=node.get(i);
     if (o instanceof XmlParser.Node && "taglib".equals(((XmlParser.Node)o).getTag()))     visitTagLib(context,descriptor,(XmlParser.Node)o);
@@ -6,13 +11,36 @@
   Iterator<XmlParser.Node> iter=node.iterator("jsp-property-group");
   List<String> paths=new ArrayList<String>();
   while (iter.hasNext()) {
+    JspPropertyGroup jpg=new JspPropertyGroup();
+    config.addJspPropertyGroup(jpg);
     XmlParser.Node group=iter.next();
     Iterator<XmlParser.Node> iter2=group.iterator("url-pattern");
     while (iter2.hasNext()) {
       String url=iter2.next().toString(false,true);
       url=normalizePattern(url);
       paths.add(url);
+      jpg.addUrlPattern(url);
     }
+    jpg.setElIgnored(group.getString("el-ignored",false,true));
+    jpg.setPageEncoding(group.getString("page-encoding",false,true));
+    jpg.setScriptingInvalid(group.getString("scripting-invalid",false,true));
+    jpg.setIsXml(group.getString("is-xml",false,true));
+    jpg.setDeferredSyntaxAllowedAsLiteral(group.getString("deferred-syntax-allowed-as-literal",false,true));
+    jpg.setTrimDirectiveWhitespaces(group.getString("trim-directive-whitespaces",false,true));
+    jpg.setDefaultContentType(group.getString("defaultContentType",false,true));
+    jpg.setBuffer(group.getString("buffer",false,true));
+    jpg.setErrorOnUndeclaredNamespace(group.getString("error-on-undeclared-namespace",false,true));
+    Iterator<XmlParser.Node> preludes=group.iterator("include-prelude");
+    while (preludes.hasNext()) {
+      String prelude=preludes.next().toString(false,true);
+      jpg.addIncludePrelude(prelude);
+    }
+    Iterator<XmlParser.Node> codas=group.iterator("include-coda");
+    while (codas.hasNext()) {
+      String coda=codas.next().toString(false,true);
+      jpg.addIncludeCoda(coda);
+    }
+    if (LOG.isDebugEnabled())     LOG.debug(config.toString());
   }
   if (paths.size() > 0) {
     String jspName="jsp";
