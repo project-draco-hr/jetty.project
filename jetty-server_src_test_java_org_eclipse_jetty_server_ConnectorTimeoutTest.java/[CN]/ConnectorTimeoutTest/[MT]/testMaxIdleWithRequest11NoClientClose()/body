@@ -1,5 +1,16 @@
 {
-  configureServer(new EchoHandler());
+  final Exchanger<EndPoint> endpoint=new Exchanger<EndPoint>();
+  configureServer(new EchoHandler(){
+    @Override public void handle(    String target,    Request baseRequest,    HttpServletRequest request,    HttpServletResponse response) throws IOException, ServletException {
+      try {
+        endpoint.exchange(baseRequest.getConnection().getEndPoint());
+      }
+ catch (      Exception e) {
+      }
+      super.handle(target,baseRequest,request,response);
+    }
+  }
+);
   Socket client=newSocket(HOST,_connector.getLocalPort());
   client.setSoTimeout(10000);
   assertFalse(client.isClosed());
@@ -10,11 +21,16 @@
   os.write(("POST /echo HTTP/1.1\r\n" + "host: " + HOST + ":"+ _connector.getLocalPort()+ "\r\n"+ "content-type: text/plain; charset=utf-8\r\n"+ "content-length: "+ contentB.length+ "\r\n"+ "connection: close\r\n"+ "\r\n").getBytes("utf-8"));
   os.write(contentB);
   os.flush();
+  EndPoint endp=endpoint.exchange(null,10,TimeUnit.SECONDS);
   IO.toString(is);
+  Assert.assertTrue(endp.isOpen());
+  Assert.assertTrue(endp.isOutputShutdown());
+  Assert.assertFalse(endp.isInputShutdown());
   assertEquals(-1,is.read());
-  TimeUnit.MILLISECONDS.sleep(MAX_IDLE_TIME);
+  TimeUnit.MILLISECONDS.sleep(MAX_IDLE_TIME + MAX_IDLE_TIME / 2);
+  Assert.assertFalse(endp.isOpen());
   try {
-    for (int i=0; i < 100; i++) {
+    for (int i=0; i < 1000; i++) {
       os.write(("GET / HTTP/1.0\r\n" + "host: " + HOST + ":"+ _connector.getLocalPort()+ "\r\n"+ "connection: keep-alive\r\n"+ "\r\n").getBytes("utf-8"));
       os.flush();
     }
