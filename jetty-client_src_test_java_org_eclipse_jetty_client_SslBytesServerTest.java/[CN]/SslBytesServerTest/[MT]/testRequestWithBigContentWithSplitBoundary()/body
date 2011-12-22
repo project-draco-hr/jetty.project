@@ -22,12 +22,11 @@
     System.arraycopy(bytes,0,chunk1,0,chunk1.length);
     byte[] chunk2=new byte[bytes.length - chunk1.length];
     System.arraycopy(bytes,chunk1.length,chunk2,0,chunk2.length);
-    proxy.flushToServer(chunk1);
-    TimeUnit.MILLISECONDS.sleep(100);
-    proxy.flushToServer(chunk2);
-    TimeUnit.MILLISECONDS.sleep(100);
+    proxy.flushToServer(100,chunk1);
+    proxy.flushToServer(100,chunk2);
   }
   Assert.assertThat(sslHandles.get(),lessThan(20));
+  Assert.assertThat(sslFlushes.get(),lessThan(20));
   Assert.assertThat(httpParses.get(),lessThan(150));
   Assert.assertNull(request.get(5,TimeUnit.SECONDS));
   TLSRecord record=proxy.readFromServer();
@@ -41,6 +40,7 @@
     if (line.trim().length() == 0)     break;
   }
   Assert.assertThat(sslHandles.get(),lessThan(20));
+  Assert.assertThat(sslFlushes.get(),lessThan(20));
   Assert.assertThat(httpParses.get(),lessThan(150));
   closeClient(client);
 }

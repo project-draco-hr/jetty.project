@@ -1,10 +1,22 @@
 {
-  if (!target.startsWith(getContextPath()))   return;
-  JettyHttpExchange jettyHttpExchange=new JettyHttpExchange(_httpContext,req,resp);
+  if (!target.startsWith(getContextPath())) {
+    return;
+  }
+  HttpExchange jettyHttpExchange;
+  if (baseRequest.isSecure()) {
+    jettyHttpExchange=new JettyHttpsExchange(_httpContext,req,resp);
+  }
+ else {
+    jettyHttpExchange=new JettyHttpExchange(_httpContext,req,resp);
+  }
   try {
     Authenticator auth=_httpContext.getAuthenticator();
-    if (auth != null)     handleAuthentication(resp,jettyHttpExchange,auth);
- else     _httpHandler.handle(jettyHttpExchange);
+    if (auth != null) {
+      handleAuthentication(resp,jettyHttpExchange,auth);
+    }
+ else {
+      _httpHandler.handle(jettyHttpExchange);
+    }
   }
  catch (  Exception ex) {
     PrintWriter writer=new PrintWriter(jettyHttpExchange.getResponseBody());

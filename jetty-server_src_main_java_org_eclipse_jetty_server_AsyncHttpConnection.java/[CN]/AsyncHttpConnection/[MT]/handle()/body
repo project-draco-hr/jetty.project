@@ -4,10 +4,13 @@
   boolean progress=true;
   try {
     setCurrentConnection(this);
+    _asyncEndp.setCheckForIdle(false);
     while (progress && connection == this) {
       progress=false;
       try {
-        if (_request._async.isAsync() && !_request._async.isComplete())         handleRequest();
+        if (_request._async.isAsync()) {
+          if (_request._async.isDispatchable())           handleRequest();
+        }
  else         if (!_parser.isComplete() && _parser.parseAvailable())         progress=true;
         if (_generator.isCommitted() && !_generator.isComplete() && !_endp.isOutputShutdown())         if (_generator.flushBuffer() > 0)         progress=true;
         _endp.flush();
@@ -48,6 +51,7 @@
     if (!_request.isAsyncStarted()) {
       _parser.returnBuffers();
       _generator.returnBuffers();
+      _asyncEndp.setCheckForIdle(true);
     }
     if (some_progress)     _total_no_progress=0;
  else {

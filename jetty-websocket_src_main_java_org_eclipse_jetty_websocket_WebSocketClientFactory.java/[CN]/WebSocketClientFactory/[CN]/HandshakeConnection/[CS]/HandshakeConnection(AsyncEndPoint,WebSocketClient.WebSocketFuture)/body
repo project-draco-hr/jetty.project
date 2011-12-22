@@ -3,7 +3,7 @@
   _endp=endpoint;
   _future=future;
   byte[] bytes=new byte[16];
-  __random.nextBytes(bytes);
+  new Random().nextBytes(bytes);
   _key=new String(B64Code.encode(bytes));
   Buffers buffers=new SimpleBuffers(_buffers.getBuffer(),null);
   _parser=new HttpParser(buffers,_endp,new HttpParser.EventHandler(){
@@ -26,29 +26,4 @@
     }
   }
 );
-  String path=_future.getURI().getPath();
-  if (path == null || path.length() == 0) {
-    path="/";
-  }
-  if (_future.getURI().getRawQuery() != null) {
-    path+="?" + _future.getURI().getRawQuery();
-  }
-  String origin=future.getOrigin();
-  StringBuilder request=new StringBuilder(512);
-  request.append("GET ").append(path).append(" HTTP/1.1\r\n").append("Host: ").append(future.getURI().getHost()).append(":").append(_future.getURI().getPort()).append("\r\n").append("Upgrade: websocket\r\n").append("Connection: Upgrade\r\n").append("Sec-WebSocket-Key: ").append(_key).append("\r\n");
-  if (origin != null)   request.append("Origin: ").append(origin).append("\r\n");
-  request.append("Sec-WebSocket-Version: ").append(WebSocketConnectionD13.VERSION).append("\r\n");
-  if (future.getProtocol() != null)   request.append("Sec-WebSocket-Protocol: ").append(future.getProtocol()).append("\r\n");
-  if (future.getCookies() != null && future.getCookies().size() > 0) {
-    for (    String cookie : future.getCookies().keySet())     request.append("Cookie: ").append(QuotedStringTokenizer.quoteIfNeeded(cookie,HttpFields.__COOKIE_DELIM)).append("=").append(QuotedStringTokenizer.quoteIfNeeded(future.getCookies().get(cookie),HttpFields.__COOKIE_DELIM)).append("\r\n");
-  }
-  request.append("\r\n");
-  try {
-    Buffer handshake=new ByteArrayBuffer(request.toString(),false);
-    int len=handshake.length();
-    if (len != _endp.flush(handshake))     throw new IOException("incomplete");
-  }
- catch (  IOException e) {
-    future.handshakeFailed(e);
-  }
 }
