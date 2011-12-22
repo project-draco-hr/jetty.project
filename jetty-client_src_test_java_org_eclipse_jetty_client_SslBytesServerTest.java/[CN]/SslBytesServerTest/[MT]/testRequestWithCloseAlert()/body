@@ -1,4 +1,7 @@
 {
+  if (!OS.IS_LINUX) {
+    return;
+  }
   final SSLSocket client=newClient();
   SimpleProxy.AutomaticFlow automaticProxyFlow=proxy.startAutomaticFlow();
   client.startHandshake();
@@ -13,10 +16,12 @@
   }
 );
   TLSRecord record=proxy.readFromClient();
+  Assert.assertEquals(TLSRecord.Type.APPLICATION,record.getType());
   proxy.flushToServer(record);
   Assert.assertNull(request.get(5,TimeUnit.SECONDS));
   client.close();
   record=proxy.readFromClient();
+  Assert.assertEquals(TLSRecord.Type.ALERT,record.getType());
   proxy.flushToServer(record);
   record=proxy.readFromServer();
   Assert.assertNotNull(record);
@@ -26,6 +31,7 @@
   Assert.assertNotNull(record);
   Assert.assertEquals(TLSRecord.Type.ALERT,record.getType());
   Assert.assertThat(sslHandles.get(),lessThan(20));
+  Assert.assertThat(sslFlushes.get(),lessThan(20));
   Assert.assertThat(httpParses.get(),lessThan(50));
   record=proxy.readFromClient();
   Assert.assertNull(String.valueOf(record),record);

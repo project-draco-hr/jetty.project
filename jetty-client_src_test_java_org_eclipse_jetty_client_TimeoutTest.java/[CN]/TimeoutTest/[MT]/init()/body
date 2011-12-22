@@ -1,0 +1,42 @@
+{
+  threadPool=Executors.newCachedThreadPool();
+  server=new Server();
+  SelectChannelConnector connector=new SelectChannelConnector(){
+    @Override protected AsyncConnection newConnection(    SocketChannel channel,    final AsyncEndPoint endPoint){
+      serverEndPoint.set(endPoint);
+      return new org.eclipse.jetty.server.AsyncHttpConnection(this,endPoint,getServer()){
+        @Override protected HttpParser newHttpParser(        Buffers requestBuffers,        EndPoint endPoint,        HttpParser.EventHandler requestHandler){
+          return new HttpParser(requestBuffers,endPoint,requestHandler){
+            @Override public int parseNext() throws IOException {
+              httpParses.incrementAndGet();
+              return super.parseNext();
+            }
+          }
+;
+        }
+      }
+;
+    }
+  }
+;
+  connector.setMaxIdleTime(2000);
+  connector.setPort(0);
+  server.addConnector(connector);
+  server.setHandler(new AbstractHandler(){
+    public void handle(    String target,    Request request,    HttpServletRequest httpRequest,    HttpServletResponse httpResponse) throws IOException, ServletException {
+      httpRequests.incrementAndGet();
+      request.setHandled(true);
+      String contentLength=request.getHeader("Content-Length");
+      if (contentLength != null) {
+        int length=Integer.parseInt(contentLength);
+        ServletInputStream input=request.getInputStream();
+        for (int i=0; i < length; ++i)         input.read();
+      }
+    }
+  }
+);
+  server.start();
+  serverPort=connector.getLocalPort();
+  httpRequests.set(0);
+  logger.debug(" => :{}",serverPort);
+}

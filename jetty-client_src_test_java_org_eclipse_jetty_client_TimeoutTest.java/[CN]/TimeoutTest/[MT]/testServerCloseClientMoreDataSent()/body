@@ -1,0 +1,56 @@
+{
+  final Socket client=newClient();
+  final OutputStream clientOutput=client.getOutputStream();
+  byte[] data=new byte[3 * 1024];
+  Arrays.fill(data,(byte)'Y');
+  String content=new String(data,"UTF-8");
+  StringBuilder req=new StringBuilder();
+  req.append("POST / HTTP/1.1\r\n");
+  req.append("Host: localhost\r\n");
+  req.append("Content-Type: text/plain\r\n");
+  req.append("Content-Length: ").append(content.length()).append("\r\n");
+  req.append("Connection: close\r\n");
+  req.append("\r\n");
+  req.append(content);
+  clientOutput.write(req.toString().getBytes("UTF-8"));
+  clientOutput.flush();
+  InputStream in=null;
+  InputStreamReader isr=null;
+  BufferedReader reader=null;
+  try {
+    in=client.getInputStream();
+    isr=new InputStreamReader(in);
+    reader=new BufferedReader(isr);
+    String line=reader.readLine();
+    Assert.assertNotNull(line);
+    Assert.assertThat(line,startsWith("HTTP/1.1 200 "));
+    while ((line=reader.readLine()) != null) {
+      if (line.trim().length() == 0) {
+        break;
+      }
+    }
+    Assert.assertEquals("EOF received",-1,client.getInputStream().read());
+    Assert.assertEquals("one request handled",1,httpRequests.get());
+    Assert.assertTrue("is open",serverEndPoint.get().isOpen());
+    Assert.assertTrue("close sent",serverEndPoint.get().isOutputShutdown());
+    Assert.assertFalse("close not received",serverEndPoint.get().isInputShutdown());
+    TimeUnit.SECONDS.sleep(1);
+    int httpParseCount=httpParses.get();
+    Assert.assertThat(httpParseCount,lessThan(50));
+    clientOutput.write(req.toString().getBytes("UTF-8"));
+    clientOutput.flush();
+    TimeUnit.SECONDS.sleep(1);
+    httpParseCount=httpParses.get();
+    Assert.assertThat(httpParseCount,lessThan(50));
+    Assert.assertFalse("is open",serverEndPoint.get().isOpen());
+    Assert.assertTrue("close sent",serverEndPoint.get().isOutputShutdown());
+    Assert.assertTrue("close not received",serverEndPoint.get().isInputShutdown());
+    Assert.assertEquals("one request handled",1,httpRequests.get());
+  }
+  finally {
+    IO.close(reader);
+    IO.close(isr);
+    IO.close(in);
+    closeClient(client);
+  }
+}

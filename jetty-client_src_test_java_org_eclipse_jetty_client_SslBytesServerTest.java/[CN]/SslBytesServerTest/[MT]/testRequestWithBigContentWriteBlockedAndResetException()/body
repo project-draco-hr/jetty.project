@@ -1,0 +1,30 @@
+{
+  final SSLSocket client=newClient();
+  SimpleProxy.AutomaticFlow automaticProxyFlow=proxy.startAutomaticFlow();
+  client.startHandshake();
+  Assert.assertTrue(automaticProxyFlow.stop(5,TimeUnit.SECONDS));
+  byte[] data=new byte[128 * 1024];
+  Arrays.fill(data,(byte)'X');
+  final String content=new String(data,"UTF-8");
+  Future<Object> request=threadPool.submit(new Callable<Object>(){
+    public Object call() throws Exception {
+      OutputStream clientOutput=client.getOutputStream();
+      clientOutput.write(("" + "GET /echo HTTP/1.1\r\n" + "Host: localhost\r\n"+ "Content-Length: " + content.length() + "\r\n"+ "\r\n"+ content).getBytes("UTF-8"));
+      clientOutput.flush();
+      return null;
+    }
+  }
+);
+  for (int i=0; i < 9; ++i) {
+    TLSRecord record=proxy.readFromClient();
+    Assert.assertEquals(TLSRecord.Type.APPLICATION,record.getType());
+    proxy.flushToServer(record,0);
+  }
+  Assert.assertNull(request.get(5,TimeUnit.SECONDS));
+  proxy.resetServer();
+  TimeUnit.SECONDS.sleep(1);
+  Assert.assertThat(sslHandles.get(),lessThan(20));
+  Assert.assertThat(sslFlushes.get(),lessThan(20));
+  Assert.assertThat(httpParses.get(),lessThan(50));
+  client.close();
+}

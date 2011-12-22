@@ -1,13 +1,10 @@
 {
   if (!_factory.isStarted())   throw new IllegalStateException("Factory !started");
-  String scheme=uri.getScheme();
-  if (!("ws".equalsIgnoreCase(scheme) || "wss".equalsIgnoreCase(scheme)))   throw new IllegalArgumentException("Bad WebSocket scheme '" + scheme + "'");
-  if ("wss".equalsIgnoreCase(scheme))   throw new IOException("wss not supported");
+  InetSocketAddress address=toSocketAddress(uri);
   SocketChannel channel=SocketChannel.open();
   if (_bindAddress != null)   channel.socket().bind(_bindAddress);
   channel.socket().setTcpNoDelay(true);
-  InetSocketAddress address=new InetSocketAddress(uri.getHost(),uri.getPort());
-  final WebSocketFuture holder=new WebSocketFuture(websocket,uri,this,channel);
+  WebSocketFuture holder=new WebSocketFuture(websocket,uri,this,channel);
   channel.configureBlocking(false);
   channel.connect(address);
   _factory.getSelectorManager().register(channel,holder);
