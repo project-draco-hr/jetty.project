@@ -1,0 +1,22 @@
+{
+  server=new Server();
+  SelectChannelConnector connector=new SelectChannelConnector();
+  connector.setPort(8080);
+  server.addConnector(connector);
+  HandlerCollection handlers=new HandlerCollection();
+  server.setHandler(handlers);
+  String contextPath="/test_context";
+  context=new ServletContextHandler(handlers,contextPath,ServletContextHandler.SESSIONS);
+  WebSocketServlet servlet=new WebSocketServlet(){
+    public WebSocket doWebSocketConnect(    HttpServletRequest request,    String protocol){
+      return webSocket;
+    }
+  }
+;
+  String servletPath="/websocket";
+  context.addServlet(new ServletHolder(servlet),servletPath);
+  server.start();
+  uri="ws://localhost:" + connector.getLocalPort() + contextPath+ servletPath;
+  wsFactory=new WebSocketClientFactory();
+  wsFactory.start();
+}
