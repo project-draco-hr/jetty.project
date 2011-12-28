@@ -1,0 +1,51 @@
+{
+  final Socket socket=new Socket("localhost",__connector.getLocalPort());
+  socket.setSoTimeout(60000);
+  OutputStream output=socket.getOutputStream();
+  InputStream input=socket.getInputStream();
+  output.write(("GET /test HTTP/1.1\r\n" + "Host: localhost\r\n" + "Upgrade: WebSocket\r\n"+ "Connection: Upgrade\r\n"+ "Sec-WebSocket-Protocol: latch\r\n"+ "Sec-WebSocket-Key1: 4 @1  46546xW%0l 1 5\r\n"+ "Sec-WebSocket-Key2: 12998 5 Y3 1  .P00\r\n"+ "\r\n"+ "^n:ds[4U").getBytes("ISO-8859-1"));
+  output.flush();
+  lookFor("HTTP/1.1 101 WebSocket Protocol Handshake\r\n",input);
+  skipTo("\r\n\r\n",input);
+  lookFor("8jKS'y:G*Co,Wxa-",input);
+  assertTrue(__serverWebSocket.awaitConnected(1000));
+  assertNotNull(__serverWebSocket.connection);
+  final int count=100000;
+  __serverWebSocket.connection.setMaxIdleTime(60000);
+  __latch.countDown();
+  final AtomicLong totalB=new AtomicLong();
+  new Thread(){
+    @Override public void run(){
+      try {
+        Thread.sleep(2000);
+        byte[] recv=new byte[32 * 1024];
+        int len=0;
+        while (len >= 0) {
+          totalB.addAndGet(len);
+          len=socket.getInputStream().read(recv,0,recv.length);
+          Thread.sleep(10);
+        }
+      }
+ catch (      Exception e) {
+        e.printStackTrace();
+      }
+    }
+  }
+.start();
+  long max=0;
+  long start=System.currentTimeMillis();
+  String mesg="How Now Brown Cow";
+  for (int i=0; i < count; i++) {
+    __serverWebSocket.connection.sendMessage(mesg);
+    if (i % 100 == 0) {
+      output.flush();
+      long now=System.currentTimeMillis();
+      long duration=now - start;
+      start=now;
+      if (max < duration)       max=duration;
+    }
+  }
+  while (totalB.get() < (count * (mesg.length() + 2)))   Thread.sleep(100);
+  assertEquals(count * (mesg.length() + 2),totalB.get());
+  assertTrue(max > 1000);
+}
