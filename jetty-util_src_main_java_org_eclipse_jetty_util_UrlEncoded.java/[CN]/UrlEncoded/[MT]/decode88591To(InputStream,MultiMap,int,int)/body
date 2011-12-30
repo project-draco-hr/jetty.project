@@ -1,6 +1,6 @@
 {
 synchronized (map) {
-    Utf8StringBuilder buffer=new Utf8StringBuilder();
+    StringBuffer buffer=new StringBuffer();
     String key=null;
     String value=null;
     int b;
@@ -9,7 +9,7 @@ synchronized (map) {
 switch ((char)b) {
 case '&':
         value=buffer.length() == 0 ? "" : buffer.toString();
-      buffer.reset();
+      buffer.setLength(0);
     if (key != null) {
       map.add(key,value);
     }
@@ -18,33 +18,37 @@ case '&':
     }
   key=null;
 value=null;
+if (maxKeys > 0 && map.size() > maxKeys) {
+LOG.warn("maxFormKeys limit exceeded keys>{}",maxKeys);
+return;
+}
 break;
 case '=':
 if (key != null) {
-buffer.append((byte)b);
+buffer.append((char)b);
 break;
 }
 key=buffer.toString();
-buffer.reset();
+buffer.setLength(0);
 break;
 case '+':
-buffer.append((byte)' ');
+buffer.append(' ');
 break;
 case '%':
 int dh=in.read();
 int dl=in.read();
 if (dh < 0 || dl < 0) break;
-buffer.append((byte)((TypeUtil.convertHexDigit((byte)dh) << 4) + TypeUtil.convertHexDigit((byte)dl)));
+buffer.append((char)((TypeUtil.convertHexDigit((byte)dh) << 4) + TypeUtil.convertHexDigit((byte)dl)));
 break;
 default :
-buffer.append((byte)b);
+buffer.append((char)b);
 break;
 }
 if (maxLength >= 0 && (++totalLength > maxLength)) throw new IllegalStateException("Form too large");
 }
 if (key != null) {
 value=buffer.length() == 0 ? "" : buffer.toString();
-buffer.reset();
+buffer.setLength(0);
 map.add(key,value);
 }
  else if (buffer.length() > 0) {
