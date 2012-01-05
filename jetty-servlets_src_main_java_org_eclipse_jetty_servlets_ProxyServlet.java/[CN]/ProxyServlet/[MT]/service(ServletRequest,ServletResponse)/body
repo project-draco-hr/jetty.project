@@ -20,26 +20,26 @@
         return;
       }
       HttpExchange exchange=new HttpExchange(){
-        protected void onRequestCommitted() throws IOException {
+        @Override protected void onRequestCommitted() throws IOException {
         }
-        protected void onRequestComplete() throws IOException {
+        @Override protected void onRequestComplete() throws IOException {
         }
-        protected void onResponseComplete() throws IOException {
+        @Override protected void onResponseComplete() throws IOException {
           if (debug != 0)           _log.debug(debug + " complete");
           continuation.complete();
         }
-        protected void onResponseContent(        Buffer content) throws IOException {
+        @Override protected void onResponseContent(        Buffer content) throws IOException {
           if (debug != 0)           _log.debug(debug + " content" + content.length());
           content.writeTo(out);
         }
-        protected void onResponseHeaderComplete() throws IOException {
+        @Override protected void onResponseHeaderComplete() throws IOException {
         }
-        protected void onResponseStatus(        Buffer version,        int status,        Buffer reason) throws IOException {
+        @Override protected void onResponseStatus(        Buffer version,        int status,        Buffer reason) throws IOException {
           if (debug != 0)           _log.debug(debug + " " + version+ " "+ status+ " "+ reason);
           if (reason != null && reason.length() > 0)           response.setStatus(status,reason.toString());
  else           response.setStatus(status);
         }
-        protected void onResponseHeader(        Buffer name,        Buffer value) throws IOException {
+        @Override protected void onResponseHeader(        Buffer name,        Buffer value) throws IOException {
           String s=name.toString().toLowerCase();
           if (!_DontProxyHeaders.contains(s) || (HttpHeaders.CONNECTION_BUFFER.equals(name) && HttpHeaderValues.CLOSE_BUFFER.equals(value))) {
             if (debug != 0)             _log.debug(debug + " " + name+ ": "+ value);
@@ -47,13 +47,13 @@
           }
  else           if (debug != 0)           _log.debug(debug + " " + name+ "! "+ value);
         }
-        protected void onConnectionFailed(        Throwable ex){
+        @Override protected void onConnectionFailed(        Throwable ex){
           handleOnConnectionFailed(ex,request,response);
           if (!continuation.isInitial()) {
             continuation.complete();
           }
         }
-        protected void onException(        Throwable ex){
+        @Override protected void onException(        Throwable ex){
           if (ex instanceof EofException) {
             _log.ignore(ex);
             return;
@@ -63,7 +63,7 @@
             continuation.complete();
           }
         }
-        protected void onExpire(){
+        @Override protected void onExpire(){
           handleOnExpire(request,response);
           continuation.complete();
         }
