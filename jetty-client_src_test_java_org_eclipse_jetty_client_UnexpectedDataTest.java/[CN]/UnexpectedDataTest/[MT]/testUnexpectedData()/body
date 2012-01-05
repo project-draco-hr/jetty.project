@@ -1,5 +1,5 @@
 {
-  for (int i=0; i < 4; i++) {
+  for (int i=0; i < 4; ++i) {
     final CountDownLatch done=new CountDownLatch(1);
     ContentExchange httpExchange=new ContentExchange(){
       protected void onResponseComplete() throws IOException {
@@ -8,15 +8,15 @@
       }
     }
 ;
-    httpExchange.setURL(_scheme + "localhost:" + _port+ "/?i="+ i);
+    httpExchange.setURL("http://localhost:" + _port + "/?i="+ i);
     httpExchange.setMethod(HttpMethods.GET);
     _httpClient.send(httpExchange);
-    done.await(1,TimeUnit.SECONDS);
+    Assert.assertTrue(done.await(1000,TimeUnit.SECONDS));
     int status=httpExchange.getStatus();
     String result=httpExchange.getResponseContent();
-    assertEquals("i=" + i,0,result.indexOf("<hello>"));
-    assertEquals("i=" + i,result.length() - 10,result.indexOf("</hello>"));
-    assertEquals(HttpExchange.STATUS_COMPLETED,status);
-    Thread.sleep(5);
+    Assert.assertEquals("i=" + i,0,result.indexOf("<hello>"));
+    Assert.assertEquals("i=" + i,result.length() - 10,result.indexOf("</hello>"));
+    Assert.assertEquals(HttpExchange.STATUS_COMPLETED,status);
+    Thread.sleep(500);
   }
 }

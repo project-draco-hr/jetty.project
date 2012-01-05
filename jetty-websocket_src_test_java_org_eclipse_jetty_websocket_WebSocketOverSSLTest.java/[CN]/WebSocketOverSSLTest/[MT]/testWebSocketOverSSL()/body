@@ -1,0 +1,38 @@
+{
+  final String message="message";
+  final CountDownLatch serverLatch=new CountDownLatch(1);
+  startServer(new WebSocket.OnTextMessage(){
+    private Connection connection;
+    public void onOpen(    Connection connection){
+      this.connection=connection;
+    }
+    public void onMessage(    String data){
+      try {
+        Assert.assertEquals(message,data);
+        connection.sendMessage(data);
+        serverLatch.countDown();
+      }
+ catch (      IOException x) {
+        x.printStackTrace();
+      }
+    }
+    public void onClose(    int closeCode,    String message){
+    }
+  }
+);
+  final CountDownLatch clientLatch=new CountDownLatch(1);
+  startClient(new WebSocket.OnTextMessage(){
+    public void onOpen(    Connection connection){
+    }
+    public void onMessage(    String data){
+      Assert.assertEquals(message,data);
+      clientLatch.countDown();
+    }
+    public void onClose(    int closeCode,    String message){
+    }
+  }
+);
+  _connection.sendMessage(message);
+  Assert.assertTrue(serverLatch.await(5,TimeUnit.SECONDS));
+  Assert.assertTrue(clientLatch.await(5,TimeUnit.SECONDS));
+}

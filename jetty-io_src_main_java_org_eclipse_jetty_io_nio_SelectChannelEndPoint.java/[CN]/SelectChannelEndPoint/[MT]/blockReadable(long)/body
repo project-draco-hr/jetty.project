@@ -1,16 +1,19 @@
 {
 synchronized (this) {
+    if (isInputShutdown())     throw new EofException();
     long now=_selectSet.getNow();
     long end=now + timeoutMs;
+    boolean check=isCheckForIdle();
+    setCheckForIdle(true);
     try {
       _readBlocked=true;
-      while (isOpen() && _readBlocked) {
+      while (!isInputShutdown() && _readBlocked) {
         try {
           updateKey();
           this.wait(timeoutMs >= 0 ? (end - now) : 10000);
         }
  catch (        InterruptedException e) {
-          __log.warn(e);
+          LOG.warn(e);
         }
  finally {
           now=_selectSet.getNow();
@@ -20,6 +23,7 @@ synchronized (this) {
     }
   finally {
       _readBlocked=false;
+      setCheckForIdle(check);
     }
   }
   return true;

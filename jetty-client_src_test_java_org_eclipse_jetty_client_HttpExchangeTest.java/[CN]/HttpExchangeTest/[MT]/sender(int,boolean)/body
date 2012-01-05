@@ -1,7 +1,7 @@
 {
   _count.set(0);
   final CountDownLatch complete=new CountDownLatch(nb);
-  final CountDownLatch latch=new CountDownLatch(nb);
+  final AtomicInteger allcontent=new AtomicInteger(nb);
   HttpExchange[] httpExchange=new HttpExchange[nb];
   long start=System.currentTimeMillis();
   for (int i=0; i < nb; i++) {
@@ -10,60 +10,68 @@
       String result="pending";
       int len=0;
       @Override protected void onRequestCommitted(){
+        if (verbose)         System.err.println(n + " [ " + this);
         result="committed";
       }
       @Override protected void onRequestComplete() throws IOException {
+        if (verbose)         System.err.println(n + " [ ==");
         result="sent";
       }
       @Override protected void onResponseStatus(      Buffer version,      int status,      Buffer reason){
+        if (verbose)         System.err.println(n + " ] " + version+ " "+ status+ " "+ reason);
         result="status";
       }
       @Override protected void onResponseHeader(      Buffer name,      Buffer value){
+        if (verbose)         System.err.println(n + " ] " + name+ ": "+ value);
       }
       @Override protected void onResponseHeaderComplete() throws IOException {
+        if (verbose)         System.err.println(n + " ] -");
         result="content";
         super.onResponseHeaderComplete();
       }
       @Override protected void onResponseContent(      Buffer content){
         len+=content.length();
+        if (verbose)         System.err.println(n + " ] " + content.length()+ " -> "+ len);
       }
       @Override protected void onResponseComplete(){
+        if (verbose)         System.err.println(n + " ] == " + len+ " "+ complete.getCount()+ "/"+ nb);
         result="complete";
-        if (len == 2009)         latch.countDown();
- else {
-          System.err.println(n + " ONLY " + len);
-        }
+        if (len == 2009)         allcontent.decrementAndGet();
+ else         System.err.println(n + " ONLY " + len+ "/2009");
         complete.countDown();
       }
       @Override protected void onConnectionFailed(      Throwable ex){
+        if (verbose)         System.err.println(n + " ] " + ex);
         complete.countDown();
         result="failed";
         System.err.println(n + " FAILED " + ex);
         super.onConnectionFailed(ex);
       }
       @Override protected void onException(      Throwable ex){
+        if (verbose)         System.err.println(n + " ] " + ex);
         complete.countDown();
         result="excepted";
         System.err.println(n + " EXCEPTED " + ex);
         super.onException(ex);
       }
       @Override protected void onExpire(){
+        if (verbose)         System.err.println(n + " ] expired");
         complete.countDown();
         result="expired";
         System.err.println(n + " EXPIRED " + len);
         super.onExpire();
       }
       @Override public String toString(){
-        return n + " " + result+ " "+ len;
+        return n + "/" + result+ "/"+ len+ "/"+ super.toString();
       }
     }
 ;
-    httpExchange[n].setURL(_scheme + "://localhost:" + _port+ "/"+ n);
+    httpExchange[n].setURI(getBaseURI().resolve("/" + n));
     httpExchange[n].addRequestHeader("arbitrary","value");
     if (close)     httpExchange[n].setRequestHeader("Connection","close");
     _httpClient.send(httpExchange[n]);
   }
-  assertTrue(complete.await(45,TimeUnit.SECONDS));
-  long elapsed=System.currentTimeMillis() - start;
-  assertEquals("nb=" + nb + " close="+ close,0,latch.getCount());
+  if (!complete.await(2,TimeUnit.SECONDS))   System.err.println(_httpClient.dump());
+  assertTrue(complete.await(20,TimeUnit.SECONDS));
+  assertEquals("nb=" + nb + " close="+ close,0,allcontent.get());
 }

@@ -1,6 +1,32 @@
 {
   int size=32;
-  ContentExchange httpExchange=new ContentExchange();
+  ContentExchange httpExchange=new ContentExchange(){
+    int total;
+    @Override protected synchronized void onResponseStatus(    Buffer version,    int status,    Buffer reason) throws IOException {
+      if (verbose)       System.err.println("] " + version + " "+ status+ " "+ reason);
+      super.onResponseStatus(version,status,reason);
+    }
+    @Override protected synchronized void onResponseHeader(    Buffer name,    Buffer value) throws IOException {
+      if (verbose)       System.err.println("] " + name + ": "+ value);
+      super.onResponseHeader(name,value);
+    }
+    @Override protected synchronized void onResponseContent(    Buffer content) throws IOException {
+      if (verbose) {
+        total+=content.length();
+        System.err.println("] " + content.length() + " -> "+ total);
+      }
+      super.onResponseContent(content);
+    }
+    @Override protected void onRequestComplete() throws IOException {
+      if (verbose)       System.err.println("] ==");
+      super.onRequestComplete();
+    }
+    @Override protected void onResponseHeaderComplete() throws IOException {
+      if (verbose)       System.err.println("] --");
+      super.onResponseHeaderComplete();
+    }
+  }
+;
   Buffer babuf=new ByteArrayBuffer(size * 36 * 1024);
   Buffer niobuf=new DirectNIOBuffer(size * 36 * 1024);
   byte[] bytes="0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ".getBytes();
@@ -8,23 +34,49 @@
     babuf.put(bytes);
     niobuf.put(bytes);
   }
-  httpExchange.setURL(_scheme + "://localhost:" + _port+ "/");
+  httpExchange.setURI(getBaseURI());
   httpExchange.setMethod(HttpMethods.POST);
   httpExchange.setRequestContentType("application/data");
   httpExchange.setRequestContent(babuf);
   _httpClient.send(httpExchange);
+  long start=System.currentTimeMillis();
+  while (!httpExchange.isDone()) {
+    long now=System.currentTimeMillis();
+    if ((now - start) >= 10000) {
+      System.err.println("TEST IS TAKING TOOOOO LONG!!!!!!!!!!!!!!!!!!!!");
+      System.err.println("CLIENT:");
+      System.err.println(_httpClient.dump());
+      System.err.println("SERVER:");
+      _server.dumpStdErr();
+      break;
+    }
+    Thread.sleep(100);
+  }
   int status=httpExchange.waitForDone();
   assertEquals(HttpExchange.STATUS_COMPLETED,status);
   String result=httpExchange.getResponseContent();
   assertEquals(babuf.length(),result.length());
   httpExchange.reset();
-  httpExchange.setURL(_scheme + "://localhost:" + _port+ "/");
+  httpExchange.setURI(getBaseURI());
   httpExchange.setMethod(HttpMethods.POST);
   httpExchange.setRequestContentType("application/data");
   httpExchange.setRequestContent(niobuf);
   _httpClient.send(httpExchange);
+  start=System.currentTimeMillis();
+  while (!httpExchange.isDone()) {
+    long now=System.currentTimeMillis();
+    if ((now - start) >= 10000) {
+      System.err.println("TEST IS TAKING TOOOOO LONG!!!!!!!!!!!!!!!!!!!!");
+      System.err.println("CLIENT:");
+      System.err.println(_httpClient.dump());
+      System.err.println("SERVER:");
+      _server.dumpStdErr();
+      break;
+    }
+    Thread.sleep(100);
+  }
   status=httpExchange.waitForDone();
+  assertEquals(HttpExchange.STATUS_COMPLETED,status);
   result=httpExchange.getResponseContent();
   assertEquals(niobuf.length(),result.length());
-  assertEquals(HttpExchange.STATUS_COMPLETED,status);
 }

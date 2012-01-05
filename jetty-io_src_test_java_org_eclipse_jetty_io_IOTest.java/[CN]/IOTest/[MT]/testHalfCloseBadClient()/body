@@ -1,0 +1,43 @@
+{
+  ServerSocketChannel connector=ServerSocketChannel.open();
+  connector.socket().bind(null);
+  Socket client=SocketChannel.open(connector.socket().getLocalSocketAddress()).socket();
+  client.setSoTimeout(1000);
+  client.setSoLinger(false,-1);
+  Socket server=connector.accept().socket();
+  server.setSoTimeout(1000);
+  server.setSoLinger(false,-1);
+  client.getOutputStream().write(1);
+  assertEquals(1,server.getInputStream().read());
+  server.getOutputStream().write(1);
+  System.err.println("OSHUT " + server);
+  server.shutdownOutput();
+  try {
+    assertEquals(1,client.getInputStream().read());
+    assertEquals(-1,client.getInputStream().read());
+    assertFalse(client.isInputShutdown());
+    client.getOutputStream().write(1);
+    assertEquals(1,server.getInputStream().read());
+    server.close();
+    assertEquals(-1,client.getInputStream().read());
+    assertFalse(client.isInputShutdown());
+    Thread.sleep(100);
+    assertEquals(-1,client.getInputStream().read());
+    assertFalse(client.isInputShutdown());
+    client.getOutputStream().write(1);
+    Thread.sleep(100);
+    client.getOutputStream().write(1);
+    int i=0;
+    try {
+      for (i=0; i < 100000; i++)       client.getOutputStream().write(1);
+      Assert.fail();
+    }
+ catch (    IOException e) {
+    }
+    client.close();
+  }
+ catch (  Exception e) {
+    System.err.println("PLEASE INVESTIGATE:");
+    e.printStackTrace();
+  }
+}

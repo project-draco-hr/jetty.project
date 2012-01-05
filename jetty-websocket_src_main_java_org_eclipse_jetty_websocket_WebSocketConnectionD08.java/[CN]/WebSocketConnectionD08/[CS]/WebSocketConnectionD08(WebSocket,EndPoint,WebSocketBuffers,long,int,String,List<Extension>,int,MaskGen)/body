@@ -1,0 +1,24 @@
+{
+  super(endpoint,timestamp);
+  _context=Thread.currentThread().getContextClassLoader();
+  _draft=draft;
+  _endp.setMaxIdleTime(maxIdleTime);
+  _webSocket=websocket;
+  _onFrame=_webSocket instanceof OnFrame ? (OnFrame)_webSocket : null;
+  _onTextMessage=_webSocket instanceof OnTextMessage ? (OnTextMessage)_webSocket : null;
+  _onBinaryMessage=_webSocket instanceof OnBinaryMessage ? (OnBinaryMessage)_webSocket : null;
+  _onControl=_webSocket instanceof OnControl ? (OnControl)_webSocket : null;
+  _generator=new WebSocketGeneratorD08(buffers,_endp,maskgen);
+  _extensions=extensions;
+  if (_extensions != null) {
+    int e=0;
+    for (    Extension extension : _extensions) {
+      extension.bind(_connection,e == extensions.size() - 1 ? _frameHandler : extensions.get(e + 1),e == 0 ? _generator : extensions.get(e - 1));
+      e++;
+    }
+  }
+  _outbound=(_extensions == null || _extensions.size() == 0) ? _generator : extensions.get(extensions.size() - 1);
+  _inbound=(_extensions == null || _extensions.size() == 0) ? _frameHandler : extensions.get(0);
+  _parser=new WebSocketParserD08(buffers,endpoint,_inbound,maskgen == null);
+  _protocol=protocol;
+}

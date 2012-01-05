@@ -1,0 +1,26 @@
+{
+  CommittedErrorHandler handler=new CommittedErrorHandler();
+  configureServer(handler);
+  Socket client=newSocket(HOST,_connector.getLocalPort());
+  try {
+    ((StdErrLog)Log.getLogger(AbstractHttpConnection.class)).setHideStacks(true);
+    OutputStream os=client.getOutputStream();
+    InputStream is=client.getInputStream();
+    os.write(("GET / HTTP/1.1\r\n" + "Host: " + HOST + ":"+ _connector.getLocalPort()+ "\r\n"+ "\r\n").getBytes());
+    os.flush();
+    client.setSoTimeout(2000);
+    String in=IO.toString(is);
+    assertEquals(-1,is.read());
+    assertTrue(in.indexOf("HTTP/1.1 200 OK") >= 0);
+    assertTrue(in.indexOf("Transfer-Encoding: chunked") > 0);
+    assertTrue(in.indexOf("Now is the time for all good men to come to the aid of the party") > 0);
+    assertTrue(in.indexOf("\r\n0\r\n") == -1);
+    client.close();
+    Thread.sleep(100);
+    assertTrue(!handler._endp.isOpen());
+  }
+  finally {
+    ((StdErrLog)Log.getLogger(AbstractHttpConnection.class)).setHideStacks(false);
+    if (!client.isClosed())     client.close();
+  }
+}

@@ -1,11 +1,11 @@
 {
   configureServer(new BigBlockHandler());
   Socket client=newSocket(HOST,_connector.getLocalPort());
-  client.setSoTimeout(10000);
+  client.setSoTimeout(20000);
   try {
     OutputStream os=client.getOutputStream();
     BufferedReader in=new BufferedReader(new InputStreamReader(client.getInputStream()));
-    os.write(("GET / HTTP/1.1\r\n" + "host: " + HOST + ":"+ _connector.getLocalPort()+ "\r\n"+ "\r\n"+ "GET / HTTP/1.1\r\n"+ "host: "+ HOST+ ":"+ _connector.getLocalPort()+ "\r\n"+ "connection: close\r\n"+ "\r\n").getBytes());
+    os.write(("GET /r1 HTTP/1.1\r\n" + "host: " + HOST + ":"+ _connector.getLocalPort()+ "\r\n"+ "\r\n"+ "GET /r2 HTTP/1.1\r\n"+ "host: "+ HOST+ ":"+ _connector.getLocalPort()+ "\r\n"+ "connection: close\r\n"+ "\r\n").getBytes());
     os.flush();
     boolean chunked=false;
     boolean closed=false;
@@ -28,6 +28,7 @@
     }
     Assert.assertEquals(128 * 1024,max);
     String[] times=in.readLine().split(",");
+    for (    String t : times)     Assert.assertTrue(Integer.valueOf(t).intValue() < 999);
     String end=in.readLine();
     Assert.assertEquals("0",end);
     end=in.readLine();
@@ -45,6 +46,7 @@
     String bigline=in.readLine();
     Assert.assertEquals(10 * 128 * 1024,bigline.length());
     times=in.readLine().split(",");
+    for (    String t : times)     Assert.assertTrue(t,Integer.valueOf(t).intValue() < 999);
     Assert.assertTrue(in.readLine() == null);
   }
   finally {

@@ -1,0 +1,46 @@
+{
+  String connectionHdr=request.getHeader("Connection");
+  if (connectionHdr != null) {
+    connectionHdr=connectionHdr.toLowerCase();
+    if (connectionHdr.indexOf("keep-alive") < 0 && connectionHdr.indexOf("close") < 0) {
+      connectionHdr=null;
+    }
+  }
+  if (_hostHeader != null) {
+    exchange.setRequestHeader("Host",_hostHeader);
+  }
+  boolean xForwardedFor=false;
+  boolean hasContent=false;
+  long contentLength=-1;
+  Enumeration<?> enm=request.getHeaderNames();
+  while (enm.hasMoreElements()) {
+    String hdr=(String)enm.nextElement();
+    String lhdr=hdr.toLowerCase();
+    if (_DontProxyHeaders.contains(lhdr))     continue;
+    if (connectionHdr != null && connectionHdr.indexOf(lhdr) >= 0)     continue;
+    if (_hostHeader != null && "host".equals(lhdr))     continue;
+    if ("content-type".equals(lhdr))     hasContent=true;
+ else     if ("content-length".equals(lhdr)) {
+      contentLength=request.getContentLength();
+      exchange.setRequestHeader(HttpHeaders.CONTENT_LENGTH,Long.toString(contentLength));
+      if (contentLength > 0)       hasContent=true;
+    }
+ else     if ("x-forwarded-for".equals(lhdr))     xForwardedFor=true;
+    Enumeration<?> vals=request.getHeaders(hdr);
+    while (vals.hasMoreElements()) {
+      String val=(String)vals.nextElement();
+      if (val != null) {
+        if (debug != 0)         _log.debug("{} {} {}",debug,hdr,val);
+        exchange.setRequestHeader(hdr,val);
+      }
+    }
+  }
+  exchange.setRequestHeader("Via","1.1 (jetty)");
+  if (!xForwardedFor) {
+    exchange.addRequestHeader("X-Forwarded-For",request.getRemoteAddr());
+    exchange.addRequestHeader("X-Forwarded-Proto",request.getScheme());
+    exchange.addRequestHeader("X-Forwarded-Host",request.getServerName());
+    exchange.addRequestHeader("X-Forwarded-Server",request.getLocalName());
+  }
+  return hasContent;
+}

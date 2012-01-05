@@ -1,0 +1,21 @@
+{
+  final Socket socket=new Socket("localhost",connector.getLocalPort());
+  byte[] content=new byte[16 * 4096];
+  Arrays.fill(content,(byte)120);
+  OutputStream out=socket.getOutputStream();
+  String header="POST / HTTP/1.1\r\n" + "Host: localhost\r\n" + "Content-Length: " + content.length + "\r\n"+ "Content-Type: bytes\r\n"+ "Connection: close\r\n"+ "\r\n";
+  byte[] h=header.getBytes(StringUtil.__ISO_8859_1);
+  out.write(h);
+  out.flush();
+  out.write(content,0,4 * 4096);
+  Thread.sleep(100);
+  out.write(content,8192,4 * 4096);
+  Thread.sleep(100);
+  out.write(content,8 * 4096,content.length - 8 * 4096);
+  out.flush();
+  InputStream in=socket.getInputStream();
+  String response=IO.toString(in);
+  assertTrue(response.indexOf("200 OK") > 0);
+  long total=__total.exchange(0L,30,TimeUnit.SECONDS);
+  assertEquals(content.length,total);
+}

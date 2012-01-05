@@ -4,54 +4,76 @@
     while (dispatched) {
       try {
         while (true) {
-          final Connection next=_connection.handle();
+          final AsyncConnection next=(AsyncConnection)_connection.handle();
           if (next != _connection) {
-            __log.debug("{} replaced {}",next,_connection);
+            LOG.debug("{} replaced {}",next,_connection);
+            Connection old=_connection;
             _connection=next;
+            _manager.endPointUpgraded(this,old);
             continue;
           }
           break;
         }
       }
  catch (      ClosedChannelException e) {
-        __log.ignore(e);
+        LOG.ignore(e);
       }
 catch (      EofException e) {
-        __log.debug("EOF",e);
+        LOG.debug("EOF",e);
         try {
           close();
         }
  catch (        IOException e2) {
-          __log.ignore(e2);
+          LOG.ignore(e2);
         }
       }
 catch (      IOException e) {
-        __log.warn(e.toString());
-        __log.debug(e);
+        LOG.warn(e.toString());
+        LOG.debug(e);
         try {
           close();
         }
  catch (        IOException e2) {
-          __log.ignore(e2);
+          LOG.ignore(e2);
         }
       }
 catch (      Throwable e) {
-        __log.warn("handle failed",e);
+        LOG.warn("handle failed",e);
         try {
           close();
         }
  catch (        IOException e2) {
-          __log.ignore(e2);
+          LOG.ignore(e2);
         }
       }
-      dispatched=!undispatch();
+ finally {
+        if (!_ishut && isInputShutdown() && isOpen()) {
+          _ishut=true;
+          try {
+            _connection.onInputShutdown();
+          }
+ catch (          Throwable x) {
+            LOG.warn("onInputShutdown failed",x);
+            try {
+              close();
+            }
+ catch (            IOException e2) {
+              LOG.ignore(e2);
+            }
+          }
+ finally {
+            updateKey();
+          }
+        }
+        dispatched=!undispatch();
+      }
     }
   }
   finally {
     if (dispatched) {
       dispatched=!undispatch();
       while (dispatched) {
-        __log.warn("SCEP.run() finally DISPATCHED");
+        LOG.warn("SCEP.run() finally DISPATCHED");
         dispatched=!undispatch();
       }
     }

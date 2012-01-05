@@ -1,0 +1,47 @@
+{
+  if (!OS.IS_LINUX) {
+    return;
+  }
+  final SSLSocket client=newClient();
+  SimpleProxy.AutomaticFlow automaticProxyFlow=proxy.startAutomaticFlow();
+  client.startHandshake();
+  Assert.assertTrue(automaticProxyFlow.stop(5,TimeUnit.SECONDS));
+  Future<Object> request=threadPool.submit(new Callable<Object>(){
+    public Object call() throws Exception {
+      OutputStream clientOutput=client.getOutputStream();
+      clientOutput.write(("" + "GET / HTTP/1.1\r\n" + "Host: localhost\r\n"+ "\r\n").getBytes("UTF-8"));
+      clientOutput.flush();
+      return null;
+    }
+  }
+);
+  TLSRecord dataRecord=proxy.readFromClient();
+  Assert.assertNull(request.get(5,TimeUnit.SECONDS));
+  client.close();
+  TLSRecord closeRecord=proxy.readFromClient();
+  byte[] dataBytes=dataRecord.getBytes();
+  byte[] closeBytes=closeRecord.getBytes();
+  byte[] bytes=new byte[dataBytes.length + closeBytes.length / 2];
+  System.arraycopy(dataBytes,0,bytes,0,dataBytes.length);
+  System.arraycopy(closeBytes,0,bytes,dataBytes.length,closeBytes.length / 2);
+  proxy.flushToServer(100,bytes);
+  bytes=new byte[closeBytes.length - closeBytes.length / 2];
+  System.arraycopy(closeBytes,closeBytes.length / 2,bytes,0,bytes.length);
+  proxy.flushToServer(100,bytes);
+  TLSRecord record=proxy.readFromServer();
+  Assert.assertNotNull(record);
+  Assert.assertEquals(TLSRecord.Type.APPLICATION,record.getType());
+  proxy.flushToClient(record);
+  record=proxy.readFromServer();
+  Assert.assertNotNull(record);
+  Assert.assertEquals(TLSRecord.Type.ALERT,record.getType());
+  Assert.assertThat(sslHandles.get(),lessThan(20));
+  Assert.assertThat(sslFlushes.get(),lessThan(20));
+  Assert.assertThat(httpParses.get(),lessThan(50));
+  record=proxy.readFromClient();
+  Assert.assertNull(String.valueOf(record),record);
+  proxy.flushToServer(record);
+  record=proxy.readFromServer();
+  Assert.assertNull(String.valueOf(record),record);
+  proxy.flushToClient(record);
+}

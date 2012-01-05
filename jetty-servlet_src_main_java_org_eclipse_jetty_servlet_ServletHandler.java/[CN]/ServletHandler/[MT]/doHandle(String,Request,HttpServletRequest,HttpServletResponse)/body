@@ -12,17 +12,17 @@
       }
     }
   }
-  LOG.debug("chain=",chain);
+  LOG.debug("chain={}",chain);
   try {
     if (servlet_holder == null) {
-      notFound(request,response);
+      if (getHandler() == null)       notFound(request,response);
+ else       nextHandle(target,baseRequest,request,response);
     }
  else {
       ServletRequest req=request;
       if (req instanceof ServletRequestHttpWrapper)       req=((ServletRequestHttpWrapper)req).getRequest();
       ServletResponse res=response;
       if (res instanceof ServletResponseHttpWrapper)       res=((ServletResponseHttpWrapper)res).getResponse();
-      baseRequest.setHandled(true);
       if (chain != null)       chain.doFilter(req,res);
  else       servlet_holder.handle(baseRequest,req,res);
     }
@@ -91,5 +91,8 @@ catch (  Error e) {
       response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR,e.getMessage());
     }
  else     LOG.debug("Response already committed for handling ",e);
+  }
+ finally {
+    baseRequest.setHandled(true);
   }
 }

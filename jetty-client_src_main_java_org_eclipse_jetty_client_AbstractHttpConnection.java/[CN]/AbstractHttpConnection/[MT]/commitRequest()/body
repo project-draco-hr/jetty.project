@@ -1,0 +1,53 @@
+{
+synchronized (this) {
+    _status=0;
+    if (_exchange.getStatus() != HttpExchange.STATUS_WAITING_FOR_COMMIT)     throw new IllegalStateException();
+    _exchange.setStatus(HttpExchange.STATUS_SENDING_REQUEST);
+    _generator.setVersion(_exchange.getVersion());
+    String method=_exchange.getMethod();
+    String uri=_exchange.getRequestURI();
+    if (_destination.isProxied() && !HttpMethods.CONNECT.equals(method) && uri.startsWith("/")) {
+      boolean secure=_destination.isSecure();
+      String host=_destination.getAddress().getHost();
+      int port=_destination.getAddress().getPort();
+      StringBuilder absoluteURI=new StringBuilder();
+      absoluteURI.append(secure ? HttpSchemes.HTTPS : HttpSchemes.HTTP);
+      absoluteURI.append("://");
+      absoluteURI.append(host);
+      if (!(secure && port == 443 || !secure && port == 80))       absoluteURI.append(":").append(port);
+      absoluteURI.append(uri);
+      uri=absoluteURI.toString();
+      Authentication auth=_destination.getProxyAuthentication();
+      if (auth != null)       auth.setCredentials(_exchange);
+    }
+    _generator.setRequest(method,uri);
+    _parser.setHeadResponse(HttpMethods.HEAD.equalsIgnoreCase(method));
+    HttpFields requestHeaders=_exchange.getRequestFields();
+    if (_exchange.getVersion() >= HttpVersions.HTTP_1_1_ORDINAL) {
+      if (!requestHeaders.containsKey(HttpHeaders.HOST_BUFFER))       requestHeaders.add(HttpHeaders.HOST_BUFFER,_destination.getHostHeader());
+    }
+    Buffer requestContent=_exchange.getRequestContent();
+    if (requestContent != null) {
+      requestHeaders.putLongField(HttpHeaders.CONTENT_LENGTH,requestContent.length());
+      _generator.completeHeader(requestHeaders,false);
+      _generator.addContent(new View(requestContent),true);
+    }
+ else {
+      InputStream requestContentStream=_exchange.getRequestContentSource();
+      if (requestContentStream != null) {
+        _generator.completeHeader(requestHeaders,false);
+        int available=requestContentStream.available();
+        if (available > 0) {
+          byte[] buf=new byte[available];
+          int length=requestContentStream.read(buf);
+          _generator.addContent(new ByteArrayBuffer(buf,0,length),false);
+        }
+      }
+ else {
+        requestHeaders.remove(HttpHeaders.CONTENT_LENGTH);
+        _generator.completeHeader(requestHeaders,true);
+      }
+    }
+    _exchange.setStatus(HttpExchange.STATUS_WAITING_FOR_RESPONSE);
+  }
+}

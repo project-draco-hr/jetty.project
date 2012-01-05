@@ -1,0 +1,50 @@
+{
+  if (!_inbound.hasContent())   return false;
+  ByteBuffer bbuf=extractByteBuffer(buffer);
+  final SSLEngineResult result;
+synchronized (bbuf) {
+    ByteBuffer in_buffer=_inbound.getByteBuffer();
+synchronized (in_buffer) {
+      try {
+        bbuf.position(buffer.putIndex());
+        bbuf.limit(buffer.capacity());
+        in_buffer.position(_inbound.getIndex());
+        in_buffer.limit(_inbound.putIndex());
+        result=_engine.unwrap(in_buffer,bbuf);
+        if (LOG.isDebugEnabled())         LOG.debug("{} unwrap {} {} consumed={} produced={}",_session,result.getStatus(),result.getHandshakeStatus(),result.bytesConsumed(),result.bytesProduced());
+        _inbound.skip(result.bytesConsumed());
+        _inbound.compact();
+        buffer.setPutIndex(buffer.putIndex() + result.bytesProduced());
+      }
+ catch (      SSLException e) {
+        LOG.warn(String.valueOf(_endp),e);
+        _endp.close();
+        throw e;
+      }
+ finally {
+        in_buffer.position(0);
+        in_buffer.limit(in_buffer.capacity());
+        bbuf.position(0);
+        bbuf.limit(bbuf.capacity());
+      }
+    }
+  }
+switch (result.getStatus()) {
+case BUFFER_UNDERFLOW:
+    break;
+case BUFFER_OVERFLOW:
+  LOG.debug("{} unwrap {} {}->{}",_session,result.getStatus(),_inbound.toDetailString(),buffer.toDetailString());
+break;
+case OK:
+if (result.getHandshakeStatus() == HandshakeStatus.FINISHED) _handshook=true;
+break;
+case CLOSED:
+LOG.debug("unwrap CLOSE {} {}",this,result);
+if (result.getHandshakeStatus() == HandshakeStatus.FINISHED) _endp.close();
+break;
+default :
+LOG.warn("{} wrap default {}",_session,result);
+throw new IOException(result.toString());
+}
+return result.bytesConsumed() > 0 || result.bytesProduced() > 0;
+}

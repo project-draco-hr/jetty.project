@@ -1,0 +1,36 @@
+{
+  final SSLSocket client=newClient();
+  Future<Object> handshake=threadPool.submit(new Callable<Object>(){
+    public Object call() throws Exception {
+      client.startHandshake();
+      return null;
+    }
+  }
+);
+  TLSRecord record=proxy.readFromClient();
+  Assert.assertNotNull(record);
+  proxy.flushToServer(record);
+  record=proxy.readFromServer();
+  Assert.assertNotNull(record);
+  proxy.flushToClient(record);
+  record=proxy.readFromClient();
+  Assert.assertNotNull(record);
+  proxy.flushToServer(record);
+  record=proxy.readFromClient();
+  Assert.assertNotNull(record);
+  proxy.flushToServer(record);
+  record=proxy.readFromClient();
+  Assert.assertNotNull(record);
+  proxy.flushToServer(record);
+  record=proxy.readFromServer();
+  Assert.assertNotNull(record);
+  proxy.flushToClient(record);
+  record=proxy.readFromServer();
+  Assert.assertNotNull(record);
+  proxy.flushToClient(record);
+  Assert.assertNull(handshake.get(5,TimeUnit.SECONDS));
+  Assert.assertThat(sslHandles.get(),lessThan(20));
+  Assert.assertThat(sslFlushes.get(),lessThan(20));
+  Assert.assertThat(httpParses.get(),lessThan(50));
+  closeClient(client);
+}

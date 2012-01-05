@@ -1,0 +1,61 @@
+{
+  __clientFactory.start();
+  String host="localhost";
+  int port=8080;
+  String protocol=null;
+  int count=10;
+  int size=64;
+  int fragment=4000;
+  boolean binary=false;
+  int clients=1;
+  int delay=1000;
+  for (int i=0; i < args.length; i++) {
+    String a=args[i];
+    if ("-p".equals(a) || "--port".equals(a))     port=Integer.parseInt(args[++i]);
+ else     if ("-h".equals(a) || "--host".equals(a))     host=args[++i];
+ else     if ("-c".equals(a) || "--count".equals(a))     count=Integer.parseInt(args[++i]);
+ else     if ("-s".equals(a) || "--size".equals(a))     size=Integer.parseInt(args[++i]);
+ else     if ("-f".equals(a) || "--fragment".equals(a))     fragment=Integer.parseInt(args[++i]);
+ else     if ("-P".equals(a) || "--protocol".equals(a))     protocol=args[++i];
+ else     if ("-v".equals(a) || "--verbose".equals(a))     _verbose=true;
+ else     if ("-b".equals(a) || "--binary".equals(a))     binary=true;
+ else     if ("-C".equals(a) || "--clients".equals(a))     clients=Integer.parseInt(args[++i]);
+ else     if ("-d".equals(a) || "--delay".equals(a))     delay=Integer.parseInt(args[++i]);
+ else     if ("-q".equals(a) || "--quiet".equals(a))     __quiet=true;
+ else     if (a.startsWith("-"))     usage(args);
+  }
+  TestClient[] client=new TestClient[clients];
+  try {
+    __start=System.currentTimeMillis();
+    protocol=protocol == null ? "echo" : protocol;
+    for (int i=0; i < clients; i++) {
+      client[i]=new TestClient(host,port,protocol == null ? null : protocol,60000);
+      client[i].open();
+    }
+    System.out.println("Jetty WebSocket PING " + host + ":"+ port+ " ("+ new InetSocketAddress(host,port)+ ") "+ clients+ " clients "+ protocol);
+    for (int p=0; p < count; p++) {
+      long next=System.currentTimeMillis() + delay;
+      byte opcode=binary ? WebSocketConnectionRFC6455.OP_BINARY : WebSocketConnectionRFC6455.OP_TEXT;
+      byte data[]=null;
+      if (opcode == WebSocketConnectionRFC6455.OP_TEXT) {
+        StringBuilder b=new StringBuilder();
+        while (b.length() < size)         b.append('A' + __random.nextInt(26));
+        data=b.toString().getBytes(StringUtil.__UTF8);
+      }
+ else {
+        data=new byte[size];
+        __random.nextBytes(data);
+      }
+      for (int i=0; i < clients; i++)       client[i].ping(opcode,data,opcode == WebSocketConnectionRFC6455.OP_PING ? -1 : fragment);
+      while (System.currentTimeMillis() < next)       Thread.sleep(10);
+    }
+  }
+  finally {
+    for (int i=0; i < clients; i++)     if (client[i] != null)     client[i].disconnect();
+    long duration=System.currentTimeMillis() - __start;
+    System.out.println("--- " + host + " websocket ping statistics using "+ clients+ " connection"+ (clients > 1 ? "s" : "")+ " ---");
+    System.out.printf("%d/%d frames sent/recv, %d/%d mesg sent/recv, time %dms %dm/s %.2fbps%n",__framesSent,__framesReceived.get(),__messagesSent,__messagesReceived.get(),duration,(1000L * __messagesReceived.get() / duration),1000.0D * __messagesReceived.get() * 8* size / duration / 1024 / 1024);
+    System.out.printf("rtt min/ave/max = %.3f/%.3f/%.3f ms\n",__minDuration.get() / 1000000.0,__messagesReceived.get() == 0 ? 0.0 : (__totalTime.get() / __messagesReceived.get() / 1000000.0),__maxDuration.get() / 1000000.0);
+    __clientFactory.stop();
+  }
+}

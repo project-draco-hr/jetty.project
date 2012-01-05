@@ -1,4 +1,5 @@
 {
+  if (_ishut)   return -1;
   Buffer buf=buffer.buffer();
   int len=0;
   if (buf instanceof NIOBuffer) {
@@ -15,19 +16,21 @@ synchronized (bbuf) {
           bbuf.position(0);
         }
       }
-      if (len < 0 && isOpen() && !isInputShutdown()) {
-        shutdownInput();
+      if (len < 0 && isOpen()) {
+        if (!isInputShutdown())         shutdownInput();
+        if (isOutputShutdown())         _channel.close();
       }
     }
  catch (    IOException x) {
+      LOG.debug(x.toString());
+      LOG.ignore(x);
       try {
-        close();
+        if (_channel.isOpen())         _channel.close();
       }
- catch (      IOException xx) {
+ catch (      Exception xx) {
         LOG.ignore(xx);
       }
       if (len > 0)       throw x;
-      LOG.ignore(x);
       len=-1;
     }
   }

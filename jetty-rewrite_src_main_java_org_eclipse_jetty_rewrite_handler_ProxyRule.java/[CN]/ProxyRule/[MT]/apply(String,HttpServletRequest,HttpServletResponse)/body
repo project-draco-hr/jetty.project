@@ -1,0 +1,92 @@
+{
+synchronized (this) {
+    if (_client == null) {
+      try {
+        initializeClient();
+      }
+ catch (      Exception e) {
+        throw new IOException("Unable to proxy: " + e.getMessage());
+      }
+    }
+  }
+  final int debug=_log.isDebugEnabled() ? request.hashCode() : 0;
+  final InputStream in=request.getInputStream();
+  final OutputStream out=response.getOutputStream();
+  HttpURI url=createUrl(request,debug);
+  if (url == null) {
+    response.sendError(HttpServletResponse.SC_FORBIDDEN);
+    return target;
+  }
+  HttpExchange exchange=new HttpExchange(){
+    @Override protected void onRequestCommitted() throws IOException {
+    }
+    @Override protected void onRequestComplete() throws IOException {
+    }
+    @Override protected void onResponseComplete() throws IOException {
+      if (debug != 0)       _log.debug(debug + " complete");
+    }
+    @Override protected void onResponseContent(    Buffer content) throws IOException {
+      if (debug != 0)       _log.debug(debug + " content" + content.length());
+      content.writeTo(out);
+    }
+    @Override protected void onResponseHeaderComplete() throws IOException {
+    }
+    @SuppressWarnings("deprecation") @Override protected void onResponseStatus(    Buffer version,    int status,    Buffer reason) throws IOException {
+      if (debug != 0)       _log.debug(debug + " " + version+ " "+ status+ " "+ reason);
+      if (reason != null && reason.length() > 0)       response.setStatus(status,reason.toString());
+ else       response.setStatus(status);
+    }
+    @Override protected void onResponseHeader(    Buffer name,    Buffer value) throws IOException {
+      String s=name.toString().toLowerCase();
+      if (!_DontProxyHeaders.contains(s) || (HttpHeaders.CONNECTION_BUFFER.equals(name) && HttpHeaderValues.CLOSE_BUFFER.equals(value))) {
+        if (debug != 0)         _log.debug(debug + " " + name+ ": "+ value);
+        response.addHeader(name.toString(),value.toString());
+      }
+ else       if (debug != 0)       _log.debug(debug + " " + name+ "! "+ value);
+    }
+    @Override protected void onConnectionFailed(    Throwable ex){
+      _log.warn(ex.toString());
+      _log.debug(ex);
+      if (!response.isCommitted()) {
+        response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+      }
+    }
+    @Override protected void onException(    Throwable ex){
+      if (ex instanceof EofException) {
+        _log.ignore(ex);
+        return;
+      }
+      _log.warn(ex.toString());
+      _log.debug(ex);
+      if (!response.isCommitted()) {
+        response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+      }
+    }
+    @Override protected void onExpire(){
+      if (!response.isCommitted()) {
+        response.setStatus(HttpServletResponse.SC_GATEWAY_TIMEOUT);
+      }
+    }
+  }
+;
+  exchange.setMethod(request.getMethod());
+  exchange.setURL(url.toString());
+  exchange.setVersion(request.getProtocol());
+  if (debug != 0) {
+    _log.debug("{} {} {} {}",debug,request.getMethod(),url,request.getProtocol());
+  }
+  boolean hasContent=createHeaders(request,debug,exchange);
+  if (hasContent) {
+    exchange.setRequestContentSource(in);
+  }
+  long ctimeout=(_client.getTimeout() > exchange.getTimeout()) ? _client.getTimeout() : exchange.getTimeout();
+  exchange.setTimeout(ctimeout);
+  _client.send(exchange);
+  try {
+    exchange.waitForDone();
+  }
+ catch (  InterruptedException e) {
+    _log.info("Exception while waiting for response on proxied request",e);
+  }
+  return target;
+}

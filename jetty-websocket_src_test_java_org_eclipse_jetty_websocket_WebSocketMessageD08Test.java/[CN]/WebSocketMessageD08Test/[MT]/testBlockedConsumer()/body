@@ -1,0 +1,59 @@
+{
+  Socket socket=new Socket("localhost",__connector.getLocalPort());
+  OutputStream output=socket.getOutputStream();
+  byte[] bytes="This is a long message of text that we will send again and again".getBytes(StringUtil.__ISO_8859_1);
+  byte[] mesg=new byte[bytes.length + 6];
+  mesg[0]=(byte)(0x80 + WebSocketConnectionD08.OP_TEXT);
+  mesg[1]=(byte)(0x80 + bytes.length);
+  mesg[2]=(byte)0xff;
+  mesg[3]=(byte)0xff;
+  mesg[4]=(byte)0xff;
+  mesg[5]=(byte)0xff;
+  for (int i=0; i < bytes.length; i++)   mesg[6 + i]=(byte)(bytes[i] ^ 0xff);
+  final int count=100000;
+  output.write(("GET /chat HTTP/1.1\r\n" + "Host: server.example.com\r\n" + "Upgrade: websocket\r\n"+ "Connection: Upgrade\r\n"+ "Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\n"+ "Sec-WebSocket-Origin: http://example.com\r\n"+ "Sec-WebSocket-Protocol: latch\r\n"+ "Sec-WebSocket-Version: 8\r\n"+ "\r\n").getBytes("ISO-8859-1"));
+  output.flush();
+  socket.setSoTimeout(60000);
+  InputStream input=socket.getInputStream();
+  lookFor("HTTP/1.1 101 Switching Protocols\r\n",input);
+  skipTo("Sec-WebSocket-Accept: ",input);
+  lookFor("s3pPLMBiTxaQ9kYGzzhZRbK+xOo=",input);
+  skipTo("\r\n\r\n",input);
+  assertTrue(__serverWebSocket.awaitConnected(1000));
+  assertNotNull(__serverWebSocket.connection);
+  __serverWebSocket.connection.setMaxIdleTime(60000);
+  output.write(mesg);
+  output.flush();
+  while (__textCount.get() == 0)   Thread.sleep(10);
+  new Thread(){
+    @Override public void run(){
+      try {
+        Thread.sleep(4000);
+        __latch.countDown();
+      }
+ catch (      Exception e) {
+        e.printStackTrace();
+      }
+    }
+  }
+.start();
+  long max=0;
+  long start=System.currentTimeMillis();
+  for (int i=0; i < count; i++) {
+    output.write(mesg);
+    if (i % 100 == 0) {
+      output.flush();
+      long now=System.currentTimeMillis();
+      long duration=now - start;
+      start=now;
+      if (max < duration)       max=duration;
+    }
+  }
+  Thread.sleep(50);
+  while (__textCount.get() < count + 1) {
+    System.err.println(__textCount.get() + "<" + (count + 1));
+    Thread.sleep(10);
+  }
+  assertEquals(count + 1,__textCount.get());
+  assertTrue(max > 2000);
+}

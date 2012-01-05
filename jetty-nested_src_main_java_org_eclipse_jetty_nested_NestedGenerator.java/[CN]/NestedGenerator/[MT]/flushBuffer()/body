@@ -1,15 +1,26 @@
 {
   if (_state == STATE_HEADER)   throw new IllegalStateException("State==HEADER");
-  if (_content != null && _content.length() < _buffer.space() && _state != STATE_FLUSHING) {
-    initContent();
-    _buffer.put(_content);
-    _content.clear();
-    _content=null;
+  int len=0;
+  if (_buffer == null) {
+    if (_content != null && _content.length() > 0) {
+      len=_endp.flush(_content);
+      if (len > 0)       _content.skip(len);
+    }
   }
-  if (_buffer == null)   return 0;
-  int size=_buffer.length();
-  int len=_buffer == null ? 0 : _endp.flush(_buffer);
-  LOG.debug("flushBuffer {} of {}",len,size);
-  if (len > 0)   _buffer.skip(len);
+ else {
+    if (_buffer.length() == 0 && _content != null && _content.length() > 0) {
+      _content.skip(_buffer.put(_content));
+    }
+    int size=_buffer.length();
+    len=_endp.flush(_buffer);
+    LOG.debug("flushBuffer {} of {}",len,size);
+    if (len > 0)     _buffer.skip(len);
+  }
+  if (_content != null && _content.length() == 0)   _content=null;
+  if (_buffer != null && _buffer.length() == 0 && _content == null) {
+    _buffers.returnBuffer(_buffer);
+    _buffer=null;
+  }
+  if (_state == STATE_FLUSHING && _buffer == null && _content == null)   _state=STATE_END;
   return len;
 }
