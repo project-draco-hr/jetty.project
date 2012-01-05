@@ -1,0 +1,29 @@
+{
+  _proxy.addConnector(new SelectChannelConnector());
+  _proxy.setHandler(new ConnectHandler(){
+    @Override protected boolean handleAuthentication(    HttpServletRequest request,    HttpServletResponse response,    String address) throws ServletException, IOException {
+      if (!request.getHeader("Authorization").isEmpty()) {
+        authHandlerSend=true;
+      }
+      return super.handleAuthentication(request,response,address);
+    }
+  }
+);
+  _proxy.start();
+  int proxyPort=_proxy.getConnectors()[0].getLocalPort();
+  Authentication authentication=new BasicAuthentication(new Realm(){
+    public String getId(){
+      return "MyRealm";
+    }
+    public String getPrincipal(){
+      return "jetty";
+    }
+    public String getCredentials(){
+      return "jetty";
+    }
+  }
+);
+  _client.setProxy(new Address("localhost",proxyPort));
+  _client.setProxyAuthentication(authentication);
+  _client.start();
+}
