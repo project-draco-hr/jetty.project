@@ -1,4 +1,20 @@
 {
-  sendRequestThroughProxy(new ContentExchange(),"google",7);
-  assertTrue("Authorization header not set!",authHandlerSend);
+  String host="google.com";
+  int port=443;
+  Socket socket=new Socket();
+  try {
+    socket.connect(new InetSocketAddress(host,port),1000);
+  }
+ catch (  IOException x) {
+    Assume.assumeNoException(x);
+  }
+ finally {
+    socket.close();
+  }
+  HttpExchange exchange=new ContentExchange();
+  exchange.setURL("https://" + host + ":"+ port);
+  exchange.addRequestHeader("behaviour","google");
+  _client.send(exchange);
+  Assert.assertEquals(HttpExchange.STATUS_COMPLETED,exchange.waitForDone());
+  Assert.assertTrue("Authorization header not set!",authHandlerSend);
 }
