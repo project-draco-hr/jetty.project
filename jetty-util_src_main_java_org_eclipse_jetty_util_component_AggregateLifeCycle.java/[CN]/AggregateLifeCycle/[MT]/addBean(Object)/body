@@ -1,15 +1,18 @@
 {
-  if (o == null)   return false;
-  boolean added=false;
-  if (!_dependentBeans.contains(o)) {
-    _dependentBeans.add(o);
-    added=true;
+  if (contains(o))   return false;
+  Bean b=new Bean(o);
+  _beans.add(b);
+  if (o instanceof LifeCycle) {
+    LifeCycle l=(LifeCycle)o;
+    if (l.isRunning())     b._joined=false;
+ else     if (isRunning()) {
+      try {
+        l.start();
+      }
+ catch (      Exception e) {
+        throw new RuntimeException(e);
+      }
+    }
   }
-  try {
-    if (isStarted() && o instanceof LifeCycle)     ((LifeCycle)o).start();
-  }
- catch (  Exception e) {
-    throw new RuntimeException(e);
-  }
-  return added;
+  return true;
 }
