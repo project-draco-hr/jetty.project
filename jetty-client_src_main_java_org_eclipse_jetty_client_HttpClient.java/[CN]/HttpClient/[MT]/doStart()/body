@@ -4,7 +4,14 @@
   _timeoutQ.setNow();
   _idleTimeoutQ.setDuration(_idleTimeout);
   _idleTimeoutQ.setNow();
-  if (_threadPool == null)   getThreadPool();
+  if (_threadPool == null) {
+    QueuedThreadPool pool=new LocalQueuedThreadPool();
+    pool.setMaxThreads(16);
+    pool.setDaemon(true);
+    pool.setName("HttpClient");
+    _threadPool=pool;
+    addBean(_threadPool,true);
+  }
   _connector=(_connectorType == CONNECTOR_SELECT_CHANNEL) ? new SelectConnector(this) : new SocketConnector(this);
   addBean(_connector,true);
   super.doStart();
@@ -16,7 +23,7 @@
         try {
           Thread.sleep(200);
         }
- catch (        InterruptedException e) {
+ catch (        InterruptedException ignored) {
         }
       }
     }
