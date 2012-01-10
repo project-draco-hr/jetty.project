@@ -41,16 +41,18 @@
         }
  else         if (_request.getAsyncContinuation().isAsyncStarted()) {
           LOG.debug("suspended {}",this);
-          break;
+          progress=false;
         }
       }
     }
   }
   finally {
     setCurrentConnection(null);
-    if (!_request.isAsyncStarted()) {
+    if (!_request.getAsyncContinuation().isAsyncStarted()) {
       _parser.returnBuffers();
       _generator.returnBuffers();
+    }
+    if (!_request.getAsyncContinuation().isAsyncStarted()) {
       _asyncEndp.setCheckForIdle(true);
     }
     if (some_progress)     _total_no_progress=0;
