@@ -3,7 +3,7 @@
   SimpleProxy.AutomaticFlow automaticProxyFlow=proxy.startAutomaticFlow();
   client.startHandshake();
   Assert.assertTrue(automaticProxyFlow.stop(5,TimeUnit.SECONDS));
-  Future<Object> request=threadPool.submit(new Callable<Object>(){
+  threadPool.submit(new Callable<Object>(){
     public Object call() throws Exception {
       OutputStream clientOutput=client.getOutputStream();
       clientOutput.write(("" + "GET / HTTP/1.1\r\n" + "Host: localhost\r\n"+ "\r\n").getBytes("UTF-8"));
@@ -13,21 +13,14 @@
   }
 );
   TLSRecord record=proxy.readFromClient();
-  proxy.flushToServer(record);
-  Assert.assertNull(request.get(5,TimeUnit.SECONDS));
-  record=proxy.readFromServer();
-  Assert.assertEquals(TLSRecord.Type.APPLICATION,record.getType());
-  proxy.flushToClient(record);
-  BufferedReader reader=new BufferedReader(new InputStreamReader(client.getInputStream(),"UTF-8"));
-  String line=reader.readLine();
-  Assert.assertNotNull(line);
-  Assert.assertTrue(line.startsWith("HTTP/1.1 200 "));
-  while ((line=reader.readLine()) != null) {
-    if (line.trim().length() == 0)     break;
-  }
+  byte[] bytes=record.getBytes();
+  byte[] chunk1=new byte[2 * bytes.length / 3];
+  System.arraycopy(bytes,0,chunk1,0,chunk1.length);
+  proxy.flushToServer(100,chunk1);
+  proxy.sendRSTToServer();
   TimeUnit.MILLISECONDS.sleep(500);
   Assert.assertThat(sslHandles.get(),lessThan(20));
   Assert.assertThat(sslFlushes.get(),lessThan(20));
   Assert.assertThat(httpParses.get(),lessThan(50));
-  closeClient(client);
+  client.close();
 }
