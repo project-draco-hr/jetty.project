@@ -5,9 +5,10 @@
   server.setDumpAfterStart(true);
   server.setDumpBeforeStop(true);
   MBeanContainer mbContainer=new MBeanContainer(ManagementFactory.getPlatformMBeanServer());
+  mbContainer.start();
   server.getContainer().addEventListener(mbContainer);
-  server.addBean(mbContainer);
-  mbContainer.addBean(Log.getRootLogger());
+  server.addBean(mbContainer,true);
+  mbContainer.addBean(new Log());
   QueuedThreadPool threadPool=new QueuedThreadPool();
   threadPool.setMaxThreads(500);
   server.setThreadPool(threadPool);
@@ -17,6 +18,12 @@
   connector.setConfidentialPort(8443);
   connector.setStatsOn(false);
   server.setConnectors(new Connector[]{connector});
+  BlockingChannelConnector bConnector=new BlockingChannelConnector();
+  bConnector.setPort(8888);
+  bConnector.setMaxIdleTime(30000);
+  bConnector.setConfidentialPort(8443);
+  bConnector.setAcceptors(1);
+  server.addConnector(bConnector);
   SslSelectChannelConnector ssl_connector=new SslSelectChannelConnector();
   ssl_connector.setPort(8443);
   SslContextFactory cf=ssl_connector.getSslContextFactory();
