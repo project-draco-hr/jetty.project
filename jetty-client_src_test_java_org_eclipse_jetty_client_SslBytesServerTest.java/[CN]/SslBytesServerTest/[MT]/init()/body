@@ -22,7 +22,7 @@
 ;
     }
     @Override protected AsyncConnection newPlainConnection(    SocketChannel channel,    AsyncEndPoint endPoint){
-      return new org.eclipse.jetty.server.AsyncHttpConnection(this,endPoint,getServer()){
+      return new AsyncHttpConnection(this,endPoint,getServer()){
         @Override protected HttpParser newHttpParser(        Buffers requestBuffers,        EndPoint endPoint,        HttpParser.EventHandler requestHandler){
           return new HttpParser(requestBuffers,endPoint,requestHandler){
             @Override public int parseNext() throws IOException {
@@ -47,17 +47,24 @@
   server.addConnector(connector);
   server.setHandler(new AbstractHandler(){
     public void handle(    String target,    Request request,    HttpServletRequest httpRequest,    HttpServletResponse httpResponse) throws IOException, ServletException {
-      request.setHandled(true);
-      String contentLength=request.getHeader("Content-Length");
-      if (contentLength != null) {
-        int length=Integer.parseInt(contentLength);
-        ServletInputStream input=httpRequest.getInputStream();
-        ServletOutputStream output=httpResponse.getOutputStream();
-        byte[] buffer=new byte[32 * 1024];
-        for (int i=0; i < length; ++i) {
-          int read=input.read(buffer);
-          if ("/echo".equals(target))           output.write(buffer,0,read);
+      try {
+        request.setHandled(true);
+        String contentLength=request.getHeader("Content-Length");
+        if (contentLength != null) {
+          int length=Integer.parseInt(contentLength);
+          ServletInputStream input=httpRequest.getInputStream();
+          ServletOutputStream output=httpResponse.getOutputStream();
+          byte[] buffer=new byte[32 * 1024];
+          while (length > 0) {
+            int read=input.read(buffer);
+            if (read < 0)             throw new EOFException();
+            length-=read;
+            if (target.startsWith("/echo"))             output.write(buffer,0,read);
+          }
         }
+      }
+ catch (      IOException x) {
+        if (!(target.endsWith("suppress_exception")))         throw x;
       }
     }
   }
