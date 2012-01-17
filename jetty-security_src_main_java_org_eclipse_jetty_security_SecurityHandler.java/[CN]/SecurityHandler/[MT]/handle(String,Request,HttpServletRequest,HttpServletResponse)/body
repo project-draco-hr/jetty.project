@@ -3,7 +3,7 @@
   final Handler handler=getHandler();
   if (handler == null)   return;
   final Authenticator authenticator=_authenticator;
-  if (authenticator != null && checkSecurity(baseRequest)) {
+  if (checkSecurity(baseRequest)) {
     Object constraintInfo=prepareConstraintInfo(pathInContext,baseRequest);
     if (!checkUserDataPermissions(pathInContext,baseRequest,base_response,constraintInfo)) {
       if (!baseRequest.isHandled()) {
@@ -13,10 +13,18 @@
       return;
     }
     boolean isAuthMandatory=isAuthMandatory(baseRequest,base_response,constraintInfo);
+    if (isAuthMandatory && authenticator == null) {
+      LOG.warn("No authenticator for: " + constraintInfo);
+      if (!baseRequest.isHandled()) {
+        response.sendError(Response.SC_FORBIDDEN);
+        baseRequest.setHandled(true);
+      }
+      return;
+    }
     Object previousIdentity=null;
     try {
       Authentication authentication=baseRequest.getAuthentication();
-      if (authentication == null || authentication == Authentication.NOT_CHECKED)       authentication=authenticator.validateRequest(request,response,isAuthMandatory);
+      if (authentication == null || authentication == Authentication.NOT_CHECKED)       authentication=authenticator == null ? Authentication.UNAUTHENTICATED : authenticator.validateRequest(request,response,isAuthMandatory);
       if (authentication instanceof Authentication.Wrapped) {
         request=((Authentication.Wrapped)authentication).getHttpServletRequest();
         response=((Authentication.Wrapped)authentication).getHttpServletResponse();
@@ -60,16 +68,16 @@
       }
  else {
         baseRequest.setAuthentication(authentication);
-        previousIdentity=_identityService.associate(null);
+        if (_identityService != null)         previousIdentity=_identityService.associate(null);
         handler.handle(pathInContext,baseRequest,request,response);
-        authenticator.secureResponse(request,response,isAuthMandatory,null);
+        if (authenticator != null)         authenticator.secureResponse(request,response,isAuthMandatory,null);
       }
     }
  catch (    ServerAuthException e) {
       response.sendError(Response.SC_INTERNAL_SERVER_ERROR,e.getMessage());
     }
  finally {
-      _identityService.disassociate(previousIdentity);
+      if (_identityService != null)       _identityService.disassociate(previousIdentity);
     }
   }
  else   handler.handle(pathInContext,baseRequest,request,response);
