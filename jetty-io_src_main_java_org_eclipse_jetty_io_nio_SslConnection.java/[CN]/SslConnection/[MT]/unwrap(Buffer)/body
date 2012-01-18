@@ -11,13 +11,13 @@ synchronized (in_buffer) {
         in_buffer.position(_inbound.getIndex());
         in_buffer.limit(_inbound.putIndex());
         result=_engine.unwrap(in_buffer,bbuf);
-        if (LOG.isDebugEnabled())         LOG.debug("{} unwrap {} {} consumed={} produced={}",_session,result.getStatus(),result.getHandshakeStatus(),result.bytesConsumed(),result.bytesProduced());
+        if (_logger.isDebugEnabled())         _logger.debug("{} unwrap {} {} consumed={} produced={}",_session,result.getStatus(),result.getHandshakeStatus(),result.bytesConsumed(),result.bytesProduced());
         _inbound.skip(result.bytesConsumed());
         _inbound.compact();
         buffer.setPutIndex(buffer.putIndex() + result.bytesProduced());
       }
  catch (      SSLException e) {
-        LOG.warn(String.valueOf(_endp),e);
+        _logger.warn(String.valueOf(_endp),e);
         _endp.close();
         throw e;
       }
@@ -34,17 +34,17 @@ case BUFFER_UNDERFLOW:
     if (_endp.isInputShutdown())     _inbound.clear();
   break;
 case BUFFER_OVERFLOW:
-LOG.debug("{} unwrap {} {}->{}",_session,result.getStatus(),_inbound.toDetailString(),buffer.toDetailString());
+_logger.debug("{} unwrap {} {}->{}",_session,result.getStatus(),_inbound.toDetailString(),buffer.toDetailString());
 break;
 case OK:
 if (result.getHandshakeStatus() == HandshakeStatus.FINISHED) _handshook=true;
 break;
 case CLOSED:
-LOG.debug("unwrap CLOSE {} {}",this,result);
+_logger.debug("unwrap CLOSE {} {}",this,result);
 if (result.getHandshakeStatus() == HandshakeStatus.FINISHED) _endp.close();
 break;
 default :
-LOG.warn("{} wrap default {}",_session,result);
+_logger.warn("{} wrap default {}",_session,result);
 throw new IOException(result.toString());
 }
 return result.bytesConsumed() > 0 || result.bytesProduced() > 0;
