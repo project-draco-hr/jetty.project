@@ -1,0 +1,36 @@
+{
+  _server=new Server();
+  _connector=new LocalConnector();
+  _connector.setIntegralPort(9998);
+  _connector.setIntegralScheme("FTP");
+  _connector.setConfidentialPort(9999);
+  _connector.setConfidentialScheme("SPDY");
+  _connectorS=new LocalConnector(){
+    @Override public void customize(    EndPoint endpoint,    Request request) throws IOException {
+      super.customize(endpoint,request);
+      request.setScheme(HttpSchemes.HTTPS);
+    }
+    @Override public boolean isIntegral(    Request request){
+      return true;
+    }
+    @Override public boolean isConfidential(    Request request){
+      return true;
+    }
+  }
+;
+  _server.setConnectors(new Connector[]{_connector,_connectorS});
+  ContextHandler _context=new ContextHandler();
+  _session=new SessionHandler();
+  _context.setContextPath("/ctx");
+  _server.setHandler(_context);
+  _context.setHandler(_session);
+  _security=new ConstraintSecurityHandler();
+  _session.setHandler(_security);
+  _security.setHandler(new AbstractHandler(){
+    public void handle(    String target,    Request baseRequest,    HttpServletRequest request,    HttpServletResponse response) throws IOException, ServletException {
+      baseRequest.setHandled(true);
+      response.sendError(404);
+    }
+  }
+);
+}
