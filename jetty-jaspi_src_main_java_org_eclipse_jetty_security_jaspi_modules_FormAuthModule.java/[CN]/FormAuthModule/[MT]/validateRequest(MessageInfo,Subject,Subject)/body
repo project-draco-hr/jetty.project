@@ -37,10 +37,11 @@ synchronized (session) {
     }
     FormCredential form_cred=(FormCredential)session.getAttribute(__J_AUTHENTICATED);
     if (form_cred != null) {
-      boolean success=tryLogin(messageInfo,clientSubject,response,session,form_cred._jUserName,new Password(new String(form_cred._jPassword)));
-      if (success) {
-        return AuthStatus.SUCCESS;
-      }
+      if (form_cred._subject == null)       return AuthStatus.SEND_FAILURE;
+      Set<Object> credentials=form_cred._subject.getPrivateCredentials();
+      if (credentials == null || credentials.isEmpty())       return AuthStatus.SEND_FAILURE;
+      clientSubject.getPrivateCredentials().addAll(credentials);
+      return AuthStatus.SUCCESS;
     }
  else     if (ssoSource != null) {
       UserInfo userInfo=ssoSource.fetch(request);
