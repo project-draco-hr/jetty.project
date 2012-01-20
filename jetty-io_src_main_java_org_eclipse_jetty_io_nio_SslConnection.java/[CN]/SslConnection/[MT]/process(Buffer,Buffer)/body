@@ -32,7 +32,7 @@
         throw e;
       }
  finally {
-        LOG.debug("{} {} {} filled={}/{} flushed={}/{}",_session,this,_engine.getHandshakeStatus(),filled,_inbound.length(),flushed,_outbound.length());
+        _logger.debug("{} {} {} filled={}/{} flushed={}/{}",_session,this,_engine.getHandshakeStatus(),filled,_inbound.length(),flushed,_outbound.length());
       }
 switch (_engine.getHandshakeStatus()) {
 case FINISHED:
@@ -61,6 +61,9 @@ break;
 case NEED_UNWRAP:
 {
 if (_handshook && !_allowRenegotiate) _endp.close();
+ else if (!_inbound.hasContent() && filled == -1) {
+_endp.shutdownInput();
+}
  else if (unwrap(toFill)) progress=true;
 }
 break;
@@ -69,7 +72,7 @@ if (_endp.isOpen() && _endp.isInputShutdown() && !_inbound.hasContent()) _engine
 if (_endp.isOpen() && _engine.isOutboundDone() && !_outbound.hasContent()) _endp.shutdownOutput();
 some_progress|=progress;
 }
-if (toFill.hasContent()) _aEndp.asyncDispatch();
+if (toFill == _unwrapBuf && _unwrapBuf.hasContent()) _aEndp.asyncDispatch();
 }
   finally {
 releaseBuffers();

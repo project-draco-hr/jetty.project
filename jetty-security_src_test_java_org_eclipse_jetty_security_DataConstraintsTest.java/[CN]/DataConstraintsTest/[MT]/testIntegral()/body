@@ -1,0 +1,20 @@
+{
+  Constraint constraint0=new Constraint();
+  constraint0.setAuthenticate(false);
+  constraint0.setName("integral");
+  constraint0.setDataConstraint(Constraint.DC_INTEGRAL);
+  ConstraintMapping mapping0=new ConstraintMapping();
+  mapping0.setPathSpec("/integral/*");
+  mapping0.setConstraint(constraint0);
+  _security.setConstraintMappings(Arrays.asList(new ConstraintMapping[]{mapping0}));
+  _server.start();
+  String response;
+  response=_connector.getResponses("GET /ctx/some/thing HTTP/1.0\r\n\r\n");
+  assertThat(response,containsString("HTTP/1.1 404 Not Found"));
+  response=_connector.getResponses("GET /ctx/integral/info HTTP/1.0\r\n\r\n");
+  assertThat(response,containsString("HTTP/1.1 302 Found"));
+  assertThat(response,containsString("Location: FTP://"));
+  assertThat(response,containsString(":9998"));
+  response=_connectorS.getResponses("GET /ctx/integral/info HTTP/1.0\r\n\r\n");
+  assertThat(response,containsString("HTTP/1.1 404 Not Found"));
+}
