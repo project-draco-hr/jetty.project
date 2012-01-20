@@ -1,0 +1,24 @@
+{
+  server=new Server();
+  connector=new SelectChannelConnector();
+  server.addConnector(connector);
+  HandlerCollection handlers=new HandlerCollection();
+  server.setHandler(handlers);
+  ServletContextHandler proxyCtx=new ServletContextHandler(handlers,"/proxy",ServletContextHandler.NO_SESSIONS);
+  ServletHolder proxyServletHolder=new ServletHolder(new ProxyServlet(){
+    @Override protected HttpURI proxyHttpURI(    String scheme,    String serverName,    int serverPort,    String uri) throws MalformedURLException {
+      return new HttpURI(scheme + "://" + serverName+ ":"+ serverPort+ uri.substring("/proxy".length()));
+    }
+  }
+);
+  proxyServletHolder.setInitParameter("timeout",String.valueOf(5 * 60 * 1000L));
+  proxyCtx.addServlet(proxyServletHolder,"/*");
+  ServletContextHandler appCtx=new ServletContextHandler(handlers,"/",ServletContextHandler.SESSIONS);
+  ServletHolder appServletHolder=new ServletHolder(servlet);
+  appCtx.addServlet(appServletHolder,"/*");
+  handlers.addHandler(proxyCtx);
+  handlers.addHandler(appCtx);
+  server.start();
+  client=new HttpClient();
+  client.start();
+}
