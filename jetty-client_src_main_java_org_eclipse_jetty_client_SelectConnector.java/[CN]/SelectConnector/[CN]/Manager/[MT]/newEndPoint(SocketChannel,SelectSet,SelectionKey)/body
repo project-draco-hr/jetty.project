@@ -1,26 +1,19 @@
 {
   Timeout.Task connectTimeout=_connectingChannels.remove(channel);
   if (connectTimeout != null)   connectTimeout.cancel();
-  LOG.debug("Channels with connection pending: {}",_connectingChannels.size());
+  if (LOG.isDebugEnabled())   LOG.debug("Channels with connection pending: {}",_connectingChannels.size());
   HttpDestination dest=(HttpDestination)key.attachment();
-  SelectChannelEndPoint ep=null;
+  SelectChannelEndPoint scep=new SelectChannelEndPoint(channel,selectSet,key,(int)_httpClient.getIdleTimeout());
+  AsyncEndPoint ep=scep;
   if (dest.isSecure()) {
-    if (dest.isProxied()) {
-      SSLEngine engine=newSslEngine(channel);
-      ep=new ProxySelectChannelEndPoint(channel,selectSet,key,_sslBuffers,engine,(int)_httpClient.getIdleTimeout());
-    }
- else {
-      SSLEngine engine=newSslEngine(channel);
-      SslSelectChannelEndPoint sslEp=new SslSelectChannelEndPoint(_sslBuffers,channel,selectSet,key,engine,(int)_httpClient.getIdleTimeout());
-      sslEp.setAllowRenegotiate(_httpClient.getSslContextFactory().isAllowRenegotiate());
-      ep=sslEp;
-    }
+    LOG.debug("secure to {}, proxied={}",channel,dest.isProxied());
+    ep=new UpgradableEndPoint(ep,newSslEngine(channel));
   }
- else {
-    ep=new SelectChannelEndPoint(channel,selectSet,key,(int)_httpClient.getIdleTimeout());
-  }
-  HttpConnection connection=(HttpConnection)ep.getConnection();
-  connection.setDestination(dest);
-  dest.onNewConnection(connection);
-  return ep;
+  AsyncConnection connection=selectSet.getManager().newConnection(channel,ep,key.attachment());
+  ep.setConnection(connection);
+  AbstractHttpConnection httpConnection=(AbstractHttpConnection)connection;
+  httpConnection.setDestination(dest);
+  if (dest.isSecure() && !dest.isProxied())   ((UpgradableEndPoint)ep).upgrade();
+  dest.onNewConnection(httpConnection);
+  return scep;
 }

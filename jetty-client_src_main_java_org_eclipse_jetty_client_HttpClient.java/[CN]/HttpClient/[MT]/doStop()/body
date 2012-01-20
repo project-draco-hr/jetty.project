@@ -1,14 +1,11 @@
 {
-  _connector.stop();
-  _connector=null;
-  _sslContextFactory.stop();
-  if (_threadPool instanceof LifeCycle) {
-    ((LifeCycle)_threadPool).stop();
-  }
-  for (  HttpDestination destination : _destinations.values()) {
-    destination.close();
-  }
+  for (  HttpDestination destination : _destinations.values())   destination.close();
   _timeoutQ.cancelAll();
   _idleTimeoutQ.cancelAll();
   super.doStop();
+  if (_threadPool instanceof LocalQueuedThreadPool) {
+    removeBean(_threadPool);
+    _threadPool=null;
+  }
+  removeBean(_connector);
 }

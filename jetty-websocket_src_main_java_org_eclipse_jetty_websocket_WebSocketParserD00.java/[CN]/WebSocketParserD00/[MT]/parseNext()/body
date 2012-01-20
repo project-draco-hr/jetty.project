@@ -1,6 +1,6 @@
 {
   if (_buffer == null)   _buffer=_buffers.getBuffer();
-  int total_filled=0;
+  int progress=0;
   while (true) {
     int length=_buffer.length();
     if (length == 0 || _state == STATE_DATA && length < _length) {
@@ -8,13 +8,13 @@
       if (_buffer.space() == 0)       throw new IllegalStateException("FULL");
       try {
         int filled=_endp.isOpen() ? _endp.fill(_buffer) : -1;
-        if (filled <= 0)         return total_filled;
-        total_filled+=filled;
+        if (filled <= 0)         return progress;
+        progress+=filled;
         length=_buffer.length();
       }
  catch (      IOException e) {
         LOG.debug(e);
-        return total_filled > 0 ? total_filled : -1;
+        return progress > 0 ? progress : -1;
       }
     }
     byte b;
@@ -37,13 +37,14 @@ b=_buffer.get();
 if ((b & 0xff) == 0xff) {
 _state=STATE_START;
 int l=_buffer.getIndex() - _buffer.markIndex() - 1;
+progress++;
 _handler.onFrame((byte)0,_opcode,_buffer.sliceFromMark(l));
 _buffer.setMarkIndex(-1);
 if (_buffer.length() == 0) {
   _buffers.returnBuffer(_buffer);
   _buffer=null;
 }
-return total_filled;
+return progress;
 }
 continue;
 case STATE_LENGTH:
@@ -59,12 +60,13 @@ if (_buffer.markIndex() < 0) if (_buffer.length() < _length) break charloop;
 Buffer data=_buffer.sliceFromMark(_length);
 _buffer.skip(_length);
 _state=STATE_START;
+progress++;
 _handler.onFrame((byte)0,_opcode,data);
 if (_buffer.length() == 0) {
 _buffers.returnBuffer(_buffer);
 _buffer=null;
 }
-return total_filled;
+return progress;
 }
 }
 }

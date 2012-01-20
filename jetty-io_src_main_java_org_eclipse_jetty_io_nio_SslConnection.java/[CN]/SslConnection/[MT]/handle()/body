@@ -1,0 +1,39 @@
+{
+  try {
+    allocateBuffers();
+    boolean progress=true;
+    while (progress) {
+      progress=false;
+      if (_engine.getHandshakeStatus() != HandshakeStatus.NOT_HANDSHAKING) {
+        progress=process(null,null);
+      }
+ else {
+        AsyncConnection next=(AsyncConnection)_connection.handle();
+        if (next != _connection && next != null) {
+          _connection=next;
+          progress=true;
+        }
+      }
+      LOG.debug("{} handle {} progress={}",_session,this,progress);
+    }
+  }
+  finally {
+    releaseBuffers();
+    if (!_ishut && _sslEndPoint.isInputShutdown() && _sslEndPoint.isOpen()) {
+      _ishut=true;
+      try {
+        _connection.onInputShutdown();
+      }
+ catch (      Throwable x) {
+        LOG.warn("onInputShutdown failed",x);
+        try {
+          _sslEndPoint.close();
+        }
+ catch (        IOException e2) {
+          LOG.ignore(e2);
+        }
+      }
+    }
+  }
+  return this;
+}

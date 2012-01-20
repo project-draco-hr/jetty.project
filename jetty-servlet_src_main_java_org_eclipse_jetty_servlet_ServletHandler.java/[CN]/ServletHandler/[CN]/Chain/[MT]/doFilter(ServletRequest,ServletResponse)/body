@@ -18,9 +18,14 @@
     }
     return;
   }
+  HttpServletRequest srequest=(HttpServletRequest)request;
   if (_servletHolder != null) {
     if (LOG.isDebugEnabled())     LOG.debug("call servlet " + _servletHolder);
     _servletHolder.handle(_baseRequest,request,response);
   }
- else   notFound((HttpServletRequest)request,(HttpServletResponse)response);
+ else   if (getHandler() == null)   notFound(srequest,(HttpServletResponse)response);
+ else {
+    Request baseRequest=(request instanceof Request) ? ((Request)request) : AbstractHttpConnection.getCurrentConnection().getRequest();
+    nextHandle(URIUtil.addPaths(srequest.getServletPath(),srequest.getPathInfo()),baseRequest,srequest,(HttpServletResponse)response);
+  }
 }

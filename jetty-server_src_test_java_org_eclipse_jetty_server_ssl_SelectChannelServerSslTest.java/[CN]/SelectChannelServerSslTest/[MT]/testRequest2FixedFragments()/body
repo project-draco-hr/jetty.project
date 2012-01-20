@@ -1,0 +1,26 @@
+{
+  configureServer(new EchoHandler());
+  byte[] bytes=REQUEST2.getBytes();
+  int[] points=new int[]{74,325};
+  Arrays.sort(points);
+  Socket client=newSocket(HOST,_connector.getLocalPort());
+  try {
+    OutputStream os=client.getOutputStream();
+    int last=0;
+    for (int j=0; j < points.length; ++j) {
+      int point=points[j];
+      os.write(bytes,last,point - last);
+      last=point;
+      os.flush();
+      Thread.sleep(PAUSE);
+    }
+    os.write(bytes,last,bytes.length - last);
+    os.flush();
+    Thread.sleep(PAUSE);
+    String response=readResponse(client);
+    assertEquals(RESPONSE2,response);
+  }
+  finally {
+    client.close();
+  }
+}

@@ -27,16 +27,22 @@
         if (content_length != 0) {
           try {
             int maxFormContentSize=-1;
-            if (_context != null)             maxFormContentSize=_context.getContextHandler().getMaxFormContentSize();
+            int maxFormKeys=-1;
+            if (_context != null) {
+              maxFormContentSize=_context.getContextHandler().getMaxFormContentSize();
+              maxFormKeys=_context.getContextHandler().getMaxFormKeys();
+            }
  else {
-              Integer size=(Integer)_connection.getConnector().getServer().getAttribute("org.eclipse.jetty.server.Request.maxFormContentSize");
-              if (size != null)               maxFormContentSize=size.intValue();
+              Number size=(Number)_connection.getConnector().getServer().getAttribute("org.eclipse.jetty.server.Request.maxFormContentSize");
+              maxFormContentSize=size == null ? 200000 : size.intValue();
+              Number keys=(Number)_connection.getConnector().getServer().getAttribute("org.eclipse.jetty.server.Request.maxFormKeys");
+              maxFormKeys=keys == null ? 1000 : keys.intValue();
             }
             if (content_length > maxFormContentSize && maxFormContentSize > 0) {
               throw new IllegalStateException("Form too large" + content_length + ">"+ maxFormContentSize);
             }
             InputStream in=getInputStream();
-            UrlEncoded.decodeTo(in,_baseParameters,encoding,content_length < 0 ? maxFormContentSize : -1);
+            UrlEncoded.decodeTo(in,_baseParameters,encoding,content_length < 0 ? maxFormContentSize : -1,maxFormKeys);
           }
  catch (          IOException e) {
             if (LOG.isDebugEnabled())             LOG.warn(e);

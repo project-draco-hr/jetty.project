@@ -1,0 +1,78 @@
+{
+  threadPool=Executors.newCachedThreadPool();
+  server=new Server();
+  SslSelectChannelConnector connector=new SslSelectChannelConnector(){
+    @Override protected SslConnection newSslConnection(    AsyncEndPoint endPoint,    SSLEngine engine){
+      serverEndPoint.set(endPoint);
+      return new SslConnection(engine,endPoint){
+        @Override public Connection handle() throws IOException {
+          sslHandles.incrementAndGet();
+          return super.handle();
+        }
+        @Override protected SslEndPoint newSslEndPoint(){
+          return new SslEndPoint(){
+            @Override public int flush(            Buffer buffer) throws IOException {
+              sslFlushes.incrementAndGet();
+              return super.flush(buffer);
+            }
+          }
+;
+        }
+      }
+;
+    }
+    @Override protected AsyncConnection newPlainConnection(    SocketChannel channel,    AsyncEndPoint endPoint){
+      return new AsyncHttpConnection(this,endPoint,getServer()){
+        @Override protected HttpParser newHttpParser(        Buffers requestBuffers,        EndPoint endPoint,        HttpParser.EventHandler requestHandler){
+          return new HttpParser(requestBuffers,endPoint,requestHandler){
+            @Override public int parseNext() throws IOException {
+              httpParses.incrementAndGet();
+              return super.parseNext();
+            }
+          }
+;
+        }
+      }
+;
+    }
+  }
+;
+  connector.setMaxIdleTime(idleTimeout);
+  connector.setPort(0);
+  File keyStore=MavenTestingUtils.getTestResourceFile("keystore");
+  SslContextFactory cf=connector.getSslContextFactory();
+  cf.setKeyStorePath(keyStore.getAbsolutePath());
+  cf.setKeyStorePassword("storepwd");
+  cf.setKeyManagerPassword("keypwd");
+  server.addConnector(connector);
+  server.setHandler(new AbstractHandler(){
+    public void handle(    String target,    Request request,    HttpServletRequest httpRequest,    HttpServletResponse httpResponse) throws IOException, ServletException {
+      try {
+        request.setHandled(true);
+        String contentLength=request.getHeader("Content-Length");
+        if (contentLength != null) {
+          int length=Integer.parseInt(contentLength);
+          ServletInputStream input=httpRequest.getInputStream();
+          ServletOutputStream output=httpResponse.getOutputStream();
+          byte[] buffer=new byte[32 * 1024];
+          while (length > 0) {
+            int read=input.read(buffer);
+            if (read < 0)             throw new EOFException();
+            length-=read;
+            if (target.startsWith("/echo"))             output.write(buffer,0,read);
+          }
+        }
+      }
+ catch (      IOException x) {
+        if (!(target.endsWith("suppress_exception")))         throw x;
+      }
+    }
+  }
+);
+  server.start();
+  int serverPort=connector.getLocalPort();
+  sslContext=cf.getSslContext();
+  proxy=new SimpleProxy(threadPool,"localhost",serverPort);
+  proxy.start();
+  logger.debug(":{} <==> :{}",proxy.getPort(),serverPort);
+}

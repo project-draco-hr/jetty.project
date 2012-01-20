@@ -1,0 +1,15 @@
+{
+  TestHttpExchange exchange=new TestHttpExchange();
+  Address address=newAddress();
+  exchange.setAddress(address);
+  long delay=5000;
+  exchange.setRequestURI("/?action=wait" + delay);
+  HttpClient httpClient=getHttpClient();
+  HttpDestination destination=httpClient.getDestination(address,false);
+  int connections=destination.getConnections();
+  httpClient.send(exchange);
+  Thread.sleep(delay / 2);
+  Assert.assertEquals(connections + 1,destination.getConnections());
+  exchange.cancel();
+  Assert.assertEquals(connections,destination.getConnections());
+}

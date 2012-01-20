@@ -1,6 +1,7 @@
 {
-  if (_allowLazyAuthentication && !mandatory)   return _deferred;
   JaspiMessageInfo info=new JaspiMessageInfo(request,response,mandatory);
   request.setAttribute("org.eclipse.jetty.security.jaspi.info",info);
-  return validateRequest(info);
+  Authentication a=validateRequest(info);
+  if (_allowLazyAuthentication && !info.isAuthMandatory() && a == Authentication.UNAUTHENTICATED)   a=_deferred;
+  return a;
 }

@@ -1,0 +1,32 @@
+{
+  final Continuation continuation=ContinuationSupport.getContinuation(request);
+  httpResponse.setStatus(500);
+  request.setHandled(true);
+  new Thread(){
+    @Override public void run(){
+      long total=0;
+      try {
+        InputStream in=request.getInputStream();
+        byte[] b=new byte[4 * 4096];
+        int read;
+        while ((read=in.read(b)) >= 0)         total+=read;
+      }
+ catch (      Exception e) {
+        e.printStackTrace();
+        total=-1;
+      }
+ finally {
+        httpResponse.setStatus(200);
+        continuation.complete();
+        try {
+          __total.exchange(total);
+        }
+ catch (        InterruptedException e) {
+          e.printStackTrace();
+        }
+      }
+    }
+  }
+.start();
+  continuation.suspend();
+}

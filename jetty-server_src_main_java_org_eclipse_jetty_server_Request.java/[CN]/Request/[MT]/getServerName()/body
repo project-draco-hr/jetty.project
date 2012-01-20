@@ -1,5 +1,6 @@
 {
   if (_serverName != null)   return _serverName;
+  if (_uri == null)   throw new IllegalStateException("No uri");
   _serverName=_uri.getHost();
   _port=_uri.getPort();
   if (_serverName != null)   return _serverName;
@@ -12,7 +13,17 @@ case ']':
         break loop;
 case ':':
       _serverName=BufferUtil.to8859_1_String(hostPort.peek(hostPort.getIndex(),i - hostPort.getIndex()));
-    _port=BufferUtil.toInt(hostPort.peek(i + 1,hostPort.putIndex() - i - 1));
+    try {
+      _port=BufferUtil.toInt(hostPort.peek(i + 1,hostPort.putIndex() - i - 1));
+    }
+ catch (    NumberFormatException e) {
+      try {
+        if (_connection != null)         _connection._generator.sendError(HttpStatus.BAD_REQUEST_400,"Bad Host header",null,true);
+      }
+ catch (      IOException e1) {
+        throw new RuntimeException(e1);
+      }
+    }
   return _serverName;
 }
 }

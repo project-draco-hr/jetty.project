@@ -1,0 +1,29 @@
+{
+  _server.setAttribute("org.eclipse.jetty.server.Request.maxFormContentSize",-1);
+  _server.setAttribute("org.eclipse.jetty.server.Request.maxFormKeys",1000);
+  File evil_keys=new File("/tmp/keys_mapping_to_zero_2m");
+  if (!evil_keys.exists()) {
+    Log.info("testHashDOS skipped");
+    return;
+  }
+  BufferedReader in=new BufferedReader(new FileReader(evil_keys));
+  StringBuilder buf=new StringBuilder(4000000);
+  String key=null;
+  buf.append("a=b");
+  while ((key=in.readLine()) != null) {
+    buf.append("&").append(key).append("=").append("x");
+  }
+  buf.append("&c=d");
+  _handler._checker=new RequestTester(){
+    public boolean check(    HttpServletRequest request,    HttpServletResponse response){
+      return "b".equals(request.getParameter("a")) && request.getParameter("c") == null;
+    }
+  }
+;
+  String request="POST / HTTP/1.1\r\n" + "Host: whatever\r\n" + "Content-Type: " + MimeTypes.FORM_ENCODED + "\r\n"+ "Content-Length: "+ buf.length()+ "\r\n"+ "Connection: close\r\n"+ "\r\n"+ buf;
+  long start=System.currentTimeMillis();
+  String response=_connector.getResponses(request);
+  assertTrue(response.contains("200 OK"));
+  long now=System.currentTimeMillis();
+  assertTrue((now - start) < 5000);
+}
