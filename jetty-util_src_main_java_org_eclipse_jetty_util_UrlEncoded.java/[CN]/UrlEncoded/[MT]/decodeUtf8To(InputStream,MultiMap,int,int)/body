@@ -6,21 +6,22 @@ synchronized (map) {
     int b;
     int totalLength=0;
     while ((b=in.read()) >= 0) {
+      try {
 switch ((char)b) {
 case '&':
-        value=buffer.length() == 0 ? "" : buffer.toString();
-      buffer.reset();
-    if (key != null) {
-      map.add(key,value);
-    }
- else     if (value != null && value.length() > 0) {
-      map.add(value,"");
-    }
-  key=null;
-value=null;
+          value=buffer.length() == 0 ? "" : buffer.toString();
+        buffer.reset();
+      if (key != null) {
+        map.add(key,value);
+      }
+ else       if (value != null && value.length() > 0) {
+        map.add(value,"");
+      }
+    key=null;
+  value=null;
 if (maxKeys > 0 && map.size() > maxKeys) {
-LOG.warn("maxFormKeys limit exceeded keys>{}",maxKeys);
-return;
+  LOG.warn("maxFormKeys limit exceeded keys>{}",maxKeys);
+  return;
 }
 break;
 case '=':
@@ -43,6 +44,11 @@ break;
 default :
 buffer.append((byte)b);
 break;
+}
+}
+ catch (NotUtf8Exception e) {
+LOG.warn(e.toString());
+LOG.debug(e);
 }
 if (maxLength >= 0 && (++totalLength > maxLength)) throw new IllegalStateException("Form too large");
 }
