@@ -1,0 +1,15 @@
+{
+  ServletContextHandler context=new ServletContextHandler(ServletContextHandler.SESSIONS);
+  context.setContextPath("/");
+  __server.setHandler(context);
+  context.addServlet(DispatchServletServlet.class,"/dispatch/*");
+  context.addServlet(new ServletHolder("HelloAll",new HelloServlet("Hello World")),"/*");
+  context.addServlet(new ServletHolder("Italian",new HelloServlet("Buongiorno Mondo")),"/it/*");
+  context.addServlet(new ServletHolder("French",new HelloServlet("Bonjour le Monde")),"/fr/*");
+  RegexTargetHandler regexHandler=new RegexTargetHandler();
+  regexHandler.setHandler(context.getHandler());
+  context.setHandler(regexHandler);
+  context.getInitParams().put(RegexTargetHandler.REGEX_MAPPINGS,"  .*\\.fr==French,   \n" + "/ciao(/.*)$==Italian");
+  __server.start();
+  __port=__server.getConnectors()[0].getLocalPort();
+}

@@ -1,0 +1,24 @@
+{
+  for (  RegexTargetHandler.RegexMapping rm : _patterns) {
+    Matcher m=rm._pattern.matcher(target);
+    if (m.matches()) {
+      String new_target=rm._target;
+      final String sp;
+      final String pi;
+      if (m.groupCount() == 1 && target.endsWith(m.group(1))) {
+        pi=m.group(1);
+        sp=target.substring(0,target.length() - pi.length());
+      }
+ else {
+        sp=target;
+        pi=null;
+      }
+      baseRequest.setServletPath(sp);
+      baseRequest.setPathInfo(pi);
+      baseRequest.setAttribute("org.eclipse.jetty.servlet.REGEX_PATH",target);
+      super.nextScope(new_target,baseRequest,request,response);
+      return;
+    }
+  }
+  super.nextScope(target,baseRequest,request,response);
+}
