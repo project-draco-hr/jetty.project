@@ -1,0 +1,22 @@
+{
+  final AtomicReference<RstInfo> ref=new AtomicReference<>();
+  final CountDownLatch latch=new CountDownLatch(1);
+  ServerSessionFrameListener serverSessionFrameListener=new ServerSessionFrameListener.Adapter(){
+    @Override public Stream.FrameListener onSyn(    Stream stream,    SynInfo synInfo){
+      stream.data(new StringDataInfo("foo",true));
+      return null;
+    }
+    @Override public void onRst(    Session session,    RstInfo rstInfo){
+      ref.set(rstInfo);
+      latch.countDown();
+    }
+  }
+;
+  Session session=startClient(startServer(serverSessionFrameListener),null);
+  Stream stream=session.syn((short)2,new SynInfo(true),null);
+  Assert.assertTrue(latch.await(5,TimeUnit.SECONDS));
+  RstInfo rstInfo=ref.get();
+  Assert.assertNotNull(rstInfo);
+  Assert.assertEquals(stream.getId(),rstInfo.getStreamId());
+  Assert.assertSame(StreamStatus.PROTOCOL_ERROR,rstInfo.getStreamStatus());
+}

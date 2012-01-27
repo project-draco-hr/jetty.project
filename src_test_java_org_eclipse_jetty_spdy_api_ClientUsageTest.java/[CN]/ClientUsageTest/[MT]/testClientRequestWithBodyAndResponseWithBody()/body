@@ -1,0 +1,17 @@
+{
+  Session session=new StandardSession(null,1,null,null);
+  Stream stream=session.syn((short)2,new SynInfo(false),new Stream.FrameListener.Adapter(){
+    @Override public void onReply(    Stream stream,    ReplyInfo replyInfo){
+      int contentLength=replyInfo.getHeaders().get("content-length").valueAsInt();
+      stream.getSession().syn((short)2,new SynInfo(true),this);
+    }
+    @Override public void onData(    Stream stream,    DataInfo dataInfo){
+      if (dataInfo.isClose()) {
+      }
+    }
+  }
+);
+  stream.data(new BytesDataInfo("wee".getBytes(Charset.forName("UTF-8")),false));
+  stream.data(new StringDataInfo("foo",false));
+  stream.data(new ByteBufferDataInfo(Charset.forName("UTF-8").encode("bar"),false));
+}

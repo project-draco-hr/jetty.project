@@ -1,0 +1,15 @@
+{
+  NoOpFrame frame1=new NoOpFrame();
+  Generator generator=new Generator(new StandardCompressionFactory().newCompressor());
+  ByteBuffer buffer=generator.control(frame1);
+  Assert.assertNotNull(buffer);
+  TestSPDYParserListener listener=new TestSPDYParserListener();
+  Parser parser=new Parser(new StandardCompressionFactory().newDecompressor());
+  parser.addListener(listener);
+  while (buffer.hasRemaining())   parser.parse(ByteBuffer.wrap(new byte[]{buffer.get()}));
+  ControlFrame frame2=listener.getControlFrame();
+  Assert.assertNotNull(frame2);
+  Assert.assertEquals(ControlFrameType.NOOP,frame2.getType());
+  NoOpFrame noOp=(NoOpFrame)frame2;
+  Assert.assertEquals(0,noOp.getFlags());
+}

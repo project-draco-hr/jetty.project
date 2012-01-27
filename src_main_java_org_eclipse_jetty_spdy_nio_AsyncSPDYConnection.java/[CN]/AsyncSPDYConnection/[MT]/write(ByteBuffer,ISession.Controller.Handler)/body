@@ -1,0 +1,30 @@
+{
+  int remaining=buffer.remaining();
+  Buffer jettyBuffer=buffer.isDirect() ? new DirectNIOBuffer(buffer,false) : new IndirectNIOBuffer(buffer,false);
+  AsyncEndPoint endPoint=getEndPoint();
+  try {
+    endPoint.flush(jettyBuffer);
+  }
+ catch (  IOException x) {
+    close(false);
+    throw new SPDYException(x);
+  }
+ finally {
+    buffer.position(jettyBuffer.getIndex());
+  }
+  if (buffer.hasRemaining()) {
+    this.buffer=buffer;
+    this.handler=handler;
+    flushing=true;
+    endPoint.scheduleWrite();
+  }
+ else {
+    if (flushing) {
+      this.buffer=null;
+      this.handler=null;
+      flushing=false;
+    }
+    handler.complete();
+  }
+  return remaining - buffer.remaining();
+}

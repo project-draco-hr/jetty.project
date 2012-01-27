@@ -1,0 +1,17 @@
+{
+  logger.info("Processing {}, {} data bytes",frame,data.remaining());
+  int streamId=frame.getStreamId();
+  IStream stream=streams.get(streamId);
+  if (stream == null) {
+    short version=(short)2;
+    rst(version,new RstInfo(streamId,StreamStatus.INVALID_STREAM));
+  }
+ else {
+    stream.handle(frame,data);
+    flush();
+    if (stream.isClosed()) {
+      updateLastStreamId(stream);
+      removeStream(stream);
+    }
+  }
+}

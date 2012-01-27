@@ -1,0 +1,21 @@
+{
+  short version=2;
+  int streamId=13;
+  int windowDelta=17;
+  WindowUpdateFrame frame1=new WindowUpdateFrame(version,streamId,windowDelta);
+  Generator generator=new Generator(new StandardCompressionFactory().newCompressor());
+  ByteBuffer buffer=generator.control(frame1);
+  Assert.assertNotNull(buffer);
+  TestSPDYParserListener listener=new TestSPDYParserListener();
+  Parser parser=new Parser(new StandardCompressionFactory().newDecompressor());
+  parser.addListener(listener);
+  parser.parse(buffer);
+  ControlFrame frame2=listener.getControlFrame();
+  Assert.assertNotNull(frame2);
+  Assert.assertEquals(ControlFrameType.WINDOW_UPDATE,frame2.getType());
+  WindowUpdateFrame windowUpdate=(WindowUpdateFrame)frame2;
+  Assert.assertEquals(version,windowUpdate.getVersion());
+  Assert.assertEquals(streamId,windowUpdate.getStreamId());
+  Assert.assertEquals(0,windowUpdate.getFlags());
+  Assert.assertEquals(windowDelta,windowUpdate.getWindowDelta());
+}

@@ -1,0 +1,18 @@
+{
+  FrameBytes frameBytes;
+synchronized (queue) {
+    if (flushing)     return;
+    frameBytes=queue.poll();
+    if (frameBytes == null)     return;
+    flushing=true;
+    logger.debug("Flushing {}, {} frame(s) queued",frameBytes,queue.size());
+  }
+  ByteBuffer buffer=frameBytes.getByteBuffer();
+  if (buffer == null) {
+    enqueue(frameBytes);
+    return;
+  }
+  logger.debug("Writing {} frame bytes of {}",buffer.remaining(),frameBytes);
+  write(buffer,this);
+  frameBytes.complete();
+}

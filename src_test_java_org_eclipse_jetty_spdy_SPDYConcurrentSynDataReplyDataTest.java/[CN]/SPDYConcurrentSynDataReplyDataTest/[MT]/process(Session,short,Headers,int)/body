@@ -1,0 +1,21 @@
+{
+  for (int i=0; i < iterations; ++i) {
+    final CountDownLatch latch=new CountDownLatch(2);
+    Stream stream=session.syn(version,new SynInfo(headers,false),new Stream.FrameListener.Adapter(){
+      @Override public void onReply(      Stream stream,      ReplyInfo replyInfo){
+        Assert.assertEquals(2,latch.getCount());
+        latch.countDown();
+      }
+      @Override public void onData(      Stream stream,      DataInfo dataInfo){
+        Assert.assertEquals(1,latch.getCount());
+        ByteBuffer buffer=ByteBuffer.allocate(dataInfo.getBytesCount());
+        dataInfo.getBytes(buffer);
+        Assert.assertTrue(dataInfo.isConsumed());
+        latch.countDown();
+      }
+    }
+);
+    stream.data(new StringDataInfo("data_" + stream.getId(),true));
+    Assert.assertTrue("process() failed for stream=" + stream.getId(),latch.await(5,TimeUnit.SECONDS));
+  }
+}

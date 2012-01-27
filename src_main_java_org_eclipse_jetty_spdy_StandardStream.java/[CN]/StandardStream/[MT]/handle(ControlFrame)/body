@@ -1,0 +1,34 @@
+{
+switch (frame.getType()) {
+case SYN_STREAM:
+{
+      opened=true;
+      break;
+    }
+case SYN_REPLY:
+{
+    opened=true;
+    SynReplyFrame synReply=(SynReplyFrame)frame;
+    updateCloseState(synReply.isClose());
+    notifyOnReply(synReply);
+    break;
+  }
+case HEADERS:
+{
+  HeadersFrame headers=(HeadersFrame)frame;
+  updateCloseState(headers.isClose());
+  notifyOnHeaders(headers);
+  break;
+}
+case WINDOW_UPDATE:
+{
+WindowUpdateFrame windowUpdate=(WindowUpdateFrame)frame;
+updateWindowSize(windowUpdate.getWindowDelta());
+break;
+}
+default :
+{
+throw new IllegalStateException();
+}
+}
+}

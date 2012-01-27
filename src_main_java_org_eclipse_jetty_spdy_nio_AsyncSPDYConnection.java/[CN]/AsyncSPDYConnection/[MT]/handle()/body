@@ -1,0 +1,15 @@
+{
+  AsyncEndPoint endPoint=getEndPoint();
+  boolean progress=true;
+  while (endPoint.isOpen() && progress) {
+    progress=false;
+    int filled=fill();
+    progress|=filled > 0;
+    int flushed=flush();
+    progress|=flushed > 0;
+    endPoint.flush();
+    progress|=endPoint.hasProgressed();
+    if (!progress && filled < 0)     close(false);
+  }
+  return this;
+}

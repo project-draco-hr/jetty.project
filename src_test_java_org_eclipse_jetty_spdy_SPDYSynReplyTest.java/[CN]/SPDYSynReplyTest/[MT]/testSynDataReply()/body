@@ -1,0 +1,60 @@
+{
+  final byte[] dataBytes="foo".getBytes(Charset.forName("UTF-8"));
+  final AtomicReference<Session> sessionRef=new AtomicReference<>();
+  final CountDownLatch synLatch=new CountDownLatch(1);
+  final CountDownLatch dataLatch=new CountDownLatch(1);
+  ServerSessionFrameListener serverSessionFrameListener=new ServerSessionFrameListener.Adapter(){
+    @Override public void onConnect(    Session session){
+      sessionRef.set(session);
+    }
+    @Override public Stream.FrameListener onSyn(    Stream stream,    SynInfo synInfo){
+      Assert.assertFalse(stream.isHalfClosed());
+      synLatch.countDown();
+      return new Stream.FrameListener.Adapter(){
+        @Override public void onData(        Stream stream,        DataInfo dataInfo){
+          ByteArrayOutputStream bytes=new ByteArrayOutputStream();
+          ByteBuffer buffer=ByteBuffer.allocate(2);
+          while (!dataInfo.isConsumed()) {
+            dataInfo.getBytes(buffer);
+            buffer.flip();
+            bytes.write(buffer.array(),buffer.arrayOffset(),buffer.remaining());
+            buffer.clear();
+          }
+          Assert.assertTrue(Arrays.equals(dataBytes,bytes.toByteArray()));
+          Assert.assertTrue(stream.isHalfClosed());
+          Assert.assertFalse(stream.isClosed());
+          stream.reply(new ReplyInfo(new Headers(),true));
+          Assert.assertTrue(stream.isClosed());
+          dataLatch.countDown();
+        }
+      }
+;
+    }
+  }
+;
+  Session session=startClient(startServer(serverSessionFrameListener),null);
+  final CountDownLatch streamRemovedLatch=new CountDownLatch(1);
+  session.addListener(new Session.StreamListener.Adapter(){
+    @Override public void onStreamClosed(    Stream stream){
+      streamRemovedLatch.countDown();
+    }
+  }
+);
+  final CountDownLatch replyLatch=new CountDownLatch(1);
+  Stream stream=session.syn((short)2,new SynInfo(new Headers(),false),new Stream.FrameListener.Adapter(){
+    @Override public void onReply(    Stream stream,    ReplyInfo replyInfo){
+      Assert.assertTrue(stream.isClosed());
+      replyLatch.countDown();
+    }
+  }
+);
+  stream.data(new BytesDataInfo(dataBytes,true));
+  Assert.assertTrue(synLatch.await(5,TimeUnit.SECONDS));
+  Session serverSession=sessionRef.get();
+  Assert.assertNotNull(serverSession);
+  Assert.assertTrue(dataLatch.await(5,TimeUnit.SECONDS));
+  Assert.assertTrue(replyLatch.await(5,TimeUnit.SECONDS));
+  Assert.assertEquals(0,serverSession.getStreams().size());
+  Assert.assertTrue(streamRemovedLatch.await(5,TimeUnit.SECONDS));
+  Assert.assertEquals(0,session.getStreams().size());
+}

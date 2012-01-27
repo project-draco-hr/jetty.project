@@ -1,0 +1,17 @@
+{
+  IStream stream=new StandardStream(this,synStream);
+  logger.debug("Opening {}",stream);
+  int streamId=synStream.getStreamId();
+  Stream existing=streams.putIfAbsent(streamId,stream);
+  if (existing != null) {
+    logger.debug("Detected duplicate {}, resetting",stream);
+    rst(existing.getVersion(),new RstInfo(streamId,StreamStatus.PROTOCOL_ERROR));
+  }
+ else {
+    stream.handle(synStream);
+    Stream.FrameListener frameListener=notifyOnSyn(stream,synStream);
+    stream.setFrameListener(frameListener);
+    flush();
+    if (stream.isClosed())     removeStream(stream);
+  }
+}

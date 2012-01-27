@@ -1,0 +1,19 @@
+{
+  short version=2;
+  int pingId=13;
+  PingFrame frame1=new PingFrame(version,pingId);
+  Generator generator=new Generator(new StandardCompressionFactory().newCompressor());
+  ByteBuffer buffer=generator.control(frame1);
+  Assert.assertNotNull(buffer);
+  TestSPDYParserListener listener=new TestSPDYParserListener();
+  Parser parser=new Parser(new StandardCompressionFactory().newDecompressor());
+  parser.addListener(listener);
+  parser.parse(buffer);
+  ControlFrame frame2=listener.getControlFrame();
+  Assert.assertNotNull(frame2);
+  Assert.assertEquals(ControlFrameType.PING,frame2.getType());
+  PingFrame ping=(PingFrame)frame2;
+  Assert.assertEquals(version,ping.getVersion());
+  Assert.assertEquals(pingId,ping.getPingId());
+  Assert.assertEquals(0,ping.getFlags());
+}

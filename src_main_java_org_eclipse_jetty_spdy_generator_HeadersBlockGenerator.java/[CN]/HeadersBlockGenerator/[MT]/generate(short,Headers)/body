@@ -1,0 +1,27 @@
+{
+  Charset iso1=Charset.forName("ISO-8859-1");
+  ByteArrayOutputStream buffer=new ByteArrayOutputStream(headers.getSize() * 64);
+  writeCount(version,buffer,headers.getSize());
+  for (  Headers.Header header : headers) {
+    String name=header.name();
+    byte[] nameBytes=name.getBytes(iso1);
+    writeNameLength(version,buffer,nameBytes.length);
+    buffer.write(nameBytes,0,nameBytes.length);
+    String value=header.value();
+    byte[] valueBytes=value.getBytes(iso1);
+    if (header.hasMultipleValues()) {
+      String[] values=header.values();
+      for (int i=1; i < values.length; ++i) {
+        byte[] moreValueBytes=values[i].getBytes(iso1);
+        byte[] newValueBytes=new byte[valueBytes.length + 1 + moreValueBytes.length];
+        System.arraycopy(valueBytes,0,newValueBytes,0,valueBytes.length);
+        newValueBytes[valueBytes.length]=0;
+        System.arraycopy(moreValueBytes,0,newValueBytes,valueBytes.length + 1,moreValueBytes.length);
+        valueBytes=newValueBytes;
+      }
+    }
+    writeValueLength(version,buffer,valueBytes.length);
+    buffer.write(valueBytes,0,valueBytes.length);
+  }
+  return compress(buffer.toByteArray());
+}
