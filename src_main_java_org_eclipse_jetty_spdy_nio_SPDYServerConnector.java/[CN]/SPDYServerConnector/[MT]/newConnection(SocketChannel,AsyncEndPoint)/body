@@ -1,8 +1,15 @@
 {
+  if (sslContextFactory != null) {
+    SSLEngine engine=newSSLEngine(sslContextFactory,channel);
+    SslConnection sslConnection=new SslConnection(engine,endPoint);
+    endPoint.setConnection(sslConnection);
+    endPoint=sslConnection.getSslEndPoint();
+  }
   CompressionFactory compressionFactory=newCompressionFactory();
   Parser parser=newParser(compressionFactory.newDecompressor());
   Generator generator=newGenerator(compressionFactory.newCompressor());
   AsyncSPDYConnection connection=new AsyncSPDYConnection(endPoint,parser);
+  endPoint.setConnection(connection);
   Session session=newSession(connection,listener,parser,generator);
   if (listener != null)   listener.onConnect(session);
   return connection;
