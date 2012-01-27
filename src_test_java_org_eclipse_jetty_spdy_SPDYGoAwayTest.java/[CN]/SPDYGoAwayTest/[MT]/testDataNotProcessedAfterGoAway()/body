@@ -43,8 +43,13 @@
   Assert.assertTrue(reply1Latch.await(5,TimeUnit.SECONDS));
   Stream stream2=session.syn(version,new SynInfo(false),null);
   Assert.assertTrue(closeLatch.await(5,TimeUnit.SECONDS));
-  stream2.data(new StringDataInfo("foo",true));
-  Assert.assertFalse(dataLatch.await(1,TimeUnit.SECONDS));
+  try {
+    stream2.data(new StringDataInfo("foo",true));
+    Assert.assertFalse(dataLatch.await(1,TimeUnit.SECONDS));
+  }
+ catch (  SPDYException x) {
+    Assert.assertThat(x.getCause(),instanceOf(ClosedChannelException.class));
+  }
   Assert.assertTrue(goAwayLatch.await(5,TimeUnit.SECONDS));
   GoAwayInfo goAway=goAwayRef.get();
   Assert.assertNotNull(goAway);
