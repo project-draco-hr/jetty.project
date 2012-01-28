@@ -1,16 +1,26 @@
 {
+  CompressionFactory compressionFactory=newCompressionFactory();
+  Parser parser=newParser(compressionFactory.newDecompressor());
+  Generator generator=newGenerator(compressionFactory.newCompressor());
+  AsyncConnection result;
+  ISession.Controller controller;
   if (sslContextFactory != null) {
     SSLEngine engine=newSSLEngine(sslContextFactory,channel);
     SslConnection sslConnection=new SslConnection(engine,endPoint);
     endPoint.setConnection(sslConnection);
-    endPoint=sslConnection.getSslEndPoint();
+    AsyncEndPoint sslEndPoint=sslConnection.getSslEndPoint();
+    AsyncSPDYConnection connection=new AsyncSPDYConnection(sslEndPoint,parser);
+    sslEndPoint.setConnection(connection);
+    result=sslConnection;
+    controller=connection;
   }
-  CompressionFactory compressionFactory=newCompressionFactory();
-  Parser parser=newParser(compressionFactory.newDecompressor());
-  Generator generator=newGenerator(compressionFactory.newCompressor());
-  AsyncSPDYConnection connection=new AsyncSPDYConnection(endPoint,parser);
-  endPoint.setConnection(connection);
-  Session session=newSession(connection,listener,parser,generator);
+ else {
+    AsyncSPDYConnection connection=new AsyncSPDYConnection(endPoint,parser);
+    endPoint.setConnection(connection);
+    result=connection;
+    controller=connection;
+  }
+  Session session=newSession(controller,listener,parser,generator);
   if (listener != null)   listener.onConnect(session);
-  return connection;
+  return result;
 }
