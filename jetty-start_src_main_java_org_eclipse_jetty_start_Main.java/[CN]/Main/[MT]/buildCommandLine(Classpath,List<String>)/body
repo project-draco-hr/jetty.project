@@ -1,24 +1,25 @@
 {
-  StringBuilder cmd=new StringBuilder();
-  cmd.append(findJavaBin());
-  for (  String x : _jvmArgs)   cmd.append(' ').append(x);
-  cmd.append(" -Djetty.home=").append(_jettyHome);
-  for (  String p : _sysProps) {
-    cmd.append("   -D").append(p);
-    String v=System.getProperty(p);
-    if (v != null && v.length() > 0)     cmd.append('=').append(v);
+  CommandLineBuilder cmd=new CommandLineBuilder(findJavaBin());
+  for (  String x : _jvmArgs) {
+    cmd.addArg(x);
   }
-  cmd.append("   -cp ").append(classpath.toString());
-  cmd.append("   ").append(_config.getMainClassname());
+  cmd.addEqualsArg("-Djetty.home",_jettyHome);
+  for (  String p : _sysProps) {
+    String v=System.getProperty(p);
+    cmd.addEqualsArg("-D" + p,v);
+  }
+  cmd.addArg("-cp");
+  cmd.addArg(classpath.toString());
+  cmd.addRawArg(_config.getMainClassname());
   Properties properties=Config.getProperties();
   if (properties.size() > 0) {
     File prop_file=File.createTempFile("start",".properties");
     if (!_dryRun)     prop_file.deleteOnExit();
     properties.store(new FileOutputStream(prop_file),"start.jar properties");
-    cmd.append(" ").append(prop_file.getAbsolutePath());
+    cmd.addArg(prop_file.getAbsolutePath());
   }
   for (  String xml : xmls) {
-    cmd.append(' ').append(xml);
+    cmd.addArg(xml);
   }
   return cmd.toString();
 }
