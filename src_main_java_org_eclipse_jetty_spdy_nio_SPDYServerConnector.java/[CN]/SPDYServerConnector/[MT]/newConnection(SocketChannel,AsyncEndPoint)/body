@@ -1,26 +1,29 @@
 {
-  CompressionFactory compressionFactory=newCompressionFactory();
-  Parser parser=newParser(compressionFactory.newDecompressor());
-  Generator generator=newGenerator(compressionFactory.newCompressor());
-  AsyncConnection result;
-  ISession.Controller controller;
   if (sslContextFactory != null) {
     SSLEngine engine=newSSLEngine(sslContextFactory,channel);
     SslConnection sslConnection=new SslConnection(engine,endPoint);
     endPoint.setConnection(sslConnection);
-    AsyncEndPoint sslEndPoint=sslConnection.getSslEndPoint();
-    AsyncSPDYConnection connection=new AsyncSPDYConnection(sslEndPoint,parser);
+    final AsyncEndPoint sslEndPoint=sslConnection.getSslEndPoint();
+    NextProtoNego.put(engine,new NextProtoNego.ServerProvider(){
+      @Override public List<String> protocols(){
+        return provideProtocols();
+      }
+      @Override public void protocolSelected(      String protocol){
+        AsyncConnectionFactory connectionFactory=getAsyncConnectionFactory(protocol);
+        AsyncConnection connection=connectionFactory.newAsyncConnection(channel,sslEndPoint,null);
+        sslEndPoint.setConnection(connection);
+      }
+    }
+);
+    AsyncConnection connection=new NoProtocolConnection(sslEndPoint);
     sslEndPoint.setConnection(connection);
-    result=sslConnection;
-    controller=connection;
+    startHandshake(engine);
+    return sslConnection;
   }
  else {
-    AsyncSPDYConnection connection=new AsyncSPDYConnection(endPoint,parser);
+    AsyncConnectionFactory connectionFactory=new ServerSPDY2AsyncConnectionFactory();
+    AsyncConnection connection=connectionFactory.newAsyncConnection(channel,endPoint,null);
     endPoint.setConnection(connection);
-    result=connection;
-    controller=connection;
+    return connection;
   }
-  Session session=newSession(controller,listener,parser,generator);
-  if (listener != null)   listener.onConnect(session);
-  return result;
 }
