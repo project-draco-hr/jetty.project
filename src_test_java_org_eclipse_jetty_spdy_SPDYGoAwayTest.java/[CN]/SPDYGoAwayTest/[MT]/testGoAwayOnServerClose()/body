@@ -1,9 +1,8 @@
 {
-  final short version=(short)2;
   ServerSessionFrameListener serverSessionFrameListener=new ServerSessionFrameListener.Adapter(){
     @Override public Stream.FrameListener onSyn(    Stream stream,    SynInfo synInfo){
       stream.reply(new ReplyInfo(true));
-      stream.getSession().goAway(version);
+      stream.getSession().goAway(SPDY.V2);
       return null;
     }
   }
@@ -18,7 +17,7 @@
   }
 ;
   Session session=startClient(startServer(serverSessionFrameListener),clientSessionFrameListener);
-  Stream stream1=session.syn(version,new SynInfo(true),null);
+  Stream stream1=session.syn(SPDY.V2,new SynInfo(true),null);
   Assert.assertTrue(latch.await(5,TimeUnit.SECONDS));
   GoAwayInfo goAwayInfo=ref.get();
   Assert.assertNotNull(goAwayInfo);
