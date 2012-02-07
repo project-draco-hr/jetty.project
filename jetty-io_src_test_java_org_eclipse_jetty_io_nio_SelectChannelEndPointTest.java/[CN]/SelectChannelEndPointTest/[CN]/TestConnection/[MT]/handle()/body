@@ -2,16 +2,18 @@
   boolean progress=true;
   while (progress) {
     progress=false;
-    _in.compact();
-    if (_in.space() > 0 && _endp.fill(_in) > 0)     progress=true;
-    while (_blockAt > 0 && _in.length() > 0 && _in.length() < _blockAt) {
-      _endp.blockReadable(10000);
-      if (_in.space() > 0 && _endp.fill(_in) > 0)       progress=true;
+    _in.compact().flip();
+    if (!BufferUtil.isAtCapacity(_in) && _endp.fill(_in) > 0) {
+      progress=true;
     }
-    if (_in.hasContent() && _in.skip(_out.put(_in)) > 0)     progress=true;
-    if (_out.hasContent() && _endp.flush(_out) > 0)     progress=true;
-    _out.compact();
-    if (!_out.hasContent() && _endp.isInputShutdown())     _endp.shutdownOutput();
+    while (_blockAt > 0 && _in.remaining() > 0 && _in.remaining() < _blockAt) {
+      _endp.blockReadable(10000);
+      if (!BufferUtil.isAtCapacity(_in) && _endp.fill(_in) > 0)       progress=true;
+    }
+    if (!BufferUtil.isEmpty(_in) && BufferUtil.put(_in,_out) > 0)     progress=true;
+    if (!BufferUtil.isEmpty(_out) && _endp.flush(_out) > 0)     progress=true;
+    _out.compact().flip();
+    if (!!BufferUtil.isEmpty(_out) && _endp.isInputShutdown())     _endp.shutdownOutput();
   }
   return this;
 }
