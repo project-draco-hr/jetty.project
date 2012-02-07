@@ -1,0 +1,30 @@
+{
+  final String path="/foo";
+  final CountDownLatch handlerLatch=new CountDownLatch(1);
+  start(new AbstractHandler(){
+    @Override public void handle(    String target,    Request request,    HttpServletRequest httpRequest,    HttpServletResponse httpResponse) throws IOException, ServletException {
+      request.setHandled(true);
+      Assert.assertEquals(path,target);
+      Assert.assertEquals(httpRequest.getRequestURI(),path);
+      Assert.assertEquals(httpRequest.getHeader("host"),"localhost:" + connector.getLocalPort());
+      handlerLatch.countDown();
+    }
+  }
+,null);
+  Headers headers=new Headers();
+  headers.put("method","GET");
+  headers.put("url","http://localhost:" + connector.getLocalPort() + path);
+  headers.put("version","HTTP/1.1");
+  final CountDownLatch replyLatch=new CountDownLatch(1);
+  session.syn((short)2,new SynInfo(headers,true),new Stream.FrameListener.Adapter(){
+    @Override public void onReply(    Stream stream,    ReplyInfo replyInfo){
+      Assert.assertTrue(replyInfo.isClose());
+      Headers replyHeaders=replyInfo.getHeaders();
+      Assert.assertTrue(replyHeaders.get("status").value().contains("200"));
+      replyLatch.countDown();
+    }
+  }
+);
+  Assert.assertTrue(handlerLatch.await(5,TimeUnit.SECONDS));
+  Assert.assertTrue(replyLatch.await(5,TimeUnit.SECONDS));
+}
