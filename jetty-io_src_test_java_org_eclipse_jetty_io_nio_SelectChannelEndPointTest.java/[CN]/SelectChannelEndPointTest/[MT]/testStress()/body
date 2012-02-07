@@ -4,12 +4,14 @@
   SocketChannel server=_connector.accept();
   server.configureBlocking(false);
   _manager.register(server);
-  int writes=100000;
-  final byte[] bytes="HelloWorld".getBytes("UTF-8");
+  int writes=10000;
+  final byte[] bytes="HelloWorld-".getBytes(StringUtil.__UTF8_CHARSET);
+  byte[] count="0\n".getBytes(StringUtil.__UTF8_CHARSET);
   final CountDownLatch latch=new CountDownLatch(writes);
   final InputStream in=new BufferedInputStream(client.getInputStream());
   final long start=System.currentTimeMillis();
   client.getOutputStream().write(bytes);
+  client.getOutputStream().write(count);
   client.getOutputStream().flush();
   new Thread(){
     public void run(){
@@ -20,6 +22,8 @@
             assertTrue(b > 0);
             assertEquals(0xff & b0,b);
           }
+          int b=in.read();
+          while (b > 0 && b != '\n')           b=in.read();
           latch.countDown();
         }
       }
@@ -31,8 +35,12 @@
     }
   }
 .start();
+  PrintStream print=new PrintStream(client.getOutputStream());
   for (int i=1; i < writes; i++) {
-    client.getOutputStream().write(bytes);
+    print.write(bytes);
+    print.print(i);
+    print.print('\n');
+    if (i % 100 == 0)     print.flush();
     Thread.yield();
   }
   client.getOutputStream().flush();

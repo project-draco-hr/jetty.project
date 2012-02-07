@@ -4,8 +4,8 @@
   try {
     buffer.compact();
     result=_engine.unwrap(_inbound,buffer);
-    if (_logger.isDebugEnabled())     _logger.debug("{} unwrap {} {} consumed={} produced={}",_session,result.getStatus(),result.getHandshakeStatus(),result.bytesConsumed(),result.bytesProduced());
     buffer.flip();
+    if (_logger.isDebugEnabled())     _logger.debug("{} unwrap {} {} consumed={} produced={}",_session,result.getStatus(),result.getHandshakeStatus(),result.bytesConsumed(),result.bytesProduced());
   }
  catch (  SSLException e) {
     _logger.debug(String.valueOf(_endp),e);
@@ -14,8 +14,9 @@
   }
 switch (result.getStatus()) {
 case BUFFER_UNDERFLOW:
-    if (_endp.isInputShutdown())     _inbound.clear();
-  break;
+    _inbound.compact().flip();
+  if (_endp.isInputShutdown())   _inbound.clear().limit(0);
+break;
 case BUFFER_OVERFLOW:
 _logger.debug("{} unwrap {} {}->{}",_session,result.getStatus(),_inbound,buffer);
 break;
