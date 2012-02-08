@@ -1,0 +1,35 @@
+{
+switch (state) {
+case INITIAL:
+{
+      if (headers.isEmpty())       throw new HttpException(HttpStatus.BAD_REQUEST_400);
+      beginRequest(headers);
+      break;
+    }
+case REQUEST:
+{
+    for (    Headers.Header header : headers) {
+      String name=header.name();
+switch (name) {
+case "method":
+case "version":
+        continue;
+case "url":
+      String host=parseHost(header.value());
+    if (host != null)     parsedHeader(new ByteArrayBuffer("host"),new ByteArrayBuffer(host));
+  break;
+case "connection":
+case "keep-alive":
+case "host":
+continue;
+default :
+String value=header.value();
+logger.debug("HTTP {}: {}",name,value);
+parsedHeader(new ByteArrayBuffer(name),new ByteArrayBuffer(value));
+break;
+}
+}
+break;
+}
+}
+}

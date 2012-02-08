@@ -1,13 +1,9 @@
 {
-  logger.debug("Received {}",headersInfo);
-  Boolean dataSeen=(Boolean)stream.getAttribute("data");
-  if (dataSeen != null && dataSeen)   return;
+  logger.debug("Received {} on {}",headersInfo,stream);
   try {
-    processRequest(stream,headersInfo.getHeaders());
-    if (headersInfo.isClose()) {
-      forwardHeadersComplete(stream);
-      forwardRequestComplete(stream);
-    }
+    HTTPSPDYAsyncConnection connection=(HTTPSPDYAsyncConnection)stream.getAttribute("connection");
+    connection.headers(headersInfo.getHeaders());
+    if (headersInfo.isClose())     connection.endRequest();
   }
  catch (  HttpException x) {
     respond(stream,x.getStatus());

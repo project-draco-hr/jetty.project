@@ -1,22 +1,19 @@
 {
   final String path="/foo";
-  final String query="p=1";
-  final String uri=path + "?" + query;
   final CountDownLatch handlerLatch=new CountDownLatch(1);
   start(new AbstractHandler(){
     @Override public void handle(    String target,    Request request,    HttpServletRequest httpRequest,    HttpServletResponse httpResponse) throws IOException, ServletException {
       request.setHandled(true);
-      Assert.assertEquals("GET",httpRequest.getMethod());
+      Assert.assertEquals("HEAD",httpRequest.getMethod());
       Assert.assertEquals(path,target);
       Assert.assertEquals(path,httpRequest.getRequestURI());
-      Assert.assertEquals(query,httpRequest.getQueryString());
       handlerLatch.countDown();
     }
   }
 ,null);
   Headers headers=new Headers();
-  headers.put("method","GET");
-  headers.put("url","http://localhost:" + connector.getLocalPort() + uri);
+  headers.put("method","HEAD");
+  headers.put("url","http://localhost:" + connector.getLocalPort() + path);
   headers.put("version","HTTP/1.1");
   final CountDownLatch replyLatch=new CountDownLatch(1);
   session.syn(SPDY.V2,new SynInfo(headers,true),new Stream.FrameListener.Adapter(){

@@ -1,0 +1,38 @@
+{
+switch (state) {
+case CONTENT:
+{
+      Buffer buffer=this.buffer;
+      logger.debug("Consuming {} content bytes",buffer.length());
+      if (buffer.length() > 0)       return buffer;
+      while (true) {
+        connection.fill();
+        if (state != State.CONTENT) {
+          return consumeContent(maxIdleTime);
+        }
+        buffer=this.buffer;
+        logger.debug("Consuming {} content bytes",buffer.length());
+        if (buffer.length() > 0)         return buffer;
+        logger.debug("Waiting {} ms for content bytes",maxIdleTime);
+        long begin=System.nanoTime();
+        boolean expired=!connection.getEndPoint().blockReadable(maxIdleTime);
+        if (expired) {
+          stream.getSession().goAway(stream.getVersion());
+          throw new EOFException("read timeout");
+        }
+        logger.debug("Waited {} ms for content bytes",TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - begin));
+      }
+    }
+case FINAL:
+{
+    Buffer buffer=this.buffer;
+    logger.debug("Consuming {} content bytes",buffer.length());
+    if (buffer.length() > 0)     return buffer;
+    return null;
+  }
+default :
+{
+  throw new IllegalStateException();
+}
+}
+}

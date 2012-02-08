@@ -1,26 +1,19 @@
 {
-  logger.debug("Received {}",synInfo);
+  logger.debug("Received {} on {}",synInfo,stream);
   try {
-    HTTPSPDYConnection connection=new HTTPSPDYConnection(connector,new HTTPSPDYAsyncEndPoint(stream),connector.getServer(),stream);
+    HTTPSPDYAsyncConnection connection=new HTTPSPDYAsyncConnection(connector,new HTTPSPDYAsyncEndPoint(stream),connector.getServer(),(SPDYAsyncConnection)endPoint.getConnection(),stream);
     stream.setAttribute("connection",connection);
-    stream.setAttribute(ParseStatus.class.getName(),ParseStatus.INITIAL);
     Headers headers=synInfo.getHeaders();
+    connection.beginRequest(headers);
     if (headers.isEmpty()) {
       return this;
     }
  else {
-      boolean processed=processRequest(stream,headers);
-      if (!processed) {
-        respond(stream,HttpStatus.BAD_REQUEST_400);
-        return null;
-      }
       if (synInfo.isClose()) {
-        forwardHeadersComplete(stream);
-        forwardRequestComplete(stream);
+        connection.endRequest();
         return null;
       }
  else {
-        if (headers.names().contains("expect"))         forwardHeadersComplete(stream);
         return this;
       }
     }
