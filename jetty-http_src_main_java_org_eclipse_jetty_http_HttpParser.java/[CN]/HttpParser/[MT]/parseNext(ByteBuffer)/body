@@ -1,0 +1,483 @@
+{
+  try {
+    int progress=0;
+    if (_state == STATE_END)     return false;
+    if (_state == STATE_CONTENT && _contentPosition == _contentLength) {
+      _state=STATE_END;
+      _handler.messageComplete(_contentPosition);
+      return true;
+    }
+    byte ch;
+    int last=_state;
+    int start=-1;
+    int length=-1;
+    while (_state < STATE_END && buffer.hasRemaining()) {
+      if (last != _state) {
+        progress++;
+        last=_state;
+      }
+      ch=buffer.get();
+      if (_eol == HttpTokens.CARRIAGE_RETURN && ch == HttpTokens.LINE_FEED) {
+        _eol=HttpTokens.LINE_FEED;
+        continue;
+      }
+      _eol=0;
+switch (_state) {
+case STATE_START:
+        _contentLength=HttpTokens.UNKNOWN_CONTENT;
+      _header=null;
+    if (ch > HttpTokens.SPACE || ch < 0) {
+      start=buffer.position() - 1;
+      _state=_requestHandler != null ? STATE_METHOD : STATE_RESPONSE_VERSION;
+    }
+  break;
+case STATE_METHOD:
+if (ch == HttpTokens.SPACE) {
+  HttpMethods method=HttpMethods.CACHE.get(buffer,start,buffer.position() - start - 1);
+  _field0=method == null ? BufferUtil.toString(buffer,start,buffer.position() - start - 1,StringUtil.__ISO_8859_1_CHARSET) : method.toString();
+  _state=STATE_SPACE1;
+}
+ else if (ch < HttpTokens.SPACE && ch >= 0) {
+  throw new HttpException(HttpStatus.BAD_REQUEST_400);
+}
+break;
+case STATE_RESPONSE_VERSION:
+if (ch == HttpTokens.SPACE) {
+int l=buffer.position() - start;
+HttpVersions v=HttpVersions.CACHE.get(buffer,start,l);
+_field0=v == null ? BufferUtil.toString(buffer,start,l,StringUtil.__ISO_8859_1_CHARSET) : v.toString();
+start=-1;
+_persistent=HttpVersions.HTTP_1_1 == v;
+_state=STATE_SPACE1;
+}
+ else if (ch < HttpTokens.SPACE && ch >= 0) {
+throw new HttpException(HttpStatus.BAD_REQUEST_400);
+}
+break;
+case STATE_SPACE1:
+if (ch > HttpTokens.SPACE || ch < 0) {
+if (_responseHandler != null) {
+_state=STATE_STATUS;
+_responseStatus=ch - '0';
+}
+ else {
+_state=STATE_URI;
+start=buffer.position() - 1;
+}
+}
+ else if (ch < HttpTokens.SPACE) {
+throw new HttpException(HttpStatus.BAD_REQUEST_400);
+}
+break;
+case STATE_STATUS:
+if (ch == HttpTokens.SPACE) {
+_state=STATE_SPACE2;
+}
+ else if (ch >= '0' && ch <= '9') {
+_responseStatus=_responseStatus * 10 + (ch - '0');
+}
+ else if (ch < HttpTokens.SPACE && ch >= 0) {
+_responseHandler.startResponse(_field0,_responseStatus,null);
+_eol=ch;
+_state=STATE_HEADER;
+_field0=_field1=null;
+}
+ else {
+throw new IllegalStateException();
+}
+break;
+case STATE_URI:
+if (ch == HttpTokens.SPACE) {
+_field1=BufferUtil.toString(buffer,start,buffer.position() - start - 1,StringUtil.__ISO_8859_1_CHARSET);
+start=-1;
+_state=STATE_SPACE2;
+}
+ else if (ch < HttpTokens.SPACE && ch >= 0) {
+_field1=BufferUtil.toString(buffer,start,buffer.position() - start - 1,StringUtil.__ISO_8859_1_CHARSET);
+start=-1;
+_requestHandler.startRequest(_field0,_field1,null);
+_persistent=false;
+_state=STATE_SEEKING_EOF;
+_handler.headerComplete();
+_handler.messageComplete(_contentPosition);
+}
+break;
+case STATE_SPACE2:
+if (ch > HttpTokens.SPACE || ch < 0) {
+_state=_requestHandler != null ? STATE_REQUEST_VERSION : STATE_REASON;
+start=buffer.position() - 1;
+}
+ else if (ch < HttpTokens.SPACE) {
+if (_responseHandler != null) {
+_responseHandler.startResponse(_field0,_responseStatus,null);
+_eol=ch;
+_state=STATE_HEADER;
+_field0=_field1=null;
+}
+ else {
+_requestHandler.startRequest(_field0,_field1,null);
+_persistent=false;
+_state=STATE_SEEKING_EOF;
+_handler.headerComplete();
+_handler.messageComplete(_contentPosition);
+}
+}
+break;
+case STATE_REQUEST_VERSION:
+if (ch == HttpTokens.CARRIAGE_RETURN || ch == HttpTokens.LINE_FEED) {
+HttpVersions v=HttpVersions.CACHE.get(buffer,start,buffer.position() - start - 1);
+String version=v == null ? BufferUtil.toString(buffer,start,buffer.position() - start - 1,StringUtil.__ISO_8859_1_CHARSET) : v.toString();
+start=-1;
+_requestHandler.startRequest(_field0,_field1,version);
+_eol=ch;
+_persistent=HttpVersions.HTTP_1_1 == v;
+_state=STATE_HEADER;
+_field0=_field1=null;
+continue;
+}
+break;
+case STATE_REASON:
+if (ch == HttpTokens.CARRIAGE_RETURN || ch == HttpTokens.LINE_FEED) {
+String reason=BufferUtil.toString(buffer,start,buffer.position() - start,StringUtil.__ISO_8859_1_CHARSET);
+start=-1;
+_responseHandler.startResponse(_field0,_responseStatus,reason);
+_eol=ch;
+_state=STATE_HEADER;
+_field0=_field1=null;
+continue;
+}
+break;
+case STATE_HEADER:
+switch (ch) {
+case HttpTokens.COLON:
+case HttpTokens.SPACE:
+case HttpTokens.TAB:
+{
+length=-1;
+_state=STATE_HEADER_VALUE;
+break;
+}
+default :
+{
+if (_field0 != null || _field1 != null) {
+if (_header != null) {
+switch (_header) {
+case CONTENT_LENGTH:
+if (_contentLength != HttpTokens.CHUNKED_CONTENT && _responseStatus != 304 && _responseStatus != 204 && (_responseStatus < 100 || _responseStatus >= 200)) {
+try {
+_contentLength=Long.parseLong(_field1);
+}
+ catch (NumberFormatException e) {
+LOG.ignore(e);
+throw new HttpException(HttpStatus.BAD_REQUEST_400);
+}
+if (_contentLength <= 0) _contentLength=HttpTokens.NO_CONTENT;
+}
+break;
+case TRANSFER_ENCODING:
+if (_value == HttpHeaderValues.CHUNKED) _contentLength=HttpTokens.CHUNKED_CONTENT;
+ else {
+if (_field1.endsWith(HttpHeaderValues.CHUNKED.toString())) _contentLength=HttpTokens.CHUNKED_CONTENT;
+ else if (_field1.indexOf(HttpHeaderValues.CHUNKED.toString()) >= 0) throw new HttpException(400,null);
+}
+break;
+case CONNECTION:
+switch (_value) {
+case CLOSE:
+_persistent=false;
+break;
+case KEEP_ALIVE:
+_persistent=true;
+break;
+default :
+{
+for (String v : _field1.toString().split(",")) {
+switch (HttpHeaderValues.CACHE.get(v.trim())) {
+case CLOSE:
+_persistent=false;
+break;
+case KEEP_ALIVE:
+_persistent=true;
+break;
+}
+}
+break;
+}
+}
+}
+}
+_handler.parsedHeader(_field0,_field0);
+}
+_field0=_field1=null;
+_header=null;
+_value=null;
+if (ch == HttpTokens.CARRIAGE_RETURN || ch == HttpTokens.LINE_FEED) {
+_eol=ch;
+_contentPosition=0;
+if (_contentLength == HttpTokens.UNKNOWN_CONTENT) {
+if (_responseStatus == 0 || _responseStatus == 304 || _responseStatus == 204 || _responseStatus < 200) _contentLength=HttpTokens.NO_CONTENT;
+ else _contentLength=HttpTokens.EOF_CONTENT;
+}
+switch (_contentLength > Integer.MAX_VALUE ? Integer.MAX_VALUE : (int)_contentLength) {
+case HttpTokens.EOF_CONTENT:
+_state=STATE_EOF_CONTENT;
+_handler.headerComplete();
+break;
+case HttpTokens.CHUNKED_CONTENT:
+_state=STATE_CHUNKED_CONTENT;
+_handler.headerComplete();
+break;
+case HttpTokens.NO_CONTENT:
+_handler.headerComplete();
+_state=_persistent || (_responseStatus >= 100 && _responseStatus < 200) ? STATE_END : STATE_SEEKING_EOF;
+_handler.messageComplete(_contentPosition);
+break;
+default :
+_state=STATE_CONTENT;
+_handler.headerComplete();
+break;
+}
+}
+ else {
+start=buffer.position() - 1;
+length=1;
+_state=STATE_HEADER_NAME;
+}
+}
+}
+break;
+case STATE_HEADER_NAME:
+switch (ch) {
+case HttpTokens.CARRIAGE_RETURN:
+case HttpTokens.LINE_FEED:
+_eol=ch;
+_header=HttpHeaders.CACHE.get(buffer,start,length);
+_field0=_header == null ? BufferUtil.toString(buffer,start,length,StringUtil.__ISO_8859_1_CHARSET) : _header.toString();
+start=length=-1;
+_state=STATE_HEADER;
+break;
+case HttpTokens.COLON:
+_header=HttpHeaders.CACHE.get(buffer,start,length);
+_field0=_header == null ? BufferUtil.toString(buffer,start,length,StringUtil.__ISO_8859_1_CHARSET) : _header.toString();
+start=length=-1;
+_state=STATE_HEADER_VALUE;
+break;
+case HttpTokens.SPACE:
+case HttpTokens.TAB:
+break;
+default :
+{
+length=buffer.position() - start;
+_state=STATE_HEADER_IN_NAME;
+}
+}
+break;
+case STATE_HEADER_IN_NAME:
+switch (ch) {
+case HttpTokens.CARRIAGE_RETURN:
+case HttpTokens.LINE_FEED:
+_eol=ch;
+_header=HttpHeaders.CACHE.get(buffer,start,length);
+_field0=_header == null ? BufferUtil.toString(buffer,start,length,StringUtil.__ISO_8859_1_CHARSET) : _header.toString();
+start=length=-1;
+_state=STATE_HEADER;
+break;
+case HttpTokens.COLON:
+_header=HttpHeaders.CACHE.get(buffer,start,length);
+_field0=_header == null ? BufferUtil.toString(buffer,start,length,StringUtil.__ISO_8859_1_CHARSET) : _header.toString();
+start=length=-1;
+_state=STATE_HEADER_VALUE;
+break;
+case HttpTokens.SPACE:
+case HttpTokens.TAB:
+_state=STATE_HEADER_NAME;
+break;
+default :
+length++;
+}
+break;
+case STATE_HEADER_VALUE:
+switch (ch) {
+case HttpTokens.CARRIAGE_RETURN:
+case HttpTokens.LINE_FEED:
+_eol=ch;
+if (length > 0) {
+if (_field1 != null) {
+_value=null;
+_field1+=" " + BufferUtil.toString(buffer,start,length,StringUtil.__ISO_8859_1_CHARSET);
+}
+ else if (HttpHeaderValues.hasKnownValues(_header)) {
+_value=HttpHeaderValues.CACHE.get(buffer,start,length);
+_field1=_value.toString();
+}
+ else {
+_field1=BufferUtil.toString(buffer,start,length,StringUtil.__ISO_8859_1_CHARSET);
+}
+start=length=-1;
+}
+_state=STATE_HEADER;
+break;
+case HttpTokens.SPACE:
+case HttpTokens.TAB:
+break;
+default :
+{
+if (start == -1) start=buffer.position() - 1;
+length=buffer.position() - start;
+_state=STATE_HEADER_IN_VALUE;
+}
+}
+break;
+case STATE_HEADER_IN_VALUE:
+switch (ch) {
+case HttpTokens.CARRIAGE_RETURN:
+case HttpTokens.LINE_FEED:
+_eol=ch;
+if (length > 0) {
+if (_field1 != null) {
+_value=null;
+_field1+=" " + BufferUtil.toString(buffer,start,length,StringUtil.__ISO_8859_1_CHARSET);
+}
+ else if (HttpHeaderValues.hasKnownValues(_header)) {
+_value=HttpHeaderValues.CACHE.get(buffer,start,length);
+_field1=_value.toString();
+}
+ else {
+_field1=BufferUtil.toString(buffer,start,length,StringUtil.__ISO_8859_1_CHARSET);
+}
+start=length=-1;
+}
+_state=STATE_HEADER;
+break;
+case HttpTokens.SPACE:
+case HttpTokens.TAB:
+_state=STATE_HEADER_VALUE;
+break;
+default :
+length++;
+}
+break;
+}
+}
+if (_responseStatus > 0 && _headResponse) {
+_state=_persistent || (_responseStatus >= 100 && _responseStatus < 200) ? STATE_END : STATE_SEEKING_EOF;
+_handler.messageComplete(_contentLength);
+}
+last=_state;
+ByteBuffer chunk;
+while (_state > STATE_END && buffer.hasRemaining()) {
+if (last != _state) {
+progress++;
+last=_state;
+}
+if (_eol == HttpTokens.CARRIAGE_RETURN && buffer.get(buffer.position()) == HttpTokens.LINE_FEED) {
+_eol=buffer.get();
+continue;
+}
+_eol=0;
+switch (_state) {
+case STATE_EOF_CONTENT:
+chunk=buffer.asReadOnlyBuffer();
+_contentPosition+=chunk.remaining();
+buffer.position(buffer.position() + chunk.remaining());
+_handler.content(chunk);
+break;
+case STATE_CONTENT:
+{
+long remaining=_contentLength - _contentPosition;
+if (remaining == 0) {
+_state=_persistent ? STATE_END : STATE_SEEKING_EOF;
+_handler.messageComplete(_contentPosition);
+}
+ else {
+chunk=buffer.asReadOnlyBuffer();
+if (chunk.remaining() > remaining) {
+chunk.limit(chunk.position() + (int)remaining);
+}
+_contentPosition+=chunk.remaining();
+buffer.position(buffer.position() + chunk.remaining());
+_handler.content(chunk);
+if (_contentPosition == _contentLength) {
+_state=_persistent ? STATE_END : STATE_SEEKING_EOF;
+_handler.messageComplete(_contentPosition);
+}
+}
+break;
+}
+case STATE_CHUNKED_CONTENT:
+{
+ch=buffer.get(buffer.position());
+if (ch == HttpTokens.CARRIAGE_RETURN || ch == HttpTokens.LINE_FEED) _eol=buffer.get();
+ else if (ch <= HttpTokens.SPACE) buffer.get();
+ else {
+_chunkLength=0;
+_chunkPosition=0;
+_state=STATE_CHUNK_SIZE;
+}
+break;
+}
+case STATE_CHUNK_SIZE:
+{
+ch=buffer.get();
+if (ch == HttpTokens.CARRIAGE_RETURN || ch == HttpTokens.LINE_FEED) {
+_eol=ch;
+if (_chunkLength == 0) {
+if (_eol == HttpTokens.CARRIAGE_RETURN && buffer.hasRemaining() && buffer.get(buffer.position()) == HttpTokens.LINE_FEED) _eol=buffer.get();
+_state=_persistent ? STATE_END : STATE_SEEKING_EOF;
+_handler.messageComplete(_contentPosition);
+}
+ else _state=STATE_CHUNK;
+}
+ else if (ch <= HttpTokens.SPACE || ch == HttpTokens.SEMI_COLON) _state=STATE_CHUNK_PARAMS;
+ else if (ch >= '0' && ch <= '9') _chunkLength=_chunkLength * 16 + (ch - '0');
+ else if (ch >= 'a' && ch <= 'f') _chunkLength=_chunkLength * 16 + (10 + ch - 'a');
+ else if (ch >= 'A' && ch <= 'F') _chunkLength=_chunkLength * 16 + (10 + ch - 'A');
+ else throw new IOException("bad chunk char: " + ch);
+break;
+}
+case STATE_CHUNK_PARAMS:
+{
+ch=buffer.get();
+if (ch == HttpTokens.CARRIAGE_RETURN || ch == HttpTokens.LINE_FEED) {
+_eol=ch;
+if (_chunkLength == 0) {
+if (_eol == HttpTokens.CARRIAGE_RETURN && buffer.hasRemaining() && buffer.get(buffer.position()) == HttpTokens.LINE_FEED) _eol=buffer.get();
+_state=_persistent ? STATE_END : STATE_SEEKING_EOF;
+_handler.messageComplete(_contentPosition);
+}
+ else _state=STATE_CHUNK;
+}
+break;
+}
+case STATE_CHUNK:
+{
+int remaining=_chunkLength - _chunkPosition;
+if (remaining == 0) {
+_state=STATE_CHUNKED_CONTENT;
+}
+ else {
+chunk=buffer.asReadOnlyBuffer();
+if (chunk.remaining() > remaining) chunk.limit(chunk.position() + remaining);
+remaining=chunk.remaining();
+_contentPosition+=remaining;
+_chunkPosition+=remaining;
+buffer.position(buffer.position() + remaining);
+_handler.content(chunk);
+_handler.content(chunk);
+}
+}
+case STATE_SEEKING_EOF:
+{
+buffer.clear().limit(0);
+break;
+}
+}
+}
+return progress > 0;
+}
+ catch (HttpException e) {
+_persistent=false;
+_state=STATE_SEEKING_EOF;
+throw e;
+}
+}
