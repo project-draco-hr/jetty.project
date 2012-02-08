@@ -1,0 +1,36 @@
+{
+  logger.debug("Received {}",synInfo);
+  try {
+    HTTPSPDYConnection connection=new HTTPSPDYConnection(connector,new HTTPSPDYAsyncEndPoint(stream),connector.getServer(),stream);
+    stream.setAttribute("connection",connection);
+    stream.setAttribute(ParseStatus.class.getName(),ParseStatus.INITIAL);
+    Headers headers=synInfo.getHeaders();
+    if (headers.isEmpty()) {
+      return this;
+    }
+ else {
+      boolean processed=processRequest(stream,headers);
+      if (!processed) {
+        respond(stream,HttpStatus.BAD_REQUEST_400);
+        return null;
+      }
+      if (synInfo.isClose()) {
+        forwardHeadersComplete(stream);
+        forwardRequestComplete(stream);
+        return null;
+      }
+ else {
+        if (headers.names().contains("expect"))         forwardHeadersComplete(stream);
+        return this;
+      }
+    }
+  }
+ catch (  HttpException x) {
+    respond(stream,x.getStatus());
+    return null;
+  }
+catch (  IOException x) {
+    close(stream);
+    return null;
+  }
+}
