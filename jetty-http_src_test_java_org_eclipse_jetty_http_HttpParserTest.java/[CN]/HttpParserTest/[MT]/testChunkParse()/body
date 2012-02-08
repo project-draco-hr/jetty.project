@@ -1,12 +1,8 @@
 {
-  StringEndPoint io=new StringEndPoint();
-  io.setInput("GET /chunk HTTP/1.0\015\012" + "Header1: value1\015\012" + "Transfer-Encoding: chunked\015\012"+ "\015\012"+ "a;\015\012"+ "0123456789\015\012"+ "1a\015\012"+ "ABCDEFGHIJKLMNOPQRSTUVWXYZ\015\012"+ "0\015\012");
-  ByteBuffer buffer=BufferUtil.allocate(4096);
-  ByteBuffer content=BufferUtil.allocate(8192);
-  SimpleBuffers buffers=new SimpleBuffers(buffer,content);
+  ByteBuffer buffer=BufferUtil.toBuffer("GET /chunk HTTP/1.0\015\012" + "Header1: value1\015\012" + "Transfer-Encoding: chunked\015\012"+ "\015\012"+ "a;\015\012"+ "0123456789\015\012"+ "1a\015\012"+ "ABCDEFGHIJKLMNOPQRSTUVWXYZ\015\012"+ "0\015\012");
   Handler handler=new Handler();
-  HttpParser parser=new HttpParser(buffers,io,handler);
-  parser.parse();
+  HttpParser parser=new HttpParser((HttpParser.RequestHandler)handler);
+  parser.parse(buffer);
   assertEquals("GET",f0);
   assertEquals("/chunk",f1);
   assertEquals("HTTP/1.0",f2);
