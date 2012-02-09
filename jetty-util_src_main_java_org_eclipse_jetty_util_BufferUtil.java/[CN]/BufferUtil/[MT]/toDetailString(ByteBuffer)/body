@@ -1,0 +1,47 @@
+{
+  StringBuilder buf=new StringBuilder();
+  buf.append("[p=");
+  buf.append(buffer.position());
+  buf.append(",l=");
+  buf.append(buffer.limit());
+  buf.append(",c=");
+  buf.append(buffer.capacity());
+  buf.append("]={");
+  for (int i=0; i < buffer.position(); i++) {
+    char c=(char)buffer.get(i);
+    if (c >= ' ')     buf.append(c);
+ else     if (c == '\r' || c == '\n')     buf.append('|');
+ else     buf.append('?');
+    if (i == 16 && buffer.position() > 32) {
+      buf.append("...");
+      i=buffer.position() - 16;
+    }
+  }
+  buf.append("}{");
+  for (int i=buffer.position(); i < buffer.limit(); i++) {
+    char c=(char)buffer.get(i);
+    if (c >= ' ')     buf.append(c);
+ else     if (c == '\r' || c == '\n')     buf.append('|');
+ else     buf.append('?');
+    if (i == buffer.position() + 16 && buffer.limit() > buffer.position() + 32) {
+      buf.append("...");
+      i=buffer.limit() - 16;
+    }
+  }
+  buf.append("}{");
+  int limit=buffer.limit();
+  buffer.limit(buffer.capacity());
+  for (int i=limit; i < buffer.capacity(); i++) {
+    char c=(char)buffer.get(i);
+    if (c >= ' ')     buf.append(c);
+ else     if (c == '\r' || c == '\n')     buf.append('|');
+ else     buf.append('?');
+    if (i == limit + 16 && buffer.capacity() > limit + 32) {
+      buf.append("...");
+      i=buffer.capacity() - 16;
+    }
+  }
+  buffer.limit(limit);
+  buf.append("}");
+  return buf.toString();
+}
