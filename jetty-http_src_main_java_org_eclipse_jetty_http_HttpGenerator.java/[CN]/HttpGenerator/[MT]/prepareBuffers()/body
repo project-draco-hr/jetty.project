@@ -1,17 +1,17 @@
 {
   if (!_bufferChunked) {
-    if (!_bypass && _content != null && _content.length() > 0 && _buffer != null && _buffer.space() > 0) {
+    if (!_bypass && _content != null && _content.remaining() > 0 && _buffer != null && _buffer.space() > 0) {
       int len=_buffer.put(_content);
       _content.skip(len);
-      if (_content.length() == 0)       _content=null;
+      if (_content.remaining() == 0)       _content=null;
     }
     if (_contentLength == HttpTokens.CHUNKED_CONTENT) {
-      if (_bypass && (_buffer == null || _buffer.length() == 0) && _content != null) {
-        int size=_content.length();
+      if (_bypass && (_buffer == null || _buffer.remaining() == 0) && _content != null) {
+        int size=_content.remaining();
         _bufferChunked=true;
         if (_header == null)         _header=_buffers.getHeader();
         if (_needCRLF) {
-          if (_header.length() > 0)           throw new IllegalStateException("EOC");
+          if (_header.remaining() > 0)           throw new IllegalStateException("EOC");
           _header.put(HttpTokens.CRLF);
           _needCRLF=false;
         }
@@ -20,7 +20,7 @@
         _needCRLF=true;
       }
  else       if (_buffer != null) {
-        int size=_buffer.length();
+        int size=_buffer.remaining();
         if (size > 0) {
           _bufferChunked=true;
           if (_buffer.getIndex() == CHUNK_SPACE) {
@@ -36,7 +36,7 @@
  else {
             if (_header == null)             _header=_buffers.getHeader();
             if (_needCRLF) {
-              if (_header.length() > 0)               throw new IllegalStateException("EOC");
+              if (_header.remaining() > 0)               throw new IllegalStateException("EOC");
               _header.put(HttpTokens.CRLF);
               _needCRLF=false;
             }
@@ -47,7 +47,7 @@
  else           _needCRLF=true;
         }
       }
-      if (_needEOC && (_content == null || _content.length() == 0)) {
+      if (_needEOC && (_content == null || _content.remaining() == 0)) {
         if (_needCRLF) {
           if (_buffer == null && _header.space() >= 2) {
             _header.put(HttpTokens.CRLF);
@@ -77,5 +77,5 @@
       }
     }
   }
-  if (_content != null && _content.length() == 0)   _content=null;
+  if (_content != null && _content.remaining() == 0)   _content=null;
 }

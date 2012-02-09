@@ -1,0 +1,34 @@
+{
+  if (_noContent)   throw new IllegalStateException("NO CONTENT");
+  if (_last || _state == STATE_END) {
+    LOG.warn("Ignoring extra content {}",content);
+    content.clear();
+    return;
+  }
+  _last=last;
+  if (_content != null && _content.hasRemaining() || _bufferChunked) {
+    if (_endp.isOutputShutdown())     throw new EofException();
+    flushBuffer();
+    if (_content != null && _content.hasRemaining()) {
+      ByteBuffer nc=_buffers.getBuffer(_content.remaining() + content.length());
+      nc.put(_content);
+      nc.put(content);
+      content=nc;
+    }
+  }
+  _content=content;
+  _contentWritten+=content.length();
+  if (_head) {
+    content.clear();
+    _content=null;
+  }
+ else   if (_endp != null && (_buffer == null || _buffer.remaining() == 0) && _content.remaining() > 0 && (_last || isCommitted() && _content.remaining() > 1024)) {
+    _bypass=true;
+  }
+ else   if (!_bufferChunked) {
+    if (_buffer == null)     _buffer=_buffers.getBuffer();
+    int len=_buffer.put(_content);
+    _content.skip(len);
+    if (_content.remaining() == 0)     _content=null;
+  }
+}

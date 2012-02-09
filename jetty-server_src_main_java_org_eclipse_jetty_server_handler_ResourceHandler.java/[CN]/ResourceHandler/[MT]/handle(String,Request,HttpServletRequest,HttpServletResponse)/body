@@ -1,8 +1,8 @@
 {
   if (baseRequest.isHandled())   return;
   boolean skipContentBody=false;
-  if (!HttpMethods.GET.equals(request.getMethod())) {
-    if (!HttpMethods.HEAD.equals(request.getMethod())) {
+  if (!HttpMethod.GET.equals(request.getMethod())) {
+    if (!HttpMethod.HEAD.equals(request.getMethod())) {
       super.handle(target,baseRequest,request,response);
       return;
     }
@@ -40,16 +40,16 @@
   }
   long last_modified=resource.lastModified();
   if (last_modified > 0) {
-    long if_modified=request.getDateHeader(HttpHeaders.IF_MODIFIED_SINCE);
+    long if_modified=request.getDateHeader(HttpHeader.IF_MODIFIED_SINCE);
     if (if_modified > 0 && last_modified / 1000 <= if_modified / 1000) {
       response.setStatus(HttpStatus.NOT_MODIFIED_304);
       return;
     }
   }
-  Buffer mime=_mimeTypes.getMimeByExtension(resource.toString());
+  ByteBuffer mime=_mimeTypes.getMimeByExtension(resource.toString());
   if (mime == null)   mime=_mimeTypes.getMimeByExtension(request.getPathInfo());
   doResponseHeaders(response,resource,mime != null ? mime.toString() : null);
-  response.setDateHeader(HttpHeaders.LAST_MODIFIED,last_modified);
+  response.setDateHeader(HttpHeader.LAST_MODIFIED,last_modified);
   if (skipContentBody)   return;
   OutputStream out=null;
   try {

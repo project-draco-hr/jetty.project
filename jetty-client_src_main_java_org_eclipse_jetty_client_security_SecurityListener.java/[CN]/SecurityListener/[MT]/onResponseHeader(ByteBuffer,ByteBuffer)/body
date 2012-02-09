@@ -1,0 +1,29 @@
+{
+  if (LOG.isDebugEnabled())   LOG.debug("SecurityListener:Header: " + name.toString() + " / "+ value.toString());
+  if (!isDelegatingResponses()) {
+    int header=HttpHeader.CACHE.getOrdinal(name);
+switch (header) {
+case HttpHeader.WWW_AUTHENTICATE_ORDINAL:
+      String authString=value.toString();
+    String type=scrapeAuthenticationType(authString);
+  Map<String,String> details=scrapeAuthenticationDetails(authString);
+String pathSpec="/";
+RealmResolver realmResolver=_destination.getHttpClient().getRealmResolver();
+if (realmResolver == null) {
+break;
+}
+Realm realm=realmResolver.getRealm(details.get("realm"),_destination,pathSpec);
+if (realm == null) {
+LOG.warn("Unknown Security Realm: " + details.get("realm"));
+}
+ else if ("digest".equalsIgnoreCase(type)) {
+_destination.addAuthorization("/",new DigestAuthentication(realm,details));
+}
+ else if ("basic".equalsIgnoreCase(type)) {
+_destination.addAuthorization(pathSpec,new BasicAuthentication(realm));
+}
+break;
+}
+}
+super.onResponseHeader(name,value);
+}

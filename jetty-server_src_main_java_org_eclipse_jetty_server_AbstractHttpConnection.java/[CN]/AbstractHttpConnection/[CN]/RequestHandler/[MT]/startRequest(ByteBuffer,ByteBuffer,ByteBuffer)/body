@@ -1,0 +1,42 @@
+{
+  uri=uri.asImmutableBuffer();
+  _host=false;
+  _expect=false;
+  _expect100Continue=false;
+  _expect102Processing=false;
+  _delayedHandling=false;
+  _charset=null;
+  if (_request.getTimeStamp() == 0)   _request.setTimeStamp(System.currentTimeMillis());
+  _request.setMethod(method.toString());
+  try {
+    _head=false;
+switch (HttpMethod.CACHE.getOrdinal(method)) {
+case HttpMethod.CONNECT_ORDINAL:
+      _uri.parseConnect(uri.array(),uri.getIndex(),uri.length());
+    break;
+case HttpMethod.HEAD_ORDINAL:
+  _head=true;
+_uri.parse(uri.array(),uri.getIndex(),uri.length());
+break;
+default :
+_uri.parse(uri.array(),uri.getIndex(),uri.length());
+}
+_request.setUri(_uri);
+if (version == null) {
+_request.setProtocol(HttpVersion.HTTP_0_9);
+_version=HttpVersion.HTTP_0_9_ORDINAL;
+}
+ else {
+version=HttpVersion.CACHE.get(version);
+if (version == null) throw new HttpException(HttpStatus.BAD_REQUEST_400,null);
+_version=HttpVersion.CACHE.getOrdinal(version);
+if (_version <= 0) _version=HttpVersion.HTTP_1_0_ORDINAL;
+_request.setProtocol(version.toString());
+}
+}
+ catch (Exception e) {
+LOG.debug(e);
+if (e instanceof HttpException) throw (HttpException)e;
+throw new HttpException(HttpStatus.BAD_REQUEST_400,null,e);
+}
+}

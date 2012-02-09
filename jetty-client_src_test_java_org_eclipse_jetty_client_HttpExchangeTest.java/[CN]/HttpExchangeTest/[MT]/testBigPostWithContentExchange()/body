@@ -2,15 +2,15 @@
   int size=32;
   ContentExchange httpExchange=new ContentExchange(){
     int total;
-    @Override protected synchronized void onResponseStatus(    Buffer version,    int status,    Buffer reason) throws IOException {
+    @Override protected synchronized void onResponseStatus(    ByteBuffer version,    int status,    ByteBuffer reason) throws IOException {
       if (verbose)       System.err.println("] " + version + " "+ status+ " "+ reason);
       super.onResponseStatus(version,status,reason);
     }
-    @Override protected synchronized void onResponseHeader(    Buffer name,    Buffer value) throws IOException {
+    @Override protected synchronized void onResponseHeader(    ByteBuffer name,    ByteBuffer value) throws IOException {
       if (verbose)       System.err.println("] " + name + ": "+ value);
       super.onResponseHeader(name,value);
     }
-    @Override protected synchronized void onResponseContent(    Buffer content) throws IOException {
+    @Override protected synchronized void onResponseContent(    ByteBuffer content) throws IOException {
       if (verbose) {
         total+=content.length();
         System.err.println("] " + content.length() + " -> "+ total);
@@ -27,15 +27,15 @@
     }
   }
 ;
-  Buffer babuf=new ByteArrayBuffer(size * 36 * 1024);
-  Buffer niobuf=new DirectNIOBuffer(size * 36 * 1024);
+  ByteBuffer babuf=new ByteArrayBuffer(size * 36 * 1024);
+  ByteBuffer niobuf=new DirectNIOBuffer(size * 36 * 1024);
   byte[] bytes="0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ".getBytes();
   for (int i=0; i < size * 1024; i++) {
     babuf.put(bytes);
     niobuf.put(bytes);
   }
   httpExchange.setURI(getBaseURI());
-  httpExchange.setMethod(HttpMethods.POST);
+  httpExchange.setMethod(HttpMethod.POST);
   httpExchange.setRequestContentType("application/data");
   httpExchange.setRequestContent(babuf);
   _httpClient.send(httpExchange);
@@ -58,7 +58,7 @@
   assertEquals(babuf.length(),result.length());
   httpExchange.reset();
   httpExchange.setURI(getBaseURI());
-  httpExchange.setMethod(HttpMethods.POST);
+  httpExchange.setMethod(HttpMethod.POST);
   httpExchange.setRequestContentType("application/data");
   httpExchange.setRequestContent(niobuf);
   _httpClient.send(httpExchange);
