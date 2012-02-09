@@ -1,25 +1,11 @@
 {
   if (key == null)   throw new IllegalArgumentException();
   Node<O> node=_root;
-  int ni=-1;
-  charLoop:   for (int i=0; i < length; i++) {
-    char c=key.charAt(offset + i);
-    if (ni == -1) {
-      ni=0;
-      node=(node._children == null) ? null : node._children[c % __HASH_WIDTH];
-    }
-    while (node != null) {
-      if (node._char[ni] == c || _ignoreCase && node._ochar[ni] == c) {
-        ni++;
-        if (ni == node._char.length)         ni=-1;
-        continue charLoop;
-      }
-      if (ni > 0)       return null;
-      node=node._next;
-    }
-    return null;
+  for (int i=0; i < length; i++) {
+    char ch=key.charAt(offset + i);
+    if (_ignoreCase)     ch=Character.toLowerCase(ch);
+    if (node == null)     return null;
+    node=node.nextNode(i,ch);
   }
-  if (ni > 0)   return null;
-  if (node != null && node._key == null)   return null;
-  return node;
+  return node.getKey() == null && node.length() == length ? null : node;
 }
