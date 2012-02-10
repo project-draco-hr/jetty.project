@@ -1,3 +1,86 @@
 {
-  return this;
+  setCurrentConnection(this);
+  try {
+switch (state) {
+case INITIAL:
+{
+        break;
+      }
+case REQUEST:
+{
+      Headers.Header method=headers.get("method");
+      Headers.Header uri=headers.get("url");
+      Headers.Header version=headers.get("version");
+      if (method == null || uri == null || version == null)       throw new HttpException(HttpStatus.BAD_REQUEST_400);
+      String m=method.value();
+      String u=uri.value();
+      String v=version.value();
+      logger.debug("HTTP {} {} {}",new Object[]{m,u,v});
+      startRequest(new ByteArrayBuffer(m),new ByteArrayBuffer(u),new ByteArrayBuffer(v));
+      state=State.HEADERS;
+      handle();
+      break;
+    }
+case HEADERS:
+{
+    for (    Headers.Header header : headers) {
+      String name=header.name();
+switch (name) {
+case "method":
+case "version":
+{
+          continue;
+        }
+case "url":
+{
+        String host=parseHost(header.value());
+        if (host != null) {
+          logger.debug("HTTP {}: {}","host",host);
+          parsedHeader(new ByteArrayBuffer("host"),new ByteArrayBuffer(host));
+        }
+        break;
+      }
+case "connection":
+case "keep-alive":
+case "host":
+{
+      continue;
+    }
+default :
+{
+    String value=header.value();
+    logger.debug("HTTP {}: {}",name,value);
+    parsedHeader(new ByteArrayBuffer(name),new ByteArrayBuffer(value));
+    break;
+  }
+}
+}
+break;
+}
+case HEADERS_COMPLETE:
+{
+headerComplete();
+break;
+}
+case CONTENT:
+{
+final Buffer buffer=this.buffer;
+if (buffer.length() > 0) content(buffer);
+break;
+}
+case FINAL:
+{
+messageComplete(0);
+break;
+}
+default :
+{
+throw new IllegalStateException();
+}
+}
+return this;
+}
+  finally {
+setCurrentConnection(null);
+}
 }

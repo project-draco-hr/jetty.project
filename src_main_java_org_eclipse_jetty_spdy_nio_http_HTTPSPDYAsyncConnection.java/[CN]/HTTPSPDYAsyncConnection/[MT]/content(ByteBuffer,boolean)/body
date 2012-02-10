@@ -1,25 +1,11 @@
 {
-switch (state) {
-case REQUEST:
-{
-      buffer=byteBuffer.isDirect() ? new DirectNIOBuffer(byteBuffer,false) : new IndirectNIOBuffer(byteBuffer,false);
-      state=endRequest ? State.FINAL : State.CONTENT;
-      logger.debug("Accumulated first {} content bytes",byteBuffer.remaining());
-      headerComplete();
-      content(buffer);
-      break;
-    }
-case CONTENT:
-{
-    buffer=byteBuffer.isDirect() ? new DirectNIOBuffer(byteBuffer,false) : new IndirectNIOBuffer(byteBuffer,false);
-    state=endRequest ? State.FINAL : State.CONTENT;
-    logger.debug("Accumulated {} content bytes",byteBuffer.remaining());
-    content(buffer);
-    break;
+  buffer=byteBuffer.isDirect() ? new DirectNIOBuffer(byteBuffer,false) : new IndirectNIOBuffer(byteBuffer,false);
+  complete=endRequest;
+  logger.debug("HTTP {} bytes of content",buffer.length());
+  if (state == State.HEADERS) {
+    state=State.HEADERS_COMPLETE;
+    handle();
   }
-default :
-{
-  throw new IllegalStateException();
-}
-}
+  state=State.CONTENT;
+  handle();
 }
