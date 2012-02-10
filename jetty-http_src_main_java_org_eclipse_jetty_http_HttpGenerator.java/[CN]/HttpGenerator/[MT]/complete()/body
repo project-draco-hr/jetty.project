@@ -1,9 +1,14 @@
 {
-  if (_state == STATE_END)   return;
-  super.complete();
-  if (_state < STATE_FLUSHING) {
-    _state=STATE_FLUSHING;
+  if (_state == State.END)   return;
+  if (_state == State.HEADER) {
+    throw new IllegalStateException("State==HEADER");
+  }
+  if (_contentLength >= 0 && _contentLength != _contentWritten && !_head) {
+    if (LOG.isDebugEnabled())     LOG.debug("ContentLength written==" + _contentWritten + " != contentLength=="+ _contentLength);
+    _persistent=false;
+  }
+  if (_state.ordinal() < State.FLUSHING.ordinal()) {
+    _state=State.FLUSHING;
     if (_contentLength == HttpTokens.CHUNKED_CONTENT)     _needEOC=true;
   }
-  flushBuffer();
 }
