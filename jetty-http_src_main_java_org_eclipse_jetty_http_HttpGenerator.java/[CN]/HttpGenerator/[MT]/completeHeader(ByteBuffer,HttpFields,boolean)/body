@@ -3,6 +3,7 @@
   if (isResponse() && _status == 0)   throw new EofException();
   if (_last && !allContentAdded)   throw new IllegalStateException("last?");
   _last=_last | allContentAdded;
+  if (isRequest() && _version == HttpVersion.HTTP_0_9)   _noContent=true;
   boolean has_server=false;
   try {
     if (isRequest()) {
@@ -11,7 +12,7 @@
         _contentLength=HttpTokens.NO_CONTENT;
         buffer.put(_method);
         buffer.put((byte)' ');
-        buffer.put(_uri.getBytes("UTF-8"));
+        buffer.put(_uri);
         buffer.put(HttpTokens.CRLF);
         _state=State.FLUSHING;
         _noContent=true;
@@ -20,7 +21,7 @@
  else {
         buffer.put(_method);
         buffer.put((byte)' ');
-        buffer.put(_uri.getBytes("UTF-8"));
+        buffer.put(_uri);
         buffer.put((byte)' ');
         buffer.put((_version == HttpVersion.HTTP_1_0 ? HttpVersion.HTTP_1_0 : HttpVersion.HTTP_1_1).toBytes());
         buffer.put(HttpTokens.CRLF);
@@ -60,8 +61,6 @@
         }
         if (_status < 200 && _status >= 100) {
           _noContent=true;
-          _content=null;
-          if (_buffer != null)           _buffer.clear();
           if (_status != 101) {
             buffer.put(HttpTokens.CRLF);
             _state=State.CONTENT;
@@ -70,8 +69,6 @@
         }
  else         if (_status == 204 || _status == 304) {
           _noContent=true;
-          _content=null;
-          if (_buffer != null)           _buffer.clear();
         }
       }
     }
@@ -199,7 +196,7 @@ buffer.put(HttpTokens.CRLF);
 }
 }
  else {
-_contentLength=(!_persistent || _version < HttpVersion.HTTP_1_1_ORDINAL) ? HttpTokens.EOF_CONTENT : HttpTokens.CHUNKED_CONTENT;
+_contentLength=(!_persistent || _version.ordinal() < HttpVersion.HTTP_1_1.ordinal()) ? HttpTokens.EOF_CONTENT : HttpTokens.CHUNKED_CONTENT;
 if (isRequest() && _contentLength == HttpTokens.EOF_CONTENT) {
 _contentLength=HttpTokens.NO_CONTENT;
 _noContent=true;
@@ -218,9 +215,9 @@ default :
 break;
 }
 if (_contentLength == HttpTokens.CHUNKED_CONTENT) {
-if (transfer_encoding != null && HttpHeaderValue.CHUNKED_ORDINAL != transfer_encoding.getValueOrdinal()) {
+if (transfer_encoding != null && !HttpHeaderValue.CHUNKED.toString().equalsIgnoreCase(transfer_encoding.getValue())) {
 String c=transfer_encoding.getValue();
-if (c.endsWith(HttpHeaderValue.CHUNKED)) transfer_encoding.putTo(buffer);
+if (c.endsWith(HttpHeaderValue.CHUNKED.toString())) transfer_encoding.putTo(buffer);
  else throw new IllegalArgumentException("BAD TE");
 }
  else buffer.put(TRANSFER_ENCODING_CHUNKED);
@@ -230,19 +227,19 @@ keep_alive=false;
 _persistent=false;
 }
 if (isResponse()) {
-if (!_persistent && (close || _version > HttpVersion.HTTP_1_0_ORDINAL)) {
-buffer.put(CONNECTION_CLOSE);
-if (connection != null) {
-buffer.setPutIndex(buffer.putIndex() - 2);
+if (!_persistent && (close || _version.ordinal() > HttpVersion.HTTP_1_0.ordinal())) {
+if (connection == null) buffer.put(CONNECTION_CLOSE);
+ else {
+buffer.put(CONNECTION_CLOSE,0,CONNECTION_CLOSE.length - 2);
 buffer.put((byte)',');
 buffer.put(connection.toString().getBytes());
 buffer.put(CRLF);
 }
 }
  else if (keep_alive) {
-buffer.put(CONNECTION_KEEP_ALIVE);
-if (connection != null) {
-buffer.setPutIndex(buffer.putIndex() - 2);
+if (connection == null) buffer.put(CONNECTION_KEEP_ALIVE);
+ else {
+buffer.put(CONNECTION_KEEP_ALIVE,0,CONNECTION_CLOSE.length - 2);
 buffer.put((byte)',');
 buffer.put(connection.toString().getBytes());
 buffer.put(CRLF);
