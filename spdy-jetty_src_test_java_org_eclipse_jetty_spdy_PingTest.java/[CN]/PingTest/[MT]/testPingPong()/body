@@ -1,0 +1,18 @@
+{
+  final AtomicReference<PingInfo> ref=new AtomicReference<>();
+  final CountDownLatch latch=new CountDownLatch(1);
+  Session.FrameListener clientSessionFrameListener=new Session.FrameListener.Adapter(){
+    @Override public void onPing(    Session session,    PingInfo pingInfo){
+      ref.set(pingInfo);
+      latch.countDown();
+    }
+  }
+;
+  Session session=startClient(startServer(null),clientSessionFrameListener);
+  PingInfo pingInfo=session.ping(SPDY.V2);
+  Assert.assertEquals(1,pingInfo.getPingId() % 2);
+  Assert.assertTrue(latch.await(5,TimeUnit.SECONDS));
+  PingInfo pongInfo=ref.get();
+  Assert.assertNotNull(pongInfo);
+  Assert.assertEquals(pingInfo.getPingId(),pongInfo.getPingId());
+}

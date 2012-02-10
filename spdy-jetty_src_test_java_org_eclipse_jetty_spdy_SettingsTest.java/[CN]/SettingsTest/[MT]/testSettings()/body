@@ -1,0 +1,18 @@
+{
+  Map<SettingsInfo.Key,Integer> settings=new HashMap<>();
+  settings.put(new SettingsInfo.Key(SettingsInfo.Key.UPLOAD_BANDWIDTH),1024 * 1024);
+  settings.put(new SettingsInfo.Key(SettingsInfo.Key.DOWNLOAD_BANDWIDTH),1024 * 1024);
+  settings.put(new SettingsInfo.Key(SettingsInfo.Key.FLAG_PERSISTED | SettingsInfo.Key.CONGESTION_WINDOW),1024);
+  final SettingsInfo clientSettingsInfo=new SettingsInfo(settings);
+  final CountDownLatch latch=new CountDownLatch(1);
+  ServerSessionFrameListener serverSessionFrameListener=new ServerSessionFrameListener.Adapter(){
+    @Override public void onSettings(    Session session,    SettingsInfo serverSettingsInfo){
+      Assert.assertEquals(clientSettingsInfo,serverSettingsInfo);
+      latch.countDown();
+    }
+  }
+;
+  Session session=startClient(startServer(serverSessionFrameListener),null);
+  session.settings(SPDY.V2,clientSettingsInfo);
+  Assert.assertTrue(latch.await(5,TimeUnit.SECONDS));
+}

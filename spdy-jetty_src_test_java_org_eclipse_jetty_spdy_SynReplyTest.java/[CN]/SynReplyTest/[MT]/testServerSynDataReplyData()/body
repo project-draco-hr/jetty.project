@@ -1,0 +1,53 @@
+{
+  final String serverData="server";
+  final String clientData="client";
+  final CountDownLatch replyLatch=new CountDownLatch(1);
+  final CountDownLatch clientDataLatch=new CountDownLatch(1);
+  ServerSessionFrameListener serverSessionFrameListener=new ServerSessionFrameListener.Adapter(){
+    @Override public void onConnect(    Session session){
+      Stream stream=session.syn(SPDY.V2,new SynInfo(false),new Stream.FrameListener.Adapter(){
+        @Override public void onReply(        Stream stream,        ReplyInfo replyInfo){
+          replyLatch.countDown();
+        }
+        @Override public void onData(        Stream stream,        DataInfo dataInfo){
+          ByteBuffer buffer=ByteBuffer.allocate(dataInfo.getBytesCount());
+          dataInfo.getBytes(buffer);
+          buffer.flip();
+          String data=Charset.forName("UTF-8").decode(buffer).toString();
+          Assert.assertEquals(clientData,data);
+          clientDataLatch.countDown();
+        }
+      }
+);
+      stream.data(new StringDataInfo(serverData,true));
+    }
+  }
+;
+  final CountDownLatch synLatch=new CountDownLatch(1);
+  final CountDownLatch serverDataLatch=new CountDownLatch(1);
+  Session.FrameListener clientSessionFrameListener=new Session.FrameListener.Adapter(){
+    @Override public Stream.FrameListener onSyn(    Stream stream,    SynInfo synInfo){
+      Assert.assertEquals(0,stream.getId() % 2);
+      stream.reply(new ReplyInfo(false));
+      stream.data(new StringDataInfo(clientData,true));
+      synLatch.countDown();
+      return new Stream.FrameListener.Adapter(){
+        @Override public void onData(        Stream stream,        DataInfo dataInfo){
+          ByteBuffer buffer=ByteBuffer.allocate(dataInfo.getBytesCount());
+          dataInfo.getBytes(buffer);
+          buffer.flip();
+          String data=Charset.forName("UTF-8").decode(buffer).toString();
+          Assert.assertEquals(serverData,data);
+          serverDataLatch.countDown();
+        }
+      }
+;
+    }
+  }
+;
+  startClient(startServer(serverSessionFrameListener),clientSessionFrameListener);
+  Assert.assertTrue(synLatch.await(5,TimeUnit.SECONDS));
+  Assert.assertTrue(replyLatch.await(5,TimeUnit.SECONDS));
+  Assert.assertTrue(serverDataLatch.await(5,TimeUnit.SECONDS));
+  Assert.assertTrue(clientDataLatch.await(5,TimeUnit.SECONDS));
+}
