@@ -10,5 +10,14 @@
       headers.put(field.getName(),field.getValue());
     }
   }
-  stream.reply(new ReplyInfo(headers,allContentAdded));
+  boolean close=_buffer == null || _buffer.length() == 0;
+  stream.reply(new ReplyInfo(headers,close));
+  if (!close) {
+    ByteBuffer buffer=((NIOBuffer)_buffer).getByteBuffer();
+    buffer.limit(_buffer.putIndex());
+    buffer.position(_buffer.getIndex());
+    _buffer.clear();
+    _state=HttpGenerator.STATE_CONTENT;
+    stream.data(new ByteBufferDataInfo(buffer,allContentAdded));
+  }
 }
