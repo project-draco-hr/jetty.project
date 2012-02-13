@@ -1,0 +1,20 @@
+{
+  Session session=startClient(startServer(new ServerSessionFrameListener.Adapter(){
+    @Override public Stream.FrameListener onSyn(    Stream stream,    SynInfo synInfo){
+      stream.reply(new ReplyInfo(false));
+      stream.data(new BytesDataInfo(new byte[128 * 1024],true));
+      return null;
+    }
+  }
+),null);
+  final AtomicInteger bytes=new AtomicInteger();
+  final CountDownLatch dataLatch=new CountDownLatch(1);
+  session.syn(SPDY.V2,new SynInfo(true),new Stream.FrameListener.Adapter(){
+    @Override public void onData(    Stream stream,    DataInfo dataInfo){
+      bytes.addAndGet(dataInfo.getBytesCount());
+      if (dataInfo.isClose())       dataLatch.countDown();
+    }
+  }
+);
+  Assert.assertTrue(dataLatch.await(500,TimeUnit.SECONDS));
+}

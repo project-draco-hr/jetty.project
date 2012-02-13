@@ -1,18 +1,19 @@
 {
   FrameBytes frameBytes;
+  ByteBuffer buffer;
 synchronized (queue) {
     if (flushing)     return;
     frameBytes=queue.poll();
     if (frameBytes == null)     return;
+    buffer=frameBytes.getByteBuffer();
+    if (buffer == null) {
+      enqueue(frameBytes);
+      logger.debug("Flush skipped, {} frame(s) in queue",queue.size());
+      return;
+    }
     flushing=true;
     logger.debug("Flushing {}, {} frame(s) in queue",frameBytes,queue.size());
   }
-  ByteBuffer buffer=frameBytes.getByteBuffer();
-  if (buffer == null) {
-    enqueue(frameBytes);
-    return;
-  }
   logger.debug("Writing {} frame bytes of {}",buffer.remaining(),frameBytes);
-  write(buffer,this);
-  frameBytes.complete();
+  write(buffer,this,frameBytes);
 }

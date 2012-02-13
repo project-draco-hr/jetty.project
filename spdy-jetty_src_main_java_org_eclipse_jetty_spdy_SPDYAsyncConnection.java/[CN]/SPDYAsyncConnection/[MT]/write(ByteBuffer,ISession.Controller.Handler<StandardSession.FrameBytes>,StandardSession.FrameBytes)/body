@@ -4,7 +4,7 @@
   AsyncEndPoint endPoint=getEndPoint();
   try {
     int written=endPoint.flush(jettyBuffer);
-    logger.debug("Written {} bytes",written);
+    logger.debug("Written {} bytes, {} remaining",written,jettyBuffer.length());
   }
  catch (  IOException x) {
     close(false);
@@ -17,6 +17,7 @@
   if (buffer.hasRemaining()) {
     this.writeBuffer=buffer;
     this.writeHandler=handler;
+    this.writeContext=context;
     writePending=true;
     endPoint.scheduleWrite();
   }
@@ -24,9 +25,10 @@
     if (writePending) {
       this.writeBuffer=null;
       this.writeHandler=null;
+      this.writeContext=null;
       writePending=false;
     }
-    handler.complete();
+    handler.complete(context);
   }
   return remaining - buffer.remaining();
 }
