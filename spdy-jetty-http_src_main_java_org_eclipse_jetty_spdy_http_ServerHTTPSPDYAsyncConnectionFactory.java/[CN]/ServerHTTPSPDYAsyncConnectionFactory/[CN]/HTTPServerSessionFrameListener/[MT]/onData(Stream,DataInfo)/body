@@ -1,0 +1,17 @@
+{
+  logger.debug("Received {} on {}",dataInfo,stream);
+  try {
+    ByteBuffer buffer=ByteBuffer.allocate(dataInfo.getBytesCount());
+    dataInfo.getBytes(buffer);
+    buffer.flip();
+    ServerHTTPSPDYAsyncConnection connection=(ServerHTTPSPDYAsyncConnection)stream.getAttribute("connection");
+    connection.content(buffer,dataInfo.isClose());
+    if (dataInfo.isClose())     connection.endRequest();
+  }
+ catch (  HttpException x) {
+    respond(stream,x.getStatus());
+  }
+catch (  IOException x) {
+    close(stream);
+  }
+}

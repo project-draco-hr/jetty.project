@@ -1,0 +1,26 @@
+{
+  Headers headers=new Headers();
+  StringBuilder status=new StringBuilder().append(_status);
+  if (_reason != null)   status.append(" ").append(_reason.toString("UTF-8"));
+  headers.put("status",status.toString());
+  headers.put("version","HTTP/1.1");
+  if (fields != null) {
+    for (int i=0; i < fields.size(); ++i) {
+      HttpFields.Field field=fields.getField(i);
+      headers.put(field.getName(),field.getValue());
+    }
+  }
+  boolean close=_buffer == null || _buffer.length() == 0;
+  stream.reply(new ReplyInfo(headers,close));
+  if (close) {
+    closed=true;
+    _state=HttpGenerator.STATE_END;
+  }
+ else {
+    closed=allContentAdded || isAllContentWritten();
+    ByteBuffer buffer=ByteBuffer.wrap(_buffer.asArray());
+    stream.data(new ByteBufferDataInfo(buffer,closed));
+    _buffer.clear();
+    _state=closed ? HttpGenerator.STATE_END : HttpGenerator.STATE_CONTENT;
+  }
+}

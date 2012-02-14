@@ -1,0 +1,14 @@
+{
+  while (_content != null && _content.length() > 0) {
+    _content.skip(_buffer.put(_content));
+    ByteBuffer buffer=ByteBuffer.wrap(_buffer.asArray());
+    _buffer.clear();
+    closed=_content.length() == 0 && _last;
+    stream.data(new ByteBufferDataInfo(buffer,closed));
+    boolean expired=!connection.getEndPoint().blockWritable(maxIdleTime);
+    if (expired) {
+      stream.getSession().goAway(stream.getVersion());
+      throw new EOFException("write timeout");
+    }
+  }
+}
