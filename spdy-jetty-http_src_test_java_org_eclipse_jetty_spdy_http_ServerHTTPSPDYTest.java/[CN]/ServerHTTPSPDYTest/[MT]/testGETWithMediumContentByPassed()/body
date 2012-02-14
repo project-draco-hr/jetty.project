@@ -1,12 +1,10 @@
 {
-  final char data='x';
+  final byte[] data=new byte[2048];
   final CountDownLatch handlerLatch=new CountDownLatch(1);
   Session session=startClient(startHTTPServer(new AbstractHandler(){
     @Override public void handle(    String target,    Request request,    HttpServletRequest httpRequest,    HttpServletResponse httpResponse) throws IOException, ServletException {
       request.setHandled(true);
-      httpResponse.setStatus(HttpServletResponse.SC_OK);
-      ServletOutputStream output=httpResponse.getOutputStream();
-      output.write(data);
+      request.setAttribute("org.eclipse.jetty.server.sendContent",new ByteArrayBuffer(data));
       handlerLatch.countDown();
     }
   }
@@ -19,22 +17,24 @@
   final CountDownLatch replyLatch=new CountDownLatch(1);
   final CountDownLatch dataLatch=new CountDownLatch(1);
   session.syn(SPDY.V2,new SynInfo(headers,true),new Stream.FrameListener.Adapter(){
+    private final AtomicInteger replyFrames=new AtomicInteger();
+    private final AtomicInteger dataFrames=new AtomicInteger();
     @Override public void onReply(    Stream stream,    ReplyInfo replyInfo){
+      Assert.assertEquals(1,replyFrames.incrementAndGet());
       Assert.assertFalse(replyInfo.isClose());
       Headers replyHeaders=replyInfo.getHeaders();
       Assert.assertTrue(replyHeaders.get("status").value().contains("200"));
       replyLatch.countDown();
     }
     @Override public void onData(    Stream stream,    DataInfo dataInfo){
+      Assert.assertEquals(1,dataFrames.incrementAndGet());
       Assert.assertTrue(dataInfo.isClose());
-      byte[] bytes=dataInfo.asBytes();
-      Assert.assertEquals(1,bytes.length);
-      Assert.assertEquals(data,bytes[0]);
+      Assert.assertArrayEquals(data,dataInfo.asBytes());
       dataLatch.countDown();
     }
   }
 );
-  Assert.assertTrue(handlerLatch.await(5,TimeUnit.SECONDS));
-  Assert.assertTrue(replyLatch.await(5,TimeUnit.SECONDS));
-  Assert.assertTrue(dataLatch.await(5,TimeUnit.SECONDS));
+  Assert.assertTrue(handlerLatch.await(500,TimeUnit.SECONDS));
+  Assert.assertTrue(replyLatch.await(500,TimeUnit.SECONDS));
+  Assert.assertTrue(dataLatch.await(500,TimeUnit.SECONDS));
 }
