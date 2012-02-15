@@ -7,10 +7,10 @@
     @Override public void onConnect(    Session session){
       sessionRef.set(session);
     }
-    @Override public Stream.FrameListener onSyn(    Stream stream,    SynInfo synInfo){
+    @Override public StreamFrameListener onSyn(    Stream stream,    SynInfo synInfo){
       Assert.assertFalse(stream.isHalfClosed());
       synLatch.countDown();
-      return new Stream.FrameListener.Adapter(){
+      return new StreamFrameListener.Adapter(){
         @Override public void onData(        Stream stream,        DataInfo dataInfo){
           ByteArrayOutputStream bytes=new ByteArrayOutputStream();
           ByteBuffer buffer=ByteBuffer.allocate(2);
@@ -41,7 +41,7 @@
   }
 );
   final CountDownLatch replyLatch=new CountDownLatch(1);
-  Stream stream=session.syn(new SynInfo(new Headers(),false),new Stream.FrameListener.Adapter(){
+  Stream stream=session.syn(new SynInfo(new Headers(),false),new StreamFrameListener.Adapter(){
     @Override public void onReply(    Stream stream,    ReplyInfo replyInfo){
       Assert.assertTrue(stream.isClosed());
       replyLatch.countDown();
