@@ -10,7 +10,7 @@
         return null;
       }
  else {
-        stream.getSession().goAway(SPDY.V2);
+        stream.getSession().goAway();
         closeLatch.countDown();
         return new Stream.FrameListener.Adapter(){
           @Override public void onData(          Stream stream,          DataInfo dataInfo){
@@ -33,14 +33,14 @@
 ;
   Session session=startClient(startServer(serverSessionFrameListener),clientSessionFrameListener);
   final CountDownLatch reply1Latch=new CountDownLatch(1);
-  Stream stream1=session.syn(SPDY.V2,new SynInfo(true),new Stream.FrameListener.Adapter(){
+  Stream stream1=session.syn(new SynInfo(true),new Stream.FrameListener.Adapter(){
     @Override public void onReply(    Stream stream,    ReplyInfo replyInfo){
       reply1Latch.countDown();
     }
   }
 );
   Assert.assertTrue(reply1Latch.await(5,TimeUnit.SECONDS));
-  Stream stream2=session.syn(SPDY.V2,new SynInfo(false),null);
+  Stream stream2=session.syn(new SynInfo(false),null);
   Assert.assertTrue(closeLatch.await(5,TimeUnit.SECONDS));
   try {
     stream2.data(new StringDataInfo("foo",true));

@@ -1,7 +1,7 @@
 {
   Session session=startClient(startHTTPServer(new AbstractHandler(){
     @Override public void handle(    String target,    Request request,    HttpServletRequest httpRequest,    HttpServletResponse httpResponse) throws IOException, ServletException {
-      throw new NullPointerException();
+      throw new NullPointerException("thrown_explicitly_by_the_test");
     }
   }
 ),null);
@@ -11,7 +11,7 @@
   headers.put("version","HTTP/1.1");
   headers.put("host","localhost:" + connector.getLocalPort());
   final CountDownLatch replyLatch=new CountDownLatch(1);
-  session.syn(SPDY.V2,new SynInfo(headers,true),new Stream.FrameListener.Adapter(){
+  session.syn(new SynInfo(headers,true),new Stream.FrameListener.Adapter(){
     private final AtomicInteger replies=new AtomicInteger();
     @Override public void onReply(    Stream stream,    ReplyInfo replyInfo){
       Assert.assertEquals(1,replies.incrementAndGet());
