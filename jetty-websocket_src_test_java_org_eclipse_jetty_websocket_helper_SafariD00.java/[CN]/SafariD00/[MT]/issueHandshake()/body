@@ -1,4 +1,5 @@
 {
+  LOG.debug("Issuing Handshake");
   StringBuilder req=new StringBuilder();
   req.append("GET ").append(uri.getPath()).append(" HTTP/1.1\r\n");
   req.append("Upgrade: WebSocket\r\n");
@@ -8,6 +9,7 @@
   req.append("Sec-WebSocket-Key1: 15{ft  :6@87  0 M 5 c901\r\n");
   req.append("Sec-WebSocket-Key2: 3? C;7~0 8   \" 3 2105 6  `_ {\r\n");
   req.append("\r\n");
+  LOG.debug("Request:" + req);
   byte reqBytes[]=req.toString().getBytes("UTF-8");
   byte hixieBytes[]=TypeUtil.fromHexString("e739617916c9daf3");
   byte buf[]=new byte[reqBytes.length + hixieBytes.length];
@@ -17,7 +19,8 @@
   out.flush();
   InputStreamReader reader=new InputStreamReader(in);
   BufferedReader br=new BufferedReader(reader);
-  socket.setSoTimeout(5000);
+  socket.setSoTimeout(10000);
+  LOG.debug("Reading http header");
   boolean foundEnd=false;
   String line;
   while (!foundEnd) {
@@ -28,6 +31,14 @@
   }
   byte hixieHandshakeExpected[]=TypeUtil.fromHexString("c7438d956cf611a6af70603e6fa54809");
   byte hixieHandshake[]=new byte[hixieHandshakeExpected.length];
-  int readLen=in.read(hixieHandshake,0,hixieHandshake.length);
-  Assert.assertThat("Read hixie handshake bytes",readLen,is(hixieHandshake.length));
+  Assert.assertThat("Hixie handshake buffer size",hixieHandshake.length,is(16));
+  LOG.debug("Reading hixie handshake bytes");
+  int bytesRead=0;
+  while (bytesRead < hixieHandshake.length) {
+    int val=in.read();
+    if (val >= 0) {
+      hixieHandshake[bytesRead++]=(byte)val;
+    }
+  }
+  Assert.assertThat("Read hixie handshake bytes",bytesRead,is(hixieHandshake.length));
 }

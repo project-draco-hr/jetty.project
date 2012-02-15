@@ -2,10 +2,7 @@
   try {
     __log.debug("MongoSessionManager:save:" + session);
     session.willPassivate();
-    ByteArrayOutputStream bout=new ByteArrayOutputStream();
-    ObjectOutputStream out=new ObjectOutputStream(bout);
     BasicDBObject key=new BasicDBObject(__ID,session.getClusterId());
-    key.put(__VALID,true);
     BasicDBObject update=new BasicDBObject();
     boolean upsert=false;
     BasicDBObject sets=new BasicDBObject();
@@ -14,6 +11,7 @@
       upsert=true;
       version=new Long(1);
       sets.put(__CREATED,session.getCreationTime());
+      sets.put(__VALID,true);
       sets.put(getContextKey(__VERSION),version);
     }
  else {
@@ -29,7 +27,7 @@
       for (      String name : names) {
         Object value=session.getAttribute(name);
         if (value == null)         unsets.put(getContextKey() + "." + encodeName(name),1);
- else         sets.put(getContextKey() + "." + encodeName(name),encodeName(out,bout,value));
+ else         sets.put(getContextKey() + "." + encodeName(name),encodeName(value));
       }
     }
  else {
