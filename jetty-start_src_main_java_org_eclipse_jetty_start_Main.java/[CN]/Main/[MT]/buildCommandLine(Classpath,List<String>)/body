@@ -1,24 +1,25 @@
 {
-  StringBuilder cmd=new StringBuilder();
-  cmd.append(findJavaBin());
+  CommandLineBuilder cmd=new CommandLineBuilder(findJavaBin());
   for (  String x : _jvmArgs) {
-    cmd.append(x);
+    cmd.addArg(x);
   }
-  cmd.append(" -Djetty.home=").append(escapeSpaces(_jettyHome));
+  cmd.addRawArg("-Djetty.home=" + _jettyHome);
   for (  String p : _sysProps) {
-    cmd.append("  -D").append(p);
     String v=System.getProperty(p);
-    if (v != null && v.length() > 0)     cmd.append("=").append(escapeSpaces(v));
+    cmd.addEqualsArg("-D" + p,v);
   }
-  cmd.append(" -cp ").append(classpath.toString());
-  cmd.append("  ").append(_config.getMainClassname());
+  cmd.addArg("-cp");
+  cmd.addRawArg(classpath.toString());
+  cmd.addRawArg(_config.getMainClassname());
   Properties properties=Config.getProperties();
   if (properties.size() > 0) {
     File prop_file=File.createTempFile("start",".properties");
     if (!_dryRun)     prop_file.deleteOnExit();
     properties.store(new FileOutputStream(prop_file),"start.jar properties");
-    cmd.append(" ").append(escapeSpaces(prop_file.getAbsolutePath()));
+    cmd.addArg(prop_file.getAbsolutePath());
   }
-  for (  String xml : xmls)   cmd.append(" ").append(escapeSpaces(xml));
-  return cmd.toString();
+  for (  String xml : xmls) {
+    cmd.addRawArg(xml);
+  }
+  return cmd;
 }

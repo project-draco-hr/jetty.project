@@ -37,24 +37,25 @@
     return;
   }
   if (_dryRun) {
-    System.out.println(buildCommandLine(classpath,configuredXmls));
+    CommandLineBuilder cmd=buildCommandLine(classpath,configuredXmls);
+    System.out.println(cmd.toString());
     return;
   }
   if (_exec) {
-    String cmd=buildCommandLine(classpath,configuredXmls);
-    final Process process=Runtime.getRuntime().exec(cmd);
-    Runtime.getRuntime().addShutdownHook(new Thread(){
-      @Override public void run(){
-        Config.debug("Destroying " + process);
-        process.destroy();
-      }
+    CommandLineBuilder cmd=buildCommandLine(classpath,configuredXmls);
+    ProcessBuilder pbuilder=new ProcessBuilder(cmd.getArgs());
+    final Process process=pbuilder.start();
+    try {
+      copyInThread(process.getErrorStream(),System.err);
+      copyInThread(process.getInputStream(),System.out);
+      copyInThread(System.in,process.getOutputStream());
+      monitor.setProcess(process);
+      process.waitFor();
     }
-);
-    copyInThread(process.getErrorStream(),System.err);
-    copyInThread(process.getInputStream(),System.out);
-    copyInThread(System.in,process.getOutputStream());
-    monitor.setProcess(process);
-    process.waitFor();
+  finally {
+      Config.debug("Destroying " + process);
+      process.destroy();
+    }
     return;
   }
   if (_jvmArgs.size() > 0 || _sysProps.size() > 0) {
