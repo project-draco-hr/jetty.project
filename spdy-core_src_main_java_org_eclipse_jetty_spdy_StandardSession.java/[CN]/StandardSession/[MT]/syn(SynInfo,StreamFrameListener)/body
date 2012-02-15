@@ -1,21 +1,5 @@
 {
-synchronized (this) {
-    if (synInfo.isUnidirectional()) {
-      throw new UnsupportedOperationException();
-    }
- else {
-      int streamId=streamIds.getAndAdd(2);
-      SynStreamFrame synStream=new SynStreamFrame(version,synInfo.getFlags(),streamId,0,synInfo.getPriority(),synInfo.getHeaders());
-      IStream stream=createStream(synStream,listener);
-      try {
-        control(stream,synStream);
-        flush();
-      }
- catch (      StreamException x) {
-        removeStream(stream);
-        throw new SPDYException(x);
-      }
-      return stream;
-    }
-  }
+  Promise<Stream> result=new Promise<>();
+  syn(synInfo,listener,result);
+  return result;
 }

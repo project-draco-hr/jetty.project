@@ -1,9 +1,14 @@
 {
   new ServerSessionFrameListener.Adapter(){
     @Override public StreamFrameListener onSyn(    Stream stream,    SynInfo streamInfo){
+      stream.reply(new ReplyInfo(false));
       Session session=stream.getSession();
-      Stream pushStream=session.syn(new SynInfo(new Headers(),false,true,stream.getId(),(byte)0),null);
-      pushStream.data(new StringDataInfo("foo",false));
+      session.syn(new SynInfo(new Headers(),false,true,stream.getId(),(byte)0),null,new ResultHandler<Stream>(){
+        @Override public void completed(        Stream pushStream){
+          pushStream.data(new StringDataInfo("foo",false));
+        }
+      }
+);
       return null;
     }
   }

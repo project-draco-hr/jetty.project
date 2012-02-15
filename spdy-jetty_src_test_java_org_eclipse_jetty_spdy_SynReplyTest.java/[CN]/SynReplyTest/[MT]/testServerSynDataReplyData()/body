@@ -5,7 +5,7 @@
   final CountDownLatch clientDataLatch=new CountDownLatch(1);
   ServerSessionFrameListener serverSessionFrameListener=new ServerSessionFrameListener.Adapter(){
     @Override public void onConnect(    Session session){
-      Stream stream=session.syn(new SynInfo(false),new StreamFrameListener.Adapter(){
+      session.syn(new SynInfo(false),new StreamFrameListener.Adapter(){
         @Override public void onReply(        Stream stream,        ReplyInfo replyInfo){
           replyLatch.countDown();
         }
@@ -15,8 +15,12 @@
           clientDataLatch.countDown();
         }
       }
+,new ResultHandler<Stream>(){
+        @Override public void completed(        Stream stream){
+          stream.data(new StringDataInfo(serverData,true));
+        }
+      }
 );
-      stream.data(new StringDataInfo(serverData,true));
     }
   }
 ;

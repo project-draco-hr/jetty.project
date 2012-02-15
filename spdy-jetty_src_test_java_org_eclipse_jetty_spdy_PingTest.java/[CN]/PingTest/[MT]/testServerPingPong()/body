@@ -3,8 +3,12 @@
   ServerSessionFrameListener serverSessionFrameListener=new ServerSessionFrameListener.Adapter(){
     public volatile int pingId;
     @Override public void onConnect(    Session session){
-      PingInfo pingInfo=session.ping();
-      this.pingId=pingInfo.getPingId();
+      session.ping(new ResultHandler<PingInfo>(){
+        @Override public void completed(        PingInfo pingInfo){
+          pingId=pingInfo.getPingId();
+        }
+      }
+);
     }
     @Override public void onPing(    Session session,    PingInfo pingInfo){
       Assert.assertEquals(0,pingInfo.getPingId() % 2);
