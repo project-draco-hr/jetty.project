@@ -14,21 +14,19 @@
     System.out.println("Response Header #1 --\n" + respHeader);
     Assert.assertThat("Content-Encoding should be gzipped",respHeader,containsString("Content-Encoding: gzip\r\n"));
     Assert.assertThat("Transfer-Encoding should be chunked",respHeader,containsString("Transfer-Encoding: chunked\r\n"));
-    FileOutputStream fos=new FileOutputStream(new File(outputDir,"response-1.txt"));
-    MessageDigest digestMain=MessageDigest.getInstance("SHA1");
-    DigestOutputStream digesterMain=new DigestOutputStream(fos,digestMain);
-    GZIPOutputStream gziperMain=new GZIPOutputStream(digesterMain);
+    File rawOutputFile=new File(outputDir,"response-1.gz");
+    FileOutputStream rawOutputStream=new FileOutputStream(rawOutputFile);
     long chunkSize=client.readChunkSize();
     System.out.println("Chunk Size: " + chunkSize);
     System.out.println("Attempting to read partial content ...");
-    int readBytes=client.readBody(gziperMain,(int)((float)chunkSize * 0.20f));
+    int readBytes=client.readBody(rawOutputStream,(int)((float)chunkSize * 0.20f));
     System.out.printf("Read %,d bytes%n",readBytes);
     client.issueGET("/jetty_logo.png",true);
     System.out.println("Finish reading reamaining chunks ...");
     String line;
     chunkSize=chunkSize - readBytes;
     while (chunkSize > 0) {
-      readBytes=client.readBody(gziperMain,(int)chunkSize);
+      readBytes=client.readBody(rawOutputStream,(int)chunkSize);
       System.out.printf("Read %,d bytes%n",readBytes);
       line=client.readLine();
       Assert.assertThat("Chunk delim should be an empty line with CR+LF",line,is(""));
@@ -37,6 +35,12 @@
     }
     line=client.readLine();
     Assert.assertThat("Inter-pipeline delim should be an empty line with CR+LF",line,is(""));
+    MessageDigest digestTxt=MessageDigest.getInstance("SHA1");
+    DigestOutputStream digesterTxt=new DigestOutputStream(new NoOpOutputStream(),digestTxt);
+    IO.close(rawOutputStream);
+    FileInputStream rawInputStream=new FileInputStream(rawOutputFile);
+    GZIPInputStream ungzipStream=new GZIPInputStream(rawInputStream);
+    IO.copy(ungzipStream,digesterTxt);
     respHeader=client.readResponseHeader();
     System.out.println("Response Header #2 --\n" + respHeader);
     Assert.assertThat("Content-Encoding should NOT be gzipped",respHeader,not(containsString("Content-Encoding: gzip\r\n")));
@@ -46,9 +50,8 @@
     int contentLength=client.getContentLength(respHeader);
     Assert.assertThat("Image Content Length",(long)contentLength,is(pngFile.length()));
     client.readBody(digesterImg,contentLength);
-    IO.close(gziperMain);
-    IO.close(digesterMain);
-    assertChecksum("lots-of-fantasy-names.txt",digestMain);
+    IO.close(rawOutputStream);
+    assertChecksum("lots-of-fantasy-names.txt",digestTxt);
     IO.close(digesterImg);
     assertChecksum("jetty_logo.png",digestImg);
   }
