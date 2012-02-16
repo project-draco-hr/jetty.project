@@ -1,0 +1,20 @@
+{
+  server=new Server(0);
+  ServletContextHandler context=new ServletContextHandler();
+  context.setContextPath("/");
+  DefaultServlet servlet=new DefaultServlet();
+  ServletHolder holder=new ServletHolder(servlet);
+  holder.setInitParameter("resourceBase",MavenTestingUtils.getTestResourcesDir().getAbsolutePath());
+  context.addServlet(holder,"/");
+  FilterHolder filter=context.addFilter(GzipFilter.class,"/*",0);
+  filter.setInitParameter("mimeTypes","text/plain");
+  server.setHandler(context);
+  server.start();
+  Connector conn=server.getConnectors()[0];
+  String host=conn.getHost();
+  if (host == null) {
+    host="localhost";
+  }
+  int port=conn.getLocalPort();
+  serverUri=new URI(String.format("ws://%s:%d/",host,port));
+}
