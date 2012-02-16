@@ -1,4 +1,6 @@
 {
+  testingdir.ensureEmpty();
+  File outputDir=testingdir.getDir();
   PipelineHelper client=new PipelineHelper(serverUri);
   try {
     File txtFile=MavenTestingUtils.getTestResourceFile("lots-of-fantasy-names.txt");
@@ -12,8 +14,9 @@
     System.out.println("Response Header #1 --\n" + respHeader);
     Assert.assertThat("Content-Encoding should be gzipped",respHeader,containsString("Content-Encoding: gzip\r\n"));
     Assert.assertThat("Transfer-Encoding should be chunked",respHeader,containsString("Transfer-Encoding: chunked\r\n"));
+    FileOutputStream fos=new FileOutputStream(new File(outputDir,"response-1.txt"));
     MessageDigest digestMain=MessageDigest.getInstance("SHA1");
-    DigestOutputStream digesterMain=new DigestOutputStream(new NoOpOutputStream(),digestMain);
+    DigestOutputStream digesterMain=new DigestOutputStream(fos,digestMain);
     GZIPOutputStream gziperMain=new GZIPOutputStream(digesterMain);
     long chunkSize=client.readChunkSize();
     System.out.println("Chunk Size: " + chunkSize);
