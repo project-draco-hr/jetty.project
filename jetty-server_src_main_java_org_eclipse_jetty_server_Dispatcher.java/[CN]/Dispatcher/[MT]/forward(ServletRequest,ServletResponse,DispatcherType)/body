@@ -48,21 +48,8 @@
       baseRequest.setPathInfo(_uri);
       baseRequest.setAttributes(attr);
       _contextHandler.handle(_path,baseRequest,(HttpServletRequest)request,(HttpServletResponse)response);
-      if (baseRequest.getResponse().isWriting()) {
-        try {
-          response.getWriter().close();
-        }
- catch (        IllegalStateException e) {
-          response.getOutputStream().close();
-        }
-      }
- else {
-        try {
-          response.getOutputStream().close();
-        }
- catch (        IllegalStateException e) {
-          response.getWriter().close();
-        }
+      if (!request.isAsyncStarted()) {
+        commitResponse(response,baseRequest);
       }
     }
   }
