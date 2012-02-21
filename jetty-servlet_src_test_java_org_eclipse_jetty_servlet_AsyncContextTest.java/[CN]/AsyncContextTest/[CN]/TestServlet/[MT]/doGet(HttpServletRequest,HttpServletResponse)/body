@@ -1,15 +1,13 @@
 {
-  AsyncContinuation continuation=(AsyncContinuation)ContinuationSupport.getContinuation(request);
   if (request.getParameter("dispatch") != null) {
-    continuation.suspend();
-    continuation.dispatch("/servletPath2");
+    AsyncContext asyncContext=request.startAsync(request,response);
+    asyncContext.dispatch("/servletPath2");
   }
  else {
     response.getOutputStream().print("doGet:getServletPath:" + request.getServletPath() + "\n");
-    continuation.suspend();
-    response.getOutputStream().print("doGet:async:getServletPath:" + ((HttpServletRequest)continuation.getRequest()).getServletPath() + "\n");
-    Runnable runable=new AsyncRunnable(continuation);
-    new Thread(runable).start();
+    AsyncContext asyncContext=request.startAsync(request,response);
+    response.getOutputStream().print("doGet:async:getServletPath:" + ((HttpServletRequest)asyncContext.getRequest()).getServletPath() + "\n");
+    asyncContext.start(new AsyncRunnable(asyncContext));
   }
   return;
 }
