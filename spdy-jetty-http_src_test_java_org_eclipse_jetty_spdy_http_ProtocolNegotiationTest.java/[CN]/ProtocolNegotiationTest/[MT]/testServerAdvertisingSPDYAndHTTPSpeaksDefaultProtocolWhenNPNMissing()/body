@@ -1,0 +1,31 @@
+{
+  InetSocketAddress address=startServer(null);
+  connector.putAsyncConnectionFactory("http/1.1",new ServerHTTPAsyncConnectionFactory(connector));
+  connector.setDefaultProtocol("http/1.1");
+  SslContextFactory sslContextFactory=newSslContextFactory();
+  sslContextFactory.start();
+  SSLContext sslContext=sslContextFactory.getSslContext();
+  SSLSocket client=(SSLSocket)sslContext.getSocketFactory().createSocket(address.getAddress(),address.getPort());
+  client.setUseClientMode(true);
+  client.setSoTimeout(5000);
+  NextProtoNego.put(client,new NextProtoNego.ClientProvider(){
+    @Override public boolean supports(){
+      return false;
+    }
+    @Override public void unsupported(){
+    }
+    @Override public String selectProtocol(    List<String> strings){
+      return null;
+    }
+  }
+);
+  client.startHandshake();
+  OutputStream output=client.getOutputStream();
+  output.write(("" + "GET / HTTP/1.1\r\n" + "Host: localhost:" + address.getPort() + "\r\n"+ "\r\n"+ "").getBytes("UTF-8"));
+  output.flush();
+  InputStream input=client.getInputStream();
+  BufferedReader reader=new BufferedReader(new InputStreamReader(input,"UTF-8"));
+  String line=reader.readLine();
+  Assert.assertTrue(line.contains(" 404 "));
+  client.close();
+}
