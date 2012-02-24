@@ -1,8 +1,8 @@
 {
-  Map<SettingsInfo.Key,Integer> settings=new HashMap<>();
-  settings.put(new SettingsInfo.Key(SettingsInfo.Key.UPLOAD_BANDWIDTH),1024 * 1024);
-  settings.put(new SettingsInfo.Key(SettingsInfo.Key.DOWNLOAD_BANDWIDTH),1024 * 1024);
-  settings.put(new SettingsInfo.Key(SettingsInfo.Key.FLAG_PERSIST | SettingsInfo.Key.CURRENT_CONGESTION_WINDOW),1024);
+  Settings settings=new Settings();
+  settings.put(new Settings.Setting(Settings.ID.UPLOAD_BANDWIDTH,1024 * 1024));
+  settings.put(new Settings.Setting(Settings.ID.DOWNLOAD_BANDWIDTH,1024 * 1024));
+  settings.put(new Settings.Setting(Settings.ID.CURRENT_CONGESTION_WINDOW,Settings.Flag.PERSIST,1024));
   final SettingsInfo serverSettingsInfo=new SettingsInfo(settings);
   ServerSessionFrameListener serverSessionFrameListener=new ServerSessionFrameListener.Adapter(){
     @Override public void onConnect(    Session session){
@@ -13,7 +13,8 @@
   final CountDownLatch latch=new CountDownLatch(1);
   SessionFrameListener clientSessionFrameListener=new SessionFrameListener.Adapter(){
     @Override public void onSettings(    Session session,    SettingsInfo clientSettingsInfo){
-      Assert.assertEquals(serverSettingsInfo,clientSettingsInfo);
+      Assert.assertEquals(serverSettingsInfo.getFlags(),clientSettingsInfo.getFlags());
+      Assert.assertEquals(serverSettingsInfo.getSettings(),clientSettingsInfo.getSettings());
       latch.countDown();
     }
   }
