@@ -6,8 +6,16 @@
     while (true) {
       int count=decompressor.decompress(buffer);
       if (count == 0) {
-        if (decompressed != null)         return ByteBuffer.wrap(decompressed);
- else         decompressor.setDictionary(HeadersFrame.DICTIONARY);
+        if (decompressed != null) {
+          return ByteBuffer.wrap(decompressed);
+        }
+ else         if (needsDictionary) {
+          decompressor.setDictionary(CompressionDictionary.get(version));
+          needsDictionary=false;
+        }
+ else {
+          throw new IllegalStateException();
+        }
       }
  else {
         if (count < buffer.length) {
