@@ -6,7 +6,9 @@
     final AsyncEndPoint sslEndPoint=sslConnection.getSslEndPoint();
     NextProtoNego.put(engine,new NextProtoNego.ServerProvider(){
       @Override public void unsupported(){
-        protocolSelected(getDefaultProtocol());
+        AsyncConnectionFactory connectionFactory=getDefaultAsyncConnectionFactory();
+        AsyncConnection connection=connectionFactory.newAsyncConnection(channel,sslEndPoint,null);
+        sslEndPoint.setConnection(connection);
       }
       @Override public List<String> protocols(){
         return provideProtocols();
@@ -24,7 +26,7 @@
     return sslConnection;
   }
  else {
-    AsyncConnectionFactory connectionFactory=getAsyncConnectionFactory("spdy/2");
+    AsyncConnectionFactory connectionFactory=getDefaultAsyncConnectionFactory();
     AsyncConnection connection=connectionFactory.newAsyncConnection(channel,endPoint,null);
     endPoint.setConnection(connection);
     return connection;
