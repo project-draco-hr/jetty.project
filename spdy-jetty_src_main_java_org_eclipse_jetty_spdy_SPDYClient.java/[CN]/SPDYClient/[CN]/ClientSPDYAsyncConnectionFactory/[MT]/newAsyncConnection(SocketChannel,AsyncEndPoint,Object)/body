@@ -3,11 +3,13 @@
   CompressionFactory compressionFactory=new StandardCompressionFactory();
   Parser parser=new Parser(compressionFactory.newDecompressor());
   Generator generator=new Generator(compressionFactory.newCompressor());
-  SPDYAsyncConnection connection=new SPDYAsyncConnection(endPoint,parser);
+  Factory factory=sessionPromise.client.factory;
+  SPDYAsyncConnection connection=new ClientSPDYAsyncConnection(endPoint,parser,factory);
   endPoint.setConnection(connection);
   StandardSession session=new StandardSession(sessionPromise.client.version,connection,1,sessionPromise.listener,generator);
   parser.addListener(session);
   sessionPromise.completed(session);
   connection.setSession(session);
+  factory.sessionOpened(session);
   return connection;
 }
