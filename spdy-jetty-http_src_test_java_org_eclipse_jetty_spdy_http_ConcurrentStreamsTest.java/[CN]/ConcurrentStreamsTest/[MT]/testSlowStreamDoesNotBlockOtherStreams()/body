@@ -1,0 +1,59 @@
+{
+  final CountDownLatch slowServerLatch=new CountDownLatch(1);
+  final CountDownLatch fastServerLatch=new CountDownLatch(1);
+  Session session=startClient(startHTTPServer(new AbstractHandler(){
+    @Override public void handle(    String target,    Request request,    HttpServletRequest httpRequest,    HttpServletResponse httpResponse) throws IOException, ServletException {
+      try {
+        request.setHandled(true);
+switch (target) {
+case "/slow":
+          fastServerLatch.await(500,TimeUnit.SECONDS);
+        slowServerLatch.countDown();
+      break;
+case "/fast":
+    fastServerLatch.countDown();
+  break;
+default :
+Assert.fail();
+break;
+}
+}
+ catch (InterruptedException x) {
+throw new ServletException(x);
+}
+}
+}
+),null);
+Headers headers=new Headers();
+headers.put("method","GET");
+headers.put("url","/slow");
+headers.put("version","HTTP/1.1");
+headers.put("host","localhost:" + connector.getLocalPort());
+final CountDownLatch slowClientLatch=new CountDownLatch(1);
+session.syn(new SynInfo(headers,true),new StreamFrameListener.Adapter(){
+@Override public void onReply(Stream stream,ReplyInfo replyInfo){
+Headers replyHeaders=replyInfo.getHeaders();
+Assert.assertTrue(replyHeaders.get("status").value().contains("200"));
+slowClientLatch.countDown();
+}
+}
+);
+headers.clear();
+headers.put("method","GET");
+headers.put("url","/fast");
+headers.put("version","HTTP/1.1");
+headers.put("host","localhost:" + connector.getLocalPort());
+final CountDownLatch fastClientLatch=new CountDownLatch(1);
+session.syn(new SynInfo(headers,true),new StreamFrameListener.Adapter(){
+@Override public void onReply(Stream stream,ReplyInfo replyInfo){
+Headers replyHeaders=replyInfo.getHeaders();
+Assert.assertTrue(replyHeaders.get("status").value().contains("200"));
+fastClientLatch.countDown();
+}
+}
+);
+Assert.assertTrue(fastServerLatch.await(500,TimeUnit.SECONDS));
+Assert.assertTrue(slowServerLatch.await(500,TimeUnit.SECONDS));
+Assert.assertTrue(fastClientLatch.await(500,TimeUnit.SECONDS));
+Assert.assertTrue(slowClientLatch.await(500,TimeUnit.SECONDS));
+}

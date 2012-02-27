@@ -1,14 +1,21 @@
 {
   logger.debug("Received {} on {}",headersInfo,stream);
-  try {
-    ServerHTTPSPDYAsyncConnection connection=(ServerHTTPSPDYAsyncConnection)stream.getAttribute("connection");
-    connection.headers(headersInfo.getHeaders());
-    if (headersInfo.isClose())     connection.endRequest();
+  final ServerHTTPSPDYAsyncConnection connection=(ServerHTTPSPDYAsyncConnection)stream.getAttribute("connection");
+  final Headers headers=headersInfo.getHeaders();
+  final boolean isClose=headersInfo.isClose();
+  connection.post(new Runnable(){
+    @Override public void run(){
+      try {
+        connection.headers(headers);
+        if (isClose)         connection.endRequest();
+      }
+ catch (      HttpException x) {
+        respond(stream,x.getStatus());
+      }
+catch (      IOException x) {
+        close(stream);
+      }
+    }
   }
- catch (  HttpException x) {
-    respond(stream,x.getStatus());
-  }
-catch (  IOException x) {
-    close(stream);
-  }
+);
 }

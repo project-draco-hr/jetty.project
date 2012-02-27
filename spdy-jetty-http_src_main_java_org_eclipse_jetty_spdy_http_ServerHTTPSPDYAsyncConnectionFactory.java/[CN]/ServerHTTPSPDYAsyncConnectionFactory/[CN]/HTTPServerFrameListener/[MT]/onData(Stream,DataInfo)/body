@@ -1,15 +1,21 @@
 {
   logger.debug("Received {} on {}",dataInfo,stream);
-  try {
-    ByteBuffer buffer=dataInfo.asByteBuffer();
-    ServerHTTPSPDYAsyncConnection connection=(ServerHTTPSPDYAsyncConnection)stream.getAttribute("connection");
-    connection.content(buffer,dataInfo.isClose());
-    if (dataInfo.isClose())     connection.endRequest();
+  final ServerHTTPSPDYAsyncConnection connection=(ServerHTTPSPDYAsyncConnection)stream.getAttribute("connection");
+  final ByteBuffer buffer=dataInfo.asByteBuffer();
+  final boolean isClose=dataInfo.isClose();
+  connection.post(new Runnable(){
+    public void run(){
+      try {
+        connection.content(buffer,isClose);
+        if (isClose)         connection.endRequest();
+      }
+ catch (      HttpException x) {
+        respond(stream,x.getStatus());
+      }
+catch (      IOException x) {
+        close(stream);
+      }
+    }
   }
- catch (  HttpException x) {
-    respond(stream,x.getStatus());
-  }
-catch (  IOException x) {
-    close(stream);
-  }
+);
 }

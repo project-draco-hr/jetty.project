@@ -1,29 +1,24 @@
 {
   logger.debug("Received {} on {}",synInfo,stream);
-  try {
-    ServerHTTPSPDYAsyncConnection connection=new ServerHTTPSPDYAsyncConnection(connector,new EmptyAsyncEndPoint(),connector.getServer(),(SPDYAsyncConnection)endPoint.getConnection(),stream);
-    stream.setAttribute("connection",connection);
-    Headers headers=synInfo.getHeaders();
-    connection.beginRequest(headers);
-    if (headers.isEmpty()) {
-      return this;
-    }
- else {
-      if (synInfo.isClose()) {
-        connection.endRequest();
-        return null;
+  final ServerHTTPSPDYAsyncConnection connection=new ServerHTTPSPDYAsyncConnection(connector,new EmptyAsyncEndPoint(),connector.getServer(),(SPDYAsyncConnection)endPoint.getConnection(),stream);
+  stream.setAttribute("connection",connection);
+  final Headers headers=synInfo.getHeaders();
+  final boolean isClose=synInfo.isClose();
+  StreamFrameListener result=headers.isEmpty() || !isClose ? this : null;
+  connection.post(new Runnable(){
+    @Override public void run(){
+      try {
+        connection.beginRequest(headers);
+        if (isClose)         connection.endRequest();
       }
- else {
-        return this;
+ catch (      HttpException x) {
+        respond(stream,x.getStatus());
+      }
+catch (      IOException x) {
+        close(stream);
       }
     }
   }
- catch (  HttpException x) {
-    respond(stream,x.getStatus());
-    return null;
-  }
-catch (  IOException x) {
-    close(stream);
-    return null;
-  }
+);
+  return result;
 }
