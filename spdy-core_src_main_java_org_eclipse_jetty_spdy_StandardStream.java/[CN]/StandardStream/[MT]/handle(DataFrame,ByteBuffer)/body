@@ -4,10 +4,13 @@
     return;
   }
   updateCloseState(dataFrame.isClose());
-  int length=data.remaining();
-  notifyOnData(dataFrame,data);
-  if (!isClosed()) {
-    windowUpdate(length);
+  ByteBufferDataInfo dataInfo=new ByteBufferDataInfo(data,dataFrame.isClose(),dataFrame.isCompress()){
+    @Override public void consume(    int delta){
+      super.consume(delta);
+      if (consumed() == length() && !isClosed())       windowUpdate(length());
+    }
   }
+;
+  notifyOnData(dataInfo);
   session.flush();
 }
