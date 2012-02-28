@@ -1,7 +1,18 @@
 {
   int streamId=frame.getStreamId();
-  IStream stream=streams.get(streamId);
-  stream.handle(frame);
-  flush();
-  if (stream.isClosed())   removeStream(stream);
+  final IStream stream=streams.get(streamId);
+  if (stream == null) {
+    RstInfo rstInfo=new RstInfo(streamId,StreamStatus.INVALID_STREAM);
+    logger.debug("Unknown stream, {}",rstInfo);
+    rst(rstInfo);
+  }
+ else {
+    stream.post(new Runnable(){
+      @Override public void run(){
+        stream.handle(frame);
+        if (stream.isClosed())         removeStream(stream);
+      }
+    }
+);
+  }
 }

@@ -1,6 +1,13 @@
 {
-  notifyOnRst(frame);
   int streamId=frame.getStreamId();
-  IStream stream=streams.get(streamId);
-  if (stream != null)   removeStream(stream);
+  final IStream stream=streams.get(streamId);
+  execute(new Runnable(){
+    @Override public void run(){
+      if (stream != null)       stream.handle(frame);
+      notifyOnRst(frame);
+      flush();
+      if (stream != null)       removeStream(stream);
+    }
+  }
+);
 }
