@@ -1,11 +1,16 @@
 {
-  if (stream != null)   updateLastStreamId(stream);
+  try {
+    if (stream != null)     updateLastStreamId(stream);
 synchronized (this) {
-    ByteBuffer buffer=generator.control(frame);
-    logger.debug("Queuing {} on {}",frame,stream);
-    ControlFrameBytes<C> frameBytes=new ControlFrameBytes<>(frame,buffer,handler,context);
-    if (timeout > 0)     frameBytes.task=scheduler.schedule(frameBytes,timeout,unit);
-    enqueueLast(frameBytes);
+      ByteBuffer buffer=generator.control(frame);
+      logger.debug("Queuing {} on {}",frame,stream);
+      ControlFrameBytes<C> frameBytes=new ControlFrameBytes<>(frame,buffer,handler,context);
+      if (timeout > 0)       frameBytes.task=scheduler.schedule(frameBytes,timeout,unit);
+      enqueueLast(frameBytes);
+    }
+    flush();
   }
-  flush();
+ catch (  Throwable x) {
+    handler.failed(x);
+  }
 }
