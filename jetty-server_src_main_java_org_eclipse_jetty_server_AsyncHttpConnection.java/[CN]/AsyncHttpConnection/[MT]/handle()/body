@@ -27,19 +27,28 @@
       }
  finally {
         some_progress|=progress;
-        if (_parser.isComplete() && _generator.isComplete()) {
-          progress=true;
-          if (_response.getStatus() == HttpStatus.SWITCHING_PROTOCOLS_101) {
-            Connection switched=(Connection)_request.getAttribute("org.eclipse.jetty.io.Connection");
-            if (switched != null)             connection=switched;
+        boolean parserComplete=_parser.isComplete();
+        boolean generatorComplete=_generator.isComplete();
+        boolean complete=parserComplete && generatorComplete;
+        if (parserComplete) {
+          if (generatorComplete) {
+            progress=true;
+            if (_response.getStatus() == HttpStatus.SWITCHING_PROTOCOLS_101) {
+              Connection switched=(Connection)_request.getAttribute("org.eclipse.jetty.io.Connection");
+              if (switched != null)               connection=switched;
+            }
+            reset();
+            if (!_generator.isPersistent() && !_endp.isOutputShutdown()) {
+              LOG.warn("Safety net oshut!!!  IF YOU SEE THIS, PLEASE RAISE BUGZILLA");
+              _endp.shutdownOutput();
+            }
           }
-          reset();
-          if (!_generator.isPersistent() && !_endp.isOutputShutdown()) {
-            LOG.warn("Safety net oshut!!!  IF YOU SEE THIS, PLEASE RAISE BUGZILLA");
-            _endp.shutdownOutput();
+ else {
+            _readInterested=false;
+            LOG.debug("Disabled read interest while writing response {}",_endp);
           }
         }
- else         if (_request.getAsyncContinuation().isAsyncStarted()) {
+        if (!complete && _request.getAsyncContinuation().isAsyncStarted()) {
           LOG.debug("suspended {}",this);
           progress=false;
         }

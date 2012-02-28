@@ -28,16 +28,24 @@
   try {
     old_scope=baseRequest.getUserIdentityScope();
     baseRequest.setUserIdentityScope(servlet_holder);
+    if (baseRequest.getAttribute(AsyncContext.ASYNC_SERVLET_PATH) == null) {
+      baseRequest.setAttribute(AsyncContext.ASYNC_SERVLET_PATH,baseRequest.getServletPath());
+    }
+    if (baseRequest.getAttribute(AsyncContext.ASYNC_PATH_INFO) == null) {
+      baseRequest.setAttribute(AsyncContext.ASYNC_PATH_INFO,baseRequest.getPathInfo());
+    }
     if (never())     nextScope(target,baseRequest,request,response);
  else     if (_nextScope != null)     _nextScope.doScope(target,baseRequest,request,response);
  else     if (_outerScope != null)     _outerScope.doHandle(target,baseRequest,request,response);
  else     doHandle(target,baseRequest,request,response);
   }
   finally {
-    if (old_scope != null)     baseRequest.setUserIdentityScope(old_scope);
-    if (!(DispatcherType.INCLUDE.equals(type))) {
-      baseRequest.setServletPath(old_servlet_path);
-      baseRequest.setPathInfo(old_path_info);
+    if (!baseRequest.getAsyncContinuation().isAsyncStarted()) {
+      if (old_scope != null)       baseRequest.setUserIdentityScope(old_scope);
+      if (!(DispatcherType.INCLUDE.equals(type))) {
+        baseRequest.setServletPath(old_servlet_path);
+        baseRequest.setPathInfo(old_path_info);
+      }
     }
   }
 }
