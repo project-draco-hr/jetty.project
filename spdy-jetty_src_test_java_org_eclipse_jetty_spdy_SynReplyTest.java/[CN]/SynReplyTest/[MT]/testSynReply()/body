@@ -1,9 +1,11 @@
 {
   final AtomicReference<Session> sessionRef=new AtomicReference<>();
+  final CountDownLatch sessionLatch=new CountDownLatch(1);
   final CountDownLatch synLatch=new CountDownLatch(1);
   ServerSessionFrameListener serverSessionFrameListener=new ServerSessionFrameListener.Adapter(){
     @Override public void onConnect(    Session session){
       sessionRef.set(session);
+      sessionLatch.countDown();
     }
     @Override public StreamFrameListener onSyn(    Stream stream,    SynInfo synInfo){
       Assert.assertTrue(stream.isHalfClosed());
@@ -14,6 +16,9 @@
   }
 ;
   Session session=startClient(startServer(serverSessionFrameListener),null);
+  Assert.assertTrue(sessionLatch.await(5,TimeUnit.SECONDS));
+  Session serverSession=sessionRef.get();
+  Assert.assertNotNull(serverSession);
   final CountDownLatch streamCreatedLatch=new CountDownLatch(1);
   final CountDownLatch streamRemovedLatch=new CountDownLatch(1);
   session.addListener(new Session.StreamListener(){
@@ -32,10 +37,8 @@
       replyLatch.countDown();
     }
   }
-).get();
+).get(5,TimeUnit.SECONDS);
   Assert.assertTrue(synLatch.await(5,TimeUnit.SECONDS));
-  Session serverSession=sessionRef.get();
-  Assert.assertNotNull(serverSession);
   Assert.assertTrue(streamCreatedLatch.await(5,TimeUnit.SECONDS));
   Assert.assertTrue(replyLatch.await(5,TimeUnit.SECONDS));
   Assert.assertTrue(stream.isClosed());

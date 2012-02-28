@@ -1,18 +1,20 @@
 {
   final String data1="foo";
   final String data2="bar";
-  ServerSessionFrameListener serverSessionFrameListener=new ServerSessionFrameListener.Adapter(){
-    @Override public StreamFrameListener onSyn(    Stream stream,    SynInfo synInfo){
+  Session session=startClient(startServer(new ServerSessionFrameListener.Adapter(){
+    @Override public StreamFrameListener onSyn(    final Stream stream,    SynInfo synInfo){
       Assert.assertTrue(stream.isHalfClosed());
       stream.reply(new ReplyInfo(false));
-      stream.data(new StringDataInfo(data1,false));
-      stream.getSession().flush();
-      stream.data(new StringDataInfo(data2,true));
+      stream.data(new StringDataInfo(data1,false),5,TimeUnit.SECONDS,new Handler.Adapter<Void>(){
+        @Override public void completed(        Void context){
+          stream.data(new StringDataInfo(data2,true));
+        }
+      }
+);
       return null;
     }
   }
-;
-  Session session=startClient(startServer(serverSessionFrameListener),null);
+),null);
   final CountDownLatch replyLatch=new CountDownLatch(1);
   final CountDownLatch dataLatch1=new CountDownLatch(1);
   final CountDownLatch dataLatch2=new CountDownLatch(1);
