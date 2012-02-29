@@ -5,7 +5,7 @@ case COUNT:
 {
         if (buffer.remaining() >= 4) {
           count=buffer.getInt();
-          state=State.KEY;
+          state=State.ID_FLAGS;
         }
  else {
           state=State.COUNT_BYTES;
@@ -18,22 +18,22 @@ case COUNT_BYTES:
       byte currByte=buffer.get();
       --cursor;
       count+=(currByte & 0xFF) << 8 * cursor;
-      if (cursor == 0)       state=State.KEY;
+      if (cursor == 0)       state=State.ID_FLAGS;
       break;
     }
-case KEY:
+case ID_FLAGS:
 {
     if (buffer.remaining() >= 4) {
       idAndFlags=convertIdAndFlags(controlFrameParser.getVersion(),buffer.getInt());
       state=State.VALUE;
     }
  else {
-      state=State.KEY_BYTES;
+      state=State.ID_FLAGS_BYTES;
       cursor=4;
     }
     break;
   }
-case KEY_BYTES:
+case ID_FLAGS_BYTES:
 {
   byte currByte=buffer.get();
   --cursor;
