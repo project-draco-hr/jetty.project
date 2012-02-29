@@ -1,4 +1,22 @@
 {
   super(AsyncContinuation.this,request,response);
   _suspendedContext=context;
+  Request r=_connection.getRequest();
+  if (r.getAttribute(AsyncContext.ASYNC_REQUEST_URI) == null) {
+    String uri=(String)r.getAttribute(Dispatcher.FORWARD_REQUEST_URI);
+    if (uri != null) {
+      r.setAttribute(AsyncContext.ASYNC_REQUEST_URI,uri);
+      r.setAttribute(AsyncContext.ASYNC_CONTEXT_PATH,r.getAttribute(Dispatcher.FORWARD_CONTEXT_PATH));
+      r.setAttribute(AsyncContext.ASYNC_SERVLET_PATH,r.getAttribute(Dispatcher.FORWARD_SERVLET_PATH));
+      r.setAttribute(AsyncContext.ASYNC_PATH_INFO,r.getAttribute(Dispatcher.FORWARD_PATH_INFO));
+      r.setAttribute(AsyncContext.ASYNC_QUERY_STRING,r.getAttribute(Dispatcher.FORWARD_QUERY_STRING));
+    }
+ else {
+      r.setAttribute(AsyncContext.ASYNC_REQUEST_URI,r.getRequestURI());
+      r.setAttribute(AsyncContext.ASYNC_CONTEXT_PATH,r.getContextPath());
+      r.setAttribute(AsyncContext.ASYNC_SERVLET_PATH,r.getServletPath());
+      r.setAttribute(AsyncContext.ASYNC_PATH_INFO,r.getPathInfo());
+      r.setAttribute(AsyncContext.ASYNC_QUERY_STRING,r.getQueryString());
+    }
+  }
 }
