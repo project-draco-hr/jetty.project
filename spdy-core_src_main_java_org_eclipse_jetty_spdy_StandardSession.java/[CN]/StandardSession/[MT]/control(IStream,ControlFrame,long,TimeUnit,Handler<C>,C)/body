@@ -4,13 +4,18 @@
 synchronized (this) {
       ByteBuffer buffer=generator.control(frame);
       logger.debug("Queuing {} on {}",frame,stream);
-      ControlFrameBytes<C> frameBytes=new ControlFrameBytes<>(frame,buffer,handler,context);
+      ControlFrameBytes<C> frameBytes=new ControlFrameBytes<>(handler,context,frame,buffer);
       if (timeout > 0)       frameBytes.task=scheduler.schedule(frameBytes,timeout,unit);
       enqueueLast(frameBytes);
     }
     flush();
   }
- catch (  Throwable x) {
-    handler.failed(x);
+ catch (  final Throwable x) {
+    execute(new Runnable(){
+      @Override public void run(){
+        notifyHandlerFailed(handler,x);
+      }
+    }
+);
   }
 }
