@@ -11,7 +11,7 @@
     connection.setAutoCommit(true);
     DatabaseMetaData metaData=connection.getMetaData();
     _dbAdaptor=new DatabaseAdaptor(metaData);
-    _sessionTableRowId=(_dbAdaptor.getDBName() != null && _dbAdaptor.getDBName().contains("oracle") ? "srowId" : _sessionTableRowId);
+    _sessionTableRowId=_dbAdaptor.getRowIdColumnName();
     String tableName=_dbAdaptor.convertIdentifier(_sessionIdTable);
     ResultSet result=metaData.getTables(null,null,tableName,null);
     if (!result.next()) {
@@ -21,7 +21,8 @@
     result=metaData.getTables(null,null,tableName,null);
     if (!result.next()) {
       String blobType=_dbAdaptor.getBlobType();
-      _createSessionTable="create table " + _sessionTable + " ("+ _sessionTableRowId+ " varchar(120), sessionId varchar(120), "+ " contextPath varchar(60), virtualHost varchar(60), lastNode varchar(60), accessTime bigint, "+ " lastAccessTime bigint, createTime bigint, cookieTime bigint, "+ " lastSavedTime bigint, expiryTime bigint, map "+ blobType+ ", primary key("+ _sessionTableRowId+ "))";
+      String longType=_dbAdaptor.getLongType();
+      _createSessionTable="create table " + _sessionTable + " ("+ _sessionTableRowId+ " varchar(120), sessionId varchar(120), "+ " contextPath varchar(60), virtualHost varchar(60), lastNode varchar(60), accessTime "+ longType+ ", "+ " lastAccessTime "+ longType+ ", createTime "+ longType+ ", cookieTime "+ longType+ ", "+ " lastSavedTime "+ longType+ ", expiryTime "+ longType+ ", map "+ blobType+ ", primary key("+ _sessionTableRowId+ "))";
       connection.createStatement().executeUpdate(_createSessionTable);
     }
     String index1="idx_" + _sessionTable + "_expiry";
@@ -39,6 +40,12 @@
       if (!index1Exists)       statement.executeUpdate("create index " + index1 + " on "+ _sessionTable+ " (expiryTime)");
       if (!index2Exists)       statement.executeUpdate("create index " + index2 + " on "+ _sessionTable+ " (sessionId, contextPath)");
     }
+    _insertSession="insert into " + _sessionTable + " ("+ _sessionTableRowId+ ", sessionId, contextPath, virtualHost, lastNode, accessTime, lastAccessTime, createTime, cookieTime, lastSavedTime, expiryTime, map) "+ " values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+    _deleteSession="delete from " + _sessionTable + " where "+ _sessionTableRowId+ " = ?";
+    _selectSession="select * from " + _sessionTable + " where sessionId = ? and contextPath = ? and virtualHost = ?";
+    _updateSession="update " + _sessionTable + " set lastNode = ?, accessTime = ?, lastAccessTime = ?, lastSavedTime = ?, expiryTime = ?, map = ? where "+ _sessionTableRowId+ " = ?";
+    _updateSessionNode="update " + _sessionTable + " set lastNode = ? where "+ _sessionTableRowId+ " = ?";
+    _updateSessionAccessTime="update " + _sessionTable + " set lastNode = ?, accessTime = ?, lastAccessTime = ?, lastSavedTime = ?, expiryTime = ? where "+ _sessionTableRowId+ " = ?";
   }
   finally {
     if (connection != null)     connection.close();

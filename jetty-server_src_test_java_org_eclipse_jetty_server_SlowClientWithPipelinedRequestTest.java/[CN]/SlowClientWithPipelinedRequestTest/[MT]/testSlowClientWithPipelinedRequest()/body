@@ -1,0 +1,51 @@
+{
+  final int contentLength=512 * 1024;
+  startServer(new AbstractHandler(){
+    public void handle(    String target,    Request baseRequest,    HttpServletRequest request,    HttpServletResponse response) throws IOException, ServletException {
+      baseRequest.setHandled(true);
+      System.err.println("target = " + target);
+      if ("/content".equals(target)) {
+        OutputStream outputStream=response.getOutputStream();
+        AbstractHttpConnection.Output output=(AbstractHttpConnection.Output)outputStream;
+        byte[] bytes=new byte[contentLength];
+        Arrays.fill(bytes,(byte)'9');
+        Buffer buffer=new ByteArrayBuffer(bytes);
+        output.sendContent(buffer);
+      }
+    }
+  }
+);
+  Socket client=new Socket("localhost",connector.getLocalPort());
+  OutputStream output=client.getOutputStream();
+  output.write(("" + "GET /content HTTP/1.1\r\n" + "Host: localhost:" + connector.getLocalPort() + "\r\n"+ "\r\n"+ "").getBytes("UTF-8"));
+  output.flush();
+  InputStream input=client.getInputStream();
+  int read=input.read();
+  Assert.assertTrue(read >= 0);
+  output.write(("" + "GET /pipelined HTTP/1.1\r\n" + "Host: localhost:" + connector.getLocalPort() + "\r\n"+ "\r\n"+ "").getBytes("UTF-8"));
+  output.flush();
+  Thread.sleep(1000);
+  Assert.assertThat(handles.get(),lessThan(10));
+  StringBuilder lines=new StringBuilder().append((char)read);
+  int crlfs=0;
+  while (true) {
+    read=input.read();
+    lines.append((char)read);
+    if (read == '\r' || read == '\n')     ++crlfs;
+ else     crlfs=0;
+    if (crlfs == 4)     break;
+  }
+  Assert.assertTrue(lines.toString().contains(" 200 "));
+  for (int i=0; i < contentLength; ++i)   input.read();
+  lines.setLength(0);
+  crlfs=0;
+  while (true) {
+    read=input.read();
+    lines.append((char)read);
+    if (read == '\r' || read == '\n')     ++crlfs;
+ else     crlfs=0;
+    if (crlfs == 4)     break;
+  }
+  Assert.assertTrue(lines.toString().contains(" 200 "));
+  client.close();
+}
