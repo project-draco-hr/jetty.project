@@ -1,23 +1,34 @@
 {
-  boolean filled=false;
   while (true) {
     State state=this.state;
     if (state != State.HEADERS_COMPLETE && state != State.CONTENT && state != State.FINAL)     throw new IllegalStateException();
-    Buffer buffer=this.buffer;
-    logger.debug("Consuming {} content bytes",buffer.length());
-    if (buffer.length() > 0)     return buffer;
-    if (complete)     return null;
-    if (filled) {
+    if (buffer != null) {
+      if (buffer.length() > 0) {
+        logger.debug("Consuming content bytes, {} available",buffer.length());
+        return buffer;
+      }
+ else {
+        if (dataInfo.consumed() == 0)         dataInfo.consume(dataInfo.length());
+        dataInfo=null;
+        buffer=null;
+        if (complete && dataInfos.isEmpty())         return null;
+      }
+    }
+ else {
       logger.debug("Waiting at most {} ms for content bytes",maxIdleTime);
       long begin=System.nanoTime();
-      boolean expired=!connection.getEndPoint().blockReadable(maxIdleTime);
-      if (expired) {
+      dataInfo=dataInfos.poll(maxIdleTime,TimeUnit.MILLISECONDS);
+      long elapsed=TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - begin);
+      logger.debug("Waited {} ms for content bytes",elapsed);
+      if (dataInfo != null) {
+        boolean consume=dataInfos.isEmpty() && complete;
+        ByteBuffer byteBuffer=dataInfo.asByteBuffer(consume);
+        buffer=byteBuffer.isDirect() ? new DirectNIOBuffer(byteBuffer,false) : new IndirectNIOBuffer(byteBuffer,false);
+      }
+ else {
         stream.getSession().goAway();
         throw new EOFException("read timeout");
       }
-      logger.debug("Waited {} ms for content bytes",TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - begin));
     }
-    connection.fill();
-    filled=true;
   }
 }

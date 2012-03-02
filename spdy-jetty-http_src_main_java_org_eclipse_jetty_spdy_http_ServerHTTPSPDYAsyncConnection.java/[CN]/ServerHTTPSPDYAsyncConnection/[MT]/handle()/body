@@ -58,7 +58,7 @@ break;
 case CONTENT:
 {
 final Buffer buffer=this.buffer;
-if (buffer.length() > 0) content(buffer);
+if (buffer != null && buffer.length() > 0) content(buffer);
 break;
 }
 case FINAL:
@@ -73,7 +73,15 @@ throw new IllegalStateException();
 }
 return this;
 }
-  finally {
+ catch (HttpException x) {
+respond(stream,x.getStatus());
+return this;
+}
+catch (IOException x) {
+close(stream);
+return this;
+}
+ finally {
 setCurrentConnection(null);
 }
 }
