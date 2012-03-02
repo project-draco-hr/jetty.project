@@ -1,14 +1,8 @@
 {
-  int streamId=frame.getStreamId();
-  final IStream stream=streams.get(streamId);
-  execute(new Runnable(){
-    @Override public void run(){
-      if (stream != null)       stream.handle(frame);
-      RstInfo rstInfo=new RstInfo(frame.getStreamId(),StreamStatus.from(frame.getVersion(),frame.getStatusCode()));
-      notifyOnRst(rstInfo);
-      flush();
-      if (stream != null)       removeStream(stream);
-    }
-  }
-);
+  final IStream stream=streams.get(frame.getStreamId());
+  if (stream != null)   stream.process(frame);
+  RstInfo rstInfo=new RstInfo(frame.getStreamId(),StreamStatus.from(frame.getVersion(),frame.getStatusCode()));
+  notifyOnRst(listener,rstInfo);
+  flush();
+  if (stream != null)   removeStream(stream);
 }

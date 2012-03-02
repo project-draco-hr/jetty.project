@@ -1,24 +1,23 @@
 {
-  logger.debug("Processing {}, {} data bytes",frame,data.remaining());
-  if (goAwaySent.get()) {
-    logger.debug("Skipped processing of {}",frame);
-    return;
-  }
-  int streamId=frame.getStreamId();
-  final IStream stream=streams.get(streamId);
-  if (stream == null) {
-    RstInfo rstInfo=new RstInfo(streamId,StreamStatus.INVALID_STREAM);
-    logger.debug("Unknown stream {}",rstInfo);
-    rst(rstInfo);
-  }
- else {
-    stream.post(new Runnable(){
-      @Override public void run(){
-        stream.handle(frame,data);
-        updateLastStreamId(stream);
-        if (stream.isClosed())         removeStream(stream);
-      }
+  notifyIdle(idleListener,false);
+  try {
+    logger.debug("Processing {}, {} data bytes",frame,data.remaining());
+    if (goAwaySent.get()) {
+      logger.debug("Skipped processing of {}",frame);
+      return;
     }
-);
+    int streamId=frame.getStreamId();
+    final IStream stream=streams.get(streamId);
+    if (stream == null) {
+      RstInfo rstInfo=new RstInfo(streamId,StreamStatus.INVALID_STREAM);
+      logger.debug("Unknown stream {}",rstInfo);
+      rst(rstInfo);
+    }
+ else {
+      processData(stream,frame,data);
+    }
+  }
+  finally {
+    notifyIdle(idleListener,true);
   }
 }
