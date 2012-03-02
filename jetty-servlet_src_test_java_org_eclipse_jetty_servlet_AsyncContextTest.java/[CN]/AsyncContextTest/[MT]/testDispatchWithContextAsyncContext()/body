@@ -1,0 +1,18 @@
+{
+  _contextHandler.setContextPath("/foo");
+  String request="GET /foo/servletPath?dispatch=true HTTP/1.1\r\n" + "Host: localhost\r\n" + "Content-Type: application/x-www-form-urlencoded\r\n"+ "Connection: close\r\n"+ "\r\n";
+  String responseString=_connector.getResponses(request);
+  System.out.println(responseString);
+  BufferedReader br=new BufferedReader(new StringReader(responseString));
+  Assert.assertEquals("HTTP/1.1 200 OK",br.readLine());
+  br.readLine();
+  br.readLine();
+  br.readLine();
+  Assert.assertEquals("servlet gets right path","doGet:getServletPath:/servletPath2",br.readLine());
+  Assert.assertEquals("async context gets right path in get","doGet:async:getServletPath:/servletPath2",br.readLine());
+  Assert.assertEquals("servlet path attr is original","async:run:attr:servletPath:/servletPath",br.readLine());
+  Assert.assertEquals("path info attr is correct","async:run:attr:pathInfo:null",br.readLine());
+  Assert.assertEquals("query string attr is correct","async:run:attr:queryString:dispatch=true",br.readLine());
+  Assert.assertEquals("context path attr is correct","async:run:attr:contextPath:/foo",br.readLine());
+  Assert.assertEquals("request uri attr is correct","async:run:attr:requestURI:/foo/servletPath",br.readLine());
+}

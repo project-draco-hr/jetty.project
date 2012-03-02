@@ -17,17 +17,15 @@
   System.arraycopy(hixieBytes,0,buf,reqBytes.length,hixieBytes.length);
   out.write(buf,0,buf.length);
   out.flush();
-  InputStreamReader reader=new InputStreamReader(in);
-  BufferedReader br=new BufferedReader(reader);
   socket.setSoTimeout(10000);
-  LOG.debug("Reading http header");
-  boolean foundEnd=false;
-  String line;
-  while (!foundEnd) {
-    line=br.readLine();
-    if (line.length() == 0) {
-      foundEnd=true;
-    }
+  InputStreamReader reader=new InputStreamReader(in);
+  LOG.debug("Reading http headers");
+  int crlfs=0;
+  while (true) {
+    int read=in.read();
+    if (read == '\r' || read == '\n')     ++crlfs;
+ else     crlfs=0;
+    if (crlfs == 4)     break;
   }
   byte hixieHandshakeExpected[]=TypeUtil.fromHexString("c7438d956cf611a6af70603e6fa54809");
   byte hixieHandshake[]=new byte[hixieHandshakeExpected.length];

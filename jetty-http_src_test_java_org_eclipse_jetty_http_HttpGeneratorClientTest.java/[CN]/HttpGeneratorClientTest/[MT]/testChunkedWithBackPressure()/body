@@ -1,0 +1,35 @@
+{
+  final AtomicInteger availableChannelBytes=new AtomicInteger(500);
+  ByteArrayEndPoint endp=new ByteArrayEndPoint(new byte[0],4096){
+    @Override public int flush(    Buffer buffer) throws IOException {
+      View view=new View(buffer,buffer.markIndex(),buffer.getIndex(),Math.min(buffer.putIndex(),buffer.getIndex() + availableChannelBytes.get()),buffer.isReadOnly() ? Buffer.READONLY : Buffer.READWRITE);
+      int read=super.flush(view);
+      buffer.skip(read);
+      availableChannelBytes.getAndAdd(-1 * read);
+      return read;
+    }
+  }
+;
+  PooledBuffers pool=new PooledBuffers(Type.BYTE_ARRAY,1416,Type.BYTE_ARRAY,8096,Type.BYTE_ARRAY,10240);
+  HttpGenerator generator=new HttpGenerator(pool,endp);
+  generator.setRequest("GET","/usr");
+  HttpFields fields=new HttpFields();
+  fields.add("Header","Value");
+  fields.add("Content-Type","text/plain");
+  String content="The quick brown fox jumped, ";
+  while (content.length() < 1024) {
+    content=content + content;
+  }
+  String content2="over the lazy dog";
+  generator.completeHeader(fields,false);
+  generator.addContent(new ByteArrayBuffer(content).asMutableBuffer(),false);
+  generator.addContent(new ByteArrayBuffer(content2).asMutableBuffer(),false);
+  availableChannelBytes.set(5000);
+  generator.flushBuffer();
+  generator.complete();
+  generator.flushBuffer();
+  String result=endp.getOut().toString();
+  System.err.println("result:" + result);
+  result=result.replace("\r\n","|").replace('\r','|').replace('\n','|');
+  assertEquals("GET /usr HTTP/1.1|Header: Value|Content-Type: text/plain|Transfer-Encoding: chunked||700|" + content + "|11|"+ content2+ "|0||",result);
+}
