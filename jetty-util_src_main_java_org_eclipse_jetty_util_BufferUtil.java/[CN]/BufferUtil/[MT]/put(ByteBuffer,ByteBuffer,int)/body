@@ -1,0 +1,32 @@
+{
+  int put;
+  int pos=to.position();
+  try {
+    flipToFill(to);
+    maxBytes=Math.min(maxBytes,to.remaining());
+    int remaining=from.remaining();
+    if (remaining > 0) {
+      if (remaining <= maxBytes) {
+        to.put(from);
+        put=remaining;
+      }
+ else       if (from.hasArray()) {
+        put=maxBytes;
+        to.put(from.array(),from.arrayOffset() + from.position(),put);
+        from.position(from.position() + put);
+      }
+ else {
+        put=maxBytes;
+        ByteBuffer slice=from.slice();
+        slice.limit(put);
+        to.put(slice);
+        from.position(from.position() + put);
+      }
+    }
+ else     put=0;
+  }
+  finally {
+    flipToFlush(to,pos);
+  }
+  return put;
+}

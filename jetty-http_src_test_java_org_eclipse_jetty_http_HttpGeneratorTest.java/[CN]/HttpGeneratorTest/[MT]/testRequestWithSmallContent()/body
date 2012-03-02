@@ -1,0 +1,34 @@
+{
+  ByteBuffer header=BufferUtil.allocate(8096);
+  ByteBuffer buffer=BufferUtil.allocate(8096);
+  ByteBuffer content=BufferUtil.toBuffer("Hello World");
+  HttpFields fields=new HttpFields();
+  HttpGenerator gen=new HttpGenerator();
+  gen.setVersion(HttpVersion.HTTP_1_1);
+  gen.setRequest("POST","/index.html");
+  fields.add("Host","something");
+  fields.add("User-Agent","test");
+  HttpGenerator.Result result=gen.prepareContent(null,null,content);
+  assertEquals(HttpGenerator.Result.NEED_BUFFER,result);
+  result=gen.prepareContent(null,buffer,content);
+  assertEquals(HttpGenerator.Result.OK,result);
+  assertEquals("Hello World",BufferUtil.toString(buffer));
+  assertTrue(BufferUtil.isEmpty(content));
+  result=gen.complete(null,buffer);
+  assertEquals(HttpGenerator.Result.NEED_COMMIT,result);
+  result=gen.commit(fields,header,buffer,content,true);
+  assertEquals(HttpGenerator.Result.FLUSH,result);
+  String out=BufferUtil.toString(header);
+  BufferUtil.clear(header);
+  BufferUtil.clear(buffer);
+  result=gen.complete(null,buffer);
+  assertEquals(HttpGenerator.Result.OK,result);
+  result=gen.commit(fields,header,null,null,true);
+  assertEquals(HttpGenerator.Result.NEED_COMPLETE,result);
+  result=gen.complete(null,null);
+  assertEquals(HttpGenerator.Result.OK,result);
+  assertTrue(out.indexOf("GET /index.html HTTP/1.1") == 0);
+  assertTrue(out.indexOf("Content-Length") == -1);
+  assertEquals(HttpGenerator.State.END,gen.getState());
+  assertEquals(0,gen.getContentWritten());
+}

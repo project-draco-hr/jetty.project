@@ -1,0 +1,52 @@
+{
+switch (_state) {
+case START:
+    if (BufferUtil.isEmpty(buffer) && content.remaining() > _largeContent)     return Result.NEED_COMMIT;
+  if (buffer == null)   return Result.NEED_BUFFER;
+if (_contentLength > 0) {
+  _contentPrepared+=BufferUtil.put(content,buffer,_contentLength - _contentPrepared);
+  if (_contentPrepared == _contentLength)   return Result.NEED_COMMIT;
+}
+ else _contentPrepared+=BufferUtil.put(content,buffer);
+if (BufferUtil.isAtCapacity(buffer)) return Result.NEED_COMMIT;
+return Result.OK;
+case STREAMING:
+if (BufferUtil.isEmpty(buffer) && content.remaining() > _largeContent) {
+if (_contentLength > 0) {
+long total=_contentPrepared + content.remaining();
+if (total > _contentLength) throw new IllegalStateException();
+if (total == _contentLength) return Result.NEED_COMPLETE;
+}
+_contentPrepared+=content.remaining();
+return Result.FLUSH_CONTENT;
+}
+if (buffer == null) return Result.NEED_BUFFER;
+if (_contentLength > 0) {
+_contentPrepared+=BufferUtil.put(content,buffer,_contentLength - _contentPrepared);
+if (_contentPrepared == _contentLength) return Result.NEED_COMPLETE;
+}
+ else _contentPrepared+=BufferUtil.put(content,buffer);
+if (BufferUtil.isAtCapacity(buffer)) return Result.FLUSH;
+return Result.OK;
+case CHUNKING:
+{
+if (chunk == null) return Result.NEED_CHUNK;
+if (BufferUtil.isEmpty(buffer) && content.remaining() > _largeContent) {
+_contentPrepared+=content.remaining();
+BufferUtil.clear(chunk);
+prepareChunk(chunk,content.remaining());
+return Result.FLUSH_CONTENT;
+}
+if (buffer == null) return Result.NEED_BUFFER;
+_contentPrepared+=BufferUtil.put(content,buffer);
+if (BufferUtil.isAtCapacity(buffer)) {
+BufferUtil.clear(chunk);
+prepareChunk(chunk,buffer.remaining());
+return Result.FLUSH;
+}
+return Result.OK;
+}
+default :
+throw new IllegalStateException();
+}
+}

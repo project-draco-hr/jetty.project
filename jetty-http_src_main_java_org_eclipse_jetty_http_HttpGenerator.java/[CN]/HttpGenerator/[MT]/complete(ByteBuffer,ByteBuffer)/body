@@ -1,0 +1,30 @@
+{
+  if (_state == State.END)   return Result.OK;
+switch (_state) {
+case START:
+    return Result.NEED_COMMIT;
+case CHUNKING:
+  if (chunk == null)   return Result.NEED_CHUNK;
+if (BufferUtil.hasContent(buffer)) {
+  _state=State.COMPLETING;
+  BufferUtil.clear(chunk);
+  prepareChunk(chunk,buffer.remaining());
+  return Result.FLUSH;
+}
+if (!_sentEOC) {
+_state=State.END;
+prepareChunk(chunk,0);
+_sentEOC=true;
+return Result.FLUSH;
+}
+return Result.OK;
+case STREAMING:
+if (BufferUtil.hasContent(buffer)) {
+_state=State.COMPLETING;
+return Result.FLUSH;
+}
+_state=State.END;
+return Result.OK;
+}
+return Result.OK;
+}
