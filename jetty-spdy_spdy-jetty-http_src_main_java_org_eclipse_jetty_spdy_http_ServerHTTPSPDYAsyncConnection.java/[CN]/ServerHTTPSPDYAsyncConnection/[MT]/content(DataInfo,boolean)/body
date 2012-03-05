@@ -1,0 +1,22 @@
+{
+  dataInfos.offer(new ByteBufferDataInfo(dataInfo.asByteBuffer(false),dataInfo.isClose(),dataInfo.isCompress()){
+    @Override public void consume(    int delta){
+      super.consume(delta);
+      dataInfo.consume(delta);
+    }
+  }
+);
+  complete=endRequest;
+  post(new Runnable(){
+    @Override public void run(){
+      logger.debug("HTTP > {} bytes of content",dataInfo.length());
+      if (state == State.HEADERS) {
+        state=State.HEADERS_COMPLETE;
+        handle();
+      }
+      state=State.CONTENT;
+      handle();
+    }
+  }
+);
+}
