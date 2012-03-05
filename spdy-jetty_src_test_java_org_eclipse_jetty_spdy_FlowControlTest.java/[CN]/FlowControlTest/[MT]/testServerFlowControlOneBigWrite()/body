@@ -27,15 +27,15 @@
           exchanger.exchange(dataInfo);
         }
  else         if (dataFrames == 2) {
-          dataInfo.readInto(ByteBuffer.allocate(dataInfo.length()));
+          dataInfo.asByteBuffer(false);
           exchanger.exchange(dataInfo);
         }
  else         if (dataFrames == 3) {
-          dataInfo.drainInto(ByteBuffer.allocate(dataInfo.length() / 2));
+          dataInfo.consumeInto(ByteBuffer.allocate(dataInfo.length() / 2));
           exchanger.exchange(dataInfo);
         }
  else         if (dataFrames == 4 || dataFrames == 5) {
-          dataInfo.drainInto(ByteBuffer.allocate(dataInfo.length()));
+          dataInfo.asByteBuffer(true);
           exchanger.exchange(dataInfo);
         }
  else {
@@ -57,7 +57,7 @@
 );
   Assert.assertEquals(windowSize,dataInfo.available());
   Assert.assertEquals(0,dataInfo.consumed());
-  dataInfo.drainInto(ByteBuffer.allocate(dataInfo.available()));
+  dataInfo.asByteBuffer(true);
   dataInfo=exchanger.exchange(null,5,TimeUnit.SECONDS);
   expectException(TimeoutException.class,new Callable<DataInfo>(){
     @Override public DataInfo call() throws Exception {
@@ -76,7 +76,7 @@
   }
 );
   Assert.assertEquals(dataInfo.length() / 2,dataInfo.consumed());
-  dataInfo.drainInto(ByteBuffer.allocate(dataInfo.available()));
+  dataInfo.asByteBuffer(true);
   dataInfo=exchanger.exchange(null,5,TimeUnit.SECONDS);
   Assert.assertEquals(dataInfo.length(),dataInfo.consumed());
   dataInfo=exchanger.exchange(null,5,TimeUnit.SECONDS);
