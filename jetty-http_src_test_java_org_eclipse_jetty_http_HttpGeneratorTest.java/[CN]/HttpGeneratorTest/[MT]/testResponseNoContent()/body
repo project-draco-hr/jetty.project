@@ -1,0 +1,22 @@
+{
+  ByteBuffer header=BufferUtil.allocate(8096);
+  HttpFields fields=new HttpFields();
+  HttpGenerator gen=new HttpGenerator();
+  fields.add("Host","something");
+  fields.add("User-Agent","test");
+  gen.setRequest(HttpMethod.GET,"/index.html",HttpVersion.HTTP_1_1);
+  HttpGenerator.Result result=gen.complete(null,null);
+  assertEquals(HttpGenerator.State.COMPLETING_UNCOMMITTED,gen.getState());
+  assertEquals(HttpGenerator.Result.NEED_COMMIT,result);
+  result=gen.commit(fields,header,null,null,true);
+  assertEquals(HttpGenerator.Result.NEED_COMPLETE,result);
+  String head=BufferUtil.toString(header);
+  BufferUtil.clear(header);
+  assertThat(head,containsString("HTTP/1.1 200 OK"));
+  assertThat(head,containsString("Last-Modified: Thu, 01 Jan 1970 00?00?00 GMT"));
+  assertThat(head,not(containsString("Content-Length")));
+  result=gen.complete(null,null);
+  assertEquals(HttpGenerator.Result.OK,result);
+  assertEquals(HttpGenerator.State.END,gen.getState());
+  assertEquals(0,gen.getContentWritten());
+}

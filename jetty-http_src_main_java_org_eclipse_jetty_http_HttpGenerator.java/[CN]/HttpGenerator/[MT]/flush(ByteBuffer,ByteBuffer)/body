@@ -2,12 +2,15 @@
 switch (_state) {
 case START:
     return Result.NEED_COMMIT;
-case CHUNKING:
-  if (chunk == null)   return Result.NEED_CHUNK;
-if (BufferUtil.hasContent(buffer)) {
-  BufferUtil.clear(chunk);
-  prepareChunk(chunk,buffer.remaining());
-}
+case COMMITTED:
+  if (isChunking()) {
+    if (chunk == null)     return Result.NEED_CHUNK;
+    if (BufferUtil.hasContent(buffer)) {
+      BufferUtil.clearToFill(chunk);
+      prepareChunk(chunk,buffer.remaining());
+      BufferUtil.flipToFlush(chunk,0);
+    }
+  }
 }
 return Result.FLUSH;
 }

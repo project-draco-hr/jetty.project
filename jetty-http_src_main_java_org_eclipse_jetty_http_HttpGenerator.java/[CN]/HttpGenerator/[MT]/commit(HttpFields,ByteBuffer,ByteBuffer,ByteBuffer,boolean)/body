@@ -1,244 +1,66 @@
 {
-  if (header == null)   throw new IllegalArgumentException("!header");
   if (isResponse() && _status == 0)   throw new EofException();
-  if (_state == State.START) {
-    if (isRequest() && _version == HttpVersion.HTTP_0_9)     _noContent=true;
-    boolean has_server=false;
-    int pos=header.position();
-    try {
-      BufferUtil.flipToFill(header);
+  int pos=header.position();
+  try {
+    BufferUtil.flipToFill(header);
+switch (_state) {
+case START:
+case COMPLETING_UNCOMMITTED:
       if (isRequest()) {
-        _persistent=true;
         if (_version == HttpVersion.HTTP_0_9) {
-          _contentLength=HttpTokens.NO_CONTENT;
-          header.put(_method);
-          header.put((byte)' ');
-          header.put(_uri);
-          header.put(HttpTokens.CRLF);
-          _state=State.END;
           _noContent=true;
-          return Result.FLUSH;
+          generateRequestLine(header);
+          _state=State.END;
+          return Result.OK;
         }
-        header.put(_method);
-        header.put((byte)' ');
-        header.put(_uri);
-        header.put((byte)' ');
-        header.put((_version == HttpVersion.HTTP_1_0 ? HttpVersion.HTTP_1_0 : HttpVersion.HTTP_1_1).toBytes());
-        header.put(HttpTokens.CRLF);
+        _persistent=true;
+        generateRequestLine(header);
       }
  else {
         if (_version == HttpVersion.HTTP_0_9) {
           _persistent=false;
           _contentLength=HttpTokens.EOF_CONTENT;
-          _state=State.STREAMING;
+          _state=State.COMMITTED;
           return prepareContent(null,buffer,content);
         }
         if (_persistent == null)         _persistent=(_version.ordinal() > HttpVersion.HTTP_1_0.ordinal());
-        Status status=_status < __status.length ? __status[_status] : null;
-        if (status != null) {
-          if (_reason == null)           header.put(status._responseLine);
- else {
-            header.put(status._schemeCode);
-            header.put(_reason);
-            header.put(HttpTokens.CRLF);
-          }
-        }
- else {
-          header.put(HTTP_1_1_SPACE);
-          header.put((byte)('0' + _status / 100));
-          header.put((byte)('0' + (_status % 100) / 10));
-          header.put((byte)('0' + (_status % 10)));
-          header.put((byte)' ');
-          if (_reason == null) {
-            header.put((byte)('0' + _status / 100));
-            header.put((byte)('0' + (_status % 100) / 10));
-            header.put((byte)('0' + (_status % 10)));
-          }
- else           header.put(_reason);
-          header.put(HttpTokens.CRLF);
-        }
+        generateResponseLine(header);
         if (_status >= 100 && _status < 200) {
           _noContent=true;
           if (_status != 101) {
             header.put(HttpTokens.CRLF);
             _state=State.START;
-            return Result.FLUSH;
+            return Result.OK;
           }
         }
  else         if (_status == 204 || _status == 304) {
           _noContent=true;
         }
       }
-      if (_status >= 200 && _date != null) {
-        header.put(HttpHeader.DATE.toBytesColonSpace());
-        header.put(_date);
-        header.put(CRLF);
-      }
-      HttpFields.Field transfer_encoding=null;
-      boolean keep_alive=false;
-      boolean close=false;
-      boolean content_type=false;
-      boolean content_length=false;
-      StringBuilder connection=null;
-      if (fields != null) {
-        for (        HttpFields.Field field : fields) {
-          HttpHeader name=HttpHeader.CACHE.get(field.getName());
-switch (name == null ? HttpHeader.UNKNOWN : name) {
-case CONTENT_LENGTH:
-{
-              long length=field.getLongValue();
-              if (length >= 0) {
-                if (length < _contentPrepared || last && length != _contentPrepared)                 LOG.warn("Incorrect ContentLength ignored ",new Throwable());
- else {
-                  field.putTo(header);
-                  _contentLength=length;
-                  content_length=true;
-                }
-              }
-              break;
-            }
-case CONTENT_TYPE:
-{
-            if (field.getValue().startsWith(MimeTypes.Type.MULTIPART_BYTERANGES.toString()))             _contentLength=HttpTokens.SELF_DEFINING_CONTENT;
-            content_type=true;
-            field.putTo(header);
-            break;
-          }
-case TRANSFER_ENCODING:
-{
-          if (_version == HttpVersion.HTTP_1_1)           transfer_encoding=field;
-          break;
-        }
-case CONNECTION:
-{
-        if (isRequest())         field.putTo(header);
-        HttpHeaderValue[] values=new HttpHeaderValue[]{HttpHeaderValue.CACHE.get(field.getValue())};
-        String[] split=null;
-        if (values[0] == null) {
-          split=field.getValue().split("\\s*,\\s*");
-          if (split.length > 0) {
-            values=new HttpHeaderValue[split.length];
-            for (int i=0; i < split.length; i++)             values[i]=HttpHeaderValue.CACHE.get(split[i]);
-          }
-        }
-        for (int i=0; i < values.length; i++) {
-          HttpHeaderValue value=values[i];
-switch (value == null ? HttpHeaderValue.UNKNOWN : value) {
-case UPGRADE:
-{
-              header.put(HttpHeader.CONNECTION.toBytesColonSpace()).put(HttpHeader.UPGRADE.toBytes());
-              break;
-            }
-case CLOSE:
-{
-            close=true;
-            if (isResponse())             _persistent=false;
-            if (!_persistent && isResponse() && _contentLength == HttpTokens.UNKNOWN_CONTENT)             _contentLength=HttpTokens.EOF_CONTENT;
-            break;
-          }
-case KEEP_ALIVE:
-{
-          if (_version == HttpVersion.HTTP_1_0) {
-            keep_alive=true;
-            if (isResponse())             _persistent=true;
-          }
-          break;
-        }
-default :
-{
-        if (connection == null)         connection=new StringBuilder();
- else         connection.append(',');
-        connection.append(split == null ? field.getValue() : split[i]);
-      }
+    generateHeaders(fields,header,content,last);
+  _state=_state == State.COMPLETING_UNCOMMITTED ? State.COMMITTING_COMPLETING : State.COMMITTING;
+case COMMITTING:
+case COMMITTING_COMPLETING:
+if (BufferUtil.hasContent(content)) {
+  if (_contentLength > 0 && content.remaining() > (_contentLength - _contentPrepared)) {
+    LOG.warn("Content truncated at {}",new Throwable());
+    content.limit(content.position() + (int)(_contentLength - _contentPrepared));
   }
+  if (BufferUtil.isEmpty(buffer) && content.remaining() > _largeContent) {
+    _contentPrepared+=content.remaining();
+    if (isChunking())     prepareChunk(header,content.remaining());
+    return Result.FLUSH_CONTENT;
+  }
+  if (buffer == null)   return Result.NEED_BUFFER;
+  _contentPrepared+=BufferUtil.put(content,buffer);
+  if (isChunking())   prepareChunk(header,buffer.remaining());
+  return Result.FLUSH;
 }
-break;
-}
-case SERVER:
-{
-if (getSendServerVersion()) {
-has_server=true;
-field.putTo(header);
-}
-break;
-}
-default :
-header.put(name.toBytesColonSpace());
-field.putValueTo(header);
-header.put(CRLF);
-}
-}
-}
-switch ((int)_contentLength) {
-case HttpTokens.UNKNOWN_CONTENT:
-if (_contentPrepared == 0 && isResponse() && (_status < 200 || _status == 204 || _status == 304)) _contentLength=HttpTokens.NO_CONTENT;
- else if (last) {
-_contentLength=_contentPrepared + BufferUtil.remaining(content);
-if (!content_length && (isResponse() || _contentLength > 0 || content_type) && !_noContent) {
-header.put(HttpHeader.CONTENT_LENGTH.toBytesColonSpace());
-BufferUtil.putDecLong(header,_contentLength);
-header.put(HttpTokens.CRLF);
-}
-}
- else {
-_contentLength=(!_persistent || _version.ordinal() < HttpVersion.HTTP_1_1.ordinal()) ? HttpTokens.EOF_CONTENT : HttpTokens.CHUNKED_CONTENT;
-if (isRequest() && _contentLength == HttpTokens.EOF_CONTENT) {
-_contentLength=HttpTokens.NO_CONTENT;
-_noContent=true;
-}
-}
-break;
-case HttpTokens.NO_CONTENT:
-if (!content_length && isResponse() && _status >= 200 && _status != 204 && _status != 304) header.put(CONTENT_LENGTH_0);
-break;
-case HttpTokens.EOF_CONTENT:
-_persistent=isRequest();
-break;
-case HttpTokens.CHUNKED_CONTENT:
+_state=_state == State.COMMITTING ? State.COMMITTED : State.COMPLETING;
 break;
 default :
-break;
+throw new IllegalStateException(this.toString());
 }
-if (_contentLength == HttpTokens.CHUNKED_CONTENT) {
-if (transfer_encoding != null && !HttpHeaderValue.CHUNKED.toString().equalsIgnoreCase(transfer_encoding.getValue())) {
-String c=transfer_encoding.getValue();
-if (c.endsWith(HttpHeaderValue.CHUNKED.toString())) transfer_encoding.putTo(header);
- else throw new IllegalArgumentException("BAD TE");
-}
- else header.put(TRANSFER_ENCODING_CHUNKED);
-}
-if (_contentLength == HttpTokens.EOF_CONTENT) {
-keep_alive=false;
-_persistent=false;
-}
-if (isResponse()) {
-if (!_persistent && (close || _version.ordinal() > HttpVersion.HTTP_1_0.ordinal())) {
-if (connection == null) header.put(CONNECTION_CLOSE);
- else {
-header.put(CONNECTION_CLOSE,0,CONNECTION_CLOSE.length - 2);
-header.put((byte)',');
-header.put(StringUtil.getBytes(connection.toString()));
-header.put(CRLF);
-}
-}
- else if (keep_alive) {
-if (connection == null) header.put(CONNECTION_KEEP_ALIVE);
- else {
-header.put(CONNECTION_KEEP_ALIVE,0,CONNECTION_CLOSE.length - 2);
-header.put((byte)',');
-header.put(StringUtil.getBytes(connection.toString()));
-header.put(CRLF);
-}
-}
- else if (connection != null) {
-header.put(CONNECTION_);
-header.put(StringUtil.getBytes(connection.toString()));
-header.put(CRLF);
-}
-}
-if (!has_server && _status > 199 && getSendServerVersion()) header.put(SERVER);
-header.put(HttpTokens.CRLF);
-_state=_contentLength == HttpTokens.CHUNKED_CONTENT ? State.CHUNKING : State.STREAMING;
 }
  catch (BufferOverflowException e) {
 throw new RuntimeException("Header>" + header.capacity(),e);
@@ -246,20 +68,5 @@ throw new RuntimeException("Header>" + header.capacity(),e);
  finally {
 BufferUtil.flipToFlush(header,pos);
 }
-}
-if (BufferUtil.hasContent(content)) {
-if (BufferUtil.isEmpty(buffer) && content.remaining() > _largeContent) {
-_contentPrepared+=content.remaining();
-if (_state == State.CHUNKING) prepareChunk(header,content.remaining());
-return Result.FLUSH_CONTENT;
-}
-if (buffer == null) return Result.NEED_BUFFER;
-_contentPrepared+=BufferUtil.put(content,buffer);
-if (_state == State.CHUNKING) prepareChunk(header,buffer.remaining());
-}
-if (BufferUtil.hasContent(buffer)) {
-if (last && BufferUtil.isEmpty(content) || _contentLength > 0 && _contentLength == _contentPrepared) return Result.NEED_COMPLETE;
-return Result.FLUSH;
-}
-return Result.OK;
+return _state == State.COMPLETING ? Result.NEED_COMPLETE : Result.OK;
 }

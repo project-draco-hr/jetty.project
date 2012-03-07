@@ -1,41 +1,20 @@
 {
-  ByteBuffer bb=new ByteArrayBuffer(8096);
-  ByteBuffer sb=new ByteArrayBuffer(1500);
   HttpFields fields=new HttpFields();
-  ByteArrayEndPoint endp=new ByteArrayEndPoint(new byte[0],4096);
-  HttpGenerator hb=new HttpGenerator(new SimpleBuffers(sb,bb),endp);
-  Handler handler=new Handler();
-  HttpParser parser=null;
+  HttpGenerator gen=new HttpGenerator();
   for (int v=9; v <= 11; v++) {
     for (int r=0; r < tr.length; r++) {
       for (int chunks=1; chunks <= 6; chunks++) {
         for (int c=0; c < (v == 11 ? connect.length : (connect.length - 1)); c++) {
           String t="v=" + v + ",r="+ r+ ",chunks="+ chunks+ ",connect="+ c+ ",tr="+ tr[r];
-          hb.reset();
-          endp.reset();
+          gen.reset();
           fields.clear();
-          tr[r].build(v,hb,"OK\r\nTest",connect[c],null,chunks,fields);
-          String response=endp.getOut().toString();
+          String response=tr[r].build(v,gen,"OK\r\nTest",connect[c],null,chunks,fields);
+          System.out.println("RESPONSE: " + t + "\n"+ response+ (gen.isPersistent() ? "...\n" : "---\n"));
           if (v == 9) {
-            assertFalse(t,hb.isPersistent());
+            assertFalse(t,gen.isPersistent());
             if (tr[r]._body != null)             assertEquals(t,tr[r]._body,response);
             continue;
           }
-          parser=new HttpParser(new ByteArrayBuffer(response.getBytes()),handler);
-          parser.setHeadResponse(tr[r]._head);
-          try {
-            parser.parse();
-          }
- catch (          IOException e) {
-            if (tr[r]._body != null)             throw new Exception(t,e);
-            continue;
-          }
-          if (tr[r]._body != null)           assertEquals(t,tr[r]._body,this.content);
-          if (v == 10)           assertTrue(t,hb.isPersistent() || tr[r]._contentLength == null || c == 2 || c == 0);
- else           assertTrue(t,hb.isPersistent() || c == 2 || c == 3);
-          if (v > 9)           assertEquals("OK  Test",f2);
-          if (content == null)           assertTrue(t,tr[r]._body == null);
- else           assertTrue(t,tr[r]._contentLength == null || content.length() == Integer.parseInt(tr[r]._contentLength));
         }
       }
     }
