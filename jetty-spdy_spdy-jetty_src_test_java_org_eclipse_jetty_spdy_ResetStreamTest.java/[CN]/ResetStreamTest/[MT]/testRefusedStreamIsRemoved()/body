@@ -1,0 +1,26 @@
+{
+  final AtomicReference<Session> serverSessionRef=new AtomicReference<>();
+  final CountDownLatch synLatch=new CountDownLatch(1);
+  final CountDownLatch rstLatch=new CountDownLatch(1);
+  Session clientSession=startClient(startServer(new ServerSessionFrameListener.Adapter(){
+    @Override public StreamFrameListener onSyn(    Stream stream,    SynInfo synInfo){
+      Session serverSession=stream.getSession();
+      serverSessionRef.set(serverSession);
+      serverSession.rst(new RstInfo(stream.getId(),StreamStatus.REFUSED_STREAM));
+      synLatch.countDown();
+      return null;
+    }
+  }
+),new SessionFrameListener.Adapter(){
+    @Override public void onRst(    Session session,    RstInfo rstInfo){
+      rstLatch.countDown();
+    }
+  }
+);
+  clientSession.syn(new SynInfo(false),null).get(5,TimeUnit.SECONDS);
+  Assert.assertTrue(synLatch.await(5,TimeUnit.SECONDS));
+  Session serverSession=serverSessionRef.get();
+  Assert.assertEquals(0,serverSession.getStreams().size());
+  Assert.assertTrue(rstLatch.await(5,TimeUnit.SECONDS));
+  Assert.assertEquals(0,clientSession.getStreams().size());
+}
