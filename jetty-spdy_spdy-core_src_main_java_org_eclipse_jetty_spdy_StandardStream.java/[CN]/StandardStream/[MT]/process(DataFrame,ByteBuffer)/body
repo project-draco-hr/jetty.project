@@ -1,0 +1,16 @@
+{
+  if (!opened) {
+    session.rst(new RstInfo(getId(),StreamStatus.PROTOCOL_ERROR));
+    return;
+  }
+  updateCloseState(frame.isClose());
+  ByteBufferDataInfo dataInfo=new ByteBufferDataInfo(data,frame.isClose(),frame.isCompress()){
+    @Override public void consume(    int delta){
+      super.consume(delta);
+      if (consumed() == length() && !isClosed())       windowUpdate(length());
+    }
+  }
+;
+  notifyOnData(dataInfo);
+  session.flush();
+}

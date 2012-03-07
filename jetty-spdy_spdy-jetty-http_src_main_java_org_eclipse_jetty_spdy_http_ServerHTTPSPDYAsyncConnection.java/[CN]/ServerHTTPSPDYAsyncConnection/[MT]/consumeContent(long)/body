@@ -1,0 +1,34 @@
+{
+  while (true) {
+    State state=this.state;
+    if (state != State.HEADERS_COMPLETE && state != State.CONTENT && state != State.FINAL)     throw new IllegalStateException();
+    if (buffer != null) {
+      if (buffer.length() > 0) {
+        logger.debug("Consuming content bytes, {} available",buffer.length());
+        return buffer;
+      }
+ else {
+        if (dataInfo.consumed() == 0)         dataInfo.consume(dataInfo.length());
+        dataInfo=null;
+        buffer=null;
+        if (complete && dataInfos.isEmpty())         return null;
+      }
+    }
+ else {
+      logger.debug("Waiting at most {} ms for content bytes",maxIdleTime);
+      long begin=System.nanoTime();
+      dataInfo=dataInfos.poll(maxIdleTime,TimeUnit.MILLISECONDS);
+      long elapsed=TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - begin);
+      logger.debug("Waited {} ms for content bytes",elapsed);
+      if (dataInfo != null) {
+        boolean consume=complete && dataInfos.isEmpty();
+        ByteBuffer byteBuffer=dataInfo.asByteBuffer(consume);
+        buffer=byteBuffer.isDirect() ? new DirectNIOBuffer(byteBuffer,false) : new IndirectNIOBuffer(byteBuffer,false);
+      }
+ else {
+        stream.getSession().goAway();
+        throw new EOFException("read timeout");
+      }
+    }
+  }
+}

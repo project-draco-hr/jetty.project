@@ -1,0 +1,42 @@
+{
+  try {
+    logger.debug("Parsing {} bytes",buffer.remaining());
+    while (buffer.hasRemaining()) {
+switch (state) {
+case CONTROL_BIT:
+{
+          int currByte=buffer.get(buffer.position());
+          boolean isControlFrame=(currByte & 0x80) == 0x80;
+          state=isControlFrame ? State.CONTROL_FRAME : State.DATA_FRAME;
+          break;
+        }
+case CONTROL_FRAME:
+{
+        if (controlFrameParser.parse(buffer))         reset();
+        break;
+      }
+case DATA_FRAME:
+{
+      if (dataFrameParser.parse(buffer))       reset();
+      break;
+    }
+default :
+{
+    throw new IllegalStateException();
+  }
+}
+}
+}
+ catch (SessionException x) {
+notifySessionException(x);
+}
+catch (StreamException x) {
+notifyStreamException(x);
+}
+catch (Throwable x) {
+notifySessionException(new SessionException(SessionStatus.PROTOCOL_ERROR,x));
+}
+ finally {
+buffer.position(buffer.limit());
+}
+}

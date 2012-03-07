@@ -1,0 +1,27 @@
+{
+  final CountDownLatch latch=new CountDownLatch(1);
+  ServerSessionFrameListener serverSessionFrameListener=new ServerSessionFrameListener.Adapter(){
+    private final AtomicInteger syns=new AtomicInteger();
+    @Override public StreamFrameListener onSyn(    Stream stream,    SynInfo synInfo){
+      int synCount=syns.incrementAndGet();
+      if (synCount == 1) {
+        stream.reply(new ReplyInfo(true));
+        stream.getSession().goAway();
+      }
+ else {
+        latch.countDown();
+      }
+      return null;
+    }
+  }
+;
+  SessionFrameListener clientSessionFrameListener=new SessionFrameListener.Adapter(){
+    @Override public void onGoAway(    Session session,    GoAwayInfo goAwayInfo){
+      session.syn(new SynInfo(true),null);
+    }
+  }
+;
+  Session session=startClient(startServer(serverSessionFrameListener),clientSessionFrameListener);
+  session.syn(new SynInfo(true),null);
+  Assert.assertFalse(latch.await(1,TimeUnit.SECONDS));
+}
