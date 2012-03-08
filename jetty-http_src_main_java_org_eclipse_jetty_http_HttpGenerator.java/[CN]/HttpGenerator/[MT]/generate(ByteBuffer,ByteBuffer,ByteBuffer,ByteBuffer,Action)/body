@@ -23,8 +23,8 @@
     }
  else {
       if (buffer == null)       return Result.NEED_BUFFER;
-      _contentPrepared+=BufferUtil.put(content,buffer);
-      if (BufferUtil.isAtCapacity(buffer)) {
+      _contentPrepared+=BufferUtil.flipPutFlip(content,buffer);
+      if (BufferUtil.isFull(buffer)) {
         if (isCommitted()) {
           if (isChunking()) {
             if (chunk == null)             return Result.NEED_CHUNK;
@@ -140,9 +140,15 @@ BufferUtil.flipToFlush(chunk,0);
 }
  else if (result == Result.OK) {
 if (BufferUtil.hasContent(buffer)) result=Result.FLUSH;
- else _state=State.END;
+ else {
+if (!_persistent) result=Result.SHUTDOWN_OUT;
+_state=State.END;
+}
 }
 return result;
+case END:
+if (!_persistent) result=Result.SHUTDOWN_OUT;
+return Result.OK;
 default :
 throw new IllegalStateException();
 }

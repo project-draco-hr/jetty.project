@@ -9,13 +9,13 @@
  else     if (toFill.capacity() < _session.getApplicationBufferSize()) {
       boolean progress=process(null,toFlush);
       if (BufferUtil.hasContent(_unwrapBuf)) {
-        BufferUtil.put(_unwrapBuf,toFill);
+        BufferUtil.flipPutFlip(_unwrapBuf,toFill);
         return true;
       }
  else       return progress;
     }
  else     if (BufferUtil.hasContent(_unwrapBuf)) {
-      BufferUtil.put(_unwrapBuf,toFill);
+      BufferUtil.flipPutFlip(_unwrapBuf,toFill);
       return true;
     }
     if (toFlush == null)     toFlush=__ZERO_BUFFER;
@@ -24,7 +24,7 @@
       progress=false;
       int filled=0, flushed=0;
       try {
-        if (!BufferUtil.isAtCapacity(_inbound) && (filled=_endp.fill(_inbound)) > 0)         progress=true;
+        if (!BufferUtil.isFull(_inbound) && (filled=_endp.fill(_inbound)) > 0)         progress=true;
  else         _inbound.compact().flip();
         if (BufferUtil.hasContent(_outbound) && (flushed=_endp.flush(_outbound)) > 0) {
           progress=true;
@@ -43,8 +43,8 @@ case FINISHED:
         throw new IllegalStateException();
 case NOT_HANDSHAKING:
 {
-        if (!BufferUtil.isAtCapacity(toFill) && BufferUtil.hasContent(_inbound) && unwrap(toFill))         progress=true;
-        if (BufferUtil.hasContent(toFlush) && !BufferUtil.isAtCapacity(_outbound) && wrap(toFlush))         progress=true;
+        if (!BufferUtil.isFull(toFill) && BufferUtil.hasContent(_inbound) && unwrap(toFill))         progress=true;
+        if (BufferUtil.hasContent(toFlush) && !BufferUtil.isFull(_outbound) && wrap(toFlush))         progress=true;
       }
     break;
 case NEED_TASK:

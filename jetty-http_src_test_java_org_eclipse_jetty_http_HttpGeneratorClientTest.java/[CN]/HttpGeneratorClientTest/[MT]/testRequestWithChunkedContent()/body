@@ -1,4 +1,5 @@
 {
+  String body="";
   ByteBuffer header=BufferUtil.allocate(4096);
   ByteBuffer buffer=BufferUtil.allocate(16);
   ByteBuffer content0=BufferUtil.toBuffer("Hello World! ");
@@ -30,7 +31,7 @@
   assertTrue(gen.isChunking());
   String head=BufferUtil.toString(header);
   BufferUtil.clear(header);
-  String body=BufferUtil.toString(buffer);
+  body+=BufferUtil.toString(buffer);
   BufferUtil.clear(buffer);
   result=gen.generate(null,null,buffer,content1,null);
   assertEquals(HttpGenerator.Result.NEED_CHUNK,result);
@@ -73,7 +74,7 @@
   assertEquals(HttpGenerator.State.END,gen.getState());
   assertEquals("\r\n0\r\n\r\n",BufferUtil.toString(chunk));
   assertEquals(0,buffer.remaining());
-  body+=BufferUtil.toString(chunk);
+  BufferUtil.toString(chunk);
   BufferUtil.clear(chunk);
   result=gen.generate(null,chunk,buffer,null,null);
   assertEquals(HttpGenerator.Result.OK,result);
@@ -84,4 +85,5 @@
   assertThat(head,not(containsString("Content-Length")));
   assertThat(head,containsString("Transfer-Encoding: chunked"));
   assertTrue(head.endsWith("\r\n\r\n10\r\n"));
+  assertThat(body,containsString("dog"));
 }

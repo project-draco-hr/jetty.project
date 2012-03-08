@@ -1,30 +1,24 @@
 {
   int put;
-  int pos=flipToFill(to);
-  try {
-    int remaining=from.remaining();
-    if (remaining > 0) {
-      if (remaining <= to.remaining()) {
-        to.put(from);
-        put=remaining;
-      }
- else       if (from.hasArray()) {
-        put=to.remaining();
-        to.put(from.array(),from.arrayOffset() + from.position(),put);
-        from.position(from.position() + put);
-      }
- else {
-        put=to.remaining();
-        ByteBuffer slice=from.slice();
-        slice.limit(put);
-        to.put(slice);
-        from.position(from.position() + put);
-      }
+  int remaining=from.remaining();
+  if (remaining > 0) {
+    if (remaining <= to.remaining()) {
+      to.put(from);
+      put=remaining;
     }
- else     put=0;
+ else     if (from.hasArray()) {
+      put=to.remaining();
+      to.put(from.array(),from.arrayOffset() + from.position(),put);
+      from.position(from.position() + put);
+    }
+ else {
+      put=to.remaining();
+      ByteBuffer slice=from.slice();
+      slice.limit(put);
+      to.put(slice);
+      from.position(from.position() + put);
+    }
   }
-  finally {
-    flipToFlush(to,pos);
-  }
+ else   put=0;
   return put;
 }
