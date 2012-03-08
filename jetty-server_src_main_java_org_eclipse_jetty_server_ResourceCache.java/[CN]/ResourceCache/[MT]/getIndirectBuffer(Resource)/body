@@ -5,10 +5,15 @@
       LOG.warn("invalid resource: " + String.valueOf(resource) + " "+ len);
       return null;
     }
-    ByteBuffer buffer=new IndirectNIOBuffer(len);
-    InputStream is=resource.getInputStream();
-    buffer.readFrom(is,len);
-    is.close();
+    ByteBuffer buffer=BufferUtil.allocate(len);
+    int pos=BufferUtil.flipToFill(buffer);
+    if (resource.getFile() != null)     BufferUtil.readFrom(resource.getFile(),buffer);
+ else {
+      InputStream is=resource.getInputStream();
+      BufferUtil.readFrom(is,len,buffer);
+      is.close();
+    }
+    BufferUtil.flipToFlush(buffer,pos);
     return buffer;
   }
  catch (  IOException e) {
