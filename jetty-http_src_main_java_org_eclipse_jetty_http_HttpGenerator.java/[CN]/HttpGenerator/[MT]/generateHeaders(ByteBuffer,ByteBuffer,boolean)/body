@@ -11,15 +11,20 @@
   boolean content_type=false;
   boolean content_length=false;
   StringBuilder connection=null;
-  if (fields != null) {
-    for (    HttpFields.Field field : fields) {
+  if (_fields != null) {
+    for (    HttpFields.Field field : _fields) {
       HttpHeader name=HttpHeader.CACHE.get(field.getName());
 switch (name == null ? HttpHeader.UNKNOWN : name) {
 case CONTENT_LENGTH:
 {
           long length=field.getLongValue();
           if (length >= 0) {
-            if (length < _contentPrepared || last && length != _contentPrepared)             LOG.warn("Incorrect ContentLength ignored ",new Throwable());
+            long prepared=_contentPrepared + BufferUtil.remaining(content);
+            if (length < prepared || last && length != prepared) {
+              LOG.warn("Incorrect ContentLength: " + length + "!="+ prepared);
+              if (LOG.isDebugEnabled())               LOG.debug(new Throwable());
+              _contentLength=HttpTokens.UNKNOWN_CONTENT;
+            }
  else {
               header.put(HttpHeader.CONTENT_LENGTH.toBytesColonSpace());
               BufferUtil.putDecLong(header,length);
@@ -96,9 +101,12 @@ field.putTo(header);
 break;
 }
 default :
+if (name == null) field.putTo(header);
+ else {
 header.put(name.toBytesColonSpace());
 field.putValueTo(header);
 header.put(CRLF);
+}
 }
 }
 }

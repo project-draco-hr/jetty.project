@@ -6,67 +6,46 @@
   gen.setResponse(_code,reason);
   gen.setHead(_head);
   if (_contentType != null)   fields.put("Content-Type",_contentType);
-  if (_contentLength != null) {
-    fields.put("Content-Length",_contentLength);
-    gen.setContentLength(Long.parseLong(_contentLength));
+  if (_contentLength >= 0) {
+    fields.put("Content-Length","" + _contentLength);
+    gen.setContentLength(_contentLength);
   }
   if (_connection != null)   fields.put("Connection",_connection);
   if (_te != null)   fields.put("Transfer-Encoding",_te);
   if (_other != null)   fields.put("Other",_other);
   ByteBuffer content=_body == null ? null : BufferUtil.toBuffer(_body);
   if (content != null)   content.limit(0);
+  ByteBuffer header=null;
   ByteBuffer chunk=null;
   ByteBuffer buffer=null;
-  mainLoop:   while (true) {
+  while (!gen.isComplete()) {
     if (content != null && content.position() < content.capacity()) {
       if (content.remaining() == 0) {
+        content.limit(content.capacity());
         if (chunks-- > 1)         content.limit(content.position() + content.remaining() / 2);
- else         content.limit(content.capacity());
-      }
-switch (gen.getState()) {
-case START:
-case COMPLETING_UNCOMMITTED:
-case COMMITTED:
-case COMPLETING:
-case END:
       }
     }
-switch (gen.prepareContent(chunk,buffer,content)) {
-case FLUSH:
-      if (BufferUtil.hasContent(chunk)) {
-        response+=BufferUtil.toString(chunk);
-        chunk.position(chunk.limit());
-      }
-    if (BufferUtil.hasContent(buffer)) {
-      response+=BufferUtil.toString(buffer);
-      buffer.position(buffer.limit());
-    }
-  break;
-case FLUSH_CONTENT:
-if (BufferUtil.hasContent(chunk)) {
-  response+=BufferUtil.toString(chunk);
-  chunk.position(chunk.limit());
-}
-if (BufferUtil.hasContent(content)) {
-response+=BufferUtil.toString(content);
-content.position(content.limit());
-}
-break;
+    Action action=BufferUtil.hasContent(content) ? null : Action.COMPLETE;
+    HttpGenerator.Result result=gen.generate(header,chunk,buffer,content,action);
+switch (result) {
+case NEED_HEADER:
+      header=BufferUtil.allocate(2048);
+    break;
 case NEED_BUFFER:
-buffer=BufferUtil.allocate(8192);
+  buffer=BufferUtil.allocate(8192);
 break;
 case NEED_CHUNK:
+header=null;
 chunk=BufferUtil.allocate(HttpGenerator.CHUNK_SIZE);
 break;
-case NEED_COMMIT:
-{
-commitLoop: while (true) {
-ByteBuffer header=BufferUtil.allocate(4096);
-switch (gen.commit(fields,header,buffer,content,chunks == 0)) {
 case FLUSH:
 if (BufferUtil.hasContent(header)) {
 response+=BufferUtil.toString(header);
 header.position(header.limit());
+}
+ else if (BufferUtil.hasContent(chunk)) {
+response+=BufferUtil.toString(chunk);
+chunk.position(chunk.limit());
 }
 if (BufferUtil.hasContent(buffer)) {
 response+=BufferUtil.toString(buffer);
@@ -78,64 +57,18 @@ if (BufferUtil.hasContent(header)) {
 response+=BufferUtil.toString(header);
 header.position(header.limit());
 }
+ else if (BufferUtil.hasContent(chunk)) {
+response+=BufferUtil.toString(chunk);
+chunk.position(chunk.limit());
+}
 if (BufferUtil.hasContent(content)) {
 response+=BufferUtil.toString(content);
 content.position(content.limit());
 }
 break;
-case NEED_BUFFER:
-buffer=BufferUtil.allocate(8192);
-break;
 case OK:
-break commitLoop;
-default :
-throw new IllegalStateException(gen.toString());
+case SHUTDOWN_OUT:
 }
 }
-}
-break;
-case NEED_COMPLETE:
-{
-completeLoop: while (true) {
-ByteBuffer header=BufferUtil.allocate(4096);
-switch (gen.complete(chunk,buffer)) {
-case FLUSH:
-if (BufferUtil.hasContent(chunk)) {
-response+=BufferUtil.toString(chunk);
-chunk.position(chunk.limit());
-}
-if (BufferUtil.hasContent(buffer)) {
-response+=BufferUtil.toString(buffer);
-buffer.position(buffer.limit());
-}
-break;
-case OK:
-break completeLoop;
-default :
-throw new IllegalStateException(gen.toString());
-}
-}
-}
-break;
-}
-continue;
-}
-while (true) {
-switch (gen.complete(chunk,buffer)) {
-case FLUSH:
-if (BufferUtil.hasContent(chunk)) {
-response+=BufferUtil.toString(chunk);
-chunk.position(chunk.limit());
-}
-if (BufferUtil.hasContent(buffer)) {
-response+=BufferUtil.toString(buffer);
-buffer.position(buffer.limit());
-}
-break;
-case OK:
-break mainLoop;
-default :
-throw new IllegalStateException(gen.toString());
-}
-}
+return response;
 }
