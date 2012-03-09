@@ -1,0 +1,35 @@
+{
+  final CountDownLatch synLatch=new CountDownLatch(1);
+  InetSocketAddress address=startServer(new ServerSessionFrameListener.Adapter(){
+    @Override public StreamFrameListener onSyn(    Stream stream,    SynInfo synInfo){
+      synLatch.countDown();
+      return null;
+    }
+    @Override public void onException(    Throwable x){
+    }
+  }
+);
+  SynStreamFrame frame=new SynStreamFrame(SPDY.V2,SynInfo.FLAG_CLOSE,1,0,(byte)0,new Headers());
+  Generator generator=new Generator(new StandardByteBufferPool(),new StandardCompressionFactory.StandardCompressor());
+  ByteBuffer buffer=generator.control(frame);
+  buffer.putShort(0,(short)0x8001);
+  SocketChannel channel=SocketChannel.open(address);
+  channel.write(buffer);
+  Assert.assertFalse(buffer.hasRemaining());
+  Assert.assertFalse(synLatch.await(1,TimeUnit.SECONDS));
+  buffer=ByteBuffer.allocate(1024);
+  channel.read(buffer);
+  buffer.flip();
+  final CountDownLatch rstLatch=new CountDownLatch(1);
+  Parser parser=new Parser(new StandardCompressionFactory.StandardDecompressor());
+  parser.addListener(new Parser.Listener.Adapter(){
+    @Override public void onControlFrame(    ControlFrame frame){
+      Assert.assertSame(ControlFrameType.RST_STREAM,frame.getType());
+      Assert.assertEquals(StreamStatus.UNSUPPORTED_VERSION.getCode(frame.getVersion()),((RstStreamFrame)frame).getStatusCode());
+      rstLatch.countDown();
+    }
+  }
+);
+  parser.parse(buffer);
+  Assert.assertTrue(rstLatch.await(5,TimeUnit.SECONDS));
+}

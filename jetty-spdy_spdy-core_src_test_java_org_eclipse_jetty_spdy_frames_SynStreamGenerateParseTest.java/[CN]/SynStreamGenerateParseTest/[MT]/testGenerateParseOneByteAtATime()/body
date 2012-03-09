@@ -1,0 +1,27 @@
+{
+  byte flags=SynInfo.FLAG_CLOSE;
+  int streamId=13;
+  int associatedStreamId=11;
+  byte priority=3;
+  Headers headers=new Headers();
+  headers.put("a","b");
+  headers.put("c","d");
+  SynStreamFrame frame1=new SynStreamFrame(SPDY.V2,flags,streamId,associatedStreamId,priority,headers);
+  Generator generator=new Generator(new StandardByteBufferPool(),new StandardCompressionFactory().newCompressor());
+  ByteBuffer buffer=generator.control(frame1);
+  Assert.assertNotNull(buffer);
+  TestSPDYParserListener listener=new TestSPDYParserListener();
+  Parser parser=new Parser(new StandardCompressionFactory().newDecompressor());
+  parser.addListener(listener);
+  while (buffer.hasRemaining())   parser.parse(ByteBuffer.wrap(new byte[]{buffer.get()}));
+  ControlFrame frame2=listener.getControlFrame();
+  Assert.assertNotNull(frame2);
+  Assert.assertEquals(ControlFrameType.SYN_STREAM,frame2.getType());
+  SynStreamFrame synStream=(SynStreamFrame)frame2;
+  Assert.assertEquals(SPDY.V2,synStream.getVersion());
+  Assert.assertEquals(streamId,synStream.getStreamId());
+  Assert.assertEquals(associatedStreamId,synStream.getAssociatedStreamId());
+  Assert.assertEquals(flags,synStream.getFlags());
+  Assert.assertEquals(priority,synStream.getPriority());
+  Assert.assertEquals(headers,synStream.getHeaders());
+}

@@ -1,0 +1,37 @@
+{
+  final int maxIdleTime=1000;
+  server=new Server();
+  connector=newSPDYServerConnector(new ServerSessionFrameListener.Adapter(){
+    @Override public StreamFrameListener onSyn(    Stream stream,    SynInfo synInfo){
+      try {
+        Thread.sleep(2 * maxIdleTime);
+        stream.reply(new ReplyInfo(true));
+        return null;
+      }
+ catch (      InterruptedException x) {
+        Assert.fail();
+        return null;
+      }
+    }
+  }
+);
+  server.addConnector(connector);
+  connector.setMaxIdleTime(maxIdleTime);
+  server.start();
+  final CountDownLatch latch=new CountDownLatch(1);
+  Session session=startClient(new InetSocketAddress("localhost",connector.getLocalPort()),new SessionFrameListener.Adapter(){
+    @Override public void onGoAway(    Session session,    GoAwayInfo goAwayInfo){
+      latch.countDown();
+    }
+  }
+);
+  final CountDownLatch replyLatch=new CountDownLatch(1);
+  session.syn(new SynInfo(true),new StreamFrameListener.Adapter(){
+    @Override public void onReply(    Stream stream,    ReplyInfo replyInfo){
+      replyLatch.countDown();
+    }
+  }
+);
+  Assert.assertTrue(replyLatch.await(3 * maxIdleTime,TimeUnit.MILLISECONDS));
+  Assert.assertFalse(latch.await(1000,TimeUnit.MILLISECONDS));
+}

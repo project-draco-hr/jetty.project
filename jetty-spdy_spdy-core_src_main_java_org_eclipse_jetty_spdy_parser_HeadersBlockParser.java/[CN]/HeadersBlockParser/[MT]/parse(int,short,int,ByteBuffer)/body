@@ -1,0 +1,25 @@
+{
+  boolean accumulated=accumulate(length,buffer);
+  if (!accumulated)   return false;
+  byte[] compressedHeaders=data;
+  data=null;
+  ByteBuffer decompressedHeaders=decompress(version,compressedHeaders);
+  Charset iso1=Charset.forName("ISO-8859-1");
+  int count=readCount(version,decompressedHeaders);
+  for (int i=0; i < count; ++i) {
+    int nameLength=readNameLength(version,decompressedHeaders);
+    if (nameLength == 0)     throw new StreamException(streamId,StreamStatus.PROTOCOL_ERROR,"Invalid header name length");
+    byte[] nameBytes=new byte[nameLength];
+    decompressedHeaders.get(nameBytes);
+    String name=new String(nameBytes,iso1);
+    int valueLength=readValueLength(version,decompressedHeaders);
+    if (valueLength == 0)     throw new StreamException(streamId,StreamStatus.PROTOCOL_ERROR,"Invalid header value length");
+    byte[] valueBytes=new byte[valueLength];
+    decompressedHeaders.get(valueBytes);
+    String value=new String(valueBytes,iso1);
+    String[] values=value.split("\u0000");
+    for (    String v : values)     if (v.length() == 0)     throw new StreamException(streamId,StreamStatus.PROTOCOL_ERROR,"Invalid multi valued header");
+    onHeader(name,values);
+  }
+  return true;
+}

@@ -1,0 +1,21 @@
+{
+  logger.debug("Received {} on {}",synInfo,stream);
+  HTTPSPDYAsyncEndPoint asyncEndPoint=new HTTPSPDYAsyncEndPoint(stream);
+  ServerHTTPSPDYAsyncConnection connection=new ServerHTTPSPDYAsyncConnection(connector,asyncEndPoint,connector.getServer(),(SPDYAsyncConnection)endPoint.getConnection(),stream);
+  asyncEndPoint.setConnection(connection);
+  stream.setAttribute(CONNECTION_ATTRIBUTE,connection);
+  Headers headers=synInfo.getHeaders();
+  connection.beginRequest(headers);
+  if (headers.isEmpty()) {
+    return this;
+  }
+ else {
+    if (synInfo.isClose()) {
+      connection.endRequest();
+      return null;
+    }
+ else {
+      return this;
+    }
+  }
+}

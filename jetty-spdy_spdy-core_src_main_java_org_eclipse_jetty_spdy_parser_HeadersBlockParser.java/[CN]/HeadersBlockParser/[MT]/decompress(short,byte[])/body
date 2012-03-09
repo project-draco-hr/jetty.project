@@ -1,0 +1,50 @@
+{
+  try {
+    byte[] decompressed=null;
+    byte[] buffer=new byte[compressed.length * 2];
+    decompressor.setInput(compressed);
+    while (true) {
+      int count=decompressor.decompress(buffer);
+      if (count == 0) {
+        if (decompressed != null) {
+          return ByteBuffer.wrap(decompressed);
+        }
+ else         if (needsDictionary) {
+          decompressor.setDictionary(CompressionDictionary.get(version));
+          needsDictionary=false;
+        }
+ else {
+          throw new IllegalStateException();
+        }
+      }
+ else {
+        if (count < buffer.length) {
+          if (decompressed == null) {
+            return ByteBuffer.wrap(buffer,0,count);
+          }
+ else {
+            byte[] result=new byte[decompressed.length + count];
+            System.arraycopy(decompressed,0,result,0,decompressed.length);
+            System.arraycopy(buffer,0,result,decompressed.length,count);
+            return ByteBuffer.wrap(result);
+          }
+        }
+ else {
+          if (decompressed == null) {
+            decompressed=buffer;
+            buffer=new byte[buffer.length];
+          }
+ else {
+            byte[] result=new byte[decompressed.length + buffer.length];
+            System.arraycopy(decompressed,0,result,0,decompressed.length);
+            System.arraycopy(buffer,0,result,decompressed.length,buffer.length);
+            decompressed=result;
+          }
+        }
+      }
+    }
+  }
+ catch (  ZipException x) {
+    throw new SessionException(SessionStatus.PROTOCOL_ERROR,x);
+  }
+}

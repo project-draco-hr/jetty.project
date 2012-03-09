@@ -1,0 +1,19 @@
+{
+  ByteArrayOutputStream buffer=new ByteArrayOutputStream(bytes.length);
+synchronized (compressor) {
+    if (needsDictionary) {
+      compressor.setDictionary(CompressionDictionary.get(version));
+      needsDictionary=false;
+    }
+    compressor.setInput(bytes);
+    buffer.reset();
+    int compressed;
+    byte[] output=new byte[Math.max(256,bytes.length)];
+    while (true) {
+      compressed=compressor.compress(output);
+      buffer.write(output,0,compressed);
+      if (compressed < output.length)       break;
+    }
+  }
+  return ByteBuffer.wrap(buffer.toByteArray());
+}
