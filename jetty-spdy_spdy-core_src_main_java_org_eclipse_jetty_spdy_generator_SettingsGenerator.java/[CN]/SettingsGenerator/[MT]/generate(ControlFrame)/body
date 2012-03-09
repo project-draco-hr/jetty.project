@@ -1,0 +1,19 @@
+{
+  SettingsFrame settingsFrame=(SettingsFrame)frame;
+  Settings settings=settingsFrame.getSettings();
+  int size=settings.size();
+  int frameBodyLength=4 + 8 * size;
+  int totalLength=ControlFrame.HEADER_LENGTH + frameBodyLength;
+  ByteBuffer buffer=getByteBufferPool().acquire(totalLength,true);
+  generateControlFrameHeader(settingsFrame,frameBodyLength,buffer);
+  buffer.putInt(size);
+  for (  Settings.Setting setting : settings) {
+    int id=setting.id().code();
+    byte flags=setting.flag().code();
+    int idAndFlags=convertIdAndFlags(frame.getVersion(),id,flags);
+    buffer.putInt(idAndFlags);
+    buffer.putInt(setting.value());
+  }
+  buffer.flip();
+  return buffer;
+}

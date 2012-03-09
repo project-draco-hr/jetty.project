@@ -1,0 +1,33 @@
+{
+  final long timeout=1000;
+  final TimeUnit unit=TimeUnit.MILLISECONDS;
+  ByteBufferPool bufferPool=new StandardByteBufferPool();
+  Executor threadPool=Executors.newCachedThreadPool();
+  ScheduledExecutorService scheduler=Executors.newSingleThreadScheduledExecutor();
+  Generator generator=new Generator(new StandardByteBufferPool(),new StandardCompressionFactory.StandardCompressor());
+  Session session=new StandardSession(SPDY.V2,bufferPool,threadPool,scheduler,new TestController(),null,1,null,generator){
+    private final AtomicInteger flushes=new AtomicInteger();
+    @Override public void flush(){
+      try {
+        int flushes=this.flushes.incrementAndGet();
+        if (flushes == 3)         unit.sleep(2 * timeout);
+        super.flush();
+      }
+ catch (      InterruptedException x) {
+        throw new SPDYException(x);
+      }
+    }
+  }
+;
+  Stream stream=session.syn(new SynInfo(false),null).get(5,TimeUnit.SECONDS);
+  final CountDownLatch failedLatch=new CountDownLatch(1);
+  stream.data(new StringDataInfo("data",true),timeout,unit,new Handler<Void>(){
+    @Override public void completed(    Void context){
+    }
+    @Override public void failed(    Throwable x){
+      failedLatch.countDown();
+    }
+  }
+);
+  Assert.assertTrue(failedLatch.await(2 * timeout,unit));
+}

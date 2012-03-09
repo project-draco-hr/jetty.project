@@ -1,0 +1,34 @@
+{
+  if (sslContextFactory != null) {
+    SSLEngine engine=newSSLEngine(sslContextFactory,channel);
+    SslConnection sslConnection=new SslConnection(engine,endPoint);
+    endPoint.setConnection(sslConnection);
+    final AsyncEndPoint sslEndPoint=sslConnection.getSslEndPoint();
+    NextProtoNego.put(engine,new NextProtoNego.ServerProvider(){
+      @Override public void unsupported(){
+        AsyncConnectionFactory connectionFactory=getDefaultAsyncConnectionFactory();
+        AsyncConnection connection=connectionFactory.newAsyncConnection(channel,sslEndPoint,SPDYServerConnector.this);
+        sslEndPoint.setConnection(connection);
+      }
+      @Override public List<String> protocols(){
+        return provideProtocols();
+      }
+      @Override public void protocolSelected(      String protocol){
+        AsyncConnectionFactory connectionFactory=getAsyncConnectionFactory(protocol);
+        AsyncConnection connection=connectionFactory.newAsyncConnection(channel,sslEndPoint,SPDYServerConnector.this);
+        sslEndPoint.setConnection(connection);
+      }
+    }
+);
+    AsyncConnection connection=new EmptyAsyncConnection(sslEndPoint);
+    sslEndPoint.setConnection(connection);
+    startHandshake(engine);
+    return sslConnection;
+  }
+ else {
+    AsyncConnectionFactory connectionFactory=getDefaultAsyncConnectionFactory();
+    AsyncConnection connection=connectionFactory.newAsyncConnection(channel,endPoint,this);
+    endPoint.setConnection(connection);
+    return connection;
+  }
+}

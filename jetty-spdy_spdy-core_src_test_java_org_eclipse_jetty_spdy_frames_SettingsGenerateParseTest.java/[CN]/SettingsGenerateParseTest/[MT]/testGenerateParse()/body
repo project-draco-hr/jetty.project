@@ -1,0 +1,21 @@
+{
+  byte flags=SettingsInfo.CLEAR_PERSISTED;
+  Settings settings=new Settings();
+  settings.put(new Settings.Setting(Settings.ID.MAX_CONCURRENT_STREAMS,Settings.Flag.PERSIST,100));
+  settings.put(new Settings.Setting(Settings.ID.ROUND_TRIP_TIME,Settings.Flag.PERSISTED,500));
+  SettingsFrame frame1=new SettingsFrame(SPDY.V2,flags,settings);
+  Generator generator=new Generator(new StandardByteBufferPool(),new StandardCompressionFactory().newCompressor());
+  ByteBuffer buffer=generator.control(frame1);
+  Assert.assertNotNull(buffer);
+  TestSPDYParserListener listener=new TestSPDYParserListener();
+  Parser parser=new Parser(new StandardCompressionFactory().newDecompressor());
+  parser.addListener(listener);
+  parser.parse(buffer);
+  ControlFrame frame2=listener.getControlFrame();
+  Assert.assertNotNull(frame2);
+  Assert.assertEquals(ControlFrameType.SETTINGS,frame2.getType());
+  SettingsFrame settingsFrame=(SettingsFrame)frame2;
+  Assert.assertEquals(SPDY.V2,settingsFrame.getVersion());
+  Assert.assertEquals(flags,settingsFrame.getFlags());
+  Assert.assertEquals(settings,settingsFrame.getSettings());
+}

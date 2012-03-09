@@ -1,0 +1,63 @@
+{
+  notifyIdle(idleListener,false);
+  try {
+    logger.debug("Processing {}",frame);
+    if (goAwaySent.get()) {
+      logger.debug("Skipped processing of {}",frame);
+      return;
+    }
+switch (frame.getType()) {
+case SYN_STREAM:
+{
+        onSyn((SynStreamFrame)frame);
+        break;
+      }
+case SYN_REPLY:
+{
+      onReply((SynReplyFrame)frame);
+      break;
+    }
+case RST_STREAM:
+{
+    onRst((RstStreamFrame)frame);
+    break;
+  }
+case SETTINGS:
+{
+  onSettings((SettingsFrame)frame);
+  break;
+}
+case NOOP:
+{
+break;
+}
+case PING:
+{
+onPing((PingFrame)frame);
+break;
+}
+case GO_AWAY:
+{
+onGoAway((GoAwayFrame)frame);
+break;
+}
+case HEADERS:
+{
+onHeaders((HeadersFrame)frame);
+break;
+}
+case WINDOW_UPDATE:
+{
+onWindowUpdate((WindowUpdateFrame)frame);
+break;
+}
+default :
+{
+throw new IllegalStateException();
+}
+}
+}
+  finally {
+notifyIdle(idleListener,true);
+}
+}

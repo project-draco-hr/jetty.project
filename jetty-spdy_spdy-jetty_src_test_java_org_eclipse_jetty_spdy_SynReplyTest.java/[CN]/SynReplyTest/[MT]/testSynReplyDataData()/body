@@ -1,0 +1,45 @@
+{
+  final String data1="foo";
+  final String data2="bar";
+  Session session=startClient(startServer(new ServerSessionFrameListener.Adapter(){
+    @Override public StreamFrameListener onSyn(    final Stream stream,    SynInfo synInfo){
+      Assert.assertTrue(stream.isHalfClosed());
+      stream.reply(new ReplyInfo(false));
+      stream.data(new StringDataInfo(data1,false),5,TimeUnit.SECONDS,new Handler.Adapter<Void>(){
+        @Override public void completed(        Void context){
+          stream.data(new StringDataInfo(data2,true));
+        }
+      }
+);
+      return null;
+    }
+  }
+),null);
+  final CountDownLatch replyLatch=new CountDownLatch(1);
+  final CountDownLatch dataLatch1=new CountDownLatch(1);
+  final CountDownLatch dataLatch2=new CountDownLatch(1);
+  session.syn(new SynInfo(true),new StreamFrameListener.Adapter(){
+    private AtomicInteger dataCount=new AtomicInteger();
+    @Override public void onReply(    Stream stream,    ReplyInfo replyInfo){
+      Assert.assertFalse(replyInfo.isClose());
+      replyLatch.countDown();
+    }
+    @Override public void onData(    Stream stream,    DataInfo dataInfo){
+      int dataCount=this.dataCount.incrementAndGet();
+      if (dataCount == 1) {
+        String chunk1=dataInfo.asString("UTF-8",true);
+        Assert.assertEquals(data1,chunk1);
+        dataLatch1.countDown();
+      }
+ else       if (dataCount == 2) {
+        String chunk2=dataInfo.asString("UTF-8",true);
+        Assert.assertEquals(data2,chunk2);
+        dataLatch2.countDown();
+      }
+    }
+  }
+);
+  Assert.assertTrue(replyLatch.await(5,TimeUnit.SECONDS));
+  Assert.assertTrue(dataLatch1.await(5,TimeUnit.SECONDS));
+  Assert.assertTrue(dataLatch2.await(5,TimeUnit.SECONDS));
+}

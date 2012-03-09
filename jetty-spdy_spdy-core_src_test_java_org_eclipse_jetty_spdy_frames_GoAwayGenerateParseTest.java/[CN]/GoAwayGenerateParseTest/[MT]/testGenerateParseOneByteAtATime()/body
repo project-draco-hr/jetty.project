@@ -1,0 +1,20 @@
+{
+  int lastStreamId=13;
+  int statusCode=1;
+  GoAwayFrame frame1=new GoAwayFrame(SPDY.V3,lastStreamId,statusCode);
+  Generator generator=new Generator(new StandardByteBufferPool(),new StandardCompressionFactory().newCompressor());
+  ByteBuffer buffer=generator.control(frame1);
+  Assert.assertNotNull(buffer);
+  TestSPDYParserListener listener=new TestSPDYParserListener();
+  Parser parser=new Parser(new StandardCompressionFactory().newDecompressor());
+  parser.addListener(listener);
+  while (buffer.hasRemaining())   parser.parse(ByteBuffer.wrap(new byte[]{buffer.get()}));
+  ControlFrame frame2=listener.getControlFrame();
+  Assert.assertNotNull(frame2);
+  Assert.assertEquals(ControlFrameType.GO_AWAY,frame2.getType());
+  GoAwayFrame goAway=(GoAwayFrame)frame2;
+  Assert.assertEquals(SPDY.V3,goAway.getVersion());
+  Assert.assertEquals(lastStreamId,goAway.getLastStreamId());
+  Assert.assertEquals(0,goAway.getFlags());
+  Assert.assertEquals(statusCode,goAway.getStatusCode());
+}
