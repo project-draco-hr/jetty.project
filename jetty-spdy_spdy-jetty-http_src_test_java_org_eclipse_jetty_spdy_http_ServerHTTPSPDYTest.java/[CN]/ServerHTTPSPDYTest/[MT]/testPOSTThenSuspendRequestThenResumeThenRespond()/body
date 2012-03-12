@@ -4,17 +4,18 @@
   Session session=startClient(startHTTPServer(new AbstractHandler(){
     @Override public void handle(    String target,    final Request request,    HttpServletRequest httpRequest,    HttpServletResponse httpResponse) throws IOException, ServletException {
       request.setHandled(true);
-      if (request.getAsyncContinuation().isInitial()) {
+      final Continuation continuation=ContinuationSupport.getContinuation(request);
+      if (continuation.isInitial()) {
         InputStream input=request.getInputStream();
         byte[] buffer=new byte[256];
         int read=0;
         while (read < data.length)         read+=input.read(buffer);
-        final AsyncContext async=request.startAsync();
+        continuation.suspend();
         new Thread(){
           @Override public void run(){
             try {
               TimeUnit.SECONDS.sleep(1);
-              async.dispatch();
+              continuation.resume();
               latch.countDown();
             }
  catch (            InterruptedException x) {
