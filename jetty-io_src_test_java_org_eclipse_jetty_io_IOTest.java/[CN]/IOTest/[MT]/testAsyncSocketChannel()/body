@@ -1,0 +1,16 @@
+{
+  AsynchronousServerSocketChannel connector=AsynchronousServerSocketChannel.open();
+  connector.bind(null);
+  Future<AsynchronousSocketChannel> acceptor=connector.accept();
+  AsynchronousSocketChannel client=AsynchronousSocketChannel.open();
+  client.connect(connector.getLocalAddress());
+  AsynchronousSocketChannel server=acceptor.get();
+  ByteBuffer read=ByteBuffer.allocate(1024);
+  Future<Integer> reading=server.read(read);
+  ByteBuffer write=BufferUtil.toBuffer("Testing 1 2 3");
+  Future<Integer> writing=client.write(write);
+  reading.get();
+  writing.get();
+  read.flip();
+  System.err.println(BufferUtil.toString(read));
+}

@@ -19,7 +19,7 @@
       _eol=0;
 switch (_state) {
 case START:
-        _contentLength=HttpTokens.UNKNOWN_CONTENT;
+        _content=Content.UNKNOWN_CONTENT;
       _header=null;
     if (ch > HttpTokens.SPACE || ch < 0) {
       start=buffer.position() - 1;
@@ -160,7 +160,7 @@ if (_field0 != null || _field1 != null) {
 if (_header != null) {
 switch (_header) {
 case CONTENT_LENGTH:
-if (_contentLength != HttpTokens.CHUNKED_CONTENT && _responseStatus != 304 && _responseStatus != 204 && (_responseStatus < 100 || _responseStatus >= 200)) {
+if (_content != Content.CHUNKED_CONTENT && _responseStatus != 304 && _responseStatus != 204 && (_responseStatus < 100 || _responseStatus >= 200)) {
 try {
 _contentLength=Long.parseLong(_field1);
 }
@@ -168,13 +168,14 @@ _contentLength=Long.parseLong(_field1);
 LOG.ignore(e);
 throw new HttpException(HttpStatus.BAD_REQUEST_400);
 }
-if (_contentLength <= 0) _contentLength=HttpTokens.NO_CONTENT;
+if (_contentLength <= 0) _content=Content.NO_CONTENT;
+ else _content=Content.CONTENT_LENGTH;
 }
 break;
 case TRANSFER_ENCODING:
-if (_value == HttpHeaderValue.CHUNKED) _contentLength=HttpTokens.CHUNKED_CONTENT;
+if (_value == HttpHeaderValue.CHUNKED) _content=Content.CHUNKED_CONTENT;
  else {
-if (_field1.endsWith(HttpHeaderValue.CHUNKED.toString())) _contentLength=HttpTokens.CHUNKED_CONTENT;
+if (_field1.endsWith(HttpHeaderValue.CHUNKED.toString())) _content=Content.CHUNKED_CONTENT;
  else if (_field1.indexOf(HttpHeaderValue.CHUNKED.toString()) >= 0) throw new HttpException(400,null);
 }
 break;
@@ -203,7 +204,7 @@ break;
 }
 }
 }
-at_next|=_handler.parsedHeader(_field0,_field1);
+at_next|=_handler.parsedHeader(_header,_field0,_field1);
 }
 _field0=_field1=null;
 _header=null;
@@ -211,20 +212,20 @@ _value=null;
 if (ch == HttpTokens.CARRIAGE_RETURN || ch == HttpTokens.LINE_FEED) {
 _eol=ch;
 _contentPosition=0;
-if (_contentLength == HttpTokens.UNKNOWN_CONTENT) {
-if (_responseStatus == 0 || _responseStatus == 304 || _responseStatus == 204 || _responseStatus < 200) _contentLength=HttpTokens.NO_CONTENT;
- else _contentLength=HttpTokens.EOF_CONTENT;
+if (_content == Content.UNKNOWN_CONTENT) {
+if (_responseStatus == 0 || _responseStatus == 304 || _responseStatus == 204 || _responseStatus < 200) _content=Content.NO_CONTENT;
+ else _content=Content.EOF_CONTENT;
 }
-switch (_contentLength > Integer.MAX_VALUE ? Integer.MAX_VALUE : (int)_contentLength) {
-case HttpTokens.EOF_CONTENT:
+switch (_content) {
+case EOF_CONTENT:
 _state=State.EOF_CONTENT;
 at_next|=_handler.headerComplete();
 break;
-case HttpTokens.CHUNKED_CONTENT:
+case CHUNKED_CONTENT:
 _state=State.CHUNKED_CONTENT;
 at_next|=_handler.headerComplete();
 break;
-case HttpTokens.NO_CONTENT:
+case NO_CONTENT:
 at_next|=_handler.headerComplete();
 _state=_persistent || (_responseStatus >= 100 && _responseStatus < 200) ? State.END : State.SEEKING_EOF;
 at_next|=_handler.messageComplete(_contentPosition);

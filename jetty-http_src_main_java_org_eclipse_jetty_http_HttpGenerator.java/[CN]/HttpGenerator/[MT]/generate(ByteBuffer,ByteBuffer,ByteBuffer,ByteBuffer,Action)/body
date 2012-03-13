@@ -3,9 +3,9 @@
   if (_state == State.END)   return result;
   if (action == null)   action=Action.PREPARE;
   if (BufferUtil.hasContent(content)) {
-    if (_contentLength > 0 && content.remaining() > (_contentLength - _contentPrepared)) {
-      LOG.warn("Content truncated at {}",new Throwable());
-      content.limit(content.position() + (int)(_contentLength - _contentPrepared));
+    if (_content == Content.CONTENT_LENGTH && _info.getContentLength() >= 0 && content.remaining() > (_info.getContentLength() - _contentPrepared)) {
+      LOG.warn("Content truncated. Info.getContentLength()==" + _info.getContentLength() + " prepared="+ _contentPrepared+ " content="+ content.remaining(),new Throwable());
+      content.limit(content.position() + (int)(_info.getContentLength() - _contentPrepared));
     }
     if (BufferUtil.isEmpty(buffer) && content.remaining() > _largeContent) {
       if (isCommitted()) {
@@ -62,7 +62,7 @@ case COMMITTING_COMPLETING:
 {
 if (isRequest()) {
 if (header == null || header.capacity() <= CHUNK_SIZE) return Result.NEED_HEADER;
-if (_version == HttpVersion.HTTP_0_9) {
+if (_info.getHttpVersion() == HttpVersion.HTTP_0_9) {
 _noContent=true;
 generateRequestLine(header);
 _state=State.END;
@@ -72,25 +72,26 @@ _persistent=true;
 generateRequestLine(header);
 }
  else {
-if (_version == HttpVersion.HTTP_0_9) {
+if (_info.getHttpVersion() == HttpVersion.HTTP_0_9) {
 _persistent=false;
-_contentLength=HttpTokens.EOF_CONTENT;
+_content=Content.EOF_CONTENT;
 _state=State.COMMITTED;
 if (result == Result.FLUSH_CONTENT) _contentPrepared+=content.remaining();
 return result;
 }
 if (header == null || header.capacity() <= CHUNK_SIZE) return Result.NEED_HEADER;
-if (_persistent == null) _persistent=(_version.ordinal() > HttpVersion.HTTP_1_0.ordinal());
+if (_persistent == null) _persistent=(_info.getHttpVersion().ordinal() > HttpVersion.HTTP_1_0.ordinal());
 generateResponseLine(header);
-if (_status >= 100 && _status < 200) {
+int status=_response.getStatus();
+if (status >= 100 && status < 200) {
 _noContent=true;
-if (_status != 101) {
+if (status != 101) {
 header.put(HttpTokens.CRLF);
 _state=State.START;
 return Result.OK;
 }
 }
- else if (_status == 204 || _status == 304) {
+ else if (status == 204 || status == 304) {
 _noContent=true;
 }
 }
