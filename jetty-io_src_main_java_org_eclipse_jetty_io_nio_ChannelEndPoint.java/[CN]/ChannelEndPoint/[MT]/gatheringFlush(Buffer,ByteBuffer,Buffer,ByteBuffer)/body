@@ -1,32 +1,22 @@
 {
   int length;
 synchronized (this) {
-synchronized (bbuf0) {
-synchronized (bbuf1) {
-        try {
-          bbuf0.position(header.getIndex());
-          bbuf0.limit(header.putIndex());
-          bbuf1.position(buffer.getIndex());
-          bbuf1.limit(buffer.putIndex());
-          _gather2[0]=bbuf0;
-          _gather2[1]=bbuf1;
-          length=(int)((GatheringByteChannel)_channel).write(_gather2);
-          int hl=header.length();
-          if (length > hl) {
-            header.clear();
-            buffer.skip(length - hl);
-          }
- else           if (length > 0) {
-            header.skip(length);
-          }
-        }
-  finally {
-          bbuf0.position(0);
-          bbuf1.position(0);
-          bbuf0.limit(bbuf0.capacity());
-          bbuf1.limit(bbuf1.capacity());
-        }
-      }
+    bbuf0=bbuf0.asReadOnlyBuffer();
+    bbuf0.position(header.getIndex());
+    bbuf0.limit(header.putIndex());
+    bbuf1=bbuf1.asReadOnlyBuffer();
+    bbuf1.position(buffer.getIndex());
+    bbuf1.limit(buffer.putIndex());
+    _gather2[0]=bbuf0;
+    _gather2[1]=bbuf1;
+    length=(int)((GatheringByteChannel)_channel).write(_gather2);
+    int hl=header.length();
+    if (length > hl) {
+      header.clear();
+      buffer.skip(length - hl);
+    }
+ else     if (length > 0) {
+      header.skip(length);
     }
   }
   return length;
