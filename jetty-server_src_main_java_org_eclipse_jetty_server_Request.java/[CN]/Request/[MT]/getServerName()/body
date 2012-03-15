@@ -4,17 +4,17 @@
   _serverName=_uri.getHost();
   _port=_uri.getPort();
   if (_serverName != null)   return _serverName;
-  ByteBuffer hostPort=_connection.getRequestFields().get(HttpHeader.HOST_BUFFER);
+  String hostPort=_connection.getRequestFields().getStringField(HttpHeader.HOST);
   if (hostPort != null) {
-    loop:     for (int i=hostPort.putIndex(); i-- > hostPort.getIndex(); ) {
-      char ch=(char)(0xff & hostPort.peek(i));
+    loop:     for (int i=hostPort.length(); i-- > 0; ) {
+      char ch=(char)(0xff & hostPort.charAt(i));
 switch (ch) {
 case ']':
         break loop;
 case ':':
-      _serverName=BufferUtil.to8859_1_String(hostPort.peek(hostPort.getIndex(),i - hostPort.getIndex()));
+      _serverName=hostPort.substring(0,i);
     try {
-      _port=BufferUtil.toInt(hostPort.peek(i + 1,hostPort.putIndex() - i - 1));
+      _port=StringUtil.toInt(hostPort.substring(i + 1));
     }
  catch (    NumberFormatException e) {
       try {
@@ -28,7 +28,7 @@ case ':':
 }
 }
 if (_serverName == null || _port < 0) {
-_serverName=BufferUtil.to8859_1_String(hostPort);
+_serverName=hostPort;
 _port=0;
 }
 return _serverName;

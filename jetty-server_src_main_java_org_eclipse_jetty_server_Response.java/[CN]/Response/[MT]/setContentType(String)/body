@@ -3,7 +3,6 @@
   if (contentType == null) {
     if (_locale == null)     _characterEncoding=null;
     _mimeType=null;
-    _cachedMimeType=null;
     _contentType=null;
     _connection.getResponseFields().remove(HttpHeader.CONTENT_TYPE);
   }
@@ -11,7 +10,7 @@
     int i0=contentType.indexOf(';');
     if (i0 > 0) {
       _mimeType=contentType.substring(0,i0).trim();
-      _cachedMimeType=MimeTypes.CACHE.get(_mimeType);
+      MimeTypes.Type mime_type=MimeTypes.CACHE.get(_mimeType);
       int i1=contentType.indexOf("charset=",i0 + 1);
       if (i1 >= 0) {
         _explicitEncoding=true;
@@ -19,8 +18,8 @@
         int i2=contentType.indexOf(' ',i8);
         if (_outputState == WRITER) {
           if ((i1 == i0 + 1 && i2 < 0) || (i1 == i0 + 2 && i2 < 0 && contentType.charAt(i0 + 1) == ' ')) {
-            if (_cachedMimeType != null) {
-              CachedBuffer content_type=_cachedMimeType.getAssociate(_characterEncoding);
+            if (mime_type != null) {
+              CachedBuffer content_type=mime_type.getAssociate(_characterEncoding);
               if (content_type != null) {
                 _contentType=content_type.toString();
                 _connection.getResponseFields().put(HttpHeader.CONTENT_TYPE,content_type);
@@ -45,10 +44,10 @@
           }
         }
  else         if ((i1 == i0 + 1 && i2 < 0) || (i1 == i0 + 2 && i2 < 0 && contentType.charAt(i0 + 1) == ' ')) {
-          _cachedMimeType=MimeTypes.CACHE.get(_mimeType);
+          mime_type=MimeTypes.CACHE.get(_mimeType);
           _characterEncoding=QuotedStringTokenizer.unquote(contentType.substring(i8));
-          if (_cachedMimeType != null) {
-            CachedBuffer content_type=_cachedMimeType.getAssociate(_characterEncoding);
+          if (mime_type != null) {
+            CachedBuffer content_type=mime_type.getAssociate(_characterEncoding);
             if (content_type != null) {
               _contentType=content_type.toString();
               _connection.getResponseFields().put(HttpHeader.CONTENT_TYPE,content_type);
@@ -75,7 +74,7 @@
         }
       }
  else {
-        _cachedMimeType=null;
+        mime_type=null;
         _contentType=_characterEncoding == null ? contentType : contentType + ";charset=" + QuotedStringTokenizer.quoteIfNeeded(_characterEncoding,";= ");
         _connection.getResponseFields().put(HttpHeader.CONTENT_TYPE,_contentType);
       }
