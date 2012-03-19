@@ -1,5 +1,16 @@
 {
-  SslSelectChannelConnector connector=new SslSelectChannelConnector();
+  SslSelectChannelConnector connector=new SslSelectChannelConnector(){
+    @Override protected SslConnection newSslConnection(    AsyncEndPoint endPoint,    SSLEngine engine){
+      return new SslConnection(engine,endPoint){
+        @Override public Connection handle() throws IOException {
+          _handlecount.incrementAndGet();
+          return super.handle();
+        }
+      }
+;
+    }
+  }
+;
   String keystorePath=System.getProperty("basedir",".") + "/src/test/resources/keystore";
   SslContextFactory cf=connector.getSslContextFactory();
   cf.setKeyStorePath(keystorePath);
