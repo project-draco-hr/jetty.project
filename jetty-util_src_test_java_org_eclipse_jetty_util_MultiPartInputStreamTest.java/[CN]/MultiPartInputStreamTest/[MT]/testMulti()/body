@@ -11,11 +11,17 @@
   IO.copy(is,os);
   assertEquals("Joe Blow",new String(os.toByteArray()));
   assertEquals(8,field1.getSize());
+  assertNotNull(((MultiPartInputStream.MultiPart)field1).getBytes());
   field1.write("field1.txt");
+  assertNull(((MultiPartInputStream.MultiPart)field1).getBytes());
   File f=new File(_dirname + File.separator + "field1.txt");
   assertTrue(f.exists());
-  field1.delete();
+  field1.write("another_field1.txt");
+  File f2=new File(_dirname + File.separator + "another_field1.txt");
+  assertTrue(f2.exists());
   assertFalse(f.exists());
+  field1.delete();
+  assertFalse(f2.exists());
   Part stuff=mpis.getPart("stuff");
   assertEquals("text/plain",stuff.getContentType());
   assertEquals("text/plain",stuff.getHeader("content-type"));
@@ -25,6 +31,7 @@
   assertEquals(51,stuff.getSize());
   f=((MultiPartInputStream.MultiPart)stuff).getFile();
   assertNotNull(f);
+  assertNull(((MultiPartInputStream.MultiPart)stuff).getBytes());
   assertTrue(f.exists());
   assertNotSame("stuff.txt",f.getName());
   stuff.write("stuff.txt");
