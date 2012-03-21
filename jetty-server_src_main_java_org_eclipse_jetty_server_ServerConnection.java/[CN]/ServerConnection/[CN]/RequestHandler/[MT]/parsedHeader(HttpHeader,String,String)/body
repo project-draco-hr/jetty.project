@@ -1,0 +1,43 @@
+{
+switch (header) {
+case HOST:
+    _host=true;
+  break;
+case EXPECT:
+HttpHeaderValue expect=HttpHeaderValue.CACHE.get(value);
+switch (expect == null ? HttpHeaderValue.UNKNOWN : expect) {
+case CONTINUE:
+_expect100Continue=true;
+break;
+case PROCESSING:
+_expect102Processing=true;
+break;
+default :
+String[] values=value.toString().split(",");
+for (int i=0; values != null && i < values.length; i++) {
+expect=HttpHeaderValue.CACHE.get(values[i].trim());
+if (expect == null) _expect=true;
+ else {
+switch (expect) {
+case CONTINUE:
+_expect100Continue=true;
+break;
+case PROCESSING:
+_expect102Processing=true;
+break;
+default :
+_expect=true;
+}
+}
+}
+}
+break;
+case CONTENT_TYPE:
+MimeTypes.Type mime=MimeTypes.CACHE.get(value);
+String charset=(mime == null) ? MimeTypes.getCharsetFromContentType(value) : mime.getCharset().toString();
+if (charset != null) _request.setCharacterEncodingUnchecked(charset);
+break;
+}
+_requestFields.add(name,value);
+return false;
+}

@@ -3,23 +3,23 @@
   fwdReset();
   _status=200;
   _reason=null;
-  HttpFields response_fields=_connection.getResponseFields();
+  HttpFields response_fields=_fields;
   response_fields.clear();
   String connection=_connection.getRequestFields().getStringField(HttpHeader.CONNECTION);
   if (connection != null) {
     String[] values=connection.split(",");
     for (int i=0; values != null && i < values.length; i++) {
-      CachedBuffer cb=HttpHeaderValue.CACHE.get(values[0].trim());
+      HttpHeaderValue cb=HttpHeaderValue.CACHE.get(values[0].trim());
       if (cb != null) {
-switch (cb.getOrdinal()) {
-case HttpHeaderValue.CLOSE_ORDINAL:
-          response_fields.put(HttpHeader.CONNECTION,HttpHeaderValue.CLOSE);
+switch (cb) {
+case CLOSE:
+          response_fields.put(HttpHeader.CONNECTION,HttpHeaderValue.CLOSE.toString());
         break;
-case HttpHeaderValue.KEEP_ALIVE_ORDINAL:
-      if (HttpVersion.HTTP_1_0.equalsIgnoreCase(_connection.getRequest().getProtocol()))       response_fields.put(HttpHeader.CONNECTION,HttpHeaderValue.KEEP_ALIVE);
+case KEEP_ALIVE:
+      if (HttpVersion.HTTP_1_0.is(_connection.getRequest().getProtocol()))       response_fields.put(HttpHeader.CONNECTION,HttpHeaderValue.KEEP_ALIVE.toString());
     break;
-case HttpHeaderValue.TE_ORDINAL:
-  response_fields.put(HttpHeader.CONNECTION,HttpHeaderValue.TE);
+case TE:
+  response_fields.put(HttpHeader.CONNECTION,HttpHeaderValue.TE.toString());
 break;
 }
 }

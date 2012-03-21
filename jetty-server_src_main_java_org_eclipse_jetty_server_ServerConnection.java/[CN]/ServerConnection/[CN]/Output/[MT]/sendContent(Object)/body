@@ -1,0 +1,31 @@
+{
+  Resource resource=null;
+  if (isClosed())   throw new IOException("Closed");
+  if (content instanceof HttpContent) {
+    HttpContent httpContent=(HttpContent)content;
+    String contentType=httpContent.getContentType();
+    if (contentType != null)     _responseFields.put(HttpHeader.CONTENT_TYPE,contentType);
+    if (httpContent.getContentLength() > 0)     _responseFields.putLongField(HttpHeader.CONTENT_LENGTH,httpContent.getContentLength());
+    String lm=httpContent.getLastModified();
+    if (lm != null)     _responseFields.put(HttpHeader.LAST_MODIFIED,lm);
+ else     if (httpContent.getResource() != null) {
+      long lml=httpContent.getResource().lastModified();
+      if (lml != -1)       _responseFields.putDateField(HttpHeader.LAST_MODIFIED,lml);
+    }
+    content=httpContent.getDirectBuffer();
+    if (content == null)     content=httpContent.getIndirectBuffer();
+    if (content == null)     content=httpContent.getInputStream();
+  }
+ else   if (content instanceof Resource) {
+    resource=(Resource)content;
+    _responseFields.putDateField(HttpHeader.LAST_MODIFIED,resource.lastModified());
+    content=resource.getInputStream();
+  }
+  if (content instanceof ByteBuffer) {
+    throw new IllegalArgumentException("not implemented!");
+  }
+ else   if (content instanceof InputStream) {
+    throw new IllegalArgumentException("not implemented!");
+  }
+ else   throw new IllegalArgumentException("unknown content type?");
+}

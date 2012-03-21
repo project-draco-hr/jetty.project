@@ -1,0 +1,29 @@
+{
+  _host=false;
+  _expect=false;
+  _expect100Continue=false;
+  _expect102Processing=false;
+  if (_request.getTimeStamp() == 0)   _request.setTimeStamp(System.currentTimeMillis());
+  HttpMethod m=HttpMethod.CACHE.get(method);
+  _request.setMethod(m,method);
+  try {
+    if (m == HttpMethod.CONNECT)     _uri.parseConnect(uri);
+ else     _uri.parse(uri);
+    _request.setUri(_uri);
+    if (version == null) {
+      _request.setHttpVersion(HttpVersion.HTTP_0_9);
+      _version=HttpVersion.HTTP_0_9;
+    }
+ else {
+      _version=HttpVersion.CACHE.get(version);
+      if (_version == null)       throw new HttpException(HttpStatus.BAD_REQUEST_400,null);
+      _request.setHttpVersion(_version);
+    }
+  }
+ catch (  Exception e) {
+    LOG.debug(e);
+    if (e instanceof HttpException)     throw (HttpException)e;
+    throw new HttpException(HttpStatus.BAD_REQUEST_400,null,e);
+  }
+  return false;
+}

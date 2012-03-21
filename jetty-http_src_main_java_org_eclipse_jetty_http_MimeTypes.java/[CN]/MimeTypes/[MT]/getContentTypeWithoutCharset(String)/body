@@ -1,0 +1,93 @@
+{
+  int end=value.length();
+  int state=0;
+  int start=0;
+  boolean quote=false;
+  int i=0;
+  StringBuilder builder=null;
+  for (; i < end; i++) {
+    char b=value.charAt(i);
+    if ('"' == b) {
+      if (quote) {
+        quote=false;
+      }
+ else {
+        quote=true;
+      }
+switch (state) {
+case 11:
+        builder.append(b);
+      break;
+case 10:
+    break;
+case 9:
+  builder=new StringBuilder();
+builder.append(value,0,start + 1);
+state=10;
+break;
+default :
+start=i;
+state=0;
+}
+continue;
+}
+if (quote) {
+if (builder != null && state != 10) builder.append(b);
+continue;
+}
+switch (state) {
+case 0:
+if (';' == b) state=1;
+ else if (' ' != b) start=i;
+break;
+case 1:
+if ('c' == b) state=2;
+ else if (' ' != b) state=0;
+break;
+case 2:
+if ('h' == b) state=3;
+ else state=0;
+break;
+case 3:
+if ('a' == b) state=4;
+ else state=0;
+break;
+case 4:
+if ('r' == b) state=5;
+ else state=0;
+break;
+case 5:
+if ('s' == b) state=6;
+ else state=0;
+break;
+case 6:
+if ('e' == b) state=7;
+ else state=0;
+break;
+case 7:
+if ('t' == b) state=8;
+ else state=0;
+break;
+case 8:
+if ('=' == b) state=9;
+ else if (' ' != b) state=0;
+break;
+case 9:
+if (' ' == b) break;
+builder=new StringBuilder();
+builder.append(value,0,start + 1);
+state=10;
+break;
+case 10:
+if (';' == b) {
+builder.append(b);
+state=11;
+}
+break;
+case 11:
+if (' ' != b) builder.append(b);
+}
+}
+if (builder == null) return value;
+return builder.toString();
+}

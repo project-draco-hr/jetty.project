@@ -1,0 +1,62 @@
+{
+  if (!_generator.isComplete())   throw new EofException();
+  try {
+    while (BufferUtil.hasContent(content)) {
+      Action action=BufferUtil.hasContent(content) ? null : Action.COMPLETE;
+      HttpGenerator.Result result=_generator.generate(header,chunk,buffer,content,action);
+switch (result) {
+case NEED_HEADER:
+        header=BufferUtil.allocate(2048);
+      break;
+case NEED_BUFFER:
+    buffer=BufferUtil.allocate(8192);
+  break;
+case NEED_CHUNK:
+header=null;
+chunk=BufferUtil.allocate(HttpGenerator.CHUNK_SIZE);
+break;
+case FLUSH:
+{
+Future<Integer> future=getEndPoint().flush(header,chunk,buffer);
+future.get(getMaxIdleTime(),TimeUnit.MILLISECONDS);
+break;
+}
+case FLUSH_CONTENT:
+{
+Future<Integer> future=getEndPoint().flush(header,chunk,content);
+future.get(getMaxIdleTime(),TimeUnit.MILLISECONDS);
+break;
+}
+case OK:
+break;
+case SHUTDOWN_OUT:
+getEndPoint().shutdownOutput();
+break;
+}
+}
+}
+ catch (final TimeoutException e) {
+throw new InterruptedIOException(e.toString()){
+{
+this.initCause(e);
+}
+}
+;
+}
+catch (final InterruptedException e) {
+throw new InterruptedIOException(e.toString()){
+{
+this.initCause(e);
+}
+}
+;
+}
+catch (final ExecutionException e) {
+throw new IOException(e.toString()){
+{
+this.initCause(e);
+}
+}
+;
+}
+}
