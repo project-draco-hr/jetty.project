@@ -1,9 +1,9 @@
 {
-  Connection connection=this;
+  AsyncConnection connection=this;
   boolean progress=true;
   try {
     setCurrentConnection(this);
-    _asyncEndp.setCheckForIdle(false);
+    getAsyncEndPoint().setCheckForIdle(false);
     while (progress && connection == this) {
       progress=false;
       try {
@@ -23,7 +23,7 @@
         }
         if (_parser.isComplete() && _generator.isComplete()) {
           if (_channel.getResponse().getStatus() == HttpStatus.SWITCHING_PROTOCOLS_101) {
-            Connection switched=(Connection)_channel.getRequest().getAttribute("org.eclipse.jetty.io.Connection");
+            AsyncConnection switched=(AsyncConnection)_channel.getRequest().getAttribute("org.eclipse.jetty.io.Connection");
             if (switched != null)             connection=switched;
           }
           reset();
@@ -39,7 +39,7 @@
   finally {
     setCurrentConnection(null);
     if (!_channel.getRequest().getAsyncContinuation().isAsyncStarted()) {
-      _asyncEndp.setCheckForIdle(true);
+      getAsyncEndPoint().setCheckForIdle(true);
     }
   }
   return connection;

@@ -4,11 +4,11 @@
     while (dispatched) {
       try {
         while (true) {
-          final AsyncConnection next=(AsyncConnection)_connection.handle();
-          if (next != _connection) {
-            LOG.debug("{} replaced {}",next,_connection);
-            Connection old=_connection;
-            _connection=next;
+          final AsyncConnection next=(AsyncConnection)getAsyncConnection().handle();
+          if (next != getAsyncConnection()) {
+            LOG.debug("{} replaced {}",next,getAsyncConnection());
+            AsyncConnection old=getAsyncConnection();
+            setAsyncConnection(next);
             _manager.endPointUpgraded(this,old);
             continue;
           }
@@ -49,7 +49,7 @@ catch (      Throwable e) {
         if (!_ishut && isInputShutdown() && isOpen()) {
           _ishut=true;
           try {
-            _connection.onInputShutdown();
+            getAsyncConnection().onInputShutdown();
           }
  catch (          Throwable x) {
             LOG.warn("onInputShutdown failed",x);
