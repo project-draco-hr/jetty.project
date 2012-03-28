@@ -20,7 +20,7 @@
         if (_out != null)         _out.reopen();
         if (_async.isInitial()) {
           _request.setDispatcherType(DispatcherType.REQUEST);
-          customize(_request);
+          _transport.customize(_request);
           server.handle(this);
         }
  else {
@@ -54,7 +54,7 @@ catch (      Throwable e) {
         LOG.warn(String.valueOf(_uri),e);
         error=true;
         _request.setHandled(true);
-        sendError(info == null ? 400 : 500,null,null,true);
+        _transport.sendError(info == null ? 400 : 500,null,null,true);
       }
  finally {
         handling=!_async.unhandle() && server.isRunning() && _server != null;
@@ -68,12 +68,12 @@ catch (      Throwable e) {
       if (_expect100Continue) {
         LOG.debug("100 continues not sent");
         _expect100Continue=false;
-        if (!_response.isCommitted())         setPersistent(false);
+        if (!_response.isCommitted())         _transport.setPersistent(false);
       }
-      if (error)       setPersistent(false);
+      if (error)       _transport.setPersistent(false);
  else       if (!_response.isCommitted() && !_request.isHandled())       _response.sendError(HttpServletResponse.SC_NOT_FOUND);
       _response.complete();
-      if (isPersistent())       persist();
+      if (_transport.isPersistent())       _transport.persist();
       _request.setHandled(true);
     }
   }

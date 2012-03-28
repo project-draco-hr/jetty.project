@@ -9,8 +9,8 @@
     }
     byte ch;
     int length=-1;
-    boolean at_next=false;
-    while (_state.ordinal() < State.END.ordinal() && buffer.hasRemaining() && !at_next) {
+    boolean return_from_parse=false;
+    while (_state.ordinal() < State.END.ordinal() && buffer.hasRemaining() && !return_from_parse) {
       ch=buffer.get();
       if (_eol == HttpTokens.CARRIAGE_RETURN && ch == HttpTokens.LINE_FEED) {
         _eol=HttpTokens.LINE_FEED;
@@ -19,7 +19,7 @@
       _eol=0;
 switch (_state) {
 case START:
-        _content=Content.UNKNOWN_CONTENT;
+        _endOfContent=EndOfContent.UNKNOWN_CONTENT;
       _header=null;
     if (ch > HttpTokens.SPACE || ch < 0) {
       start=buffer.position() - 1;
@@ -73,7 +73,7 @@ _state=State.SPACE2;
 _responseStatus=_responseStatus * 10 + (ch - '0');
 }
  else if (ch < HttpTokens.SPACE && ch >= 0) {
-at_next|=_responseHandler.startResponse(_field0,_responseStatus,null);
+return_from_parse|=_responseHandler.startResponse(_field0,_responseStatus,null);
 _eol=ch;
 _state=State.HEADER;
 _field0=_field1=null;
@@ -91,11 +91,11 @@ _state=State.SPACE2;
  else if (ch < HttpTokens.SPACE && ch >= 0) {
 _field1=BufferUtil.toString(buffer,start,buffer.position() - start - 1,StringUtil.__UTF8_CHARSET);
 start=-1;
-at_next|=_requestHandler.startRequest(_field0,_field1,null);
+return_from_parse|=_requestHandler.startRequest(_field0,_field1,null);
 _persistent=false;
 _state=State.SEEKING_EOF;
-at_next|=_handler.headerComplete();
-at_next|=_handler.messageComplete(_contentPosition);
+return_from_parse|=_handler.headerComplete();
+return_from_parse|=_handler.messageComplete(_contentPosition);
 }
 break;
 case SPACE2:
@@ -106,17 +106,17 @@ _state=_requestHandler != null ? State.REQUEST_VERSION : State.REASON;
 }
  else if (ch < HttpTokens.SPACE) {
 if (_responseHandler != null) {
-at_next|=_responseHandler.startResponse(_field0,_responseStatus,null);
+return_from_parse|=_responseHandler.startResponse(_field0,_responseStatus,null);
 _eol=ch;
 _state=State.HEADER;
 _field0=_field1=null;
 }
  else {
-at_next|=_requestHandler.startRequest(_field0,_field1,null);
+return_from_parse|=_requestHandler.startRequest(_field0,_field1,null);
 _persistent=false;
 _state=State.SEEKING_EOF;
-at_next|=_handler.headerComplete();
-at_next|=_handler.messageComplete(_contentPosition);
+return_from_parse|=_handler.headerComplete();
+return_from_parse|=_handler.messageComplete(_contentPosition);
 }
 }
 break;
@@ -125,7 +125,7 @@ if (ch == HttpTokens.CARRIAGE_RETURN || ch == HttpTokens.LINE_FEED) {
 HttpVersion v=HttpVersion.CACHE.get(buffer,start,buffer.position() - start - 1);
 String version=v == null ? BufferUtil.toString(buffer,start,buffer.position() - start - 1,StringUtil.__ISO_8859_1_CHARSET) : v.toString();
 start=-1;
-at_next|=_requestHandler.startRequest(_field0,_field1,version);
+return_from_parse|=_requestHandler.startRequest(_field0,_field1,version);
 _eol=ch;
 _persistent=HttpVersion.HTTP_1_1 == v;
 _state=State.HEADER;
@@ -137,7 +137,7 @@ case REASON:
 if (ch == HttpTokens.CARRIAGE_RETURN || ch == HttpTokens.LINE_FEED) {
 String reason=BufferUtil.toString(buffer,start,buffer.position() - start - 1,StringUtil.__ISO_8859_1_CHARSET);
 start=-1;
-at_next|=_responseHandler.startResponse(_field0,_responseStatus,reason);
+return_from_parse|=_responseHandler.startResponse(_field0,_responseStatus,reason);
 _eol=ch;
 _state=State.HEADER;
 _field0=_field1=null;
@@ -160,7 +160,7 @@ if (_field0 != null || _field1 != null) {
 if (_header != null) {
 switch (_header) {
 case CONTENT_LENGTH:
-if (_content != Content.CHUNKED_CONTENT && _responseStatus != 304 && _responseStatus != 204 && (_responseStatus < 100 || _responseStatus >= 200)) {
+if (_endOfContent != EndOfContent.CHUNKED_CONTENT && _responseStatus != 304 && _responseStatus != 204 && (_responseStatus < 100 || _responseStatus >= 200)) {
 try {
 _contentLength=Long.parseLong(_field1);
 }
@@ -168,14 +168,14 @@ _contentLength=Long.parseLong(_field1);
 LOG.ignore(e);
 throw new HttpException(HttpStatus.BAD_REQUEST_400);
 }
-if (_contentLength <= 0) _content=Content.NO_CONTENT;
- else _content=Content.CONTENT_LENGTH;
+if (_contentLength <= 0) _endOfContent=EndOfContent.NO_CONTENT;
+ else _endOfContent=EndOfContent.CONTENT_LENGTH;
 }
 break;
 case TRANSFER_ENCODING:
-if (_value == HttpHeaderValue.CHUNKED) _content=Content.CHUNKED_CONTENT;
+if (_value == HttpHeaderValue.CHUNKED) _endOfContent=EndOfContent.CHUNKED_CONTENT;
  else {
-if (_field1.endsWith(HttpHeaderValue.CHUNKED.toString())) _content=Content.CHUNKED_CONTENT;
+if (_field1.endsWith(HttpHeaderValue.CHUNKED.toString())) _endOfContent=EndOfContent.CHUNKED_CONTENT;
  else if (_field1.indexOf(HttpHeaderValue.CHUNKED.toString()) >= 0) throw new HttpException(400,null);
 }
 break;
@@ -204,7 +204,7 @@ break;
 }
 }
 }
-at_next|=_handler.parsedHeader(_header,_field0,_field1);
+return_from_parse|=_handler.parsedHeader(_header,_field0,_field1);
 }
 _field0=_field1=null;
 _header=null;
@@ -212,27 +212,27 @@ _value=null;
 if (ch == HttpTokens.CARRIAGE_RETURN || ch == HttpTokens.LINE_FEED) {
 _eol=ch;
 _contentPosition=0;
-if (_content == Content.UNKNOWN_CONTENT) {
-if (_responseStatus == 0 || _responseStatus == 304 || _responseStatus == 204 || _responseStatus < 200) _content=Content.NO_CONTENT;
- else _content=Content.EOF_CONTENT;
+if (_endOfContent == EndOfContent.UNKNOWN_CONTENT) {
+if (_responseStatus == 0 || _responseStatus == 304 || _responseStatus == 204 || _responseStatus < 200) _endOfContent=EndOfContent.NO_CONTENT;
+ else _endOfContent=EndOfContent.EOF_CONTENT;
 }
-switch (_content) {
+switch (_endOfContent) {
 case EOF_CONTENT:
 _state=State.EOF_CONTENT;
-at_next|=_handler.headerComplete();
+return_from_parse|=_handler.headerComplete();
 break;
 case CHUNKED_CONTENT:
 _state=State.CHUNKED_CONTENT;
-at_next|=_handler.headerComplete();
+return_from_parse|=_handler.headerComplete();
 break;
 case NO_CONTENT:
-at_next|=_handler.headerComplete();
+return_from_parse|=_handler.headerComplete();
 _state=_persistent || (_responseStatus >= 100 && _responseStatus < 200) ? State.END : State.SEEKING_EOF;
-at_next|=_handler.messageComplete(_contentPosition);
+return_from_parse|=_handler.messageComplete(_contentPosition);
 break;
 default :
 _state=State.CONTENT;
-at_next|=_handler.headerComplete();
+return_from_parse|=_handler.headerComplete();
 break;
 }
 }
@@ -363,9 +363,8 @@ break;
 }
 if (_responseStatus > 0 && _headResponse) {
 _state=_persistent || (_responseStatus >= 100 && _responseStatus < 200) ? State.END : State.SEEKING_EOF;
-at_next|=_handler.messageComplete(_contentLength);
+return_from_parse|=_handler.messageComplete(_contentLength);
 }
-ByteBuffer chunk;
 while (_state.ordinal() > State.END.ordinal() && buffer.hasRemaining()) {
 if (_eol == HttpTokens.CARRIAGE_RETURN && buffer.get(buffer.position()) == HttpTokens.LINE_FEED) {
 _eol=buffer.get();
@@ -374,29 +373,29 @@ continue;
 _eol=0;
 switch (_state) {
 case EOF_CONTENT:
-chunk=buffer.asReadOnlyBuffer();
-_contentPosition+=chunk.remaining();
-buffer.position(buffer.position() + chunk.remaining());
-at_next|=_handler.content(chunk);
+_contentChunk=buffer.asReadOnlyBuffer();
+_contentPosition+=_contentChunk.remaining();
+buffer.position(buffer.position() + _contentChunk.remaining());
+return_from_parse|=_handler.content(_contentChunk);
 break;
 case CONTENT:
 {
 long remaining=_contentLength - _contentPosition;
 if (remaining == 0) {
 _state=_persistent ? State.END : State.SEEKING_EOF;
-at_next|=_handler.messageComplete(_contentPosition);
+return_from_parse|=_handler.messageComplete(_contentPosition);
 }
  else {
-chunk=buffer.asReadOnlyBuffer();
-if (chunk.remaining() > remaining) {
-chunk.limit(chunk.position() + (int)remaining);
+_contentChunk=buffer.asReadOnlyBuffer();
+if (_contentChunk.remaining() > remaining) {
+_contentChunk.limit(_contentChunk.position() + (int)remaining);
 }
-_contentPosition+=chunk.remaining();
-buffer.position(buffer.position() + chunk.remaining());
-at_next|=_handler.content(chunk);
+_contentPosition+=_contentChunk.remaining();
+buffer.position(buffer.position() + _contentChunk.remaining());
+return_from_parse|=_handler.content(_contentChunk);
 if (_contentPosition == _contentLength) {
 _state=_persistent ? State.END : State.SEEKING_EOF;
-at_next|=_handler.messageComplete(_contentPosition);
+return_from_parse|=_handler.messageComplete(_contentPosition);
 }
 }
 break;
@@ -421,7 +420,7 @@ _eol=ch;
 if (_chunkLength == 0) {
 if (_eol == HttpTokens.CARRIAGE_RETURN && buffer.hasRemaining() && buffer.get(buffer.position()) == HttpTokens.LINE_FEED) _eol=buffer.get();
 _state=_persistent ? State.END : State.SEEKING_EOF;
-at_next|=_handler.messageComplete(_contentPosition);
+return_from_parse|=_handler.messageComplete(_contentPosition);
 }
  else _state=State.CHUNK;
 }
@@ -440,7 +439,7 @@ _eol=ch;
 if (_chunkLength == 0) {
 if (_eol == HttpTokens.CARRIAGE_RETURN && buffer.hasRemaining() && buffer.get(buffer.position()) == HttpTokens.LINE_FEED) _eol=buffer.get();
 _state=_persistent ? State.END : State.SEEKING_EOF;
-at_next|=_handler.messageComplete(_contentPosition);
+return_from_parse|=_handler.messageComplete(_contentPosition);
 }
  else _state=State.CHUNK;
 }
@@ -453,13 +452,13 @@ if (remaining == 0) {
 _state=State.CHUNKED_CONTENT;
 }
  else {
-chunk=buffer.asReadOnlyBuffer();
-if (chunk.remaining() > remaining) chunk.limit(chunk.position() + remaining);
-remaining=chunk.remaining();
+_contentChunk=buffer.asReadOnlyBuffer();
+if (_contentChunk.remaining() > remaining) _contentChunk.limit(_contentChunk.position() + remaining);
+remaining=_contentChunk.remaining();
 _contentPosition+=remaining;
 _chunkPosition+=remaining;
 buffer.position(buffer.position() + remaining);
-at_next|=_handler.content(chunk);
+return_from_parse|=_handler.content(_contentChunk);
 }
 break;
 }
@@ -470,7 +469,7 @@ break;
 }
 }
 }
-return at_next;
+return return_from_parse;
 }
  catch (HttpException e) {
 _persistent=false;

@@ -1,0 +1,46 @@
+{
+  while (_toFlush > 0) {
+switch (_toFlush) {
+case 10:
+      _endp.gather(_responseHeader,_responseBuffer);
+    _toFlush=(BufferUtil.hasContent(_responseHeader) ? 8 : 0) + (BufferUtil.hasContent(_responseBuffer) ? 2 : 0);
+  break;
+case 9:
+_endp.gather(_responseHeader,_content);
+_toFlush=(BufferUtil.hasContent(_responseHeader) ? 8 : 0) + (BufferUtil.hasContent(_content) ? 1 : 0);
+if (_toFlush == 0) _content=null;
+break;
+case 8:
+_endp.gather(_responseHeader);
+_toFlush=(BufferUtil.hasContent(_responseHeader) ? 8 : 0);
+break;
+case 6:
+_endp.gather(_chunk,_responseBuffer);
+_toFlush=(BufferUtil.hasContent(_chunk) ? 4 : 0) + (BufferUtil.hasContent(_responseBuffer) ? 2 : 0);
+break;
+case 5:
+_endp.gather(_chunk,_content);
+_toFlush=(BufferUtil.hasContent(_chunk) ? 4 : 0) + (BufferUtil.hasContent(_content) ? 1 : 0);
+if (_toFlush == 0) _content=null;
+break;
+case 4:
+_endp.gather(_chunk);
+_toFlush=(BufferUtil.hasContent(_chunk) ? 4 : 0);
+break;
+case 2:
+_endp.gather(_responseBuffer);
+_toFlush=(BufferUtil.hasContent(_responseBuffer) ? 2 : 0);
+break;
+case 1:
+_endp.gather(_content);
+_toFlush=(BufferUtil.hasContent(_content) ? 1 : 0);
+if (_toFlush == 0) _content=null;
+break;
+case 0:
+default :
+throw new IllegalStateException();
+}
+if (!block) break;
+if (_toFlush > 0) blockUntilWritable(getMaxIdleTime());
+}
+}
