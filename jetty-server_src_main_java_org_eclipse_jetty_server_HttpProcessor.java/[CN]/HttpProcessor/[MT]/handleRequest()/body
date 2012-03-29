@@ -1,0 +1,80 @@
+{
+  boolean error=false;
+  String threadName=null;
+  Throwable async_exception=null;
+  try {
+    if (LOG.isDebugEnabled()) {
+      threadName=Thread.currentThread().getName();
+      Thread.currentThread().setName(threadName + " - " + _uri);
+    }
+    final Server server=_server;
+    boolean handling=_async.handling() && server != null && server.isRunning();
+    while (handling) {
+      _request.setHandled(false);
+      String info=null;
+      try {
+        _uri.getPort();
+        info=URIUtil.canonicalPath(_uri.getDecodedPath());
+        if (info == null && !_request.getMethod().equals(HttpMethod.CONNECT))         throw new HttpException(400);
+        _request.setPathInfo(info);
+        if (_out != null)         _out.reopen();
+        if (_async.isInitial()) {
+          _request.setDispatcherType(DispatcherType.REQUEST);
+          _controller.customize(_request);
+          server.handle(this);
+        }
+ else {
+          _request.setDispatcherType(DispatcherType.ASYNC);
+          server.handleAsync(this);
+        }
+      }
+ catch (      ContinuationThrowable e) {
+        LOG.ignore(e);
+      }
+catch (      EofException e) {
+        async_exception=e;
+        LOG.debug(e);
+        error=true;
+        _request.setHandled(true);
+      }
+catch (      RuntimeIOException e) {
+        async_exception=e;
+        LOG.debug(e);
+        error=true;
+        _request.setHandled(true);
+      }
+catch (      HttpException e) {
+        LOG.debug(e);
+        error=true;
+        _request.setHandled(true);
+        _response.sendError(e.getStatus(),e.getReason());
+      }
+catch (      Throwable e) {
+        async_exception=e;
+        LOG.warn(String.valueOf(_uri),e);
+        error=true;
+        _request.setHandled(true);
+        _controller.sendError(info == null ? 400 : 500,null,null,true);
+      }
+ finally {
+        handling=!_async.unhandle() && server.isRunning() && _server != null;
+      }
+    }
+  }
+  finally {
+    if (threadName != null)     Thread.currentThread().setName(threadName);
+    if (_async.isUncompleted()) {
+      _async.doComplete(async_exception);
+      if (_expect100Continue) {
+        LOG.debug("100 continues not sent");
+        _expect100Continue=false;
+        if (!_response.isCommitted())         _controller.setPersistent(false);
+      }
+      if (error)       _controller.setPersistent(false);
+ else       if (!_response.isCommitted() && !_request.isHandled())       _response.sendError(HttpServletResponse.SC_NOT_FOUND);
+      _response.complete();
+      if (_controller.isPersistent())       _controller.persist();
+      _request.setHandled(true);
+    }
+  }
+}

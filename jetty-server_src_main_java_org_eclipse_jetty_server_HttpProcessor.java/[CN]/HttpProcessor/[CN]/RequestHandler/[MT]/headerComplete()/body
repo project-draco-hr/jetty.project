@@ -1,0 +1,34 @@
+{
+  _requests++;
+switch (_version) {
+case HTTP_0_9:
+    break;
+case HTTP_1_0:
+  if (_controller.isPersistent()) {
+    _responseFields.add(HttpHeader.CONNECTION,HttpHeaderValue.KEEP_ALIVE);
+  }
+if (_server.getSendDateHeader()) _responseFields.putDateField(HttpHeader.DATE.toString(),_request.getTimeStamp());
+break;
+case HTTP_1_1:
+if (!_controller.isPersistent()) {
+_responseFields.add(HttpHeader.CONNECTION,HttpHeaderValue.CLOSE);
+}
+if (_server.getSendDateHeader()) _responseFields.putDateField(HttpHeader.DATE.toString(),_request.getTimeStamp());
+if (!_host) {
+LOG.debug("!host {}",this);
+_responseFields.put(HttpHeader.CONNECTION,HttpHeaderValue.CLOSE);
+_controller.sendError(HttpStatus.BAD_REQUEST_400,null,null,true);
+return true;
+}
+if (_expect) {
+LOG.debug("!expectation {}",this);
+_responseFields.put(HttpHeader.CONNECTION,HttpHeaderValue.CLOSE);
+_controller.sendError(HttpStatus.EXPECTATION_FAILED_417,null,null,true);
+return true;
+}
+break;
+default :
+}
+if (_expect100Continue) return true;
+return false;
+}

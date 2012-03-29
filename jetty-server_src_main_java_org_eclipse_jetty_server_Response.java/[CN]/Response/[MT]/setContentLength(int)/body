@@ -1,21 +1,6 @@
 {
-  if (isCommitted() || _channel.isIncluding())   return;
+  if (isCommitted() || _processor.isIncluding())   return;
   _contentLength=len;
-  if (len >= 0) {
-    _fields.putLongField(HttpHeader.CONTENT_LENGTH.toString(),(long)len);
-    if (_transport.isAllContentWritten()) {
-switch (_outputState) {
-case WRITER:
-        _writer.close();
-      break;
-case STREAM:
-    try {
-      getOutputStream().close();
-    }
- catch (    IOException e) {
-      throw new RuntimeException(e);
-    }
-}
-}
-}
+  _fields.putLongField(HttpHeader.CONTENT_LENGTH.toString(),(long)len);
+  if (_contentLength > 0)   checkAllContentWritten(_processor.getOutputStream().getWritten());
 }
