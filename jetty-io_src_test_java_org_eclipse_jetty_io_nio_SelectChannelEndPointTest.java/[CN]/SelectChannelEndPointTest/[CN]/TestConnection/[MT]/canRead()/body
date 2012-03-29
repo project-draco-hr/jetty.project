@@ -1,0 +1,17 @@
+{
+  boolean progress=true;
+  while (progress) {
+    progress=false;
+    _in.compact().flip();
+    if (!BufferUtil.isFull(_in) && _endp.fill(_in) > 0) {
+      progress=true;
+    }
+    while (_blockAt > 0 && _in.remaining() > 0 && _in.remaining() < _blockAt) {
+      if (!BufferUtil.isFull(_in) && _endp.fill(_in) > 0)       progress=true;
+    }
+    if (BufferUtil.hasContent(_in) && BufferUtil.flipPutFlip(_in,_out) > 0)     progress=true;
+    if (BufferUtil.hasContent(_out) && _endp.flush(_out) > 0)     progress=true;
+    _out.compact().flip();
+    if (BufferUtil.isEmpty(_out) && _endp.isInputShutdown())     _endp.shutdownOutput();
+  }
+}

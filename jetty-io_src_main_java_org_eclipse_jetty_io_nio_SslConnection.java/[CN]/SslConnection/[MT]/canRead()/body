@@ -1,0 +1,30 @@
+{
+  try {
+    allocateBuffers();
+    boolean progress=true;
+    while (progress) {
+      progress=false;
+      if (_engine.getHandshakeStatus() != HandshakeStatus.NOT_HANDSHAKING)       progress=process(null,null);
+      _connection.canRead();
+      _logger.debug("{} handle {} progress={}",_session,this,progress);
+    }
+  }
+  finally {
+    releaseBuffers();
+    if (!_ishut && _sslEndPoint.isInputShutdown() && _sslEndPoint.isOpen()) {
+      _ishut=true;
+      try {
+        _connection.onInputShutdown();
+      }
+ catch (      Throwable x) {
+        _logger.warn("onInputShutdown failed",x);
+        try {
+          _sslEndPoint.close();
+        }
+ catch (        IOException e2) {
+          _logger.ignore(e2);
+        }
+      }
+    }
+  }
+}

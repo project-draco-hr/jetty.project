@@ -1,0 +1,45 @@
+{
+  Connection connection=this;
+  boolean progress=true;
+  try {
+    setCurrentConnection(this);
+    getEndPoint().setCheckForIdle(false);
+    while (progress && connection == this) {
+      progress=false;
+      try {
+        if (_requestBuffer == null)         _requestBuffer=_parser.isInContent() ? _connector.getRequestBuffers().getBuffer() : _connector.getRequestBuffers().getHeader();
+        if (BufferUtil.hasContent(_requestBuffer) && _parser.parseNext(_requestBuffer))         _channel.handleRequest();
+      }
+ catch (      HttpException e) {
+        progress=true;
+        _transport.sendError(e.getStatus(),e.getReason(),null,true);
+      }
+ finally {
+        if (_requestBuffer != null && !_requestBuffer.hasRemaining()) {
+          _connector.getRequestBuffers().returnBuffer(_requestBuffer);
+          _requestBuffer=null;
+        }
+        if (_parser.isComplete() && _generator.isComplete()) {
+          if (_channel.getResponse().getStatus() == HttpStatus.SWITCHING_PROTOCOLS_101) {
+            Connection switched=(Connection)_channel.getRequest().getAttribute("org.eclipse.jetty.io.Connection");
+            if (switched != null)             connection=switched;
+          }
+          reset();
+          progress=true;
+        }
+ else         if (_channel.getRequest().getAsyncContinuation().isAsyncStarted()) {
+          LOG.debug("suspended {}",this);
+          progress=false;
+        }
+      }
+    }
+  }
+ catch (  IOException e) {
+  }
+ finally {
+    setCurrentConnection(null);
+    if (!_channel.getRequest().getAsyncContinuation().isAsyncStarted()) {
+      getEndPoint().setCheckForIdle(true);
+    }
+  }
+}

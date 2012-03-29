@@ -1,4 +1,16 @@
 {
-  int len=_channel.write(buffer);
+  int len=0;
+  if (_channel instanceof GatheringByteChannel) {
+    len=(int)((GatheringByteChannel)_channel).write(buffers,0,2);
+  }
+ else {
+    for (    ByteBuffer b : buffers) {
+      if (b.hasRemaining()) {
+        int l=_channel.write(b);
+        if (l > 0)         len+=l;
+ else         break;
+      }
+    }
+  }
   return len;
 }

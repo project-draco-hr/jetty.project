@@ -1,14 +1,23 @@
 {
   if (_closed)   throw new IOException("CLOSED");
-  if (_growOutput && buffer.remaining() > _out.remaining()) {
-    _out.compact();
-    if (buffer.remaining() > _out.remaining()) {
-      ByteBuffer n=ByteBuffer.allocate(_out.capacity() + buffer.remaining() * 2);
-      n.put(_out);
-      _out=n;
+  int len=0;
+  for (  ByteBuffer b : buffers) {
+    if (b.hasRemaining()) {
+      if (_growOutput && b.remaining() > _out.remaining()) {
+        _out.compact();
+        if (b.remaining() > _out.remaining()) {
+          ByteBuffer n=ByteBuffer.allocate(_out.capacity() + b.remaining() * 2);
+          n.put(_out);
+          _out=n;
+        }
+      }
+      int put=b.remaining();
+      if (put > 0) {
+        _out.put(b);
+        len+=put;
+      }
+ else       break;
     }
   }
-  int put=buffer.remaining();
-  _out.put(buffer);
-  return put;
+  return len;
 }
