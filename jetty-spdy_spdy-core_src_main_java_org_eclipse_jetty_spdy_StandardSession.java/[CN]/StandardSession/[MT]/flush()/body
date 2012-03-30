@@ -5,11 +5,15 @@ synchronized (queue) {
     if (flushing)     return;
     frameBytes=queue.poll();
     if (frameBytes == null)     return;
-    buffer=frameBytes.getByteBuffer();
-    if (buffer == null) {
-      enqueueFirst(frameBytes);
-      logger.debug("Flush skipped, {} frame(s) in queue",queue.size());
-      return;
+    FrameBytes stalled=null;
+    while (true) {
+      buffer=frameBytes.getByteBuffer();
+      if (buffer != null)       break;
+      enqueueLast(frameBytes);
+      if (stalled == null)       stalled=frameBytes;
+ else       if (stalled == frameBytes)       return;
+      logger.debug("Flush stalled for {}, {} frame(s) in queue",frameBytes,queue.size());
+      frameBytes=queue.poll();
     }
     flushing=true;
     logger.debug("Flushing {}, {} frame(s) in queue",frameBytes,queue.size());
