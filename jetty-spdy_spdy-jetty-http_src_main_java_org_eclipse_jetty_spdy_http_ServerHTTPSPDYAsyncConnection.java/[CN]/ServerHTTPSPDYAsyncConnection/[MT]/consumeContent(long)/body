@@ -8,10 +8,10 @@
         return buffer;
       }
  else {
-        if (dataInfo.consumed() == 0)         dataInfo.consume(dataInfo.length());
+        dataInfo.consume(dataInfo.length());
+        logger.debug("Consumed {} content bytes, queue size {}",dataInfo.consumed(),dataInfos.size());
         dataInfo=null;
         buffer=null;
-        if (complete && dataInfos.isEmpty())         return null;
       }
     }
  else {
@@ -21,8 +21,11 @@
       long elapsed=TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - begin);
       logger.debug("Waited {} ms for content bytes",elapsed);
       if (dataInfo != null) {
-        boolean consume=complete && dataInfos.isEmpty();
-        ByteBuffer byteBuffer=dataInfo.asByteBuffer(consume);
+        if (dataInfo == END_OF_CONTENT) {
+          logger.debug("End of content bytes, queue size {}",dataInfos.size());
+          return null;
+        }
+        ByteBuffer byteBuffer=dataInfo.asByteBuffer(false);
         buffer=byteBuffer.isDirect() ? new DirectNIOBuffer(byteBuffer,false) : new IndirectNIOBuffer(byteBuffer,false);
       }
  else {
