@@ -1,0 +1,19 @@
+{
+  _lock.lock();
+  boolean writeable=false;
+  try {
+    if (_writeBlocked)     throw new IllegalStateException();
+    _writeBlocked=true;
+    _endp.setWriteInterested(true);
+    writeable=_writeable.await(getMaxIdleTime(),TimeUnit.SECONDS);
+  }
+ catch (  InterruptedException e) {
+    LOG.ignore(e);
+  }
+ finally {
+    if (!writeable)     _endp.setWriteInterested(false);
+    _writeBlocked=false;
+    _lock.unlock();
+  }
+  return writeable;
+}

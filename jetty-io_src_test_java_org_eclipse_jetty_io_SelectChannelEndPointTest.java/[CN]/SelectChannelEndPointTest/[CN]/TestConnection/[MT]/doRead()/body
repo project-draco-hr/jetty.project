@@ -1,0 +1,21 @@
+{
+  try {
+    boolean progress=true;
+    while (progress) {
+      progress=false;
+      if (!BufferUtil.isFull(_in))       progress|=_endp.fill(_in) > 0;
+      while (_blockAt > 0 && _endp.isOpen() && _in.remaining() < _blockAt && blockReadable())       progress|=_endp.fill(_in) > 0;
+      if (BufferUtil.hasContent(_in) && BufferUtil.flipPutFlip(_in,_out) > 0)       progress=true;
+      if (BufferUtil.hasContent(_out) && _endp.flush(_out) > 0)       while (!_endp.isOutputShutdown() && BufferUtil.hasContent(_out)) {
+        blockWriteable();
+        if (_endp.flush(_out) > 0)         progress=true;
+      }
+    }
+  }
+ catch (  IOException e) {
+    e.printStackTrace();
+  }
+ finally {
+    _endp.setReadInterested(true);
+  }
+}

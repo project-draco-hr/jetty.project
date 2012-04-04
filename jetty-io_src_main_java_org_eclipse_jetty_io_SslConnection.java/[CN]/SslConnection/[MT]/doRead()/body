@@ -1,0 +1,24 @@
+{
+  try {
+    allocateBuffers();
+    boolean progress=true;
+    while (progress) {
+      progress=false;
+      if (!BufferUtil.isFull(_inNet))       progress|=_endp.fill(_inNet) > 0;
+      progress|=process(null);
+      if (BufferUtil.hasContent(_inApp) && _appEndPoint.isReadInterested()) {
+        progress=true;
+        Runnable task=_appConnection.onReadable();
+        if (task != null)         task.run();
+      }
+    }
+  }
+ catch (  IOException e) {
+    LOG.warn(e);
+  }
+ finally {
+    releaseBuffers();
+    _endp.setReadInterested(_appEndPoint.isReadInterested());
+    _endp.setWriteInterested(BufferUtil.hasContent(_outNet));
+  }
+}

@@ -1,0 +1,19 @@
+{
+  _lock.lock();
+  boolean readable=false;
+  try {
+    if (_readBlocked)     throw new IllegalStateException();
+    _readBlocked=true;
+    _endp.setReadInterested(true);
+    readable=_readable.await(getMaxIdleTime(),TimeUnit.SECONDS);
+  }
+ catch (  InterruptedException e) {
+    LOG.ignore(e);
+  }
+ finally {
+    if (!readable)     _endp.setReadInterested(false);
+    _readBlocked=false;
+    _lock.unlock();
+  }
+  return readable;
+}

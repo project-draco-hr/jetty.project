@@ -1,0 +1,30 @@
+{
+  _lock.lock();
+  _selected=true;
+  try {
+    if (_key == null || !_key.isValid()) {
+      this.notifyAll();
+      return;
+    }
+    boolean can_read=(_key.isReadable() && (_key.interestOps() | SelectionKey.OP_READ) != 0);
+    boolean can_write=(_key.isWritable() && (_key.interestOps() | SelectionKey.OP_WRITE) != 0);
+    _interestOps=0;
+    if (can_read) {
+      Runnable task=getSelectableConnection().onReadable();
+      if (task != null)       _manager.dispatch(task);
+    }
+    if (can_write) {
+      Runnable task=getSelectableConnection().onWriteable();
+      if (task != null)       _manager.dispatch(task);
+    }
+    if (isInputShutdown() && !_ishutCalled) {
+      _ishutCalled=true;
+      getSelectableConnection().onInputShutdown();
+    }
+  }
+  finally {
+    doUpdateKey();
+    _selected=false;
+    _lock.unlock();
+  }
+}

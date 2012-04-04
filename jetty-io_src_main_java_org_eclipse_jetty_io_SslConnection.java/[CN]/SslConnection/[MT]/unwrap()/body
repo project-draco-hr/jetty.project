@@ -1,0 +1,37 @@
+{
+  if (BufferUtil.isEmpty(_inNet))   return false;
+  final SSLEngineResult result;
+  int pos=BufferUtil.flipToFill(_inApp);
+  try {
+    result=_engine.unwrap(_inNet,_inApp);
+  }
+ catch (  SSLException e) {
+    LOG.debug(String.valueOf(_endp),e);
+    _endp.close();
+    throw e;
+  }
+ finally {
+    BufferUtil.flipToFlush(_inApp,pos);
+  }
+  if (LOG.isDebugEnabled())   LOG.debug("{} unwrap {} {} consumed={} produced={}",_session,result.getStatus(),result.getHandshakeStatus(),result.bytesConsumed(),result.bytesProduced());
+switch (result.getStatus()) {
+case BUFFER_UNDERFLOW:
+    _inNet.compact().flip();
+  if (_endp.isInputShutdown())   _inNet.clear().limit(0);
+break;
+case BUFFER_OVERFLOW:
+LOG.debug("{} unwrap {} {}->{}",_session,result.getStatus(),_inNet,_inApp);
+break;
+case OK:
+if (result.getHandshakeStatus() == HandshakeStatus.FINISHED) _handshook=true;
+break;
+case CLOSED:
+LOG.debug("unwrap CLOSE {} {}",this,result);
+if (result.getHandshakeStatus() == HandshakeStatus.FINISHED) _endp.close();
+break;
+default :
+LOG.debug("{} wrap default {}",_session,result);
+throw new IOException(result.toString());
+}
+return result.bytesConsumed() > 0 || result.bytesProduced() > 0;
+}
