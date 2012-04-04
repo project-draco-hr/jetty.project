@@ -1,24 +1,22 @@
 {
-  if (handler != null) {
-    Integer invocations=handlerInvocations.get();
-    if (invocations >= 4) {
-      execute(new Runnable(){
-        @Override public void run(){
-          notifyHandlerCompleted(handler,context);
-          flush();
-        }
-      }
-);
-    }
- else {
-      handlerInvocations.set(invocations + 1);
-      try {
-        notifyHandlerCompleted(handler,context);
+  Integer invocations=handlerInvocations.get();
+  if (invocations >= 4) {
+    execute(new Runnable(){
+      @Override public void run(){
+        if (handler != null)         notifyHandlerCompleted(handler,context);
         flush();
       }
+    }
+);
+  }
+ else {
+    handlerInvocations.set(invocations + 1);
+    try {
+      if (handler != null)       notifyHandlerCompleted(handler,context);
+      flush();
+    }
   finally {
-        handlerInvocations.set(invocations);
-      }
+      handlerInvocations.set(invocations);
     }
   }
 }
