@@ -1,4 +1,6 @@
 {
+  LOG.debug("do   Read {}",_endp);
+  _lock.lock();
   try {
     allocateBuffers();
     boolean progress=true;
@@ -7,9 +9,18 @@
       if (!BufferUtil.isFull(_inNet))       progress|=_endp.fill(_inNet) > 0;
       progress|=process(null);
       if (BufferUtil.hasContent(_inApp) && _appEndPoint.isReadInterested()) {
+        _appEndPoint._readInterested=false;
         progress=true;
         Runnable task=_appConnection.onReadable();
-        if (task != null)         task.run();
+        if (task != null) {
+          try {
+            _lock.unlock();
+            task.run();
+          }
+  finally {
+            _lock.lock();
+          }
+        }
       }
     }
   }
@@ -20,5 +31,7 @@
     releaseBuffers();
     _endp.setReadInterested(_appEndPoint.isReadInterested());
     _endp.setWriteInterested(BufferUtil.hasContent(_outNet));
+    LOG.debug("done Read {}",_endp);
+    _lock.unlock();
   }
 }

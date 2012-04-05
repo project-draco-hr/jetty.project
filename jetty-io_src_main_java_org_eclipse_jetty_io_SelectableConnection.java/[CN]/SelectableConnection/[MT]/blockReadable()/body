@@ -2,8 +2,12 @@
   _lock.lock();
   boolean readable=false;
   try {
-    if (_readBlocked)     throw new IllegalStateException();
-    _readBlocked=true;
+    if (_readBlocked != null) {
+      System.err.println("Already blocked by " + _readBlocked);
+      for (      StackTraceElement e : _readBlocked.getStackTrace())       System.err.println("    at " + e);
+      throw new IllegalStateException();
+    }
+    _readBlocked=Thread.currentThread();
     _endp.setReadInterested(true);
     readable=_readable.await(getMaxIdleTime(),TimeUnit.SECONDS);
   }
@@ -12,7 +16,7 @@
   }
  finally {
     if (!readable)     _endp.setReadInterested(false);
-    _readBlocked=false;
+    _readBlocked=null;
     _lock.unlock();
   }
   return readable;

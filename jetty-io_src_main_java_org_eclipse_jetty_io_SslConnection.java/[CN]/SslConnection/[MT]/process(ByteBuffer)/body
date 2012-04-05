@@ -1,6 +1,8 @@
 {
   boolean some_progress=false;
+  _lock.lock();
   try {
+    allocateBuffers();
     if (appOut == null)     appOut=__ZERO_BUFFER;
     boolean progress=true;
     while (progress) {
@@ -42,8 +44,14 @@ if (_endp.isOpen() && _engine.isOutboundDone() && BufferUtil.isEmpty(_outNet)) _
 some_progress|=progress;
 }
 }
-  finally {
-if (some_progress) _progressed.set(true);
+ catch (SSLException e) {
+LOG.warn(e.toString());
+LOG.debug(e);
+_endp.close();
+}
+ finally {
+releaseBuffers();
+_lock.unlock();
 }
 return some_progress;
 }
