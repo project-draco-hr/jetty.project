@@ -1,0 +1,19 @@
+{
+  ContentExchange exchange=new ContentExchange(){
+    @Override protected void onResponseHeader(    Buffer name,    Buffer value) throws IOException {
+      if (name.toString().equals("Set-Cookie")) {
+        String cookieVal=value.toString();
+        if (cookieVal.startsWith("JSESSIONID=")) {
+          String jsessionid=cookieVal.split(";")[0].substring("JSESSIONID=".length());
+          _httpClient.getDestination(getAddress(),false).addCookie(new HttpCookie("JSESSIONID",jsessionid));
+        }
+      }
+    }
+  }
+;
+  exchange.setURL("http://localhost:" + getServerPort(_balancerServer) + "/pipo/molo/"+ requestUri);
+  exchange.setMethod(HttpMethods.GET);
+  _httpClient.send(exchange);
+  exchange.waitForDone();
+  return exchange.getResponseContentBytes();
+}
