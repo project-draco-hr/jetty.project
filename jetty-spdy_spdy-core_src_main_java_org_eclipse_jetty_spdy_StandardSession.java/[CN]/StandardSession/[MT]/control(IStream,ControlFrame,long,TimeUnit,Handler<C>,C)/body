@@ -6,7 +6,8 @@ synchronized (this) {
       logger.debug("Queuing {} on {}",frame,stream);
       ControlFrameBytes<C> frameBytes=new ControlFrameBytes<>(stream,handler,context,frame,buffer);
       if (timeout > 0)       frameBytes.task=scheduler.schedule(frameBytes,timeout,unit);
-      append(frameBytes);
+      if (ControlFrameType.PING == frame.getType())       prepend(frameBytes);
+ else       append(frameBytes);
     }
     flush();
   }
