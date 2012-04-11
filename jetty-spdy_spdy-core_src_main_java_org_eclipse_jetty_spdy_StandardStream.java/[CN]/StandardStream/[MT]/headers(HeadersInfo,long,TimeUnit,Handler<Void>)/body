@@ -1,4 +1,8 @@
 {
+  if (!canSend()) {
+    session.rst(new RstInfo(getId(),StreamStatus.PROTOCOL_ERROR));
+    throw new IllegalStateException("Cannot send a HEADERS frame before a SYN_REPLY frame");
+  }
   updateCloseState(headersInfo.isClose());
   HeadersFrame frame=new HeadersFrame(session.getVersion(),headersInfo.getFlags(),getId(),headersInfo.getHeaders());
   session.control(this,frame,timeout,unit,handler,null);
