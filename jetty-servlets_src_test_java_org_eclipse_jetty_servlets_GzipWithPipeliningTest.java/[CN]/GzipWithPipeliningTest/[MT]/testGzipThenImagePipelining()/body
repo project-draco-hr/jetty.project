@@ -1,25 +1,26 @@
 {
   testingdir.ensureEmpty();
   File outputDir=testingdir.getDir();
-  PipelineHelper client=new PipelineHelper(serverUri);
+  PipelineHelper client=new PipelineHelper(serverUri,encodingHeader);
   try {
     File txtFile=MavenTestingUtils.getTestResourceFile("lots-of-fantasy-names.txt");
     File pngFile=MavenTestingUtils.getTestResourceFile("jetty_logo.png");
     long rawsize=txtFile.length() + pngFile.length();
-    Assert.assertThat("Ensure that we have sufficient file size to trigger chunking",rawsize,greaterThan(300000L));
+    assertThat("Ensure that we have sufficient file size to trigger chunking",rawsize,greaterThan(300000L));
     String respHeader;
     client.connect();
     client.issueGET("/lots-of-fantasy-names.txt",true,false);
     respHeader=client.readResponseHeader();
     System.out.println("Response Header #1 --\n" + respHeader);
-    Assert.assertThat("Content-Encoding should be gzipped",respHeader,containsString("Content-Encoding: gzip\r\n"));
-    Assert.assertThat("Transfer-Encoding should be chunked",respHeader,containsString("Transfer-Encoding: chunked\r\n"));
+    String expectedEncodingHeader=encodingHeader.equals(GzipFilter.DEFLATE) ? GzipFilter.DEFLATE : GzipFilter.GZIP;
+    assertThat("Content-Encoding should be gzipped",respHeader,containsString("Content-Encoding: " + expectedEncodingHeader + "\r\n"));
+    assertThat("Transfer-Encoding should be chunked",respHeader,containsString("Transfer-Encoding: chunked\r\n"));
     File rawOutputFile=new File(outputDir,"response-1.gz");
     FileOutputStream rawOutputStream=new FileOutputStream(rawOutputFile);
     long chunkSize=client.readChunkSize();
     System.out.println("Chunk Size: " + chunkSize);
     System.out.println("Attempting to read partial content ...");
-    int readBytes=client.readBody(rawOutputStream,(int)((float)chunkSize * 0.20f));
+    int readBytes=client.readBody(rawOutputStream,(int)(chunkSize * 0.20f));
     System.out.printf("Read %,d bytes%n",readBytes);
     client.issueGET("/jetty_logo.png",true,false);
     System.out.println("Finish reading remaining chunks ...");
@@ -29,26 +30,32 @@
       readBytes=client.readBody(rawOutputStream,(int)chunkSize);
       System.out.printf("Read %,d bytes%n",readBytes);
       line=client.readLine();
-      Assert.assertThat("Chunk delim should be an empty line with CR+LF",line,is(""));
+      assertThat("Chunk delim should be an empty line with CR+LF",line,is(""));
       chunkSize=client.readChunkSize();
       System.out.printf("Next Chunk: (0x%X) %,d bytes%n",chunkSize,chunkSize);
     }
     line=client.readLine();
-    Assert.assertThat("Inter-pipeline delim should be an empty line with CR+LF",line,is(""));
+    assertThat("Inter-pipeline delim should be an empty line with CR+LF",line,is(""));
     MessageDigest digestTxt=MessageDigest.getInstance("SHA1");
     DigestOutputStream digesterTxt=new DigestOutputStream(new NoOpOutputStream(),digestTxt);
     IO.close(rawOutputStream);
     FileInputStream rawInputStream=new FileInputStream(rawOutputFile);
-    GZIPInputStream ungzipStream=new GZIPInputStream(rawInputStream);
-    IO.copy(ungzipStream,digesterTxt);
+    InputStream uncompressedStream=null;
+    if (GzipFilter.DEFLATE.equals(encodingHeader)) {
+      uncompressedStream=new InflaterInputStream(rawInputStream,new Inflater(true));
+    }
+ else {
+      uncompressedStream=new GZIPInputStream(rawInputStream);
+    }
+    IO.copy(uncompressedStream,digesterTxt);
     respHeader=client.readResponseHeader();
     System.out.println("Response Header #2 --\n" + respHeader);
-    Assert.assertThat("Content-Encoding should NOT be gzipped",respHeader,not(containsString("Content-Encoding: gzip\r\n")));
-    Assert.assertThat("Transfer-Encoding should NOT be chunked",respHeader,not(containsString("Transfer-Encoding: chunked\r\n")));
+    assertThat("Content-Encoding should NOT be gzipped",respHeader,not(containsString("Content-Encoding: gzip\r\n")));
+    assertThat("Transfer-Encoding should NOT be chunked",respHeader,not(containsString("Transfer-Encoding: chunked\r\n")));
     MessageDigest digestImg=MessageDigest.getInstance("SHA1");
     DigestOutputStream digesterImg=new DigestOutputStream(new NoOpOutputStream(),digestImg);
     int contentLength=client.getContentLength(respHeader);
-    Assert.assertThat("Image Content Length",(long)contentLength,is(pngFile.length()));
+    assertThat("Image Content Length",(long)contentLength,is(pngFile.length()));
     client.readBody(digesterImg,contentLength);
     IO.close(rawOutputStream);
     assertChecksum("lots-of-fantasy-names.txt",digestTxt);

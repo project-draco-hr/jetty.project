@@ -10,7 +10,7 @@ case ServiceEvent.UNREGISTERING:
           instance.stop();
         }
  catch (        Exception e) {
-          e.printStackTrace();
+          LOG.warn(e);
         }
       }
     }
@@ -21,15 +21,20 @@ case ServiceEvent.UNREGISTERING:
   }
 case ServiceEvent.REGISTERED:
 {
-  Bundle contributor=sr.getBundle();
-  Server server=(Server)contributor.getBundleContext().getService(sr);
-  ServerInstanceWrapper wrapper=registerInIndex(server,sr);
-  Properties props=new Properties();
-  for (  String key : sr.getPropertyKeys()) {
-    Object value=sr.getProperty(key);
-    props.put(key,value);
+  try {
+    Bundle contributor=sr.getBundle();
+    Server server=(Server)contributor.getBundleContext().getService(sr);
+    ServerInstanceWrapper wrapper=registerInIndex(server,sr);
+    Properties props=new Properties();
+    for (    String key : sr.getPropertyKeys()) {
+      Object value=sr.getProperty(key);
+      props.put(key,value);
+    }
+    wrapper.start(server,props);
   }
-  wrapper.start(server,props);
+ catch (  Exception e) {
+    LOG.warn(e);
+  }
   break;
 }
 }
