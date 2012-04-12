@@ -1,0 +1,26 @@
+{
+  final CountDownLatch resetLatch=new CountDownLatch(1);
+  final CountDownLatch latch=new CountDownLatch(1);
+  Session session=startClient(startServer(new ServerSessionFrameListener.Adapter(){
+    @Override public StreamFrameListener onSyn(    Stream stream,    SynInfo synInfo){
+      try {
+        stream.data(new StringDataInfo("failure",true));
+        return null;
+      }
+ catch (      IllegalStateException x) {
+        latch.countDown();
+        return null;
+      }
+    }
+  }
+),new SessionFrameListener.Adapter(){
+    @Override public void onRst(    Session session,    RstInfo rstInfo){
+      Assert.assertSame(StreamStatus.PROTOCOL_ERROR,rstInfo.getStreamStatus());
+      resetLatch.countDown();
+    }
+  }
+);
+  session.syn(new SynInfo(true),null);
+  Assert.assertTrue(latch.await(5,TimeUnit.SECONDS));
+  Assert.assertTrue(resetLatch.await(5,TimeUnit.SECONDS));
+}

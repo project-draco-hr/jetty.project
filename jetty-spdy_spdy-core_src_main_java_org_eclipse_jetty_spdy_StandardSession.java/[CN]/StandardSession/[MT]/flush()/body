@@ -1,23 +1,24 @@
 {
-  FrameBytes frameBytes;
-  ByteBuffer buffer;
+  FrameBytes frameBytes=null;
+  ByteBuffer buffer=null;
 synchronized (queue) {
-    if (flushing)     return;
-    frameBytes=queue.poll();
-    if (frameBytes == null)     return;
-    FrameBytes stalled=null;
-    while (true) {
+    if (flushing || queue.isEmpty())     return;
+    Set<IStream> stalledStreams=null;
+    for (int i=0; i < queue.size(); ++i) {
+      frameBytes=queue.get(i);
+      if (stalledStreams != null && stalledStreams.contains(frameBytes.getStream()))       continue;
       buffer=frameBytes.getByteBuffer();
-      if (buffer != null)       break;
-      enqueueLast(frameBytes);
-      if (stalled == null)       stalled=frameBytes;
- else       if (stalled == frameBytes)       return;
+      if (buffer != null) {
+        queue.remove(i);
+        break;
+      }
+      if (stalledStreams == null)       stalledStreams=new HashSet<>();
+      stalledStreams.add(frameBytes.getStream());
       logger.debug("Flush stalled for {}, {} frame(s) in queue",frameBytes,queue.size());
-      frameBytes=queue.poll();
     }
+    if (buffer == null)     return;
     flushing=true;
     logger.debug("Flushing {}, {} frame(s) in queue",frameBytes,queue.size());
   }
-  logger.debug("Writing {} frame bytes of {}",buffer.remaining(),frameBytes);
   write(buffer,this,frameBytes);
 }

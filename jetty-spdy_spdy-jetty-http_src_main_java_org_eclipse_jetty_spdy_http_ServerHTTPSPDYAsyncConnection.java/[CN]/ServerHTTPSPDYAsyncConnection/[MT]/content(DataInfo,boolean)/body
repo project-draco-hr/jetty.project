@@ -1,20 +1,22 @@
 {
-  dataInfos.offer(new ByteBufferDataInfo(dataInfo.asByteBuffer(false),dataInfo.isClose(),dataInfo.isCompress()){
+  ByteBufferDataInfo copyDataInfo=new ByteBufferDataInfo(dataInfo.asByteBuffer(false),dataInfo.isClose(),dataInfo.isCompress()){
     @Override public void consume(    int delta){
       super.consume(delta);
       dataInfo.consume(delta);
     }
   }
-);
-  complete=endRequest;
+;
+  logger.debug("Queuing last={} content {}",endRequest,copyDataInfo);
+  dataInfos.offer(copyDataInfo);
+  if (endRequest)   dataInfos.offer(END_OF_CONTENT);
   post(new Runnable(){
     @Override public void run(){
       logger.debug("HTTP > {} bytes of content",dataInfo.length());
       if (state == State.HEADERS) {
-        state=State.HEADERS_COMPLETE;
+        updateState(State.HEADERS_COMPLETE);
         handle();
       }
-      state=State.CONTENT;
+      updateState(State.CONTENT);
       handle();
     }
   }

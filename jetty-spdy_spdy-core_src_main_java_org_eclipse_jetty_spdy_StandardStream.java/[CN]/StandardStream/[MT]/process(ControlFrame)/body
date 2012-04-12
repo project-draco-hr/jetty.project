@@ -2,14 +2,14 @@
 switch (frame.getType()) {
 case SYN_STREAM:
 {
-      opened=true;
+      openState=OpenState.SYN_RECV;
       break;
     }
 case SYN_REPLY:
 {
-    opened=true;
+    openState=OpenState.REPLY_RECV;
     SynReplyFrame synReply=(SynReplyFrame)frame;
-    updateCloseState(synReply.isClose());
+    updateCloseState(synReply.isClose(),false);
     ReplyInfo replyInfo=new ReplyInfo(synReply.getHeaders(),synReply.isClose());
     notifyOnReply(replyInfo);
     break;
@@ -17,7 +17,7 @@ case SYN_REPLY:
 case HEADERS:
 {
   HeadersFrame headers=(HeadersFrame)frame;
-  updateCloseState(headers.isClose());
+  updateCloseState(headers.isClose(),false);
   HeadersInfo headersInfo=new HeadersInfo(headers.getHeaders(),headers.isClose(),headers.isResetCompression());
   notifyOnHeaders(headersInfo);
   break;
