@@ -1,21 +1,15 @@
 {
-  String delim=_maxCookieVersion == 0 ? "" : __COOKIE_DELIM;
+  String delim=__COOKIE_DELIM;
   if (name == null || name.length() == 0)   throw new IllegalArgumentException("Bad cookie name");
   StringBuilder buf=new StringBuilder(128);
   String name_value_params;
-  boolean quoted=QuotedStringTokenizer.quoteIfNeeded(buf,name,delim);
+  QuotedStringTokenizer.quoteIfNeeded(buf,name,delim);
   buf.append('=');
   String start=buf.toString();
-  if (value != null && value.length() > 0)   quoted|=QuotedStringTokenizer.quoteIfNeeded(buf,value,delim);
-  if (quoted && version == 0 && _maxCookieVersion >= 1)   version=1;
-  if (version > _maxCookieVersion)   version=_maxCookieVersion;
-  if (version > 0) {
-    buf.append(";Version=");
-    buf.append(version);
-    if (comment != null && comment.length() > 0) {
-      buf.append(";Comment=");
-      QuotedStringTokenizer.quoteIfNeeded(buf,comment,delim);
-    }
+  if (value != null && value.length() > 0)   QuotedStringTokenizer.quoteIfNeeded(buf,value,delim);
+  if (comment != null && comment.length() > 0) {
+    buf.append(";Comment=");
+    QuotedStringTokenizer.quoteIfNeeded(buf,comment,delim);
   }
   if (path != null && path.length() > 0) {
     buf.append(";Path=");
@@ -34,9 +28,6 @@
       buf.append(";Max-Age=");
       buf.append(maxAge);
     }
-  }
- else   if (version > 0) {
-    buf.append(";Discard");
   }
   if (isSecure)   buf.append(";Secure");
   if (isHttpOnly)   buf.append(";HttpOnly");

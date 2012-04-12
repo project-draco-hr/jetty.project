@@ -1,9 +1,17 @@
 {
-  return new GzipResponseWrapper(request,response){
+  return new CompressedResponseWrapper(request,response){
 {
       super.setMimeTypes(GzipHandler.this._mimeTypes);
       super.setBufferSize(GzipHandler.this._bufferSize);
-      super.setMinGzipSize(GzipHandler.this._minGzipSize);
+      super.setMinCompressSize(GzipHandler.this._minGzipSize);
+    }
+    @Override protected AbstractCompressedStream newCompressedStream(    HttpServletRequest request,    HttpServletResponse response,    long contentLength,    int bufferSize,    int minCompressSize) throws IOException {
+      return new AbstractCompressedStream("gzip",request,response,contentLength,bufferSize,minCompressSize){
+        @Override protected DeflaterOutputStream createStream() throws IOException {
+          return new GZIPOutputStream(_response.getOutputStream(),_bufferSize);
+        }
+      }
+;
     }
     @Override protected PrintWriter newWriter(    OutputStream out,    String encoding) throws UnsupportedEncodingException {
       return GzipHandler.this.newWriter(out,encoding);

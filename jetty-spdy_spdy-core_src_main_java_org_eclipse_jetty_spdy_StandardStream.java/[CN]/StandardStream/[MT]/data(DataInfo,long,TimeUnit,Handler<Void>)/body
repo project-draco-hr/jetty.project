@@ -1,3 +1,11 @@
 {
+  if (!canSend()) {
+    session.rst(new RstInfo(getId(),StreamStatus.PROTOCOL_ERROR));
+    throw new IllegalStateException("Protocol violation: cannot send a DATA frame before a SYN_REPLY frame");
+  }
+  if (isLocallyClosed()) {
+    session.rst(new RstInfo(getId(),StreamStatus.PROTOCOL_ERROR));
+    throw new IllegalStateException("Protocol violation: cannot send a DATA frame on a closed stream");
+  }
   session.data(this,dataInfo,timeout,unit,handler,null);
 }

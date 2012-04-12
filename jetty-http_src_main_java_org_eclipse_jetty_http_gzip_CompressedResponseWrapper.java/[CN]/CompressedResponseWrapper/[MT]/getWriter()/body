@@ -1,0 +1,12 @@
+{
+  if (_writer == null) {
+    if (_compressedStream != null)     throw new IllegalStateException("getOutputStream() called");
+    if (getResponse().isCommitted() || _noCompression) {
+      setContentLength(_contentLength);
+      return getResponse().getWriter();
+    }
+    _compressedStream=newCompressedStream(_request,(HttpServletResponse)getResponse(),_contentLength,_bufferSize,_minCompressSize);
+    _writer=newWriter((OutputStream)_compressedStream,getCharacterEncoding());
+  }
+  return _writer;
+}

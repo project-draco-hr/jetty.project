@@ -4,7 +4,8 @@
   Session session=startClient(startHTTPServer(new AbstractHandler(){
     @Override public void handle(    String target,    final Request request,    HttpServletRequest httpRequest,    HttpServletResponse httpResponse) throws IOException, ServletException {
       request.setHandled(true);
-      final AsyncContext async=request.startAsync();
+      final Continuation continuation=ContinuationSupport.getContinuation(request);
+      continuation.suspend();
       new Thread(){
         @Override public void run(){
           try {
@@ -12,7 +13,7 @@
             byte[] buffer=new byte[512];
             int read=0;
             while (read < data.length)             read+=input.read(buffer);
-            async.complete();
+            continuation.complete();
             latch.countDown();
           }
  catch (          IOException x) {

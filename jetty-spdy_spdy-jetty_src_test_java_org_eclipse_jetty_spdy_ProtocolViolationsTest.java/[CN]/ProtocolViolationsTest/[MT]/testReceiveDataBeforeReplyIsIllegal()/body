@@ -1,0 +1,25 @@
+{
+  ServerSocketChannel server=ServerSocketChannel.open();
+  server.bind(new InetSocketAddress("localhost",0));
+  Session session=startClient(new InetSocketAddress("localhost",server.socket().getLocalPort()),null);
+  session.syn(new SynInfo(true),null);
+  SocketChannel channel=server.accept();
+  ByteBuffer readBuffer=ByteBuffer.allocate(1024);
+  channel.read(readBuffer);
+  readBuffer.flip();
+  int streamId=readBuffer.getInt(8);
+  Generator generator=new Generator(new StandardByteBufferPool(),new StandardCompressionFactory.StandardCompressor());
+  byte[] bytes=new byte[1];
+  ByteBuffer writeBuffer=generator.data(streamId,bytes.length,new BytesDataInfo(bytes,true));
+  channel.write(writeBuffer);
+  readBuffer.clear();
+  channel.read(readBuffer);
+  readBuffer.flip();
+  Assert.assertEquals(ControlFrameType.RST_STREAM.getCode(),readBuffer.getShort(2));
+  Assert.assertEquals(streamId,readBuffer.getInt(8));
+  writeBuffer=generator.control(new GoAwayFrame(SPDY.V2,0,SessionStatus.OK.getCode()));
+  channel.write(writeBuffer);
+  channel.shutdownOutput();
+  channel.close();
+  server.close();
+}

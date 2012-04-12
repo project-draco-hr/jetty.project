@@ -3,18 +3,14 @@
   int len=0;
   if (buf instanceof NIOBuffer) {
     final NIOBuffer nbuf=(NIOBuffer)buf;
-    final ByteBuffer bbuf=nbuf.getByteBuffer();
-synchronized (bbuf) {
-      try {
-        bbuf.position(buffer.getIndex());
-        bbuf.limit(buffer.putIndex());
-        len=_channel.write(bbuf);
-      }
+    final ByteBuffer bbuf=nbuf.getByteBuffer().asReadOnlyBuffer();
+    try {
+      bbuf.position(buffer.getIndex());
+      bbuf.limit(buffer.putIndex());
+      len=_channel.write(bbuf);
+    }
   finally {
-        if (len > 0)         buffer.skip(len);
-        bbuf.position(0);
-        bbuf.limit(bbuf.capacity());
-      }
+      if (len > 0)       buffer.skip(len);
     }
   }
  else   if (buf instanceof RandomAccessFileBuffer) {
