@@ -1,0 +1,29 @@
+{
+  if (_generator.isCommitted())   throw new IllegalStateException("Committed");
+  HttpGenerator.ResponseInfo response=new HttpGenerator.ResponseInfo(){
+    @Override public HttpVersion getHttpVersion(){
+      return HttpVersion.HTTP_1_1;
+    }
+    @Override public HttpFields getHttpFields(){
+      return getResponseFields();
+    }
+    @Override public long getContentLength(){
+      return -1;
+    }
+    @Override public boolean isHead(){
+      return getRequest().isHead();
+    }
+    @Override public int getStatus(){
+      return status;
+    }
+    @Override public String getReason(){
+      return reason;
+    }
+  }
+;
+  if (close)   _generator.setPersistent(false);
+  ByteBuffer buf=BufferUtil.toBuffer(content);
+  if (_responseHeader == null)   _responseHeader=_connector.getResponseBuffers().getHeader();
+  if (_responseBuffer == null)   _responseBuffer=_connector.getResponseBuffers().getBuffer();
+  _generator.generate(response,_responseHeader,null,_responseBuffer,buf,Action.COMPLETE);
+}

@@ -8,11 +8,11 @@
       progress=false;
       try {
         if (_requestBuffer == null)         _requestBuffer=_parser.isInContent() ? _connector.getRequestBuffers().getBuffer() : _connector.getRequestBuffers().getHeader();
-        if (BufferUtil.hasContent(_requestBuffer) && _parser.parseNext(_requestBuffer))         _processor.handleRequest();
+        if (BufferUtil.hasContent(_requestBuffer) && _parser.parseNext(_requestBuffer))         _channel.handleRequest();
       }
  catch (      HttpException e) {
         progress=true;
-        _controller.sendError(e.getStatus(),e.getReason(),null,true);
+        _channel.sendError(e.getStatus(),e.getReason(),null,true);
       }
  finally {
         if (_requestBuffer != null && !_requestBuffer.hasRemaining()) {
@@ -20,14 +20,14 @@
           _requestBuffer=null;
         }
         if (_parser.isComplete() && _generator.isComplete()) {
-          if (_processor.getResponse().getStatus() == HttpStatus.SWITCHING_PROTOCOLS_101) {
-            Connection switched=(Connection)_processor.getRequest().getAttribute("org.eclipse.jetty.io.Connection");
+          if (_channel.getResponse().getStatus() == HttpStatus.SWITCHING_PROTOCOLS_101) {
+            Connection switched=(Connection)_channel.getRequest().getAttribute("org.eclipse.jetty.io.Connection");
             if (switched != null)             connection=switched;
           }
           reset();
           progress=true;
         }
- else         if (_processor.getRequest().getAsyncContinuation().isAsyncStarted()) {
+ else         if (_channel.getRequest().getAsyncContinuation().isAsyncStarted()) {
           LOG.debug("suspended {}",this);
           progress=false;
         }
@@ -38,7 +38,7 @@
   }
  finally {
     setCurrentConnection(null);
-    if (!_processor.getRequest().getAsyncContinuation().isAsyncStarted()) {
+    if (!_channel.getRequest().getAsyncContinuation().isAsyncStarted()) {
       getSelectableEndPoint().setCheckForIdle(true);
     }
   }
