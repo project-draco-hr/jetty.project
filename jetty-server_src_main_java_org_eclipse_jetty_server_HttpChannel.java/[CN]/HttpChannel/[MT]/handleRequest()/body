@@ -20,7 +20,7 @@
         if (_out != null)         _out.reopen();
         if (_async.isInitial()) {
           _request.setDispatcherType(DispatcherType.REQUEST);
-          customize(_request);
+          getConnector().customize(_request);
           server.handle(this);
         }
  else {
@@ -68,12 +68,10 @@ catch (      Throwable e) {
       if (_expect100Continue) {
         LOG.debug("100 continues not sent");
         _expect100Continue=false;
-        if (!_response.isCommitted())         setPersistent(false);
+        if (!_response.isCommitted())         _response.addHeader(HttpHeader.CONNECTION,HttpHeaderValue.CLOSE.toString());
       }
-      if (error)       setPersistent(false);
- else       if (!_response.isCommitted() && !_request.isHandled())       _response.sendError(HttpServletResponse.SC_NOT_FOUND);
+      if (!error && !_response.isCommitted() && !_request.isHandled())       _response.sendError(HttpServletResponse.SC_NOT_FOUND);
       _response.complete();
-      if (isPersistent())       persist();
       _request.setHandled(true);
     }
   }

@@ -2,8 +2,8 @@
   _lock.lock();
   boolean writeable=false;
   try {
-    if (_writeBlocked)     throw new IllegalStateException();
-    _writeBlocked=true;
+    if (_writeBlocked != null)     throw new IllegalStateException("already blocked by " + _writeBlocked);
+    _writeBlocked=Thread.currentThread();
     _endp.setWriteInterested(true);
     writeable=_writeable.await(getMaxIdleTime(),TimeUnit.SECONDS);
   }
@@ -12,7 +12,7 @@
   }
  finally {
     if (!writeable)     _endp.setWriteInterested(false);
-    _writeBlocked=false;
+    _writeBlocked=null;
     _lock.unlock();
   }
   return writeable;

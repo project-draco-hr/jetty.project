@@ -1,0 +1,15 @@
+{
+  while (!_endp.isInputShutdown()) {
+    try {
+      blockReadable();
+      if (_requestBuffer == null)       _requestBuffer=_connector.getRequestBuffers().getBuffer();
+      if (BufferUtil.hasContent(_requestBuffer) && _parser.parseNext(_requestBuffer))       return;
+    }
+  finally {
+      if (_requestBuffer != null && !_requestBuffer.hasRemaining() && _channel.available() == 0) {
+        _connector.getRequestBuffers().returnBuffer(_requestBuffer);
+        _requestBuffer=null;
+      }
+    }
+  }
+}

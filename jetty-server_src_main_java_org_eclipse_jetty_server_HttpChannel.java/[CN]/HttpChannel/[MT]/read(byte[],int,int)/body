@@ -1,8 +1,6 @@
 {
 synchronized (_inputQ.lock()) {
     ByteBuffer content=null;
-    long start=-1;
-    long timeout=-1;
     while (content == null) {
       content=_inputQ.peekUnsafe();
       while (content != null && !content.hasRemaining()) {
@@ -11,27 +9,7 @@ synchronized (_inputQ.lock()) {
       }
       if (content == null) {
         if (_inputEOF)         return -1;
-        if (start < 0) {
-          start=System.currentTimeMillis();
-          timeout=getMaxIdleTime();
-        }
- else {
-          long now=System.currentTimeMillis();
-          timeout=timeout - (now - start);
-          start=now;
-        }
-        if (timeout <= 0)         throw new SocketTimeoutException(">" + getMaxIdleTime() + "ms");
-        try {
-          setReadInterested(true);
-          _inputQ.wait(timeout);
-        }
- catch (        InterruptedException e) {
-          LOG.ignore(e);
-        }
- finally {
-          setReadInterested(false);
-        }
-        content=_inputQ.peekUnsafe();
+        blockForContent();
       }
     }
     int l=Math.min(len,content.remaining());
