@@ -1,0 +1,13 @@
+{
+  final CountDownLatch onDataCalledLatch=new CountDownLatch(1);
+  Stream stream=session.syn(new SynInfo(false),new StreamFrameListener.Adapter(){
+    @Override public void onData(    Stream stream,    DataInfo dataInfo){
+      onDataCalledLatch.countDown();
+      super.onData(stream,dataInfo);
+    }
+  }
+).get(5,TimeUnit.SECONDS);
+  session.onControlFrame(new SynReplyFrame(SPDY.V2,SynInfo.FLAG_CLOSE,stream.getId(),headers));
+  session.onDataFrame(new DataFrame(stream.getId(),(byte)0,0),ByteBuffer.allocate(128));
+  assertThat("onData is never called",onDataCalledLatch.await(1,TimeUnit.SECONDS),not(true));
+}
