@@ -1,0 +1,10 @@
+{
+  final CountDownLatch createdListenerCalledLatch=new CountDownLatch(1);
+  final CountDownLatch closedListenerCalledLatch=new CountDownLatch(1);
+  session.addListener(new TestStreamListener(createdListenerCalledLatch,closedListenerCalledLatch));
+  IStream stream=createStream();
+  session.onDataFrame(new DataFrame(stream.getId(),SynInfo.FLAG_CLOSE,128),ByteBuffer.allocate(128));
+  stream.data(new StringDataInfo("close",true));
+  assertThat("onStreamCreated listener has been called",createdListenerCalledLatch.await(5,TimeUnit.SECONDS),is(true));
+  assertThatOnStreamClosedListenerHasBeenCalled(closedListenerCalledLatch);
+}

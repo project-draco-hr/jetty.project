@@ -1,0 +1,25 @@
+{
+  final CountDownLatch pushStreamIdIsEvenLatch=new CountDownLatch(3);
+  Session clientSession=startClient(startServer(new ServerSessionFrameListener.Adapter(){
+    @Override public StreamFrameListener onSyn(    Stream stream,    SynInfo synInfo){
+      stream.syn(new SynInfo(false));
+      return null;
+    }
+  }
+),new SessionFrameListener.Adapter(){
+    @Override public StreamFrameListener onSyn(    Stream stream,    SynInfo synInfo){
+      stream.reply(new ReplyInfo(false));
+      assertStreamIdIsEven(stream);
+      pushStreamIdIsEvenLatch.countDown();
+      return super.onSyn(stream,synInfo);
+    }
+  }
+);
+  Stream stream=clientSession.syn(new SynInfo(false),null).get();
+  Stream stream2=clientSession.syn(new SynInfo(false),null).get();
+  Stream stream3=clientSession.syn(new SynInfo(false),null).get();
+  assertStreamIdIsOdd(stream);
+  assertStreamIdIsOdd(stream2);
+  assertStreamIdIsOdd(stream3);
+  assertThat("all pushStreams had even ids",pushStreamIdIsEvenLatch.await(5,TimeUnit.SECONDS),is(true));
+}
