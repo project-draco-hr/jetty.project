@@ -1,0 +1,16 @@
+{
+  try {
+    flush(_writeBuffers);
+    for (    ByteBuffer b : _writeBuffers) {
+      if (b.hasRemaining()) {
+        _interestOps=_interestOps | SelectionKey.OP_WRITE;
+        return;
+      }
+    }
+    _writeFuture.ready();
+  }
+ catch (  final IOException e) {
+    _writeBuffers=null;
+    if (!_writeFuture.isComplete())     _writeFuture.fail(e);
+  }
+}

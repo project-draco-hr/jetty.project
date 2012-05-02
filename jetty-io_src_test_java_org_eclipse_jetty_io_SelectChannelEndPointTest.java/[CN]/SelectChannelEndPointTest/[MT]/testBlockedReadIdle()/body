@@ -1,0 +1,32 @@
+{
+  Socket client=newClient();
+  OutputStream clientOutputStream=client.getOutputStream();
+  client.setSoTimeout(5000);
+  SocketChannel server=_connector.accept();
+  server.configureBlocking(false);
+  _manager.register(server);
+  clientOutputStream.write("HelloWorld".getBytes("UTF-8"));
+  for (  char c : "HelloWorld".toCharArray()) {
+    int b=client.getInputStream().read();
+    assertTrue(b > 0);
+    assertEquals(c,(char)b);
+  }
+  _lastEndp.setMaxIdleTime(500);
+  _blockAt=10;
+  clientOutputStream.write("12345678".getBytes("UTF-8"));
+  clientOutputStream.flush();
+  long start=System.currentTimeMillis();
+  int b=client.getInputStream().read();
+  assertEquals('T',b);
+  long idle=System.currentTimeMillis() - start;
+  assertTrue(idle > 400);
+  assertTrue(idle < 2000);
+  for (  char c : "imeout: 12345678".toCharArray()) {
+    b=client.getInputStream().read();
+    assertTrue(b > 0);
+    assertEquals(c,(char)b);
+  }
+  assertTrue(_lastEndp.isOpen());
+  Thread.sleep(2000);
+  assertFalse(_lastEndp.isOpen());
+}

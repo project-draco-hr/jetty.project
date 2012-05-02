@@ -1,0 +1,33 @@
+{
+  LOG.debug("onReadable {}",this);
+  _lock.lock();
+  try {
+    _netReadFuture=null;
+    allocateBuffers();
+    boolean progress=true;
+    while (progress && _appReadTask == null) {
+      progress=false;
+      if (!BufferUtil.isFull(_inNet)) {
+        int filled=_endp.fill(_inNet);
+        LOG.debug("filled {}",filled);
+        if (filled < 0)         _eofIn=true;
+ else         if (filled > 0)         progress=true;
+      }
+      progress|=process(null);
+    }
+  }
+ catch (  IOException e) {
+    LOG.warn(e);
+  }
+ finally {
+    releaseBuffers();
+    if (!_appReadFuture.isComplete() && _netReadFuture == null)     _netReadFuture=scheduleOnReadable();
+    LOG.debug("!onReadable {} {}",this,_netReadFuture);
+    _lock.unlock();
+  }
+  if (_appReadTask != null) {
+    Runnable task=_appReadTask;
+    _appReadTask=null;
+    task.run();
+  }
+}

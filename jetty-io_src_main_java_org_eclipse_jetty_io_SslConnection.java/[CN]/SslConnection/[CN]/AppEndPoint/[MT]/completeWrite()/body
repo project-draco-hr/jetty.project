@@ -1,0 +1,17 @@
+{
+  _lock.lock();
+  try {
+    if (!_appWriteFuture.isComplete())     throw new IllegalStateException("previous write not complete");
+    for (    ByteBuffer b : _writeBuffers) {
+      process(b);
+      if (b.hasRemaining())       return;
+    }
+    _appWriteFuture.ready();
+  }
+ catch (  IOException e) {
+    _appWriteFuture.fail(e);
+  }
+ finally {
+    _lock.unlock();
+  }
+}

@@ -1,0 +1,32 @@
+{
+  Socket client=newClient();
+  SocketChannel server=_connector.accept();
+  server.configureBlocking(false);
+  _manager.register(server);
+  OutputStream clientOutputStream=client.getOutputStream();
+  InputStream clientInputStream=client.getInputStream();
+  int specifiedTimeout=SslConnection.LOG.isDebugEnabled() ? 2000 : 400;
+  client.setSoTimeout(specifiedTimeout);
+  _blockAt=10;
+  clientOutputStream.write("12345678".getBytes("UTF-8"));
+  clientOutputStream.flush();
+  while (_lastEndp == null)   ;
+  _lastEndp.setMaxIdleTime(10 * specifiedTimeout);
+  Thread.sleep(2 * specifiedTimeout);
+  long start=System.currentTimeMillis();
+  try {
+    int b=clientInputStream.read();
+    Assert.fail("Should have timed out waiting for a response, but read " + b);
+  }
+ catch (  SocketTimeoutException e) {
+    int elapsed=Long.valueOf(System.currentTimeMillis() - start).intValue();
+    Assert.assertThat("Expected timeout",elapsed,greaterThanOrEqualTo(3 * specifiedTimeout / 4));
+  }
+  clientOutputStream.write("90ABCDEF".getBytes("UTF-8"));
+  clientOutputStream.flush();
+  for (  char c : "1234567890ABCDEF".toCharArray()) {
+    int b=clientInputStream.read();
+    assertTrue(b > 0);
+    assertEquals(c,(char)b);
+  }
+}

@@ -1,5 +1,9 @@
 {
-  if (BufferUtil.isEmpty(_inNet))   return false;
+  if (BufferUtil.isEmpty(_inNet)) {
+    if (_netReadFuture == null)     _netReadFuture=scheduleOnReadable();
+    LOG.debug("{} unwrap read {}",_session,_netReadFuture);
+    return false;
+  }
   final SSLEngineResult result;
   int pos=BufferUtil.flipToFill(_inApp);
   try {
@@ -16,9 +20,9 @@
   if (LOG.isDebugEnabled())   LOG.debug("{} unwrap {} {} consumed={} produced={}",_session,result.getStatus(),result.getHandshakeStatus(),result.bytesConsumed(),result.bytesProduced());
 switch (result.getStatus()) {
 case BUFFER_UNDERFLOW:
-    _inNet.compact().flip();
-  if (_endp.isInputShutdown())   _inNet.clear().limit(0);
-break;
+    if (_eofIn)     _inNet.clear().limit(0);
+ else     if (_netReadFuture == null)     _netReadFuture=scheduleOnReadable();
+  break;
 case BUFFER_OVERFLOW:
 LOG.debug("{} unwrap {} {}->{}",_session,result.getStatus(),_inNet,_inApp);
 break;
@@ -33,5 +37,6 @@ default :
 LOG.debug("{} wrap default {}",_session,result);
 throw new IOException(result.toString());
 }
+if (result.bytesProduced() > 0 && !_appReadFuture.isComplete()) _appReadFuture.ready();
 return result.bytesConsumed() > 0 || result.bytesProduced() > 0;
 }

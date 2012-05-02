@@ -1,0 +1,26 @@
+{
+  Socket client=newClient();
+  client.setSoTimeout(10000);
+  SocketChannel server=_connector.accept();
+  server.configureBlocking(false);
+  _manager.register(server);
+  _writeCount=10000;
+  String data="Now is the time for all good men to come to the aid of the party";
+  client.getOutputStream().write(data.getBytes("UTF-8"));
+  for (int i=0; i < _writeCount; i++) {
+    for (int j=0; j < data.length(); j++) {
+      char c=data.charAt(j);
+      int b=client.getInputStream().read();
+      assertTrue(b > 0);
+      assertEquals("test-" + i + "/"+ j,c,(char)b);
+    }
+    if (i == 0)     _lastEndp.setMaxIdleTime(60000);
+    if (i % 100 == 0)     TimeUnit.MILLISECONDS.sleep(10);
+  }
+  client.close();
+  int i=0;
+  while (server.isOpen()) {
+    assert(i++ < 10);
+    Thread.sleep(10);
+  }
+}

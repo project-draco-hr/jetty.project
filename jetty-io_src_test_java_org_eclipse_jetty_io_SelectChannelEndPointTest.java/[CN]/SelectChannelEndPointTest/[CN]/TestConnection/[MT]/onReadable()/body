@@ -1,0 +1,45 @@
+{
+  try {
+    _endp.setCheckForIdle(false);
+    boolean progress=true;
+    while (progress) {
+      progress=false;
+      if (!BufferUtil.isFull(_in))       progress|=_endp.fill(_in) > 0;
+      while (_blockAt > 0 && _endp.isOpen() && _in.remaining() < _blockAt) {
+        _endp.read().await();
+        progress|=_endp.fill(_in) > 0;
+      }
+      if (BufferUtil.hasContent(_in) && BufferUtil.append(_in,_out) > 0)       progress=true;
+      if (BufferUtil.hasContent(_out)) {
+        ByteBuffer out=_out.duplicate();
+        BufferUtil.clear(_out);
+        for (int i=0; i < _writeCount; i++) {
+          _endp.write(out.asReadOnlyBuffer()).await();
+        }
+        progress=true;
+      }
+    }
+  }
+ catch (  ClosedChannelException e) {
+  }
+catch (  ExecutionException e) {
+    try {
+      _endp.write(BufferUtil.toBuffer("Timeout: " + BufferUtil.toString(_in))).await();
+      _endp.shutdownOutput();
+    }
+ catch (    Exception e2) {
+      e2.printStackTrace();
+    }
+  }
+catch (  InterruptedException e) {
+  }
+catch (  Exception e) {
+    e.printStackTrace();
+  }
+ finally {
+    if (_endp.isOpen()) {
+      _endp.setCheckForIdle(true);
+      scheduleOnReadable();
+    }
+  }
+}
