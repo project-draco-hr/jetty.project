@@ -1,0 +1,24 @@
+{
+  IOFuture future=new CompleteIOFuture();
+  assertTrue(future.isComplete());
+  assertTrue(future.isReady());
+  long start=System.currentTimeMillis();
+  future.block();
+  Assert.assertThat(System.currentTimeMillis() - start,lessThan(10L));
+  start=System.currentTimeMillis();
+  future.block(1000,TimeUnit.MILLISECONDS);
+  Assert.assertThat(System.currentTimeMillis() - start,lessThan(10L));
+  final AtomicBoolean ready=new AtomicBoolean(false);
+  final AtomicReference<Throwable> fail=new AtomicReference<>();
+  future.setCallback(new Callback(){
+    @Override public void onReady(){
+      ready.set(true);
+    }
+    @Override public void onFail(    Throwable cause){
+      fail.set(cause);
+    }
+  }
+);
+  assertTrue(ready.get());
+  assertEquals((Throwable)null,fail.get());
+}

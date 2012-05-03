@@ -1,0 +1,62 @@
+{
+  final RecycledIOFuture future=new RecycledIOFuture();
+  assertFalse(future.isComplete());
+  assertFalse(future.isReady());
+  final AtomicBoolean ready=new AtomicBoolean(false);
+  final AtomicReference<Throwable> fail=new AtomicReference<>();
+  future.setCallback(new Callback(){
+    @Override public void onReady(){
+      ready.set(true);
+    }
+    @Override public void onFail(    Throwable cause){
+      fail.set(cause);
+    }
+  }
+);
+  long start=System.currentTimeMillis();
+  assertFalse(future.block(10,TimeUnit.MILLISECONDS));
+  assertThat(System.currentTimeMillis() - start,greaterThan(9L));
+  assertFalse(ready.get());
+  assertEquals((Throwable)null,fail.get());
+  start=System.currentTimeMillis();
+  new Thread(){
+    @Override public void run(){
+      try {
+        TimeUnit.MILLISECONDS.sleep(50);
+      }
+ catch (      Exception e) {
+      }
+      future.ready();
+    }
+  }
+.start();
+  assertTrue(future.block(1000,TimeUnit.MILLISECONDS));
+  Assert.assertThat(System.currentTimeMillis() - start,greaterThan(49L));
+  Assert.assertThat(System.currentTimeMillis() - start,lessThan(1000L));
+  assertTrue(future.isComplete());
+  assertTrue(future.isReady());
+  assertTrue(ready.get());
+  assertEquals((Throwable)null,fail.get());
+  ready.set(false);
+  future.recycle();
+  assertFalse(future.isComplete());
+  assertFalse(future.isReady());
+  start=System.currentTimeMillis();
+  new Thread(){
+    @Override public void run(){
+      try {
+        TimeUnit.MILLISECONDS.sleep(50);
+      }
+ catch (      Exception e) {
+      }
+      future.ready();
+    }
+  }
+.start();
+  future.block();
+  Assert.assertThat(System.currentTimeMillis() - start,greaterThan(49L));
+  assertTrue(future.isComplete());
+  assertTrue(future.isReady());
+  assertFalse(ready.get());
+  assertEquals((Throwable)null,fail.get());
+}
