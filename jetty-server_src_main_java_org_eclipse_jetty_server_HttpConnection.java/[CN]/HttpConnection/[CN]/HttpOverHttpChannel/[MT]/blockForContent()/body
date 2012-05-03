@@ -1,11 +1,18 @@
 {
-  while (!_endp.isInputShutdown()) {
+  while (_endp.isOpen()) {
     try {
-      getEndPoint().blockReadable();
+      getEndPoint().read().block();
       if (_requestBuffer == null)       _requestBuffer=_connector.getRequestBuffers().getBuffer();
       if (BufferUtil.hasContent(_requestBuffer) && _parser.parseNext(_requestBuffer))       return;
     }
-  finally {
+ catch (    InterruptedException e) {
+      LOG.debug(e);
+    }
+catch (    ExecutionException e) {
+      LOG.debug(e);
+      DispatchedIOFuture.rethrow(e);
+    }
+ finally {
       if (_requestBuffer != null && !_requestBuffer.hasRemaining() && _channel.available() == 0) {
         _connector.getRequestBuffers().returnBuffer(_requestBuffer);
         _requestBuffer=null;

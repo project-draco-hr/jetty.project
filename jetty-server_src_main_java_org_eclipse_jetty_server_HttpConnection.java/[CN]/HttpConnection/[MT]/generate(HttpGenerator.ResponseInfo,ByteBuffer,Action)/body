@@ -1,0 +1,54 @@
+{
+  boolean hasContent=BufferUtil.hasContent(content);
+  long preparedBefore=0;
+  long preparedAfter;
+  _lock.lock();
+  try {
+    preparedBefore=_generator.getContentPrepared();
+    if (_generator.isComplete())     throw new EofException();
+    do {
+      if (_writeFuture != null && !_writeFuture.isComplete())       _writeFuture.block();
+      if (LOG.isDebugEnabled())       LOG.debug("{}: generate({},{},{},{},{})@{}",this,BufferUtil.toSummaryString(_responseHeader),BufferUtil.toSummaryString(_chunk),BufferUtil.toSummaryString(_responseBuffer),BufferUtil.toSummaryString(content),action,_generator.getState());
+      HttpGenerator.Result result=_generator.generate(info,_responseHeader,_chunk,_responseBuffer,content,action);
+      if (LOG.isDebugEnabled())       LOG.debug("{}: {} ({},{},{},{},{})@{}",this,result,BufferUtil.toSummaryString(_responseHeader),BufferUtil.toSummaryString(_chunk),BufferUtil.toSummaryString(_responseBuffer),BufferUtil.toSummaryString(content),action,_generator.getState());
+switch (result) {
+case NEED_HEADER:
+        _responseHeader=_connector.getResponseBuffers().getHeader();
+      break;
+case NEED_BUFFER:
+    _responseBuffer=_connector.getResponseBuffers().getBuffer();
+  break;
+case NEED_CHUNK:
+_responseHeader=null;
+_chunk=_connector.getResponseBuffers().getBuffer(HttpGenerator.CHUNK_SIZE);
+break;
+case FLUSH:
+if (hasContent) write(_responseHeader,_chunk,_responseBuffer).block();
+ else _writeFuture=write(_responseHeader,_chunk,_responseBuffer);
+break;
+case FLUSH_CONTENT:
+write(_responseHeader,_chunk,content).block();
+break;
+case SHUTDOWN_OUT:
+getEndPoint().shutdownOutput();
+break;
+case OK:
+break;
+}
+}
+ while (BufferUtil.hasContent(content));
+}
+ catch (InterruptedException e) {
+LOG.debug(e);
+}
+catch (ExecutionException e) {
+LOG.debug(e);
+if (e.getCause() instanceof IOException) throw (IOException)e.getCause();
+throw new RuntimeException(e);
+}
+ finally {
+preparedAfter=_generator.getContentPrepared();
+_lock.unlock();
+}
+return (int)(preparedAfter - preparedBefore);
+}

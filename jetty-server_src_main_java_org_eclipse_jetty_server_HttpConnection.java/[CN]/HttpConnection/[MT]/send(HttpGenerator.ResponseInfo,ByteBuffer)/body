@@ -1,29 +1,27 @@
 {
-  if (_generator.isCommitted() || BufferUtil.hasContent(_responseBuffer) || _toFlush != 0)   throw new IllegalStateException("!send after append");
-  if (_generator.isComplete())   throw new EofException();
-  long prepared=_generator.getContentPrepared();
-  do {
-    if (LOG.isDebugEnabled())     LOG.debug("{}: send({},{},{})@{}",this,BufferUtil.toSummaryString(_responseHeader),BufferUtil.toSummaryString(_responseBuffer),BufferUtil.toSummaryString(content),_generator.getState());
-    HttpGenerator.Result result=_generator.generate(info,_responseHeader,null,_responseBuffer,content,Action.COMPLETE);
-    if (LOG.isDebugEnabled())     LOG.debug("{}: {} ({},{},{})@{}",this,result,BufferUtil.toSummaryString(_responseHeader),BufferUtil.toSummaryString(_responseBuffer),BufferUtil.toSummaryString(content),_generator.getState());
+  _lock.lock();
+  try {
+    if (_generator.isCommitted() || BufferUtil.hasContent(_responseBuffer))     throw new IllegalStateException("!send after append");
+    if (_generator.isComplete())     throw new EofException();
+    do {
+      if (LOG.isDebugEnabled())       LOG.debug("{}: send({},{},{})@{}",this,BufferUtil.toSummaryString(_responseHeader),BufferUtil.toSummaryString(_responseBuffer),BufferUtil.toSummaryString(content),_generator.getState());
+      HttpGenerator.Result result=_generator.generate(info,_responseHeader,null,_responseBuffer,content,Action.COMPLETE);
+      if (LOG.isDebugEnabled())       LOG.debug("{}: {} ({},{},{})@{}",this,result,BufferUtil.toSummaryString(_responseHeader),BufferUtil.toSummaryString(_responseBuffer),BufferUtil.toSummaryString(content),_generator.getState());
 switch (result) {
 case NEED_HEADER:
-      _responseHeader=_connector.getResponseBuffers().getHeader();
-    break;
+        _responseHeader=_connector.getResponseBuffers().getHeader();
+      break;
 case NEED_BUFFER:
-  _responseBuffer=_connector.getResponseBuffers().getBuffer();
-break;
+    _responseBuffer=_connector.getResponseBuffers().getBuffer();
+  break;
 case NEED_CHUNK:
 throw new IllegalStateException("!chunk when content length known");
 case FLUSH:
-_toFlush=(BufferUtil.hasContent(_responseHeader) ? 8 : 0) + (BufferUtil.hasContent(_chunk) ? 4 : 0) + (BufferUtil.hasContent(_responseBuffer) ? 2 : 0);
-flush(true);
+write(_responseHeader,_chunk,_responseBuffer).block();
 break;
 case FLUSH_CONTENT:
-_content=content;
-_toFlush=(BufferUtil.hasContent(_responseHeader) ? 8 : 0) + (BufferUtil.hasContent(_chunk) ? 4 : 0) + (BufferUtil.hasContent(_content) ? 1 : 0);
-flush(false);
-break;
+_writeFuture=write(_responseHeader,_chunk,content);
+return;
 case SHUTDOWN_OUT:
 getEndPoint().shutdownOutput();
 break;
@@ -32,5 +30,15 @@ break;
 }
 }
  while (BufferUtil.hasContent(content));
-return (int)(prepared - _generator.getContentPrepared());
+}
+ catch (InterruptedException e) {
+LOG.debug(e);
+}
+catch (ExecutionException e) {
+LOG.debug(e);
+DispatchedIOFuture.rethrow(e);
+}
+ finally {
+_lock.unlock();
+}
 }
