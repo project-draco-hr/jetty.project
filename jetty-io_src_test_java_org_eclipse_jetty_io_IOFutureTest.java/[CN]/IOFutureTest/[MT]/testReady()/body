@@ -1,5 +1,5 @@
 {
-  final DispatchedIOFuture future=new DispatchedIOFuture();
+  DispatchedIOFuture future=new DispatchedIOFuture();
   assertFalse(future.isComplete());
   assertFalse(future.isReady());
   final AtomicBoolean ready=new AtomicBoolean(false);
@@ -19,6 +19,7 @@
   assertFalse(ready.get());
   assertEquals((Throwable)null,fail.get());
   start=System.currentTimeMillis();
+  final DispatchedIOFuture f0=future;
   new Thread(){
     @Override public void run(){
       try {
@@ -26,7 +27,7 @@
       }
  catch (      Exception e) {
       }
-      future.ready();
+      f0.ready();
     }
   }
 .start();
@@ -38,10 +39,11 @@
   assertTrue(ready.get());
   assertEquals((Throwable)null,fail.get());
   ready.set(false);
-  future.recycle();
+  future=new DispatchedIOFuture();
   assertFalse(future.isComplete());
   assertFalse(future.isReady());
   start=System.currentTimeMillis();
+  final DispatchedIOFuture f1=future;
   new Thread(){
     @Override public void run(){
       try {
@@ -49,7 +51,7 @@
       }
  catch (      Exception e) {
       }
-      future.ready();
+      f1.ready();
     }
   }
 .start();

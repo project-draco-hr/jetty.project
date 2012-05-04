@@ -1,12 +1,12 @@
 {
   _lock.lock();
   try {
-    if (!_writeFuture.isComplete())     throw new IllegalStateException("previous write not complete");
+    if (_writeFuture != null && !_writeFuture.isComplete())     throw new IllegalStateException("previous write not complete");
     flush(buffers);
     for (    ByteBuffer b : buffers) {
       if (b.hasRemaining()) {
         _writeBuffers=buffers;
-        _writeFuture.recycle();
+        _writeFuture=new WriteFuture();
         return _writeFuture;
       }
     }

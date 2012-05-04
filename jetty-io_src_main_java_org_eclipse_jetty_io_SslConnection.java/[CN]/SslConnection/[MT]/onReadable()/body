@@ -6,7 +6,7 @@
     _netReadFuture=null;
     allocateBuffers();
     boolean progress=true;
-    while (progress && !_appReadFuture.isDispatched()) {
+    while (progress && (_appReadFuture == null || !_appReadFuture.isDispatched())) {
       progress=false;
       if (!BufferUtil.isFull(_inNet)) {
         int filled=_endp.fill(_inNet);
@@ -21,7 +21,7 @@
   }
  finally {
     releaseBuffers();
-    if (!_appReadFuture.isComplete() && _netReadFuture == null && !BufferUtil.isFull(_inNet))     _netReadFuture=scheduleOnReadable();
+    if (_appReadFuture != null && !_appReadFuture.isComplete() && _netReadFuture == null && !BufferUtil.isFull(_inNet))     _netReadFuture=scheduleOnReadable();
     LOG.debug("!onReadable {} {}",this,_netReadFuture);
     _lock.unlock();
     _appReadFuture.run();
