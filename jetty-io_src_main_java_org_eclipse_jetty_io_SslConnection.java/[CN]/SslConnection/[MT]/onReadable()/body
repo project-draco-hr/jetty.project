@@ -1,7 +1,9 @@
 {
-  LOG.debug("onReadable {}",this);
   _lock.lock();
   try {
+    System.err.println("onReadable");
+    _last=System.currentTimeMillis();
+    LOG.debug("onReadable {}",this);
     _netReadFuture=null;
     allocateBuffers();
     boolean progress=true;
@@ -20,9 +22,10 @@
   }
  finally {
     releaseBuffers();
-    if (!_appReadFuture.isComplete() && _netReadFuture == null)     _netReadFuture=scheduleOnReadable();
+    if (!_appReadFuture.isComplete() && _netReadFuture == null && !BufferUtil.isFull(_inNet))     _netReadFuture=scheduleOnReadable();
     LOG.debug("!onReadable {} {}",this,_netReadFuture);
     _lock.unlock();
+    _appReadFuture.run();
+    _appWriteFuture.run();
   }
-  if (_appReadFuture.isDispatched())   _appReadFuture.run();
 }

@@ -1,33 +1,30 @@
 {
+  System.err.println("APP onReadable");
   try {
+    _last=System.currentTimeMillis();
     _endp.setCheckForIdle(false);
     boolean progress=true;
     while (progress) {
       progress=false;
-      if (!BufferUtil.isFull(_in)) {
-        int filled=_endp.fill(_in);
-        if (filled > 0)         progress=true;
-      }
+      if (BufferUtil.isFull(_in))       throw new IllegalStateException("FULL " + BufferUtil.toDetailString(_in));
+      int filled=_endp.fill(_in);
+      if (filled > 0)       progress=true;
       while (_blockAt > 0 && _endp.isOpen() && _in.remaining() < _blockAt) {
         _endp.read().block();
-        int filled=_endp.fill(_in);
+        filled=_endp.fill(_in);
         progress|=filled > 0;
       }
       if (BufferUtil.hasContent(_in) && BufferUtil.append(_in,_out) > 0)       progress=true;
       if (BufferUtil.hasContent(_out)) {
         ByteBuffer out=_out.duplicate();
         BufferUtil.clear(_out);
-        for (int i=0; i < _writeCount; i++) {
-          _endp.write(out.asReadOnlyBuffer()).block();
-        }
+        for (int i=0; i < _writeCount; i++)         _endp.write(out.asReadOnlyBuffer()).block();
         progress=true;
       }
-      if (BufferUtil.isEmpty(_out) && _endp.isInputShutdown())       _endp.shutdownOutput();
+      if (_endp.isInputShutdown())       _endp.shutdownOutput();
     }
   }
- catch (  ClosedChannelException e) {
-  }
-catch (  ExecutionException e) {
+ catch (  ExecutionException e) {
     try {
       _endp.write(BufferUtil.toBuffer("EE: " + BufferUtil.toString(_in))).block();
       _endp.shutdownOutput();
@@ -35,8 +32,6 @@ catch (  ExecutionException e) {
  catch (    Exception e2) {
       e2.printStackTrace();
     }
-  }
-catch (  InterruptedException e) {
   }
 catch (  Exception e) {
     e.printStackTrace();

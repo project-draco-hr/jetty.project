@@ -1,13 +1,19 @@
 {
-  int len=0;
-  bufloop:   for (  ByteBuffer b : buffers) {
-    while (b.hasRemaining()) {
-      int l=b.remaining();
-      if (!process(b))       break bufloop;
-      l=l - b.remaining();
-      if (l > 0)       len+=l;
- else       break bufloop;
+  _lock.lock();
+  try {
+    int len=0;
+    bufloop:     for (    ByteBuffer b : buffers) {
+      while (b.hasRemaining()) {
+        int l=b.remaining();
+        if (!process(b))         break bufloop;
+        l=l - b.remaining();
+        if (l > 0)         len+=l;
+ else         break bufloop;
+      }
     }
+    return len;
   }
-  return len;
+  finally {
+    _lock.unlock();
+  }
 }
