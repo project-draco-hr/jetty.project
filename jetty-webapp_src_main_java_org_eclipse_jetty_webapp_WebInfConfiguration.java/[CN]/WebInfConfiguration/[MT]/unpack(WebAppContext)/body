@@ -29,19 +29,24 @@
         web_app.copyTo(extractedWebAppDir);
       }
  else {
+        File extractionLock=new File(context.getTempDirectory(),".extract_lock");
         if (!extractedWebAppDir.exists()) {
+          extractionLock.createNewFile();
           extractedWebAppDir.mkdir();
           LOG.info("Extract " + web_app + " to "+ extractedWebAppDir);
           Resource jar_web_app=JarResource.newJarResource(web_app);
           jar_web_app.copyTo(extractedWebAppDir);
+          extractionLock.delete();
         }
  else {
-          if (web_app.lastModified() > extractedWebAppDir.lastModified()) {
+          if (web_app.lastModified() > extractedWebAppDir.lastModified() || extractionLock.exists()) {
+            extractionLock.createNewFile();
             IO.delete(extractedWebAppDir);
             extractedWebAppDir.mkdir();
             LOG.info("Extract " + web_app + " to "+ extractedWebAppDir);
             Resource jar_web_app=JarResource.newJarResource(web_app);
             jar_web_app.copyTo(extractedWebAppDir);
+            extractionLock.delete();
           }
         }
       }

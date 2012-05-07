@@ -1,0 +1,10 @@
+{
+  final CountDownLatch createdListenerCalledLatch=new CountDownLatch(2);
+  final CountDownLatch closedListenerCalledLatch=new CountDownLatch(1);
+  session.addListener(new TestStreamListener(createdListenerCalledLatch,closedListenerCalledLatch));
+  IStream stream=createStream();
+  IStream pushStream=createPushStream(stream);
+  session.data(pushStream,new StringDataInfo("close",true),5,TimeUnit.SECONDS,null,null);
+  assertThat("onStreamCreated listener has been called twice. Once for the stream and once for the pushStream",createdListenerCalledLatch.await(5,TimeUnit.SECONDS),is(true));
+  assertThatOnStreamClosedListenerHasBeenCalled(closedListenerCalledLatch);
+}
