@@ -9,24 +9,27 @@
   if (_connection != null)   _fields.put("Connection",_connection);
   if (_te != null)   _fields.put("Transfer-Encoding",_te);
   if (_other != null)   _fields.put("Other",_other);
-  ByteBuffer content=_body == null ? null : BufferUtil.toBuffer(_body);
-  if (content != null)   content.limit(0);
+  ByteBuffer source=_body == null ? null : BufferUtil.toBuffer(_body);
+  ByteBuffer[] chunks=new ByteBuffer[nchunks];
+  ByteBuffer content=null;
+  int c=0;
+  if (source != null) {
+    for (int i=0; i < nchunks; i++) {
+      chunks[i]=source.duplicate();
+      chunks[i].position(i * (source.capacity() / nchunks));
+      if (i > 0)       chunks[i - 1].limit(chunks[i].position());
+    }
+    content=chunks[c++];
+  }
   ByteBuffer header=null;
   ByteBuffer chunk=null;
   ByteBuffer buffer=null;
   while (!gen.isComplete()) {
-    if (content != null && content.position() < content.capacity()) {
-      if (content.remaining() == 0) {
-        content.limit(content.capacity());
-        if (chunks-- > 1)         content.limit(content.position() + content.remaining() / 2);
-        if (chunks < 0)         throw new IllegalStateException();
-        System.err.printf("content %d %s%n",chunks,BufferUtil.toDetailString(content));
-      }
+    if (source != null && content != null && content.remaining() == 0 && c < nchunks) {
+      content=chunks[c++];
     }
     Action action=BufferUtil.hasContent(content) ? null : Action.COMPLETE;
-    System.err.printf("generate(%s,%s,%s,%s,%s)@%s%n",BufferUtil.toSummaryString(header),BufferUtil.toSummaryString(chunk),BufferUtil.toSummaryString(buffer),BufferUtil.toSummaryString(content),action,gen.getState());
     HttpGenerator.Result result=gen.generate(info,header,chunk,buffer,content,action);
-    System.err.printf("%s (%s,%s,%s,%s,%s)@%s%n",result,BufferUtil.toSummaryString(header),BufferUtil.toSummaryString(chunk),BufferUtil.toSummaryString(buffer),BufferUtil.toSummaryString(content),action,gen.getState());
 switch (result) {
 case NEED_HEADER:
       header=BufferUtil.allocate(2048);
