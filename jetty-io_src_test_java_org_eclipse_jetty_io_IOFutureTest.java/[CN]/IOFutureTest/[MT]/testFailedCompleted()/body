@@ -1,9 +1,9 @@
 {
   Exception ex=new Exception("failed");
-  IOFuture future=new CompletedIOFuture(ex);
-  assertTrue(future.isComplete());
+  IOFuture future=new DoneIOFuture(ex);
+  assertTrue(future.isDone());
   try {
-    future.isReady();
+    future.isComplete();
     Assert.fail();
   }
  catch (  ExecutionException e) {
@@ -29,15 +29,15 @@
   Assert.assertThat(System.currentTimeMillis() - start,lessThan(10L));
   final AtomicBoolean ready=new AtomicBoolean(false);
   final AtomicReference<Throwable> fail=new AtomicReference<>();
-  future.setCallback(new Callback(){
-    @Override public void onReady(){
+  future.setCallback(new Callback<Object>(){
+    @Override public void completed(    Object context){
       ready.set(true);
     }
-    @Override public void onFail(    Throwable cause){
+    @Override public void failed(    Object context,    Throwable cause){
       fail.set(cause);
     }
   }
-);
+,null);
   assertFalse(ready.get());
   assertEquals(ex,fail.get());
 }

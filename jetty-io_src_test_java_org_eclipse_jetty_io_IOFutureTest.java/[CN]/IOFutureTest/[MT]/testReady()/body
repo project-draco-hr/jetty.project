@@ -1,23 +1,23 @@
 {
   DispatchedIOFuture future=new DispatchedIOFuture();
+  assertFalse(future.isDone());
   assertFalse(future.isComplete());
-  assertFalse(future.isReady());
   final AtomicBoolean ready=new AtomicBoolean(false);
   final AtomicReference<Throwable> fail=new AtomicReference<>();
-  future.setCallback(new Callback(){
-    @Override public void onReady(){
+  future.setCallback(new Callback<Object>(){
+    @Override public void completed(    Object context){
       ready.set(true);
     }
-    @Override public void onFail(    Throwable cause){
+    @Override public void failed(    Object context,    Throwable cause){
       fail.set(cause);
     }
   }
-);
+,null);
   long start=System.currentTimeMillis();
   assertFalse(future.block(10,TimeUnit.MILLISECONDS));
   assertThat(System.currentTimeMillis() - start,greaterThan(9L));
   assertFalse(ready.get());
-  assertEquals((Throwable)null,fail.get());
+  assertNull(fail.get());
   start=System.currentTimeMillis();
   final DispatchedIOFuture f0=future;
   new Thread(){
@@ -35,14 +35,14 @@
   assertTrue(future.block(1000,TimeUnit.MILLISECONDS));
   Assert.assertThat(System.currentTimeMillis() - start,greaterThan(49L));
   Assert.assertThat(System.currentTimeMillis() - start,lessThan(1000L));
+  assertTrue(future.isDone());
   assertTrue(future.isComplete());
-  assertTrue(future.isReady());
   assertTrue(ready.get());
-  assertEquals((Throwable)null,fail.get());
+  assertNull(fail.get());
   ready.set(false);
   future=new DispatchedIOFuture();
+  assertFalse(future.isDone());
   assertFalse(future.isComplete());
-  assertFalse(future.isReady());
   start=System.currentTimeMillis();
   final DispatchedIOFuture f1=future;
   new Thread(){
@@ -59,8 +59,8 @@
 .start();
   future.block();
   Assert.assertThat(System.currentTimeMillis() - start,greaterThan(49L));
+  assertTrue(future.isDone());
   assertTrue(future.isComplete());
-  assertTrue(future.isReady());
   assertFalse(ready.get());
-  assertEquals((Throwable)null,fail.get());
+  assertNull(fail.get());
 }
