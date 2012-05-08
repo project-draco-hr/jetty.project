@@ -1,19 +1,19 @@
 {
-  _lock.lock();
-  _selected=true;
-  try {
-    if (_key == null || !_key.isValid()) {
-      return;
+synchronized (_lock) {
+    _selected=true;
+    try {
+      if (_key == null || !_key.isValid()) {
+        return;
+      }
+      boolean can_read=(_key.isReadable() && (_key.interestOps() & SelectionKey.OP_READ) == SelectionKey.OP_READ);
+      boolean can_write=(_key.isWritable() && (_key.interestOps() & SelectionKey.OP_WRITE) == SelectionKey.OP_WRITE);
+      _interestOps=0;
+      if (can_read && !_readFuture.isDone())       _readFuture.complete();
+      if (can_write && _writeBuffers != null)       completeWrite();
     }
-    boolean can_read=(_key.isReadable() && (_key.interestOps() & SelectionKey.OP_READ) == SelectionKey.OP_READ);
-    boolean can_write=(_key.isWritable() && (_key.interestOps() & SelectionKey.OP_WRITE) == SelectionKey.OP_WRITE);
-    _interestOps=0;
-    if (can_read && !_readFuture.isDone())     _readFuture.complete();
-    if (can_write && _writeBuffers != null)     completeWrite();
-  }
   finally {
-    doUpdateKey();
-    _selected=false;
-    _lock.unlock();
+      doUpdateKey();
+      _selected=false;
+    }
   }
 }

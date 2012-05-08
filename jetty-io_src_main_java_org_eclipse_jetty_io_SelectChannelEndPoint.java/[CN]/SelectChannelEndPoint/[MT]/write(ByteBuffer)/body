@@ -1,23 +1,21 @@
 {
-  _lock.lock();
-  try {
-    if (_writeFuture != null && !_writeFuture.isDone())     throw new IllegalStateException("previous write not complete");
-    flush(buffers);
-    for (    ByteBuffer b : buffers) {
-      if (b.hasRemaining()) {
-        _writeBuffers=buffers;
-        _writeFuture=new InterestedFuture(SelectionKey.OP_WRITE);
-        _interestOps=_interestOps | SelectionKey.OP_WRITE;
-        updateKey();
-        return _writeFuture;
+synchronized (_lock) {
+    try {
+      if (_writeFuture != null && !_writeFuture.isDone())       throw new IllegalStateException("previous write not complete");
+      flush(buffers);
+      for (      ByteBuffer b : buffers) {
+        if (b.hasRemaining()) {
+          _writeBuffers=buffers;
+          _writeFuture=new InterestedFuture(SelectionKey.OP_WRITE);
+          _interestOps=_interestOps | SelectionKey.OP_WRITE;
+          updateKey();
+          return _writeFuture;
+        }
       }
+      return DoneIOFuture.COMPLETE;
     }
-    return DoneIOFuture.COMPLETE;
-  }
- catch (  IOException e) {
-    return new DoneIOFuture(e);
-  }
- finally {
-    _lock.unlock();
+ catch (    IOException e) {
+      return new DoneIOFuture(e);
+    }
   }
 }
