@@ -7,7 +7,6 @@
     int changes=_changes.size();
     while (changes-- > 0 && (change=_changes.poll()) != null) {
       Channel ch=null;
-      SelectionKey key=null;
       try {
         if (change instanceof EndPoint) {
           SelectChannelEndPoint endpoint=(SelectChannelEndPoint)change;
@@ -20,18 +19,18 @@
           ch=channel;
           final Object att=asc._attachment;
           if ((channel instanceof SocketChannel) && ((SocketChannel)channel).isConnected()) {
-            key=channel.register(selector,SelectionKey.OP_READ,att);
+            SelectionKey key=channel.register(selector,SelectionKey.OP_READ,att);
             SelectChannelEndPoint endpoint=createEndPoint((SocketChannel)channel,key);
             key.attach(endpoint);
           }
  else           if (channel.isOpen()) {
-            key=channel.register(selector,SelectionKey.OP_CONNECT,att);
+            channel.register(selector,SelectionKey.OP_CONNECT,att);
           }
         }
  else         if (change instanceof SocketChannel) {
           final SocketChannel channel=(SocketChannel)change;
           ch=channel;
-          key=channel.register(selector,SelectionKey.OP_READ,null);
+          SelectionKey key=channel.register(selector,SelectionKey.OP_READ,null);
           SelectChannelEndPoint endpoint=createEndPoint(channel,key);
           key.attach(endpoint);
         }
@@ -75,7 +74,7 @@ catch (      Throwable e) {
       if (wait > 0 && to_next_timeout >= 0 && wait > to_next_timeout)       wait=to_next_timeout;
       if (wait > 0) {
         long before=now;
-        selected=selector.select(wait);
+        selector.select(wait);
         now=System.currentTimeMillis();
         _timeout.setNow(now);
         if (__MONITOR_PERIOD > 0 && now - before <= 1) {

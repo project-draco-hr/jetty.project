@@ -19,10 +19,14 @@
       if (content.remaining() == 0) {
         content.limit(content.capacity());
         if (chunks-- > 1)         content.limit(content.position() + content.remaining() / 2);
+        if (chunks < 0)         throw new IllegalStateException();
+        System.err.printf("content %d %s%n",chunks,BufferUtil.toDetailString(content));
       }
     }
     Action action=BufferUtil.hasContent(content) ? null : Action.COMPLETE;
+    System.err.printf("generate(%s,%s,%s,%s,%s)@%s%n",BufferUtil.toSummaryString(header),BufferUtil.toSummaryString(chunk),BufferUtil.toSummaryString(buffer),BufferUtil.toSummaryString(content),action,gen.getState());
     HttpGenerator.Result result=gen.generate(info,header,chunk,buffer,content,action);
+    System.err.printf("%s (%s,%s,%s,%s,%s)@%s%n",result,BufferUtil.toSummaryString(header),BufferUtil.toSummaryString(chunk),BufferUtil.toSummaryString(buffer),BufferUtil.toSummaryString(content),action,gen.getState());
 switch (result) {
 case NEED_HEADER:
       header=BufferUtil.allocate(2048);
