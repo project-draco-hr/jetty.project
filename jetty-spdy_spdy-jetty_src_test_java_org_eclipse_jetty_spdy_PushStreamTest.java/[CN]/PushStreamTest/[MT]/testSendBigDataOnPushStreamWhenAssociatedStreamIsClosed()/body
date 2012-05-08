@@ -1,0 +1,58 @@
+{
+  final CountDownLatch streamClosedLatch=new CountDownLatch(1);
+  final CountDownLatch allDataReceived=new CountDownLatch(1);
+  final CountDownLatch exceptionCountDownLatch=new CountDownLatch(1);
+  final Exchanger<ByteBuffer> exchanger=new Exchanger<>();
+  final int dataSizeInBytes=1024 * 1024 * 1;
+  final byte[] transferBytes=createHugeByteArray(dataSizeInBytes);
+  Session clientSession=startClient(startServer(new ServerSessionFrameListener.Adapter(){
+    @Override public StreamFrameListener onSyn(    Stream stream,    SynInfo synInfo){
+      try {
+        Stream pushStream=stream.syn(new SynInfo(false)).get();
+        stream.reply(new ReplyInfo(true));
+        streamClosedLatch.await(5,TimeUnit.SECONDS);
+        pushStream.data(new BytesDataInfo(transferBytes,true));
+        return null;
+      }
+ catch (      Exception e) {
+        exceptionCountDownLatch.countDown();
+        throw new IllegalStateException(e);
+      }
+    }
+  }
+),new SessionFrameListener.Adapter(){
+    @Override public StreamFrameListener onSyn(    Stream stream,    SynInfo synInfo){
+      return new StreamFrameListener.Adapter(){
+        ByteBuffer receivedBytes=ByteBuffer.allocate(dataSizeInBytes);
+        @Override public void onData(        Stream stream,        DataInfo dataInfo){
+          dataInfo.consumeInto(receivedBytes);
+          if (dataInfo.isClose()) {
+            allDataReceived.countDown();
+            try {
+              receivedBytes.flip();
+              exchanger.exchange(receivedBytes.slice(),5,TimeUnit.SECONDS);
+            }
+ catch (            Exception e) {
+              exceptionCountDownLatch.countDown();
+            }
+          }
+        }
+      }
+;
+    }
+  }
+);
+  Stream stream=clientSession.syn(new SynInfo(true),new StreamFrameListener.Adapter(){
+    @Override public void onReply(    Stream stream,    ReplyInfo replyInfo){
+      streamClosedLatch.countDown();
+      super.onReply(stream,replyInfo);
+    }
+  }
+).get();
+  ByteBuffer receivedBytes=exchanger.exchange(null,5,TimeUnit.SECONDS);
+  assertThat("received byte array is the same as transferred byte array",Arrays.equals(transferBytes,receivedBytes.array()),is(true));
+  assertThat("onReply has been called to close the stream",streamClosedLatch.await(5,TimeUnit.SECONDS),is(true));
+  assertThat("stream is closed",stream.isClosed(),is(true));
+  assertThat("all data has been received",allDataReceived.await(20,TimeUnit.SECONDS),is(true));
+  assertThatNoExceptionOccured(exceptionCountDownLatch);
+}

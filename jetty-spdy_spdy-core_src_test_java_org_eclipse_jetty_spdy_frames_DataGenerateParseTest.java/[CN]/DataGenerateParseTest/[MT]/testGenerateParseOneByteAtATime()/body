@@ -1,0 +1,23 @@
+{
+  String content="test2";
+  int length=content.length();
+  DataInfo data=new StringDataInfo(content,true);
+  int streamId=13;
+  Generator generator=new Generator(new StandardByteBufferPool(),new StandardCompressionFactory().newCompressor());
+  ByteBuffer buffer=generator.data(streamId,2 * length,data);
+  Assert.assertNotNull(buffer);
+  TestSPDYParserListener listener=new TestSPDYParserListener();
+  Parser parser=new Parser(new StandardCompressionFactory().newDecompressor());
+  parser.addListener(listener);
+  while (buffer.hasRemaining()) {
+    parser.parse(ByteBuffer.wrap(new byte[]{buffer.get()}));
+    if (buffer.remaining() < length) {
+      DataFrame frame2=listener.getDataFrame();
+      Assert.assertNotNull(frame2);
+      Assert.assertEquals(streamId,frame2.getStreamId());
+      Assert.assertEquals(buffer.hasRemaining() ? 0 : DataInfo.FLAG_CLOSE,frame2.getFlags());
+      Assert.assertEquals(1,frame2.getLength());
+      Assert.assertEquals(1,listener.getData().remaining());
+    }
+  }
+}

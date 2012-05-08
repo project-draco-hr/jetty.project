@@ -1,0 +1,36 @@
+{
+  final CountDownLatch synLatch=new CountDownLatch(1);
+  final CountDownLatch dataLatch=new CountDownLatch(1);
+  final CountDownLatch rstLatch=new CountDownLatch(1);
+  final CountDownLatch failLatch=new CountDownLatch(1);
+  Session session=startClient(startServer(new ServerSessionFrameListener.Adapter(){
+    @Override public StreamFrameListener onSyn(    Stream stream,    SynInfo synInfo){
+      synLatch.countDown();
+      return new StreamFrameListener.Adapter(){
+        @Override public void onData(        Stream stream,        DataInfo dataInfo){
+          dataLatch.countDown();
+          stream.getSession().rst(new RstInfo(stream.getId(),StreamStatus.REFUSED_STREAM));
+        }
+      }
+;
+    }
+  }
+),new SessionFrameListener.Adapter(){
+    @Override public void onRst(    Session session,    RstInfo rstInfo){
+      rstLatch.countDown();
+    }
+  }
+);
+  Stream stream=session.syn(new SynInfo(false),null).get(5,TimeUnit.SECONDS);
+  assertThat("syn is received by server",synLatch.await(5,TimeUnit.SECONDS),is(true));
+  stream.data(new StringDataInfo("data",false),5,TimeUnit.SECONDS,null);
+  assertThat("stream is reset",rstLatch.await(5,TimeUnit.SECONDS),is(true));
+  stream.data(new StringDataInfo("2nd dataframe",false),5L,TimeUnit.SECONDS,new Callback.Adapter<Void>(){
+    @Override public void failed(    Throwable x){
+      failLatch.countDown();
+    }
+  }
+);
+  assertThat("2nd data call failed",failLatch.await(5,TimeUnit.SECONDS),is(true));
+  assertThat("stream is reset",stream.isReset(),is(true));
+}

@@ -1,0 +1,21 @@
+{
+  if (isHalfClosed() && !isLocallyClosed()) {
+    logger.debug("Ignoring received dataFrame as this stream is remotely closed: " + frame);
+    return;
+  }
+  if (!canReceive()) {
+    logger.debug("Can't receive. Sending rst: " + frame);
+    session.rst(new RstInfo(getId(),StreamStatus.PROTOCOL_ERROR));
+    return;
+  }
+  updateCloseState(frame.isClose(),false);
+  ByteBufferDataInfo dataInfo=new ByteBufferDataInfo(data,frame.isClose(),frame.isCompress()){
+    @Override public void consume(    int delta){
+      super.consume(delta);
+      if (consumed() == length() && !isClosed())       windowUpdate(length());
+    }
+  }
+;
+  notifyOnData(dataInfo);
+  session.flush();
+}

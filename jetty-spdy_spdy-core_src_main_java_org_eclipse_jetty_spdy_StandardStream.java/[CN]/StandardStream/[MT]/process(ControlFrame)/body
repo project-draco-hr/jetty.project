@@ -1,0 +1,42 @@
+{
+switch (frame.getType()) {
+case SYN_STREAM:
+{
+      openState=OpenState.SYN_RECV;
+      break;
+    }
+case SYN_REPLY:
+{
+    openState=OpenState.REPLY_RECV;
+    SynReplyFrame synReply=(SynReplyFrame)frame;
+    updateCloseState(synReply.isClose(),false);
+    ReplyInfo replyInfo=new ReplyInfo(synReply.getHeaders(),synReply.isClose());
+    notifyOnReply(replyInfo);
+    break;
+  }
+case HEADERS:
+{
+  HeadersFrame headers=(HeadersFrame)frame;
+  updateCloseState(headers.isClose(),false);
+  HeadersInfo headersInfo=new HeadersInfo(headers.getHeaders(),headers.isClose(),headers.isResetCompression());
+  notifyOnHeaders(headersInfo);
+  break;
+}
+case WINDOW_UPDATE:
+{
+WindowUpdateFrame windowUpdate=(WindowUpdateFrame)frame;
+updateWindowSize(windowUpdate.getWindowDelta());
+break;
+}
+case RST_STREAM:
+{
+reset=true;
+break;
+}
+default :
+{
+throw new IllegalStateException();
+}
+}
+session.flush();
+}

@@ -1,0 +1,22 @@
+{
+  IStream stream=newStream(frame);
+  stream.updateCloseState(frame.isClose(),local);
+  stream.setStreamFrameListener(listener);
+  if (stream.isUnidirectional()) {
+    stream.updateCloseState(true,!local);
+    if (!stream.isClosed())     stream.getAssociatedStream().associate(stream);
+  }
+  int streamId=stream.getId();
+  if (streams.putIfAbsent(streamId,stream) != null) {
+    if (local)     throw new IllegalStateException("Duplicate stream id " + streamId);
+    RstInfo rstInfo=new RstInfo(streamId,StreamStatus.PROTOCOL_ERROR);
+    logger.debug("Duplicate stream, {}",rstInfo);
+    rst(rstInfo);
+    return null;
+  }
+ else {
+    logger.debug("Created {}",stream);
+    if (local)     notifyStreamCreated(stream);
+    return stream;
+  }
+}

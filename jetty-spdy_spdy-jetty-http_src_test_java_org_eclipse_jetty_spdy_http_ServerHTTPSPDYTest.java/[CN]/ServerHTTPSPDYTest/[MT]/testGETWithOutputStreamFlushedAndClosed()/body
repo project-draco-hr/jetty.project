@@ -1,0 +1,45 @@
+{
+  final String data="0123456789ABCDEF";
+  final CountDownLatch handlerLatch=new CountDownLatch(1);
+  Session session=startClient(startHTTPServer(new AbstractHandler(){
+    @Override public void handle(    String target,    Request request,    HttpServletRequest httpRequest,    HttpServletResponse httpResponse) throws IOException, ServletException {
+      request.setHandled(true);
+      httpResponse.setStatus(HttpServletResponse.SC_OK);
+      ServletOutputStream output=httpResponse.getOutputStream();
+      output.write(data.getBytes("UTF-8"));
+      output.flush();
+      output.close();
+      handlerLatch.countDown();
+    }
+  }
+),null);
+  Headers headers=new Headers();
+  headers.put("method","GET");
+  headers.put("url","/foo");
+  headers.put("version","HTTP/1.1");
+  headers.put("scheme","http");
+  headers.put("host","localhost:" + connector.getLocalPort());
+  final CountDownLatch replyLatch=new CountDownLatch(1);
+  final CountDownLatch dataLatch=new CountDownLatch(1);
+  session.syn(new SynInfo(headers,true),new StreamFrameListener.Adapter(){
+    private final ByteArrayOutputStream buffer=new ByteArrayOutputStream();
+    @Override public void onReply(    Stream stream,    ReplyInfo replyInfo){
+      Assert.assertFalse(replyInfo.isClose());
+      Headers replyHeaders=replyInfo.getHeaders();
+      Assert.assertTrue(replyHeaders.get("status").value().contains("200"));
+      replyLatch.countDown();
+    }
+    @Override public void onData(    Stream stream,    DataInfo dataInfo){
+      ByteBuffer byteBuffer=dataInfo.asByteBuffer(true);
+      while (byteBuffer.hasRemaining())       buffer.write(byteBuffer.get());
+      if (dataInfo.isClose()) {
+        Assert.assertEquals(data,new String(buffer.toByteArray(),Charset.forName("UTF-8")));
+        dataLatch.countDown();
+      }
+    }
+  }
+);
+  Assert.assertTrue(handlerLatch.await(5,TimeUnit.SECONDS));
+  Assert.assertTrue(replyLatch.await(5,TimeUnit.SECONDS));
+  Assert.assertTrue(dataLatch.await(5,TimeUnit.SECONDS));
+}

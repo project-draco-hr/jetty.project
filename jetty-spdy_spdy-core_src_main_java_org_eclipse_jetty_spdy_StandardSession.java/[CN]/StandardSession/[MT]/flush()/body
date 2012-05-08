@@ -1,0 +1,26 @@
+{
+  FrameBytes frameBytes=null;
+  ByteBuffer buffer=null;
+synchronized (queue) {
+    if (flushing || queue.isEmpty())     return;
+    Set<IStream> stalledStreams=null;
+    for (int i=0; i < queue.size(); ++i) {
+      frameBytes=queue.get(i);
+      IStream stream=frameBytes.getStream();
+      if (stream != null && stalledStreams != null && stalledStreams.contains(stream))       continue;
+      buffer=frameBytes.getByteBuffer();
+      if (buffer != null) {
+        queue.remove(i);
+        if (stream != null && !streams.containsValue(stream) && !stream.isUnidirectional())         frameBytes.fail(new StreamException(stream.getId(),StreamStatus.INVALID_STREAM));
+        break;
+      }
+      if (stalledStreams == null)       stalledStreams=new HashSet<>();
+      if (stream != null)       stalledStreams.add(stream);
+      logger.debug("Flush stalled for {}, {} frame(s) in queue",frameBytes,queue.size());
+    }
+    if (buffer == null)     return;
+    flushing=true;
+    logger.debug("Flushing {}, {} frame(s) in queue",frameBytes,queue.size());
+  }
+  write(buffer,this,frameBytes);
+}

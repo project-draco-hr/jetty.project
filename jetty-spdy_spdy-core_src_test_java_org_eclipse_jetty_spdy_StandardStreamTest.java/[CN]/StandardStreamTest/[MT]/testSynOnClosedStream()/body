@@ -1,0 +1,14 @@
+{
+  IStream stream=new StandardStream(synStreamFrame,session,0,null);
+  stream.updateCloseState(true,true);
+  stream.updateCloseState(true,false);
+  assertThat("stream expected to be closed",stream.isClosed(),is(true));
+  final CountDownLatch failedLatch=new CountDownLatch(1);
+  stream.syn(new SynInfo(false),1,TimeUnit.SECONDS,new Callback.Adapter<Stream>(){
+    @Override public void failed(    Throwable x){
+      failedLatch.countDown();
+    }
+  }
+);
+  assertThat("PushStream creation failed",failedLatch.getCount(),equalTo(0L));
+}

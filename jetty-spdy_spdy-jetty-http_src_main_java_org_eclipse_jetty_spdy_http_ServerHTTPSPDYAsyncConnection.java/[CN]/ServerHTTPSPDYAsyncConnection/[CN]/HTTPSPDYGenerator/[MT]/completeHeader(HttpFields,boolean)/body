@@ -1,0 +1,32 @@
+{
+  Headers headers=new Headers();
+  String version="HTTP/1.1";
+  headers.put("version",version);
+  StringBuilder status=new StringBuilder().append(_status);
+  if (_reason != null)   status.append(" ").append(_reason.toString("UTF-8"));
+  headers.put("status",status.toString());
+  logger.debug("HTTP < {} {}",version,status);
+  if (fields != null) {
+    for (int i=0; i < fields.size(); ++i) {
+      HttpFields.Field field=fields.getField(i);
+      String name=field.getName().toLowerCase();
+      String value=field.getValue();
+      headers.put(name,value);
+      logger.debug("HTTP < {}: {}",name,value);
+    }
+  }
+  Buffer content=getContentBuffer();
+  reply(stream,new ReplyInfo(headers,content == null));
+  if (content != null) {
+    closed=allContentAdded || isAllContentWritten();
+    ByteBuffer buffer=ByteBuffer.wrap(content.asArray());
+    logger.debug("HTTP < {} bytes of content",buffer.remaining());
+    stream.data(new ByteBufferDataInfo(buffer,closed));
+    content.clear();
+    _state=closed ? HttpGenerator.STATE_END : HttpGenerator.STATE_CONTENT;
+  }
+ else {
+    closed=true;
+    _state=HttpGenerator.STATE_END;
+  }
+}
