@@ -7,7 +7,7 @@
     preparedBefore=_generator.getContentPrepared();
     if (_generator.isComplete())     throw new EofException();
     do {
-      if (_writeFuture != null && !_writeFuture.isDone())       _writeFuture.block();
+      if (_writeFuture != null && !_writeFuture.isDone())       _writeFuture.get();
       if (LOG.isDebugEnabled())       LOG.debug("{}: generate({},{},{},{},{})@{}",this,BufferUtil.toSummaryString(_responseHeader),BufferUtil.toSummaryString(_chunk),BufferUtil.toSummaryString(_responseBuffer),BufferUtil.toSummaryString(content),action,_generator.getState());
       HttpGenerator.Result result=_generator.generate(info,_responseHeader,_chunk,_responseBuffer,content,action);
       if (LOG.isDebugEnabled())       LOG.debug("{}: {} ({},{},{},{},{})@{}",this,result,BufferUtil.toSummaryString(_responseHeader),BufferUtil.toSummaryString(_chunk),BufferUtil.toSummaryString(_responseBuffer),BufferUtil.toSummaryString(content),action,_generator.getState());
@@ -23,11 +23,11 @@ _responseHeader=null;
 _chunk=_bufferPool.acquire(HttpGenerator.CHUNK_SIZE,false);
 break;
 case FLUSH:
-if (hasContent) write(_responseHeader,_chunk,_responseBuffer).block();
+if (hasContent) write(_responseHeader,_chunk,_responseBuffer).get();
  else _writeFuture=write(_responseHeader,_chunk,_responseBuffer);
 break;
 case FLUSH_CONTENT:
-write(_responseHeader,_chunk,content).block();
+write(_responseHeader,_chunk,content).get();
 break;
 case SHUTDOWN_OUT:
 getEndPoint().shutdownOutput();

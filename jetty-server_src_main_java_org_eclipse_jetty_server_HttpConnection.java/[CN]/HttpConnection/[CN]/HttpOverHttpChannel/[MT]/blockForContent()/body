@@ -1,7 +1,9 @@
 {
   while (getEndPoint().isOpen()) {
     try {
-      getEndPoint().readable().block();
+      FutureCallback<Void> block=new FutureCallback<>();
+      getEndPoint().readable(null,block);
+      block.get();
       if (_requestBuffer == null)       _requestBuffer=_bufferPool.acquire(_connector.getRequestBufferSize(),false);
       if (BufferUtil.hasContent(_requestBuffer) && _parser.parseNext(_requestBuffer))       return;
     }
@@ -10,7 +12,7 @@
     }
 catch (    ExecutionException e) {
       LOG.debug(e);
-      DispatchingIOFuture.rethrow(e);
+      FutureCallback.rethrow(e);
     }
  finally {
       if (_requestBuffer != null && !_requestBuffer.hasRemaining() && _channel.available() == 0) {
