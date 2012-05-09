@@ -1,0 +1,22 @@
+{
+  DispatchingIOFuture future=new DispatchingIOFuture();
+  assertFalse(future.isDone());
+  assertFalse(future.isComplete());
+  final AtomicBoolean completed=new AtomicBoolean(false);
+  final AtomicReference<Throwable> failure=new AtomicReference<>();
+  future.setCallback(new Callback<Object>(){
+    @Override public void completed(    Object context){
+      completed.set(true);
+    }
+    @Override public void failed(    Object context,    Throwable cause){
+      failure.set(cause);
+    }
+  }
+,null);
+  long sleep=1000;
+  long start=System.nanoTime();
+  assertFalse(future.block(sleep,TimeUnit.MILLISECONDS));
+  assertThat(System.nanoTime() - start,greaterThan(TimeUnit.MILLISECONDS.toNanos(sleep / 2)));
+  assertFalse(completed.get());
+  assertNull(failure.get());
+}

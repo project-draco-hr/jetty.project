@@ -9,15 +9,15 @@
       }
     }
 ;
-    endPoint.setConnection(sslConnection);
-    AsyncEndPoint sslEndPoint=sslConnection.getSslEndPoint();
+    endPoint.setAsyncConnection(sslConnection);
+    AsyncEndPoint sslEndPoint=sslConnection.getAppEndPoint();
     sslEndPointRef.set(sslEndPoint);
     NextProtoNego.put(engine,new NextProtoNego.ServerProvider(){
       @Override public void unsupported(){
         AsyncConnectionFactory connectionFactory=getDefaultAsyncConnectionFactory();
         AsyncEndPoint sslEndPoint=sslEndPointRef.get();
         AsyncConnection connection=connectionFactory.newAsyncConnection(channel,sslEndPoint,SPDYServerConnector.this);
-        sslEndPoint.setConnection(connection);
+        sslEndPoint.setAsyncConnection(connection);
       }
       @Override public List<String> protocols(){
         return provideProtocols();
@@ -26,19 +26,19 @@
         AsyncConnectionFactory connectionFactory=getAsyncConnectionFactory(protocol);
         AsyncEndPoint sslEndPoint=sslEndPointRef.get();
         AsyncConnection connection=connectionFactory.newAsyncConnection(channel,sslEndPoint,SPDYServerConnector.this);
-        sslEndPoint.setConnection(connection);
+        sslEndPoint.setAsyncConnection(connection);
       }
     }
 );
     AsyncConnection connection=new EmptyAsyncConnection(sslEndPoint);
-    sslEndPoint.setConnection(connection);
+    sslEndPoint.setAsyncConnection(connection);
     startHandshake(engine);
     return sslConnection;
   }
  else {
     AsyncConnectionFactory connectionFactory=getDefaultAsyncConnectionFactory();
     AsyncConnection connection=connectionFactory.newAsyncConnection(channel,endPoint,this);
-    endPoint.setConnection(connection);
+    endPoint.setAsyncConnection(connection);
     return connection;
   }
 }

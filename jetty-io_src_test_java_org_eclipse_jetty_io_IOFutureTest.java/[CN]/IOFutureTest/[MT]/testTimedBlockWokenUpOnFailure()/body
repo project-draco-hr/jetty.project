@@ -1,0 +1,52 @@
+{
+  final DispatchingIOFuture future=new DispatchingIOFuture();
+  final Exception ex=new Exception("failed");
+  final AtomicBoolean completed=new AtomicBoolean(false);
+  final AtomicReference<Throwable> failure=new AtomicReference<>();
+  final CountDownLatch failureLatch=new CountDownLatch(1);
+  future.setCallback(new Callback<Object>(){
+    @Override public void completed(    Object context){
+      completed.set(true);
+    }
+    @Override public void failed(    Object context,    Throwable x){
+      failure.set(x);
+      failureLatch.countDown();
+    }
+  }
+,null);
+  final long delay=500;
+  long start=System.nanoTime();
+  new Thread(){
+    @Override public void run(){
+      try {
+        TimeUnit.MILLISECONDS.sleep(delay);
+        future.fail(ex);
+      }
+ catch (      InterruptedException x) {
+        Assert.fail();
+      }
+    }
+  }
+.start();
+  try {
+    future.block(delay * 4,TimeUnit.MILLISECONDS);
+    Assert.fail();
+  }
+ catch (  ExecutionException e) {
+    Assert.assertSame(ex,e.getCause());
+  }
+  long elapsed=TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start);
+  Assert.assertThat(elapsed,greaterThan(delay / 2));
+  Assert.assertThat(elapsed,lessThan(delay * 2));
+  assertTrue(future.isDone());
+  try {
+    future.isComplete();
+    Assert.fail();
+  }
+ catch (  ExecutionException e) {
+    assertSame(ex,e.getCause());
+  }
+  assertFalse(completed.get());
+  assertTrue(failureLatch.await(delay * 4,TimeUnit.MILLISECONDS));
+  assertSame(ex,failure.get());
+}
