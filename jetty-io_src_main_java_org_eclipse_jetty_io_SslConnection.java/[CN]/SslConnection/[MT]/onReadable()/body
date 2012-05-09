@@ -2,7 +2,6 @@
   _lock.lock();
   try {
     LOG.debug("onReadable {}",this);
-    _netReadFuture=null;
     allocateBuffers();
     boolean progress=true;
     while (progress) {
@@ -20,8 +19,7 @@
   }
  finally {
     releaseBuffers();
-    if (_appReadFuture != null && !_appReadFuture.isDone() && _netReadFuture == null && !BufferUtil.isFull(_inNet))     _netReadFuture=scheduleOnReadable();
-    LOG.debug("!onReadable {} {}",this,_netReadFuture);
+    if (_appEndPoint._readCallback != null && !BufferUtil.isFull(_inNet))     scheduleOnReadable();
     _lock.unlock();
   }
 }

@@ -1,0 +1,22 @@
+{
+  _lock.lock();
+  try {
+    if (_writeCallback != null)     throw new IllegalStateException("previous write not complete");
+    for (    ByteBuffer b : buffers) {
+      process(b);
+      if (b.hasRemaining()) {
+        _writeBuffers=buffers;
+        _writeContext=context;
+        _writeCallback=callback;
+        return;
+      }
+    }
+    callback.completed(context);
+  }
+ catch (  IOException e) {
+    callback.failed(context,e);
+  }
+ finally {
+    _lock.unlock();
+  }
+}

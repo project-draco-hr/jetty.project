@@ -1,0 +1,22 @@
+{
+synchronized (_lock) {
+    try {
+      if (_writeCallback != null)       throw new IllegalStateException("previous write not complete");
+      flush(buffers);
+      for (      ByteBuffer b : buffers) {
+        if (b.hasRemaining()) {
+          _writeBuffers=buffers;
+          _writeContext=context;
+          _writeCallback=callback;
+          _interestOps=_interestOps | SelectionKey.OP_WRITE;
+          updateKey();
+          return;
+        }
+      }
+      callback.completed(context);
+    }
+ catch (    IOException e) {
+      callback.failed(context,e);
+    }
+  }
+}

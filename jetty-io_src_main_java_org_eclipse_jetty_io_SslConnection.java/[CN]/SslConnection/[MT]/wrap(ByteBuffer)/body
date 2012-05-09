@@ -1,5 +1,5 @@
 {
-  if (_netWriteFuture != null && !_netWriteFuture.isDone())   return false;
+  if (_writing.get())   return false;
   final SSLEngineResult result;
   int pos=BufferUtil.flipToFill(_outNet);
   try {
@@ -25,11 +25,6 @@ default :
 LOG.debug("{} wrap default {}",_session,result);
 throw new IOException(result.toString());
 }
-if (BufferUtil.hasContent(_outNet)) {
-IOFuture write=_endp.write(_outNet);
-if (write.isDone()) return true;
-_netWriteFuture=write;
-_netWriteFuture.setCallback(_netWriteCallback,null);
-}
+if (BufferUtil.hasContent(_outNet) && _writing.compareAndSet(false,true)) _endp.write(null,_netWriteCallback,_outNet);
 return result.bytesConsumed() > 0 || result.bytesProduced() > 0;
 }

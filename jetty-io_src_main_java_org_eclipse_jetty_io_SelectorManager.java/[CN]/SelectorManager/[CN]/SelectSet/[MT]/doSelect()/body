@@ -9,7 +9,7 @@
       Channel ch=null;
       try {
         if (change instanceof EndPoint) {
-          SelectChannelEndPoint endpoint=(SelectChannelEndPoint)change;
+          SelectableAsyncEndPoint endpoint=(SelectableAsyncEndPoint)change;
           ch=endpoint.getChannel();
           endpoint.doUpdateKey();
         }
@@ -95,13 +95,13 @@ catch (      Throwable e) {
       try {
         if (!key.isValid()) {
           key.cancel();
-          SelectChannelEndPoint endpoint=(SelectChannelEndPoint)key.attachment();
+          SelectableAsyncEndPoint endpoint=(SelectableAsyncEndPoint)key.attachment();
           if (endpoint != null)           endpoint.doUpdateKey();
           continue;
         }
         Object att=key.attachment();
-        if (att instanceof SelectChannelEndPoint) {
-          if (key.isReadable() || key.isWritable())           ((SelectChannelEndPoint)att).onSelected();
+        if (att instanceof SelectableAsyncEndPoint) {
+          if (key.isReadable() || key.isWritable())           ((SelectableAsyncEndPoint)att).onSelected();
         }
  else         if (key.isConnectable()) {
           channel=(SocketChannel)key.channel();
@@ -117,7 +117,7 @@ catch (      Throwable e) {
               key.interestOps(SelectionKey.OP_READ);
               AsyncEndPoint endpoint=createEndPoint(channel,key);
               key.attach(endpoint);
-              ((SelectChannelEndPoint)endpoint).onSelected();
+              ((SelectableAsyncEndPoint)endpoint).onSelected();
             }
  else {
               key.cancel();
@@ -129,7 +129,7 @@ catch (      Throwable e) {
           AsyncEndPoint endpoint=createEndPoint(channel,key);
           key.attach(endpoint);
           if (key.isReadable()) {
-            ((SelectChannelEndPoint)endpoint).onSelected();
+            ((SelectableAsyncEndPoint)endpoint).onSelected();
           }
         }
         key=null;
@@ -163,7 +163,7 @@ catch (      Exception e) {
       dispatch(new Runnable(){
         public void run(){
           for (          AsyncEndPoint endp : _endPoints.keySet()) {
-            ((SelectChannelEndPoint)endp).checkForIdleOrReadWriteTimeout(idle_now);
+            ((SelectableAsyncEndPoint)endp).checkForIdleOrReadWriteTimeout(idle_now);
           }
         }
         public String toString(){

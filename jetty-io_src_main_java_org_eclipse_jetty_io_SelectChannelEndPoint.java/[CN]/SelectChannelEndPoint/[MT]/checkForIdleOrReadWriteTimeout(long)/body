@@ -1,15 +1,16 @@
 {
-  if (_idlecheck || !_readFuture.isDone() || !_writeFuture.isDone()) {
-    long idleTimestamp=getIdleTimestamp();
-    long max_idle_time=getMaxIdleTime();
-    if (idleTimestamp != 0 && max_idle_time > 0) {
-      long idleForMs=now - idleTimestamp;
-      if (idleForMs > max_idle_time) {
 synchronized (_lock) {
-          if (_idlecheck)           _connection.onIdleExpired(idleForMs);
-          if (!_readFuture.isDone())           _readFuture.fail(new TimeoutException());
-          if (!_writeFuture.isDone())           _writeFuture.fail(new TimeoutException());
+    if (_idlecheck || _readCallback != null || _writeCallback != null) {
+      long idleTimestamp=getIdleTimestamp();
+      long max_idle_time=getMaxIdleTime();
+      if (idleTimestamp != 0 && max_idle_time > 0) {
+        long idleForMs=now - idleTimestamp;
+        if (idleForMs > max_idle_time) {
           notIdle();
+          if (_idlecheck)           _connection.onIdleExpired(idleForMs);
+          TimeoutException timeout=new TimeoutException();
+          readFailed(timeout);
+          writeFailed(timeout);
         }
       }
     }
