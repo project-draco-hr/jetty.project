@@ -13,14 +13,14 @@
       if (LOG.isDebugEnabled())       LOG.debug("{}: {} ({},{},{},{},{})@{}",this,result,BufferUtil.toSummaryString(_responseHeader),BufferUtil.toSummaryString(_chunk),BufferUtil.toSummaryString(_responseBuffer),BufferUtil.toSummaryString(content),action,_generator.getState());
 switch (result) {
 case NEED_HEADER:
-        _responseHeader=_connector.getResponseBuffers().getHeader();
+        _responseHeader=_bufferPool.acquire(_connector.getResponseHeaderSize(),false);
       break;
 case NEED_BUFFER:
-    _responseBuffer=_connector.getResponseBuffers().getBuffer();
+    _responseBuffer=_bufferPool.acquire(_connector.getResponseBufferSize(),false);
   break;
 case NEED_CHUNK:
 _responseHeader=null;
-_chunk=_connector.getResponseBuffers().getBuffer(HttpGenerator.CHUNK_SIZE);
+_chunk=_bufferPool.acquire(HttpGenerator.CHUNK_SIZE,false);
 break;
 case FLUSH:
 if (hasContent) write(_responseHeader,_chunk,_responseBuffer).block();

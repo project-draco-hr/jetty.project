@@ -1,8 +1,8 @@
 {
-  while (_endp.isOpen()) {
+  while (getEndPoint().isOpen()) {
     try {
       getEndPoint().readable().block();
-      if (_requestBuffer == null)       _requestBuffer=_connector.getRequestBuffers().getBuffer();
+      if (_requestBuffer == null)       _requestBuffer=_bufferPool.acquire(_connector.getRequestBufferSize(),false);
       if (BufferUtil.hasContent(_requestBuffer) && _parser.parseNext(_requestBuffer))       return;
     }
  catch (    InterruptedException e) {
@@ -14,7 +14,7 @@ catch (    ExecutionException e) {
     }
  finally {
       if (_requestBuffer != null && !_requestBuffer.hasRemaining() && _channel.available() == 0) {
-        _connector.getRequestBuffers().returnBuffer(_requestBuffer);
+        _bufferPool.release(_requestBuffer);
         _requestBuffer=null;
       }
     }

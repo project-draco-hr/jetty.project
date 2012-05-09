@@ -1,12 +1,12 @@
 {
-  AbstractAsyncConnection connection=this;
+  AsyncConnection connection=this;
   boolean progress=true;
   try {
     setCurrentConnection(this);
     while (progress && connection == this) {
       progress=false;
       try {
-        if (_requestBuffer == null)         _requestBuffer=_parser.isInContent() ? _connector.getRequestBuffers().getBuffer() : _connector.getRequestBuffers().getHeader();
+        if (_requestBuffer == null)         _requestBuffer=_parser.isInContent() ? _bufferPool.acquire(_connector.getRequestBufferSize(),false) : _bufferPool.acquire(_connector.getRequestHeaderSize(),false);
         if (BufferUtil.hasContent(_requestBuffer) && _parser.parseNext(_requestBuffer)) {
           getEndPoint().setCheckForIdle(false);
           try {
@@ -23,12 +23,12 @@
       }
  finally {
         if (_requestBuffer != null && !_requestBuffer.hasRemaining() && _channel.available() == 0) {
-          _connector.getRequestBuffers().returnBuffer(_requestBuffer);
+          _bufferPool.release(_requestBuffer);
           _requestBuffer=null;
         }
         if (_parser.isComplete() && _generator.isComplete()) {
           if (_channel.getResponse().getStatus() == HttpStatus.SWITCHING_PROTOCOLS_101) {
-            AbstractAsyncConnection switched=(AbstractAsyncConnection)_channel.getRequest().getAttribute("org.eclipse.jetty.io.Connection");
+            AsyncConnection switched=(AsyncConnection)_channel.getRequest().getAttribute("org.eclipse.jetty.io.Connection");
             if (switched != null)             connection=switched;
           }
           reset();
