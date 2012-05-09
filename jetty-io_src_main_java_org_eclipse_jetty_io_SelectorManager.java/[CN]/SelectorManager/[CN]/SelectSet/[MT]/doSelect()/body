@@ -20,7 +20,7 @@
           final Object att=asc._attachment;
           if ((channel instanceof SocketChannel) && ((SocketChannel)channel).isConnected()) {
             SelectionKey key=channel.register(selector,SelectionKey.OP_READ,att);
-            SelectChannelEndPoint endpoint=createEndPoint((SocketChannel)channel,key);
+            AsyncEndPoint endpoint=createEndPoint((SocketChannel)channel,key);
             key.attach(endpoint);
           }
  else           if (channel.isOpen()) {
@@ -31,7 +31,7 @@
           final SocketChannel channel=(SocketChannel)change;
           ch=channel;
           SelectionKey key=channel.register(selector,SelectionKey.OP_READ,null);
-          SelectChannelEndPoint endpoint=createEndPoint(channel,key);
+          AsyncEndPoint endpoint=createEndPoint(channel,key);
           key.attach(endpoint);
         }
  else         if (change instanceof ChangeTask) {
@@ -114,9 +114,9 @@ catch (      Throwable e) {
  finally {
             if (connected) {
               key.interestOps(SelectionKey.OP_READ);
-              SelectChannelEndPoint endpoint=createEndPoint(channel,key);
+              AsyncEndPoint endpoint=createEndPoint(channel,key);
               key.attach(endpoint);
-              endpoint.onSelected();
+              ((SelectChannelEndPoint)endpoint).onSelected();
             }
  else {
               key.cancel();
@@ -125,9 +125,11 @@ catch (      Throwable e) {
         }
  else {
           channel=(SocketChannel)key.channel();
-          SelectChannelEndPoint endpoint=createEndPoint(channel,key);
+          AsyncEndPoint endpoint=createEndPoint(channel,key);
           key.attach(endpoint);
-          if (key.isReadable())           endpoint.onSelected();
+          if (key.isReadable()) {
+            ((SelectChannelEndPoint)endpoint).onSelected();
+          }
         }
         key=null;
       }
@@ -159,8 +161,8 @@ catch (      Exception e) {
       final long idle_now=((_lowResourcesConnections > 0 && selector.keys().size() > _lowResourcesConnections)) ? (now + _maxIdleTime - _lowResourcesMaxIdleTime) : now;
       dispatch(new Runnable(){
         public void run(){
-          for (          SelectChannelEndPoint endp : _endPoints.keySet()) {
-            endp.checkForIdleOrReadWriteTimeout(idle_now);
+          for (          AsyncEndPoint endp : _endPoints.keySet()) {
+            ((SelectChannelEndPoint)endp).checkForIdleOrReadWriteTimeout(idle_now);
           }
         }
         public String toString(){

@@ -14,8 +14,8 @@
         }
       }
 ;
-      endPoint.setConnection(sslConnection);
-      AsyncEndPoint sslEndPoint=sslConnection.getSslEndPoint();
+      endPoint.setAsyncConnection(sslConnection);
+      AsyncEndPoint sslEndPoint=sslConnection.getAppEndPoint();
       sslEndPointRef.set(sslEndPoint);
       NextProtoNego.put(engine,new NextProtoNego.ClientProvider(){
         @Override public boolean supports(){
@@ -25,7 +25,7 @@
           ClientSPDYAsyncConnectionFactory connectionFactory=new ClientSPDYAsyncConnectionFactory();
           AsyncEndPoint sslEndPoint=sslEndPointRef.get();
           AsyncConnection connection=connectionFactory.newAsyncConnection(channel,sslEndPoint,attachmentRef.get());
-          sslEndPoint.setConnection(connection);
+          sslEndPoint.setAsyncConnection(connection);
         }
         @Override public String selectProtocol(        List<String> protocols){
           String protocol=client.selectProtocol(protocols);
@@ -33,25 +33,25 @@
           AsyncConnectionFactory connectionFactory=client.getAsyncConnectionFactory(protocol);
           AsyncEndPoint sslEndPoint=sslEndPointRef.get();
           AsyncConnection connection=connectionFactory.newAsyncConnection(channel,sslEndPoint,attachmentRef.get());
-          sslEndPoint.setConnection(connection);
+          sslEndPoint.setAsyncConnection(connection);
           return protocol;
         }
       }
 );
       AsyncConnection connection=new EmptyAsyncConnection(sslEndPoint);
-      sslEndPoint.setConnection(connection);
+      sslEndPoint.setAsyncConnection(connection);
       startHandshake(engine);
       return sslConnection;
     }
  else {
       AsyncConnectionFactory connectionFactory=new ClientSPDYAsyncConnectionFactory();
       AsyncConnection connection=connectionFactory.newAsyncConnection(channel,endPoint,attachment);
-      endPoint.setConnection(connection);
+      endPoint.setAsyncConnection(connection);
       return connection;
     }
   }
  catch (  RuntimeException x) {
-    sessionPromise.failed(x);
+    sessionPromise.failed(null,x);
     throw x;
   }
 }
