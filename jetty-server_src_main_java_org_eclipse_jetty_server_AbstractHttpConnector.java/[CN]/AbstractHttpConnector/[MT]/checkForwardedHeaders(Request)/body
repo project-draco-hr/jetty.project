@@ -1,0 +1,39 @@
+{
+  HttpFields httpFields=request.getConnection().getRequestFields();
+  if (getForwardedCipherSuiteHeader() != null) {
+    String cipher_suite=httpFields.getStringField(getForwardedCipherSuiteHeader());
+    if (cipher_suite != null)     request.setAttribute("javax.servlet.request.cipher_suite",cipher_suite);
+  }
+  if (getForwardedSslSessionIdHeader() != null) {
+    String ssl_session_id=httpFields.getStringField(getForwardedSslSessionIdHeader());
+    if (ssl_session_id != null) {
+      request.setAttribute("javax.servlet.request.ssl_session_id",ssl_session_id);
+      request.setScheme(HttpScheme.HTTPS.toString());
+    }
+  }
+  String forwardedHost=getLeftMostFieldValue(httpFields,getForwardedHostHeader());
+  String forwardedServer=getLeftMostFieldValue(httpFields,getForwardedServerHeader());
+  String forwardedFor=getLeftMostFieldValue(httpFields,getForwardedForHeader());
+  String forwardedProto=getLeftMostFieldValue(httpFields,getForwardedProtoHeader());
+  if (_hostHeader != null) {
+    httpFields.put(HttpHeader.HOST.toString(),_hostHeader);
+    request.setServerName(null);
+    request.setServerPort(-1);
+    request.getServerName();
+  }
+ else   if (forwardedHost != null) {
+    httpFields.put(HttpHeader.HOST.toString(),forwardedHost);
+    request.setServerName(null);
+    request.setServerPort(-1);
+    request.getServerName();
+  }
+ else   if (forwardedServer != null) {
+    request.setServerName(forwardedServer);
+  }
+  if (forwardedFor != null) {
+    request.setRemoteAddr(new InetSocketAddress(forwardedFor,request.getRemotePort()));
+  }
+  if (forwardedProto != null) {
+    request.setScheme(forwardedProto);
+  }
+}
