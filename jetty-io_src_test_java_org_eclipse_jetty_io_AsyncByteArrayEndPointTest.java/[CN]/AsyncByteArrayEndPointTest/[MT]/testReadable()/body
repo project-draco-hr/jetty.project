@@ -1,0 +1,44 @@
+{
+  AsyncByteArrayEndPoint endp=new AsyncByteArrayEndPoint();
+  endp.setInput("test input");
+  ByteBuffer buffer=BufferUtil.allocate(1024);
+  FutureCallback<String> fcb=new FutureCallback<>();
+  endp.readable("CTX",fcb);
+  assertTrue(fcb.isDone());
+  assertEquals("CTX",fcb.get());
+  assertEquals(10,endp.fill(buffer));
+  assertEquals("test input",BufferUtil.toString(buffer));
+  fcb=new FutureCallback<>();
+  endp.readable("CTX",fcb);
+  assertFalse(fcb.isDone());
+  assertEquals(0,endp.fill(buffer));
+  endp.setInput(" more");
+  assertTrue(fcb.isDone());
+  assertEquals("CTX",fcb.get());
+  assertEquals(5,endp.fill(buffer));
+  assertEquals("test input more",BufferUtil.toString(buffer));
+  fcb=new FutureCallback<>();
+  endp.readable("CTX",fcb);
+  assertFalse(fcb.isDone());
+  assertEquals(0,endp.fill(buffer));
+  endp.setInput((ByteBuffer)null);
+  assertTrue(fcb.isDone());
+  assertEquals("CTX",fcb.get());
+  assertEquals(-1,endp.fill(buffer));
+  fcb=new FutureCallback<>();
+  endp.readable("CTX",fcb);
+  assertTrue(fcb.isDone());
+  assertEquals("CTX",fcb.get());
+  assertEquals(-1,endp.fill(buffer));
+  endp.close();
+  fcb=new FutureCallback<>();
+  endp.readable("CTX",fcb);
+  assertTrue(fcb.isDone());
+  try {
+    fcb.get();
+    fail();
+  }
+ catch (  ExecutionException e) {
+    assertThat(e.toString(),containsString("Closed"));
+  }
+}
