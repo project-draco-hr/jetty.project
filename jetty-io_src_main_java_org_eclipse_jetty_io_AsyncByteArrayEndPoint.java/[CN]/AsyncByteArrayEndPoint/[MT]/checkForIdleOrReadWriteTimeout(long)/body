@@ -1,13 +1,13 @@
 {
 synchronized (this) {
-    if (_idlecheck || _readInterest.isInterested() || _writeFlusher.isWriting()) {
+    if (_checkForIdle || _readInterest.isInterested() || _writeFlusher.isWriting()) {
       long idleTimestamp=getIdleTimestamp();
       long max_idle_time=getMaxIdleTime();
       if (idleTimestamp != 0 && max_idle_time > 0) {
         long idleForMs=now - idleTimestamp;
         if (idleForMs > max_idle_time) {
           notIdle();
-          if (_idlecheck)           _connection.onIdleExpired(idleForMs);
+          if (_checkForIdle)           _connection.onIdleExpired(idleForMs);
           TimeoutException timeout=new TimeoutException();
           _readInterest.failed(timeout);
           _writeFlusher.failed(timeout);

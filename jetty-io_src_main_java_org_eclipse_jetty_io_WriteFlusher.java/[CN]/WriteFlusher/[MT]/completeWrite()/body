@@ -1,17 +1,19 @@
 {
-  if (!_writing.get())   return;
+  if (!_writing.get())   return false;
   try {
+    _writeBuffers=compact(_writeBuffers);
     _endp.flush(_writeBuffers);
     for (    ByteBuffer b : _writeBuffers) {
       if (b.hasRemaining()) {
         scheduleCompleteWrite();
-        return;
+        return true;
       }
     }
     Callback callback=_writeCallback;
     Object context=_writeContext;
     _writeBuffers=null;
     _writeCallback=null;
+    _writeContext=null;
     if (!_writing.compareAndSet(true,false))     throw new ConcurrentModificationException();
     callback.completed(context);
   }
@@ -23,4 +25,5 @@
     if (!_writing.compareAndSet(true,false))     throw new ConcurrentModificationException();
     callback.failed(context,e);
   }
+  return true;
 }
