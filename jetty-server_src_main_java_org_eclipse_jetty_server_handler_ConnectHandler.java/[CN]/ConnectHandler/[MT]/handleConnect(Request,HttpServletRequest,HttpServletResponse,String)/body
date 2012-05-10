@@ -15,28 +15,4 @@
     return;
   }
   SocketChannel channel=connectToServer(request,host,port);
-  AbstractHttpConnection httpConnection=AbstractHttpConnection.getCurrentHttpChannel();
-  ByteBuffer headerBuffer=((HttpParser)httpConnection.getParser()).getHeaderBuffer();
-  ByteBuffer bodyBuffer=((HttpParser)httpConnection.getParser()).getBodyBuffer();
-  int length=headerBuffer == null ? 0 : headerBuffer.length();
-  length+=bodyBuffer == null ? 0 : bodyBuffer.length();
-  IndirectNIOBuffer buffer=null;
-  if (length > 0) {
-    buffer=new IndirectNIOBuffer(length);
-    if (headerBuffer != null) {
-      buffer.put(headerBuffer);
-      headerBuffer.clear();
-    }
-    if (bodyBuffer != null) {
-      buffer.put(bodyBuffer);
-      bodyBuffer.clear();
-    }
-  }
-  ConcurrentMap<String,Object> context=new ConcurrentHashMap<String,Object>();
-  prepareContext(request,context);
-  ClientToProxyConnection clientToProxy=prepareConnections(context,channel,buffer);
-  response.setStatus(HttpServletResponse.SC_OK);
-  baseRequest.getConnection().getGenerator().setPersistent(true);
-  response.getOutputStream().close();
-  upgradeConnection(request,response,clientToProxy);
 }

@@ -1,11 +1,27 @@
 {
-  if (execute()) {
-    _executor.execute(context == null ? _onNullContextCompleted : new Runnable(){
-      @Override public void run(){
-        onCompleted(context);
+  if (!execute()) {
+    if (_maxRecursion <= 0) {
+      onCompleted(context);
+      return;
+    }
+ else {
+      Integer calls=__calls.get();
+      if (calls < _maxRecursion) {
+        try {
+          __calls.set(calls + 1);
+          onCompleted(context);
+          return;
+        }
+  finally {
+          __calls.set(calls);
+        }
       }
     }
-);
   }
- else   onCompleted(context);
+  _executor.execute(context == null ? _onNullContextCompleted : new Runnable(){
+    @Override public void run(){
+      onCompleted(context);
+    }
+  }
+);
 }

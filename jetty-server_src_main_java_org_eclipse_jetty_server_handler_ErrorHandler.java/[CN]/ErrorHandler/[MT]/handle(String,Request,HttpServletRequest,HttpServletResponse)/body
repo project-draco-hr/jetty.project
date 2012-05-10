@@ -1,12 +1,12 @@
 {
-  AbstractHttpConnection connection=AbstractHttpConnection.getCurrentHttpChannel();
-  connection.getRequest().setHandled(true);
+  baseRequest.setHandled(true);
   String method=request.getMethod();
   if (!method.equals(HttpMethod.GET) && !method.equals(HttpMethod.POST) && !method.equals(HttpMethod.HEAD))   return;
-  response.setContentType(MimeTypes.TEXT_HTML_8859_1);
-  if (_cacheControl != null)   response.setHeader(HttpHeader.CACHE_CONTROL,_cacheControl);
+  response.setContentType(MimeTypes.Type.TEXT_HTML_8859_1.asString());
+  if (_cacheControl != null)   response.setHeader(HttpHeader.CACHE_CONTROL.asString(),_cacheControl);
   ByteArrayISO8859Writer writer=new ByteArrayISO8859Writer(4096);
-  handleErrorPage(request,writer,connection.getResponse().getStatus(),connection.getResponse().getReason());
+  String reason=(response instanceof Response) ? ((Response)response).getReason() : null;
+  handleErrorPage(request,writer,response.getStatus(),reason);
   writer.flush();
   response.setContentLength(writer.size());
   writer.writeTo(response.getOutputStream());

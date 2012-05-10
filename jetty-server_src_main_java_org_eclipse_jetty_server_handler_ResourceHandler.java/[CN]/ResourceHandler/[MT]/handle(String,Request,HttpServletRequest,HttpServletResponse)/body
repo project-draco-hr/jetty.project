@@ -40,16 +40,16 @@
   }
   long last_modified=resource.lastModified();
   if (last_modified > 0) {
-    long if_modified=request.getDateHeader(HttpHeader.IF_MODIFIED_SINCE);
+    long if_modified=request.getDateHeader(HttpHeader.IF_MODIFIED_SINCE.asString());
     if (if_modified > 0 && last_modified / 1000 <= if_modified / 1000) {
       response.setStatus(HttpStatus.NOT_MODIFIED_304);
       return;
     }
   }
-  ByteBuffer mime=_mimeTypes.getMimeByExtension(resource.toString());
+  String mime=_mimeTypes.getMimeByExtension(resource.toString());
   if (mime == null)   mime=_mimeTypes.getMimeByExtension(request.getPathInfo());
   doResponseHeaders(response,resource,mime != null ? mime.toString() : null);
-  response.setDateHeader(HttpHeader.LAST_MODIFIED,last_modified);
+  response.setDateHeader(HttpHeader.LAST_MODIFIED.asString(),last_modified);
   if (skipContentBody)   return;
   OutputStream out=null;
   try {
@@ -58,10 +58,7 @@
  catch (  IllegalStateException e) {
     out=new WriterOutputStream(response.getWriter());
   }
-  if (out instanceof AbstractHttpConnection.Output) {
-    ((AbstractHttpConnection.Output)out).sendContent(resource.getInputStream());
-  }
- else {
+{
     resource.writeTo(out,0,resource.length());
   }
 }

@@ -9,14 +9,11 @@
       if (BufferUtil.isFull(_in))       throw new IllegalStateException("FULL " + BufferUtil.toDetailString(_in));
       int filled=_endp.fill(_in);
       if (filled > 0)       progress=true;
-      System.err.println("filled " + filled);
       while (_blockAt > 0 && _endp.isOpen() && _in.remaining() < _blockAt) {
         FutureCallback<Void> blockingRead=new FutureCallback<>();
-        System.err.println("blocking read on " + blockingRead);
         _endp.readable(null,blockingRead);
         blockingRead.get();
         filled=_endp.fill(_in);
-        System.err.println("FILLED " + filled);
         progress|=filled > 0;
       }
       if (BufferUtil.hasContent(_in) && BufferUtil.append(_in,_out) > 0)       progress=true;
