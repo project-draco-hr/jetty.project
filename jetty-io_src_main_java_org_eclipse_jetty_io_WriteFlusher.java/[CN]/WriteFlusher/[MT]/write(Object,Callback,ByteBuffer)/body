@@ -1,0 +1,22 @@
+{
+  if (!_writing.compareAndSet(false,true))   throw new WritePendingException();
+  try {
+    _endp.flush(buffers);
+    for (    ByteBuffer b : buffers) {
+      if (b.hasRemaining()) {
+        _writeBuffers=buffers;
+        _writeContext=context;
+        _writeCallback=callback;
+        scheduleCompleteWrite();
+        _writing.set(true);
+        return;
+      }
+    }
+    if (!_writing.compareAndSet(true,false))     throw new ConcurrentModificationException();
+    callback.completed(context);
+  }
+ catch (  IOException e) {
+    if (!_writing.compareAndSet(true,false))     throw new ConcurrentModificationException();
+    callback.failed(context,e);
+  }
+}
