@@ -1,12 +1,15 @@
 {
   AsyncConnection connection=this;
   boolean progress=true;
+  boolean suspended=false;
   try {
     setCurrentConnection(this);
     while (progress && connection == this) {
       progress=false;
       try {
         if (_requestBuffer == null)         _requestBuffer=_parser.isInContent() ? _bufferPool.acquire(_connector.getRequestBufferSize(),false) : _bufferPool.acquire(_connector.getRequestHeaderSize(),false);
+        int filled=getEndPoint().fill(_requestBuffer);
+        System.err.println("filled=" + filled + " to "+ BufferUtil.toDetailString(_requestBuffer)+ " from "+ getEndPoint());
         if (BufferUtil.hasContent(_requestBuffer) && _parser.parseNext(_requestBuffer)) {
           getEndPoint().setCheckForIdle(false);
           try {
@@ -37,6 +40,7 @@
  else         if (_channel.getRequest().getAsyncContinuation().isAsyncStarted()) {
           LOG.debug("suspended {}",this);
           progress=false;
+          suspended=true;
         }
       }
     }
@@ -46,5 +50,6 @@
   }
  finally {
     setCurrentConnection(null);
+    if (!getEndPoint().isInputShutdown() && !suspended)     scheduleOnReadable();
   }
 }
