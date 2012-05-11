@@ -1,40 +1,10 @@
 {
-  _selectSet=new SelectSet[_selectSets];
-  for (int i=0; i < _selectSet.length; i++)   _selectSet[i]=new SelectSet(i);
   super.doStart();
-  for (int i=0; i < getSelectSets(); i++) {
-    final int id=i;
-    boolean selecting=dispatch(new Runnable(){
-      public void run(){
-        String name=Thread.currentThread().getName();
-        int priority=Thread.currentThread().getPriority();
-        try {
-          SelectSet[] sets=_selectSet;
-          if (sets == null)           return;
-          SelectSet set=sets[id];
-          Thread.currentThread().setName(name + " Selector" + id);
-          if (getSelectorPriorityDelta() != 0)           Thread.currentThread().setPriority(Thread.currentThread().getPriority() + getSelectorPriorityDelta());
-          LOG.debug("Starting {} on {}",Thread.currentThread(),this);
-          while (isRunning()) {
-            try {
-              set.doSelect();
-            }
- catch (            IOException e) {
-              LOG.ignore(e);
-            }
-catch (            Exception e) {
-              LOG.warn(e);
-            }
-          }
-        }
-  finally {
-          LOG.debug("Stopped {} on {}",Thread.currentThread(),this);
-          Thread.currentThread().setName(name);
-          if (getSelectorPriorityDelta() != 0)           Thread.currentThread().setPriority(priority);
-        }
-      }
-    }
-);
-    if (!selecting)     throw new IllegalStateException("!Selecting");
+  for (int i=0; i < _selectSets.length; i++) {
+    SelectSet selectSet=newSelectSet(i);
+    _selectSets[i]=selectSet;
+    selectSet.start();
+    execute(selectSet);
+    execute(new Expirer());
   }
 }

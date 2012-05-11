@@ -1,6 +1,6 @@
 {
-  out.append(String.valueOf(this)).append(" id=").append(String.valueOf(_setID)).append("\n");
-  Thread selecting=_selecting;
+  out.append(String.valueOf(this)).append(" id=").append(String.valueOf(_id)).append("\n");
+  Thread selecting=_thread;
   Object where="not selecting";
   StackTraceElement[] trace=selecting == null ? null : selecting.getStackTrace();
   if (trace != null) {
@@ -11,22 +11,11 @@
   }
   Selector selector=_selector;
   if (selector != null) {
-    final ArrayList<Object> dump=new ArrayList<Object>(selector.keys().size() * 2);
+    final ArrayList<Object> dump=new ArrayList<>(selector.keys().size() * 2);
     dump.add(where);
-    final CountDownLatch latch=new CountDownLatch(1);
-    addChange(new ChangeTask(){
-      public void run(){
-        dumpKeyState(dump);
-        latch.countDown();
-      }
-    }
-);
-    try {
-      latch.await(5,TimeUnit.SECONDS);
-    }
- catch (    InterruptedException e) {
-      LOG.ignore(e);
-    }
+    DumpKeys dumpKeys=new DumpKeys(dump);
+    submit(dumpKeys);
+    dumpKeys.await(5,TimeUnit.SECONDS);
     AggregateLifeCycle.dump(out,indent,dump);
   }
 }

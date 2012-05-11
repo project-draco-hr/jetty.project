@@ -1,0 +1,31 @@
+{
+  try {
+    Object att=key.attachment();
+    if (att instanceof SelectableAsyncEndPoint) {
+      if (key.isReadable() || key.isWritable())       ((SelectableAsyncEndPoint)att).onSelected();
+    }
+ else     if (key.isConnectable()) {
+      SocketChannel channel=(SocketChannel)key.channel();
+      try {
+        boolean connected=channel.finishConnect();
+        if (connected) {
+          AsyncEndPoint endpoint=createEndPoint(channel,key);
+          key.attach(endpoint);
+        }
+ else {
+          throw new ConnectException();
+        }
+      }
+ catch (      Exception x) {
+        connectionFailed(channel,x,att);
+        key.cancel();
+      }
+    }
+ else {
+      throw new IllegalStateException();
+    }
+  }
+ catch (  CancelledKeyException x) {
+    LOG.debug("Ignoring cancelled key for channel",key.channel());
+  }
+}
