@@ -1,0 +1,37 @@
+{
+  if (appReader != null)   throw new ReadPendingException();
+switch (readState) {
+case IDLE:
+{
+      if (BufferUtil.hasContent(netInput))       throw new IllegalStateException();
+      appReader=callback;
+      readContext=context;
+      scheduleOnReadable();
+      break;
+    }
+case UNDERFLOW:
+{
+    if (!BufferUtil.hasContent(netInput))     throw new IllegalStateException();
+    appReader=callback;
+    readContext=context;
+    scheduleOnReadable();
+    break;
+  }
+case DECRYPTED:
+{
+  if (!BufferUtil.hasContent(appInput))   throw new IllegalStateException();
+  callback.completed(context);
+  break;
+}
+case CLOSED:
+{
+if (BufferUtil.hasContent(appInput)) throw new IllegalStateException();
+callback.completed(context);
+break;
+}
+default :
+{
+throw new IllegalStateException("Unexpected read state " + readState);
+}
+}
+}

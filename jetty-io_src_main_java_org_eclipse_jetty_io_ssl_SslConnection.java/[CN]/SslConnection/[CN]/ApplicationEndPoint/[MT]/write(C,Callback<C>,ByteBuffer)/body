@@ -1,0 +1,23 @@
+{
+  if (!writing.compareAndSet(false,true))   throw new WritePendingException();
+  boolean writePending=false;
+  try {
+    flush(buffers);
+    for (    ByteBuffer buffer : buffers) {
+      if (buffer.hasRemaining()) {
+        this.context=context;
+        this.callback=callback;
+        this.buffers=buffers;
+        writePending=true;
+        return;
+      }
+    }
+    callback.completed(context);
+  }
+ catch (  IOException x) {
+    callback.failed(context,x);
+  }
+ finally {
+    writing.set(writePending);
+  }
+}

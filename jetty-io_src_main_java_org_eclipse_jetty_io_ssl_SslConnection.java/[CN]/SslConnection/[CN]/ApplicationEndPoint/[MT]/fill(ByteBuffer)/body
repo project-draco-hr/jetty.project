@@ -1,0 +1,28 @@
+{
+switch (readState) {
+case IDLE:
+case UNDERFLOW:
+{
+      return 0;
+    }
+case DECRYPTED:
+{
+    if (!BufferUtil.hasContent(appInput))     throw new IllegalStateException();
+    int filled=BufferUtil.append(appInput,buffer);
+    if (!BufferUtil.hasContent(appInput)) {
+      byteBufferPool.release(appInput);
+      appInput=null;
+      updateReadState(BufferUtil.hasContent(netInput) ? ReadState.UNDERFLOW : sslMachine.isRemoteClosed() ? ReadState.CLOSED : ReadState.IDLE);
+    }
+    return filled;
+  }
+case CLOSED:
+{
+  return -1;
+}
+default :
+{
+throw new IllegalStateException("Unexpected read state " + readState);
+}
+}
+}
