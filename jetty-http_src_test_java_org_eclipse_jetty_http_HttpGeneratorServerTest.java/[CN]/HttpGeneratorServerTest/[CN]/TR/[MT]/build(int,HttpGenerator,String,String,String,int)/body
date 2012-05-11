@@ -2,8 +2,6 @@
   String response="";
   _connection=connection;
   _te=te;
-  _version=HttpVersion.fromVersion(version);
-  _reason=reason;
   if (_contentType != null)   _fields.put("Content-Type",_contentType);
   if (_contentLength >= 0)   _fields.put("Content-Length","" + _contentLength);
   if (_connection != null)   _fields.put("Connection",_connection);
@@ -24,6 +22,7 @@
   ByteBuffer header=null;
   ByteBuffer chunk=null;
   ByteBuffer buffer=null;
+  HttpGenerator.Info info=null;
   while (!gen.isComplete()) {
     if (source != null && content != null && content.remaining() == 0 && c < nchunks) {
       content=chunks[c++];
@@ -31,11 +30,12 @@
     Action action=BufferUtil.hasContent(content) ? null : Action.COMPLETE;
     HttpGenerator.Result result=gen.generate(info,header,chunk,buffer,content,action);
 switch (result) {
-case NEED_HEADER:
-      header=BufferUtil.allocate(2048);
-    break;
+case NEED_COMMIT:
+      info=new HttpGenerator.ResponseInfo(HttpVersion.fromVersion(version),_fields,_contentLength,_code,reason,_head);
+    header=BufferUtil.allocate(2048);
+  break;
 case NEED_BUFFER:
-  buffer=BufferUtil.allocate(8192);
+buffer=BufferUtil.allocate(8192);
 break;
 case NEED_CHUNK:
 header=null;

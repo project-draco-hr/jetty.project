@@ -1,12 +1,12 @@
 {
   ByteBuffer header=BufferUtil.allocate(2048);
-  Info info=new Info("GET","/index.html");
   HttpGenerator gen=new HttpGenerator();
+  HttpGenerator.Result result=gen.generate(null,null,null,null,null,Action.COMPLETE);
+  assertEquals(HttpGenerator.State.COMMITTING_COMPLETING,gen.getState());
+  assertEquals(HttpGenerator.Result.NEED_COMMIT,result);
+  Info info=new Info("GET","/index.html");
   info.getHttpFields().add("Host","something");
   info.getHttpFields().add("User-Agent","test");
-  HttpGenerator.Result result=gen.generate(info,null,null,null,null,Action.COMPLETE);
-  assertEquals(HttpGenerator.State.COMMITTING_COMPLETING,gen.getState());
-  assertEquals(HttpGenerator.Result.NEED_HEADER,result);
   assertTrue(!gen.isChunking());
   result=gen.generate(info,header,null,null,null,null);
   assertEquals(HttpGenerator.Result.FLUSH,result);

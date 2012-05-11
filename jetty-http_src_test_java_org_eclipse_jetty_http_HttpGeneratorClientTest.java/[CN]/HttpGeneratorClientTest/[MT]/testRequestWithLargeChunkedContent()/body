@@ -3,14 +3,14 @@
   ByteBuffer header=BufferUtil.allocate(4096);
   ByteBuffer content0=BufferUtil.toBuffer("Hello Cruel World! ");
   ByteBuffer content1=BufferUtil.toBuffer("The quick brown fox jumped over the lazy dog. ");
-  Info info=new Info("POST","/index.html");
   HttpGenerator gen=new HttpGenerator();
   gen.setLargeContent(8);
+  HttpGenerator.Result result=gen.generate(null,null,null,null,content0,null);
+  assertEquals(HttpGenerator.Result.NEED_COMMIT,result);
+  assertEquals(HttpGenerator.State.COMMITTING,gen.getState());
+  Info info=new Info("POST","/index.html");
   info.getHttpFields().add("Host","something");
   info.getHttpFields().add("User-Agent","test");
-  HttpGenerator.Result result=gen.generate(info,null,null,null,content0,null);
-  assertEquals(HttpGenerator.Result.NEED_HEADER,result);
-  assertEquals(HttpGenerator.State.COMMITTING,gen.getState());
   result=gen.generate(info,header,null,null,content0,null);
   assertEquals(HttpGenerator.Result.FLUSH_CONTENT,result);
   assertEquals(HttpGenerator.State.COMMITTED,gen.getState());
