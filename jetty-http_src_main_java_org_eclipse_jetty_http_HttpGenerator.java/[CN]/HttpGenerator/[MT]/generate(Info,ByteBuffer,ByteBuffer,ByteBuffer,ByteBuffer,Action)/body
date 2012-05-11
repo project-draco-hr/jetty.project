@@ -3,9 +3,9 @@
   if (_state == State.END)   return result;
   if (action == null)   action=Action.PREPARE;
   if (BufferUtil.hasContent(content)) {
-    if (_content == EndOfContent.CONTENT_LENGTH && _info.getContentLength() >= 0 && content.remaining() > (_info.getContentLength() - _contentPrepared)) {
-      LOG.warn("Content truncated. Info.getContentLength()==" + _info.getContentLength() + " prepared="+ _contentPrepared+ " content="+ content.remaining(),new Throwable());
-      content.limit(content.position() + (int)(_info.getContentLength() - _contentPrepared));
+    if (_content == EndOfContent.CONTENT_LENGTH && info != null && info.getContentLength() >= 0 && content.remaining() > (info.getContentLength() - _contentPrepared)) {
+      LOG.warn("Content truncated. Info.getContentLength()==" + info.getContentLength() + " prepared="+ _contentPrepared+ " content="+ content.remaining(),new Throwable());
+      content.limit(content.position() + (int)(info.getContentLength() - _contentPrepared));
     }
     if (BufferUtil.isEmpty(buffer) && content.remaining() > _largeContent) {
       if (isCommitted()) {
@@ -60,29 +60,30 @@ return Result.OK;
 case COMMITTING:
 case COMMITTING_COMPLETING:
 {
-if (_info instanceof RequestInfo) {
-if (header == null || header.capacity() <= CHUNK_SIZE) return Result.NEED_HEADER;
-if (_info.getHttpVersion() == HttpVersion.HTTP_0_9) {
+if (info == null) return Result.NEED_COMMIT;
+if (info instanceof RequestInfo) {
+if (header == null || header.capacity() <= CHUNK_SIZE) return Result.NEED_COMMIT;
+if (info.getHttpVersion() == HttpVersion.HTTP_0_9) {
 _noContent=true;
-generateRequestLine((RequestInfo)_info,header);
+generateRequestLine((RequestInfo)info,header);
 _state=State.END;
 return Result.OK;
 }
 _persistent=true;
-generateRequestLine((RequestInfo)_info,header);
+generateRequestLine((RequestInfo)info,header);
 }
  else {
-if (_info.getHttpVersion() == HttpVersion.HTTP_0_9) {
+if (info.getHttpVersion() == HttpVersion.HTTP_0_9) {
 _persistent=false;
 _content=EndOfContent.EOF_CONTENT;
 _state=State.COMMITTED;
 if (result == Result.FLUSH_CONTENT) _contentPrepared+=content.remaining();
 return result;
 }
-if (header == null || header.capacity() <= CHUNK_SIZE) return Result.NEED_HEADER;
-if (_persistent == null) _persistent=(_info.getHttpVersion().ordinal() > HttpVersion.HTTP_1_0.ordinal());
-generateResponseLine(((ResponseInfo)_info),header);
-int status=((ResponseInfo)_info).getStatus();
+if (header == null || header.capacity() <= CHUNK_SIZE) return Result.NEED_COMMIT;
+if (_persistent == null) _persistent=(info.getHttpVersion().ordinal() > HttpVersion.HTTP_1_0.ordinal());
+generateResponseLine(((ResponseInfo)info),header);
+int status=((ResponseInfo)info).getStatus();
 if (status >= 100 && status < 200) {
 _noContent=true;
 if (status != 101) {
@@ -96,7 +97,7 @@ _noContent=true;
 }
 }
 boolean completing=action == Action.COMPLETE || _state == State.COMMITTING_COMPLETING;
-generateHeaders(_info,header,content,completing);
+generateHeaders(info,header,content,completing);
 _state=completing ? State.COMPLETING : State.COMMITTED;
 switch (result) {
 case FLUSH:
