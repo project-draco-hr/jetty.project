@@ -7,7 +7,11 @@ synchronized (this) {
         long idleForMs=now - idleTimestamp;
         if (idleForMs > max_idle_time) {
           notIdle();
-          if (_checkForIdle)           _connection.onIdleExpired(idleForMs);
+          if (_checkForIdle) {
+            AsyncConnection connection=_connection;
+            if (connection == null)             close();
+ else             connection.onIdleExpired(idleForMs);
+          }
           TimeoutException timeout=new TimeoutException();
           _readInterest.failed(timeout);
           _writeFlusher.failed(timeout);

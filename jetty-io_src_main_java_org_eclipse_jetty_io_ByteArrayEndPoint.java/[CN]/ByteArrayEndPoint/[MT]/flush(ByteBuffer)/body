@@ -1,7 +1,7 @@
 {
   if (_closed)   throw new IOException("CLOSED");
   if (_oshut)   throw new IOException("OSHUT");
-  int len=0;
+  int flushed=0;
   for (  ByteBuffer b : buffers) {
     if (BufferUtil.hasContent(b)) {
       if (_growOutput && b.remaining() > BufferUtil.space(_out)) {
@@ -12,9 +12,10 @@
           _out=n;
         }
       }
-      len+=BufferUtil.append(b,_out);
+      flushed+=BufferUtil.append(b,_out);
       if (BufferUtil.hasContent(b))       break;
     }
   }
-  return len;
+  if (flushed > 0)   notIdle();
+  return flushed;
 }
