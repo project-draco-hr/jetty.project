@@ -1,0 +1,53 @@
+{
+  _webApp.setContextPath(_contextPath);
+  String overrideBundleInstallLocation=(String)_properties.get(OSGiWebappConstants.JETTY_BUNDLE_INSTALL_LOCATION_OVERRIDE);
+  File bundleInstallLocation=(overrideBundleInstallLocation == null ? BundleFileLocatorHelperFactory.getFactory().getHelper().getBundleInstallLocation(_bundle) : new File(overrideBundleInstallLocation));
+  URL url=null;
+  if (_webAppPath == null || _webAppPath.length() == 0 || ".".equals(_webAppPath)) {
+    url=bundleInstallLocation.toURI().toURL();
+  }
+ else {
+    if (_webAppPath.startsWith("/") || _webAppPath.startsWith("file:")) {
+      url=new File(_webAppPath).toURI().toURL();
+    }
+ else     if (bundleInstallLocation != null && bundleInstallLocation.isDirectory()) {
+      url=new File(bundleInstallLocation,_webAppPath).toURI().toURL();
+    }
+ else     if (bundleInstallLocation != null) {
+      Enumeration<URL> urls=BundleFileLocatorHelperFactory.getFactory().getHelper().findEntries(_bundle,_webAppPath);
+      if (urls != null && urls.hasMoreElements())       url=urls.nextElement();
+    }
+  }
+  if (url == null) {
+    throw new IllegalArgumentException("Unable to locate " + _webAppPath + " in "+ (bundleInstallLocation != null ? bundleInstallLocation.getAbsolutePath() : "unlocated bundle '" + _bundle.getSymbolicName() + "'"));
+  }
+  _webApp.setWar(BundleFileLocatorHelperFactory.getFactory().getHelper().getLocalURL(url).toString());
+  _webApp.setParentLoaderPriority(isParentLoaderPriority());
+  _webApp.setExtractWAR(isExtract());
+  if (getConfigurationClasses() != null)   _webApp.setConfigurationClasses(getConfigurationClasses());
+ else   _webApp.setConfigurationClasses(__defaultConfigurations);
+  for (int i=0; i < __defaultConfigurations.length; i++)   System.err.println(__defaultConfigurations[i]);
+  if (getDefaultsDescriptor() != null)   _webApp.setDefaultsDescriptor(getDefaultsDescriptor());
+  String tmp=(String)_properties.get(OSGiWebappConstants.JETTY_EXTRA_CLASSPATH);
+  if (tmp != null)   _webApp.setExtraClasspath(tmp);
+  tmp=(String)_properties.get(OSGiWebappConstants.JETTY_WEB_XML_PATH);
+  if (tmp != null && tmp.trim().length() != 0) {
+    File webXml=getFile(tmp,bundleInstallLocation);
+    if (webXml != null && webXml.exists())     _webApp.setDescriptor(webXml.getAbsolutePath());
+  }
+  tmp=(String)_properties.get(OSGiWebappConstants.JETTY_DEFAULT_WEB_XML_PATH);
+  if (tmp != null) {
+    File defaultWebXml=getFile(tmp,bundleInstallLocation);
+    if (defaultWebXml != null && defaultWebXml.exists())     _webApp.setDefaultsDescriptor(defaultWebXml.getAbsolutePath());
+  }
+  String requireTldBundles=(String)_properties.get(OSGiWebappConstants.REQUIRE_TLD_BUNDLE);
+  String pathsToTldBundles=getPathsToRequiredBundles(requireTldBundles);
+  OSGiWebappClassLoader webAppLoader=new OSGiWebappClassLoader(_serverWrapper.getParentClassLoaderForWebapps(),_webApp,_bundle);
+  if (pathsToTldBundles != null)   webAppLoader.addClassPath(pathsToTldBundles);
+  _webApp.setClassLoader(webAppLoader);
+  applyMetaInfContextXml();
+  _webApp.setAttribute(OSGiWebappConstants.REQUIRE_TLD_BUNDLE,requireTldBundles);
+  _webApp.setAttribute(OSGiWebappConstants.RFC66_OSGI_BUNDLE_CONTEXT,_bundle.getBundleContext());
+  _webApp.setAttribute("org.springframework.osgi.web." + BundleContext.class.getName(),_bundle.getBundleContext());
+  _webApp.setAttribute(OSGiWebappConstants.JETTY_OSGI_BUNDLE,_bundle);
+}

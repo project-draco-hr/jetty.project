@@ -6,13 +6,14 @@
     String sharedURLs=(String)props.get(OSGiServerConstants.MANAGED_JETTY_SHARED_LIB_FOLDER_URLS);
     List<File> shared=sharedURLs != null ? extractFiles(sharedURLs) : null;
     libExtClassLoader=LibExtClassLoaderHelper.createLibExtClassLoader(shared,null,server,JettyBootstrapActivator.class.getClassLoader());
+    System.err.println("LibExtClassLoader = " + libExtClassLoader);
     Thread.currentThread().setContextClassLoader(libExtClassLoader);
     configure(server,props);
     init();
     URL[] jarsWithTlds=getJarsWithTlds();
     _commonParentClassLoaderForWebapps=jarsWithTlds == null ? libExtClassLoader : new TldLocatableURLClassloader(libExtClassLoader,jarsWithTlds);
+    System.err.println("common classloader = " + _commonParentClassLoaderForWebapps);
     server.start();
-    _webBundleDeployerHelper=new WebBundleDeployerHelper(this);
   }
  catch (  Exception e) {
     if (server != null) {

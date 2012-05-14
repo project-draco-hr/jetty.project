@@ -1,50 +1,6 @@
 {
-  Dictionary<?,?> dic=bundle.getHeaders();
-  String warFolderRelativePath=(String)dic.get(OSGiWebappConstants.JETTY_WAR_FOLDER_PATH);
-  if (warFolderRelativePath != null) {
-    String contextPath=getWebContextPath(bundle,dic,false);
-    if (contextPath == null || !contextPath.startsWith("/")) {
-      LOG.warn("The manifest header '" + OSGiWebappConstants.JETTY_WAR_FOLDER_PATH + ": "+ warFolderRelativePath+ "' in the bundle "+ bundle.getSymbolicName()+ " is not valid: there is no Web-ContextPath defined in the manifest.");
-      return false;
-    }
-    try {
-      JettyBootstrapActivator.registerWebapplication(bundle,warFolderRelativePath,contextPath);
-      return true;
-    }
- catch (    Throwable e) {
-      LOG.warn("Starting the web-bundle " + bundle.getSymbolicName() + " threw an exception.",e);
-      return true;
-    }
-  }
- else   if (dic.get(OSGiWebappConstants.JETTY_CONTEXT_FILE_PATH) != null) {
-    String contextFileRelativePath=(String)dic.get(OSGiWebappConstants.JETTY_CONTEXT_FILE_PATH);
-    if (contextFileRelativePath == null) {
-      return false;
-    }
-    String[] pathes=contextFileRelativePath.split(",;");
-    for (    String path : pathes) {
-      try {
-        JettyBootstrapActivator.registerContext(bundle,path.trim());
-      }
- catch (      Throwable e) {
-        LOG.warn(e);
-      }
-    }
-    return true;
-  }
- else {
-    URL rfc66Webxml=bundle.getEntry("/WEB-INF/web.xml");
-    if (rfc66Webxml == null && dic.get(OSGiWebappConstants.RFC66_WEB_CONTEXTPATH) == null) {
-      return false;
-    }
-    String rfc66ContextPath=getWebContextPath(bundle,dic,rfc66Webxml == null);
-    try {
-      JettyBootstrapActivator.registerWebapplication(bundle,".",rfc66ContextPath);
-      return true;
-    }
- catch (    Throwable e) {
-      LOG.warn(e);
-      return true;
-    }
-  }
+  if (bundle == null)   return false;
+  BundleWebAppProvider deployer=(BundleWebAppProvider)_serviceTracker.getService();
+  if (deployer != null)   return deployer.bundleAdded(bundle);
+  return false;
 }
