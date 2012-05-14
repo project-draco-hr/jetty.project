@@ -3,7 +3,7 @@
   try {
     if (_generator.isCommitted() || BufferUtil.hasContent(_responseBuffer))     throw new IllegalStateException("!empty");
     if (_generator.isComplete())     throw new EofException();
-    do {
+    loop:     while (true) {
       if (LOG.isDebugEnabled())       LOG.debug("{}: send({},{},{})@{}",this,BufferUtil.toSummaryString(_responseHeader),BufferUtil.toSummaryString(_responseBuffer),BufferUtil.toSummaryString(content),_generator.getState());
       HttpGenerator.Result result=_generator.generate(_info,_responseHeader,null,_responseBuffer,content,Action.COMPLETE);
       if (LOG.isDebugEnabled())       LOG.debug("{}: {} ({},{},{})@{}",this,result,BufferUtil.toSummaryString(_responseHeader),BufferUtil.toSummaryString(_responseBuffer),BufferUtil.toSummaryString(content),_generator.getState());
@@ -21,16 +21,15 @@ case FLUSH:
 write(_responseHeader,_chunk,_responseBuffer).get();
 break;
 case FLUSH_CONTENT:
-_writeFuture=write(_responseHeader,_chunk,content);
-return;
+write(_responseHeader,_chunk,content);
+break loop;
 case SHUTDOWN_OUT:
 getEndPoint().shutdownOutput();
-break;
+break loop;
 case OK:
-break;
+break loop;
 }
 }
- while (BufferUtil.hasContent(content));
 }
  catch (InterruptedException e) {
 LOG.debug(e);

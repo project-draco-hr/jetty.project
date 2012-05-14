@@ -1,16 +1,14 @@
 {
-  boolean hasContent=BufferUtil.hasContent(content);
-  long preparedBefore=0;
-  long preparedAfter;
+  long prepared_before=0;
+  long prepared_after;
   _lock.lock();
   try {
-    preparedBefore=_generator.getContentPrepared();
     if (_generator.isComplete()) {
       if (Action.COMPLETE == action)       return 0;
       throw new EofException();
     }
-    do {
-      if (_writeFuture != null && !_writeFuture.isDone())       _writeFuture.get();
+    prepared_before=_generator.getContentPrepared();
+    loop:     while (true) {
       if (LOG.isDebugEnabled())       LOG.debug("{}: generate({},{},{},{},{})@{}",this,BufferUtil.toSummaryString(_responseHeader),BufferUtil.toSummaryString(_chunk),BufferUtil.toSummaryString(_responseBuffer),BufferUtil.toSummaryString(content),action,_generator.getState());
       HttpGenerator.Result result=_generator.generate(_info,_responseHeader,_chunk,_responseBuffer,content,action);
       if (LOG.isDebugEnabled())       LOG.debug("{}: {} ({},{},{},{},{})@{}",this,result,BufferUtil.toSummaryString(_responseHeader),BufferUtil.toSummaryString(_chunk),BufferUtil.toSummaryString(_responseBuffer),BufferUtil.toSummaryString(content),action,_generator.getState());
@@ -18,29 +16,27 @@ switch (result) {
 case NEED_COMMIT:
         if (_info == null)         _info=_channel.getEventHandler().commit();
       _responseHeader=_bufferPool.acquire(_connector.getResponseHeaderSize(),false);
-    break;
+    continue;
 case NEED_BUFFER:
   _responseBuffer=_bufferPool.acquire(_connector.getResponseBufferSize(),false);
-break;
+continue;
 case NEED_CHUNK:
 _responseHeader=null;
 _chunk=_bufferPool.acquire(HttpGenerator.CHUNK_SIZE,false);
-break;
+continue;
 case FLUSH:
-if (hasContent) write(_responseHeader,_chunk,_responseBuffer).get();
- else _writeFuture=write(_responseHeader,_chunk,_responseBuffer);
-break;
+write(_responseHeader,_chunk,_responseBuffer).get();
+continue;
 case FLUSH_CONTENT:
 write(_responseHeader,_chunk,content).get();
 break;
 case SHUTDOWN_OUT:
 getEndPoint().shutdownOutput();
-break;
+break loop;
 case OK:
-break;
+if (!BufferUtil.hasContent(content)) break loop;
 }
 }
- while (BufferUtil.hasContent(content));
 }
  catch (InterruptedException e) {
 LOG.debug(e);
@@ -51,8 +47,8 @@ if (e.getCause() instanceof IOException) throw (IOException)e.getCause();
 throw new RuntimeException(e);
 }
  finally {
-preparedAfter=_generator.getContentPrepared();
+prepared_after=_generator.getContentPrepared();
 _lock.unlock();
 }
-return (int)(preparedAfter - preparedBefore);
+return (int)(prepared_after - prepared_before);
 }
