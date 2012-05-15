@@ -24,8 +24,14 @@
  else         if (BufferUtil.hasContent(_requestBuffer))         throw new IllegalStateException("parser should consume all content OR return true");
       }
  catch (      HttpException e) {
-        progress=true;
+        LOG.debug(e);
+        progress=false;
         _channel.sendError(e.getStatus(),e.getReason(),null,true);
+      }
+catch (      Exception e) {
+        LOG.debug(e);
+        progress=false;
+        _channel.sendError(500,e.toString(),e.toString(),true);
       }
  finally {
         if (_requestBuffer != null && !_requestBuffer.hasRemaining() && _channel.available() == 0) {
@@ -48,8 +54,9 @@
       }
     }
   }
- catch (  IOException e) {
+ catch (  Exception e) {
     LOG.warn(e);
+    getEndPoint().close();
   }
  finally {
     setCurrentConnection(null);
