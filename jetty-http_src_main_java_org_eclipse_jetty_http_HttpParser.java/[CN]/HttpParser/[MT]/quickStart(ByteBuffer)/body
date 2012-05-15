@@ -1,0 +1,33 @@
+{
+  while (_state == State.START && buffer.hasRemaining()) {
+    if (_requestHandler != null) {
+      _method=HttpMethod.lookAheadGet(buffer);
+      if (_method != null) {
+        _methodString=_method.asString();
+        buffer.position(buffer.position() + _methodString.length() + 1);
+        _state=State.SPACE1;
+        return;
+      }
+    }
+ else     if (_responseHandler != null) {
+      _version=HttpVersion.lookAheadGet(buffer);
+      if (_version != null) {
+        buffer.position(buffer.position() + _version.asString().length() + 1);
+        _state=State.SPACE1;
+        return;
+      }
+    }
+    byte ch=buffer.get();
+    if (_eol == HttpTokens.CARRIAGE_RETURN && ch == HttpTokens.LINE_FEED) {
+      _eol=HttpTokens.LINE_FEED;
+      continue;
+    }
+    _eol=0;
+    if (ch > HttpTokens.SPACE || ch < 0) {
+      _string.setLength(0);
+      _string.append((char)ch);
+      _state=_requestHandler != null ? State.METHOD : State.RESPONSE_VERSION;
+      return;
+    }
+  }
+}

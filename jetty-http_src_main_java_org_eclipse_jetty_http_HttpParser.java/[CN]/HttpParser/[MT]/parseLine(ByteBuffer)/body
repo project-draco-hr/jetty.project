@@ -1,0 +1,154 @@
+{
+  boolean return_from_parse=false;
+  while (_state.ordinal() < State.HEADER.ordinal() && buffer.hasRemaining() && !return_from_parse) {
+    byte ch=buffer.get();
+    if (_eol == HttpTokens.CARRIAGE_RETURN && ch == HttpTokens.LINE_FEED) {
+      _eol=HttpTokens.LINE_FEED;
+      continue;
+    }
+    _eol=0;
+switch (_state) {
+case METHOD:
+      if (ch == HttpTokens.SPACE) {
+        _methodString=takeString();
+        HttpMethod method=HttpMethod.CACHE.get(_methodString);
+        if (method != null)         _methodString=method.asString();
+        _state=State.SPACE1;
+      }
+ else       if (ch < HttpTokens.SPACE && ch >= 0) {
+        throw new HttpException(HttpStatus.BAD_REQUEST_400);
+      }
+ else       _string.append((char)ch);
+    break;
+case RESPONSE_VERSION:
+  if (ch == HttpTokens.SPACE) {
+    String version=takeString();
+    _version=HttpVersion.CACHE.get(version);
+    if (_version == null)     throw new HttpException(HttpStatus.BAD_REQUEST_400);
+    _persistent=HttpVersion.HTTP_1_1 == _version;
+    _state=State.SPACE1;
+  }
+ else   if (ch < HttpTokens.SPACE && ch >= 0) {
+    throw new HttpException(HttpStatus.BAD_REQUEST_400);
+  }
+ else   _string.append((char)ch);
+break;
+case SPACE1:
+if (ch > HttpTokens.SPACE || ch < 0) {
+if (_responseHandler != null) {
+  _state=State.STATUS;
+  _responseStatus=ch - '0';
+}
+ else {
+  _state=State.URI;
+  _utf8.reset();
+  _utf8.append(ch);
+}
+}
+ else if (ch < HttpTokens.SPACE) {
+throw new HttpException(HttpStatus.BAD_REQUEST_400);
+}
+break;
+case STATUS:
+if (ch == HttpTokens.SPACE) {
+_state=State.SPACE2;
+}
+ else if (ch >= '0' && ch <= '9') {
+_responseStatus=_responseStatus * 10 + (ch - '0');
+}
+ else if (ch < HttpTokens.SPACE && ch >= 0) {
+return_from_parse|=_responseHandler.startResponse(_version,_responseStatus,null);
+_eol=ch;
+_state=State.HEADER;
+}
+ else {
+throw new IllegalStateException();
+}
+break;
+case URI:
+if (ch == HttpTokens.SPACE) {
+_uri=_utf8.toString();
+_utf8.reset();
+_state=State.SPACE2;
+}
+ else if (ch < HttpTokens.SPACE && ch >= 0) {
+_uri=_utf8.toString();
+_utf8.reset();
+return_from_parse|=_requestHandler.startRequest(_method,_methodString,_uri,null);
+_persistent=false;
+_state=State.SEEKING_EOF;
+return_from_parse|=_handler.headerComplete(false,false);
+return_from_parse|=_handler.messageComplete(_contentPosition);
+}
+ else _utf8.append(ch);
+break;
+case SPACE2:
+if (ch > HttpTokens.SPACE || ch < 0) {
+_string.setLength(0);
+_string.append((char)ch);
+if (_responseHandler != null) {
+_length=1;
+_state=State.REASON;
+}
+ else {
+_state=State.REQUEST_VERSION;
+if (buffer.position() > 0 && buffer.hasArray()) {
+_version=HttpVersion.lookAheadGet(buffer.array(),buffer.arrayOffset() + buffer.position() - 1,buffer.arrayOffset() + buffer.limit());
+if (_version != null) {
+_string.setLength(0);
+buffer.position(buffer.position() + _version.asString().length() - 1);
+_eol=buffer.get();
+_persistent=HttpVersion.HTTP_1_1 == _version;
+_state=State.HEADER;
+return_from_parse|=_requestHandler.startRequest(_method,_methodString,_uri,_version);
+}
+}
+}
+}
+ else if (ch < HttpTokens.SPACE) {
+if (_responseHandler != null) {
+return_from_parse|=_responseHandler.startResponse(_version,_responseStatus,null);
+_eol=ch;
+_state=State.HEADER;
+}
+ else {
+return_from_parse|=_requestHandler.startRequest(_method,_methodString,_uri,null);
+_persistent=false;
+_state=State.SEEKING_EOF;
+return_from_parse|=_handler.headerComplete(false,false);
+return_from_parse|=_handler.messageComplete(_contentPosition);
+}
+}
+break;
+case REQUEST_VERSION:
+if (ch == HttpTokens.CARRIAGE_RETURN || ch == HttpTokens.LINE_FEED) {
+String version=takeString();
+_version=HttpVersion.CACHE.get(version);
+if (_version == null) throw new HttpException(HttpStatus.BAD_REQUEST_400);
+_eol=ch;
+_persistent=HttpVersion.HTTP_1_1 == _version;
+_state=State.HEADER;
+return_from_parse|=_requestHandler.startRequest(_method,_methodString,_uri,_version);
+continue;
+}
+ else _string.append((char)ch);
+break;
+case REASON:
+if (ch == HttpTokens.CARRIAGE_RETURN || ch == HttpTokens.LINE_FEED) {
+String reason=takeLengthString();
+_eol=ch;
+_state=State.HEADER;
+return_from_parse|=_responseHandler.startResponse(_version,_responseStatus,reason);
+continue;
+}
+ else {
+_string.append((char)ch);
+if (ch != ' ' && ch != '\t') _length=_string.length();
+}
+break;
+default :
+throw new IllegalStateException(_state.toString());
+}
+}
+return return_from_parse;
+}

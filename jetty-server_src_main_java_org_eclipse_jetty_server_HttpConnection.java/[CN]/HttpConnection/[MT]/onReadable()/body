@@ -8,8 +8,10 @@
       progress=false;
       try {
         if (_requestBuffer == null)         _requestBuffer=_parser.isInContent() ? _bufferPool.acquire(_connector.getRequestBufferSize(),false) : _bufferPool.acquire(_connector.getRequestHeaderSize(),false);
-        int filled=getEndPoint().fill(_requestBuffer);
-        LOG.debug("{} filled {}",this,filled);
+        if (BufferUtil.isEmpty(_requestBuffer)) {
+          int filled=getEndPoint().fill(_requestBuffer);
+          LOG.debug("{} filled {}",this,filled);
+        }
         if (BufferUtil.hasContent(_requestBuffer) && _parser.parseNext(_requestBuffer)) {
           getEndPoint().setCheckForIdle(false);
           try {
@@ -19,6 +21,7 @@
             if (!_channel.getRequest().getAsyncContinuation().isAsyncStarted())             getEndPoint().setCheckForIdle(true);
           }
         }
+ else         if (BufferUtil.hasContent(_requestBuffer))         throw new IllegalStateException("parser should consume all content OR return true");
       }
  catch (      HttpException e) {
         progress=true;

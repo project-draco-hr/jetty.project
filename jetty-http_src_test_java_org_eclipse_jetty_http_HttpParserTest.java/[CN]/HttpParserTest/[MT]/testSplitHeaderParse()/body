@@ -1,5 +1,5 @@
 {
-  ByteBuffer buffer=BufferUtil.toBuffer("XXXXGET / HTTP/1.0\015\012" + "Host: localhost\015\012" + "Header1: value1\015\012"+ "Header2  :   value 2a  \015\012"+ "                    value 2b  \015\012"+ "Header3: \015\012"+ "Header4 \015\012"+ "  value4\015\012"+ "Server5: notServer\015\012"+ "\015\012ZZZZ");
+  ByteBuffer buffer=BufferUtil.toBuffer("XXXXSPLIT / HTTP/1.0\015\012" + "Host: localhost\015\012" + "Header1: value1\015\012"+ "Header2  :   value 2a  \015\012"+ "                    value 2b  \015\012"+ "Header3: \015\012"+ "Header4 \015\012"+ "  value4\015\012"+ "Server5: notServer\015\012"+ "\015\012ZZZZ");
   buffer.position(2);
   buffer.limit(buffer.capacity() - 2);
   buffer=buffer.slice();
@@ -9,10 +9,11 @@
     buffer.position(2);
     buffer.limit(2 + i);
     if (!parser.parseNext(buffer)) {
+      assertEquals(0,buffer.remaining());
       buffer.limit(buffer.capacity() - 2);
       parser.parseNext(buffer);
     }
-    assertEquals("GET",f0);
+    assertEquals("SPLIT",f0);
     assertEquals("/",f1);
     assertEquals("HTTP/1.0",f2);
     assertEquals("Host",hdr[0]);

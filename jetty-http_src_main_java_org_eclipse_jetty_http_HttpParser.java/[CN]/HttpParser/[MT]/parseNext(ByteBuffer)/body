@@ -7,396 +7,54 @@
       _state=State.END;
       if (_handler.messageComplete(_contentPosition))       return true;
     }
+    if (_state == State.START) {
+      _version=null;
+      _method=null;
+      _methodString=null;
+      _uri=null;
+      _endOfContent=EndOfContent.UNKNOWN_CONTENT;
+      _header=null;
+      quickStart(buffer);
+    }
+    if (_state.ordinal() < State.HEADER.ordinal())     if (parseLine(buffer))     return true;
+    if (_state.ordinal() < State.END.ordinal())     if (parseHeaders(buffer))     return true;
+    if (_responseStatus > 0 && _headResponse) {
+      _state=_persistent || (_responseStatus >= 100 && _responseStatus < 200) ? State.END : State.SEEKING_EOF;
+      if (_handler.messageComplete(_contentLength))       return true;
+    }
     byte ch;
-    int length=-1;
-    boolean return_from_parse=false;
-    while (_state.ordinal() < State.END.ordinal() && buffer.hasRemaining() && !return_from_parse) {
-      ch=buffer.get();
-      if (_eol == HttpTokens.CARRIAGE_RETURN && ch == HttpTokens.LINE_FEED) {
-        _eol=HttpTokens.LINE_FEED;
+    while (_state.ordinal() > State.END.ordinal() && buffer.hasRemaining()) {
+      if (_eol == HttpTokens.CARRIAGE_RETURN && buffer.get(buffer.position()) == HttpTokens.LINE_FEED) {
+        _eol=buffer.get();
         continue;
       }
       _eol=0;
 switch (_state) {
-case START:
-        _endOfContent=EndOfContent.UNKNOWN_CONTENT;
-      _header=null;
-    if (ch > HttpTokens.SPACE || ch < 0) {
-      start=buffer.position() - 1;
-      startState=_state;
-      _state=_requestHandler != null ? State.METHOD : State.RESPONSE_VERSION;
-    }
-  break;
-case METHOD:
-if (ch == HttpTokens.SPACE) {
-  HttpMethod method=HttpMethod.CACHE.get(buffer,start,buffer.position() - start - 1);
-  _field0=method == null ? BufferUtil.toString(buffer,start,buffer.position() - start - 1,StringUtil.__ISO_8859_1_CHARSET) : method.toString();
-  _state=State.SPACE1;
-}
- else if (ch < HttpTokens.SPACE && ch >= 0) {
-  throw new HttpException(HttpStatus.BAD_REQUEST_400);
-}
-break;
-case RESPONSE_VERSION:
-if (ch == HttpTokens.SPACE) {
-HttpVersion v=HttpVersion.CACHE.get(buffer,start,buffer.position() - start - 1);
-_field0=v == null ? BufferUtil.toString(buffer,start,buffer.position() - start - 1,StringUtil.__ISO_8859_1_CHARSET) : v.toString();
-start=-1;
-_persistent=HttpVersion.HTTP_1_1 == v;
-_state=State.SPACE1;
-}
- else if (ch < HttpTokens.SPACE && ch >= 0) {
-throw new HttpException(HttpStatus.BAD_REQUEST_400);
-}
-break;
-case SPACE1:
-if (ch > HttpTokens.SPACE || ch < 0) {
-if (_responseHandler != null) {
-_state=State.STATUS;
-_responseStatus=ch - '0';
-}
- else {
-start=buffer.position() - 1;
-startState=_state;
-_state=State.URI;
-}
-}
- else if (ch < HttpTokens.SPACE) {
-throw new HttpException(HttpStatus.BAD_REQUEST_400);
-}
-break;
-case STATUS:
-if (ch == HttpTokens.SPACE) {
-_state=State.SPACE2;
-}
- else if (ch >= '0' && ch <= '9') {
-_responseStatus=_responseStatus * 10 + (ch - '0');
-}
- else if (ch < HttpTokens.SPACE && ch >= 0) {
-return_from_parse|=_responseHandler.startResponse(_field0,_responseStatus,null);
-_eol=ch;
-_state=State.HEADER;
-_field0=_field1=null;
-}
- else {
-throw new IllegalStateException();
-}
-break;
-case URI:
-if (ch == HttpTokens.SPACE) {
-_field1=BufferUtil.toString(buffer,start,buffer.position() - start - 1,StringUtil.__UTF8_CHARSET);
-start=-1;
-_state=State.SPACE2;
-}
- else if (ch < HttpTokens.SPACE && ch >= 0) {
-_field1=BufferUtil.toString(buffer,start,buffer.position() - start - 1,StringUtil.__UTF8_CHARSET);
-start=-1;
-return_from_parse|=_requestHandler.startRequest(_field0,_field1,null);
-_persistent=false;
-_state=State.SEEKING_EOF;
-return_from_parse|=_handler.headerComplete(false,false);
-return_from_parse|=_handler.messageComplete(_contentPosition);
-}
-break;
-case SPACE2:
-if (ch > HttpTokens.SPACE || ch < 0) {
-start=buffer.position() - 1;
-startState=_state;
-_state=_requestHandler != null ? State.REQUEST_VERSION : State.REASON;
-}
- else if (ch < HttpTokens.SPACE) {
-if (_responseHandler != null) {
-return_from_parse|=_responseHandler.startResponse(_field0,_responseStatus,null);
-_eol=ch;
-_state=State.HEADER;
-_field0=_field1=null;
-}
- else {
-return_from_parse|=_requestHandler.startRequest(_field0,_field1,null);
-_persistent=false;
-_state=State.SEEKING_EOF;
-return_from_parse|=_handler.headerComplete(false,false);
-return_from_parse|=_handler.messageComplete(_contentPosition);
-}
-}
-break;
-case REQUEST_VERSION:
-if (ch == HttpTokens.CARRIAGE_RETURN || ch == HttpTokens.LINE_FEED) {
-HttpVersion v=HttpVersion.CACHE.get(buffer,start,buffer.position() - start - 1);
-String version=v == null ? BufferUtil.toString(buffer,start,buffer.position() - start - 1,StringUtil.__ISO_8859_1_CHARSET) : v.toString();
-start=-1;
-return_from_parse|=_requestHandler.startRequest(_field0,_field1,version);
-_eol=ch;
-_persistent=HttpVersion.HTTP_1_1 == v;
-_state=State.HEADER;
-_field0=_field1=null;
-continue;
-}
-break;
-case REASON:
-if (ch == HttpTokens.CARRIAGE_RETURN || ch == HttpTokens.LINE_FEED) {
-String reason=BufferUtil.toString(buffer,start,buffer.position() - start - 1,StringUtil.__ISO_8859_1_CHARSET);
-start=-1;
-return_from_parse|=_responseHandler.startResponse(_field0,_responseStatus,reason);
-_eol=ch;
-_state=State.HEADER;
-_field0=_field1=null;
-continue;
-}
-break;
-case HEADER:
-switch (ch) {
-case HttpTokens.COLON:
-case HttpTokens.SPACE:
-case HttpTokens.TAB:
-{
-length=-1;
-_state=State.HEADER_VALUE;
-break;
-}
-default :
-{
-if (_field0 != null || _field1 != null) {
-if (_header != null) {
-switch (_header) {
-case CONTENT_LENGTH:
-if (_endOfContent != EndOfContent.CHUNKED_CONTENT && _responseStatus != 304 && _responseStatus != 204 && (_responseStatus < 100 || _responseStatus >= 200)) {
-try {
-_contentLength=Long.parseLong(_field1);
-}
- catch (NumberFormatException e) {
-LOG.ignore(e);
-throw new HttpException(HttpStatus.BAD_REQUEST_400);
-}
-if (_contentLength <= 0) _endOfContent=EndOfContent.NO_CONTENT;
- else _endOfContent=EndOfContent.CONTENT_LENGTH;
-}
-break;
-case TRANSFER_ENCODING:
-if (_value == HttpHeaderValue.CHUNKED) _endOfContent=EndOfContent.CHUNKED_CONTENT;
- else {
-if (_field1.endsWith(HttpHeaderValue.CHUNKED.toString())) _endOfContent=EndOfContent.CHUNKED_CONTENT;
- else if (_field1.indexOf(HttpHeaderValue.CHUNKED.toString()) >= 0) throw new HttpException(400,null);
-}
-break;
-case CONNECTION:
-switch (_value == null ? HttpHeaderValue.UNKNOWN : _value) {
-case CLOSE:
-_persistent=false;
-break;
-case KEEP_ALIVE:
-_persistent=true;
-break;
-default :
-{
-for (String v : _field1.toString().split(",")) {
-switch (HttpHeaderValue.CACHE.get(v.trim())) {
-case CLOSE:
-_persistent=false;
-break;
-case KEEP_ALIVE:
-_persistent=true;
-break;
-}
-}
-break;
-}
-}
-}
-}
-return_from_parse|=_handler.parsedHeader(_header,_field0,_field1);
-}
-_field0=_field1=null;
-_header=null;
-_value=null;
-if (ch == HttpTokens.CARRIAGE_RETURN || ch == HttpTokens.LINE_FEED) {
-_eol=ch;
-_contentPosition=0;
-if (_endOfContent == EndOfContent.UNKNOWN_CONTENT) {
-if (_responseStatus == 0 || _responseStatus == 304 || _responseStatus == 204 || _responseStatus < 200) _endOfContent=EndOfContent.NO_CONTENT;
- else _endOfContent=EndOfContent.EOF_CONTENT;
-}
-switch (_endOfContent) {
 case EOF_CONTENT:
-_state=State.EOF_CONTENT;
-return_from_parse|=_handler.headerComplete(true,false);
-break;
-case CHUNKED_CONTENT:
-_state=State.CHUNKED_CONTENT;
-return_from_parse|=_handler.headerComplete(true,_persistent);
-break;
-case NO_CONTENT:
-return_from_parse|=_handler.headerComplete(false,_persistent);
-_state=_persistent || (_responseStatus >= 100 && _responseStatus < 200) ? State.END : State.SEEKING_EOF;
-return_from_parse|=_handler.messageComplete(_contentPosition);
-break;
-default :
-_state=State.CONTENT;
-return_from_parse|=_handler.headerComplete(true,_persistent);
-break;
-}
-}
- else {
-start=buffer.position() - 1;
-startState=_state;
-length=1;
-_state=State.HEADER_NAME;
-}
-}
-}
-break;
-case HEADER_NAME:
-switch (ch) {
-case HttpTokens.CARRIAGE_RETURN:
-case HttpTokens.LINE_FEED:
-_eol=ch;
-_header=HttpHeader.CACHE.get(buffer,start,length);
-_field0=_header == null ? BufferUtil.toString(buffer,start,length,StringUtil.__ISO_8859_1_CHARSET) : _header.toString();
-start=length=-1;
-_state=State.HEADER;
-break;
-case HttpTokens.COLON:
-_header=HttpHeader.CACHE.get(buffer,start,length);
-_field0=_header == null ? BufferUtil.toString(buffer,start,length,StringUtil.__ISO_8859_1_CHARSET) : _header.toString();
-start=length=-1;
-_state=State.HEADER_VALUE;
-break;
-case HttpTokens.SPACE:
-case HttpTokens.TAB:
-break;
-default :
-{
-length=buffer.position() - start;
-_state=State.HEADER_IN_NAME;
-}
-}
-break;
-case HEADER_IN_NAME:
-switch (ch) {
-case HttpTokens.CARRIAGE_RETURN:
-case HttpTokens.LINE_FEED:
-_eol=ch;
-_header=HttpHeader.CACHE.get(buffer,start,length);
-_field0=_header == null ? BufferUtil.toString(buffer,start,length,StringUtil.__ISO_8859_1_CHARSET) : _header.toString();
-start=length=-1;
-_state=State.HEADER;
-break;
-case HttpTokens.COLON:
-_header=HttpHeader.CACHE.get(buffer,start,length);
-_field0=_header == null ? BufferUtil.toString(buffer,start,length,StringUtil.__ISO_8859_1_CHARSET) : _header.toString();
-start=length=-1;
-_state=State.HEADER_VALUE;
-break;
-case HttpTokens.SPACE:
-case HttpTokens.TAB:
-_state=State.HEADER_NAME;
-break;
-default :
-length++;
-}
-break;
-case HEADER_VALUE:
-switch (ch) {
-case HttpTokens.CARRIAGE_RETURN:
-case HttpTokens.LINE_FEED:
-_eol=ch;
-if (length > 0) {
-if (_field1 != null) {
-_value=null;
-_field1+=" " + BufferUtil.toString(buffer,start,length,StringUtil.__ISO_8859_1_CHARSET);
-}
- else if (HttpHeaderValue.hasKnownValues(_header)) {
-_value=HttpHeaderValue.CACHE.get(buffer,start,length);
-_field1=_value.toString();
-}
- else {
-_field1=BufferUtil.toString(buffer,start,length,StringUtil.__ISO_8859_1_CHARSET);
-}
-start=length=-1;
-}
-_state=State.HEADER;
-break;
-case HttpTokens.SPACE:
-case HttpTokens.TAB:
-break;
-default :
-{
-if (start == -1) {
-start=buffer.position() - 1;
-startState=_state;
-}
-length=buffer.position() - start;
-_state=State.HEADER_IN_VALUE;
-}
-}
-break;
-case HEADER_IN_VALUE:
-switch (ch) {
-case HttpTokens.CARRIAGE_RETURN:
-case HttpTokens.LINE_FEED:
-_eol=ch;
-if (length > 0) {
-if (_field1 != null) {
-_value=null;
-_field1+=" " + BufferUtil.toString(buffer,start,length,StringUtil.__ISO_8859_1_CHARSET);
-}
- else if (HttpHeaderValue.hasKnownValues(_header)) {
-_value=HttpHeaderValue.CACHE.get(buffer,start,length);
-_field1=_value != null ? _value.toString() : BufferUtil.toString(buffer,start,length,StringUtil.__ISO_8859_1_CHARSET);
-}
- else {
-_field1=BufferUtil.toString(buffer,start,length,StringUtil.__ISO_8859_1_CHARSET);
-}
-start=length=-1;
-}
-_state=State.HEADER;
-break;
-case HttpTokens.SPACE:
-case HttpTokens.TAB:
-_state=State.HEADER_VALUE;
-break;
-default :
-length++;
-}
-break;
-}
-}
-if (_responseStatus > 0 && _headResponse) {
-_state=_persistent || (_responseStatus >= 100 && _responseStatus < 200) ? State.END : State.SEEKING_EOF;
-return_from_parse|=_handler.messageComplete(_contentLength);
-}
-while (_state.ordinal() > State.END.ordinal() && buffer.hasRemaining()) {
-if (_eol == HttpTokens.CARRIAGE_RETURN && buffer.get(buffer.position()) == HttpTokens.LINE_FEED) {
-_eol=buffer.get();
-continue;
-}
-_eol=0;
-switch (_state) {
-case EOF_CONTENT:
-_contentChunk=buffer.asReadOnlyBuffer();
-_contentPosition+=_contentChunk.remaining();
-buffer.position(buffer.position() + _contentChunk.remaining());
-return_from_parse|=_handler.content(_contentChunk);
+        _contentChunk=buffer.asReadOnlyBuffer();
+      _contentPosition+=_contentChunk.remaining();
+    buffer.position(buffer.position() + _contentChunk.remaining());
+  if (_handler.content(_contentChunk))   return true;
 break;
 case CONTENT:
 {
 long remaining=_contentLength - _contentPosition;
 if (remaining == 0) {
-_state=_persistent ? State.END : State.SEEKING_EOF;
-return_from_parse|=_handler.messageComplete(_contentPosition);
+  _state=_persistent ? State.END : State.SEEKING_EOF;
+  if (_handler.messageComplete(_contentPosition))   return true;
 }
  else {
-_contentChunk=buffer.asReadOnlyBuffer();
-if (_contentChunk.remaining() > remaining) {
-_contentChunk.limit(_contentChunk.position() + (int)remaining);
-}
-_contentPosition+=_contentChunk.remaining();
-buffer.position(buffer.position() + _contentChunk.remaining());
-return_from_parse|=_handler.content(_contentChunk);
-if (_contentPosition == _contentLength) {
-_state=_persistent ? State.END : State.SEEKING_EOF;
-return_from_parse|=_handler.messageComplete(_contentPosition);
-}
+  _contentChunk=buffer.asReadOnlyBuffer();
+  if (_contentChunk.remaining() > remaining) {
+    _contentChunk.limit(_contentChunk.position() + (int)remaining);
+  }
+  _contentPosition+=_contentChunk.remaining();
+  buffer.position(buffer.position() + _contentChunk.remaining());
+  if (_handler.content(_contentChunk))   return true;
+  if (_contentPosition == _contentLength) {
+    _state=_persistent ? State.END : State.SEEKING_EOF;
+    if (_handler.messageComplete(_contentPosition))     return true;
+  }
 }
 break;
 }
@@ -420,7 +78,7 @@ _eol=ch;
 if (_chunkLength == 0) {
 if (_eol == HttpTokens.CARRIAGE_RETURN && buffer.hasRemaining() && buffer.get(buffer.position()) == HttpTokens.LINE_FEED) _eol=buffer.get();
 _state=_persistent ? State.END : State.SEEKING_EOF;
-return_from_parse|=_handler.messageComplete(_contentPosition);
+if (_handler.messageComplete(_contentPosition)) return true;
 }
  else _state=State.CHUNK;
 }
@@ -439,7 +97,7 @@ _eol=ch;
 if (_chunkLength == 0) {
 if (_eol == HttpTokens.CARRIAGE_RETURN && buffer.hasRemaining() && buffer.get(buffer.position()) == HttpTokens.LINE_FEED) _eol=buffer.get();
 _state=_persistent ? State.END : State.SEEKING_EOF;
-return_from_parse|=_handler.messageComplete(_contentPosition);
+if (_handler.messageComplete(_contentPosition)) return true;
 }
  else _state=State.CHUNK;
 }
@@ -458,7 +116,7 @@ remaining=_contentChunk.remaining();
 _contentPosition+=remaining;
 _chunkPosition+=remaining;
 buffer.position(buffer.position() + remaining);
-return_from_parse|=_handler.content(_contentChunk);
+if (_handler.content(_contentChunk)) return true;
 }
 break;
 }
@@ -469,7 +127,7 @@ break;
 }
 }
 }
-return return_from_parse;
+return false;
 }
  catch (HttpException e) {
 _persistent=false;
@@ -478,6 +136,7 @@ throw e;
 }
  finally {
 if (start >= 0) {
+_string.setLength(0);
 buffer.position(start);
 _state=startState;
 }
