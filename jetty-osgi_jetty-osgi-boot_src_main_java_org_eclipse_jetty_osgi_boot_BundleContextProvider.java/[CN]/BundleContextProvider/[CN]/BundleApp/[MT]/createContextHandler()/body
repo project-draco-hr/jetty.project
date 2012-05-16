@@ -1,0 +1,39 @@
+{
+  if (_contextFile == null)   throw new IllegalStateException("No contextFile");
+  Resource res=null;
+  if (_contextFile.startsWith("/"))   res=getFileAsResource(_contextFile);
+  if (res == null) {
+    String jettyHome=(String)_wrapper.getServer().getAttribute(OSGiServerConstants.JETTY_HOME);
+    if (jettyHome != null)     res=getFileAsResource(jettyHome,_contextFile);
+    if (res == null) {
+      jettyHome=System.getProperty(OSGiServerConstants.JETTY_HOME);
+      if (jettyHome.startsWith("\"") || jettyHome.startsWith("'"))       jettyHome=jettyHome.substring(1);
+      if (jettyHome.endsWith("\"") || (jettyHome.endsWith("'")))       jettyHome=jettyHome.substring(0,jettyHome.length() - 1);
+      res=getFileAsResource(jettyHome,_contextFile);
+    }
+  }
+  if (res == null) {
+    if (_contextFile.startsWith("./"))     _contextFile=_contextFile.substring(1);
+    if (!_contextFile.startsWith("/"))     _contextFile="/" + _contextFile;
+    URL contextURL=_bundle.getEntry(_contextFile);
+    if (contextURL != null)     res=Resource.newResource(contextURL);
+  }
+  if (res != null) {
+    ClassLoader cl=Thread.currentThread().getContextClassLoader();
+    LOG.debug("Context classloader = " + cl);
+    try {
+      OSGiClassLoader classLoader=new OSGiClassLoader(_wrapper.getParentClassLoaderForWebapps(),_bundle);
+      Thread.currentThread().setContextClassLoader(classLoader);
+      XmlConfiguration xmlConfiguration=new XmlConfiguration(res.getInputStream());
+      HashMap properties=new HashMap();
+      properties.put("Server",_wrapper.getServer());
+      xmlConfiguration.getProperties().putAll(properties);
+      if (_contextHandler == null)       _contextHandler=(ContextHandler)xmlConfiguration.configure();
+ else       xmlConfiguration.configure(_contextHandler);
+      _contextHandler.setClassLoader(classLoader);
+    }
+  finally {
+      Thread.currentThread().setContextClassLoader(cl);
+    }
+  }
+}

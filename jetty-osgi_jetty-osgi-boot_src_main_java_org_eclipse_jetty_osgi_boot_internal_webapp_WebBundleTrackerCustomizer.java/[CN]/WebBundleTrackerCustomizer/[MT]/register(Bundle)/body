@@ -1,6 +1,18 @@
 {
   if (bundle == null)   return false;
-  BundleWebAppProvider deployer=(BundleWebAppProvider)_serviceTracker.getService();
-  if (deployer != null)   return deployer.bundleAdded(bundle);
-  return false;
+  boolean deployed=false;
+  Object[] deployers=_serviceTracker.getServices();
+  if (deployers != null) {
+    System.err.println("FOUND " + deployers.length + " FOR "+ bundle.getSymbolicName());
+    int i=0;
+    while (!deployed && i < deployers.length) {
+      BundleProvider p=(BundleProvider)deployers[i];
+      System.err.println("Trying deployer " + p);
+      deployed=p.bundleAdded(bundle);
+      i++;
+      System.err.println("Deployer " + p + " returned "+ deployed);
+    }
+  }
+ else   System.err.println("NO DEPLOYER FOUND FOR " + bundle.getSymbolicName());
+  return deployed;
 }

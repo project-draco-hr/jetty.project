@@ -1,24 +1,44 @@
 {
-  _ctxtHandler=(ContextHandlerCollection)_server.getChildHandlerByClass(ContextHandlerCollection.class);
+  _ctxtCollection=(ContextHandlerCollection)_server.getChildHandlerByClass(ContextHandlerCollection.class);
+  if (_ctxtCollection == null)   throw new IllegalStateException("ERROR: No ContextHandlerCollection configured in Server");
+  List<String> providerClassNames=new ArrayList<String>();
   List<DeploymentManager> deployers=_server.getBeans(DeploymentManager.class);
   if (deployers != null && !deployers.isEmpty()) {
     _deploymentManager=deployers.get(0);
     for (    AppProvider provider : _deploymentManager.getAppProviders()) {
-      if (provider instanceof BundleWebAppProvider) {
-        _provider=(BundleWebAppProvider)provider;
-        break;
-      }
-    }
-    if (_provider == null) {
-      try {
-        _provider=new BundleWebAppProvider(this);
-        System.err.println("ADDED NEW BUNDLE WEBAPP PROVIDER");
-      }
- catch (      Exception e) {
-        LOG.warn(e);
-      }
-      _deploymentManager.addAppProvider(_provider);
+      providerClassNames.add(provider.getClass().getName());
     }
   }
-  if (_ctxtHandler == null || _provider == null)   throw new IllegalStateException("ERROR: No ContextHandlerCollection or OSGiAppProvider configured");
+ else {
+    _deploymentManager=new DeploymentManager();
+    _deploymentManager.setContexts(_ctxtCollection);
+    _server.addBean(_deploymentManager);
+  }
+  if (!providerClassNames.contains(BundleWebAppProvider.class.getName())) {
+    try {
+      BundleWebAppProvider webAppProvider=new BundleWebAppProvider(this);
+      _deploymentManager.addAppProvider(webAppProvider);
+    }
+ catch (    Exception e) {
+      LOG.warn(e);
+    }
+  }
+  if (!providerClassNames.contains(ServiceWebAppProvider.class.getName())) {
+    try {
+      ServiceWebAppProvider webAppProvider=new ServiceWebAppProvider(this);
+      _deploymentManager.addAppProvider(webAppProvider);
+    }
+ catch (    Exception e) {
+      LOG.warn(e);
+    }
+  }
+  if (!providerClassNames.contains(BundleContextProvider.class.getName())) {
+    try {
+      BundleContextProvider contextProvider=new BundleContextProvider(this);
+      _deploymentManager.addAppProvider(contextProvider);
+    }
+ catch (    Exception e) {
+      LOG.warn(e);
+    }
+  }
 }

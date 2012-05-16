@@ -1,0 +1,20 @@
+{
+  if (bundle == null)   return false;
+  String contextFiles=(String)bundle.getHeaders().get(OSGiWebappConstants.JETTY_CONTEXT_FILE_PATH);
+  if (contextFiles == null)   return false;
+  boolean added=false;
+  String[] tmp=contextFiles.split(",;");
+  for (  String contextFile : tmp) {
+    String originId=bundle.getSymbolicName() + "-" + bundle.getVersion().toString()+ "-"+ contextFile;
+    BundleApp app=new BundleApp(_deploymentManager,this,originId,bundle,contextFile);
+    _appMap.put(originId,app);
+    List<App> apps=_bundleMap.get(bundle);
+    if (apps == null) {
+      apps=new ArrayList<App>();
+      _bundleMap.put(bundle,apps);
+    }
+    apps.add(app);
+    _deploymentManager.addApp(app);
+  }
+  return added;
+}

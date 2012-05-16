@@ -4,6 +4,18 @@ switch (ev.getType()) {
 case ServiceEvent.MODIFIED:
 case ServiceEvent.UNREGISTERING:
 {
+      BundleContext context=FrameworkUtil.getBundle(JettyBootstrapActivator.class).getBundleContext();
+      ContextHandler contextHandler=(ContextHandler)context.getService(sr);
+      String serverName=(String)sr.getProperty(OSGiServerConstants.MANAGED_JETTY_SERVER_NAME);
+      Map<ServiceReference,ServiceProvider> candidates=getDeployers(serverName);
+      if (candidates != null) {
+        boolean removed=false;
+        Iterator<Entry<ServiceReference,ServiceProvider>> itor=candidates.entrySet().iterator();
+        while (!removed && itor.hasNext()) {
+          Entry<ServiceReference,ServiceProvider> e=itor.next();
+          removed=e.getValue().serviceRemoved(sr,contextHandler);
+        }
+      }
     }
   if (ev.getType() == ServiceEvent.UNREGISTERING) {
     break;
@@ -12,21 +24,29 @@ case ServiceEvent.UNREGISTERING:
   }
 case ServiceEvent.REGISTERED:
 {
+  System.err.println("New Service registered that could be webapp/context");
   Bundle contributor=sr.getBundle();
   BundleContext context=FrameworkUtil.getBundle(JettyBootstrapActivator.class).getBundleContext();
   ContextHandler contextHandler=(ContextHandler)context.getService(sr);
   if (contextHandler.getServer() != null) {
+    System.err.println("Already configured");
     return;
   }
-  if (contextHandler instanceof WebAppContext) {
-    WebAppContext webApp=(WebAppContext)contextHandler;
-    String whichServer=(String)sr.getProperty(OSGiServerConstants.MANAGED_JETTY_SERVER_NAME);
-    BundleWebAppProvider deployer=getDeployer(whichServer);
-    deployer.serviceAdded(sr,webApp);
+  System.err.println("Service registered from bundle: " + contributor.getSymbolicName());
+  System.err.println("war=" + sr.getProperty("war"));
+  String serverName=(String)sr.getProperty(OSGiServerConstants.MANAGED_JETTY_SERVER_NAME);
+  Map<ServiceReference,ServiceProvider> candidates=getDeployers(serverName);
+  if (candidates != null) {
+    System.err.println("Got some candidates");
+    boolean added=false;
+    Iterator<Entry<ServiceReference,ServiceProvider>> itor=candidates.entrySet().iterator();
+    while (!added && itor.hasNext()) {
+      Entry<ServiceReference,ServiceProvider> e=itor.next();
+      System.err.println("Trying ServiceProvider " + e.getValue());
+      added=e.getValue().serviceAdded(sr,contextHandler);
+    }
   }
- else {
-  }
+  break;
 }
-break;
 }
 }
