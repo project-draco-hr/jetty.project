@@ -1,0 +1,24 @@
+{
+  if (context == null || serviceRef == null)   return false;
+  ClassLoader cl=Thread.currentThread().getContextClassLoader();
+  Thread.currentThread().setContextClassLoader(getServerInstanceWrapper().getParentClassLoaderForWebapps());
+  try {
+    String contextFile=(String)serviceRef.getProperty(OSGiWebappConstants.JETTY_CONTEXT_FILE_PATH);
+    if (contextFile == null)     contextFile=(String)serviceRef.getProperty(OSGiWebappConstants.SERVICE_PROP_CONTEXT_FILE_PATH);
+    String[] keys=serviceRef.getPropertyKeys();
+    Dictionary properties=new Hashtable<String,Object>();
+    if (keys != null) {
+      for (      String key : keys)       properties.put(key,serviceRef.getProperty(key));
+    }
+    Bundle bundle=serviceRef.getBundle();
+    String originId=bundle.getSymbolicName() + "-" + bundle.getVersion().toString()+ "-"+ contextFile;
+    BundleApp app=new BundleApp(getDeploymentManager(),this,bundle,properties,contextFile,originId);
+    app.setContextHandler(context);
+    _serviceMap.put(serviceRef,app);
+    getDeploymentManager().addApp(app);
+    return true;
+  }
+  finally {
+    Thread.currentThread().setContextClassLoader(cl);
+  }
+}
