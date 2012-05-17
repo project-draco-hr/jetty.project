@@ -16,7 +16,8 @@ case METHOD:
         _state=State.SPACE1;
       }
  else       if (ch < HttpTokens.SPACE && ch >= 0) {
-        throw new HttpException(HttpStatus.BAD_REQUEST_400);
+        badMessage(buffer,"No URI");
+        return true;
       }
  else       _string.append((char)ch);
     break;
@@ -24,12 +25,16 @@ case RESPONSE_VERSION:
   if (ch == HttpTokens.SPACE) {
     String version=takeString();
     _version=HttpVersion.CACHE.get(version);
-    if (_version == null)     throw new HttpException(HttpStatus.BAD_REQUEST_400);
+    if (_version == null) {
+      badMessage(buffer,"Unknown Version");
+      return true;
+    }
     _persistent=HttpVersion.HTTP_1_1 == _version;
     _state=State.SPACE1;
   }
  else   if (ch < HttpTokens.SPACE && ch >= 0) {
-    throw new HttpException(HttpStatus.BAD_REQUEST_400);
+    badMessage(buffer,"No Status");
+    return true;
   }
  else   _string.append((char)ch);
 break;
@@ -46,7 +51,8 @@ if (_responseHandler != null) {
 }
 }
  else if (ch < HttpTokens.SPACE) {
-throw new HttpException(HttpStatus.BAD_REQUEST_400);
+badMessage(buffer,_requestHandler != null ? "No URI" : "No Status");
+return true;
 }
 break;
 case STATUS:
@@ -124,7 +130,10 @@ case REQUEST_VERSION:
 if (ch == HttpTokens.CARRIAGE_RETURN || ch == HttpTokens.LINE_FEED) {
 String version=takeString();
 _version=HttpVersion.CACHE.get(version);
-if (_version == null) throw new HttpException(HttpStatus.BAD_REQUEST_400);
+if (_version == null) {
+badMessage(buffer,"Unknown Version");
+return true;
+}
 _eol=ch;
 _persistent=HttpVersion.HTTP_1_1 == _version;
 _state=State.HEADER;

@@ -1,12 +1,19 @@
 {
-  if (_response.isCommitted())   throw new IllegalStateException("Committed");
-  _response.setStatus(status,reason);
-  if (close)   _responseFields.add(HttpHeader.CONNECTION,HttpHeaderValue.CLOSE);
-  ByteBuffer buffer=null;
-  if (content != null) {
-    buffer=BufferUtil.toBuffer(content,StringUtil.__UTF8_CHARSET);
-    _response.setContentLength(buffer.remaining());
+  if (_response.isCommitted())   return false;
+  try {
+    _response.setStatus(status,reason);
+    if (close)     _responseFields.add(HttpHeader.CONNECTION,HttpHeaderValue.CLOSE);
+    ByteBuffer buffer=null;
+    if (content != null) {
+      buffer=BufferUtil.toBuffer(content,StringUtil.__UTF8_CHARSET);
+      _response.setContentLength(buffer.remaining());
+    }
+    HttpGenerator.ResponseInfo info=_handler.commit();
+    commit(info,buffer);
+    return true;
   }
-  HttpGenerator.ResponseInfo info=_handler.commit();
-  commit(info,buffer);
+ catch (  Exception e) {
+    LOG.debug("failed to sendError {} {}",status,reason,e);
+  }
+  return false;
 }

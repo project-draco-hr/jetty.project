@@ -13,17 +13,16 @@
         for (int i=0; i < s; i++)         ((ServletRequestListener)LazyList.get(_requestListeners,i)).requestInitialized(sre);
       }
     }
-    if (DispatcherType.REQUEST.equals(dispatch) && isProtectedTarget(target))     throw new HttpException(HttpServletResponse.SC_NOT_FOUND);
+    if (DispatcherType.REQUEST.equals(dispatch) && isProtectedTarget(target)) {
+      response.sendError(HttpServletResponse.SC_NOT_FOUND);
+      baseRequest.setHandled(true);
+      return;
+    }
     if (never())     nextHandle(target,baseRequest,request,response);
  else     if (_nextScope != null && _nextScope == _handler)     _nextScope.doHandle(target,baseRequest,request,response);
  else     if (_handler != null)     _handler.handle(target,baseRequest,request,response);
   }
- catch (  HttpException e) {
-    LOG.debug(e);
-    baseRequest.setHandled(true);
-    response.sendError(e.getStatus(),e.getReason());
-  }
- finally {
+  finally {
     if (new_context) {
       if (_requestListeners != null) {
         final ServletRequestEvent sre=new ServletRequestEvent(_scontext,request);

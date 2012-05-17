@@ -16,8 +16,10 @@
       try {
         _uri.getPort();
         info=URIUtil.canonicalPath(_uri.getDecodedPath());
-        if (info == null && !_request.getMethod().equals(HttpMethod.CONNECT))         throw new HttpException(400);
-        _request.setPathInfo(info);
+        if (info == null && !_request.getMethod().equals(HttpMethod.CONNECT)) {
+          sendError(400,null,null,true);
+          return;
+        }
         if (_out != null)         _out.reopen();
         if (_async.isInitial()) {
           _request.setDispatcherType(DispatcherType.REQUEST);
@@ -37,12 +39,6 @@ catch (      EofException|RuntimeIOException e) {
         LOG.debug(e);
         error=true;
         _request.setHandled(true);
-      }
-catch (      HttpException e) {
-        LOG.debug(e);
-        error=true;
-        _request.setHandled(true);
-        _response.sendError(e.getStatus(),e.getReason());
       }
 catch (      Throwable e) {
         async_exception=e;

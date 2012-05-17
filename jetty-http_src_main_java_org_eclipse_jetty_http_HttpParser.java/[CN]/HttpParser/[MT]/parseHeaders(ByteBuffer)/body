@@ -31,7 +31,8 @@ case CONTENT_LENGTH:
                 }
  catch (                NumberFormatException e) {
                   LOG.ignore(e);
-                  throw new HttpException(HttpStatus.BAD_REQUEST_400);
+                  badMessage(buffer,"Bad Content-Length");
+                  return true;
                 }
                 if (_contentLength <= 0)                 _endOfContent=EndOfContent.NO_CONTENT;
  else                 _endOfContent=EndOfContent.CONTENT_LENGTH;
@@ -41,7 +42,10 @@ case TRANSFER_ENCODING:
           if (_value == HttpHeaderValue.CHUNKED)           _endOfContent=EndOfContent.CHUNKED_CONTENT;
  else {
             if (_valueString.endsWith(HttpHeaderValue.CHUNKED.toString()))             _endOfContent=EndOfContent.CHUNKED_CONTENT;
- else             if (_valueString.indexOf(HttpHeaderValue.CHUNKED.toString()) >= 0)             throw new HttpException(400,null);
+ else             if (_valueString.indexOf(HttpHeaderValue.CHUNKED.toString()) >= 0) {
+              badMessage(buffer,"Bad chunking");
+              return true;
+            }
           }
         break;
 case CONNECTION:
