@@ -1,55 +1,28 @@
 {
-  AsyncConnection connection=this;
-  boolean progress=true;
-  boolean suspended=false;
+  LOG.debug("{} onReadable {}",this,_channel.isIdle());
   try {
     setCurrentConnection(this);
-    while (progress && connection == this) {
-      progress=false;
-      try {
-        if (_requestBuffer == null)         _requestBuffer=_parser.isInContent() ? _bufferPool.acquire(_connector.getRequestBufferSize(),false) : _bufferPool.acquire(_connector.getRequestHeaderSize(),false);
-        if (BufferUtil.isEmpty(_requestBuffer)) {
-          int filled=getEndPoint().fill(_requestBuffer);
-          LOG.debug("{} filled {}",this,filled);
+    while (true) {
+      if (BufferUtil.isEmpty(_requestBuffer)) {
+        if (_requestBuffer == null)         _requestBuffer=_bufferPool.acquire(_connector.getRequestHeaderSize(),false);
+        int filled=getEndPoint().fill(_requestBuffer);
+        LOG.debug("{} filled {}",this,filled);
+        if (filled <= 0) {
+          if (filled == 0)           scheduleOnReadable();
+ else           _parser.inputShutdown();
+          releaseRequestBuffer();
+          return;
         }
-        if (BufferUtil.hasContent(_requestBuffer) && _parser.parseNext(_requestBuffer)) {
-          getEndPoint().setCheckForIdle(false);
-          try {
-            _channel.handleRequest();
-          }
-  finally {
-            if (!_channel.getRequest().getAsyncContinuation().isAsyncStarted())             getEndPoint().setCheckForIdle(true);
-          }
-        }
- else         if (BufferUtil.hasContent(_requestBuffer))         throw new IllegalStateException("parser should consume all content OR return true");
       }
- catch (      HttpException e) {
-        LOG.debug(e);
-        progress=false;
-        _channel.sendError(e.getStatus(),e.getReason(),null,true);
-      }
-catch (      Exception e) {
-        LOG.debug(e);
-        progress=false;
-        _channel.sendError(500,e.toString(),e.toString(),true);
-      }
- finally {
-        if (_requestBuffer != null && !_requestBuffer.hasRemaining() && _channel.available() == 0) {
-          _bufferPool.release(_requestBuffer);
-          _requestBuffer=null;
+      if (_parser.parseNext(_requestBuffer)) {
+        _channel.handleRequest();
+        if (!_channel.isIdle()) {
+          if (_httpInput.available() == 0)           releaseRequestBuffer();
+          return;
         }
-        if (_parser.isComplete() && _generator.isComplete()) {
-          if (_channel.getResponse().getStatus() == HttpStatus.SWITCHING_PROTOCOLS_101) {
-            AsyncConnection switched=(AsyncConnection)_channel.getRequest().getAttribute("org.eclipse.jetty.io.Connection");
-            if (switched != null)             connection=switched;
-          }
-          reset();
-          progress=true;
-        }
- else         if (_channel.getRequest().getAsyncContinuation().isAsyncStarted()) {
-          LOG.debug("suspended {}",this);
-          progress=false;
-          suspended=true;
+        if (getEndPoint().getAsyncConnection() != null) {
+          getEndPoint().getAsyncConnection().onOpen();
+          return;
         }
       }
     }
@@ -60,6 +33,5 @@ catch (      Exception e) {
   }
  finally {
     setCurrentConnection(null);
-    if (!getEndPoint().isInputShutdown() && !suspended)     scheduleOnReadable();
   }
 }

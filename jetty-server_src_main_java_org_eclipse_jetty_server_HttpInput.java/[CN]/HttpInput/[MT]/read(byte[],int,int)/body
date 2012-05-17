@@ -1,3 +1,24 @@
 {
-  return _channel.read(b,off,len);
+synchronized (_inputQ.lock()) {
+    System.err.println("read " + len + " "+ _inputQ);
+    ByteBuffer content=null;
+    while (content == null) {
+      content=_inputQ.peekUnsafe();
+      while (content != null && !content.hasRemaining()) {
+        _inputQ.pollUnsafe();
+        content=_inputQ.peekUnsafe();
+      }
+      if (content == null) {
+        if (_inputEOF) {
+          onEof();
+          return -1;
+        }
+        blockForContent();
+      }
+    }
+    System.err.println("reading " + len + " "+ BufferUtil.toDetailString(content));
+    int l=Math.min(len,content.remaining());
+    content.get(b,off,l);
+    return l;
+  }
 }

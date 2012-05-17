@@ -1,0 +1,26 @@
+{
+  boolean parsed_event=false;
+  while (!getEndPoint().isInputShutdown()) {
+    try {
+      if (BufferUtil.isEmpty(_requestBuffer)) {
+        FutureCallback<Void> block=new FutureCallback<>();
+        getEndPoint().readable(null,block);
+        LOG.debug("{} block readable on {}",this,block);
+        block.get();
+        if (_requestBuffer == null)         _requestBuffer=_bufferPool.acquire(_connector.getRequestBufferSize(),false);
+        int filled=getEndPoint().fill(_requestBuffer);
+        LOG.debug("{} block filled {}",this,filled);
+        if (filled < 0)         _parser.inputShutdown();
+      }
+      while (BufferUtil.hasContent(_requestBuffer) && _parser.inContentState())       parsed_event|=_parser.parseNext(_requestBuffer);
+      if (parsed_event)       return;
+    }
+ catch (    InterruptedException e) {
+      LOG.debug(e);
+    }
+catch (    ExecutionException e) {
+      LOG.debug(e);
+      FutureCallback.rethrow(e);
+    }
+  }
+}
