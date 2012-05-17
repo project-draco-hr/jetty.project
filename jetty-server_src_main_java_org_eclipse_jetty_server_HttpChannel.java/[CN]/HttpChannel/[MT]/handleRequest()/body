@@ -1,67 +1,60 @@
 {
-  System.err.println("handleRequest");
-  boolean error=false;
+  LOG.debug("{} handleRequest",this);
   String threadName=null;
+  if (LOG.isDebugEnabled()) {
+    threadName=Thread.currentThread().getName();
+    Thread.currentThread().setName(threadName + " - " + _uri);
+  }
   Throwable async_exception=null;
+  __currentChannel.set(this);
   try {
-    if (LOG.isDebugEnabled()) {
-      threadName=Thread.currentThread().getName();
-      Thread.currentThread().setName(threadName + " - " + _uri);
-    }
-    final Server server=_server;
-    boolean handling=_async.handling() && server != null && server.isRunning();
-    while (handling) {
-      _request.setHandled(false);
-      String info=null;
+    boolean handling=_state.handling();
+    while (handling && getServer().isRunning()) {
       try {
-        _uri.getPort();
-        info=URIUtil.canonicalPath(_uri.getDecodedPath());
-        if (info == null && !_request.getMethod().equals(HttpMethod.CONNECT)) {
-          sendError(400,null,null,true);
-          return;
-        }
-        if (_out != null)         _out.reopen();
-        if (_async.isInitial()) {
+        _request.setHandled(false);
+        _out.reopen();
+        if (_state.isInitial()) {
           _request.setDispatcherType(DispatcherType.REQUEST);
           getHttpConnector().customize(_request);
-          server.handle(this);
+          getServer().handle(this);
         }
  else {
           _request.setDispatcherType(DispatcherType.ASYNC);
-          server.handleAsync(this);
+          getServer().handleAsync(this);
         }
       }
  catch (      ContinuationThrowable e) {
         LOG.ignore(e);
       }
-catch (      EofException|RuntimeIOException e) {
-        async_exception=e;
+catch (      ServletException e) {
+      }
+catch (      EofException e) {
         LOG.debug(e);
-        error=true;
+        async_exception=e;
         _request.setHandled(true);
       }
 catch (      Throwable e) {
-        async_exception=e;
         LOG.warn(String.valueOf(_uri),e);
-        error=true;
+        async_exception=e;
         _request.setHandled(true);
-        if (!_response.isCommitted())         sendError(info == null ? 400 : 500,null,null,true);
+        sendError(500,null,e.toString(),true);
       }
  finally {
-        handling=!_async.unhandle() && server.isRunning() && _server != null;
+        handling=!_state.unhandle();
       }
     }
   }
   finally {
+    __currentChannel.set(null);
     if (threadName != null)     Thread.currentThread().setName(threadName);
-    if (_async.isUncompleted()) {
-      _async.doComplete(async_exception);
+    if (_state.isUncompleted()) {
+      _state.doComplete(async_exception);
       if (_expect100Continue) {
         LOG.debug("100 continues not sent");
         _expect100Continue=false;
         if (!_response.isCommitted())         _response.addHeader(HttpHeader.CONNECTION,HttpHeaderValue.CLOSE.toString());
       }
-      if (!error && !_response.isCommitted() && !_request.isHandled())       _response.sendError(HttpServletResponse.SC_NOT_FOUND);
+      if (!_response.isCommitted() && !_request.isHandled())       _response.sendError(HttpServletResponse.SC_NOT_FOUND);
       _response.complete();
       _request.setHandled(true);
       completed();
