@@ -1,15 +1,22 @@
 {
-  LOG.debug("{} completed",this);
+  LOG.debug(BufferUtil.toDetailString(_requestBuffer));
   HttpConnection.this.reset();
-  if (_requestBuffer != null && getCurrentConnection() == null)   execute(new Runnable(){
-    @Override public void run(){
-      onReadable();
-    }
-  }
+  if (getCurrentConnection() == null) {
+    if (_parser.isIdle()) {
+      if (_requestBuffer == null)       scheduleOnReadable();
+ else {
+        LOG.debug("{} pipelined",this);
+        execute(new Runnable(){
+          @Override public void run(){
+            onReadable();
+          }
+        }
 );
- else   if (_parser.isIdle())   scheduleOnReadable();
- else   if (!getEndPoint().isOutputShutdown() && _parser.getState() == HttpParser.State.SEEKING_EOF) {
-    LOG.warn("Endpoint output not shutdown when seeking EOF");
-    getEndPoint().close();
+      }
+    }
+ else     if (!getEndPoint().isOutputShutdown() && _parser.getState() == HttpParser.State.SEEKING_EOF) {
+      LOG.warn("Endpoint output not shutdown when seeking EOF");
+      getEndPoint().close();
+    }
   }
 }
