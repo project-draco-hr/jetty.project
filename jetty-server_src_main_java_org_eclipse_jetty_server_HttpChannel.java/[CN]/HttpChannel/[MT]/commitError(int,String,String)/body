@@ -1,8 +1,9 @@
 {
+  LOG.debug("{} sendError {} {}",this,status,reason);
   if (_response.isCommitted())   return false;
   try {
     _response.setStatus(status,reason);
-    if (close)     _responseFields.add(HttpHeader.CONNECTION,HttpHeaderValue.CLOSE);
+    _responseFields.add(HttpHeader.CONNECTION,HttpHeaderValue.CLOSE);
     ByteBuffer buffer=null;
     if (content != null) {
       buffer=BufferUtil.toBuffer(content,StringUtil.__UTF8_CHARSET);
@@ -14,6 +15,10 @@
   }
  catch (  Exception e) {
     LOG.debug("failed to sendError {} {}",status,reason,e);
+  }
+ finally {
+    if (_state.isIdle())     _state.complete();
+    _in.shutdownInput();
   }
   return false;
 }

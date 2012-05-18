@@ -37,7 +37,7 @@ catch (      Throwable e) {
         LOG.warn(String.valueOf(_uri),e);
         async_exception=e;
         _request.setHandled(true);
-        sendError(500,null,e.toString(),true);
+        commitError(500,null,e.toString());
       }
  finally {
         handling=!_state.unhandle();
@@ -54,8 +54,8 @@ catch (      Throwable e) {
         _expect100Continue=false;
         if (!_response.isCommitted())         _response.addHeader(HttpHeader.CONNECTION,HttpHeaderValue.CLOSE.toString());
       }
-      if (!_response.isCommitted() && !_request.isHandled())       sendError(HttpServletResponse.SC_NOT_FOUND,null,null,false);
       try {
+        if (!_response.isCommitted() && !_request.isHandled())         _response.sendError(404);
         _response.complete();
       }
  catch (      IOException e) {
