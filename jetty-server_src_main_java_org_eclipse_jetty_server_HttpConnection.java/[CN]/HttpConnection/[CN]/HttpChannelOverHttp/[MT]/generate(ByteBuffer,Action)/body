@@ -14,19 +14,28 @@ synchronized (_lock) {
 switch (result) {
 case NEED_COMMIT:
           if (_info == null)           _info=_channel.getEventHandler().commit();
-        _responseHeader=_bufferPool.acquire(_connector.getResponseHeaderSize(),false);
-      continue;
+        LOG.debug("{} Gcommit {}",this,_info);
+      _responseHeader=_bufferPool.acquire(_connector.getResponseHeaderSize(),false);
+    continue;
 case NEED_BUFFER:
-    _responseBuffer=_bufferPool.acquire(_connector.getResponseBufferSize(),false);
-  continue;
+  _responseBuffer=_bufferPool.acquire(_connector.getResponseBufferSize(),false);
+continue;
 case NEED_CHUNK:
 _responseHeader=null;
 _chunk=_bufferPool.acquire(HttpGenerator.CHUNK_SIZE,false);
 continue;
 case FLUSH:
+if (_info.isHead()) {
+BufferUtil.clear(_chunk);
+BufferUtil.clear(_responseBuffer);
+}
 write(_responseHeader,_chunk,_responseBuffer).get();
 continue;
 case FLUSH_CONTENT:
+if (_info.isHead()) {
+BufferUtil.clear(_chunk);
+BufferUtil.clear(content);
+}
 write(_responseHeader,_chunk,content).get();
 break;
 case SHUTDOWN_OUT:

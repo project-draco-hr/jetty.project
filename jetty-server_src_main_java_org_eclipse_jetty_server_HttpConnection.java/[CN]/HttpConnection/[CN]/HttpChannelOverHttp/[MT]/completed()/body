@@ -1,7 +1,12 @@
 {
   LOG.debug("{} completed",this);
   HttpConnection.this.reset();
-  if (_requestBuffer != null && getCurrentConnection() == null)   onReadable();
+  if (_requestBuffer != null && getCurrentConnection() == null)   execute(new Runnable(){
+    @Override public void run(){
+      onReadable();
+    }
+  }
+);
  else   if (_parser.isIdle())   scheduleOnReadable();
  else   if (!getEndPoint().isOutputShutdown() && _parser.getState() == HttpParser.State.SEEKING_EOF) {
     LOG.warn("Endpoint output not shutdown when seeking EOF");
