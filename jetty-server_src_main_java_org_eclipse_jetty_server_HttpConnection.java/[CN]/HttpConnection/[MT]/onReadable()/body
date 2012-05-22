@@ -15,8 +15,8 @@
         }
       }
       if (_parser.parseNext(_requestBuffer)) {
-        _channel.handleRequest();
-        if (!_channel.isIdle()) {
+        _channel.process();
+        if (_channel.isSuspended()) {
           if (_httpInput.available() == 0)           releaseRequestBuffer();
           return;
         }
@@ -24,10 +24,6 @@
           getEndPoint().getAsyncConnection().onOpen();
           return;
         }
-      }
- else       if (BufferUtil.hasContent(_requestBuffer)) {
-        LOG.warn("STATE MACHINE FAILURE??? {} {}",_parser,BufferUtil.toDetailString(_requestBuffer));
-        BufferUtil.clear(_requestBuffer);
       }
     }
   }

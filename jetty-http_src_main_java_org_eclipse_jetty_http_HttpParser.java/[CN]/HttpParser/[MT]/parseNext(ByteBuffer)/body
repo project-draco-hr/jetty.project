@@ -1,58 +1,66 @@
 {
   try {
-    if (_state == State.END)     return false;
-    if (_state == State.CONTENT && _contentPosition == _contentLength) {
-      _state=State.END;
-      if (_handler.messageComplete(_contentPosition))       return true;
-    }
-    if (_state == State.START) {
+switch (_state) {
+case START:
       _version=null;
-      _method=null;
-      _methodString=null;
-      _uri=null;
-      _endOfContent=EndOfContent.UNKNOWN_CONTENT;
-      _header=null;
-      quickStart(buffer);
-    }
-    if (_state.ordinal() < State.HEADER.ordinal())     if (parseLine(buffer))     return true;
-    if (_state.ordinal() < State.END.ordinal())     if (parseHeaders(buffer))     return true;
-    if (_responseStatus > 0 && _headResponse) {
-      _state=_persistent || (_responseStatus >= 100 && _responseStatus < 200) ? State.END : State.SEEKING_EOF;
-      if (_handler.messageComplete(_contentLength))       return true;
-    }
-    byte ch;
-    while (_state.ordinal() > State.END.ordinal() && buffer.hasRemaining()) {
-      if (_eol == HttpTokens.CARRIAGE_RETURN && buffer.get(buffer.position()) == HttpTokens.LINE_FEED) {
-        _eol=buffer.get();
-        continue;
-      }
-      _eol=0;
+    _method=null;
+  _methodString=null;
+_uri=null;
+_endOfContent=EndOfContent.UNKNOWN_CONTENT;
+_header=null;
+quickStart(buffer);
+break;
+case CONTENT:
+if (_contentPosition == _contentLength) {
+_state=State.END;
+if (_handler.messageComplete(_contentPosition)) return true;
+}
+break;
+case END:
+return false;
+case CLOSED:
+BufferUtil.clear(buffer);
+return false;
+}
+if (_state.ordinal() < State.HEADER.ordinal()) if (parseLine(buffer)) return true;
+if (_state.ordinal() < State.END.ordinal()) if (parseHeaders(buffer)) return true;
+if (_responseStatus > 0 && _headResponse) {
+_state=State.END;
+if (_handler.messageComplete(_contentLength)) return true;
+}
+byte ch;
+while (_state.ordinal() > State.END.ordinal() && buffer.hasRemaining()) {
+if (_eol == HttpTokens.CARRIAGE_RETURN && buffer.get(buffer.position()) == HttpTokens.LINE_FEED) {
+_eol=buffer.get();
+continue;
+}
+_eol=0;
 switch (_state) {
 case EOF_CONTENT:
-        _contentChunk=buffer.asReadOnlyBuffer();
-      _contentPosition+=_contentChunk.remaining();
-    buffer.position(buffer.position() + _contentChunk.remaining());
-  if (_handler.content(_contentChunk))   return true;
+_contentChunk=buffer.asReadOnlyBuffer();
+_contentPosition+=_contentChunk.remaining();
+buffer.position(buffer.position() + _contentChunk.remaining());
+if (_handler.content(_contentChunk)) return true;
 break;
 case CONTENT:
 {
 long remaining=_contentLength - _contentPosition;
 if (remaining == 0) {
-  _state=_persistent ? State.END : State.SEEKING_EOF;
-  if (_handler.messageComplete(_contentPosition))   return true;
+_state=State.END;
+if (_handler.messageComplete(_contentPosition)) return true;
 }
  else {
-  _contentChunk=buffer.asReadOnlyBuffer();
-  if (_contentChunk.remaining() > remaining) {
-    _contentChunk.limit(_contentChunk.position() + (int)remaining);
-  }
-  _contentPosition+=_contentChunk.remaining();
-  buffer.position(buffer.position() + _contentChunk.remaining());
-  if (_handler.content(_contentChunk))   return true;
-  if (_contentPosition == _contentLength) {
-    _state=_persistent ? State.END : State.SEEKING_EOF;
-    if (_handler.messageComplete(_contentPosition))     return true;
-  }
+_contentChunk=buffer.asReadOnlyBuffer();
+if (_contentChunk.remaining() > remaining) {
+_contentChunk.limit(_contentChunk.position() + (int)remaining);
+}
+_contentPosition+=_contentChunk.remaining();
+buffer.position(buffer.position() + _contentChunk.remaining());
+if (_handler.content(_contentChunk)) return true;
+if (_contentPosition == _contentLength) {
+_state=State.END;
+if (_handler.messageComplete(_contentPosition)) return true;
+}
 }
 break;
 }
@@ -75,7 +83,7 @@ if (ch == HttpTokens.CARRIAGE_RETURN || ch == HttpTokens.LINE_FEED) {
 _eol=ch;
 if (_chunkLength == 0) {
 if (_eol == HttpTokens.CARRIAGE_RETURN && buffer.hasRemaining() && buffer.get(buffer.position()) == HttpTokens.LINE_FEED) _eol=buffer.get();
-_state=_persistent ? State.END : State.SEEKING_EOF;
+_state=State.END;
 if (_handler.messageComplete(_contentPosition)) return true;
 }
  else _state=State.CHUNK;
@@ -94,7 +102,7 @@ if (ch == HttpTokens.CARRIAGE_RETURN || ch == HttpTokens.LINE_FEED) {
 _eol=ch;
 if (_chunkLength == 0) {
 if (_eol == HttpTokens.CARRIAGE_RETURN && buffer.hasRemaining() && buffer.get(buffer.position()) == HttpTokens.LINE_FEED) _eol=buffer.get();
-_state=_persistent ? State.END : State.SEEKING_EOF;
+_state=State.END;
 if (_handler.messageComplete(_contentPosition)) return true;
 }
  else _state=State.CHUNK;
@@ -116,11 +124,6 @@ _chunkPosition+=remaining;
 buffer.position(buffer.position() + remaining);
 if (_handler.content(_contentChunk)) return true;
 }
-break;
-}
-case SEEKING_EOF:
-{
-buffer.clear().limit(0);
 break;
 }
 }

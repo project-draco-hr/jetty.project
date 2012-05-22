@@ -1,8 +1,11 @@
 {
-  LOG.debug(BufferUtil.toDetailString(_requestBuffer));
+  LOG.debug("{} completed");
+  if (!_parser.isComplete()) {
+    _httpInput.consumeAll();
+  }
   HttpConnection.this.reset();
   if (getCurrentConnection() == null) {
-    if (_parser.isIdle()) {
+    if (_parser.isStart()) {
       if (_requestBuffer == null)       scheduleOnReadable();
  else {
         LOG.debug("{} pipelined",this);
@@ -14,7 +17,7 @@
 );
       }
     }
- else     if (!getEndPoint().isOutputShutdown() && _parser.getState() == HttpParser.State.SEEKING_EOF) {
+ else     if (!getEndPoint().isOutputShutdown() && _parser.isState(HttpParser.State.CLOSED)) {
       LOG.warn("Endpoint output not shutdown when seeking EOF");
       getEndPoint().close();
     }
