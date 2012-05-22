@@ -1,0 +1,67 @@
+{
+  final CountDownLatch clientResetReceivedLatch=new CountDownLatch(1);
+  final CountDownLatch serverReplySentLatch=new CountDownLatch(1);
+  final CountDownLatch clientReplyReceivedLatch=new CountDownLatch(1);
+  final CountDownLatch serverDataReceivedLatch=new CountDownLatch(1);
+  InetSocketAddress startServer=startServer(new ServerSessionFrameListener.Adapter(){
+    @Override public StreamFrameListener onSyn(    Stream stream,    SynInfo synInfo){
+      stream.reply(new ReplyInfo(false));
+      serverReplySentLatch.countDown();
+      try {
+        clientReplyReceivedLatch.await(5,TimeUnit.SECONDS);
+      }
+ catch (      InterruptedException e) {
+        e.printStackTrace();
+      }
+      return new StreamFrameListener.Adapter(){
+        @Override public void onData(        Stream stream,        DataInfo dataInfo){
+          serverDataReceivedLatch.countDown();
+          super.onData(stream,dataInfo);
+        }
+      }
+;
+    }
+  }
+);
+  final Generator generator=new Generator(new StandardByteBufferPool(),new StandardCompressionFactory().newCompressor());
+  int streamId=1;
+  ByteBuffer synData=generator.control(new SynStreamFrame(version,SynInfo.FLAG_CLOSE,streamId,0,(byte)0,new Headers()));
+  final SocketChannel socketChannel=SocketChannel.open(startServer);
+  socketChannel.write(synData);
+  assertThat("server: syn reply is sent",serverReplySentLatch.await(5,TimeUnit.SECONDS),is(true));
+  Parser parser=new Parser(new StandardCompressionFactory.StandardDecompressor());
+  parser.addListener(new Listener.Adapter(){
+    @Override public void onControlFrame(    ControlFrame frame){
+      if (frame instanceof SynReplyFrame) {
+        SynReplyFrame synReplyFrame=(SynReplyFrame)frame;
+        clientReplyReceivedLatch.countDown();
+        int streamId=synReplyFrame.getStreamId();
+        ByteBuffer data=generator.data(streamId,0,new StringDataInfo("data",false));
+        try {
+          socketChannel.write(data);
+        }
+ catch (        IOException e) {
+          e.printStackTrace();
+        }
+      }
+ else       if (frame instanceof RstStreamFrame) {
+        clientResetReceivedLatch.countDown();
+      }
+      super.onControlFrame(frame);
+    }
+    @Override public void onDataFrame(    DataFrame frame,    ByteBuffer data){
+      super.onDataFrame(frame,data);
+    }
+  }
+);
+  ByteBuffer response=ByteBuffer.allocate(28);
+  socketChannel.read(response);
+  response.flip();
+  parser.parse(response);
+  assertThat("server didn't receive data",serverDataReceivedLatch.await(1,TimeUnit.SECONDS),not(true));
+  assertThat("client didn't receive reset",clientResetReceivedLatch.await(1,TimeUnit.SECONDS),not(true));
+  ByteBuffer buffer=generator.control(new GoAwayFrame(version,streamId,SessionStatus.OK.getCode()));
+  socketChannel.write(buffer);
+  Assert.assertThat(buffer.hasRemaining(),is(false));
+  socketChannel.close();
+}

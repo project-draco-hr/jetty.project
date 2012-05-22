@@ -17,11 +17,12 @@
     }
   }
 );
-  clientSession.syn(new SynInfo(false),null).get(5,TimeUnit.SECONDS);
-  Assert.assertTrue(synLatch.await(5,TimeUnit.SECONDS));
+  Stream stream=clientSession.syn(new SynInfo(false),null).get(5,TimeUnit.SECONDS);
+  assertTrue("syncLatch didn't count down",synLatch.await(5,TimeUnit.SECONDS));
   Session serverSession=serverSessionRef.get();
-  Assert.assertEquals(0,serverSession.getStreams().size());
-  Assert.assertTrue(rstLatch.await(5,TimeUnit.SECONDS));
+  assertEquals("serverSession expected to contain 0 streams",0,serverSession.getStreams().size());
+  assertTrue("rstLatch didn't count down",rstLatch.await(5,TimeUnit.SECONDS));
   TimeUnit.SECONDS.sleep(1);
-  Assert.assertEquals(0,clientSession.getStreams().size());
+  assertTrue("stream is expected to be reset",stream.isReset());
+  assertEquals("clientSession expected to contain 0 streams",0,clientSession.getStreams().size());
 }

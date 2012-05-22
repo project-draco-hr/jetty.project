@@ -5,7 +5,7 @@
   Session session=startClient(startServer(new ServerSessionFrameListener.Adapter(){
     @Override public StreamFrameListener onSyn(    Stream stream,    SynInfo synInfo){
       try {
-        Assert.assertTrue(synLatch.await(5,TimeUnit.SECONDS));
+        assertTrue(synLatch.await(5,TimeUnit.SECONDS));
         stream.getSession().rst(new RstInfo(stream.getId(),StreamStatus.REFUSED_STREAM));
         return new StreamFrameListener.Adapter(){
           @Override public void onData(          Stream stream,          DataInfo dataInfo){
@@ -33,6 +33,7 @@
     }
   }
 );
-  Assert.assertTrue(rstLatch.await(5,TimeUnit.SECONDS));
-  Assert.assertFalse(dataLatch.await(1,TimeUnit.SECONDS));
+  assertTrue("rstLatch didn't count down",rstLatch.await(5,TimeUnit.SECONDS));
+  assertTrue("stream is expected to be reset",stream.isReset());
+  assertFalse("dataLatch shouln't be count down",dataLatch.await(1,TimeUnit.SECONDS));
 }
