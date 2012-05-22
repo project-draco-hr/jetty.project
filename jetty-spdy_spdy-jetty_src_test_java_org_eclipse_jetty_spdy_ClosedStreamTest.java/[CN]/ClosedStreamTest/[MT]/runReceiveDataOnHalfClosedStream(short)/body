@@ -23,9 +23,10 @@
     }
   }
 );
-  final SocketChannel socketChannel=SocketChannel.open(startServer);
   final Generator generator=new Generator(new StandardByteBufferPool(),new StandardCompressionFactory().newCompressor());
-  ByteBuffer synData=generator.control(new SynStreamFrame(version,SynInfo.FLAG_CLOSE,1,0,(byte)0,new Headers()));
+  int streamId=1;
+  ByteBuffer synData=generator.control(new SynStreamFrame(version,SynInfo.FLAG_CLOSE,streamId,0,(byte)0,new Headers()));
+  final SocketChannel socketChannel=SocketChannel.open(startServer);
   socketChannel.write(synData);
   assertThat("server: syn reply is sent",serverReplySentLatch.await(5,TimeUnit.SECONDS),is(true));
   Parser parser=new Parser(new StandardCompressionFactory.StandardDecompressor());
@@ -58,5 +59,9 @@
   response.flip();
   parser.parse(response);
   assertThat("server didn't receive data",serverDataReceivedLatch.await(1,TimeUnit.SECONDS),not(true));
-  return clientResetReceivedLatch;
+  assertThat("client didn't receive reset",clientResetReceivedLatch.await(1,TimeUnit.SECONDS),not(true));
+  ByteBuffer buffer=generator.control(new GoAwayFrame(version,streamId,SessionStatus.OK.getCode()));
+  socketChannel.write(buffer);
+  Assert.assertThat(buffer.hasRemaining(),is(false));
+  socketChannel.close();
 }
