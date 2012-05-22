@@ -1,0 +1,25 @@
+{
+  Set<String> result=Collections.emptySet();
+  String scheme=requestHeaders.get("scheme").value();
+  String host=requestHeaders.get("host").value();
+  String origin=new StringBuilder(scheme).append("://").append(host).toString();
+  String url=requestHeaders.get("url").value();
+  String absoluteURL=new StringBuilder(origin).append(url).toString();
+  logger.debug("Applying push strategy for {}",absoluteURL);
+  if (isValidMethod(requestHeaders.get("method").value())) {
+    if (isMainResource(url,responseHeaders)) {
+      result=pushResources(absoluteURL);
+    }
+ else     if (isPushResource(url,responseHeaders)) {
+      Headers.Header referrerHeader=requestHeaders.get("referer");
+      if (referrerHeader != null) {
+        String referrer=referrerHeader.value();
+        Set<String> pushResources=resources.get(referrer);
+        if (pushResources == null || !pushResources.contains(url))         buildMetadata(origin,url,referrer);
+ else         result=pushResources(absoluteURL);
+      }
+    }
+  }
+  logger.debug("Push resources for {}: {}",absoluteURL,result);
+  return result;
+}

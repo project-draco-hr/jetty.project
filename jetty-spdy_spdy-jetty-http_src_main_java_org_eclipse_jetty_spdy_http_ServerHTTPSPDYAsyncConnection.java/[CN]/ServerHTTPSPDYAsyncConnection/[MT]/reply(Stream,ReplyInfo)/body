@@ -1,0 +1,27 @@
+{
+  if (!stream.isUnidirectional())   stream.reply(replyInfo);
+  if (replyInfo.getHeaders().get("status").value().startsWith("200") && !stream.isClosed() && !isIfModifiedSinceHeaderPresent()) {
+    Headers.Header scheme=headers.get("scheme");
+    Headers.Header host=headers.get("host");
+    Headers.Header url=headers.get("url");
+    Set<String> pushResources=pushStrategy.apply(stream,this.headers,replyInfo.getHeaders());
+    String referrer=new StringBuilder(scheme.value()).append("://").append(host.value()).append(url.value()).toString();
+    for (    String pushURL : pushResources) {
+      final Headers pushHeaders=new Headers();
+      pushHeaders.put("method","GET");
+      pushHeaders.put("url",pushURL);
+      pushHeaders.put("version","HTTP/1.1");
+      pushHeaders.put(scheme);
+      pushHeaders.put(host);
+      pushHeaders.put("referer",referrer);
+      pushHeaders.put(headers.get("accept-encoding"));
+      stream.syn(new SynInfo(pushHeaders,false),getMaxIdleTime(),TimeUnit.MILLISECONDS,new Handler.Adapter<Stream>(){
+        @Override public void completed(        Stream pushStream){
+          Synchronous pushConnection=new Synchronous(getConnector(),getEndPoint(),getServer(),connection,pushStrategy,pushStream);
+          pushConnection.beginRequest(pushHeaders,true);
+        }
+      }
+);
+    }
+  }
+}
