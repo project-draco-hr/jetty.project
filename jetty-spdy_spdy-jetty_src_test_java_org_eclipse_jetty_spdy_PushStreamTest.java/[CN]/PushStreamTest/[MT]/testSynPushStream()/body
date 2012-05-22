@@ -1,0 +1,33 @@
+{
+  final AtomicReference<Stream> pushStreamRef=new AtomicReference<>();
+  final CountDownLatch pushStreamLatch=new CountDownLatch(1);
+  Session clientSession=startClient(startServer(new ServerSessionFrameListener.Adapter(){
+    @Override public StreamFrameListener onSyn(    Stream stream,    SynInfo synInfo){
+      stream.reply(new ReplyInfo(false));
+      stream.syn(new SynInfo(true));
+      return null;
+    }
+  }
+),new SessionFrameListener.Adapter(){
+    @Override public StreamFrameListener onSyn(    Stream stream,    SynInfo synInfo){
+      assertThat("streamId is even",stream.getId() % 2,is(0));
+      assertThat("stream is unidirectional",stream.isUnidirectional(),is(true));
+      assertThat("stream is closed",stream.isClosed(),is(true));
+      assertThat("stream has associated stream",stream.getAssociatedStream(),notNullValue());
+      try {
+        stream.reply(new ReplyInfo(false));
+        fail("Cannot reply to push streams");
+      }
+ catch (      IllegalStateException x) {
+      }
+      pushStreamRef.set(stream);
+      pushStreamLatch.countDown();
+      return null;
+    }
+  }
+);
+  Stream stream=clientSession.syn(new SynInfo(true),null).get();
+  assertThat("onSyn has been called",pushStreamLatch.await(5,TimeUnit.SECONDS),is(true));
+  Stream pushStream=pushStreamRef.get();
+  assertThat("main stream and associated stream are the same",stream,sameInstance(pushStream.getAssociatedStream()));
+}
