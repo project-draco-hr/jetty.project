@@ -12,14 +12,12 @@
   byte[] bytes=new byte[1];
   ByteBuffer writeBuffer=generator.data(streamId,bytes.length,new BytesDataInfo(bytes,true));
   channel.write(writeBuffer);
+  assertThat("data is fully written",writeBuffer.hasRemaining(),is(false));
   readBuffer.clear();
   channel.read(readBuffer);
   readBuffer.flip();
   Assert.assertEquals(ControlFrameType.RST_STREAM.getCode(),readBuffer.getShort(2));
   Assert.assertEquals(streamId,readBuffer.getInt(8));
-  writeBuffer=generator.control(new GoAwayFrame(SPDY.V2,0,SessionStatus.OK.getCode()));
-  channel.write(writeBuffer);
-  channel.shutdownOutput();
-  channel.close();
+  session.goAway().get(5,TimeUnit.SECONDS);
   server.close();
 }

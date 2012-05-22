@@ -3,6 +3,7 @@
   final CountDownLatch serverReplySentLatch=new CountDownLatch(1);
   final CountDownLatch clientReplyReceivedLatch=new CountDownLatch(1);
   final CountDownLatch serverDataReceivedLatch=new CountDownLatch(1);
+  final CountDownLatch goAwayReceivedLatch=new CountDownLatch(1);
   InetSocketAddress startServer=startServer(new ServerSessionFrameListener.Adapter(){
     @Override public StreamFrameListener onSyn(    Stream stream,    SynInfo synInfo){
       stream.reply(new ReplyInfo(false));
@@ -21,6 +22,9 @@
       }
 ;
     }
+    @Override public void onGoAway(    Session session,    GoAwayInfo goAwayInfo){
+      goAwayReceivedLatch.countDown();
+    }
   }
 );
   final Generator generator=new Generator(new StandardByteBufferPool(),new StandardCompressionFactory().newCompressor());
@@ -28,6 +32,7 @@
   ByteBuffer synData=generator.control(new SynStreamFrame(version,SynInfo.FLAG_CLOSE,streamId,0,(byte)0,new Headers()));
   final SocketChannel socketChannel=SocketChannel.open(startServer);
   socketChannel.write(synData);
+  assertThat("synData is fully written",synData.hasRemaining(),is(false));
   assertThat("server: syn reply is sent",serverReplySentLatch.await(5,TimeUnit.SECONDS),is(true));
   Parser parser=new Parser(new StandardCompressionFactory.StandardDecompressor());
   parser.addListener(new Listener.Adapter(){
@@ -63,5 +68,6 @@
   ByteBuffer buffer=generator.control(new GoAwayFrame(version,streamId,SessionStatus.OK.getCode()));
   socketChannel.write(buffer);
   Assert.assertThat(buffer.hasRemaining(),is(false));
+  assertThat("GoAway frame is received by server",goAwayReceivedLatch.await(5,TimeUnit.SECONDS),is(true));
   socketChannel.close();
 }
