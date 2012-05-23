@@ -12,13 +12,16 @@ synchronized (_lock) {
         HttpGenerator.Result result=_generator.generate(_info,_responseHeader,_chunk,_responseBuffer,content,action);
         if (LOG.isDebugEnabled())         LOG.debug("{} generate: {} ({},{},{})@{}",this,result,BufferUtil.toSummaryString(_responseHeader),BufferUtil.toSummaryString(_responseBuffer),BufferUtil.toSummaryString(content),_generator.getState());
 switch (result) {
-case NEED_COMMIT:
+case NEED_INFO:
           if (_info == null)           _info=_channel.getEventHandler().commit();
         LOG.debug("{} Gcommit {}",this,_info);
-      _responseHeader=_bufferPool.acquire(_connector.getResponseHeaderSize(),false);
+      if (_responseHeader == null)       _responseHeader=_bufferPool.acquire(_connector.getResponseHeaderSize(),false);
     continue;
+case NEED_HEADER:
+  _responseHeader=_bufferPool.acquire(_connector.getResponseHeaderSize(),false);
+continue;
 case NEED_BUFFER:
-  _responseBuffer=_bufferPool.acquire(_connector.getResponseBufferSize(),false);
+_responseBuffer=_bufferPool.acquire(_connector.getResponseBufferSize(),false);
 continue;
 case NEED_CHUNK:
 _responseHeader=null;

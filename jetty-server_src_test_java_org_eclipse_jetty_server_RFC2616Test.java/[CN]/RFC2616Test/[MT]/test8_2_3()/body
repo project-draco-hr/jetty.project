@@ -1,7 +1,14 @@
 {
-  String response;
   int offset=0;
-  response=connector.getResponses("GET /R1 HTTP/1.1\n" + "Host: localhost\n" + "Connection: close\n"+ "Expect: 100-continue\n"+ "Content-Type: text/plain\n"+ "Content-Length: 8\n"+ "\n",true);
-  offset=checkContains(response,offset,"HTTP/1.1 100 ","8.2.3 expect 100") + 1;
-  checkNotContained(response,offset,"HTTP/1.1 200","8.2.3 expect 100");
+  LocalHttpConnector.LocalEndPoint endp=connector.executeRequest("GET /R1 HTTP/1.1\n" + "Host: localhost\n" + "Connection: close\n"+ "Expect: 100-continue\n"+ "Content-Type: text/plain\n"+ "Content-Length: 8\n"+ "\n");
+  Thread.sleep(200);
+  String infomational=endp.takeOutputString();
+  offset=checkContains(infomational,offset,"HTTP/1.1 100 ","8.2.3 expect 100") + 1;
+  checkNotContained(infomational,offset,"HTTP/1.1 200","8.2.3 expect 100");
+  endp.addInput("654321\015\012");
+  Thread.sleep(200);
+  String response=endp.takeOutputString();
+  offset=0;
+  offset=checkContains(response,offset,"HTTP/1.1 200","8.2.3 expect 100") + 1;
+  offset=checkContains(response,offset,"654321","8.2.3 expect 100") + 1;
 }

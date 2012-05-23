@@ -1,14 +1,22 @@
 {
-  while (true) {
+  if (!_generator.isPersistent()) {
+    _parser.setState(HttpParser.State.CLOSED);
 synchronized (_inputQ.lock()) {
       _inputQ.clear();
     }
-    if (_parser.isComplete() || _parser.isClosed())     return;
-    try {
-      blockForContent();
-    }
- catch (    IOException e) {
-      LOG.warn(e);
+  }
+ else {
+    while (true) {
+synchronized (_inputQ.lock()) {
+        _inputQ.clear();
+      }
+      if (_parser.isComplete() || _parser.isClosed())       return;
+      try {
+        blockForContent();
+      }
+ catch (      IOException e) {
+        LOG.warn(e);
+      }
     }
   }
 }

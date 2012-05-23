@@ -60,9 +60,9 @@ return Result.OK;
 case COMMITTING:
 case COMMITTING_COMPLETING:
 {
-if (info == null) return Result.NEED_COMMIT;
+if (info == null) return Result.NEED_INFO;
 if (info instanceof RequestInfo) {
-if (header == null || header.capacity() <= CHUNK_SIZE) return Result.NEED_COMMIT;
+if (header == null || header.capacity() <= CHUNK_SIZE) return Result.NEED_HEADER;
 if (info.getHttpVersion() == HttpVersion.HTTP_0_9) {
 _noContent=true;
 generateRequestLine((RequestInfo)info,header);
@@ -80,7 +80,7 @@ _state=State.COMMITTED;
 if (result == Result.FLUSH_CONTENT) _contentPrepared+=content.remaining();
 return result;
 }
-if (header == null || header.capacity() <= CHUNK_SIZE) return Result.NEED_COMMIT;
+if (header == null || header.capacity() <= CHUNK_SIZE) return Result.NEED_HEADER;
 if (_persistent == null) _persistent=(info.getHttpVersion().ordinal() > HttpVersion.HTTP_1_0.ordinal());
 generateResponseLine(((ResponseInfo)info),header);
 int status=((ResponseInfo)info).getStatus();
@@ -88,8 +88,8 @@ if (status >= 100 && status < 200) {
 _noContent=true;
 if (status != 101) {
 header.put(HttpTokens.CRLF);
-_state=State.START;
-return Result.OK;
+_state=State.COMPLETING_1XX;
+return Result.FLUSH;
 }
 }
  else if (status == 204 || status == 304) {
@@ -149,6 +149,9 @@ _state=State.END;
 }
 }
 return result;
+case COMPLETING_1XX:
+reset();
+return Result.OK;
 case END:
 if (!_persistent) result=Result.SHUTDOWN_OUT;
 return Result.OK;
