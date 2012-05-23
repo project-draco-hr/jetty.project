@@ -1,38 +1,36 @@
 {
-  _bytes=new ByteArrayBuffer(2048);
-  Buffers buffers=new SimpleBuffers(new ByteArrayBuffer(1024),new ByteArrayBuffer(1024));
-  ByteArrayEndPoint endp=new ByteArrayEndPoint();
-  AbstractGenerator generator=new AbstractGenerator(buffers,endp){
-    @Override public boolean isRequest(){
-      return false;
+  _bytes=BufferUtil.allocate(2048);
+  HttpChannel channel=new HttpChannel(null,null,null){
+    @Override public HttpConnector getHttpConnector(){
+      return null;
     }
-    @Override public boolean isResponse(){
-      return true;
+    @Override protected int write(    ByteBuffer content) throws IOException {
+      return BufferUtil.append(content,_bytes);
     }
-    @Override public void completeHeader(    HttpFields fields,    boolean allContentAdded) throws IOException {
+    @Override protected void commit(    ResponseInfo info,    ByteBuffer content) throws IOException {
     }
-    @Override public int flushBuffer() throws IOException {
+    @Override protected int getContentBufferSize(){
       return 0;
     }
-    @Override public int prepareUncheckedAddContent() throws IOException {
-      return 1024;
+    @Override protected void increaseContentBufferSize(    int size){
     }
-    public void addContent(    ByteBuffer content,    boolean last) throws IOException {
-      _bytes.put(content);
-      content.clear();
+    @Override protected void resetBuffer(){
+      BufferUtil.clear(_bytes);
     }
-    public boolean addContent(    byte b) throws IOException {
-      return false;
+    @Override protected void flushResponse() throws IOException {
     }
-  }
-;
-  AbstractHttpConnection connection=new AbstractHttpConnection(null,endp,new Server(),null,generator,null){
-    @Override public AsyncConnection handle() throws IOException {
+    @Override protected void completeResponse() throws IOException {
+    }
+    @Override protected void completed(){
+    }
+    @Override protected void execute(    Runnable task){
+      task.run();
+    }
+    @Override public Timer getTimer(){
       return null;
     }
   }
 ;
-  endp.setMaxIdleTime(60000);
-  HttpOutput httpOut=new HttpOutput(connection);
+  HttpOutput httpOut=new HttpOutput(channel);
   _writer=new HttpWriter(httpOut);
 }

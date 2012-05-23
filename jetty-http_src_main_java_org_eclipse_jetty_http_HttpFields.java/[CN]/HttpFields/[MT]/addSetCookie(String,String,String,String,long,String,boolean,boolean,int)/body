@@ -1,5 +1,5 @@
 {
-  String delim=_maxCookieVersion == 0 ? "" : __COOKIE_DELIM;
+  String delim=__COOKIE_DELIM;
   if (name == null || name.length() == 0)   throw new IllegalArgumentException("Bad cookie name");
   StringBuilder buf=new StringBuilder(128);
   String name_value_params;
@@ -7,16 +7,6 @@
   buf.append('=');
   String start=buf.toString();
   if (value != null && value.length() > 0)   quoted|=QuotedStringTokenizer.quoteIfNeeded(buf,value,delim);
-  if (quoted && version == 0 && _maxCookieVersion >= 1)   version=1;
-  if (version > _maxCookieVersion)   version=_maxCookieVersion;
-  if (version > 0) {
-    buf.append(";Version=");
-    buf.append(version);
-    if (comment != null && comment.length() > 0) {
-      buf.append(";Comment=");
-      QuotedStringTokenizer.quoteIfNeeded(buf,comment,delim);
-    }
-  }
   if (path != null && path.length() > 0) {
     buf.append(";Path=");
     if (path.trim().startsWith("\""))     buf.append(path);
@@ -30,16 +20,15 @@
     buf.append(";Expires=");
     if (maxAge == 0)     buf.append(__01Jan1970_COOKIE);
  else     formatCookieDate(buf,System.currentTimeMillis() + 1000L * maxAge);
-    if (version > 0) {
-      buf.append(";Max-Age=");
-      buf.append(maxAge);
-    }
-  }
- else   if (version > 0) {
-    buf.append(";Discard");
+    buf.append(";Max-Age=");
+    buf.append(maxAge);
   }
   if (isSecure)   buf.append(";Secure");
   if (isHttpOnly)   buf.append(";HttpOnly");
+  if (comment != null && comment.length() > 0) {
+    buf.append(";Comment=");
+    QuotedStringTokenizer.quoteIfNeeded(buf,comment,delim);
+  }
   name_value_params=buf.toString();
   Field field=getField(HttpHeader.SET_COOKIE);
   Field last=null;
