@@ -19,7 +19,14 @@ break;
 case END:
 return false;
 case CLOSED:
+int count=0;
+while (BufferUtil.hasContent(buffer)) {
+byte b=buffer.get();
+if (!Character.isWhitespace((char)b) || count++ > 4) {
 BufferUtil.clear(buffer);
+throw new IOException("Illegal characters");
+}
+}
 return false;
 }
 if (_state.ordinal() < State.HEADER.ordinal()) if (parseLine(buffer)) return true;
@@ -131,6 +138,10 @@ break;
 return false;
 }
  catch (Exception e) {
+if (isClosed()) {
+LOG.debug(e);
+throw new IllegalStateException(e);
+}
 LOG.warn(e);
 _handler.badMessage(e.toString());
 return true;
