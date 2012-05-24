@@ -5,11 +5,16 @@
   _out[idx]=_out[idx] == null ? new PrintWriter(_socket[idx].getOutputStream(),true) : _out[idx];
   _in[idx]=_in[idx] == null ? new BufferedReader(new InputStreamReader(_socket[idx].getInputStream())) : _in[idx];
   _connect.reset();
+  System.err.println("write to " + _socket[idx]);
   _out[idx].write("GET / HTTP/1.1\r\nHost: localhost\r\n\r\n");
   _out[idx].flush();
   _connect.await();
-  assertEquals(count,_connector.getConnectionsOpen());
-  while (_in[idx].ready()) {
-    _in[idx].readLine();
+  assertEquals(count,_connector.getStatistics().getConnectionsOpen());
+  String line=_in[idx].readLine();
+  while (line != null) {
+    System.err.println(line);
+    if ("Server response".equals(line))     break;
+    line=_in[idx].readLine();
   }
+  System.err.println("done");
 }
