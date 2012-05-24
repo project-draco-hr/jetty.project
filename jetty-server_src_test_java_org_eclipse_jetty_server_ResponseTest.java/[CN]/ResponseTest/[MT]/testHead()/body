@@ -1,9 +1,6 @@
 {
-  Server server=new Server();
+  Server server=new Server(0);
   try {
-    SocketConnector socketConnector=new SocketConnector();
-    socketConnector.setPort(0);
-    server.addConnector(socketConnector);
     server.setHandler(new AbstractHandler(){
       public void handle(      String string,      Request baseRequest,      HttpServletRequest request,      HttpServletResponse response) throws IOException, ServletException {
         response.setStatus(200);
@@ -13,20 +10,28 @@
         w.println("Geht");
         w.flush();
         w.println("Doch");
+        w.flush();
         ((Request)request).setHandled(true);
       }
     }
 );
     server.start();
-    Socket socket=new Socket("localhost",socketConnector.getLocalPort());
+    Socket socket=new Socket("localhost",((Connector.NetConnector)server.getConnectors()[0]).getLocalPort());
     socket.getOutputStream().write("HEAD / HTTP/1.1\r\nHost: localhost\r\n\r\n".getBytes());
     socket.getOutputStream().write("GET / HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n".getBytes());
     socket.getOutputStream().flush();
     LineNumberReader reader=new LineNumberReader(new InputStreamReader(socket.getInputStream()));
     String line=reader.readLine();
-    while (line != null && line.length() > 0)     line=reader.readLine();
-    while (line != null && line.length() == 0)     line=reader.readLine();
     assertTrue(line != null && line.startsWith("HTTP/1.1 200 OK"));
+    while (line != null && line.length() > 0)     line=reader.readLine();
+    line=reader.readLine();
+    assertTrue(line != null && line.startsWith("HTTP/1.1 200 OK"));
+    String last=null;
+    while (line != null) {
+      last=line;
+      line=reader.readLine();
+    }
+    assertEquals("Doch",last);
   }
   finally {
     server.stop();
