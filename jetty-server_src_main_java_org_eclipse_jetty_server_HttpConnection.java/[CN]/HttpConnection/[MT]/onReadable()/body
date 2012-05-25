@@ -9,7 +9,10 @@
         LOG.debug("{} filled {}",this,filled);
         if (filled <= 0) {
           if (filled == 0)           scheduleOnReadable();
- else           _parser.inputShutdown();
+ else {
+            _parser.inputShutdown();
+            getEndPoint().shutdownOutput();
+          }
           releaseRequestBuffer();
           return;
         }
@@ -34,7 +37,6 @@
     getEndPoint().close();
   }
  finally {
-    if (_parser.isComplete() && !_parser.isPersistent() && getEndPoint().isOpen())     getEndPoint().shutdownOutput();
     setCurrentConnection(null);
   }
 }
