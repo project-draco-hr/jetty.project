@@ -1,0 +1,16 @@
+{
+  setControllerWriteExpectationToFail(true);
+  final CountDownLatch failedCalledLatch=new CountDownLatch(2);
+  SynStreamFrame synStreamFrame=new SynStreamFrame(SPDY.V2,SynInfo.FLAG_CLOSE,1,0,(byte)0,null);
+  IStream stream=new StandardStream(synStreamFrame,session,8192,null);
+  Handler.Adapter<Void> handler=new Handler.Adapter<Void>(){
+    @Override public void failed(    Void context,    Throwable x){
+      failedCalledLatch.countDown();
+    }
+  }
+;
+  stream.data(new StringDataInfo("data",false),5,TimeUnit.SECONDS,handler);
+  stream.data(new StringDataInfo("data",false),5,TimeUnit.SECONDS,handler);
+  verify(controller,times(1)).write(any(ByteBuffer.class),any(Handler.class),any(FrameBytes.class));
+  assertThat("Handler.failed has been called twice",failedCalledLatch.await(5,TimeUnit.SECONDS),is(true));
+}

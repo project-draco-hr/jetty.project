@@ -49,32 +49,17 @@
   }
 );
   DataInfo dataInfo=exchanger.exchange(null,5,TimeUnit.SECONDS);
-  expectException(TimeoutException.class,new Callable<DataInfo>(){
-    @Override public DataInfo call() throws Exception {
-      return exchanger.exchange(null,1,TimeUnit.SECONDS);
-    }
-  }
-);
+  checkThatWeAreFlowControlStalled(exchanger);
   Assert.assertEquals(windowSize,dataInfo.available());
   Assert.assertEquals(0,dataInfo.consumed());
   dataInfo.asByteBuffer(true);
   dataInfo=exchanger.exchange(null,5,TimeUnit.SECONDS);
-  expectException(TimeoutException.class,new Callable<DataInfo>(){
-    @Override public DataInfo call() throws Exception {
-      return exchanger.exchange(null,1,TimeUnit.SECONDS);
-    }
-  }
-);
+  checkThatWeAreFlowControlStalled(exchanger);
   Assert.assertEquals(0,dataInfo.available());
   Assert.assertEquals(0,dataInfo.consumed());
   dataInfo.consume(dataInfo.length());
   dataInfo=exchanger.exchange(null,5,TimeUnit.SECONDS);
-  expectException(TimeoutException.class,new Callable<DataInfo>(){
-    @Override public DataInfo call() throws Exception {
-      return exchanger.exchange(null,1,TimeUnit.SECONDS);
-    }
-  }
-);
+  checkThatWeAreFlowControlStalled(exchanger);
   Assert.assertEquals(dataInfo.length() / 2,dataInfo.consumed());
   dataInfo.asByteBuffer(true);
   dataInfo=exchanger.exchange(null,5,TimeUnit.SECONDS);

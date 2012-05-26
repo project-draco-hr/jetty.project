@@ -1,9 +1,11 @@
 {
   bufferPool.release(buffer);
   IStream stream=getStream();
-  stream.updateWindowSize(-size);
+  boolean flowControlEnabled=StandardSession.this.flowControlEnabled;
+  if (flowControlEnabled)   stream.updateWindowSize(-size);
   if (dataInfo.available() > 0) {
     prepend(this);
+    if (!flowControlEnabled)     flush();
   }
  else {
     super.complete();
