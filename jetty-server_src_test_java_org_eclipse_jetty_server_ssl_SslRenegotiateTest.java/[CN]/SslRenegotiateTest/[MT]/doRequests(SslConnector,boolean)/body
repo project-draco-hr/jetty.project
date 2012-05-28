@@ -2,7 +2,6 @@
   Server server=new Server();
   try {
     String keystore=MavenTestingUtils.getTestResourceFile("keystore").getAbsolutePath();
-    connector.setPort(0);
     SslContextFactory cf=connector.getSslContextFactory();
     cf.setKeyStorePath(keystore);
     cf.setKeyStorePassword("storepwd");
@@ -30,13 +29,13 @@
     doWrap();
     doUnwrap();
     _inAppB.flip();
-    String response=new IndirectNIOBuffer(_inAppB,true).toString();
+    String response=BufferUtil.toString(_inAppB);
     assertTrue(response.startsWith("HTTP/1.1 200 OK"));
     if (response.indexOf("HELLO WORLD") < 0) {
       _inAppB.clear();
       doUnwrap();
       _inAppB.flip();
-      response=new IndirectNIOBuffer(_inAppB,true).toString();
+      response=BufferUtil.toString(_inAppB);
     }
     assertTrue(response.indexOf("HELLO WORLD") >= 0);
     _inAppB.clear();
@@ -50,7 +49,7 @@
       doWrap();
       doUnwrap();
       _inAppB.flip();
-      response=new IndirectNIOBuffer(_inAppB,true).toString();
+      response=BufferUtil.toString(_inAppB);
       assertTrue(response.startsWith("HTTP/1.1 200 OK"));
       assertTrue(response.indexOf("HELLO WORLD") > 0);
       assertTrue(reneg);
