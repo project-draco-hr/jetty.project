@@ -4,15 +4,23 @@
   if (getCurrentConnection() == null) {
     if (_parser.isStart()) {
       if (_requestBuffer == null)       scheduleOnReadable();
- else {
+ else       if (getConnector().isStarted()) {
         LOG.debug("{} pipelined",this);
-        execute(new Runnable(){
-          @Override public void run(){
-            onReadable();
+        try {
+          execute(new Runnable(){
+            @Override public void run(){
+              onReadable();
+            }
           }
-        }
 );
+        }
+ catch (        RejectedExecutionException e) {
+          if (getConnector().isStarted())           LOG.warn(e);
+ else           LOG.ignore(e);
+          getEndPoint().close();
+        }
       }
+ else       getEndPoint().close();
     }
     if (_parser.isClosed() && !getEndPoint().isOutputShutdown()) {
       LOG.warn("Endpoint output not shutdown when seeking EOF");
