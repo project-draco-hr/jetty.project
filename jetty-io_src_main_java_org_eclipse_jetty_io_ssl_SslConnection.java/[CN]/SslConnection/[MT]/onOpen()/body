@@ -1,10 +1,18 @@
 {
   try {
     super.onOpen();
-    scheduleOnReadable();
-    sslEngine.beginHandshake();
+    _sslEngine.setUseClientMode(false);
+    _sslEngine.beginHandshake();
+    LOG.debug("{} onopen",this);
+    _executor.execute(new Runnable(){
+      @Override public void run(){
+        _appEndPoint.getAsyncConnection().onOpen();
+      }
+    }
+);
   }
  catch (  SSLException x) {
+    getEndPoint().close();
     throw new RuntimeIOException(x);
   }
 }

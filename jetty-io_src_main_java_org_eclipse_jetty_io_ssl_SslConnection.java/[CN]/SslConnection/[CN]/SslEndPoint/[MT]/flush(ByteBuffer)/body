@@ -1,0 +1,49 @@
+{
+  LOG.debug("{} flush",SslConnection.this);
+  try {
+    if (_flushing)     return 0;
+    if (_netOut == null)     _netOut=_bufferPool.acquire(_sslEngine.getSession().getPacketBufferSize(),_netDirect);
+ else     BufferUtil.compact(_netOut);
+    while (true) {
+      int pos=BufferUtil.flipToFill(_netOut);
+      SSLEngineResult result=_sslEngine.wrap(appOuts,_netOut);
+      LOG.debug("{} wrap {}",SslConnection.this,result);
+      BufferUtil.flipToFlush(_netOut,pos);
+switch (result.getStatus()) {
+case CLOSED:
+        if (appOuts.length == 1 && appOuts[0] == BufferUtil.EMPTY_BUFFER)         return 0;
+      throw new EofException();
+case BUFFER_UNDERFLOW:
+    throw new IllegalStateException();
+case BUFFER_OVERFLOW:
+  return 0;
+default :
+if (result.bytesProduced() > 0) {
+  getEndPoint().flush(_netOut);
+  return result.bytesConsumed();
+}
+switch (_sslEngine.getHandshakeStatus()) {
+case NOT_HANDSHAKING:
+return 0;
+case NEED_TASK:
+_sslEngine.getDelegatedTask().run();
+continue;
+case NEED_WRAP:
+continue;
+case NEED_UNWRAP:
+if ((appOuts.length != 1 || appOuts[0] != BufferUtil.EMPTY_BUFFER) && !_readInterest.isInterested()) fill(BufferUtil.EMPTY_BUFFER);
+return 0;
+case FINISHED:
+throw new IllegalStateException();
+}
+}
+}
+}
+ catch (Exception e) {
+getEndPoint().close();
+throw e;
+}
+ finally {
+LOG.debug("{} !flush",SslConnection.this);
+}
+}

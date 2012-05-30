@@ -1,46 +1,5 @@
 {
-  if (appInput != null)   throw new IllegalStateException();
-switch (readState) {
-case HANDSHAKING:
-case IDLE:
-{
-      if (netInput != null)       throw new IllegalStateException();
-      netInput=byteBufferPool.acquire(sslEngine.getSession().getPacketBufferSize(),direct);
-      appInput=byteBufferPool.acquire(sslEngine.getSession().getApplicationBufferSize(),false);
-      break;
-    }
-case UNDERFLOW:
-{
-    if (netInput == null)     throw new IllegalStateException();
-    BufferUtil.compact(netInput);
-    break;
-  }
-default :
-{
-  throw new IllegalStateException("Unexpected read state " + readState);
-}
-}
-AsyncEndPoint endPoint=getEndPoint();
-try {
-while (true) {
-BufferUtil.compact(netInput);
-int filled=endPoint.fill(netInput);
-if (filled == 0) {
-  scheduleOnReadable();
-  break;
-}
- else if (filled < 0) {
-  updateReadState(ReadState.CLOSED);
-  sslEngine.closeInbound();
-  break;
-}
- else if (filled > 0) {
-  boolean readMore=decrypt();
-  if (!readMore)   break;
-}
-}
-}
- catch (IOException x) {
-endPoint.close();
-}
+  LOG.debug("{} onReadable",this);
+  if (_appEndPoint._readInterest.isInterested())   _appEndPoint._readInterest.readable();
+ else   if (_appEndPoint._writeFlusher.isWriting())   _appEndPoint._writeFlusher.completeWrite();
 }

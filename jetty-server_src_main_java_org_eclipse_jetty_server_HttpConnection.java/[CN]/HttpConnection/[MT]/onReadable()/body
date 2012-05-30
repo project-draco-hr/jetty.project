@@ -7,12 +7,14 @@
         if (_requestBuffer == null)         _requestBuffer=_bufferPool.acquire(_connector.getRequestHeaderSize(),false);
         int filled=getEndPoint().fill(_requestBuffer);
         LOG.debug("{} filled {}",this,filled);
-        if (filled <= 0) {
-          if (filled == 0)           scheduleOnReadable();
- else {
-            _parser.inputShutdown();
-            getEndPoint().shutdownOutput();
-          }
+        if (filled == 0) {
+          scheduleOnReadable();
+          releaseRequestBuffer();
+          return;
+        }
+ else         if (filled < 0) {
+          _parser.inputShutdown();
+          getEndPoint().shutdownOutput();
           releaseRequestBuffer();
           return;
         }

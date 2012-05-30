@@ -1,0 +1,76 @@
+{
+  LOG.debug("{} fill",SslConnection.this);
+  try {
+    if (BufferUtil.hasContent(_appIn))     return BufferUtil.append(_appIn,buffer);
+    if (_netIn == null)     _netIn=_bufferPool.acquire(_sslEngine.getSession().getPacketBufferSize(),_netDirect);
+ else     BufferUtil.compact(_netIn);
+    ByteBuffer app_in;
+    if (BufferUtil.space(buffer) > _sslEngine.getSession().getApplicationBufferSize())     app_in=buffer;
+ else     if (_appIn == null)     app_in=_appIn=_bufferPool.acquire(_sslEngine.getSession().getApplicationBufferSize(),_appDirect);
+ else     app_in=_appIn;
+    while (true) {
+      int net_filled=getEndPoint().fill(_netIn);
+      int pos=BufferUtil.flipToFill(app_in);
+      SSLEngineResult result=_sslEngine.unwrap(_netIn,app_in);
+      LOG.debug("{} unwrap {}",SslConnection.this,result);
+      BufferUtil.flipToFlush(app_in,pos);
+switch (result.getStatus()) {
+case BUFFER_OVERFLOW:
+        throw new IllegalStateException();
+case CLOSED:
+switch (_sslEngine.getHandshakeStatus()) {
+case NOT_HANDSHAKING:
+        return -1;
+case NEED_TASK:
+      _sslEngine.getDelegatedTask().run();
+    continue;
+case NEED_WRAP:
+  _fillWrap=true;
+flush(BufferUtil.EMPTY_BUFFER);
+getEndPoint().close();
+return -1;
+default :
+throw new IllegalStateException();
+}
+default :
+if (result.bytesProduced() > 0) {
+if (app_in == buffer) return result.bytesProduced();
+return BufferUtil.append(_appIn,buffer);
+}
+switch (_sslEngine.getHandshakeStatus()) {
+case NOT_HANDSHAKING:
+if (net_filled < 0) _sslEngine.closeInbound();
+return 0;
+case NEED_TASK:
+_sslEngine.getDelegatedTask().run();
+continue;
+case NEED_WRAP:
+_fillWrap=true;
+flush(BufferUtil.EMPTY_BUFFER);
+continue;
+case NEED_UNWRAP:
+if (net_filled < 0) _sslEngine.closeInbound();
+ else if (net_filled > 0) continue;
+return 0;
+case FINISHED:
+throw new IllegalStateException();
+}
+}
+}
+}
+ catch (Exception e) {
+getEndPoint().close();
+throw e;
+}
+ finally {
+if (_netIn != null && !_netIn.hasRemaining()) {
+_bufferPool.release(_netIn);
+_netIn=null;
+}
+if (_appIn != null && !_appIn.hasRemaining()) {
+_bufferPool.release(_appIn);
+_appIn=null;
+}
+LOG.debug("{} !fill",SslConnection.this);
+}
+}
