@@ -7,8 +7,9 @@
   Generator generator=new Generator(factory.bufferPool,compressionFactory.newCompressor());
   SPDYAsyncConnection connection=new ClientSPDYAsyncConnection(endPoint,factory.bufferPool,parser,factory);
   endPoint.setConnection(connection);
-  StandardSession session=new StandardSession(client.version,factory.bufferPool,factory.threadPool,factory.scheduler,connection,connection,1,sessionPromise.listener,generator);
-  session.setFlowControlEnabled(client.isFlowControlEnabled());
+  FlowControlStrategy flowControlStrategy=client.newFlowControlStrategy();
+  StandardSession session=new StandardSession(client.version,factory.bufferPool,factory.threadPool,factory.scheduler,connection,connection,1,sessionPromise.listener,generator,flowControlStrategy);
+  session.setWindowSize(client.getInitialWindowSize());
   parser.addListener(session);
   sessionPromise.completed(session);
   connection.setSession(session);
