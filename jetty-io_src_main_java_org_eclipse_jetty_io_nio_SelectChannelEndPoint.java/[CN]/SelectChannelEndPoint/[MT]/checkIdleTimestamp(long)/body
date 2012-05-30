@@ -1,10 +1,20 @@
 {
   long idleTimestamp=_idleTimestamp;
   if (idleTimestamp != 0 && _maxIdleTime > 0) {
-    long idleForMs=now - idleTimestamp;
+    final long idleForMs=now - idleTimestamp;
     if (idleForMs > _maxIdleTime) {
-      onIdleExpired(idleForMs);
-      _idleTimestamp=now;
+      setCheckForIdle(false);
+      _manager.dispatch(new Runnable(){
+        public void run(){
+          try {
+            onIdleExpired(idleForMs);
+          }
+  finally {
+            setCheckForIdle(true);
+          }
+        }
+      }
+);
     }
   }
 }
