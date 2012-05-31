@@ -1,7 +1,7 @@
 {
   LOG.debug("{} flush",SslConnection.this);
   try {
-    if (_flushing)     return 0;
+    if (_writing)     return 0;
     if (_netOut == null)     _netOut=_bufferPool.acquire(_sslEngine.getSession().getPacketBufferSize(),_netDirect);
  else     BufferUtil.compact(_netOut);
     while (true) {
@@ -15,16 +15,14 @@ case CLOSED:
       throw new EofException();
 case BUFFER_UNDERFLOW:
     throw new IllegalStateException();
-case BUFFER_OVERFLOW:
-  return 0;
 default :
-if (result.bytesProduced() > 0) {
-  getEndPoint().flush(_netOut);
-  return result.bytesConsumed();
-}
+  if (BufferUtil.hasContent(_netOut)) {
+    getEndPoint().flush(_netOut);
+    return result.bytesConsumed();
+  }
 switch (_sslEngine.getHandshakeStatus()) {
 case NOT_HANDSHAKING:
-return 0;
+  return 0;
 case NEED_TASK:
 _sslEngine.getDelegatedTask().run();
 continue;
