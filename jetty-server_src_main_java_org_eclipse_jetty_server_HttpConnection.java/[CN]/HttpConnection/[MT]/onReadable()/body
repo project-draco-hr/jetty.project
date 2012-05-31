@@ -18,8 +18,13 @@
           releaseRequestBuffer();
           return;
         }
+ else {
+          System.err.println("HB=" + _headerBytes);
+          _headerBytes+=filled;
+        }
       }
       if (_parser.parseNext(_requestBuffer)) {
+        _headerBytes=0;
         if (!_parser.isPersistent())         _generator.setPersistent(false);
         _channel.process();
         if (_channel.isSuspended()) {
@@ -30,6 +35,9 @@
           getEndPoint().getAsyncConnection().onOpen();
           return;
         }
+      }
+ else       if (_headerBytes >= _connector.getRequestHeaderSize()) {
+        _channel.getEventHandler().badMessage(HttpStatus.REQUEST_ENTITY_TOO_LARGE_413,null);
       }
     }
   }
