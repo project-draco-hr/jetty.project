@@ -6,14 +6,22 @@ case ServiceEvent.UNREGISTERING:
 {
       BundleContext context=FrameworkUtil.getBundle(JettyBootstrapActivator.class).getBundleContext();
       ContextHandler contextHandler=(ContextHandler)context.getService(sr);
-      String serverName=(String)sr.getProperty(OSGiServerConstants.MANAGED_JETTY_SERVER_NAME);
-      Map<ServiceReference,ServiceProvider> candidates=getDeployers(serverName);
-      if (candidates != null) {
-        boolean removed=false;
-        Iterator<Entry<ServiceReference,ServiceProvider>> itor=candidates.entrySet().iterator();
-        while (!removed && itor.hasNext()) {
-          Entry<ServiceReference,ServiceProvider> e=itor.next();
-          removed=e.getValue().serviceRemoved(sr,contextHandler);
+      String watermark=(String)sr.getProperty(OSGiWebappConstants.WATERMARK);
+      if (watermark != null && !"".equals(watermark)) {
+        String serverName=(String)sr.getProperty(OSGiServerConstants.MANAGED_JETTY_SERVER_NAME);
+        Map<ServiceReference,ServiceProvider> candidates=getDeployers(serverName);
+        if (candidates != null) {
+          boolean removed=false;
+          Iterator<Entry<ServiceReference,ServiceProvider>> itor=candidates.entrySet().iterator();
+          while (!removed && itor.hasNext()) {
+            Entry<ServiceReference,ServiceProvider> e=itor.next();
+            try {
+              removed=e.getValue().serviceRemoved(sr,contextHandler);
+            }
+ catch (            Exception x) {
+              LOG.warn("Error undeploying service representing jetty context ",x);
+            }
+          }
         }
       }
     }
@@ -30,6 +38,8 @@ case ServiceEvent.REGISTERED:
   if (contextHandler.getServer() != null) {
     return;
   }
+  String watermark=(String)sr.getProperty(OSGiWebappConstants.WATERMARK);
+  if (watermark != null && !"".equals(watermark))   return;
   String serverName=(String)sr.getProperty(OSGiServerConstants.MANAGED_JETTY_SERVER_NAME);
   Map<ServiceReference,ServiceProvider> candidates=getDeployers(serverName);
   if (candidates != null) {
@@ -37,8 +47,13 @@ case ServiceEvent.REGISTERED:
     Iterator<Entry<ServiceReference,ServiceProvider>> itor=candidates.entrySet().iterator();
     while (!added && itor.hasNext()) {
       Entry<ServiceReference,ServiceProvider> e=itor.next();
-      added=e.getValue().serviceAdded(sr,contextHandler);
-      if (added && LOG.isDebugEnabled())       LOG.debug("Provider " + e.getValue() + " deployed "+ contextHandler);
+      try {
+        added=e.getValue().serviceAdded(sr,contextHandler);
+        if (added && LOG.isDebugEnabled())         LOG.debug("Provider " + e.getValue() + " deployed "+ contextHandler);
+      }
+ catch (      Exception x) {
+        LOG.warn("Error deploying service representing jetty context",x);
+      }
     }
   }
   break;
