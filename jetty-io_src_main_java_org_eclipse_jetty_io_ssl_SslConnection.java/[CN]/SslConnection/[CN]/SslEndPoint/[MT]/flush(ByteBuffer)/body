@@ -1,7 +1,7 @@
 {
   LOG.debug("{} flush",SslConnection.this);
   try {
-    if (_writing)     return 0;
+    if (_netWriting)     return 0;
     if (_netOut == null)     _netOut=_bufferPool.acquire(_sslEngine.getSession().getPacketBufferSize() * 2,_netDirect);
     while (true) {
       BufferUtil.compact(_netOut);
@@ -11,16 +11,20 @@
       BufferUtil.flipToFlush(_netOut,pos);
 switch (_wrapResult.getStatus()) {
 case CLOSED:
-        if (appOuts.length == 1 && appOuts[0] == BufferUtil.EMPTY_BUFFER)         return 0;
-      throw new EofException();
+        if (BufferUtil.hasContent(_netOut)) {
+          _netWriting=true;
+          getEndPoint().write(null,_writeCallback,_netOut);
+        }
+      if (_fillWrap)       return 0;
+    throw new EofException();
 case BUFFER_UNDERFLOW:
-    throw new IllegalStateException();
+  throw new IllegalStateException();
 case BUFFER_OVERFLOW:
-  if (LOG.isDebugEnabled())   LOG.debug("{} OVERFLOW {}",this,BufferUtil.toDetailString(_netOut));
+if (LOG.isDebugEnabled()) LOG.debug("{} OVERFLOW {}",this,BufferUtil.toDetailString(_netOut));
 default :
 if (BufferUtil.hasContent(_netOut)) {
-  getEndPoint().flush(_netOut);
-  return _wrapResult.bytesConsumed();
+getEndPoint().flush(_netOut);
+return _wrapResult.bytesConsumed();
 }
 switch (_sslEngine.getHandshakeStatus()) {
 case NOT_HANDSHAKING:
@@ -31,7 +35,10 @@ continue;
 case NEED_WRAP:
 continue;
 case NEED_UNWRAP:
-if ((appOuts.length != 1 || appOuts[0] != BufferUtil.EMPTY_BUFFER) && !_readInterest.isInterested()) fill(BufferUtil.EMPTY_BUFFER);
+if (!_fillWrap && !_readInterest.isInterested()) {
+_flushUnwrap=true;
+fill(BufferUtil.EMPTY_BUFFER);
+}
 return 0;
 case FINISHED:
 throw new IllegalStateException();
@@ -45,5 +52,6 @@ throw e;
 }
  finally {
 LOG.debug("{} !flush",SslConnection.this);
+releaseNetOut();
 }
 }
