@@ -12,10 +12,10 @@
       int net_filled=getEndPoint().fill(_netIn);
       if (net_filled > 0)       _underflown=false;
       int pos=BufferUtil.flipToFill(app_in);
-      SSLEngineResult result=_sslEngine.unwrap(_netIn,app_in);
-      LOG.debug("{} unwrap {}",SslConnection.this,result);
+      _unwrapResult=_sslEngine.unwrap(_netIn,app_in);
+      LOG.debug("{} unwrap {}",SslConnection.this,_unwrapResult);
       BufferUtil.flipToFlush(app_in,pos);
-switch (result.getStatus()) {
+switch (_unwrapResult.getStatus()) {
 case BUFFER_OVERFLOW:
         throw new IllegalStateException();
 case CLOSED:
@@ -26,7 +26,7 @@ case NEED_TASK:
       _sslEngine.getDelegatedTask().run();
     continue;
 case NEED_WRAP:
-  _fillWrap=true;
+  _fillWrite=true;
 flush(BufferUtil.EMPTY_BUFFER);
 getEndPoint().close();
 return -1;
@@ -36,8 +36,8 @@ throw new IllegalStateException();
 case BUFFER_UNDERFLOW:
 _underflown=true;
 default :
-if (result.bytesProduced() > 0) {
-if (app_in == buffer) return result.bytesProduced();
+if (_unwrapResult.bytesProduced() > 0) {
+if (app_in == buffer) return _unwrapResult.bytesProduced();
 return BufferUtil.append(_appIn,buffer);
 }
 switch (_sslEngine.getHandshakeStatus()) {
@@ -48,7 +48,7 @@ case NEED_TASK:
 _sslEngine.getDelegatedTask().run();
 continue;
 case NEED_WRAP:
-_fillWrap=true;
+_fillWrite=true;
 flush(BufferUtil.EMPTY_BUFFER);
 continue;
 case NEED_UNWRAP:

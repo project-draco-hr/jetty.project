@@ -1,10 +1,10 @@
 {
   Socket client=newClient();
-  client.setSoTimeout(60000);
+  client.setSoTimeout(30000);
   SocketChannel server=_connector.accept();
   server.configureBlocking(false);
   _manager.accept(server);
-  int writes=100000;
+  final int writes=200000;
   final byte[] bytes="HelloWorld-".getBytes(StringUtil.__UTF8_CHARSET);
   byte[] count="0\n".getBytes(StringUtil.__UTF8_CHARSET);
   BufferedOutputStream out=new BufferedOutputStream(client.getOutputStream());
@@ -45,6 +45,7 @@
         System.err.println("time=" + (now - start));
         System.err.println("last=" + (now - last));
         System.err.println("endp=" + _lastEndp);
+        System.err.println("conn=" + _lastEndp.getAsyncConnection());
         e.printStackTrace();
       }
     }
@@ -54,9 +55,16 @@
     out.write(bytes);
     out.write(Integer.toString(i).getBytes(StringUtil.__ISO_8859_1_CHARSET));
     out.write('\n');
-    if (i % 100 == 0)     out.flush();
+    if (i % 1000 == 0) {
+      out.flush();
+    }
     Thread.yield();
   }
   out.flush();
-  assertTrue(latch.await(100,TimeUnit.SECONDS));
+  long last=latch.getCount();
+  while (!latch.await(5,TimeUnit.SECONDS)) {
+    if (latch.getCount() == last)     Assert.fail();
+    last=latch.getCount();
+  }
+  assertEquals(0,latch.getCount());
 }

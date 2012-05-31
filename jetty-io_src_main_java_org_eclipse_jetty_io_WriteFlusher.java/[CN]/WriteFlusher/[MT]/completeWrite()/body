@@ -1,13 +1,16 @@
 {
   if (!_writing.get())   return false;
   try {
-    _buffers=compact(_buffers);
-    _endp.flush(_buffers);
-    for (    ByteBuffer b : _buffers) {
-      if (b.hasRemaining()) {
-        scheduleCompleteWrite();
-        return true;
+    retry:     while (true) {
+      _buffers=compact(_buffers);
+      _endp.flush(_buffers);
+      for (      ByteBuffer b : _buffers) {
+        if (b.hasRemaining()) {
+          if (canFlush())           continue retry;
+          return true;
+        }
       }
+      break;
     }
     Callback callback=_callback;
     Object context=_context;

@@ -2,27 +2,29 @@
   LOG.debug("{} flush",SslConnection.this);
   try {
     if (_writing)     return 0;
-    if (_netOut == null)     _netOut=_bufferPool.acquire(_sslEngine.getSession().getPacketBufferSize(),_netDirect);
- else     BufferUtil.compact(_netOut);
+    if (_netOut == null)     _netOut=_bufferPool.acquire(_sslEngine.getSession().getPacketBufferSize() * 2,_netDirect);
     while (true) {
+      BufferUtil.compact(_netOut);
       int pos=BufferUtil.flipToFill(_netOut);
-      SSLEngineResult result=_sslEngine.wrap(appOuts,_netOut);
-      LOG.debug("{} wrap {}",SslConnection.this,result);
+      _wrapResult=_sslEngine.wrap(appOuts,_netOut);
+      LOG.debug("{} wrap {}",SslConnection.this,_wrapResult);
       BufferUtil.flipToFlush(_netOut,pos);
-switch (result.getStatus()) {
+switch (_wrapResult.getStatus()) {
 case CLOSED:
         if (appOuts.length == 1 && appOuts[0] == BufferUtil.EMPTY_BUFFER)         return 0;
       throw new EofException();
 case BUFFER_UNDERFLOW:
     throw new IllegalStateException();
+case BUFFER_OVERFLOW:
+  if (LOG.isDebugEnabled())   LOG.debug("{} OVERFLOW {}",this,BufferUtil.toDetailString(_netOut));
 default :
-  if (BufferUtil.hasContent(_netOut)) {
-    getEndPoint().flush(_netOut);
-    return result.bytesConsumed();
-  }
+if (BufferUtil.hasContent(_netOut)) {
+  getEndPoint().flush(_netOut);
+  return _wrapResult.bytesConsumed();
+}
 switch (_sslEngine.getHandshakeStatus()) {
 case NOT_HANDSHAKING:
-  return 0;
+return 0;
 case NEED_TASK:
 _sslEngine.getDelegatedTask().run();
 continue;
