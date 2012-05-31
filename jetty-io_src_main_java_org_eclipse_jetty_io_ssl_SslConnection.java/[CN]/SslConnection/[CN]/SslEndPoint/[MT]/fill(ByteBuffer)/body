@@ -10,6 +10,7 @@
  else     app_in=_appIn;
     while (true) {
       int net_filled=getEndPoint().fill(_netIn);
+      if (net_filled > 0)       _underflown=false;
       int pos=BufferUtil.flipToFill(app_in);
       SSLEngineResult result=_sslEngine.unwrap(_netIn,app_in);
       LOG.debug("{} unwrap {}",SslConnection.this,result);
@@ -32,6 +33,8 @@ return -1;
 default :
 throw new IllegalStateException();
 }
+case BUFFER_UNDERFLOW:
+_underflown=true;
 default :
 if (result.bytesProduced() > 0) {
 if (app_in == buffer) return result.bytesProduced();
