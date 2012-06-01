@@ -1,0 +1,22 @@
+{
+  short slot=1;
+  byte[] proof=new byte[]{0,1,2};
+  Certificate[] certificates=loadCertificates();
+  CredentialFrame frame1=new CredentialFrame(SPDY.V3,slot,proof,certificates);
+  Generator generator=new Generator(new StandardByteBufferPool(),new StandardCompressionFactory().newCompressor());
+  ByteBuffer buffer=generator.control(frame1);
+  Assert.assertNotNull(buffer);
+  TestSPDYParserListener listener=new TestSPDYParserListener();
+  Parser parser=new Parser(new StandardCompressionFactory().newDecompressor());
+  parser.addListener(listener);
+  while (buffer.hasRemaining())   parser.parse(ByteBuffer.wrap(new byte[]{buffer.get()}));
+  ControlFrame frame2=listener.getControlFrame();
+  Assert.assertNotNull(frame2);
+  Assert.assertEquals(ControlFrameType.CREDENTIAL,frame2.getType());
+  CredentialFrame credential=(CredentialFrame)frame2;
+  Assert.assertEquals(SPDY.V3,credential.getVersion());
+  Assert.assertEquals(0,credential.getFlags());
+  Assert.assertEquals(slot,credential.getSlot());
+  Assert.assertArrayEquals(proof,credential.getProof());
+  Assert.assertArrayEquals(certificates,credential.getCertificateChain());
+}
