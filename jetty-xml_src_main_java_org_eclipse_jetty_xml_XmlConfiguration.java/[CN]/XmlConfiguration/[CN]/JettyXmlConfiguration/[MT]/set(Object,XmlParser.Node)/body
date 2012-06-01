@@ -3,10 +3,10 @@
   String name="set" + attr.substring(0,1).toUpperCase() + attr.substring(1);
   Object value=value(obj,node);
   Object[] arg={value};
-  Class oClass=nodeClass(node);
+  Class<?> oClass=nodeClass(node);
   if (oClass != null)   obj=null;
  else   oClass=obj.getClass();
-  Class[] vClass={Object.class};
+  Class<?>[] vClass={Object.class};
   if (value != null)   vClass[0]=value.getClass();
   if (LOG.isDebugEnabled())   LOG.debug("XML " + (obj != null ? obj.toString() : oClass.getName()) + "."+ name+ "("+ value+ ")");
   try {
@@ -25,7 +25,7 @@ catch (  NoSuchMethodException e) {
   }
   try {
     Field type=vClass[0].getField("TYPE");
-    vClass[0]=(Class)type.get(null);
+    vClass[0]=(Class<?>)type.get(null);
     Method set=oClass.getMethod(name,vClass);
     set.invoke(obj,arg);
     return;
@@ -68,24 +68,25 @@ catch (  NoSuchMethodException e) {
 catch (      IllegalAccessException e) {
         LOG.ignore(e);
       }
-      if (paramTypes[0].isAssignableFrom(Collection.class) && value.getClass().isArray()) {
+      Class<?> parameterClass=paramTypes[0];
+      Collection<?> collection=tryToConvertObjectToCollection(parameterClass,value);
+      if (collection != null) {
         try {
-          if (paramTypes[0].isAssignableFrom(Set.class))           sets[s].invoke(obj,new Object[]{new HashSet<Object>(Arrays.asList((Object[])value))});
- else           sets[s].invoke(obj,new Object[]{Arrays.asList((Object[])value)});
+          sets[s].invoke(obj,collection);
           return;
         }
- catch (        IllegalArgumentException e) {
+ catch (        IllegalAccessException e) {
           LOG.ignore(e);
         }
-catch (        IllegalAccessException e) {
-          LOG.ignore(e);
+catch (        IllegalArgumentException e) {
+          throw new IllegalArgumentException("Not a supported Collection type.");
         }
       }
     }
   }
   if (set != null) {
     try {
-      Class sClass=set.getParameterTypes()[0];
+      Class<?> sClass=set.getParameterTypes()[0];
       if (sClass.isPrimitive()) {
         for (int t=0; t < __primitives.length; t++) {
           if (sClass.equals(__primitives[t])) {
@@ -94,7 +95,7 @@ catch (        IllegalAccessException e) {
           }
         }
       }
-      Constructor cons=sClass.getConstructor(vClass);
+      Constructor<?> cons=sClass.getConstructor(vClass);
       arg[0]=cons.newInstance(arg);
       set.invoke(obj,arg);
       return;
