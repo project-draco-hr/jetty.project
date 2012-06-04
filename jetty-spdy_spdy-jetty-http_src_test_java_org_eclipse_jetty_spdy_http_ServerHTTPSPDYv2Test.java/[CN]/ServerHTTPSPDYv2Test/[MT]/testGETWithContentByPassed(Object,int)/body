@@ -1,0 +1,41 @@
+{
+  final CountDownLatch handlerLatch=new CountDownLatch(1);
+  Session session=startClient(version(),startHTTPServer(version(),new AbstractHandler(){
+    @Override public void handle(    String target,    Request request,    HttpServletRequest httpRequest,    HttpServletResponse httpResponse) throws IOException, ServletException {
+      request.setHandled(true);
+      request.setAttribute("org.eclipse.jetty.server.sendContent",content);
+      handlerLatch.countDown();
+    }
+  }
+),null);
+  Headers headers=new Headers();
+  headers.put(HTTPSPDYHeader.METHOD.name(version()),"GET");
+  headers.put(HTTPSPDYHeader.URI.name(version()),"/foo");
+  headers.put(HTTPSPDYHeader.VERSION.name(version()),"HTTP/1.1");
+  headers.put(HTTPSPDYHeader.SCHEME.name(version()),"http");
+  headers.put(HTTPSPDYHeader.HOST.name(version()),"localhost:" + connector.getLocalPort());
+  final CountDownLatch replyLatch=new CountDownLatch(1);
+  final CountDownLatch dataLatch=new CountDownLatch(1);
+  session.syn(new SynInfo(headers,true),new StreamFrameListener.Adapter(){
+    private final AtomicInteger replyFrames=new AtomicInteger();
+    private final AtomicInteger contentLength=new AtomicInteger();
+    @Override public void onReply(    Stream stream,    ReplyInfo replyInfo){
+      Assert.assertEquals(1,replyFrames.incrementAndGet());
+      Assert.assertFalse(replyInfo.isClose());
+      Headers replyHeaders=replyInfo.getHeaders();
+      Assert.assertTrue(replyHeaders.get(HTTPSPDYHeader.STATUS.name(version())).value().contains("200"));
+      replyLatch.countDown();
+    }
+    @Override public void onData(    Stream stream,    DataInfo dataInfo){
+      contentLength.addAndGet(dataInfo.asBytes(true).length);
+      if (dataInfo.isClose()) {
+        Assert.assertEquals(length,contentLength.get());
+        dataLatch.countDown();
+      }
+    }
+  }
+);
+  Assert.assertTrue(handlerLatch.await(5,TimeUnit.SECONDS));
+  Assert.assertTrue(replyLatch.await(5,TimeUnit.SECONDS));
+  Assert.assertTrue(dataLatch.await(5,TimeUnit.SECONDS));
+}
