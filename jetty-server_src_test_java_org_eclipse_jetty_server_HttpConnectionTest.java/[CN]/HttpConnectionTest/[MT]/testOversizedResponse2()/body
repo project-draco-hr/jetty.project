@@ -1,0 +1,31 @@
+{
+  String str="thisisastringthatshouldreachover1kbytes-";
+  for (int i=0; i < 500; i++)   str+="xxxxxxxxxxxx";
+  final String longstr=str;
+  String response=null;
+  server.stop();
+  server.setHandler(new DumpHandler(){
+    public void handle(    String target,    Request baseRequest,    HttpServletRequest request,    HttpServletResponse response) throws IOException, ServletException {
+      baseRequest.setHandled(true);
+      response.setHeader(HttpHeader.CONTENT_TYPE.toString(),MimeTypes.Type.TEXT_HTML.toString());
+      response.setHeader("LongStr",longstr);
+      PrintWriter writer=response.getWriter();
+      writer.write("<html><h1>FOO</h1></html>");
+      writer.flush();
+      if (!writer.checkError())       throw new RuntimeException("SHOULD NOT GET HERE");
+      response.flushBuffer();
+    }
+  }
+);
+  server.start();
+  try {
+    int offset=0;
+    response=connector.getResponses("GET / HTTP/1.1\n" + "Host: localhost\n" + "\015\012");
+    checkContains(response,offset,"HTTP/1.1 500");
+  }
+ catch (  Exception e) {
+    e.printStackTrace();
+    if (response != null)     System.err.println(response);
+    fail("Exception");
+  }
+}

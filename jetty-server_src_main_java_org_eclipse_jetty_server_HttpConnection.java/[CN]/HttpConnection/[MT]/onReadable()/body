@@ -19,11 +19,11 @@
           return;
         }
  else {
-          System.err.println("HB=" + _headerBytes);
           _headerBytes+=filled;
         }
       }
       if (_parser.parseNext(_requestBuffer)) {
+        releaseRequestBuffer();
         _headerBytes=0;
         if (!_parser.isPersistent())         _generator.setPersistent(false);
         _channel.process();
@@ -37,12 +37,14 @@
         }
       }
  else       if (_headerBytes >= _connector.getRequestHeaderSize()) {
+        _parser.reset();
+        _parser.close();
         _channel.getEventHandler().badMessage(HttpStatus.REQUEST_ENTITY_TOO_LARGE_413,null);
       }
     }
   }
  catch (  Exception e) {
-    if (_parser.isClosed())     LOG.debug(e);
+    if (_parser.isIdle())     LOG.debug(e);
  else     LOG.warn(this.toString(),e);
     getEndPoint().close();
   }

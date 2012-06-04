@@ -80,7 +80,7 @@ _headerString=_valueString=null;
 _header=null;
 _value=null;
 if (ch == HttpTokens.CARRIAGE_RETURN || ch == HttpTokens.LINE_FEED) {
-_eol=ch;
+consumeCRLF(ch,buffer);
 _contentPosition=0;
 if (_endOfContent == EndOfContent.UNKNOWN_CONTENT) {
 if (_responseStatus == 0 || _responseStatus == 304 || _responseStatus == 204 || _responseStatus < 200) _endOfContent=EndOfContent.NO_CONTENT;
@@ -129,7 +129,7 @@ case HEADER_NAME:
 switch (ch) {
 case HttpTokens.CARRIAGE_RETURN:
 case HttpTokens.LINE_FEED:
-_eol=ch;
+consumeCRLF(ch,buffer);
 _headerString=takeLengthString();
 _header=HttpHeader.CACHE.get(_headerString);
 _state=State.HEADER;
@@ -165,7 +165,7 @@ case HEADER_IN_NAME:
 switch (ch) {
 case HttpTokens.CARRIAGE_RETURN:
 case HttpTokens.LINE_FEED:
-_eol=ch;
+consumeCRLF(ch,buffer);
 _headerString=takeString();
 _length=-1;
 _header=HttpHeader.CACHE.get(_headerString);
@@ -193,7 +193,7 @@ case HEADER_VALUE:
 switch (ch) {
 case HttpTokens.CARRIAGE_RETURN:
 case HttpTokens.LINE_FEED:
-_eol=ch;
+consumeCRLF(ch,buffer);
 if (_length > 0) {
 if (_valueString != null) {
 _value=null;
@@ -225,7 +225,7 @@ case HEADER_IN_VALUE:
 switch (ch) {
 case HttpTokens.CARRIAGE_RETURN:
 case HttpTokens.LINE_FEED:
-_eol=ch;
+consumeCRLF(ch,buffer);
 if (_length > 0) {
 if (_valueString != null) {
 _value=null;

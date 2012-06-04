@@ -159,7 +159,26 @@ default :
 throw new IllegalStateException();
 }
 }
-  finally {
+ catch (Exception e) {
+if (header != null && info instanceof ResponseInfo) {
+if (e instanceof BufferOverflowException) {
+LOG.warn("Response header too large");
+LOG.debug(e);
+}
+ else LOG.warn(e);
+_state=State.COMPLETING;
+header.clear();
+_persistent=false;
+generateResponseLine(RESPONSE_500_INFO,header);
+generateHeaders(RESPONSE_500_INFO,header,null,true);
+if (buffer != null) BufferUtil.clear(buffer);
+if (chunk != null) BufferUtil.clear(chunk);
+if (content != null) BufferUtil.clear(content);
+return Result.FLUSH;
+}
+throw e;
+}
+ finally {
 if (pos >= 0) BufferUtil.flipToFlush(header,pos);
 }
 }

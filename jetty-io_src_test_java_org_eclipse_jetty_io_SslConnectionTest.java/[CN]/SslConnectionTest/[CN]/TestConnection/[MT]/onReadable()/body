@@ -1,0 +1,37 @@
+{
+  AsyncEndPoint endp=getEndPoint();
+  System.err.println("onReadable " + endp);
+  try {
+    boolean progress=true;
+    while (progress) {
+      progress=false;
+      int filled=endp.fill(_in);
+      System.err.println("filled=" + filled);
+      while (filled > 0) {
+        progress=true;
+        filled=endp.fill(_in);
+        System.err.println("filled=" + filled);
+      }
+      int l=_in.remaining();
+      if (l > 0) {
+        FutureCallback<Void> blockingWrite=new FutureCallback<>();
+        endp.write(null,blockingWrite,_in);
+        blockingWrite.get();
+        System.err.println("wrote " + l);
+      }
+      if (endp.isInputShutdown()) {
+        System.err.println("shutdown");
+        endp.shutdownOutput();
+      }
+    }
+  }
+ catch (  InterruptedException|EofException e) {
+    SelectChannelEndPoint.LOG.ignore(e);
+  }
+catch (  Exception e) {
+    SelectChannelEndPoint.LOG.warn(e);
+  }
+ finally {
+    if (endp.isOpen())     scheduleOnReadable();
+  }
+}
