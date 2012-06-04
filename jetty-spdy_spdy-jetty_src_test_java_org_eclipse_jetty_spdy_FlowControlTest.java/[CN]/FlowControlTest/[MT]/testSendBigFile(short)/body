@@ -1,0 +1,23 @@
+{
+  final int dataSize=1024 * 1024;
+  final ByteBufferDataInfo bigByteBufferDataInfo=new ByteBufferDataInfo(ByteBuffer.allocate(dataSize),false);
+  final CountDownLatch allDataReceivedLatch=new CountDownLatch(1);
+  Session session=startClient(version,startServer(version,new ServerSessionFrameListener.Adapter(){
+    @Override public StreamFrameListener onSyn(    Stream stream,    SynInfo synInfo){
+      stream.reply(new ReplyInfo(false));
+      stream.data(bigByteBufferDataInfo);
+      return null;
+    }
+  }
+),new SessionFrameListener.Adapter());
+  session.syn(new SynInfo(false),new StreamFrameListener.Adapter(){
+    private int dataBytesReceived;
+    @Override public void onData(    Stream stream,    DataInfo dataInfo){
+      dataBytesReceived=dataBytesReceived + dataInfo.length();
+      dataInfo.consume(dataInfo.length());
+      if (dataBytesReceived == dataSize)       allDataReceivedLatch.countDown();
+    }
+  }
+);
+  assertThat("all data bytes have been received by the client",allDataReceivedLatch.await(5,TimeUnit.SECONDS),is(true));
+}
