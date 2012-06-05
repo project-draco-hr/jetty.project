@@ -1,12 +1,12 @@
 {
   try {
-    if (!HttpMethods.HEAD.is(request.getMethod())) {
-      String ifms=request.getHeader(HttpHeaders.IF_MODIFIED_SINCE);
+    if (!HttpMethod.HEAD.is(request.getMethod())) {
+      String ifms=request.getHeader(HttpHeader.IF_MODIFIED_SINCE.asString());
       if (ifms != null) {
         if (content != null) {
-          Buffer mdlm=content.getLastModified();
+          String mdlm=content.getLastModified();
           if (mdlm != null) {
-            if (ifms.equals(mdlm.toString())) {
+            if (ifms.equals(mdlm)) {
               response.reset();
               response.setStatus(HttpServletResponse.SC_NOT_MODIFIED);
               response.flushBuffer();
@@ -14,7 +14,7 @@
             }
           }
         }
-        long ifmsl=request.getDateHeader(HttpHeaders.IF_MODIFIED_SINCE);
+        long ifmsl=request.getDateHeader(HttpHeader.IF_MODIFIED_SINCE.asString());
         if (ifmsl != -1) {
           if (resource.lastModified() / 1000 <= ifmsl / 1000) {
             response.reset();
@@ -24,7 +24,7 @@
           }
         }
       }
-      long date=request.getDateHeader(HttpHeaders.IF_UNMODIFIED_SINCE);
+      long date=request.getDateHeader(HttpHeader.IF_UNMODIFIED_SINCE.asString());
       if (date != -1) {
         if (resource.lastModified() / 1000 > date / 1000) {
           response.sendError(HttpServletResponse.SC_PRECONDITION_FAILED);

@@ -6,15 +6,15 @@
     content_length=resource.length();
   }
  else {
-    Connector connector=AbstractHttpConnection.getCurrentConnection().getConnector();
-    direct=connector instanceof NIOConnector && ((NIOConnector)connector).getUseDirectBuffers() && !(connector instanceof SslConnector);
+    HttpConnector connector=HttpChannel.getCurrentHttpChannel().getHttpConnector();
+    direct=!(connector instanceof SslConnector);
     content_length=content.getContentLength();
   }
   OutputStream out=null;
   boolean written;
   try {
     out=response.getOutputStream();
-    written=out instanceof HttpOutput ? ((HttpOutput)out).isWritten() : AbstractHttpConnection.getCurrentConnection().getGenerator().isWritten();
+    written=out instanceof HttpOutput ? ((HttpOutput)out).isWritten() : true;
   }
  catch (  IllegalStateException e) {
     out=new WriterOutputStream(response.getWriter());
@@ -28,13 +28,13 @@
       if (content != null && !written && out instanceof HttpOutput) {
         if (response instanceof Response) {
           writeOptionHeaders(((Response)response).getHttpFields());
-          ((AbstractHttpConnection.Output)out).sendContent(content);
+          ((HttpOutput)out).sendContent(content);
         }
  else {
-          Buffer buffer=direct ? content.getDirectBuffer() : content.getIndirectBuffer();
+          ByteBuffer buffer=direct ? content.getDirectBuffer() : content.getIndirectBuffer();
           if (buffer != null) {
             writeHeaders(response,content,content_length);
-            ((AbstractHttpConnection.Output)out).sendContent(buffer);
+            ((HttpOutput)out).sendContent(buffer);
           }
  else {
             writeHeaders(response,content,content_length);
@@ -44,8 +44,8 @@
       }
  else {
         writeHeaders(response,content,written ? -1 : content_length);
-        Buffer buffer=(content == null) ? null : content.getIndirectBuffer();
-        if (buffer != null)         buffer.writeTo(out);
+        ByteBuffer buffer=(content == null) ? null : content.getIndirectBuffer();
+        if (buffer != null)         BufferUtil.writeTo(buffer,out);
  else         resource.writeTo(out,0,content_length);
       }
     }
@@ -55,7 +55,7 @@
     if (ranges == null || ranges.size() == 0) {
       writeHeaders(response,content,content_length);
       response.setStatus(HttpServletResponse.SC_REQUESTED_RANGE_NOT_SATISFIABLE);
-      response.setHeader(HttpHeaders.CONTENT_RANGE,InclusiveByteRange.to416HeaderRangeString(content_length));
+      response.setHeader(HttpHeader.CONTENT_RANGE.asString(),InclusiveByteRange.to416HeaderRangeString(content_length));
       resource.writeTo(out,0,content_length);
       return;
     }
@@ -64,7 +64,7 @@
       long singleLength=singleSatisfiableRange.getSize(content_length);
       writeHeaders(response,content,singleLength);
       response.setStatus(HttpServletResponse.SC_PARTIAL_CONTENT);
-      response.setHeader(HttpHeaders.CONTENT_RANGE,singleSatisfiableRange.toHeaderRangeString(content_length));
+      response.setHeader(HttpHeader.CONTENT_RANGE.asString(),singleSatisfiableRange.toHeaderRangeString(content_length));
       resource.writeTo(out,singleSatisfiableRange.getFirst(content_length),singleLength);
       return;
     }
@@ -73,7 +73,7 @@
     MultiPartOutputStream multi=new MultiPartOutputStream(out);
     response.setStatus(HttpServletResponse.SC_PARTIAL_CONTENT);
     String ctp;
-    if (request.getHeader(HttpHeaders.REQUEST_RANGE) != null)     ctp="multipart/x-byteranges; boundary=";
+    if (request.getHeader(HttpHeader.REQUEST_RANGE.asString()) != null)     ctp="multipart/x-byteranges; boundary=";
  else     ctp="multipart/byteranges; boundary=";
     response.setContentType(ctp + multi.getBoundary());
     InputStream in=resource.getInputStream();
@@ -83,13 +83,13 @@
     for (int i=0; i < ranges.size(); i++) {
       InclusiveByteRange ibr=(InclusiveByteRange)ranges.get(i);
       header[i]=ibr.toHeaderRangeString(content_length);
-      length+=((i > 0) ? 2 : 0) + 2 + multi.getBoundary().length()+ 2+ HttpHeaders.CONTENT_TYPE.length()+ 2+ mimetype.length()+ 2+ HttpHeaders.CONTENT_RANGE.length()+ 2+ header[i].length()+ 2+ 2+ (ibr.getLast(content_length) - ibr.getFirst(content_length))+ 1;
+      length+=((i > 0) ? 2 : 0) + 2 + multi.getBoundary().length()+ 2+ HttpHeader.CONTENT_TYPE.asString().length()+ 2+ mimetype.length()+ 2+ HttpHeader.CONTENT_RANGE.asString().length()+ 2+ header[i].length()+ 2+ 2+ (ibr.getLast(content_length) - ibr.getFirst(content_length))+ 1;
     }
     length+=2 + 2 + multi.getBoundary().length()+ 2+ 2;
     response.setContentLength(length);
     for (int i=0; i < ranges.size(); i++) {
       InclusiveByteRange ibr=(InclusiveByteRange)ranges.get(i);
-      multi.startPart(mimetype,new String[]{HttpHeaders.CONTENT_RANGE + ": " + header[i]});
+      multi.startPart(mimetype,new String[]{HttpHeader.CONTENT_RANGE + ": " + header[i]});
       long start=ibr.getFirst(content_length);
       long size=ibr.getSize(content_length);
       if (in != null) {
