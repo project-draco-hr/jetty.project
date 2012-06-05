@@ -34,8 +34,8 @@ synchronized (session) {
       }
  else       if (_dispatch) {
         RequestDispatcher dispatcher=request.getRequestDispatcher(_formErrorPage);
-        response.setHeader(HttpHeaders.CACHE_CONTROL,"No-cache");
-        response.setDateHeader(HttpHeaders.EXPIRES,1);
+        response.setHeader(HttpHeader.CACHE_CONTROL.asString(),HttpHeaderValue.NO_CACHE.asString());
+        response.setDateHeader(HttpHeader.EXPIRES.asString(),1);
         dispatcher.forward(new FormRequest(request),new FormResponse(response));
       }
  else {
@@ -57,8 +57,8 @@ synchronized (session) {
             if (request.getQueryString() != null)             buf.append("?").append(request.getQueryString());
             if (j_uri.equals(buf.toString())) {
               session.removeAttribute(__J_POST);
-              Request base_request=(req instanceof Request) ? (Request)req : AbstractHttpConnection.getCurrentConnection().getRequest();
-              base_request.setMethod(HttpMethods.POST);
+              Request base_request=HttpChannel.getCurrentHttpChannel().getRequest();
+              base_request.setMethod(HttpMethod.POST,HttpMethod.POST.asString());
               base_request.setParameters(j_post);
             }
           }
@@ -73,8 +73,8 @@ synchronized (session) {
         StringBuffer buf=request.getRequestURL();
         if (request.getQueryString() != null)         buf.append("?").append(request.getQueryString());
         session.setAttribute(__J_URI,buf.toString());
-        if (MimeTypes.FORM_ENCODED.equalsIgnoreCase(req.getContentType()) && HttpMethods.POST.equals(request.getMethod())) {
-          Request base_request=(req instanceof Request) ? (Request)req : AbstractHttpConnection.getCurrentConnection().getRequest();
+        if (MimeTypes.Type.FORM_ENCODED.is(req.getContentType()) && HttpMethod.POST.is(request.getMethod())) {
+          Request base_request=(req instanceof Request) ? (Request)req : HttpChannel.getCurrentHttpChannel().getRequest();
           base_request.extractParameters();
           session.setAttribute(__J_POST,new MultiMap<String>(base_request.getParameters()));
         }
@@ -82,8 +82,8 @@ synchronized (session) {
     }
     if (_dispatch) {
       RequestDispatcher dispatcher=request.getRequestDispatcher(_formLoginPage);
-      response.setHeader(HttpHeaders.CACHE_CONTROL,"No-cache");
-      response.setDateHeader(HttpHeaders.EXPIRES,1);
+      response.setHeader(HttpHeader.CACHE_CONTROL.asString(),HttpHeaderValue.NO_CACHE.asString());
+      response.setDateHeader(HttpHeader.EXPIRES.asString(),1);
       dispatcher.forward(new FormRequest(request),new FormResponse(response));
     }
  else {

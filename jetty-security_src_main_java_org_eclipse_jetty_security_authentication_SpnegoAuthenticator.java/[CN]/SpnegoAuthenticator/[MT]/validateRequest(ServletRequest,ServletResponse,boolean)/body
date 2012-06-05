@@ -1,7 +1,7 @@
 {
   HttpServletRequest req=(HttpServletRequest)request;
   HttpServletResponse res=(HttpServletResponse)response;
-  String header=req.getHeader(HttpHeaders.AUTHORIZATION);
+  String header=req.getHeader(HttpHeader.AUTHORIZATION.asString());
   if (!mandatory) {
     return _deferred;
   }
@@ -11,7 +11,7 @@
         return Authentication.UNAUTHENTICATED;
       }
       LOG.debug("SpengoAuthenticator: sending challenge");
-      res.setHeader(HttpHeaders.WWW_AUTHENTICATE,HttpHeaders.NEGOTIATE);
+      res.setHeader(HttpHeader.WWW_AUTHENTICATE.asString(),HttpHeader.NEGOTIATE.asString());
       res.sendError(HttpServletResponse.SC_UNAUTHORIZED);
       return Authentication.SEND_CONTINUE;
     }
@@ -19,7 +19,7 @@
       throw new ServerAuthException(ioe);
     }
   }
- else   if (header != null && header.startsWith(HttpHeaders.NEGOTIATE)) {
+ else   if (header != null && header.startsWith(HttpHeader.NEGOTIATE.asString())) {
     String spnegoToken=header.substring(10);
     UserIdentity user=_loginService.login(null,spnegoToken);
     if (user != null) {

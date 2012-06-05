@@ -4,9 +4,10 @@
     mappings=new StringMap();
     _constraintMap.put(mapping.getPathSpec(),mappings);
   }
-  RoleInfo allMethodsRoleInfo=mappings.get(null);
+  RoleInfo allMethodsRoleInfo=mappings.get(ALL_METHODS);
   if (allMethodsRoleInfo != null && allMethodsRoleInfo.isForbidden())   return;
   String httpMethod=mapping.getMethod();
+  if (httpMethod == null)   httpMethod=ALL_METHODS;
   RoleInfo roleInfo=mappings.get(httpMethod);
   if (roleInfo == null) {
     roleInfo=new RoleInfo();
@@ -20,9 +21,9 @@
   boolean forbidden=constraint.isForbidden();
   roleInfo.setForbidden(forbidden);
   if (forbidden) {
-    if (httpMethod == null) {
+    if (httpMethod.equals(ALL_METHODS)) {
       mappings.clear();
-      mappings.put(null,roleInfo);
+      mappings.put(ALL_METHODS,roleInfo);
     }
   }
  else {
@@ -45,9 +46,9 @@
         }
       }
     }
-    if (httpMethod == null) {
+    if (httpMethod.equals(ALL_METHODS)) {
       for (      Map.Entry<String,RoleInfo> entry : mappings.entrySet()) {
-        if (entry.getKey() != null) {
+        if (!entry.getKey().equals(ALL_METHODS)) {
           RoleInfo specific=entry.getValue();
           specific.combine(roleInfo);
         }
