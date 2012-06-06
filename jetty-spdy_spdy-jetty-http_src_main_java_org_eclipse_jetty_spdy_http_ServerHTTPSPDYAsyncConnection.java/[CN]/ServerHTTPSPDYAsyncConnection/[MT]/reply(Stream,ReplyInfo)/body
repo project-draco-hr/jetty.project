@@ -14,10 +14,11 @@
       pushHeaders.put(scheme);
       pushHeaders.put(host);
       pushHeaders.put("referer",referrer);
+      pushHeaders.put("x-spdy-push","true");
       pushHeaders.put(headers.get("accept-encoding"));
       stream.syn(new SynInfo(pushHeaders,false),getMaxIdleTime(),TimeUnit.MILLISECONDS,new Handler.Adapter<Stream>(){
         @Override public void completed(        Stream pushStream){
-          Synchronous pushConnection=new Synchronous(getConnector(),getEndPoint(),getServer(),version,connection,pushStrategy,pushStream);
+          ServerHTTPSPDYAsyncConnection pushConnection=new ServerHTTPSPDYAsyncConnection(getConnector(),getEndPoint(),getServer(),version,connection,pushStrategy,pushStream);
           pushConnection.beginRequest(pushHeaders,true);
         }
       }
