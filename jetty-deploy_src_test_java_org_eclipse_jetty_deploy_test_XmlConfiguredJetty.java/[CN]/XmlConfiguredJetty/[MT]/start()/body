@@ -1,13 +1,12 @@
 {
   Assert.assertNotNull("Server should not be null (failed load?)",_server);
   _server.start();
-  this._serverPort=(-1);
+  _serverPort=-1;
   Connector connectors[]=_server.getConnectors();
-  for (int i=0; i < connectors.length; i++) {
-    Connector connector=connectors[i];
-    if (connector.getLocalPort() > 0) {
-      this._serverPort=connector.getLocalPort();
-      break;
+  for (int i=0; _serverPort < 0 && i < connectors.length; i++) {
+    if (connectors[i] instanceof Connector.NetConnector) {
+      int port=((Connector.NetConnector)connectors[i]).getLocalPort();
+      if (port > 0)       _serverPort=port;
     }
   }
   Assert.assertTrue("Server Port is between 1 and 65535. Actually <" + _serverPort + ">",(1 <= this._serverPort) && (this._serverPort <= 65535));
