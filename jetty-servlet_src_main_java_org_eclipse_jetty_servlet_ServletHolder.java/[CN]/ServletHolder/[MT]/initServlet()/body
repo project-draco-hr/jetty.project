@@ -6,6 +6,18 @@
     if (_identityService != null) {
       old_run_as=_identityService.setRunAs(_identityService.getSystemUserIdentity(),_runAsToken);
     }
+    if (isJspServlet(_servlet)) {
+      ContextHandler ch=((ContextHandler.Context)getServletHandler().getServletContext()).getContextHandler();
+      ch.setAttribute("org.apache.catalina.jsp_classpath",ch.getClassPath());
+      System.err.println(_servlet.getClass().getName() + ":" + _name+ ":Set attribute org.apache.catalina.jsp_classpath:"+ ch.getAttribute("org.apache.catalina.jsp_classpath"));
+      setInitParameter("com.sun.appserv.jsp.classpath",Loader.getClassPath(ch.getClassLoader()));
+      System.err.println(_servlet.getClass().getName() + ":" + _name+ ":Set com.sun.appserv.jsp.classpath:"+ getInitParameter("com.sun.appserv.jsp.classpath"));
+      if ("?".equals(getInitParameter("classpath"))) {
+        String classpath=ch.getClassPath();
+        LOG.debug("classpath=" + classpath);
+        if (classpath != null)         setInitParameter("classpath",classpath);
+      }
+    }
     _servlet.init(_config);
   }
  catch (  UnavailableException e) {
