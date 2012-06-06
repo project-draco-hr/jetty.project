@@ -3,7 +3,7 @@ synchronized (this) {
 switch (_state) {
 case REDISPATCHED:
 case DISPATCHED:
-      _state=State.UNCOMPLETED;
+      _state=State.COMPLETING;
     return true;
 case IDLE:
   throw new IllegalStateException(this.getStatusString());
@@ -12,8 +12,8 @@ _initial=false;
 _state=State.ASYNCWAIT;
 scheduleTimeout();
 if (_state == State.ASYNCWAIT) return true;
- else if (_state == State.COMPLETING) {
-_state=State.UNCOMPLETED;
+ else if (_state == State.COMPLETECALLED) {
+_state=State.COMPLETING;
 return true;
 }
 _initial=false;
@@ -23,9 +23,9 @@ case REDISPATCHING:
 _initial=false;
 _state=State.REDISPATCHED;
 return false;
-case COMPLETING:
+case COMPLETECALLED:
 _initial=false;
-_state=State.UNCOMPLETED;
+_state=State.COMPLETING;
 return true;
 default :
 throw new IllegalStateException(this.getStatusString());
