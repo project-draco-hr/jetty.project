@@ -1,18 +1,18 @@
 {
-  if (!isWriting())   return false;
+  if (!isWriting())   return;
   try {
-    retry:     while (true) {
+    while (true) {
       _buffers=compact(_buffers);
       _endp.flush(_buffers);
       for (      ByteBuffer b : _buffers) {
         if (b.hasRemaining()) {
-          if (registerFlushInterest())           continue retry;
-          return true;
+          onIncompleteFlushed();
+          return;
         }
       }
       break;
     }
-    Callback callback=_callback;
+    Callback<Object> callback=_callback;
     Object context=_context;
     _buffers=null;
     _callback=null;
@@ -21,7 +21,7 @@
     callback.completed(context);
   }
  catch (  IOException e) {
-    Callback callback=_callback;
+    Callback<Object> callback=_callback;
     Object context=_context;
     _buffers=null;
     _callback=null;
@@ -29,5 +29,5 @@
     if (!_writing.compareAndSet(true,false))     throw new ConcurrentModificationException();
     callback.failed(context,e);
   }
-  return true;
+  return;
 }

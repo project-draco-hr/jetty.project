@@ -2,27 +2,21 @@
   if (callback == null)   throw new IllegalArgumentException();
   if (!_writing.compareAndSet(false,true))   throw new WritePendingException();
   try {
-    _buffers=buffers;
-    _context=context;
-    _callback=callback;
     _endp.flush(buffers);
     for (    ByteBuffer b : buffers) {
       if (b.hasRemaining()) {
-        if (registerFlushInterest())         completeWrite();
- else         _writing.set(true);
+        _buffers=buffers;
+        _context=context;
+        _callback=(Callback<Object>)callback;
+        _writing.set(true);
+        onIncompleteFlushed();
         return;
       }
     }
-    _buffers=null;
-    _context=null;
-    _callback=null;
     if (!_writing.compareAndSet(true,false))     throw new ConcurrentModificationException();
     callback.completed(context);
   }
  catch (  IOException e) {
-    _buffers=null;
-    _context=null;
-    _callback=null;
     if (!_writing.compareAndSet(true,false))     throw new ConcurrentModificationException(e);
     callback.failed(context,e);
   }
