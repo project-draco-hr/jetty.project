@@ -1,0 +1,19 @@
+{
+  final SSLSocket client=newClient();
+  threadPool.submit(new Callable<Object>(){
+    public Object call() throws Exception {
+      client.startHandshake();
+      return null;
+    }
+  }
+);
+  TLSRecord record=proxy.readFromClient();
+  Assert.assertNotNull(record);
+  proxy.flushToServer(record);
+  proxy.sendRSTToServer();
+  TimeUnit.MILLISECONDS.sleep(500);
+  Assert.assertThat(sslHandles.get(),Matchers.lessThan(20));
+  Assert.assertThat(sslFlushes.get(),Matchers.lessThan(20));
+  Assert.assertThat(httpParses.get(),Matchers.lessThan(50));
+  client.close();
+}

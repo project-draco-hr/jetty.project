@@ -1,0 +1,72 @@
+{
+  final SSLSocket client=newClient();
+  Future<Object> handshake=threadPool.submit(new Callable<Object>(){
+    public Object call() throws Exception {
+      client.startHandshake();
+      return null;
+    }
+  }
+);
+  TLSRecord record=proxy.readFromClient();
+  byte[] bytes=record.getBytes();
+  byte[] chunk1=new byte[2 * bytes.length / 3];
+  System.arraycopy(bytes,0,chunk1,0,chunk1.length);
+  byte[] chunk2=new byte[bytes.length - chunk1.length];
+  System.arraycopy(bytes,chunk1.length,chunk2,0,chunk2.length);
+  proxy.flushToServer(100,chunk1);
+  proxy.flushToServer(100,chunk2);
+  record=proxy.readFromServer();
+  proxy.flushToClient(record);
+  record=proxy.readFromClient();
+  bytes=record.getBytes();
+  chunk1=new byte[2 * bytes.length / 3];
+  System.arraycopy(bytes,0,chunk1,0,chunk1.length);
+  chunk2=new byte[bytes.length - chunk1.length];
+  System.arraycopy(bytes,chunk1.length,chunk2,0,chunk2.length);
+  proxy.flushToServer(100,chunk1);
+  proxy.flushToServer(100,chunk2);
+  record=proxy.readFromClient();
+  bytes=record.getBytes();
+  chunk1=new byte[2 * bytes.length / 3];
+  System.arraycopy(bytes,0,chunk1,0,chunk1.length);
+  chunk2=new byte[bytes.length - chunk1.length];
+  System.arraycopy(bytes,chunk1.length,chunk2,0,chunk2.length);
+  proxy.flushToServer(100,chunk1);
+  proxy.flushToServer(100,chunk2);
+  record=proxy.readFromClient();
+  bytes=record.getBytes();
+  chunk1=new byte[2 * bytes.length / 3];
+  System.arraycopy(bytes,0,chunk1,0,chunk1.length);
+  chunk2=new byte[bytes.length - chunk1.length];
+  System.arraycopy(bytes,chunk1.length,chunk2,0,chunk2.length);
+  proxy.flushToServer(100,chunk1);
+  proxy.flushToServer(100,chunk2);
+  record=proxy.readFromServer();
+  Assert.assertNotNull(record);
+  proxy.flushToClient(record);
+  record=proxy.readFromServer();
+  Assert.assertNotNull(record);
+  proxy.flushToClient(record);
+  Assert.assertNull(handshake.get(5,TimeUnit.SECONDS));
+  TimeUnit.MILLISECONDS.sleep(500);
+  Assert.assertThat(sslHandles.get(),Matchers.lessThan(20));
+  Assert.assertThat(sslFlushes.get(),Matchers.lessThan(20));
+  Assert.assertThat(httpParses.get(),Matchers.lessThan(50));
+  client.close();
+  record=proxy.readFromClient();
+  bytes=record.getBytes();
+  chunk1=new byte[2 * bytes.length / 3];
+  System.arraycopy(bytes,0,chunk1,0,chunk1.length);
+  chunk2=new byte[bytes.length - chunk1.length];
+  System.arraycopy(bytes,chunk1.length,chunk2,0,chunk2.length);
+  proxy.flushToServer(100,chunk1);
+  proxy.flushToServer(100,chunk2);
+  record=proxy.readFromClient();
+  Assert.assertNull(String.valueOf(record),record);
+  proxy.flushToServer(record);
+  record=proxy.readFromServer();
+  proxy.flushToClient(record);
+  record=proxy.readFromServer();
+  Assert.assertNull(String.valueOf(record),record);
+  proxy.flushToClient(record);
+}

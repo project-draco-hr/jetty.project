@@ -1,0 +1,21 @@
+{
+  final SSLSocket client=newClient();
+  threadPool.submit(new Callable<Object>(){
+    public Object call() throws Exception {
+      client.startHandshake();
+      return null;
+    }
+  }
+);
+  TLSRecord record=proxy.readFromClient();
+  byte[] bytes=record.getBytes();
+  byte[] chunk1=new byte[2 * bytes.length / 3];
+  System.arraycopy(bytes,0,chunk1,0,chunk1.length);
+  proxy.flushToServer(100,chunk1);
+  proxy.sendRSTToServer();
+  TimeUnit.MILLISECONDS.sleep(500);
+  Assert.assertThat(sslHandles.get(),Matchers.lessThan(20));
+  Assert.assertThat(sslFlushes.get(),Matchers.lessThan(20));
+  Assert.assertThat(httpParses.get(),Matchers.lessThan(50));
+  client.close();
+}

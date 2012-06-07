@@ -1,0 +1,26 @@
+{
+  final SSLSocket client=newClient();
+  SimpleProxy.AutomaticFlow automaticProxyFlow=proxy.startAutomaticFlow();
+  client.startHandshake();
+  Assert.assertTrue(automaticProxyFlow.stop(5,TimeUnit.SECONDS));
+  threadPool.submit(new Callable<Object>(){
+    public Object call() throws Exception {
+      OutputStream clientOutput=client.getOutputStream();
+      clientOutput.write(("" + "GET / HTTP/1.1\r\n" + "Host: localhost\r\n"+ "\r\n").getBytes("UTF-8"));
+      clientOutput.flush();
+      return null;
+    }
+  }
+);
+  TLSRecord record=proxy.readFromClient();
+  byte[] bytes=record.getBytes();
+  byte[] chunk1=new byte[2 * bytes.length / 3];
+  System.arraycopy(bytes,0,chunk1,0,chunk1.length);
+  proxy.flushToServer(100,chunk1);
+  proxy.sendRSTToServer();
+  TimeUnit.MILLISECONDS.sleep(500);
+  Assert.assertThat(sslHandles.get(),Matchers.lessThan(20));
+  Assert.assertThat(sslFlushes.get(),Matchers.lessThan(20));
+  Assert.assertThat(httpParses.get(),Matchers.lessThan(50));
+  client.close();
+}
