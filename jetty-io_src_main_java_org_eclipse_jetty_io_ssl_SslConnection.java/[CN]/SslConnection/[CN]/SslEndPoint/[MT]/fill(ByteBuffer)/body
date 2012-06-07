@@ -29,6 +29,8 @@ case NEED_WRAP:
   if (!_flushUnwrap) {
     _fillWrap=true;
     flush(BufferUtil.EMPTY_BUFFER);
+    if (BufferUtil.hasContent(_netOut))     return 0;
+    _fillWrap=false;
   }
 return -1;
 default :
@@ -49,8 +51,11 @@ case NEED_TASK:
 _sslEngine.getDelegatedTask().run();
 continue;
 case NEED_WRAP:
+if (_flushUnwrap) return 0;
 _fillWrap=true;
 flush(BufferUtil.EMPTY_BUFFER);
+if (BufferUtil.hasContent(_netOut)) return 0;
+_fillWrap=false;
 continue;
 case NEED_UNWRAP:
 if (net_filled < 0) _sslEngine.closeInbound();
