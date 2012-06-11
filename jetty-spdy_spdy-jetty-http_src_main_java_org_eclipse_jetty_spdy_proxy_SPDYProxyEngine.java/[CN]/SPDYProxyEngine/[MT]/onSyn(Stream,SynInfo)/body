@@ -23,32 +23,15 @@
     rst(clientStream);
     return null;
   }
-  Set<Session> sessions=clientSessions.get(serverSession);
-  if (sessions == null) {
-    sessions=Collections.newSetFromMap(new ConcurrentHashMap<Session,Boolean>());
-    Set<Session> existing=clientSessions.putIfAbsent(serverSession,sessions);
-    if (existing != null)     sessions=existing;
-  }
+  @SuppressWarnings("unchecked") Set<Session> sessions=(Set<Session>)serverSession.getAttribute(CLIENT_SESSIONS_ATTRIBUTE);
   sessions.add(clientSession);
   convert(clientVersion,serverVersion,headers);
   addRequestProxyHeaders(headers);
   SynInfo serverSynInfo=new SynInfo(headers,clientSynInfo.isClose());
   logger.debug("P -> S {}",serverSynInfo);
   StreamFrameListener listener=new ProxyStreamFrameListener(clientStream);
-  if (serverSynInfo.isClose()) {
-    serverSession.syn(serverSynInfo,listener,timeout,TimeUnit.MILLISECONDS,new Handler.Adapter<Stream>(){
-      @Override public void failed(      Stream context,      Throwable x){
-        logger.debug(x);
-        rst(clientStream);
-      }
-    }
-);
-    return null;
-  }
- else {
-    StreamHandler streamHandler=new StreamHandler(clientStream);
-    clientStream.setAttribute(STREAM_HANDLER_ATTRIBUTE,streamHandler);
-    serverSession.syn(serverSynInfo,listener,timeout,TimeUnit.MILLISECONDS,streamHandler);
-    return this;
-  }
+  StreamHandler handler=new StreamHandler(clientStream);
+  clientStream.setAttribute(STREAM_HANDLER_ATTRIBUTE,handler);
+  serverSession.syn(serverSynInfo,listener,timeout,TimeUnit.MILLISECONDS,handler);
+  return this;
 }

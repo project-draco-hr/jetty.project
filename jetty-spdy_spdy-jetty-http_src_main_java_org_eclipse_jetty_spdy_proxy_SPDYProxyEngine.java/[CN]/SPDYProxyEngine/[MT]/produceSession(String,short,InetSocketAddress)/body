@@ -1,16 +1,17 @@
 {
   try {
-    Future<Session> session=serverSessions.get(host);
+    Session session=serverSessions.get(host);
     if (session == null) {
       SPDYClient client=factory.newSPDYClient(version);
-      session=client.connect(address,sessionListener);
-      Future<Session> existing=serverSessions.putIfAbsent(host,session);
+      session=client.connect(address,sessionListener).get(getConnectTimeout(),TimeUnit.MILLISECONDS);
+      session.setAttribute(CLIENT_SESSIONS_ATTRIBUTE,Collections.newSetFromMap(new ConcurrentHashMap<Session,Boolean>()));
+      Session existing=serverSessions.putIfAbsent(host,session);
       if (existing != null) {
-        session.cancel(true);
+        session.goAway(getTimeout(),TimeUnit.MILLISECONDS,new Handler.Adapter<Void>());
         session=existing;
       }
     }
-    return session.get(getConnectTimeout(),TimeUnit.MILLISECONDS);
+    return session;
   }
  catch (  Exception x) {
     logger.debug(x);
