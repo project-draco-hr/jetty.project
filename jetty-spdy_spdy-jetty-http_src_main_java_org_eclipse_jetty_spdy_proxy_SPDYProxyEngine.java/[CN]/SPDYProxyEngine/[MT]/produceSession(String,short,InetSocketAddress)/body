@@ -1,0 +1,19 @@
+{
+  try {
+    Future<Session> session=serverSessions.get(host);
+    if (session == null) {
+      SPDYClient client=factory.newSPDYClient(version);
+      session=client.connect(address,sessionListener);
+      Future<Session> existing=serverSessions.putIfAbsent(host,session);
+      if (existing != null) {
+        session.cancel(true);
+        session=existing;
+      }
+    }
+    return session.get(getConnectTimeout(),TimeUnit.MILLISECONDS);
+  }
+ catch (  Exception x) {
+    logger.debug(x);
+    return null;
+  }
+}

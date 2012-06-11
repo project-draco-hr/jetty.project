@@ -1,0 +1,54 @@
+{
+  logger.debug("C -> P {} on {}",clientSynInfo,clientStream);
+  final Session clientSession=clientStream.getSession();
+  short clientVersion=clientSession.getVersion();
+  Headers headers=new Headers(clientSynInfo.getHeaders(),false);
+  Headers.Header hostHeader=headers.get(HTTPSPDYHeader.HOST.name(clientVersion));
+  if (hostHeader == null) {
+    rst(clientStream);
+    return null;
+  }
+  String host=hostHeader.value();
+  int colon=host.indexOf(':');
+  if (colon >= 0)   host=host.substring(0,colon);
+  ProxyInfo proxyInfo=getProxyInfo(host);
+  if (proxyInfo == null) {
+    rst(clientStream);
+    return null;
+  }
+  short serverVersion=proxyInfo.getVersion();
+  InetSocketAddress address=proxyInfo.getAddress();
+  Session serverSession=produceSession(host,serverVersion,address);
+  if (serverSession == null) {
+    rst(clientStream);
+    return null;
+  }
+  Set<Session> sessions=clientSessions.get(serverSession);
+  if (sessions == null) {
+    sessions=Collections.newSetFromMap(new ConcurrentHashMap<Session,Boolean>());
+    Set<Session> existing=clientSessions.putIfAbsent(serverSession,sessions);
+    if (existing != null)     sessions=existing;
+  }
+  sessions.add(clientSession);
+  convert(clientVersion,serverVersion,headers);
+  addRequestProxyHeaders(headers);
+  SynInfo serverSynInfo=new SynInfo(headers,clientSynInfo.isClose());
+  logger.debug("P -> S {}",serverSynInfo);
+  StreamFrameListener listener=new ProxyStreamFrameListener(clientStream);
+  if (serverSynInfo.isClose()) {
+    serverSession.syn(serverSynInfo,listener,timeout,TimeUnit.MILLISECONDS,new Handler.Adapter<Stream>(){
+      @Override public void failed(      Stream context,      Throwable x){
+        logger.debug(x);
+        rst(clientStream);
+      }
+    }
+);
+    return null;
+  }
+ else {
+    StreamHandler streamHandler=new StreamHandler(clientStream);
+    clientStream.setAttribute(STREAM_HANDLER_ATTRIBUTE,streamHandler);
+    serverSession.syn(serverSynInfo,listener,timeout,TimeUnit.MILLISECONDS,streamHandler);
+    return this;
+  }
+}
