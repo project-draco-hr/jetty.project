@@ -1,0 +1,45 @@
+{
+  final byte[] data="0123456789ABCDEF".getBytes("UTF-8");
+  InetSocketAddress proxyAddress=startProxy(startServer(new ServerSessionFrameListener.Adapter(){
+    @Override public StreamFrameListener onSyn(    Stream stream,    SynInfo synInfo){
+      return new StreamFrameListener.Adapter(){
+        @Override public void onData(        Stream stream,        DataInfo dataInfo){
+          dataInfo.consume(dataInfo.length());
+          if (dataInfo.isClose()) {
+            Headers responseHeaders=new Headers();
+            responseHeaders.put(HTTPSPDYHeader.VERSION.name(version()),"HTTP/1.1");
+            responseHeaders.put(HTTPSPDYHeader.STATUS.name(version()),"200 OK");
+            ReplyInfo replyInfo=new ReplyInfo(responseHeaders,false);
+            stream.reply(replyInfo);
+            stream.data(new BytesDataInfo(data,true));
+          }
+        }
+      }
+;
+    }
+  }
+));
+  Socket client=new Socket();
+  client.connect(proxyAddress);
+  OutputStream output=client.getOutputStream();
+  String request="" + "POST / HTTP/1.1\r\n" + "Host: localhost:" + proxyAddress.getPort() + "\r\n"+ "Content-Length: "+ data.length+ "\r\n"+ "Content-Type: application/octet-stream\r\n"+ "\r\n";
+  output.write(request.getBytes("UTF-8"));
+  output.write(data);
+  output.flush();
+  InputStream input=client.getInputStream();
+  BufferedReader reader=new BufferedReader(new InputStreamReader(input,"UTF-8"));
+  String line=reader.readLine();
+  Assert.assertTrue(line.contains(" 200"));
+  while (line.length() > 0)   line=reader.readLine();
+  for (  byte datum : data)   Assert.assertEquals(datum,reader.read());
+  Assert.assertFalse(reader.ready());
+  output.write(request.getBytes("UTF-8"));
+  output.write(data);
+  output.flush();
+  line=reader.readLine();
+  Assert.assertTrue(line.contains(" 200"));
+  while (line.length() > 0)   line=reader.readLine();
+  for (  byte datum : data)   Assert.assertEquals(datum,reader.read());
+  Assert.assertFalse(reader.ready());
+  client.close();
+}
