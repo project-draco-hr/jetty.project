@@ -1,0 +1,113 @@
+{
+  try {
+    LOG.debug("Parsing {} bytes",buffer.remaining());
+    while (buffer.hasRemaining()) {
+switch (state) {
+case FINOP:
+{
+          byte b=buffer.get();
+          byte flags=(byte)(0xF & (b >> 4));
+          baseframe.setFin((flags & BaseFrame.FLAG_FIN) == 1);
+          baseframe.setRsv1((flags & BaseFrame.FLAG_RSV1) == 1);
+          baseframe.setRsv2((flags & BaseFrame.FLAG_RSV2) == 1);
+          baseframe.setRsv3((flags & BaseFrame.FLAG_RSV3) == 1);
+          baseframe.setOpcode((byte)(b & 0xF));
+          if (baseframe.isControlFrame() && !baseframe.isLastFrame()) {
+            throw new WebSocketException("Fragmented Control Frame");
+          }
+          state=State.PAYLOAD_LEN;
+          break;
+        }
+case PAYLOAD_LEN:
+{
+        byte b=buffer.get();
+        baseframe.setMasked((b & 0x80) != 0);
+        length=(byte)(0x7F & b);
+        if (b == 127) {
+          if (buffer.remaining() >= 4) {
+            length=buffer.getInt();
+          }
+ else {
+            length=0;
+            state=State.PAYLOAD_LEN_BYTES;
+            cursor=4;
+            break;
+          }
+        }
+ else         if (b == 126) {
+          if (buffer.remaining() >= 2) {
+            length=buffer.getShort();
+          }
+ else {
+            length=0;
+            state=State.PAYLOAD_LEN_BYTES;
+            cursor=2;
+            break;
+          }
+        }
+        baseframe.setPayloadLength(length);
+        if (baseframe.isMasked()) {
+          state=State.MASK;
+        }
+ else {
+          state=State.PAYLOAD;
+        }
+        break;
+      }
+case PAYLOAD_LEN_BYTES:
+{
+      byte b=buffer.get();
+      --cursor;
+      length|=(b & 0xFF) << (8 * cursor);
+      if (cursor == 0) {
+        baseframe.setPayloadLength(length);
+        if (baseframe.isMasked()) {
+          state=State.MASK;
+        }
+ else {
+          state=State.PAYLOAD;
+        }
+      }
+      break;
+    }
+case MASK:
+{
+    byte m[]=new byte[4];
+    baseframe.setMask(m);
+    if (buffer.remaining() >= 4) {
+      buffer.get(m,0,4);
+      state=State.PAYLOAD;
+    }
+ else {
+      state=State.MASK_BYTES;
+      cursor=4;
+    }
+    break;
+  }
+case MASK_BYTES:
+{
+  byte b=buffer.get();
+  --cursor;
+  baseframe.getMask()[cursor]=b;
+  if (cursor == 0) {
+    state=State.PAYLOAD;
+  }
+  break;
+}
+case PAYLOAD:
+{
+break;
+}
+}
+}
+}
+ catch (WebSocketException e) {
+notifyWebSocketException(e);
+}
+catch (Throwable t) {
+notifyWebSocketException(new WebSocketException(t));
+}
+ finally {
+buffer.position(buffer.limit());
+}
+}
