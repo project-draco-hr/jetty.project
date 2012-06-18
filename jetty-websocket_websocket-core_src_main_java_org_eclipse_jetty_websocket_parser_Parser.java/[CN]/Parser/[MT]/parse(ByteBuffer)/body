@@ -11,8 +11,9 @@ case FINOP:
           baseframe.setRsv1((flags & BaseFrame.FLAG_RSV1) == 1);
           baseframe.setRsv2((flags & BaseFrame.FLAG_RSV2) == 1);
           baseframe.setRsv3((flags & BaseFrame.FLAG_RSV3) == 1);
-          baseframe.setOpcode((byte)(b & 0xF));
-          if (baseframe.isControlFrame() && !baseframe.isLastFrame()) {
+          OpCode opcode=OpCode.from((byte)(b & 0xF));
+          baseframe.setOpCode(opcode);
+          if (opcode.isControlFrame() && !baseframe.isLastFrame()) {
             throw new WebSocketException("Fragmented Control Frame");
           }
           state=State.PAYLOAD_LEN;
@@ -96,6 +97,12 @@ case MASK_BYTES:
 }
 case PAYLOAD:
 {
+if (parser == null) {
+  parser=parsers.get(baseframe.getOpCode());
+}
+if (parser.parse(buffer)) {
+  reset();
+}
 break;
 }
 }
