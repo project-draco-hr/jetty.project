@@ -1,0 +1,20 @@
+{
+  int dataSize=1024 * 64;
+  ByteBuffer buf=ByteBuffer.allocate(dataSize + 10);
+  buf.put(new byte[]{(byte)0x82,0x7F});
+  buf.putInt(dataSize);
+  for (int i=0; i < dataSize; i++) {
+    buf.put((byte)0x77);
+  }
+  buf.flip();
+  Parser parser=new Parser();
+  FrameParseCapture capture=new FrameParseCapture();
+  parser.addListener(capture);
+  parser.parse(buf);
+  capture.assertNoErrors();
+  capture.assertHasFrame(BinaryFrame.class,1);
+  BinaryFrame bin=(BinaryFrame)capture.getFrames().get(0);
+  byte data[]=new byte[bin.getPayloadLength()];
+  bin.getData().get(data,0,dataSize);
+  Assert.assertThat("BinaryFrame.data",data.length,is(dataSize));
+}
