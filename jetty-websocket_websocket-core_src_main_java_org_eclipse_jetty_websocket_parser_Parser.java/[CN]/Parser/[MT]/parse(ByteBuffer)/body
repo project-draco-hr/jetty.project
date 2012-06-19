@@ -6,14 +6,13 @@ switch (state) {
 case FINOP:
 {
           byte b=buffer.get();
-          byte flags=(byte)(0xF & (b >> 4));
-          boolean fin=((flags & BaseFrame.FLAG_FIN) == 1);
-          boolean rsv1=((flags & BaseFrame.FLAG_RSV1) == 1);
-          boolean rsv2=((flags & BaseFrame.FLAG_RSV2) == 1);
-          boolean rsv3=((flags & BaseFrame.FLAG_RSV3) == 1);
-          OpCode opcode=OpCode.from((byte)(b & 0xF));
+          boolean fin=((b & 0x80) != 0);
+          boolean rsv1=((b & 0x40) != 0);
+          boolean rsv2=((b & 0x20) != 0);
+          boolean rsv3=((b & 0x10) != 0);
+          OpCode opcode=OpCode.from((byte)(b & 0x0F));
           if (opcode.isControlFrame() && !fin) {
-            throw new WebSocketException("Fragmented Control Frame");
+            throw new WebSocketException("Fragmented Control Frame [" + opcode.name() + "]");
           }
           if (parser == null) {
             parser=parsers.get(opcode);
@@ -35,6 +34,7 @@ case PAYLOAD:
       if (parser.parsePayload(buffer)) {
         notifyFrame(parser.getFrame());
         reset();
+        state=State.FINOP;
       }
       break;
     }
