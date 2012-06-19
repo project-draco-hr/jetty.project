@@ -1,0 +1,19 @@
+{
+  payloadLength=getFrame().getPayloadLength();
+  while (buffer.hasRemaining()) {
+    if (payload == null) {
+      payload=ByteBuffer.allocate(payloadLength);
+    }
+    int size=Math.min(payloadLength,buffer.remaining());
+    int limit=buffer.limit();
+    buffer.limit(buffer.position() + size);
+    ByteBuffer bytes=buffer.slice();
+    buffer.limit(limit);
+    payload.put(bytes);
+    if (payload.position() >= payloadLength) {
+      frame.setPayload(bytes);
+      return true;
+    }
+  }
+  return false;
+}

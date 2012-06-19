@@ -1,0 +1,87 @@
+{
+  LOG.debug("Parsing {} bytes",buffer.remaining());
+  while (buffer.hasRemaining()) {
+switch (state) {
+case PAYLOAD_LEN:
+{
+        byte b=buffer.get();
+        getFrame().setMasked((b & 0x80) != 0);
+        length=(byte)(0x7F & b);
+        if (b == 127) {
+          if (buffer.remaining() >= 4) {
+            length=buffer.getInt();
+          }
+ else {
+            length=0;
+            state=State.PAYLOAD_LEN_BYTES;
+            cursor=4;
+            break;
+          }
+        }
+ else         if (b == 126) {
+          if (buffer.remaining() >= 2) {
+            length=buffer.getShort();
+          }
+ else {
+            length=0;
+            state=State.PAYLOAD_LEN_BYTES;
+            cursor=2;
+            break;
+          }
+        }
+        getFrame().setPayloadLength(length);
+        if (getFrame().isMasked()) {
+          state=State.MASK;
+        }
+ else {
+          state=State.PAYLOAD;
+        }
+        break;
+      }
+case PAYLOAD_LEN_BYTES:
+{
+      byte b=buffer.get();
+      --cursor;
+      length|=(b & 0xFF) << (8 * cursor);
+      if (cursor == 0) {
+        getFrame().setPayloadLength(length);
+        if (getFrame().isMasked()) {
+          state=State.MASK;
+        }
+ else {
+          state=State.PAYLOAD;
+        }
+      }
+      break;
+    }
+case MASK:
+{
+    byte m[]=new byte[4];
+    getFrame().setMask(m);
+    if (buffer.remaining() >= 4) {
+      buffer.get(m,0,4);
+      state=State.PAYLOAD;
+    }
+ else {
+      state=State.MASK_BYTES;
+      cursor=4;
+    }
+    break;
+  }
+case MASK_BYTES:
+{
+  byte b=buffer.get();
+  --cursor;
+  getFrame().getMask()[cursor]=b;
+  if (cursor == 0) {
+    state=State.PAYLOAD;
+  }
+  break;
+}
+}
+if (state == State.PAYLOAD) {
+return true;
+}
+}
+return false;
+}
