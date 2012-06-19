@@ -1,0 +1,36 @@
+{
+  ByteBuffer framing=ByteBuffer.allocate(16);
+  byte b;
+  b=0x00;
+  b|=(frame.isFin() ? 0x80 : 0x00);
+  b|=(frame.isRsv1() ? 0x40 : 0x00);
+  b|=(frame.isRsv2() ? 0x20 : 0x00);
+  b|=(frame.isRsv3() ? 0x10 : 0x00);
+  b|=(frame.getOpCode().getCode() & 0x0F);
+  framing.put(b);
+  b=0x00;
+  b|=(frame.isMasked() ? 0x80 : 0x00);
+  int payloadLength=frame.getPayloadLength();
+  if (payloadLength >= 0x7F) {
+    b|=0x7F;
+    framing.put(b);
+    framing.putInt(payloadLength);
+  }
+ else   if (payloadLength >= 0x7E) {
+    b|=0x7E;
+    framing.put(b);
+    framing.putShort((short)(payloadLength & 0xFFFF));
+  }
+ else {
+    b|=(payloadLength & 0x7F);
+    framing.put(b);
+  }
+  if (frame.isMasked()) {
+    framing.put(frame.getMask());
+  }
+  framing.flip();
+  int buflen=frame.getPayloadLength() + framing.remaining();
+  ByteBuffer buffer=ByteBuffer.allocate(buflen);
+  generatePayload(buffer,frame);
+  return buffer;
+}
