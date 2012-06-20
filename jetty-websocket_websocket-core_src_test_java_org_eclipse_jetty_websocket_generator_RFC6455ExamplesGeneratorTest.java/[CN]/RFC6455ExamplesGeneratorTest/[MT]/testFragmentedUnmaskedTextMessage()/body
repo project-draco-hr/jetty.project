@@ -1,0 +1,23 @@
+{
+  ByteBuffer b1=ByteBuffer.allocate(5);
+  b1.put(new byte[]{(byte)0x01,(byte)0x03,(byte)0x48,(byte)0x65,(byte)0x6c});
+  ByteBuffer b2=ByteBuffer.allocate(4);
+  b2.put(new byte[]{(byte)0x80,(byte)0x02,(byte)0x6c,(byte)0x6f});
+  TextFrame t1=new TextFrame();
+  TextFrame t2=new TextFrame();
+  t1.setFin(false);
+  t2.setFin(true);
+  t1.setData("Hel");
+  t2.setData("lo");
+  WebSocketPolicy policy=new WebSocketPolicy(WebSocketBehavior.SERVER);
+  TextFrameGenerator generator=new TextFrameGenerator(bufferPool,policy);
+  ByteBuffer g1=generator.generate(t1);
+  ByteBuffer g2=generator.generate(t2);
+  b1.flip();
+  g1.flip();
+  b2.flip();
+  g2.flip();
+  Assert.assertEquals(b1.get(),g1.get());
+  ByteBufferAssert.assertEquals("t1 buffers are not equal",b1,g1);
+  ByteBufferAssert.assertEquals("t2 buffers are not equal",b2,g2);
+}

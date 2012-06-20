@@ -1,15 +1,20 @@
 {
-  ByteBuffer buf=ByteBuffer.allocate(11);
-  buf.put(new byte[]{(byte)0x8a,(byte)0x85,(byte)0x37,(byte)0xfa,(byte)0x21,(byte)0x3d,(byte)0x7f,(byte)0x9f,(byte)0x4d,(byte)0x51,(byte)0x58});
+  ByteBuffer b1=ByteBuffer.allocate(11);
+  b1.put(new byte[]{(byte)0x8a,(byte)0x85,(byte)0x37,(byte)0xfa,(byte)0x21,(byte)0x3d,(byte)0x7f,(byte)0x9f,(byte)0x4d,(byte)0x51,(byte)0x58});
   PongFrame pong=new PongFrame();
   ByteBuffer payload=ByteBuffer.allocate(5);
   payload.put("Hello".getBytes(),0,5);
   pong.setPayload(payload);
+  pong.setFin(true);
+  pong.setMasked(true);
+  pong.setMask(new byte[]{(byte)0xff,(byte)0xff,(byte)0xff,(byte)0xff});
   WebSocketPolicy policy=new WebSocketPolicy(WebSocketBehavior.SERVER);
   policy.setMasker(new FixedMasker());
-  PongFrameGenerator generator=new PongFrameGenerator(bufferPool,policy);
-  ByteBuffer generatedPong=generator.generate(pong);
-  Debug.dumpState(buf);
-  Debug.dumpState(generatedPong);
-  ByteBufferAssert.assertEquals("pong buffers are not equal",buf,generatedPong);
+  PongFrameGenerator t1=new PongFrameGenerator(bufferPool,policy);
+  ByteBuffer g1=t1.generate(pong);
+  b1.flip();
+  g1.flip();
+  Debug.dumpState(b1);
+  Debug.dumpState(g1);
+  ByteBufferAssert.assertEquals("pong buffers are not equal",b1,g1);
 }
