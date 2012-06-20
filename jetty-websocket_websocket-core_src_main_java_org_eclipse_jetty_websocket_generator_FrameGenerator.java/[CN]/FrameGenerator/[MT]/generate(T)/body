@@ -31,7 +31,18 @@
   framing.flip();
   int buflen=frame.getPayloadLength() + framing.remaining();
   ByteBuffer buffer=ByteBuffer.allocate(buflen);
+  ByteBuffer payloadBuffer=payload(frame);
   buffer.put(framing);
-  generatePayload(buffer,frame);
+  if (frame.isMasked()) {
+    int size=payloadBuffer.remaining();
+    byte[] mask=frame.getMask();
+    int m=0;
+    for (int i=0; i < size; i++) {
+      buffer.put((byte)(payloadBuffer.get() ^ mask[m++ % 4]));
+    }
+  }
+ else {
+    buffer.put(payloadBuffer);
+  }
   return buffer;
 }
