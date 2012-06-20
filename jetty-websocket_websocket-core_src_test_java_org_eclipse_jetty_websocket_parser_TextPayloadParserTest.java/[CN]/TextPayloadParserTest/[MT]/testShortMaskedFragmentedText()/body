@@ -1,0 +1,28 @@
+{
+  Debug.enableDebugLogging(Parser.class);
+  Debug.enableDebugLogging(TextPayloadParser.class);
+  String part1="Hello ";
+  String part2="World";
+  byte b1[]=part1.getBytes(StringUtil.__UTF8_CHARSET);
+  byte b2[]=part2.getBytes(StringUtil.__UTF8_CHARSET);
+  ByteBuffer buf=ByteBuffer.allocate(32);
+  buf.put((byte)0x01);
+  buf.put((byte)(0x80 | b1.length));
+  writeMask(buf);
+  writeMaskedPayload(buf,b1);
+  buf.put((byte)0x80);
+  buf.put((byte)(0x80 | b2.length));
+  writeMask(buf);
+  writeMaskedPayload(buf,b2);
+  buf.flip();
+  Parser parser=new Parser();
+  FrameParseCapture capture=new FrameParseCapture();
+  parser.addListener(capture);
+  parser.parse(buf);
+  capture.assertNoErrors();
+  capture.assertHasFrame(TextFrame.class,2);
+  TextFrame txt=(TextFrame)capture.getFrames().get(0);
+  Assert.assertThat("TextFrame[0].data",txt.getData().toString(),is(part1));
+  txt=(TextFrame)capture.getFrames().get(1);
+  Assert.assertThat("TextFrame[1].data",txt.getData().toString(),is(part2));
+}
