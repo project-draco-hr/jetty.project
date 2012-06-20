@@ -14,7 +14,11 @@
   capture.assertNoErrors();
   capture.assertHasFrame(BinaryFrame.class,1);
   BinaryFrame bin=(BinaryFrame)capture.getFrames().get(0);
-  byte data[]=new byte[bin.getPayloadLength()];
-  bin.getData().get(data,0,dataSize);
-  Assert.assertThat("BinaryFrame.data",data.length,is(dataSize));
+  bin.getData().flip();
+  Assert.assertThat("BinaryFrame.payloadLength",bin.getPayloadLength(),is(dataSize));
+  ByteBufferAssert.assertSize("BinaryFrame.payload",dataSize,bin.getData());
+  ByteBuffer data=bin.getData();
+  for (int i=dataSize; i > 0; i--) {
+    Assert.assertThat("BinaryFrame.data[" + i + "]",data.get(),is((byte)0x77));
+  }
 }

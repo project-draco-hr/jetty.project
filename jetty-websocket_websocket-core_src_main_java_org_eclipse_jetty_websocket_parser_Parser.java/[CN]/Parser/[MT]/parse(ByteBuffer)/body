@@ -14,11 +14,18 @@ case FINOP:
           if (opcode.isControlFrame() && !fin) {
             throw new WebSocketException("Fragmented Control Frame [" + opcode.name() + "]");
           }
+          if (opcode == OpCode.CONTINUATION) {
+            if (parser == null) {
+              throw new WebSocketException("Fragment continuation frame without prior !FIN");
+            }
+            currentContinuationIndex++;
+          }
           if (parser == null) {
             parser=parsers.get(opcode);
-            parser.reset();
-            parser.initFrame(fin,rsv1,rsv2,rsv3,opcode);
           }
+          parser.reset();
+          parser.initFrame(fin,rsv1,rsv2,rsv3,opcode);
+          parser.getFrame().setContinuationIndex(currentContinuationIndex);
           state=State.BASE_FRAMING;
           break;
         }
@@ -33,7 +40,11 @@ case PAYLOAD:
 {
       if (parser.parsePayload(buffer)) {
         notifyFrame(parser.getFrame());
-        reset();
+        parser.reset();
+        if (parser.getFrame().isFin()) {
+          currentContinuationIndex=0;
+          reset();
+        }
         state=State.FINOP;
       }
       break;
