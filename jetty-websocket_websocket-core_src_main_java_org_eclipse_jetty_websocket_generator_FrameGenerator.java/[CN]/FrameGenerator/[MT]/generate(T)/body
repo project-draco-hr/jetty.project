@@ -2,10 +2,21 @@
   ByteBuffer framing=ByteBuffer.allocate(16);
   byte b;
   b=0x00;
-  b|=(frame.isFin() ? 0x80 : 0x00);
-  b|=(frame.isRsv1() ? 0x40 : 0x00);
-  b|=(frame.isRsv2() ? 0x20 : 0x00);
-  b|=(frame.isRsv3() ? 0x10 : 0x00);
+  if (frame.isFin()) {
+    b|=0x80;
+  }
+  if (frame.isRsv1()) {
+    b|=0x40;
+    throw new PolicyViolationException("RSV1 not allowed to be set");
+  }
+  if (frame.isRsv2()) {
+    b|=0x20;
+    throw new PolicyViolationException("RSV2 not allowed to be set");
+  }
+  if (frame.isRsv3()) {
+    b|=0x10;
+    throw new PolicyViolationException("RSV3 not allowed to be set");
+  }
   b|=(frame.getOpCode().getCode() & 0x0F);
   framing.put(b);
   b=0x00;
