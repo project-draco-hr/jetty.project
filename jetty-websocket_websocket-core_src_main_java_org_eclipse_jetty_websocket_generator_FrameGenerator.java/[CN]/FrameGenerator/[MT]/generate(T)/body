@@ -17,7 +17,17 @@
     b|=0x10;
     throw new PolicyViolationException("RSV3 not allowed to be set");
   }
-  b|=(frame.getOpCode().getCode() & 0x0F);
+  if (frame instanceof DataFrame) {
+    if (((DataFrame)frame).isContinuation()) {
+      b|=OpCode.CONTINUATION.getCode() & 0x0F;
+    }
+ else {
+      b|=(frame.getOpCode().getCode() & 0x0F);
+    }
+  }
+ else {
+    b|=(frame.getOpCode().getCode() & 0x0F);
+  }
   framing.put(b);
   b=0x00;
   b|=(frame.isMasked() ? 0x80 : 0x00);
