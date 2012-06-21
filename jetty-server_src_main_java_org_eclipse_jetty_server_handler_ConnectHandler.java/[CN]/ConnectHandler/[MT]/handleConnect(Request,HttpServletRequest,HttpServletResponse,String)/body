@@ -14,7 +14,16 @@
     baseRequest.setHandled(true);
     return;
   }
-  SocketChannel channel=connectToServer(request,host,port);
+  SocketChannel channel;
+  try {
+    channel=connectToServer(request,host,port);
+  }
+ catch (  IOException ioe) {
+    LOG.info("ConnectHandler: " + ioe.getMessage());
+    response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+    baseRequest.setHandled(true);
+    return;
+  }
   AbstractHttpConnection httpConnection=AbstractHttpConnection.getCurrentConnection();
   Buffer headerBuffer=((HttpParser)httpConnection.getParser()).getHeaderBuffer();
   Buffer bodyBuffer=((HttpParser)httpConnection.getParser()).getBodyBuffer();
