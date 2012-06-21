@@ -17,17 +17,11 @@
     b|=0x10;
     throw new PolicyViolationException("RSV3 not allowed to be set");
   }
-  if (frame instanceof DataFrame) {
-    if (((DataFrame)frame).isContinuation()) {
-      b|=OpCode.CONTINUATION.getCode() & 0x0F;
-    }
- else {
-      b|=(frame.getOpCode().getCode() & 0x0F);
-    }
+  byte opcode=frame.getOpCode().getCode();
+  if (frame.isContinuation()) {
+    opcode=OpCode.CONTINUATION.getCode();
   }
- else {
-    b|=(frame.getOpCode().getCode() & 0x0F);
-  }
+  b|=opcode & 0x0F;
   framing.put(b);
   b=0x00;
   b|=(frame.isMasked() ? 0x80 : 0x00);
@@ -53,14 +47,12 @@
   int buflen=frame.getPayloadLength() + framing.remaining();
   ByteBuffer buffer=ByteBuffer.allocate(buflen);
   ByteBuffer payloadBuffer=payload(frame);
-  payloadBuffer.flip();
   buffer.put(framing);
   if (frame.isMasked()) {
-    int size=payloadBuffer.remaining();
+    int size=frame.getPayloadLength();
     byte[] mask=frame.getMask();
-    int m=0;
     for (int i=0; i < size; i++) {
-      buffer.put((byte)(payloadBuffer.get() ^ mask[m++ % 4]));
+      buffer.put((byte)(payloadBuffer.get() ^ mask[i % 4]));
     }
   }
  else {

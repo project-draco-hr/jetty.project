@@ -1,17 +1,14 @@
 {
-  ByteBuffer b1=ByteBuffer.allocate(11);
-  b1.put(new byte[]{(byte)0x81,(byte)0x85,0x37,(byte)0xfa,0x21,0x3d,0x7f,(byte)0x9f,0x4d,0x51,0x58});
-  TextFrame t1=new TextFrame();
-  t1.setPayload("Hello");
-  t1.setFin(true);
-  t1.setMasked(true);
-  t1.setMask(new byte[]{(byte)0xff,(byte)0xff,(byte)0xff,(byte)0xff});
-  WebSocketPolicy policy=new WebSocketPolicy(WebSocketBehavior.SERVER);
-  TextFrameGenerator generator=new TextFrameGenerator(bufferPool,policy);
-  ByteBuffer g1=generator.generate(t1);
-  Debug.dumpState(b1);
-  Debug.dumpState(g1);
-  b1.flip();
-  g1.flip();
-  ByteBufferAssert.assertEquals("masked text buffers are not equal",b1,g1);
+  TextFrame text=new TextFrame();
+  text.setPayload("Hello");
+  text.setFin(true);
+  text.setMask(new byte[]{0x37,(byte)0xfa,0x21,0x3d});
+  WebSocketPolicy policy=WebSocketPolicy.newServerPolicy();
+  TextFrameGenerator gen=new TextFrameGenerator(bufferPool,policy);
+  ByteBuffer actual=gen.generate(text);
+  actual.flip();
+  ByteBuffer expected=ByteBuffer.allocate(11);
+  expected.put(new byte[]{(byte)0x81,(byte)0x85,0x37,(byte)0xfa,0x21,0x3d,0x7f,(byte)0x9f,0x4d,0x51,0x58});
+  expected.flip();
+  ByteBufferAssert.assertEquals("masked text buffers are not equal",expected,actual);
 }

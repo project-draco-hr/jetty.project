@@ -1,17 +1,15 @@
 {
-  ByteBuffer b1=ByteBuffer.allocate(7);
-  b1.put(new byte[]{(byte)0x89,(byte)0x05,(byte)0x48,(byte)0x65,(byte)0x6c,(byte)0x6c,(byte)0x6f});
   PingFrame ping=new PingFrame();
-  ping.setFin(true);
-  ByteBuffer payload=ByteBuffer.allocate(5);
-  payload.put("Hello".getBytes(),0,5);
+  byte msg[]="Hello".getBytes(StringUtil.__UTF8_CHARSET);
+  ByteBuffer payload=ByteBuffer.allocate(msg.length);
+  payload.put(msg);
   ping.setPayload(payload);
-  WebSocketPolicy policy=new WebSocketPolicy(WebSocketBehavior.SERVER);
-  PingFrameGenerator t1=new PingFrameGenerator(bufferPool,policy);
-  ByteBuffer g1=t1.generate(ping);
-  b1.flip();
-  g1.flip();
-  Debug.dumpState(b1);
-  Debug.dumpState(g1);
-  ByteBufferAssert.assertEquals("ping buffers are not equal",b1,g1);
+  WebSocketPolicy policy=WebSocketPolicy.newServerPolicy();
+  PingFrameGenerator gen=new PingFrameGenerator(bufferPool,policy);
+  ByteBuffer actual=gen.generate(ping);
+  actual.flip();
+  ByteBuffer expected=ByteBuffer.allocate(10);
+  expected.put(new byte[]{(byte)0x89,(byte)0x05,(byte)0x48,(byte)0x65,(byte)0x6c,(byte)0x6c,(byte)0x6f});
+  expected.flip();
+  ByteBufferAssert.assertEquals("Ping buffers",expected,actual);
 }

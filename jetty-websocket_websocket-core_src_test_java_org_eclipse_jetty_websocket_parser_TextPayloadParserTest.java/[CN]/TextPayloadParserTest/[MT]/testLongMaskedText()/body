@@ -15,7 +15,8 @@
   MaskedByteBuffer.putMask(buf);
   MaskedByteBuffer.putPayload(buf,utf);
   buf.flip();
-  WebSocketPolicy policy=new WebSocketPolicy(WebSocketBehavior.SERVER);
+  WebSocketPolicy policy=WebSocketPolicy.newServerPolicy();
+  policy.setMaxTextMessageSize(100000);
   Parser parser=new Parser(policy);
   FrameParseCapture capture=new FrameParseCapture();
   parser.addListener(capture);
@@ -23,5 +24,5 @@
   capture.assertNoErrors();
   capture.assertHasFrame(TextFrame.class,1);
   TextFrame txt=(TextFrame)capture.getFrames().get(0);
-  Assert.assertThat("TextFrame.data",txt.getPayloadAsText(),is(expectedText));
+  Assert.assertThat("TextFrame.data",txt.getPayloadUTF8(),is(expectedText));
 }

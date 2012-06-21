@@ -22,16 +22,12 @@ case FINOP:
             if (parser == null) {
               throw new WebSocketException("Fragment continuation frame without prior !FIN");
             }
-            currentContinuationIndex++;
           }
           if (parser == null) {
             parser=parsers.get(opcode);
           }
           parser.reset();
           parser.initFrame(fin,rsv1,rsv2,rsv3,opcode);
-          if (parser.getFrame() instanceof DataFrame) {
-            ((DataFrame)parser.getFrame()).setContinuationIndex(currentContinuationIndex);
-          }
           state=State.BASE_FRAMING;
           break;
         }
@@ -48,7 +44,6 @@ case PAYLOAD:
         notifyFrame(parser.getFrame());
         parser.reset();
         if (parser.getFrame().isFin()) {
-          currentContinuationIndex=0;
           reset();
         }
         state=State.FINOP;
