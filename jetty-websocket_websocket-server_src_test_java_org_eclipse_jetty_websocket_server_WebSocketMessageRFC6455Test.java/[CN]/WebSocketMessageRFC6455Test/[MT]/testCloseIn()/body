@@ -6,7 +6,7 @@
     String tst="" + t;
     Socket socket=new Socket("localhost",__connector.getLocalPort());
     OutputStream output=socket.getOutputStream();
-    output.write(("GET /chat HTTP/1.1\r\n" + "Host: server.example.com\r\n" + "Upgrade: websocket\r\n"+ "Connection: Upgrade\r\n"+ "Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\n"+ "Sec-WebSocket-Origin: http://example.com\r\n"+ "Sec-WebSocket-Protocol: chat\r\n"+ "Sec-WebSocket-Version: " + WebSocketConnectionRFC6455.VERSION + "\r\n"+ "\r\n").getBytes("ISO-8859-1"));
+    output.write(("GET /chat HTTP/1.1\r\n" + "Host: server.example.com\r\n" + "Upgrade: websocket\r\n"+ "Connection: Upgrade\r\n"+ "Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\n"+ "Sec-WebSocket-Origin: http://example.com\r\n"+ "Sec-WebSocket-Protocol: chat\r\n"+ "Sec-WebSocket-Version: " + WSVERSION + "\r\n"+ "\r\n").getBytes("ISO-8859-1"));
     output.flush();
     socket.setSoTimeout(100000);
     InputStream input=socket.getInputStream();
@@ -36,14 +36,16 @@
     assertEquals(tst,2 + tests[t][1],len);
     assertEquals(tst,(byte)0x88,buf[0]);
     if (len >= 4) {
-      code=(0xff & buf[2]) * 0x100 + (0xff & buf[3]);
+      code=((0xff & buf[2]) * 0x100) + (0xff & buf[3]);
       assertEquals(tst,tests[t][2],code);
       if (len > 4) {
         m=new String(buf,4,len - 4,"UTF-8");
         assertEquals(tst,resp[t],m);
       }
     }
- else     assertEquals(tst,tests[t][2],-1);
+ else {
+      assertEquals(tst,tests[t][2],-1);
+    }
     len=input.read(buf);
     assertEquals(tst,-1,len);
   }

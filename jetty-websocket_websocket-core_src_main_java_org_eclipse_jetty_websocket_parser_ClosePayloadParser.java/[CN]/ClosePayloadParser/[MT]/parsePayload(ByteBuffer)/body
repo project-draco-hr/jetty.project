@@ -1,3 +1,23 @@
 {
+  payloadLength=getFrame().getPayloadLength();
+  if (payloadLength == 0) {
+    return true;
+  }
+  while (buffer.hasRemaining()) {
+    if (payload == null) {
+      getPolicy().assertValidBinaryMessageSize(payloadLength);
+      payload=ByteBuffer.allocate(payloadLength);
+    }
+    copyBuffer(buffer,payload,payload.remaining());
+    if (payload.position() >= payloadLength) {
+      payload.flip();
+      frame.setStatusCode(payload.getShort());
+      if (payload.remaining() > 0) {
+        String reason=BufferUtil.toString(payload,StringUtil.__UTF8_CHARSET);
+        frame.setReason(reason);
+      }
+      return true;
+    }
+  }
   return false;
 }

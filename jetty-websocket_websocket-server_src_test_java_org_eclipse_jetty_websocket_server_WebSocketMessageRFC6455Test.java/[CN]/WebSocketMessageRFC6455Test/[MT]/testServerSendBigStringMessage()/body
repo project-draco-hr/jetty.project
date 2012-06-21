@@ -1,7 +1,7 @@
 {
   Socket socket=new Socket("localhost",__connector.getLocalPort());
   OutputStream output=socket.getOutputStream();
-  output.write(("GET /chat HTTP/1.1\r\n" + "Host: server.example.com\r\n" + "Upgrade: websocket\r\n"+ "Connection: Upgrade\r\n"+ "Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\n"+ "Sec-WebSocket-Origin: http://example.com\r\n"+ "Sec-WebSocket-Protocol: chat, superchat\r\n"+ "Sec-WebSocket-Version: " + WebSocketConnectionRFC6455.VERSION + "\r\n"+ "\r\n").getBytes("ISO-8859-1"));
+  output.write(("GET /chat HTTP/1.1\r\n" + "Host: server.example.com\r\n" + "Upgrade: websocket\r\n"+ "Connection: Upgrade\r\n"+ "Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\n"+ "Sec-WebSocket-Origin: http://example.com\r\n"+ "Sec-WebSocket-Protocol: chat, superchat\r\n"+ "Sec-WebSocket-Version: " + org.eclipse.jetty.websocket.api.WebSocket.VERSION + "\r\n"+ "\r\n").getBytes("ISO-8859-1"));
   output.flush();
   socket.setSoTimeout(1000);
   InputStream input=socket.getInputStream();
@@ -13,10 +13,12 @@
   assertNotNull(__serverWebSocket.connection);
   StringBuilder message=new StringBuilder();
   String text="0123456789ABCDEF";
-  for (int i=0; i < (0x2000) / text.length(); i++)   message.append(text);
+  for (int i=0; i < ((0x2000) / text.length()); i++) {
+    message.append(text);
+  }
   String data=message.toString();
   __serverWebSocket.connection.sendMessage(data);
-  assertEquals(WebSocketConnectionRFC6455.OP_TEXT,input.read());
+  assertEquals(OpCode.TEXT.getCode(),input.read());
   assertEquals(0x7e,input.read());
   assertEquals(0x1f,input.read());
   assertEquals(0xf6,input.read());
