@@ -2,7 +2,7 @@
   final Socket socket=new Socket("localhost",__connector.getLocalPort());
   OutputStream output=socket.getOutputStream();
   final int count=100000;
-  output.write(("GET /chat HTTP/1.1\r\n" + "Host: server.example.com\r\n" + "Upgrade: websocket\r\n"+ "Connection: Upgrade\r\n"+ "Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\n"+ "Sec-WebSocket-Origin: http://example.com\r\n"+ "Sec-WebSocket-Protocol: latch\r\n"+ "Sec-WebSocket-Version: " + WebSocketConnectionRFC6455.VERSION + "\r\n"+ "\r\n").getBytes("ISO-8859-1"));
+  output.write(("GET /chat HTTP/1.1\r\n" + "Host: server.example.com\r\n" + "Upgrade: websocket\r\n"+ "Connection: Upgrade\r\n"+ "Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\n"+ "Sec-WebSocket-Origin: http://example.com\r\n"+ "Sec-WebSocket-Protocol: latch\r\n"+ "Sec-WebSocket-Version: " + WSVERSION + "\r\n"+ "\r\n").getBytes("ISO-8859-1"));
   output.flush();
   socket.setSoTimeout(60000);
   InputStream input=socket.getInputStream();
@@ -38,15 +38,19 @@
   String mesg="How Now Brown Cow";
   for (int i=0; i < count; i++) {
     __serverWebSocket.connection.sendMessage(mesg);
-    if (i % 100 == 0) {
+    if ((i % 100) == 0) {
       output.flush();
       long now=System.currentTimeMillis();
       long duration=now - start;
       start=now;
-      if (max < duration)       max=duration;
+      if (max < duration) {
+        max=duration;
+      }
     }
   }
-  while (totalB.get() < (count * (mesg.length() + 2)))   Thread.sleep(100);
+  while (totalB.get() < (count * (mesg.length() + 2))) {
+    Thread.sleep(100);
+  }
   assertEquals(count * (mesg.length() + 2),totalB.get());
   Assert.assertThat("Was blocked (max time)",max,greaterThan(1000L));
 }

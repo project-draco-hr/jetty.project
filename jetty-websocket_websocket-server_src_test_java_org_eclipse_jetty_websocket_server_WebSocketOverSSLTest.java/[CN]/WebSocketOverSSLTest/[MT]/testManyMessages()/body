@@ -1,10 +1,9 @@
 {
   startServer(new WebSocket.OnTextMessage(){
     private Connection connection;
-    public void onOpen(    Connection connection){
-      this.connection=connection;
+    @Override public void onClose(    int closeCode,    String message){
     }
-    public void onMessage(    String data){
+    @Override public void onMessage(    String data){
       try {
         connection.sendMessage(data);
       }
@@ -12,26 +11,29 @@
         x.printStackTrace();
       }
     }
-    public void onClose(    int closeCode,    String message){
+    @Override public void onOpen(    Connection connection){
+      this.connection=connection;
     }
   }
 );
   int count=1000;
   final CountDownLatch clientLatch=new CountDownLatch(count);
   startClient(new WebSocket.OnTextMessage(){
-    public void onOpen(    Connection connection){
+    @Override public void onClose(    int closeCode,    String message){
     }
-    public void onMessage(    String data){
+    @Override public void onMessage(    String data){
       clientLatch.countDown();
     }
-    public void onClose(    int closeCode,    String message){
+    @Override public void onOpen(    Connection connection){
     }
   }
 );
   char[] chars=new char[256];
   Arrays.fill(chars,'x');
   String message=new String(chars);
-  for (int i=0; i < count; ++i)   _connection.sendMessage(message);
+  for (int i=0; i < count; ++i) {
+    _connection.sendMessage(message);
+  }
   Assert.assertTrue(clientLatch.await(20,TimeUnit.SECONDS));
   TimeUnit.SECONDS.sleep(1);
 }

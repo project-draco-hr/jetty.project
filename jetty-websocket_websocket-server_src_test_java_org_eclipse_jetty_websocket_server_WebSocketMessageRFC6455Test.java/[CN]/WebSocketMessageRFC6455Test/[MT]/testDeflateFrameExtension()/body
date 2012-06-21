@@ -1,7 +1,7 @@
 {
   Socket socket=new Socket("localhost",__connector.getLocalPort());
   OutputStream output=socket.getOutputStream();
-  output.write(("GET /chat HTTP/1.1\r\n" + "Host: server.example.com\r\n" + "Upgrade: websocket\r\n"+ "Connection: Upgrade\r\n"+ "Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\n"+ "Sec-WebSocket-Origin: http://example.com\r\n"+ "Sec-WebSocket-Protocol: echo\r\n"+ "Sec-WebSocket-Version: " + WebSocketConnectionRFC6455.VERSION + "\r\n"+ "Sec-WebSocket-Extensions: x-deflate-frame;minLength=64\r\n"+ "Sec-WebSocket-Extensions: fragment;minFragments=2\r\n"+ "\r\n").getBytes("ISO-8859-1"));
+  output.write(("GET /chat HTTP/1.1\r\n" + "Host: server.example.com\r\n" + "Upgrade: websocket\r\n"+ "Connection: Upgrade\r\n"+ "Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\n"+ "Sec-WebSocket-Origin: http://example.com\r\n"+ "Sec-WebSocket-Protocol: echo\r\n"+ "Sec-WebSocket-Version: " + WSVERSION + "\r\n"+ "Sec-WebSocket-Extensions: x-deflate-frame;minLength=64\r\n"+ "Sec-WebSocket-Extensions: fragment;minFragments=2\r\n"+ "\r\n").getBytes("ISO-8859-1"));
   output.flush();
   socket.setSoTimeout(1000);
   InputStream input=socket.getInputStream();
@@ -24,7 +24,7 @@
   deflater.setInput(data);
   deflater.finish();
   byte[] buf=new byte[data.length];
-  buf[0]=(byte)((byte)0x7e);
+  buf[0]=((byte)0x7e);
   buf[1]=(byte)(data.length >> 8);
   buf[2]=(byte)(data.length & 0xff);
   int l=deflater.deflate(buf,3,buf.length - 3);
@@ -37,7 +37,7 @@
   output.write(0x00);
   output.write(buf,0,l + 3);
   output.flush();
-  assertEquals(0x40 + WebSocketConnectionRFC6455.OP_TEXT,input.read());
+  assertEquals(0x40 + OpCode.TEXT.getCode(),input.read());
   assertEquals(0x20 + 3,input.read());
   assertEquals(0x7e,input.read());
   assertEquals(0x02,input.read());

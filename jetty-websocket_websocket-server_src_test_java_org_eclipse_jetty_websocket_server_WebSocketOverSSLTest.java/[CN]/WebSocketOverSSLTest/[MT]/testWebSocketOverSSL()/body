@@ -3,10 +3,9 @@
   final CountDownLatch serverLatch=new CountDownLatch(1);
   startServer(new WebSocket.OnTextMessage(){
     private Connection connection;
-    public void onOpen(    Connection connection){
-      this.connection=connection;
+    @Override public void onClose(    int closeCode,    String message){
     }
-    public void onMessage(    String data){
+    @Override public void onMessage(    String data){
       try {
         Assert.assertEquals(message,data);
         connection.sendMessage(data);
@@ -16,19 +15,20 @@
         x.printStackTrace();
       }
     }
-    public void onClose(    int closeCode,    String message){
+    @Override public void onOpen(    Connection connection){
+      this.connection=connection;
     }
   }
 );
   final CountDownLatch clientLatch=new CountDownLatch(1);
   startClient(new WebSocket.OnTextMessage(){
-    public void onOpen(    Connection connection){
+    @Override public void onClose(    int closeCode,    String message){
     }
-    public void onMessage(    String data){
+    @Override public void onMessage(    String data){
       Assert.assertEquals(message,data);
       clientLatch.countDown();
     }
-    public void onClose(    int closeCode,    String message){
+    @Override public void onOpen(    Connection connection){
     }
   }
 );

@@ -1,0 +1,37 @@
+{
+  if (!"websocket".equalsIgnoreCase(request.getHeader("Upgrade"))) {
+    throw new IllegalStateException("!Upgrade:websocket");
+  }
+  if (!"HTTP/1.1".equals(request.getProtocol())) {
+    throw new IllegalStateException("!HTTP/1.1");
+  }
+  int draft=request.getIntHeader("Sec-WebSocket-Version");
+  if (draft < 0) {
+    draft=request.getIntHeader("Sec-WebSocket-Draft");
+  }
+  HttpConnection http=HttpConnection.getCurrentConnection();
+  AsyncEndPoint endp=http.getEndPoint();
+  List<String> extensions_requested=new ArrayList<String>();
+  @SuppressWarnings("unchecked") Enumeration<String> e=request.getHeaders("Sec-WebSocket-Extensions");
+  while (e.hasMoreElements()) {
+    QuotedStringTokenizer tok=new QuotedStringTokenizer(e.nextElement(),",");
+    while (tok.hasMoreTokens()) {
+      extensions_requested.add(tok.nextToken());
+    }
+  }
+  final WebSocketServletConnection connection;
+switch (draft) {
+case org.eclipse.jetty.websocket.api.WebSocket.VERSION:
+{
+      break;
+    }
+default :
+{
+    LOG.warn("Unsupported Websocket version: " + draft);
+    response.setHeader("Sec-WebSocket-Version","" + org.eclipse.jetty.websocket.api.WebSocket.VERSION);
+    response.setStatus(HttpStatus.BAD_REQUEST_400);
+    return;
+  }
+}
+response.flushBuffer();
+}
