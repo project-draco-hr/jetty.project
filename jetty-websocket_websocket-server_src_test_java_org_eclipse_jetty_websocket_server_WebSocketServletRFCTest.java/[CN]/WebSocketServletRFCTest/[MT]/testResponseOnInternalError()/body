@@ -1,13 +1,47 @@
 {
-  MessageSender sender=new MessageSender();
+  Socket socket=new Socket();
+  SocketAddress endpoint=new InetSocketAddress(serverUri.getHost(),serverUri.getPort());
+  socket.connect(endpoint);
+  WebSocketPolicy policy=WebSocketPolicy.newClientPolicy();
+  ByteBufferPool bufferPool=new StandardByteBufferPool(policy.getBufferSize());
+  Generator generator=new Generator(bufferPool,policy);
+  Parser parser=new Parser(policy);
+  FrameParseCapture capture=new FrameParseCapture();
+  parser.addListener(capture);
+  StringBuilder req=new StringBuilder();
+  req.append("GET / HTTP/1.1\r\n");
+  req.append(String.format("Host: %s:%d\r\n",serverUri.getHost(),serverUri.getPort()));
+  req.append("Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\n");
+  req.append("Upgrade: WebSocket\r\n");
+  req.append("Connection: Upgrade\r\n");
+  req.append("Sec-WebSocket-Version: 13\r\n");
+  req.append("\r\n");
+  OutputStream out=null;
+  InputStream in=null;
   try {
-    sender.awaitConnect();
-    sender.sendMessage("CRASH");
-    TimeUnit.MILLISECONDS.sleep(500);
-    Assert.assertThat("WebSocket should be closed",sender.isConnected(),is(false));
-    Assert.assertThat("WebSocket close clode",sender.getCloseCode(),is(1011));
+    out=socket.getOutputStream();
+    in=socket.getInputStream();
+    out.write(req.toString().getBytes());
+    out.flush();
+    String respHeader=readResponseHeader(in);
+    Assert.assertThat("Response Code",respHeader,startsWith("HTTP/1.1 101 Switching Protocols"));
+    Assert.assertThat("Response Header Upgrade",respHeader,containsString("Upgrade: WebSocket\r\n"));
+    TextFrame txt=new TextFrame("CRASH");
+    ByteBuffer txtbuf=generator.generate(txt);
+    txtbuf.flip();
+    BufferUtil.writeTo(txtbuf,out);
+    ByteBuffer closeFrame=ByteBuffer.allocate(20);
+    System.out.println("Reading from in");
+    read(in,closeFrame);
+    parser.parse(closeFrame);
+    capture.assertNoErrors();
+    capture.assertHasFrame(CloseFrame.class,1);
+    CloseFrame cf=(CloseFrame)capture.getFrames().get(0);
+    Assert.assertThat("Close Frame.status code",cf.getStatusCode(),is(StatusCode.SERVER_ERROR));
   }
   finally {
-    sender.close();
+    IO.close(in);
+    IO.close(out);
+    socket.close();
   }
 }
