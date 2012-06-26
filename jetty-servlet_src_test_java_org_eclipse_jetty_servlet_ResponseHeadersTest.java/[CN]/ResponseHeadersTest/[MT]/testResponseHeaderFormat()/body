@@ -1,0 +1,27 @@
+{
+  Socket socket=new Socket();
+  SocketAddress endpoint=new InetSocketAddress(serverUri.getHost(),serverUri.getPort());
+  socket.connect(endpoint);
+  StringBuilder req=new StringBuilder();
+  req.append("GET / HTTP/1.1\r\n");
+  req.append(String.format("Host: %s:%d\r\n",serverUri.getHost(),serverUri.getPort()));
+  req.append("\r\n");
+  OutputStream out=null;
+  InputStream in=null;
+  try {
+    out=socket.getOutputStream();
+    in=socket.getInputStream();
+    out.write(req.toString().getBytes());
+    out.flush();
+    String respHeader=readResponseHeader(in);
+    System.out.println("RESPONSE: " + respHeader);
+    Assert.assertThat("Response Code",respHeader,startsWith("HTTP/1.1 101 Switching Protocols"));
+    Assert.assertThat("Response Header Upgrade",respHeader,containsString("Upgrade: WebSocket\r\n"));
+    Assert.assertThat("Response Header Connection",respHeader,containsString("Connection: Upgrade\r\n"));
+  }
+  finally {
+    IO.close(in);
+    IO.close(out);
+    socket.close();
+  }
+}
