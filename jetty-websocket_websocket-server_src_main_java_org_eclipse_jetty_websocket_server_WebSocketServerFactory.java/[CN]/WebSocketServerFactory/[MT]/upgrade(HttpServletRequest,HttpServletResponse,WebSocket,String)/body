@@ -1,37 +1,37 @@
 {
   if (!"websocket".equalsIgnoreCase(request.getHeader("Upgrade"))) {
-    throw new IllegalStateException("!Upgrade:websocket");
+    throw new IllegalStateException("Not a 'WebSocket: Ugprade' request");
   }
   if (!"HTTP/1.1".equals(request.getProtocol())) {
-    throw new IllegalStateException("!HTTP/1.1");
+    throw new IllegalStateException("Not a 'HTTP/1.1' request");
   }
-  int draft=request.getIntHeader("Sec-WebSocket-Version");
-  if (draft < 0) {
-    draft=request.getIntHeader("Sec-WebSocket-Draft");
+  int version=request.getIntHeader("Sec-WebSocket-Version");
+  if (version < 0) {
+    version=request.getIntHeader("Sec-WebSocket-Draft");
   }
-  HttpConnection http=HttpConnection.getCurrentConnection();
-  AsyncEndPoint endp=http.getEndPoint();
-  List<String> extensions_requested=new ArrayList<String>();
-  @SuppressWarnings("unchecked") Enumeration<String> e=request.getHeaders("Sec-WebSocket-Extensions");
+  List<ExtensionConfig> extensionsRequested=new ArrayList<>();
+  Enumeration<String> e=request.getHeaders("Sec-WebSocket-Extensions");
   while (e.hasMoreElements()) {
     QuotedStringTokenizer tok=new QuotedStringTokenizer(e.nextElement(),",");
     while (tok.hasMoreTokens()) {
-      extensions_requested.add(tok.nextToken());
+      extensionsRequested.add(ExtensionConfig.parse(tok.nextToken()));
     }
   }
-  final WebSocketServletConnection connection;
-switch (draft) {
-case org.eclipse.jetty.websocket.api.WebSocket.VERSION:
-{
-      break;
-    }
-default :
-{
-    LOG.warn("Unsupported Websocket version: " + draft);
-    response.setHeader("Sec-WebSocket-Version","" + org.eclipse.jetty.websocket.api.WebSocket.VERSION);
-    response.setStatus(HttpStatus.BAD_REQUEST_400);
+  WebSocketServer.Handshake handshaker=handshakes.get(version);
+  if (handshaker == null) {
+    LOG.warn("Unsupported Websocket version: " + version);
+    response.setHeader("Sec-WebSocket-Version",supportedVersions);
+    response.sendError(HttpStatus.BAD_REQUEST_400,"Unsupported websocket version specification");
     return;
   }
-}
-response.flushBuffer();
+  HttpConnection http=HttpConnection.getCurrentConnection();
+  AsyncEndPoint endp=http.getEndPoint();
+  Executor executor=http.getConnector().findExecutor();
+  final AsyncWebSocketConnection connection=new AsyncWebSocketConnection(endp,executor,policy);
+  endp.setAsyncConnection(connection);
+  List<Extension> extensions=initExtensions(extensionsRequested);
+  handshaker.doHandshakeResponse(request,response,extensions,acceptedSubProtocol);
+  addConnection(connection);
+  LOG.debug("Websocket upgrade {} {} {} {}",request.getRequestURI(),version,acceptedSubProtocol,connection);
+  request.setAttribute("org.eclipse.jetty.io.Connection",connection);
 }
