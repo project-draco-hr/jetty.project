@@ -1,0 +1,22 @@
+{
+  int length=127;
+  ByteBuffer expected=ByteBuffer.allocate(length + 5);
+  expected.put(new byte[]{(byte)0x82});
+  byte b=0x00;
+  b|=length & 0x7E;
+  expected.put(b);
+  expected.putShort((short)length);
+  for (int i=0; i < length; ++i) {
+    expected.put("*".getBytes());
+  }
+  expected.flip();
+  Parser parser=new Parser(policy);
+  FrameParseCapture capture=new FrameParseCapture();
+  parser.addListener(capture);
+  parser.parse(expected);
+  capture.assertNoErrors();
+  capture.assertHasFrame(BinaryFrame.class,1);
+  BinaryFrame pActual=(BinaryFrame)capture.getFrames().get(0);
+  Assert.assertThat("BinaryFrame.payloadLength",pActual.getPayloadLength(),is(length));
+  ByteBufferAssert.assertSize("BinaryFrame.payload",length,pActual.getPayload());
+}

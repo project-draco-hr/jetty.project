@@ -1,0 +1,24 @@
+{
+  int length=65535;
+  ByteBuffer bb=ByteBuffer.allocate(length);
+  for (int i=0; i < length; ++i) {
+    bb.put("*".getBytes());
+  }
+  bb.flip();
+  BinaryFrame textFrame=new BinaryFrame(BufferUtil.toArray(bb));
+  textFrame.setFin(true);
+  Generator generator=new Generator(bufferPool,policy);
+  ByteBuffer actual=generator.generate(textFrame);
+  ByteBuffer expected=ByteBuffer.allocate(length + 5);
+  expected.put(new byte[]{(byte)0x82});
+  byte b=0x00;
+  b|=0x7E;
+  expected.put(b);
+  expected.put(new byte[]{(byte)0xff,(byte)0xff});
+  for (int i=0; i < length; ++i) {
+    expected.put("*".getBytes());
+  }
+  actual.flip();
+  expected.flip();
+  ByteBufferAssert.assertEquals("buffers do not match",expected,actual);
+}
