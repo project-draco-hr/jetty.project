@@ -1,0 +1,19 @@
+{
+  byte[] bytes=new byte[]{0x00,0x01,0x02,0x03,0x04,0x05,0x06,0x07,0x08};
+  ByteBuffer expected=ByteBuffer.allocate(32);
+  expected.put(new byte[]{(byte)0x89});
+  byte b=0x00;
+  b|=bytes.length & 0x7F;
+  expected.put(b);
+  expected.put(bytes);
+  expected.flip();
+  Parser parser=new Parser(policy);
+  FrameParseCapture capture=new FrameParseCapture();
+  parser.addListener(capture);
+  parser.parse(expected);
+  capture.assertNoErrors();
+  capture.assertHasFrame(PingFrame.class,1);
+  PingFrame pActual=(PingFrame)capture.getFrames().get(0);
+  Assert.assertThat("PingFrame.payloadLength",pActual.getPayloadLength(),is(bytes.length));
+  ByteBufferAssert.assertSize("PingFrame.payload",bytes.length,pActual.getPayload());
+}

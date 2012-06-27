@@ -1,0 +1,18 @@
+{
+  byte[] bytes=new byte[126];
+  for (int i=0; i < bytes.length; ++i) {
+    bytes[i]=0x00;
+  }
+  ByteBuffer expected=ByteBuffer.allocate(bytes.length + 32);
+  expected.put(new byte[]{(byte)0x89});
+  byte b=0x00;
+  b|=bytes.length & 0x7F;
+  expected.put(b);
+  expected.put(bytes);
+  expected.flip();
+  Parser parser=new Parser(policy);
+  FrameParseCapture capture=new FrameParseCapture();
+  parser.addListener(capture);
+  parser.parse(expected);
+  Assert.assertEquals("error should be returned for too large of ping payload",1,capture.getErrorCount(WebSocketException.class));
+}

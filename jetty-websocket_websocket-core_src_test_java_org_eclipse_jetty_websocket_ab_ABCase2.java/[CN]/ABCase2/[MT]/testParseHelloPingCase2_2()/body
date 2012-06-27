@@ -1,0 +1,20 @@
+{
+  String message="Hello, world!";
+  byte[] messageBytes=message.getBytes();
+  ByteBuffer expected=ByteBuffer.allocate(32);
+  expected.put(new byte[]{(byte)0x89});
+  byte b=0x00;
+  b|=messageBytes.length & 0x7F;
+  expected.put(b);
+  expected.put(messageBytes);
+  expected.flip();
+  Parser parser=new Parser(policy);
+  FrameParseCapture capture=new FrameParseCapture();
+  parser.addListener(capture);
+  parser.parse(expected);
+  capture.assertNoErrors();
+  capture.assertHasFrame(PingFrame.class,1);
+  PingFrame pActual=(PingFrame)capture.getFrames().get(0);
+  Assert.assertThat("PingFrame.payloadLength",pActual.getPayloadLength(),is(message.length()));
+  ByteBufferAssert.assertSize("PingFrame.payload",message.length(),pActual.getPayload());
+}
