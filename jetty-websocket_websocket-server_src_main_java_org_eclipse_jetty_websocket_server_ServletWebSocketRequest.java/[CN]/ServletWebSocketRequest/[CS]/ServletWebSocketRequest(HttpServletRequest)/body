@@ -1,0 +1,19 @@
+{
+  super(request);
+  Enumeration<String> protocols=request.getHeaders("Sec-WebSocket-Protocol");
+  String protocol=null;
+  while ((protocol == null) && (protocols != null) && protocols.hasMoreElements()) {
+    String candidate=protocols.nextElement();
+    for (    String p : parseProtocols(candidate)) {
+      subProtocols.add(p);
+    }
+  }
+  extensions=new ArrayList<>();
+  Enumeration<String> e=request.getHeaders("Sec-WebSocket-Extensions");
+  while (e.hasMoreElements()) {
+    QuotedStringTokenizer tok=new QuotedStringTokenizer(e.nextElement(),",");
+    while (tok.hasMoreTokens()) {
+      extensions.add(ExtensionConfig.parse(tok.nextToken()));
+    }
+  }
+}

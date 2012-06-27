@@ -1,0 +1,18 @@
+{
+  String key=request.getHeader("Sec-WebSocket-Key");
+  if (key == null) {
+    throw new IllegalStateException("Missing request header 'Sec-WebSocket-Key'");
+  }
+  response.setHeader("Upgrade","WebSocket");
+  response.addHeader("Connection","Upgrade");
+  response.addHeader("Sec-WebSocket-Accept",AcceptHash.hashKey(key));
+  if (response.getAcceptedSubProtocol() != null) {
+    response.addHeader("Sec-WebSocket-Protocol",response.getAcceptedSubProtocol());
+  }
+  if (extensions != null) {
+    for (    Extension ext : extensions) {
+      response.addHeader("Sec-WebSocket-Extensions",ext.getConfig().getParameterizedName());
+    }
+  }
+  response.setStatus(HttpServletResponse.SC_SWITCHING_PROTOCOLS);
+}

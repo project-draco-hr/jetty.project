@@ -3,17 +3,23 @@
   __connector=new SelectChannelConnector();
   __server.addConnector(__connector);
   WebSocketHandler wsHandler=new WebSocketHandler(){
-    @Override public WebSocket doWebSocketConnect(    HttpServletRequest request,    String protocol){
-      __textCount.set(0);
-      __serverWebSocket=new TestWebSocket();
-      __serverWebSocket._onConnect=("onConnect".equals(protocol));
-      __serverWebSocket._echo=("echo".equals(protocol));
-      __serverWebSocket._aggregate=("aggregate".equals(protocol));
-      __serverWebSocket._latch=("latch".equals(protocol));
-      if (__serverWebSocket._latch) {
-        __latch=new CountDownLatch(1);
+    @Override public void registerWebSockets(    WebSocketServerFactory factory){
+      factory.register(TestWebSocket.class);
+      factory.setCreator(new WebSocketCreator(){
+        @Override public Object createWebSocket(        WebSocketRequest req,        WebSocketResponse resp){
+          __textCount.set(0);
+          __serverWebSocket=new TestWebSocket();
+          __serverWebSocket._onConnect=req.hasSubProtocol("onConnect");
+          __serverWebSocket._echo=req.hasSubProtocol("echo");
+          __serverWebSocket._aggregate=req.hasSubProtocol("aggregate");
+          __serverWebSocket._latch=req.hasSubProtocol("latch");
+          if (__serverWebSocket._latch) {
+            __latch=new CountDownLatch(1);
+          }
+          return __serverWebSocket;
+        }
       }
-      return __serverWebSocket;
+);
     }
   }
 ;
