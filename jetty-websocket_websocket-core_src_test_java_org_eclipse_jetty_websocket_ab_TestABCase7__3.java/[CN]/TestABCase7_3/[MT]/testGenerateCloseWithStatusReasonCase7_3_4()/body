@@ -1,0 +1,18 @@
+{
+  String message="bad cough";
+  byte[] messageBytes=message.getBytes();
+  CloseFrame closeFrame=new CloseFrame(1000,message);
+  Generator generator=new Generator(policy);
+  ByteBuffer actual=ByteBuffer.allocate(32);
+  generator.generate(actual,closeFrame);
+  ByteBuffer expected=ByteBuffer.allocate(32);
+  expected.put(new byte[]{(byte)0x88});
+  byte b=0x00;
+  b|=(message.length() + 2) & 0x7F;
+  expected.put(b);
+  expected.putShort((short)1000);
+  expected.put(messageBytes);
+  actual.flip();
+  expected.flip();
+  ByteBufferAssert.assertEquals("buffers do not match",expected,actual);
+}
