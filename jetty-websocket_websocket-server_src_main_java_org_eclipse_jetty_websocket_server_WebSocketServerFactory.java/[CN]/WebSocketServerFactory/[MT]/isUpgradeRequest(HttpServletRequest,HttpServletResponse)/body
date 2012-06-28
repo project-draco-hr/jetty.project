@@ -1,6 +1,15 @@
 {
-  if (!"HTTP/1.1".equals(request.getProtocol())) {
-    throw new IllegalStateException("Not a 'HTTP/1.1' request");
+  String upgrade=request.getHeader("Upgrade");
+  if (upgrade == null) {
+    return false;
   }
-  return ("websocket".equalsIgnoreCase(request.getHeader("Upgrade")));
+  if (!"websocket".equalsIgnoreCase(upgrade)) {
+    LOG.warn("Not a 'Upgrade: WebSocket' (was [Upgrade: " + upgrade + "])");
+    return false;
+  }
+  if (!"HTTP/1.1".equals(request.getProtocol())) {
+    LOG.warn("Not a 'HTTP/1.1' request (was [" + request.getProtocol() + "])");
+    return false;
+  }
+  return true;
 }
