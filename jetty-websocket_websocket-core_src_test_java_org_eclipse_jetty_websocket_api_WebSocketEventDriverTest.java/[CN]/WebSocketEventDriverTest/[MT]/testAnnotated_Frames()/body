@@ -1,0 +1,17 @@
+{
+  AnnotatedFramesSocket socket=new AnnotatedFramesSocket();
+  WebSocketEventDriver driver=newDriver(socket);
+  LocalWebSocketConnection conn=new LocalWebSocketConnection(testname);
+  driver.setConnection(conn);
+  driver.onConnect();
+  driver.onFrame(new PingFrame(StringUtil.getUtf8Bytes("PING")));
+  driver.onFrame(new TextFrame("Text Me"));
+  driver.onFrame(new BinaryFrame(StringUtil.getUtf8Bytes("Hello Bin")));
+  driver.onFrame(new CloseFrame(StatusCode.SHUTDOWN));
+  socket.capture.assertEventCount(5);
+  socket.capture.assertEventStartsWith(0,"onConnect(");
+  socket.capture.assertEventStartsWith(1,"onPingFrame(");
+  socket.capture.assertEventStartsWith(2,"onTextFrame(");
+  socket.capture.assertEventStartsWith(3,"onBaseFrame(BinaryFrame");
+  socket.capture.assertEventStartsWith(4,"onClose(1001,");
+}
