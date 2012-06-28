@@ -1,2 +1,14 @@
 {
+  int len=buffers.length;
+  if (len == 0) {
+    return;
+  }
+  ByteBuffer raw[]=new ByteBuffer[len];
+  for (int i=0; i < len; i++) {
+    raw[i]=bufferPool.acquire(buffers[i].remaining() + FrameGenerator.OVERHEAD,false);
+    BinaryFrame frame=new BinaryFrame(buffers[i]);
+    generator.generate(raw[i],frame);
+  }
+  Callback<Void> nop=new FutureCallback<>();
+  getEndPoint().write(null,nop,raw);
 }
