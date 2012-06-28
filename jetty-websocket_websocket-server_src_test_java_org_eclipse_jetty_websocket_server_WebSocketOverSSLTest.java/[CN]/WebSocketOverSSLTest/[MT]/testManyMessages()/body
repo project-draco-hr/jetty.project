@@ -2,13 +2,9 @@
   startServer(MyEchoSocket.class);
   int count=1000;
   final CountDownLatch clientLatch=new CountDownLatch(count);
-  startClient(new WebSocket.OnTextMessage(){
-    @Override public void onClose(    int closeCode,    String message){
-    }
-    @Override public void onMessage(    String data){
+  startClient(new WebSocketAdapter(){
+    @Override public void onWebSocketText(    String message){
       clientLatch.countDown();
-    }
-    @Override public void onOpen(    Connection connection){
     }
   }
 );
@@ -16,7 +12,7 @@
   Arrays.fill(chars,'x');
   String message=new String(chars);
   for (int i=0; i < count; ++i) {
-    _connection.sendMessage(message);
+    _connection.write(message);
   }
   Assert.assertTrue(clientLatch.await(20,TimeUnit.SECONDS));
   TimeUnit.SECONDS.sleep(1);

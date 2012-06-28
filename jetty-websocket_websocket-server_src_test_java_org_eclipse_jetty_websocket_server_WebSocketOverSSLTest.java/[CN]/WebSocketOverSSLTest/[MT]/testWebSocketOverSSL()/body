@@ -1,2 +1,32 @@
 {
+  final String message="message";
+  final CountDownLatch serverLatch=new CountDownLatch(1);
+  startServer(new WebSocketAdapter(){
+    private WebSocketConnection connection;
+    @Override public void onWebSocketConnect(    WebSocketConnection connection){
+      this.connection=connection;
+    }
+    @Override public void onWebSocketText(    String message){
+      try {
+        Assert.assertEquals(message,message);
+        connection.write(message);
+        serverLatch.countDown();
+      }
+ catch (      IOException x) {
+        x.printStackTrace();
+      }
+    }
+  }
+);
+  final CountDownLatch clientLatch=new CountDownLatch(1);
+  startClient(new WebSocketAdapter(){
+    @Override public void onWebSocketText(    String data){
+      Assert.assertEquals(message,data);
+      clientLatch.countDown();
+    }
+  }
+);
+  _connection.write(message);
+  Assert.assertTrue(serverLatch.await(5,TimeUnit.SECONDS));
+  Assert.assertTrue(clientLatch.await(5,TimeUnit.SECONDS));
 }
