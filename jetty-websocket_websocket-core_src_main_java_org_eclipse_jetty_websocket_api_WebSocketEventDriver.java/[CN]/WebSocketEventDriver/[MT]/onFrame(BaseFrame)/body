@@ -1,2 +1,29 @@
 {
+  if ((frame instanceof CloseFrame) && (events.onClose != null)) {
+    CloseFrame close=(CloseFrame)frame;
+    events.onClose.call(websocket,connection,close.getStatusCode(),close.getReason());
+    return;
+  }
+  if ((frame instanceof TextFrame) && (events.onText != null)) {
+    TextFrame text=(TextFrame)frame;
+    events.onText.call(websocket,connection,text.getPayloadUTF8());
+    return;
+  }
+  if ((frame instanceof BinaryFrame) && (events.onBinary != null)) {
+    BinaryFrame bin=(BinaryFrame)frame;
+    events.onBinary.call(websocket,connection,bin.getPayload());
+    return;
+  }
+  Class<? extends BaseFrame> frameType=frame.getClass();
+  while (true) {
+    EventMethod event=events.getOnFrame(frameType);
+    if (event != null) {
+      event.call(websocket,connection,frame);
+      return;
+    }
+    if (!frameType.getSuperclass().isAssignableFrom(BaseFrame.class)) {
+      return;
+    }
+    frameType=(Class<? extends BaseFrame>)frameType.getSuperclass();
+  }
 }
