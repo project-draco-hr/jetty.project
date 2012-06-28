@@ -1,36 +1,41 @@
 {
+  Class<?> clazz=pojo;
   EventMethods events=new EventMethods(pojo,true);
-  for (  Method method : pojo.getDeclaredMethods()) {
-    if (method.getAnnotation(OnWebSocketConnect.class) != null) {
-      assertValidSignature(method,OnWebSocketConnect.class,validConnectParams);
-      assertUnset(events.onConnect,OnWebSocketConnect.class,method);
-      events.onConnect=new EventMethod(pojo,method);
-      continue;
+  clazz=pojo;
+  while (clazz.getAnnotation(WebSocket.class) != null) {
+    for (    Method method : clazz.getDeclaredMethods()) {
+      if (method.getAnnotation(OnWebSocketConnect.class) != null) {
+        assertValidSignature(method,OnWebSocketConnect.class,validConnectParams);
+        assertUnset(events.onConnect,OnWebSocketConnect.class,method);
+        events.onConnect=new EventMethod(pojo,method);
+        continue;
+      }
+      if (method.getAnnotation(OnWebSocketBinary.class) != null) {
+        assertValidSignature(method,OnWebSocketBinary.class,validBinaryParams);
+        assertUnset(events.onBinary,OnWebSocketBinary.class,method);
+        events.onBinary=new EventMethod(pojo,method);
+        continue;
+      }
+      if (method.getAnnotation(OnWebSocketClose.class) != null) {
+        assertValidSignature(method,OnWebSocketClose.class,validCloseParams);
+        assertUnset(events.onClose,OnWebSocketClose.class,method);
+        events.onClose=new EventMethod(pojo,method);
+        continue;
+      }
+      if (method.getAnnotation(OnWebSocketText.class) != null) {
+        assertValidSignature(method,OnWebSocketText.class,validTextParams);
+        assertUnset(events.onText,OnWebSocketText.class,method);
+        events.onText=new EventMethod(pojo,method);
+        continue;
+      }
+      if (method.getAnnotation(OnWebSocketFrame.class) != null) {
+        assertValidSignature(method,OnWebSocketFrame.class,validFrameParams);
+        assertFrameUnset(events,method);
+        events.addOnFrame(new EventMethod(pojo,method));
+        continue;
+      }
     }
-    if (method.getAnnotation(OnWebSocketBinary.class) != null) {
-      assertValidSignature(method,OnWebSocketBinary.class,validBinaryParams);
-      assertUnset(events.onBinary,OnWebSocketBinary.class,method);
-      events.onBinary=new EventMethod(pojo,method);
-      continue;
-    }
-    if (method.getAnnotation(OnWebSocketClose.class) != null) {
-      assertValidSignature(method,OnWebSocketClose.class,validCloseParams);
-      assertUnset(events.onClose,OnWebSocketClose.class,method);
-      events.onClose=new EventMethod(pojo,method);
-      continue;
-    }
-    if (method.getAnnotation(OnWebSocketText.class) != null) {
-      assertValidSignature(method,OnWebSocketText.class,validTextParams);
-      assertUnset(events.onText,OnWebSocketText.class,method);
-      events.onText=new EventMethod(pojo,method);
-      continue;
-    }
-    if (method.getAnnotation(OnWebSocketFrame.class) != null) {
-      assertValidSignature(method,OnWebSocketFrame.class,validFrameParams);
-      assertFrameUnset(events,method);
-      events.addOnFrame(new EventMethod(pojo,method));
-      continue;
-    }
+    clazz=clazz.getSuperclass();
   }
   return events;
 }
