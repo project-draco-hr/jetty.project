@@ -1,12 +1,14 @@
 {
   String expectedReason="Game Over";
+  Debug.enableDebugLogging(Parser.class);
+  Debug.enableDebugLogging(ClosePayloadParser.class);
   byte utf[]=expectedReason.getBytes(StringUtil.__UTF8_CHARSET);
   ByteBuffer payload=ByteBuffer.allocate(utf.length + 2);
   payload.putShort(StatusCode.NORMAL);
   payload.put(utf,0,utf.length);
   payload.flip();
   ByteBuffer buf=ByteBuffer.allocate(24);
-  buf.put((byte)(0x80 | 0x08));
+  buf.put((byte)(0x80 | OpCode.CLOSE.getCode()));
   buf.put((byte)(0x80 | payload.remaining()));
   MaskedByteBuffer.putMask(buf);
   MaskedByteBuffer.putPayload(buf,payload);
@@ -18,7 +20,7 @@
   parser.parse(buf);
   capture.assertNoErrors();
   capture.assertHasFrame(CloseFrame.class,1);
-  CloseFrame txt=(CloseFrame)capture.getFrames().get(0);
-  Assert.assertThat("CloseFrame.statusCode",(short)txt.getStatusCode(),is(StatusCode.NORMAL));
-  Assert.assertThat("CloseFrame.data",txt.getReason(),is(expectedReason));
+  CloseFrame close=(CloseFrame)capture.getFrames().get(0);
+  Assert.assertThat("CloseFrame.statusCode",(short)close.getStatusCode(),is((short)0));
+  Assert.assertThat("CloseFrame.data",close.getReason(),is(expectedReason));
 }
