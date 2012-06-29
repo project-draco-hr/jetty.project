@@ -1,0 +1,19 @@
+{
+  int startCount=incomingFrameQueue.size();
+  long expireOn=System.currentTimeMillis() + TimeUnit.MILLISECONDS.convert(timeoutDuration,timeoutUnit);
+  ByteBuffer buf=bufferPool.acquire(policy.getBufferSize(),false);
+  try {
+    while (incomingFrameQueue.size() < (startCount + expectedCount)) {
+      if (read(buf) > 0) {
+        parser.parse(buf);
+      }
+      if (System.currentTimeMillis() > expireOn) {
+        throw new TimeoutException("Timeout reading all of the desired frames");
+      }
+    }
+  }
+  finally {
+    bufferPool.release(buf);
+  }
+  return incomingFrameQueue;
+}
