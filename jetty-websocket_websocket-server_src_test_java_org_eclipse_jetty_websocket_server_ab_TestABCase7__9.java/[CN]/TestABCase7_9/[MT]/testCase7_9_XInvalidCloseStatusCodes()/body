@@ -4,11 +4,17 @@
     client.connect();
     client.sendStandardRequest();
     client.expectUpgradeResponse();
-    client.write(new CloseFrame(invalidStatusCode){
-      @Override public void assertValidPayload(      int statusCode,      String reason){
-      }
-    }
-);
+    ByteBuffer buf=ByteBuffer.allocate(FrameGenerator.OVERHEAD + 2);
+    BufferUtil.clearToFill(buf);
+    buf.put((byte)(0x80 | OpCode.CLOSE.getCode()));
+    buf.put((byte)(0x80 | 2));
+    byte mask[]=new byte[]{0x44,0x44,0x44,0x44};
+    buf.put(mask);
+    int position=buf.position();
+    buf.putChar((char)this.invalidStatusCode);
+    remask(buf,position,mask);
+    BufferUtil.flipToFlush(buf,0);
+    client.writeRaw(buf);
     Queue<BaseFrame> frames=client.readFrames(1,TimeUnit.MILLISECONDS,500);
     CloseFrame closeFrame=(CloseFrame)frames.remove();
     Assert.assertThat("CloseFrame.status code",closeFrame.getStatusCode(),is(1002));
