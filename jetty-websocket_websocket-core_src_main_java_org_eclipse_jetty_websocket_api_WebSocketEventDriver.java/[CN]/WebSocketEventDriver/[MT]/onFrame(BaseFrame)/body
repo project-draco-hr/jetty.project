@@ -7,32 +7,37 @@
     events.onClose.call(websocket,connection,close.getStatusCode(),close.getReason());
     return;
   }
-  if ((frame instanceof TextFrame) && (events.onText != null)) {
-    TextFrame text=(TextFrame)frame;
-    events.onText.call(websocket,connection,text.getPayloadUTF8());
-    return;
-  }
-  if ((frame instanceof BinaryFrame) && (events.onBinary != null)) {
-    BinaryFrame bin=(BinaryFrame)frame;
-    if (events.onBinary.isParameterPresent(ByteBuffer.class)) {
-      events.onBinary.call(websocket,connection,bin.getPayload());
+  try {
+    if ((frame instanceof TextFrame) && (events.onText != null)) {
+      TextFrame text=(TextFrame)frame;
+      events.onText.call(websocket,connection,text.getPayloadUTF8());
+      return;
     }
+    if ((frame instanceof BinaryFrame) && (events.onBinary != null)) {
+      BinaryFrame bin=(BinaryFrame)frame;
+      if (events.onBinary.isParameterPresent(ByteBuffer.class)) {
+        events.onBinary.call(websocket,connection,bin.getPayload());
+      }
  else {
-      byte buf[]=BufferUtil.toArray(bin.getPayload());
-      events.onBinary.call(websocket,connection,buf,0,buf.length);
+        byte buf[]=BufferUtil.toArray(bin.getPayload());
+        events.onBinary.call(websocket,connection,buf,0,buf.length);
+      }
+      return;
     }
-    return;
+    Class<? extends BaseFrame> frameType=frame.getClass();
+    while (true) {
+      EventMethod event=events.getOnFrame(frameType);
+      if (event != null) {
+        event.call(websocket,connection,frame);
+        return;
+      }
+      if (!BaseFrame.class.isAssignableFrom(frameType.getSuperclass())) {
+        return;
+      }
+      frameType=(Class<? extends BaseFrame>)frameType.getSuperclass();
+    }
   }
-  Class<? extends BaseFrame> frameType=frame.getClass();
-  while (true) {
-    EventMethod event=events.getOnFrame(frameType);
-    if (event != null) {
-      event.call(websocket,connection,frame);
-      return;
-    }
-    if (!BaseFrame.class.isAssignableFrom(frameType.getSuperclass())) {
-      return;
-    }
-    frameType=(Class<? extends BaseFrame>)frameType.getSuperclass();
+ catch (  Throwable t) {
+    unhandled(t);
   }
 }
