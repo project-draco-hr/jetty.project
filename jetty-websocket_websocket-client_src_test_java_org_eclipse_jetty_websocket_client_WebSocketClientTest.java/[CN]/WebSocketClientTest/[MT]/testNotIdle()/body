@@ -1,5 +1,5 @@
 {
-  WebSocketClient client=new WebSocketClient(_factory);
+  OldWebSocketClient client=new OldWebSocketClient(_factory);
   client.setMaxIdleTime(500);
   final AtomicBoolean open=new AtomicBoolean();
   final AtomicInteger close=new AtomicInteger();
@@ -7,9 +7,6 @@
   final BlockingQueue<String> queue=new BlockingArrayQueue<String>();
   final StringBuilder closeMessage=new StringBuilder();
   Future<WebSocket.Connection> future=client.open(new URI("ws://127.0.0.1:" + _serverPort + "/"),new WebSocket.OnTextMessage(){
-    public void onOpen(    Connection connection){
-      open.set(true);
-    }
     public void onClose(    int closeCode,    String message){
       close.set(closeCode);
       closeMessage.append(message);
@@ -17,6 +14,9 @@
     }
     public void onMessage(    String data){
       queue.add(data);
+    }
+    public void onOpen(    Connection connection){
+      open.set(true);
     }
   }
 );
@@ -45,7 +45,7 @@
   socket.getOutputStream().write(new byte[]{(byte)0x88,(byte)0x02,(byte)4,(byte)87},0,4);
   socket.getOutputStream().flush();
   _latch.await(10,TimeUnit.SECONDS);
-  Assert.assertTrue(System.currentTimeMillis() - start < 5000);
+  Assert.assertTrue((System.currentTimeMillis() - start) < 5000);
   Assert.assertEquals(1002,close.get());
   Assert.assertEquals("Invalid close code 1111",closeMessage.toString());
 }

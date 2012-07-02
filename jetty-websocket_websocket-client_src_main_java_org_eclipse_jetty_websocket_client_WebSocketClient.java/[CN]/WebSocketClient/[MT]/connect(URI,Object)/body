@@ -1,0 +1,17 @@
+{
+  if (!factory.isStarted()) {
+    throw new IllegalStateException(WebSocketClientFactory.class.getSimpleName() + " is not started");
+  }
+  SocketChannel channel=SocketChannel.open();
+  if (bindAddress != null) {
+    channel.bind(bindAddress);
+  }
+  channel.socket().setTcpNoDelay(true);
+  channel.configureBlocking(false);
+  InetSocketAddress address=new InetSocketAddress(websocketUri.getHost(),websocketUri.getPort());
+  WebSocketEventDriver websocket=this.factory.newWebSocketDriver(websocketPojo);
+  ConnectFuture result=new ConnectFuture(this,websocketUri,websocket);
+  channel.connect(address);
+  factory.getSelector().connect(channel,result);
+  return result;
+}

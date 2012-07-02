@@ -1,0 +1,16 @@
+{
+  OldWebSocketClient.WebSocketFuture holder=(OldWebSocketClient.WebSocketFuture)key.attachment();
+  int maxIdleTime=holder.getMaxIdleTime();
+  if (maxIdleTime < 0)   maxIdleTime=(int)getMaxIdleTime();
+  SelectChannelEndPoint result=new SelectChannelEndPoint(channel,selectSet,key,maxIdleTime);
+  AsyncEndPoint endPoint=result;
+  if ("wss".equals(holder.getURI().getScheme())) {
+    SSLEngine sslEngine=newSslEngine(channel);
+    SslConnection sslConnection=new SslConnection(sslEngine,endPoint);
+    endPoint.setConnection(sslConnection);
+    endPoint=sslConnection.getSslEndPoint();
+  }
+  AsyncConnection connection=selectSet.getManager().newConnection(channel,endPoint,holder);
+  endPoint.setConnection(connection);
+  return result;
+}

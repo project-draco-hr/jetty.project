@@ -1,16 +1,16 @@
 {
-  WebSocketClient client=new WebSocketClient(_factory);
+  OldWebSocketClient client=new OldWebSocketClient(_factory);
   client.setMaxIdleTime(500);
   final AtomicBoolean open=new AtomicBoolean();
   final AtomicInteger close=new AtomicInteger();
   final CountDownLatch _latch=new CountDownLatch(1);
   Future<WebSocket.Connection> future=client.open(new URI("ws://127.0.0.1:" + _serverPort + "/"),new WebSocket(){
-    public void onOpen(    Connection connection){
-      open.set(true);
-    }
     public void onClose(    int closeCode,    String message){
       close.set(closeCode);
       _latch.countDown();
+    }
+    public void onOpen(    Connection connection){
+      open.set(true);
     }
   }
 );
@@ -22,6 +22,6 @@
   Assert.assertEquals(0,close.get());
   long start=System.currentTimeMillis();
   _latch.await(10,TimeUnit.SECONDS);
-  Assert.assertTrue(System.currentTimeMillis() - start < 5000);
+  Assert.assertTrue((System.currentTimeMillis() - start) < 5000);
   Assert.assertEquals(WebSocketConnectionRFC6455.CLOSE_NORMAL,close.get());
 }
