@@ -1,25 +1,18 @@
 {
-  OldWebSocketClient client=new OldWebSocketClient(_factory);
-  final AtomicBoolean open=new AtomicBoolean();
-  final AtomicInteger close=new AtomicInteger();
-  Future<WebSocket.Connection> future=client.open(new URI("ws://127.0.0.1:1"),new WebSocket(){
-    public void onClose(    int closeCode,    String message){
-      close.set(closeCode);
-    }
-    public void onOpen(    Connection connection){
-      open.set(true);
-    }
-  }
-);
+  WebSocketClientFactory factory=new WebSocketClientFactory();
+  WebSocketClient client=factory.newWebSocketClient();
+  TrackingSocket wsocket=new TrackingSocket();
+  URI wsUri=new URI("ws://127.0.0.1:1");
+  Future<WebSocketConnection> future=client.connect(wsUri,wsocket);
   Throwable error=null;
   try {
     future.get(1,TimeUnit.SECONDS);
-    Assert.fail();
+    Assert.fail("Expected ExecutionException");
   }
  catch (  ExecutionException e) {
     error=e.getCause();
   }
-  Assert.assertFalse(open.get());
-  Assert.assertEquals(WebSocketConnectionRFC6455.CLOSE_NO_CLOSE,close.get());
+  wsocket.assertNotOpened();
+  wsocket.assertCloseCode(StatusCode.NO_CLOSE);
   Assert.assertTrue(error instanceof ConnectException);
 }

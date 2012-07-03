@@ -1,21 +1,13 @@
 {
-  OldWebSocketClient client=new OldWebSocketClient(_factory);
-  boolean bad=false;
-  final AtomicBoolean open=new AtomicBoolean();
+  WebSocketClientFactory factory=new WebSocketClientFactory();
+  WebSocketClient client=factory.newWebSocketClient();
+  TrackingSocket wsocket=new TrackingSocket();
   try {
-    client.open(new URI("http://localhost:8080"),new WebSocket(){
-      public void onClose(      int closeCode,      String message){
-      }
-      public void onOpen(      Connection connection){
-        open.set(true);
-      }
-    }
-);
-    Assert.fail();
+    URI wsUri=new URI("http://localhost:8080");
+    client.connect(wsUri,wsocket);
+    Assert.fail("Expected IllegalArgumentException");
   }
  catch (  IllegalArgumentException e) {
-    bad=true;
+    wsocket.assertNotOpened();
   }
-  Assert.assertTrue(bad);
-  Assert.assertFalse(open.get());
 }

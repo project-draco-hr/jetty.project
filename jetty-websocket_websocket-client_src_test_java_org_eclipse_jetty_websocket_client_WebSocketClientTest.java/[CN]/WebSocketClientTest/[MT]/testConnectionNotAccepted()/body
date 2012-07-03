@@ -1,25 +1,15 @@
 {
-  OldWebSocketClient client=new OldWebSocketClient(_factory);
-  final AtomicBoolean open=new AtomicBoolean();
-  final AtomicInteger close=new AtomicInteger();
-  Future<WebSocket.Connection> future=client.open(new URI("ws://127.0.0.1:" + _serverPort),new WebSocket(){
-    public void onClose(    int closeCode,    String message){
-      close.set(closeCode);
-    }
-    public void onOpen(    Connection connection){
-      open.set(true);
-    }
-  }
-);
-  Throwable error=null;
+  WebSocketClientFactory factory=new WebSocketClientFactory();
+  WebSocketClient client=factory.newWebSocketClient();
+  TrackingSocket wsocket=new TrackingSocket();
+  URI wsUri=new URI("ws://127.0.0.1:" + server.getPort() + "/");
+  Future<WebSocketConnection> future=client.connect(wsUri,wsocket);
   try {
     future.get(250,TimeUnit.MILLISECONDS);
-    Assert.fail();
+    Assert.fail("Should have Timed Out");
   }
  catch (  TimeoutException e) {
-    error=e;
+    wsocket.assertNotOpened();
+    wsocket.assertCloseCode(StatusCode.NO_CLOSE);
   }
-  Assert.assertFalse(open.get());
-  Assert.assertEquals(WebSocketConnectionRFC6455.CLOSE_NO_CLOSE,close.get());
-  Assert.assertTrue(error instanceof TimeoutException);
 }

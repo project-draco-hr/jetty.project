@@ -1,33 +1,35 @@
 {
-  OldWebSocketClient client=new OldWebSocketClient(_factory);
-  client.setMaxIdleTime(60000);
-  final AtomicBoolean open=new AtomicBoolean();
+  WebSocketClientFactory factory=new WebSocketClientFactory();
+  WebSocketClient client=factory.newWebSocketClient();
+  client.getPolicy().setMaxIdleTime(60000);
+  final AtomicBoolean open=new AtomicBoolean(false);
   final AtomicInteger close=new AtomicInteger();
   final CountDownLatch _latch=new CountDownLatch(1);
   final StringBuilder closeMessage=new StringBuilder();
   final Exchanger<String> exchanger=new Exchanger<String>();
-  Future<WebSocket.Connection> future=client.open(new URI("ws://127.0.0.1:" + _serverPort + "/"),new WebSocket.OnTextMessage(){
-    public void onClose(    int closeCode,    String message){
-      close.set(closeCode);
-      closeMessage.append(message);
+  WebSocketListener socket=new WebSocketAdapter(){
+    @Override public void onWebSocketClose(    int statusCode,    String reason){
+      close.set(statusCode);
+      closeMessage.append(reason);
       _latch.countDown();
     }
-    public void onMessage(    String data){
+    @Override public void onWebSocketConnect(    WebSocketConnection connection){
+      open.set(true);
+    }
+    @Override public void onWebSocketText(    String message){
       try {
-        exchanger.exchange(data);
+        exchanger.exchange(message);
       }
  catch (      InterruptedException e) {
       }
     }
-    public void onOpen(    Connection connection){
-      open.set(true);
-    }
   }
-);
-  Socket socket=_server.accept();
-  socket.setSoTimeout(60000);
-  accept(socket);
-  WebSocket.Connection connection=future.get(250,TimeUnit.MILLISECONDS);
+;
+  URI wsUri=new URI("ws://127.0.0.1:" + server.getPort() + "/");
+  Future<WebSocketConnection> future=client.connect(wsUri,socket);
+  ServerConnection sconnection=server.accept();
+  sconnection.setSoTimeout(60000);
+  WebSocketConnection connection=future.get(250,TimeUnit.MILLISECONDS);
   Assert.assertNotNull(connection);
   Assert.assertTrue(open.get());
   Assert.assertEquals(0,close.get());
@@ -63,8 +65,8 @@ catch (      Exception e) {
   consumer.start();
   long start=System.currentTimeMillis();
   for (int i=0; i < messages; i++) {
-    socket.getOutputStream().write(send,0,send.length);
-    socket.getOutputStream().flush();
+    sconnection.write(send,0,send.length);
+    sconnection.flush();
   }
   while (consumer.isAlive()) {
     Thread.sleep(10);
@@ -73,8 +75,8 @@ catch (      Exception e) {
   Assert.assertThat("read duration",readDur,greaterThan(1000L));
   Assert.assertEquals(m.get(),messages);
   start=System.currentTimeMillis();
-  socket.getOutputStream().write(new byte[]{(byte)0x88,(byte)0x02,(byte)4,(byte)87},0,4);
-  socket.getOutputStream().flush();
+  sconnection.write(new byte[]{(byte)0x88,(byte)0x02,(byte)4,(byte)87},0,4);
+  sconnection.flush();
   _latch.await(10,TimeUnit.SECONDS);
   Assert.assertTrue((System.currentTimeMillis() - start) < 5000);
   Assert.assertEquals(1002,close.get());

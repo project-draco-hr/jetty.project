@@ -1,51 +1,34 @@
 {
-  OldWebSocketClient client=new OldWebSocketClient(_factory);
-  client.setMaxIdleTime(500);
-  final AtomicBoolean open=new AtomicBoolean();
-  final AtomicInteger close=new AtomicInteger();
-  final CountDownLatch _latch=new CountDownLatch(1);
-  final BlockingQueue<String> queue=new BlockingArrayQueue<String>();
-  final StringBuilder closeMessage=new StringBuilder();
-  Future<WebSocket.Connection> future=client.open(new URI("ws://127.0.0.1:" + _serverPort + "/"),new WebSocket.OnTextMessage(){
-    public void onClose(    int closeCode,    String message){
-      close.set(closeCode);
-      closeMessage.append(message);
-      _latch.countDown();
-    }
-    public void onMessage(    String data){
-      queue.add(data);
-    }
-    public void onOpen(    Connection connection){
-      open.set(true);
-    }
-  }
-);
-  Socket socket=_server.accept();
-  accept(socket);
-  WebSocket.Connection connection=future.get(250,TimeUnit.MILLISECONDS);
+  WebSocketClientFactory factory=new WebSocketClientFactory();
+  WebSocketClient client=factory.newWebSocketClient();
+  client.getPolicy().setMaxIdleTime(500);
+  TrackingSocket wsocket=new TrackingSocket();
+  URI wsUri=new URI("ws://127.0.0.1:" + server.getPort() + "/");
+  Future<WebSocketConnection> future=client.connect(wsUri,wsocket);
+  ServerConnection ssocket=server.accept();
+  ssocket.upgrade();
+  WebSocketConnection connection=future.get(250,TimeUnit.MILLISECONDS);
   Assert.assertNotNull(connection);
-  Assert.assertTrue(open.get());
-  Assert.assertEquals(0,close.get());
+  wsocket.assertIsOpen();
   byte[] recv=new byte[1024];
   int len=-1;
   for (int i=0; i < 10; i++) {
     Thread.sleep(250);
-    connection.sendMessage("Hello");
-    len=socket.getInputStream().read(recv,0,recv.length);
+    connection.write("Hello");
+    len=ssocket.getInputStream().read(recv,0,recv.length);
     Assert.assertTrue(len > 0);
   }
   byte[] send=new byte[]{(byte)0x81,(byte)0x02,(byte)'H',(byte)'i'};
   for (int i=0; i < 10; i++) {
     Thread.sleep(250);
-    socket.getOutputStream().write(send,0,send.length);
-    socket.getOutputStream().flush();
-    Assert.assertEquals("Hi",queue.poll(1,TimeUnit.SECONDS));
+    ssocket.write(send,0,send.length);
+    ssocket.flush();
+    Assert.assertEquals("Hi",wsocket.messageQueue.poll(1,TimeUnit.SECONDS));
   }
   long start=System.currentTimeMillis();
-  socket.getOutputStream().write(new byte[]{(byte)0x88,(byte)0x02,(byte)4,(byte)87},0,4);
-  socket.getOutputStream().flush();
-  _latch.await(10,TimeUnit.SECONDS);
+  ssocket.write(new byte[]{(byte)0x88,(byte)0x02,(byte)4,(byte)87},0,4);
+  ssocket.flush();
+  wsocket.closeLatch.await(10,TimeUnit.SECONDS);
   Assert.assertTrue((System.currentTimeMillis() - start) < 5000);
-  Assert.assertEquals(1002,close.get());
-  Assert.assertEquals("Invalid close code 1111",closeMessage.toString());
+  wsocket.assertClose(StatusCode.PROTOCOL,"Invalid close code 1111");
 }

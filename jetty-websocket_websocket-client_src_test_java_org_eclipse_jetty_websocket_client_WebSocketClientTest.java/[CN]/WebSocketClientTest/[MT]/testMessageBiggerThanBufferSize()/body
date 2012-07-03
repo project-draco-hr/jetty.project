@@ -1,39 +1,22 @@
 {
-  OldWebSocketClientFactory factory=new OldWebSocketClientFactory();
-  QueuedThreadPool threadPool=new QueuedThreadPool();
+  WebSocketClientFactory factory=new WebSocketClientFactory();
   int bufferSize=512;
-  OldWebSocketClientFactory factory=new OldWebSocketClientFactory(threadPool,new ZeroMasker(),bufferSize);
-  threadPool.start();
-  factory.start();
-  OldWebSocketClient client=new OldWebSocketClient(factory);
-  final CountDownLatch openLatch=new CountDownLatch(1);
-  final CountDownLatch dataLatch=new CountDownLatch(1);
-  WebSocket.OnTextMessage websocket=new WebSocket.OnTextMessage(){
-    public void onClose(    int closeCode,    String message){
-    }
-    public void onMessage(    String data){
-      dataLatch.countDown();
-    }
-    public void onOpen(    Connection connection){
-      openLatch.countDown();
-    }
-  }
-;
-  client.open(new URI("ws://127.0.0.1:" + _serverPort + "/"),websocket);
-  Socket socket=_server.accept();
-  accept(socket);
-  Assert.assertTrue(openLatch.await(1,TimeUnit.SECONDS));
-  OutputStream serverOutput=socket.getOutputStream();
+  factory.getPolicy().setBufferSize(512);
+  WebSocketClient client=factory.newWebSocketClient();
+  TrackingSocket wsocket=new TrackingSocket();
+  URI wsUri=new URI("ws://127.0.0.1:" + server.getPort() + "/");
+  Future<WebSocketConnection> future=client.connect(wsUri,wsocket);
+  ServerConnection ssocket=server.accept();
+  ssocket.upgrade();
+  Assert.assertTrue(wsocket.openLatch.await(1,TimeUnit.SECONDS));
   int length=bufferSize + (bufferSize / 2);
-  serverOutput.write(0x80 | 0x01);
-  serverOutput.write(0x7E);
-  serverOutput.write(length >> 8);
-  serverOutput.write(length & 0xFF);
+  ssocket.write(0x80 | 0x01);
+  ssocket.write(0x7E);
+  ssocket.write(length >> 8);
+  ssocket.write(length & 0xFF);
   for (int i=0; i < length; ++i) {
-    serverOutput.write('x');
+    ssocket.write('x');
   }
-  serverOutput.flush();
-  Assert.assertTrue(dataLatch.await(1000,TimeUnit.SECONDS));
-  factory.stop();
-  threadPool.stop();
+  ssocket.flush();
+  Assert.assertTrue(wsocket.dataLatch.await(1000,TimeUnit.SECONDS));
 }

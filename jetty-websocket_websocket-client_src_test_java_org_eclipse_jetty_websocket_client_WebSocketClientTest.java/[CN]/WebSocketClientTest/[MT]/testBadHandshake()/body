@@ -1,18 +1,11 @@
 {
-  OldWebSocketClient client=new OldWebSocketClient(_factory);
-  final AtomicBoolean open=new AtomicBoolean();
-  final AtomicInteger close=new AtomicInteger();
-  Future<WebSocket.Connection> future=client.open(new URI("ws://127.0.0.1:" + _serverPort + "/"),new WebSocket(){
-    public void onClose(    int closeCode,    String message){
-      close.set(closeCode);
-    }
-    public void onOpen(    Connection connection){
-      open.set(true);
-    }
-  }
-);
-  Socket connection=_server.accept();
-  respondToClient(connection,"HTTP/1.1 404 NOT FOUND\r\n\r\n");
+  WebSocketClientFactory factory=new WebSocketClientFactory();
+  WebSocketClient client=factory.newWebSocketClient();
+  TrackingSocket wsocket=new TrackingSocket();
+  URI wsUri=new URI("ws://127.0.0.1:" + server.getPort() + "/");
+  Future<WebSocketConnection> future=client.connect(wsUri,wsocket);
+  ServerConnection connection=server.accept();
+  connection.respond("HTTP/1.1 404 NOT FOUND\r\n\r\n");
   Throwable error=null;
   try {
     future.get(250,TimeUnit.MILLISECONDS);
@@ -21,8 +14,8 @@
  catch (  ExecutionException e) {
     error=e.getCause();
   }
-  Assert.assertFalse(open.get());
-  Assert.assertEquals(WebSocketConnectionRFC6455.CLOSE_PROTOCOL,close.get());
+  wsocket.assertNotOpened();
+  wsocket.assertCloseCode(StatusCode.PROTOCOL);
   Assert.assertTrue(error instanceof IOException);
   Assert.assertTrue(error.getMessage().indexOf("404 NOT FOUND") > 0);
 }

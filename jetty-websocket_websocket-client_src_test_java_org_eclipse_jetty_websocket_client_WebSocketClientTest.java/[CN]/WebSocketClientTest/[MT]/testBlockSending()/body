@@ -1,27 +1,16 @@
 {
-  OldWebSocketClient client=new OldWebSocketClient(_factory);
-  client.setMaxIdleTime(10000);
-  final AtomicBoolean open=new AtomicBoolean();
-  final AtomicInteger close=new AtomicInteger();
-  final CountDownLatch _latch=new CountDownLatch(1);
-  Future<WebSocket.Connection> future=client.open(new URI("ws://127.0.0.1:" + _serverPort + "/"),new WebSocket.OnTextMessage(){
-    public void onClose(    int closeCode,    String message){
-      close.set(closeCode);
-      _latch.countDown();
-    }
-    public void onMessage(    String data){
-    }
-    public void onOpen(    Connection connection){
-      open.set(true);
-    }
-  }
-);
-  final Socket socket=_server.accept();
-  accept(socket);
-  WebSocket.Connection connection=future.get(250,TimeUnit.MILLISECONDS);
+  WebSocketClientFactory factory=new WebSocketClientFactory();
+  WebSocketClient client=factory.newWebSocketClient();
+  client.getPolicy().setMaxIdleTime(10000);
+  TrackingSocket wsocket=new TrackingSocket();
+  URI wsUri=new URI("ws://127.0.0.1:" + server.getPort() + "/");
+  Future<WebSocketConnection> future=client.connect(wsUri,wsocket);
+  final ServerConnection ssocket=server.accept();
+  ssocket.upgrade();
+  WebSocketConnection connection=future.get(250,TimeUnit.MILLISECONDS);
   Assert.assertNotNull(connection);
-  Assert.assertTrue(open.get());
-  Assert.assertEquals(0,close.get());
+  wsocket.assertWasOpened();
+  wsocket.assertNotClosed();
   final int messages=200000;
   final AtomicLong totalB=new AtomicLong();
   Thread consumer=new Thread(){
@@ -32,7 +21,7 @@
         int len=0;
         while (len >= 0) {
           totalB.addAndGet(len);
-          len=socket.getInputStream().read(recv,0,recv.length);
+          len=ssocket.getInputStream().read(recv,0,recv.length);
           Thread.sleep(10);
         }
       }
@@ -49,7 +38,7 @@ catch (      Exception e) {
   long start=System.currentTimeMillis();
   String mesg="This is a test message to send";
   for (int i=0; i < messages; i++) {
-    connection.sendMessage(mesg);
+    connection.write(mesg);
   }
   long writeDur=(System.currentTimeMillis() - start);
   while (totalB.get() < (messages * (mesg.length() + 6L))) {

@@ -1,27 +1,18 @@
 {
-  OldWebSocketClient client=new OldWebSocketClient(_factory);
-  client.setMaxIdleTime(500);
-  final AtomicBoolean open=new AtomicBoolean();
-  final AtomicInteger close=new AtomicInteger();
-  final CountDownLatch _latch=new CountDownLatch(1);
-  Future<WebSocket.Connection> future=client.open(new URI("ws://127.0.0.1:" + _serverPort + "/"),new WebSocket(){
-    public void onClose(    int closeCode,    String message){
-      close.set(closeCode);
-      _latch.countDown();
-    }
-    public void onOpen(    Connection connection){
-      open.set(true);
-    }
-  }
-);
-  Socket socket=_server.accept();
-  accept(socket);
-  WebSocket.Connection connection=future.get(250,TimeUnit.MILLISECONDS);
+  WebSocketClientFactory factory=new WebSocketClientFactory();
+  WebSocketClient client=factory.newWebSocketClient();
+  client.getPolicy().setMaxIdleTime(500);
+  TrackingSocket wsocket=new TrackingSocket();
+  URI wsUri=new URI("ws://127.0.0.1:" + server.getPort() + "/");
+  Future<WebSocketConnection> future=client.connect(wsUri,wsocket);
+  ServerConnection ssocket=server.accept();
+  ssocket.upgrade();
+  WebSocketConnection connection=future.get(250,TimeUnit.MILLISECONDS);
   Assert.assertNotNull(connection);
-  Assert.assertTrue(open.get());
-  Assert.assertEquals(0,close.get());
+  wsocket.assertWasOpened();
+  wsocket.assertNotClosed();
   long start=System.currentTimeMillis();
-  _latch.await(10,TimeUnit.SECONDS);
+  wsocket.closeLatch.await(10,TimeUnit.SECONDS);
   Assert.assertTrue((System.currentTimeMillis() - start) < 5000);
-  Assert.assertEquals(WebSocketConnectionRFC6455.CLOSE_NORMAL,close.get());
+  wsocket.assertCloseCode(StatusCode.NORMAL);
 }
