@@ -1,0 +1,18 @@
+{
+  long delay=TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - created);
+  if (!referrer.startsWith(origin) && !isPushOriginAllowed(origin)) {
+    logger.debug("Skipped store of push metadata {} for {}: Origin: {} doesn't match or origin not allowed",url,name,origin);
+    return false;
+  }
+  if (resources.size() >= maxAssociatedResources) {
+    logger.debug("Skipped store of push metadata {} for {}: max associated resources ({}) reached",url,name,maxAssociatedResources);
+    return false;
+  }
+  if (delay > referrerPushPeriod) {
+    logger.debug("Delay: {}ms longer than referrerPushPeriod: {}ms. Not adding resource: {} for: {}",delay,referrerPushPeriod,url,name);
+    return false;
+  }
+  logger.debug("Adding resource: {} for: {} with delay: {}ms.",url,name,delay);
+  resources.add(url);
+  return true;
+}

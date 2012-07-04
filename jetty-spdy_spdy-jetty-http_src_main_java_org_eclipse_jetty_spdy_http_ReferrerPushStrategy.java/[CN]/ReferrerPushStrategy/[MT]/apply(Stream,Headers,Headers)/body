@@ -1,26 +1,33 @@
 {
   Set<String> result=Collections.<String>emptySet();
   short version=stream.getSession().getVersion();
+  if (!supportedSPDYVersions.contains(version)) {
+    logger.debug("SPDY version {} not supported. Returning empty Set.",version);
+    return result;
+  }
   if (!isIfModifiedSinceHeaderPresent(requestHeaders) && isValidMethod(requestHeaders.get(HTTPSPDYHeader.METHOD.name(version)).value())) {
     String scheme=requestHeaders.get(HTTPSPDYHeader.SCHEME.name(version)).value();
     String host=requestHeaders.get(HTTPSPDYHeader.HOST.name(version)).value();
-    String origin=new StringBuilder(scheme).append("://").append(host).toString();
+    String origin=scheme + "://" + host;
     String url=requestHeaders.get(HTTPSPDYHeader.URI.name(version)).value();
-    String absoluteURL=new StringBuilder(origin).append(url).toString();
+    String absoluteURL=origin + url;
     logger.debug("Applying push strategy for {}",absoluteURL);
     if (isMainResource(url,responseHeaders)) {
-      result=pushResources(absoluteURL);
+      MainResource mainResource=getOrCreateMainResource(absoluteURL);
+      result=mainResource.getResources();
     }
  else     if (isPushResource(url,responseHeaders)) {
       Headers.Header referrerHeader=requestHeaders.get("referer");
       if (referrerHeader != null) {
         String referrer=referrerHeader.value();
-        Set<String> pushResources=resources.get(referrer);
-        if (pushResources == null || !pushResources.contains(url))         buildMetadata(origin,url,referrer);
- else         result=pushResources(absoluteURL);
+        MainResource mainResource=mainResources.get(referrer);
+        if (mainResource == null)         mainResource=getOrCreateMainResource(referrer);
+        Set<String> pushResources=mainResource.getResources();
+        if (!pushResources.contains(url))         mainResource.addResource(url,origin,referrer);
+ else         result=getPushResources(absoluteURL);
       }
     }
-    logger.debug("Push resources for {}: {}",absoluteURL,result);
+    logger.debug("Pushing {} resources for {}: {}",result.size(),absoluteURL,result);
   }
   return result;
 }
