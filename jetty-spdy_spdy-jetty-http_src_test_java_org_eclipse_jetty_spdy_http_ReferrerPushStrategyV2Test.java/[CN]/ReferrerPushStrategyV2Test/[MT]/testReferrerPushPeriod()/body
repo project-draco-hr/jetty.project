@@ -1,0 +1,13 @@
+{
+  InetSocketAddress address=createServer();
+  ReferrerPushStrategy pushStrategy=new ReferrerPushStrategy();
+  int referrerPushPeriod=1000;
+  pushStrategy.setReferrerPushPeriod(referrerPushPeriod);
+  AsyncConnectionFactory defaultFactory=new ServerHTTPSPDYAsyncConnectionFactory(version(),connector.getByteBufferPool(),connector.getExecutor(),connector.getScheduler(),connector,pushStrategy);
+  connector.setDefaultAsyncConnectionFactory(defaultFactory);
+  Headers mainRequestHeaders=createHeadersWithoutReferrer(mainResource);
+  Session session1=sendMainRequestAndCSSRequest(address,mainRequestHeaders);
+  Thread.sleep(referrerPushPeriod + 1);
+  sendJSRequest(session1);
+  run2ndClientRequests(address,mainRequestHeaders,false);
+}
