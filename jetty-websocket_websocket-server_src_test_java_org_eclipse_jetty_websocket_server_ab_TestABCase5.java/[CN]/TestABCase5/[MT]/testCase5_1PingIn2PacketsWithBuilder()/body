@@ -1,0 +1,21 @@
+{
+  BlockheadClient client=new BlockheadClient(server.getServerUri());
+  try {
+    client.connect();
+    client.sendStandardRequest();
+    client.expectUpgradeResponse();
+    String fragment1="fragment1";
+    ByteBuffer frame1=FrameBuilder.pingFrame().isFin(false).withPayload(fragment1.getBytes()).asByteBuffer();
+    client.writeRaw(frame1);
+    String fragment2="fragment2";
+    ByteBuffer frame2=FrameBuilder.pingFrame().withPayload(fragment2.getBytes()).asByteBuffer();
+    client.writeRaw(frame2);
+    Queue<BaseFrame> frames=client.readFrames(1,TimeUnit.MILLISECONDS,500);
+    BaseFrame frame=(BaseFrame)frames.remove();
+    Assert.assertTrue("frame should be close frame",frame instanceof CloseFrame);
+    Assert.assertThat("CloseFrame.status code",((CloseFrame)frame).getStatusCode(),is(1002));
+  }
+  finally {
+    client.close();
+  }
+}

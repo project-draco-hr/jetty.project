@@ -6,28 +6,19 @@
     client.expectUpgradeResponse();
     ByteBuffer buf=ByteBuffer.allocate(FrameGenerator.OVERHEAD + 2);
     BufferUtil.clearToFill(buf);
-    String fragment1="fragment1";
-    buf.put((byte)(0x00 | OpCode.PONG.getCode()));
+    String fragment1="fragment";
+    buf.put((byte)(0x80 | OpCode.CONTINUATION.getCode()));
     byte b=0x00;
     b|=fragment1.length() & 0x7F;
     buf.put(b);
     buf.put(fragment1.getBytes());
     BufferUtil.flipToFlush(buf,0);
     client.writeRaw(buf);
-    ByteBuffer buf2=ByteBuffer.allocate(FrameGenerator.OVERHEAD + 2);
-    BufferUtil.clearToFill(buf2);
-    String fragment2="fragment2";
-    buf2.put((byte)(0x80 | OpCode.CONTINUATION.getCode()));
-    b=0x00;
-    b|=fragment2.length() & 0x7F;
-    buf2.put(b);
-    buf2.put(fragment2.getBytes());
-    BufferUtil.flipToFlush(buf2,0);
-    client.writeRaw(buf2);
     Queue<BaseFrame> frames=client.readFrames(1,TimeUnit.MILLISECONDS,500);
     BaseFrame frame=(BaseFrame)frames.remove();
     Assert.assertTrue("frame should be close frame",frame instanceof CloseFrame);
     Assert.assertThat("CloseFrame.status code",((CloseFrame)frame).getStatusCode(),is(1002));
+    Assert.assertThat("CloseFrame.reason",((CloseFrame)frame).getReason(),is("Bad Continuation"));
   }
   finally {
     client.close();

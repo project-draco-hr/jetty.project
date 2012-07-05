@@ -14,6 +14,16 @@
     buf.put(fragment1.getBytes());
     BufferUtil.flipToFlush(buf,0);
     client.writeRaw(buf);
+    ByteBuffer pingBuf=ByteBuffer.allocate(FrameGenerator.OVERHEAD + 2);
+    BufferUtil.clearToFill(pingBuf);
+    String pingPayload="ping payload";
+    pingBuf.put((byte)(0x00 | OpCode.PING.getCode()));
+    b=0x00;
+    b|=pingPayload.length() & 0x7F;
+    pingBuf.put(b);
+    pingBuf.put(pingPayload.getBytes());
+    BufferUtil.flipToFlush(pingBuf,0);
+    client.writeRaw(buf);
     ByteBuffer buf2=ByteBuffer.allocate(FrameGenerator.OVERHEAD + 2);
     BufferUtil.clearToFill(buf2);
     String fragment2="fragment2";
@@ -24,9 +34,14 @@
     buf2.put(fragment2.getBytes());
     BufferUtil.flipToFlush(buf2,0);
     client.writeRaw(buf2);
-    Queue<BaseFrame> frames=client.readFrames(1,TimeUnit.MILLISECONDS,500);
-    BaseFrame frame=(BaseFrame)frames.remove();
-    Assert.assertTrue("frame should be text frame",frame instanceof TextFrame);
+    Queue<BaseFrame> frames=client.readFrames(2,TimeUnit.MILLISECONDS,500);
+    BaseFrame frame=frames.remove();
+    Assert.assertTrue("first frame should be pong frame",frame instanceof PongFrame);
+    ByteBuffer payload1=ByteBuffer.allocate(pingPayload.length());
+    payload1.flip();
+    ByteBufferAssert.assertEquals("payloads should be equal",payload1,((PongFrame)frame).getPayload());
+    frame=(BaseFrame)frames.remove();
+    Assert.assertTrue("second frame should be text frame",frame instanceof TextFrame);
     Assert.assertThat("TextFrame.payload",((TextFrame)frame).getPayloadUTF8(),is(fragment1 + fragment2));
   }
   finally {
