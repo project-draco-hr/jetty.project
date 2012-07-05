@@ -1,18 +1,22 @@
 {
   LOG.debug("{} completed");
+  if (getResponse().getStatus() == HttpStatus.SWITCHING_PROTOCOLS_101) {
+    AsyncConnection connection=(AsyncConnection)getRequest().getAttribute(UPGRADE_CONNECTION_ATTR);
+    if (connection != null) {
+      LOG.debug("Upgrade from {} to {}",this,connection);
+      getEndPoint().setAsyncConnection(connection);
+      HttpConnection.this.reset();
+      return;
+    }
+  }
   HttpConnection.this.reset();
-  if (getCurrentConnection() == null) {
+  if (getThread() != Thread.currentThread()) {
     if (_parser.isStart()) {
       if (_requestBuffer == null)       fillInterested();
  else       if (getConnector().isStarted()) {
         LOG.debug("{} pipelined",this);
         try {
-          execute(new Runnable(){
-            @Override public void run(){
-              onFillable();
-            }
-          }
-);
+          execute(this);
         }
  catch (        RejectedExecutionException e) {
           if (getConnector().isStarted())           LOG.warn(e);

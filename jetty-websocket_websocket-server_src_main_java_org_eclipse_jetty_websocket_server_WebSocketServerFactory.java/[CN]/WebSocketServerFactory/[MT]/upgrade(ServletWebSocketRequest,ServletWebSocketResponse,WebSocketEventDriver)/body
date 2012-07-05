@@ -21,20 +21,18 @@
   Executor executor=http.getConnector().findExecutor();
   ByteBufferPool bufferPool=http.getConnector().getByteBufferPool();
   WebSocketAsyncConnection connection=new WebSocketAsyncConnection(endp,executor,websocket.getPolicy(),bufferPool);
-  endp.setAsyncConnection(connection);
+  request.setAttribute(HttpConnection.UPGRADE_CONNECTION_ATTR,connection);
   LOG.debug("HttpConnection: {}",http);
   LOG.debug("AsyncWebSocketConnection: {}",connection);
   List<Extension> extensions=initExtensions(request.getExtensions());
   connection.getParser().addListener(websocket);
   LOG.debug("Handshake Response: {}",handshaker);
   handshaker.doHandshakeResponse(request,response,extensions);
-  connection.fillInterested();
   LOG.debug("EndPoint: {}",endp);
   LOG.debug("Handshake Complete: {}",connection);
   addConnection(connection);
   websocket.setConnection(connection);
   websocket.onConnect();
   LOG.debug("Websocket upgrade {} {} {} {}",request.getRequestURI(),version,response.getAcceptedSubProtocol(),connection);
-  request.setAttribute("org.eclipse.jetty.io.Connection",connection);
   return true;
 }
