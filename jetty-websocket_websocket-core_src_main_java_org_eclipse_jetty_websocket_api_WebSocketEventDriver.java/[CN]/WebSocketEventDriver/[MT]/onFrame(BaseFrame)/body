@@ -2,39 +2,30 @@
   if (LOG.isDebugEnabled()) {
     LOG.debug("{}.onFrame({})",websocket.getClass().getSimpleName(),frame);
   }
+  if ((frame instanceof Frame) && (events.onFrame != null)) {
+    events.onFrame.call(websocket,connection,frame);
+  }
   if ((frame instanceof CloseFrame) && (events.onClose != null)) {
     CloseFrame close=(CloseFrame)frame;
     events.onClose.call(websocket,connection,close.getStatusCode(),close.getReason());
     return;
   }
   try {
-    if ((frame instanceof TextFrame) && (events.onText != null)) {
-      TextFrame text=(TextFrame)frame;
-      events.onText.call(websocket,connection,text.getPayloadUTF8());
+    if (frame instanceof TextFrame) {
+      if (events.onText != null) {
+        TextFrame text=(TextFrame)frame;
+        events.onText.call(websocket,connection,text.getPayloadUTF8());
+        return;
+      }
       return;
     }
-    if ((frame instanceof BinaryFrame) && (events.onBinary != null)) {
-      BinaryFrame bin=(BinaryFrame)frame;
-      if (events.onBinary.isParameterPresent(ByteBuffer.class)) {
-        events.onBinary.call(websocket,connection,bin.getPayload());
-      }
- else {
+    if (frame instanceof BinaryFrame) {
+      if (events.onBinary != null) {
+        BinaryFrame bin=(BinaryFrame)frame;
         byte buf[]=BufferUtil.toArray(bin.getPayload());
         events.onBinary.call(websocket,connection,buf,0,buf.length);
       }
       return;
-    }
-    Class<? extends BaseFrame> frameType=frame.getClass();
-    while (true) {
-      EventMethod event=events.getOnFrame(frameType);
-      if (event != null) {
-        event.call(websocket,connection,frame);
-        return;
-      }
-      if (!BaseFrame.class.isAssignableFrom(frameType.getSuperclass())) {
-        return;
-      }
-      frameType=(Class<? extends BaseFrame>)frameType.getSuperclass();
     }
   }
  catch (  Throwable t) {
