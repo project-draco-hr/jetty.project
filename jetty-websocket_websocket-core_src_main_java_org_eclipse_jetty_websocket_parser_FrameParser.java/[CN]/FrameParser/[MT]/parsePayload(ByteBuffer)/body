@@ -1,0 +1,17 @@
+{
+  payloadLength=getFrame().getPayloadLength();
+  while (buffer.hasRemaining()) {
+    if (payload == null) {
+      getPolicy().assertValidPayloadLength(payloadLength);
+      frame.assertValid();
+      payload=ByteBuffer.allocate(payloadLength);
+    }
+    copyBuffer(buffer,payload,payload.remaining());
+    if (payload.position() >= payloadLength) {
+      frame.setPayload(payload);
+      this.payload=null;
+      return true;
+    }
+  }
+  return false;
+}

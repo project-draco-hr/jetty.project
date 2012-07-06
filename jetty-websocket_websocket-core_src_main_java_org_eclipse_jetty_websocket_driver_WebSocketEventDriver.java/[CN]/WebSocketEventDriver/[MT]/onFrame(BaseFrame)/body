@@ -5,93 +5,92 @@
   if ((frame instanceof Frame) && (events.onFrame != null)) {
     events.onFrame.call(websocket,connection,frame);
   }
-  if ((frame instanceof CloseFrame) && (events.onClose != null)) {
-    CloseFrame close=(CloseFrame)frame;
-    events.onClose.call(websocket,connection,close.getStatusCode(),close.getReason());
-    return;
-  }
   try {
-    if (frame instanceof DataFrame) {
-      DataFrame data=(DataFrame)frame;
-      if ((events.onText == null) && (events.onBinary == null)) {
+switch (frame.getOpCode()) {
+case CLOSE:
+{
+        if (events.onClose != null) {
+          byte payload[]=frame.getPayloadData();
+          int statusCode=CloseUtil.getStatusCode(payload);
+          String reason=CloseUtil.getReason(payload);
+          events.onClose.call(websocket,connection,statusCode,reason);
+        }
         return;
       }
-switch (data.getOpCode()) {
 case BINARY:
 {
-          if (events.onBinary.isStreaming()) {
-            boolean needsNotification=false;
-            if (activeStream == null) {
-              ByteBuffer buf=ByteBuffer.allocate(policy.getBufferSize());
-              this.activeStream=new MessageInputStream(buf);
-              needsNotification=true;
-            }
-            activeStream.appendBuffer(data.getPayload());
-            if (needsNotification) {
-              events.onBinary.call(websocket,connection,activeStream);
-            }
-            if (data.isFin()) {
-              activeStream.bufferComplete();
-              activeStream=null;
-            }
-          }
- else {
-            if (activeMessage == null) {
-              activeMessage=bufferPool.acquire(policy.getBufferSize(),false);
-              BufferUtil.clearToFill(activeMessage);
-            }
-            appendBuffer(activeMessage,data.getPayload());
-            if (frame.isFin()) {
-              try {
-                BufferUtil.flipToFlush(activeMessage,0);
-                byte buf[]=BufferUtil.toArray(activeMessage);
-                events.onBinary.call(websocket,connection,buf,0,buf.length);
-              }
-  finally {
-                bufferPool.release(activeMessage);
-                activeMessage=null;
-              }
-            }
-          }
-          return;
+      if (events.onBinary.isStreaming()) {
+        boolean needsNotification=false;
+        if (activeStream == null) {
+          ByteBuffer buf=ByteBuffer.allocate(policy.getBufferSize());
+          this.activeStream=new MessageInputStream(buf);
+          needsNotification=true;
         }
+        activeStream.appendBuffer(frame.getPayload());
+        if (needsNotification) {
+          events.onBinary.call(websocket,connection,activeStream);
+        }
+        if (frame.isFin()) {
+          activeStream.bufferComplete();
+          activeStream=null;
+        }
+      }
+ else {
+        if (activeMessage == null) {
+          activeMessage=bufferPool.acquire(policy.getBufferSize(),false);
+          BufferUtil.clearToFill(activeMessage);
+        }
+        appendBuffer(activeMessage,frame.getPayload());
+        if (frame.isFin()) {
+          try {
+            BufferUtil.flipToFlush(activeMessage,0);
+            byte buf[]=BufferUtil.toArray(activeMessage);
+            events.onBinary.call(websocket,connection,buf,0,buf.length);
+          }
+  finally {
+            bufferPool.release(activeMessage);
+            activeMessage=null;
+          }
+        }
+      }
+      return;
+    }
 case TEXT:
 {
-        if (events.onText.isStreaming()) {
-          boolean needsNotification=false;
-          if (activeStream == null) {
-            ByteBuffer buf=ByteBuffer.allocate(policy.getBufferSize());
-            this.activeStream=new MessageReader(buf);
-            needsNotification=true;
-          }
-          activeStream.appendBuffer(data.getPayload());
-          if (needsNotification) {
-            events.onText.call(websocket,connection,activeStream);
-          }
-          if (data.isFin()) {
-            activeStream.bufferComplete();
-            activeStream=null;
-          }
-        }
- else {
-          if (activeMessage == null) {
-            activeMessage=bufferPool.acquire(policy.getBufferSize(),false);
-            BufferUtil.clearToFill(activeMessage);
-          }
-          appendBuffer(activeMessage,data.getPayload());
-          if (frame.isFin()) {
-            try {
-              BufferUtil.flipToFlush(activeMessage,0);
-              events.onText.call(websocket,connection,BufferUtil.toUTF8String(activeMessage));
-            }
-  finally {
-              bufferPool.release(activeMessage);
-              activeMessage=null;
-            }
-          }
-        }
-        return;
+    if (events.onText.isStreaming()) {
+      boolean needsNotification=false;
+      if (activeStream == null) {
+        ByteBuffer buf=ByteBuffer.allocate(policy.getBufferSize());
+        this.activeStream=new MessageReader(buf);
+        needsNotification=true;
       }
+      activeStream.appendBuffer(frame.getPayload());
+      if (needsNotification) {
+        events.onText.call(websocket,connection,activeStream);
+      }
+      if (frame.isFin()) {
+        activeStream.bufferComplete();
+        activeStream=null;
+      }
+    }
+ else {
+      if (activeMessage == null) {
+        activeMessage=bufferPool.acquire(policy.getBufferSize(),false);
+        BufferUtil.clearToFill(activeMessage);
+      }
+      appendBuffer(activeMessage,frame.getPayload());
+      if (frame.isFin()) {
+        try {
+          BufferUtil.flipToFlush(activeMessage,0);
+          events.onText.call(websocket,connection,BufferUtil.toUTF8String(activeMessage));
+        }
+  finally {
+          bufferPool.release(activeMessage);
+          activeMessage=null;
+        }
+      }
+    }
+    return;
   }
 }
 }

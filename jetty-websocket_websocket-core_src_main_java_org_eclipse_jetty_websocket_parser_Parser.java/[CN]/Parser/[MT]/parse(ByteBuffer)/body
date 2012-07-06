@@ -20,13 +20,10 @@ case FINOP:
             throw new ProtocolException("Fragmented Control Frame [" + opcode.name() + "]");
           }
           if (opcode == OpCode.CONTINUATION) {
-            if (parser == null) {
+            if (parser.getFrame() == null) {
               throw new ProtocolException("Fragment continuation frame without prior !FIN");
             }
             opcode=parser.getFrame().getOpCode();
-          }
-          if (parser == null) {
-            parser=parsers.get(opcode);
           }
           parser.reset();
           parser.initFrame(fin,rsv1,rsv2,rsv3,opcode);
@@ -43,6 +40,9 @@ case BASE_FRAMING:
 case PAYLOAD:
 {
       if (parser.parsePayload(buffer)) {
+        if (parser.getFrame().getOpCode() == OpCode.CLOSE) {
+          assertValidClose();
+        }
         notifyFrame(parser.getFrame());
         parser.reset();
         if (parser.getFrame().isFin()) {
