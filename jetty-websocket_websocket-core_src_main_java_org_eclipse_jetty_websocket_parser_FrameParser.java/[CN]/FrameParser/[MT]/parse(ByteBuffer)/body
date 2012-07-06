@@ -1,0 +1,124 @@
+{
+  LOG.debug("Parsing {} bytes",buffer.remaining());
+  while (buffer.hasRemaining()) {
+switch (state) {
+case START:
+{
+        if ((frame != null) && (frame.isFin())) {
+          frame.reset();
+        }
+        state=State.FINOP;
+        break;
+      }
+case FINOP:
+{
+      byte b=buffer.get();
+      boolean fin=((b & 0x80) != 0);
+      boolean rsv1=((b & 0x40) != 0);
+      boolean rsv2=((b & 0x20) != 0);
+      boolean rsv3=((b & 0x10) != 0);
+      byte opc=(byte)(b & 0x0F);
+      OpCode opcode=OpCode.from(opc);
+      if (opcode == null) {
+        throw new WebSocketException("Unknown opcode: " + opc);
+      }
+      LOG.debug("OpCode {}, fin={}",opcode.name(),fin);
+      if (opcode.isControlFrame() && !fin) {
+        throw new ProtocolException("Fragmented Control Frame [" + opcode.name() + "]");
+      }
+      if (opcode == OpCode.CONTINUATION) {
+        if (frame == null) {
+          throw new ProtocolException("Fragment continuation frame without prior !FIN");
+        }
+        opcode=frame.getOpCode();
+      }
+      frame=new WebSocketFrame();
+      frame.setFin(fin);
+      frame.setRsv1(rsv1);
+      frame.setRsv2(rsv2);
+      frame.setRsv3(rsv3);
+      frame.setOpCode(opcode);
+      state=State.PAYLOAD_LEN;
+      break;
+    }
+case PAYLOAD_LEN:
+{
+    byte b=buffer.get();
+    getFrame().setMasked((b & 0x80) != 0);
+    payloadLength=(byte)(0x7F & b);
+    if (payloadLength == 127) {
+      payloadLength=0;
+      state=State.PAYLOAD_LEN_BYTES;
+      cursor=8;
+      break;
+    }
+ else     if (payloadLength == 126) {
+      payloadLength=0;
+      state=State.PAYLOAD_LEN_BYTES;
+      cursor=2;
+      break;
+    }
+    assertSanePayloadLength(payloadLength);
+    if (getFrame().isMasked()) {
+      state=State.MASK;
+    }
+ else {
+      state=State.PAYLOAD;
+    }
+    break;
+  }
+case PAYLOAD_LEN_BYTES:
+{
+  byte b=buffer.get();
+  --cursor;
+  payloadLength|=(b & 0xFF) << (8 * cursor);
+  if (cursor == 0) {
+    assertSanePayloadLength(payloadLength);
+    if (getFrame().isMasked()) {
+      state=State.MASK;
+    }
+ else {
+      state=State.PAYLOAD;
+    }
+  }
+  break;
+}
+case MASK:
+{
+byte m[]=new byte[4];
+getFrame().setMask(m);
+if (buffer.remaining() >= 4) {
+  buffer.get(m,0,4);
+  state=State.PAYLOAD;
+}
+ else {
+  state=State.MASK_BYTES;
+  cursor=4;
+}
+break;
+}
+case MASK_BYTES:
+{
+byte b=buffer.get();
+--cursor;
+getFrame().getMask()[cursor]=b;
+if (cursor == 0) {
+state=State.PAYLOAD;
+}
+break;
+}
+case PAYLOAD:
+{
+if (parsePayload(buffer)) {
+if (frame.getOpCode() == OpCode.CLOSE) {
+new CloseInfo(frame);
+}
+state=State.START;
+return true;
+}
+break;
+}
+}
+}
+return false;
+}
