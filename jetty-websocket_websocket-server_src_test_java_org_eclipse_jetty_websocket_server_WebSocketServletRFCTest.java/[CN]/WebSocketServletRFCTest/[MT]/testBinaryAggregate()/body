@@ -1,0 +1,35 @@
+{
+  BlockheadClient client=new BlockheadClient(server.getServerUri());
+  try {
+    client.connect();
+    client.sendStandardRequest();
+    client.expectUpgradeResponse();
+    byte buf1[]=new byte[128];
+    byte buf2[]=new byte[128];
+    byte buf3[]=new byte[128];
+    Arrays.fill(buf1,(byte)0xAA);
+    Arrays.fill(buf2,(byte)0xBB);
+    Arrays.fill(buf3,(byte)0xCC);
+    BinaryFrame bin;
+    bin=new BinaryFrame();
+    bin.setPayload(buf1);
+    bin.setFin(false);
+    client.write(bin);
+    bin=new BinaryFrame();
+    bin.setPayload(buf2);
+    bin.setContinuation(true);
+    bin.setFin(false);
+    client.write(bin);
+    bin=new BinaryFrame();
+    bin.setPayload(buf3);
+    bin.setContinuation(true);
+    bin.setFin(true);
+    client.write(bin);
+    Queue<BaseFrame> frames=client.readFrames(1,TimeUnit.MILLISECONDS,500);
+    BinaryFrame binmsg=(BinaryFrame)frames.remove();
+    Assert.assertThat("BinaryFrame.payloadLength",binmsg.getPayloadLength(),is(128 * 3));
+  }
+  finally {
+    client.close();
+  }
+}

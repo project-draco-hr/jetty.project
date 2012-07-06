@@ -4,7 +4,9 @@
     client.connect();
     client.sendStandardRequest();
     client.expectUpgradeResponse();
-    client.write(new TextFrame("CRASH"));
+    TextFrame frame=new TextFrame("CRASH");
+    frame.setFin(true);
+    client.write(frame);
     Queue<BaseFrame> frames=client.readFrames(1,TimeUnit.MILLISECONDS,500);
     CloseFrame cf=(CloseFrame)frames.remove();
     Assert.assertThat("Close Frame.status code",cf.getStatusCode(),is(StatusCode.SERVER_ERROR));
