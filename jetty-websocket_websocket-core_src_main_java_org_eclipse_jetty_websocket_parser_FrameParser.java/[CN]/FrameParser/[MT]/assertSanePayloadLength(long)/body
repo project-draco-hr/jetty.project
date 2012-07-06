@@ -1,6 +1,11 @@
 {
   if (len > Integer.MAX_VALUE) {
-    throw new CloseException(StatusCode.MESSAGE_TOO_LARGE,"[int-sane!] cannot handle payload lengths larger than " + Integer.MAX_VALUE);
+    throw new MessageTooLargeException("[int-sane!] cannot handle payload lengths larger than " + Integer.MAX_VALUE);
   }
   policy.assertValidPayloadLength((int)len);
+  if (frame.getOpCode().isControlFrame()) {
+    if (payloadLength > WebSocketFrame.MAX_CONTROL_PAYLOAD) {
+      throw new ProtocolException("Invalid Control Frame payload length, [" + payloadLength + "] cannot exceed ["+ WebSocketFrame.MAX_CONTROL_PAYLOAD+ "]");
+    }
+  }
 }
