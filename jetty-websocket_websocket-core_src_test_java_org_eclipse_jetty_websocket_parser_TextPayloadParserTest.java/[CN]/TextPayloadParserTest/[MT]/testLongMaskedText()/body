@@ -16,13 +16,13 @@
   MaskedByteBuffer.putPayload(buf,utf);
   buf.flip();
   WebSocketPolicy policy=WebSocketPolicy.newServerPolicy();
-  policy.setMaxTextMessageSize(100000);
+  policy.setBufferSize(100000);
   Parser parser=new Parser(policy);
   FrameParseCapture capture=new FrameParseCapture();
   parser.addListener(capture);
   parser.parse(buf);
   capture.assertNoErrors();
-  capture.assertHasFrame(TextFrame.class,1);
-  TextFrame txt=(TextFrame)capture.getFrames().get(0);
-  Assert.assertThat("TextFrame.data",txt.getPayloadUTF8(),is(expectedText));
+  capture.assertHasFrame(OpCode.TEXT,1);
+  WebSocketFrame txt=capture.getFrames().get(0);
+  Assert.assertThat("TextFrame.data",txt.getPayloadAsUTF8(),is(expectedText));
 }
