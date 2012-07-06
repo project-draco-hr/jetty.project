@@ -9,7 +9,7 @@
   String message="0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF";
   ByteBuffer out=bufferPool.acquire(policy.getBufferSize(),false);
   try {
-    TextFrame txt=(TextFrame)FrameBuilder.text().payload(message.getBytes()).asFrame();
+    WebSocketFrame txt=FrameBuilder.text().payload(message.getBytes()).asFrame();
     byte mask[]=new byte[4];
     new FixedMasker().genMask(mask);
     txt.setMask(mask);
@@ -22,8 +22,8 @@
     bufferPool.release(out);
   }
   capture.assertNoErrors();
-  capture.assertHasFrame(TextFrame.class,1);
-  TextFrame txt=(TextFrame)capture.getFrames().get(0);
+  capture.assertHasFrame(OpCode.TEXT,1);
+  WebSocketFrame txt=capture.getFrames().get(0);
   Assert.assertTrue("Text.isMasked",txt.isMasked());
-  Assert.assertThat("Text parsed",txt.getPayloadUTF8(),is(message));
+  Assert.assertThat("Text parsed",txt.getPayloadAsUTF8(),is(message));
 }
