@@ -1,14 +1,17 @@
 {
-  StringBuilder message=new StringBuilder();
-  for (int i=0; i < 124; ++i) {
-    message.append("*");
-  }
-  byte[] messageBytes=message.toString().getBytes();
-  ByteBuffer expected=ByteBuffer.allocate(132);
-  expected.put(new byte[]{(byte)0x88});
-  byte b=0x00;
-  b|=(messageBytes.length + 2) & 0x7F;
+  byte[] messageBytes=new byte[124];
+  Arrays.fill(messageBytes,(byte)'*');
+  ByteBuffer expected=ByteBuffer.allocate(256);
+  byte b;
+  b=0x00;
+  b|=0x80;
+  b|=0x08;
   expected.put(b);
+  b=0x00;
+  b|=0x00;
+  b|=0x7E;
+  expected.put(b);
+  expected.putChar((char)(messageBytes.length + 2));
   expected.putShort((short)1000);
   expected.put(messageBytes);
   expected.flip();
@@ -16,7 +19,7 @@
   FrameParseCapture capture=new FrameParseCapture();
   parser.addListener(capture);
   parser.parse(expected);
-  Assert.assertEquals("error on invalid close payload",1,capture.getErrorCount(WebSocketException.class));
-  WebSocketException known=capture.getErrors().get(0);
-  Assert.assertTrue("invalid payload should be in message",known.getMessage().contains("invalid payload length"));
+  Assert.assertEquals("error on invalid close payload",1,capture.getErrorCount(ProtocolException.class));
+  ProtocolException known=(ProtocolException)capture.getErrors().get(0);
+  Assert.assertThat("Payload.message",known.getMessage(),containsString("Invalid control frame payload length"));
 }
