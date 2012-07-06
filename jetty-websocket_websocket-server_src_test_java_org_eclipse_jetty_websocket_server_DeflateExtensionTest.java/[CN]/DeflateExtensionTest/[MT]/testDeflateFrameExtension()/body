@@ -1,0 +1,24 @@
+{
+  BlockheadClient client=new BlockheadClient(server.getServerUri());
+  client.clearExtensions();
+  client.addExtensions("x-deflate-frame;minLength=64");
+  client.setProtocols("echo");
+  try {
+    client.setTimeout(TimeUnit.SECONDS,1);
+    client.connect();
+    client.sendStandardRequest();
+    String resp=client.expectUpgradeResponse();
+    Assert.assertThat("Response",resp,containsString("x-deflate"));
+    String text="0123456789ABCDEF ";
+    text=text + text + text+ text;
+    text=text + text + text+ text;
+    text=text + text + text+ text+ 'X';
+    client.write(FrameBuilder.text(text).asFrame());
+    Queue<WebSocketFrame> frames=client.readFrames(1,TimeUnit.MILLISECONDS,1000);
+    WebSocketFrame frame=frames.remove();
+    Assert.assertThat("TEXT.payload",frame.getPayloadAsUTF8(),is(text));
+  }
+  finally {
+    client.close();
+  }
+}

@@ -1,0 +1,16 @@
+{
+  BlockheadClient client=new BlockheadClient(server.getServerUri());
+  client.setProtocols("onConnect");
+  try {
+    client.connect();
+    client.sendStandardRequest();
+    client.expectUpgradeResponse();
+    client.write(FrameBuilder.text("Hello").asFrame());
+    Queue<WebSocketFrame> frames=client.readFrames(2,TimeUnit.SECONDS,5);
+    Assert.assertThat("frames[0].opcode",frames.remove().getOpCode(),is(OpCode.TEXT));
+    Assert.assertThat("frames[1].opcode",frames.remove().getOpCode(),is(OpCode.CLOSE));
+  }
+  finally {
+    client.close();
+  }
+}

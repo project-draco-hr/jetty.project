@@ -1,0 +1,23 @@
+{
+  BlockheadClient client=new BlockheadClient(server.getServerUri());
+  client.setProtocols("other");
+  try {
+    client.connect();
+    client.sendStandardRequest();
+    client.expectUpgradeResponse();
+    int dataSize=1024 * 100;
+    byte buf[]=new byte[dataSize];
+    Arrays.fill(buf,(byte)0x44);
+    ByteBuffer bb=ByteBuffer.allocate(dataSize + FrameGenerator.OVERHEAD);
+    BufferUtil.clearToFill(bb);
+    FrameBuilder.binary(buf).fill(bb);
+    BufferUtil.flipToFlush(bb,0);
+    client.writeRaw(bb);
+    Queue<WebSocketFrame> frames=client.readFrames(2,TimeUnit.SECONDS,1);
+    Assert.assertThat("frames[0].opcode",frames.remove().getOpCode(),is(OpCode.BINARY));
+    Assert.assertThat("frames[1].opcode",frames.remove().getOpCode(),is(OpCode.CLOSE));
+  }
+  finally {
+    client.close();
+  }
+}
