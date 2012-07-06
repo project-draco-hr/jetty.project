@@ -2,15 +2,21 @@
   byte[] bytes=new byte[126];
   Arrays.fill(bytes,(byte)0x00);
   ByteBuffer expected=ByteBuffer.allocate(bytes.length + FrameGenerator.OVERHEAD);
-  expected.put(new byte[]{(byte)0x89});
-  byte b=0x00;
-  b|=bytes.length & 0x7F;
+  byte b;
+  b=0x00;
+  b|=0x80;
+  b|=0x09;
   expected.put(b);
+  b=0x00;
+  b|=0x00;
+  b|=0x7E;
+  expected.put(b);
+  expected.putChar((char)bytes.length);
   expected.put(bytes);
   expected.flip();
   Parser parser=new Parser(policy);
   FrameParseCapture capture=new FrameParseCapture();
   parser.addListener(capture);
   parser.parse(expected);
-  Assert.assertEquals("error should be returned for too large of ping payload",1,capture.getErrorCount(WebSocketException.class));
+  Assert.assertEquals("error should be returned for too large of ping payload",1,capture.getErrorCount(ProtocolException.class));
 }
