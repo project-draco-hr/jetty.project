@@ -1,0 +1,15 @@
+{
+  if (len == 0) {
+    return;
+  }
+  if (LOG.isDebugEnabled()) {
+    LOG.debug("write(context,{},byte[],{},{})",callback,offset,len);
+  }
+  ByteBuffer raw=bufferPool.acquire(len + FrameGenerator.OVERHEAD,false);
+  BufferUtil.clearToFill(raw);
+  BinaryFrame frame=new BinaryFrame(buf,offset,len);
+  frame.setFin(true);
+  generator.generate(raw,frame);
+  BufferUtil.flipToFlush(raw,0);
+  writeRaw(context,callback,raw);
+}

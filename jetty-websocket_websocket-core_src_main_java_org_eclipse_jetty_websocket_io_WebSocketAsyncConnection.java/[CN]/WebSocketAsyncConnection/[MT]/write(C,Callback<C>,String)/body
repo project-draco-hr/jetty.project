@@ -6,8 +6,14 @@
   if (LOG.isDebugEnabled()) {
     LOG.debug("write(context,{},Strings->{})",callback,messages.length);
   }
-  TextFrame frames[]=new TextFrame[len];
+  ByteBuffer raw[]=new ByteBuffer[messages.length];
   for (int i=0; i < len; i++) {
-    frames[i]=new TextFrame(messages[i]);
+    TextFrame frame=new TextFrame(messages[i]);
+    frame.setFin(true);
+    raw[i]=bufferPool.acquire(policy.getBufferSize(),false);
+    BufferUtil.clear(raw[i]);
+    generator.generate(raw[i],frame);
+    BufferUtil.flipToFlush(raw[i],0);
   }
+  writeRaw(context,callback,raw);
 }

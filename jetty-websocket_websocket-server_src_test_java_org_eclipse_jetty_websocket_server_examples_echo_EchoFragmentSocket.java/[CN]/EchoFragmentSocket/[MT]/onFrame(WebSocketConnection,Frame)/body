@@ -1,0 +1,23 @@
+{
+  if (!frame.getOpCode().isDataFrame()) {
+    return;
+  }
+  byte data[]=frame.getPayloadData();
+  int half=data.length / 2;
+  Callback<Void> nop=new FutureCallback<>();
+  try {
+switch (frame.getOpCode()) {
+case BINARY:
+      conn.write(null,nop,data,0,half);
+    conn.write(null,nop,data,half,data.length - half);
+  break;
+case TEXT:
+conn.write(null,nop,new String(data,0,half,StringUtil.__UTF8_CHARSET));
+conn.write(null,nop,new String(data,half,data.length - half,StringUtil.__UTF8_CHARSET));
+break;
+}
+}
+ catch (IOException e) {
+e.printStackTrace(System.err);
+}
+}
