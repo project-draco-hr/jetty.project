@@ -36,13 +36,13 @@
     client.writeRaw(buf2);
     Queue<WebSocketFrame> frames=client.readFrames(2,TimeUnit.MILLISECONDS,500);
     WebSocketFrame frame=frames.remove();
-    Assert.assertTrue("first frame should be pong frame",frame instanceof PongFrame);
+    Assert.assertThat("first frame should be pong frame",frame.getOpCode(),is(OpCode.PING));
     ByteBuffer payload1=ByteBuffer.allocate(pingPayload.length());
     payload1.flip();
-    ByteBufferAssert.assertEquals("payloads should be equal",payload1,((PongFrame)frame).getPayload());
+    Assert.assertArrayEquals("payloads should be equal",BufferUtil.toArray(payload1),frame.getPayloadData());
     frame=frames.remove();
-    Assert.assertTrue("second frame should be text frame",frame instanceof TextFrame);
-    Assert.assertThat("TextFrame.payload",((TextFrame)frame).getPayloadUTF8(),is(fragment1 + fragment2));
+    Assert.assertThat("second frame should be text frame",frame.getOpCode(),is(OpCode.TEXT));
+    Assert.assertThat("TextFrame.payload",frame.getPayloadAsUTF8(),is(fragment1 + fragment2));
   }
   finally {
     client.close();
