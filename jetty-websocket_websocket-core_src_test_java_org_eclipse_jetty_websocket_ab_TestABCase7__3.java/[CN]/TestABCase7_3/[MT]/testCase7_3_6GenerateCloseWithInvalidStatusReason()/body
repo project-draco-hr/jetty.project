@@ -4,7 +4,12 @@
     message.append("*");
   }
   byte[] messageBytes=message.toString().getBytes();
-  WebSocketFrame closeFrame=FrameBuilder.close(1000,message.toString()).asFrame();
+  WebSocketFrame closeFrame=FrameBuilder.close().asFrame();
+  ByteBuffer bb=ByteBuffer.allocate(WebSocketFrame.MAX_CONTROL_PAYLOAD + 1);
+  bb.putChar((char)1000);
+  bb.put(messageBytes);
+  BufferUtil.flipToFlush(bb,0);
+  closeFrame.setPayload(BufferUtil.toArray(bb));
   Generator generator=new Generator(policy);
   ByteBuffer actual=ByteBuffer.allocate(32);
   generator.generate(actual,closeFrame);
