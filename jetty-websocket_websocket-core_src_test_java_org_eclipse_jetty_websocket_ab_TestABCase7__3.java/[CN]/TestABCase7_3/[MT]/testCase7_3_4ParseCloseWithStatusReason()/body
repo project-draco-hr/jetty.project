@@ -1,11 +1,12 @@
 {
-  String message="Hello, world!";
+  String message="bad cough";
   byte[] messageBytes=message.getBytes();
   ByteBuffer expected=ByteBuffer.allocate(32);
-  expected.put(new byte[]{(byte)0x89});
+  expected.put(new byte[]{(byte)0x88});
   byte b=0x00;
-  b|=messageBytes.length & 0x7F;
+  b|=(messageBytes.length + 2) & 0x7F;
   expected.put(b);
+  expected.putShort((short)1000);
   expected.put(messageBytes);
   expected.flip();
   Parser parser=new Parser(policy);
@@ -13,8 +14,7 @@
   parser.addListener(capture);
   parser.parse(expected);
   capture.assertNoErrors();
-  capture.assertHasFrame(OpCode.PING,1);
+  capture.assertHasFrame(OpCode.CLOSE,1);
   WebSocketFrame pActual=capture.getFrames().get(0);
-  Assert.assertThat("PingFrame.payloadLength",pActual.getPayloadLength(),is(message.length()));
-  Assert.assertEquals("PingFrame.payload",message.length(),pActual.getPayloadLength());
+  Assert.assertThat("CloseFrame.payloadLength",pActual.getPayloadLength(),is(messageBytes.length + 2));
 }

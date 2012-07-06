@@ -1,15 +1,16 @@
 {
-  String message="Hello, world!";
+  String message="bad cough";
   byte[] messageBytes=message.getBytes();
-  WebSocketFrame pingFrame=FrameBuilder.text(message).asFrame();
+  WebSocketFrame closeFrame=FrameBuilder.close(1000,message.toString()).asFrame();
   Generator generator=new Generator(policy);
   ByteBuffer actual=ByteBuffer.allocate(32);
-  generator.generate(actual,pingFrame);
+  generator.generate(actual,closeFrame);
   ByteBuffer expected=ByteBuffer.allocate(32);
-  expected.put(new byte[]{(byte)0x89});
+  expected.put(new byte[]{(byte)0x88});
   byte b=0x00;
-  b|=messageBytes.length & 0x7F;
+  b|=(message.length() + 2) & 0x7F;
   expected.put(b);
+  expected.putShort((short)1000);
   expected.put(messageBytes);
   actual.flip();
   expected.flip();
