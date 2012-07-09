@@ -1,10 +1,9 @@
 {
   WebSocketFrame frame=FrameBuilder.text(message).asFrame();
-  ByteBuffer buf=bufferPool.acquire(policy.getBufferSize(),false);
   try {
-    generator.generate(buf,frame);
     FutureCallback<Void> blocking=new FutureCallback<>();
-    this.conn.writeRaw(null,blocking,buf);
+    DataFrameBytes<Void> bytes=new DataFrameBytes<>(conn,blocking,null,frame);
+    this.conn.getQueue().append(bytes);
     blocking.get();
   }
  catch (  InterruptedException e) {
@@ -12,8 +11,5 @@
   }
 catch (  ExecutionException e) {
     FutureCallback.rethrow(e);
-  }
- finally {
-    bufferPool.release(buf);
   }
 }

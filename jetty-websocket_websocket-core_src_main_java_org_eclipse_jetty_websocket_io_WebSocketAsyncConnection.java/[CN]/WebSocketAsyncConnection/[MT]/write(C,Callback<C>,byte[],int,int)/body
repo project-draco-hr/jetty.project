@@ -5,10 +5,7 @@
   if (len == 0) {
     return;
   }
-  ByteBuffer raw=bufferPool.acquire(len + FrameGenerator.OVERHEAD,false);
-  BufferUtil.clearToFill(raw);
   WebSocketFrame frame=FrameBuilder.binary(buf,offset,len).fin(true).asFrame();
-  generator.generate(raw,frame);
-  BufferUtil.flipToFlush(raw,0);
-  writeRaw(context,callback,raw);
+  DataFrameBytes<C> bytes=new DataFrameBytes<C>(this,callback,context,frame);
+  queue.append(bytes);
 }
