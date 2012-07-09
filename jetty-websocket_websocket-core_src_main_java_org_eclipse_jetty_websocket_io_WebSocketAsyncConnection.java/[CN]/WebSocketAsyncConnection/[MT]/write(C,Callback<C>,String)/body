@@ -1,18 +1,13 @@
 {
-  int len=messages.length;
-  if (len == 0) {
-    return;
-  }
   if (LOG.isDebugEnabled()) {
-    LOG.debug("write(context,{},Strings->{})",callback,messages.length);
+    LOG.debug("write(context,{},message.length:{})",callback,message.length());
   }
-  ByteBuffer raw[]=new ByteBuffer[messages.length];
-  for (int i=0; i < len; i++) {
-    WebSocketFrame frame=FrameBuilder.text(messages[i]).fin(true).asFrame();
-    raw[i]=bufferPool.acquire(policy.getBufferSize(),false);
-    BufferUtil.clearToFill(raw[i]);
-    generator.generate(raw[i],frame);
-    BufferUtil.flipToFlush(raw[i],0);
-  }
+  WebSocketFrame frame=FrameBuilder.text(message).fin(true).asFrame();
+  FrameBytes bytes=new FrameBytes<C>(callback,context,frame,buffer);
+  WebSocketFrame frame=FrameBuilder.text(messages[i]).fin(true).asFrame();
+  raw[i]=bufferPool.acquire(policy.getBufferSize(),false);
+  BufferUtil.clearToFill(raw[i]);
+  generator.generate(raw[i],frame);
+  BufferUtil.flipToFlush(raw[i],0);
   writeRaw(context,callback,raw);
 }
