@@ -1,6 +1,7 @@
 {
-  WebSocketFrame close=FrameBuilder.close(statusCode,reason).asFrame();
-  ByteBuffer buf=generator.generate(close);
-  BufferUtil.flipToFlush(buf,0);
-  getEndPoint().write(null,new WebSocketCloseCallback(this,buf),buf);
+  CloseInfo close=new CloseInfo(statusCode,reason);
+  FutureCallback<Void> nop=new FutureCallback<>();
+  ControlFrameBytes<Void> frameBytes=new ControlFrameBytes<Void>(this,nop,null,close.asFrame());
+  queue.prepend(frameBytes);
+  flush();
 }
