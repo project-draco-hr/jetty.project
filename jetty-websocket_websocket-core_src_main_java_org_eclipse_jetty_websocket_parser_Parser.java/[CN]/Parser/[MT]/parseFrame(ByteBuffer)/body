@@ -44,7 +44,7 @@ case FINOP:
 case PAYLOAD_LEN:
 {
     byte b=buffer.get();
-    getFrame().setMasked((b & 0x80) != 0);
+    frame.setMasked((b & 0x80) != 0);
     payloadLength=(byte)(0x7F & b);
     if (payloadLength == 127) {
       payloadLength=0;
@@ -59,13 +59,13 @@ case PAYLOAD_LEN:
       break;
     }
     assertSanePayloadLength(payloadLength);
-    if (getFrame().isMasked()) {
+    if (frame.isMasked()) {
       state=State.MASK;
     }
  else {
       if (payloadLength == 0) {
         state=State.START;
-        return true;
+        notifyFrame(frame);
       }
       state=State.PAYLOAD;
     }
@@ -78,13 +78,13 @@ case PAYLOAD_LEN_BYTES:
   payloadLength|=(b & 0xFF) << (8 * cursor);
   if (cursor == 0) {
     assertSanePayloadLength(payloadLength);
-    if (getFrame().isMasked()) {
+    if (frame.isMasked()) {
       state=State.MASK;
     }
  else {
       if (payloadLength == 0) {
         state=State.START;
-        return true;
+        notifyFrame(frame);
       }
       state=State.PAYLOAD;
     }
@@ -94,12 +94,12 @@ case PAYLOAD_LEN_BYTES:
 case MASK:
 {
 byte m[]=new byte[4];
-getFrame().setMask(m);
+frame.setMask(m);
 if (buffer.remaining() >= 4) {
   buffer.get(m,0,4);
   if (payloadLength == 0) {
     state=State.START;
-    return true;
+    notifyFrame(frame);
   }
   state=State.PAYLOAD;
 }
@@ -113,11 +113,11 @@ case MASK_BYTES:
 {
 byte b=buffer.get();
 --cursor;
-getFrame().getMask()[cursor]=b;
+frame.getMask()[cursor]=b;
 if (cursor == 0) {
 if (payloadLength == 0) {
   state=State.START;
-  return true;
+  notifyFrame(frame);
 }
 state=State.PAYLOAD;
 }
@@ -130,7 +130,7 @@ if (frame.getOpCode() == OpCode.CLOSE) {
 new CloseInfo(frame);
 }
 state=State.START;
-return true;
+notifyFrame(frame);
 }
 break;
 }
