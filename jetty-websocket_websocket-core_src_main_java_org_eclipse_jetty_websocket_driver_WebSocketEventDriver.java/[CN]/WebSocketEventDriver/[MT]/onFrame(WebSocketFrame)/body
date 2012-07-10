@@ -87,7 +87,10 @@ case TEXT:
       if (frame.isFin()) {
         try {
           BufferUtil.flipToFlush(activeMessage,0);
-          events.onText.call(websocket,connection,BufferUtil.toUTF8String(activeMessage));
+          byte data[]=BufferUtil.toArray(activeMessage);
+          Utf8StringBuilder utf=new Utf8StringBuilder();
+          utf.append(data,0,data.length);
+          events.onText.call(websocket,connection,utf.toString());
         }
   finally {
           bufferPool.release(activeMessage);
@@ -99,7 +102,10 @@ case TEXT:
   }
 }
 }
- catch (CloseException e) {
+ catch (NotUtf8Exception e) {
+terminateConnection(StatusCode.BAD_PAYLOAD,e.getMessage());
+}
+catch (CloseException e) {
 terminateConnection(e.getStatusCode(),e.getMessage());
 }
 catch (Throwable t) {
