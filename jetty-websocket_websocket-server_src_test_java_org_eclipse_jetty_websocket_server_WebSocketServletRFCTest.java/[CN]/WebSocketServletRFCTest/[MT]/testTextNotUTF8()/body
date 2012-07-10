@@ -6,9 +6,8 @@
     client.sendStandardRequest();
     client.expectUpgradeResponse();
     byte buf[]=new byte[]{(byte)0xC3,0x28};
-    ByteBuffer bb=ByteBuffer.allocate(buf.length + FrameGenerator.OVERHEAD);
-    BufferUtil.clearToFill(bb);
-    FrameBuilder.text().payload(buf).fin(true).fill(bb);
+    WebSocketFrame txt=WebSocketFrame.text().setPayload(buf);
+    ByteBuffer bb=generator.generate(txt);
     BufferUtil.flipToFlush(bb,0);
     client.writeRaw(bb);
     Queue<WebSocketFrame> frames=client.readFrames(1,TimeUnit.SECONDS,1);

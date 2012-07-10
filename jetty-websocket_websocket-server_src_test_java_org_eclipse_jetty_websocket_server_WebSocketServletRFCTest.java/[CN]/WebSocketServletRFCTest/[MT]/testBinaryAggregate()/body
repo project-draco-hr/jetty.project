@@ -11,11 +11,11 @@
     Arrays.fill(buf2,(byte)0xBB);
     Arrays.fill(buf3,(byte)0xCC);
     WebSocketFrame bin;
-    bin=FrameBuilder.binary(buf1).fin(false).asFrame();
+    bin=WebSocketFrame.binary(buf1).setFin(false);
     client.write(bin);
-    bin=FrameBuilder.continuation(buf2).fin(false).asFrame();
+    bin=new WebSocketFrame(OpCode.CONTINUATION).setPayload(buf2).setFin(false);
     client.write(bin);
-    bin=FrameBuilder.continuation(buf3).fin(true).asFrame();
+    bin=new WebSocketFrame(OpCode.CONTINUATION).setPayload(buf3).setFin(true);
     client.write(bin);
     Queue<WebSocketFrame> frames=client.readFrames(1,TimeUnit.MILLISECONDS,1000);
     WebSocketFrame binmsg=frames.remove();
@@ -24,8 +24,9 @@
     int aaCount=0;
     int bbCount=0;
     int ccCount=0;
-    byte echod[]=binmsg.getPayloadData();
-    for (    byte b : echod) {
+    ByteBuffer echod=binmsg.getPayload();
+    while (echod.remaining() > 1) {
+      byte b=echod.get();
 switch (b) {
 case (byte)0xAA:
         aaCount++;

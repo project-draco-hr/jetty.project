@@ -8,9 +8,8 @@
     int dataSize=1024 * 100;
     byte buf[]=new byte[dataSize];
     Arrays.fill(buf,(byte)'z');
-    ByteBuffer bb=ByteBuffer.allocate(dataSize + FrameGenerator.OVERHEAD);
-    BufferUtil.clearToFill(bb);
-    FrameBuilder.text().payload(buf).fin(true).fill(bb);
+    WebSocketFrame text=WebSocketFrame.text().setPayload(buf).setFin(true);
+    ByteBuffer bb=generator.generate(text);
     BufferUtil.flipToFlush(bb,0);
     client.writeRaw(bb);
     Queue<WebSocketFrame> frames=client.readFrames(1,TimeUnit.SECONDS,1);

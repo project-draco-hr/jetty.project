@@ -5,11 +5,13 @@
     client.sendStandardRequest();
     client.expectUpgradeResponse();
     String fragment1="fragment1";
-    ByteBuffer frame1=FrameBuilder.ping().fin(false).payload(fragment1.getBytes()).asByteBuffer();
-    client.writeRaw(frame1);
+    WebSocketFrame frame1=WebSocketFrame.ping().setFin(false).setPayload(fragment1);
+    ByteBuffer buf1=laxGenerator.generate(frame1);
+    client.writeRaw(buf1);
     String fragment2="fragment2";
-    ByteBuffer frame2=FrameBuilder.ping().payload(fragment2.getBytes()).asByteBuffer();
-    client.writeRaw(frame2);
+    WebSocketFrame frame2=WebSocketFrame.ping().setPayload(fragment2);
+    ByteBuffer buf2=laxGenerator.generate(frame2);
+    client.writeRaw(buf2);
     Queue<WebSocketFrame> frames=client.readFrames(1,TimeUnit.MILLISECONDS,500);
     WebSocketFrame frame=frames.remove();
     Assert.assertThat("frame should be close frame",frame.getOpCode(),is(OpCode.CLOSE));

@@ -2,18 +2,22 @@
   if (!frame.getOpCode().isDataFrame()) {
     return;
   }
-  byte data[]=frame.getPayloadData();
-  int half=data.length / 2;
+  ByteBuffer data=frame.getPayload();
+  int half=data.remaining() / 2;
+  ByteBuffer buf1=data.slice();
+  ByteBuffer buf2=data.slice();
+  buf1.limit(half);
+  buf2.position(half);
   Callback<Void> nop=new FutureCallback<>();
   try {
 switch (frame.getOpCode()) {
 case BINARY:
-      conn.write(null,nop,data,0,half);
-    conn.write(null,nop,data,half,data.length - half);
+      conn.write(null,nop,buf1);
+    conn.write(null,nop,buf2);
   break;
 case TEXT:
-conn.write(null,nop,new String(data,0,half,StringUtil.__UTF8_CHARSET));
-conn.write(null,nop,new String(data,half,data.length - half,StringUtil.__UTF8_CHARSET));
+conn.write(null,nop,BufferUtil.toUTF8String(buf1));
+conn.write(null,nop,BufferUtil.toUTF8String(buf2));
 break;
 }
 }
