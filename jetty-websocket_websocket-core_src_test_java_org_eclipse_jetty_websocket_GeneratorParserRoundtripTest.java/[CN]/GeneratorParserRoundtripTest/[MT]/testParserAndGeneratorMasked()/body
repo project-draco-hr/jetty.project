@@ -2,7 +2,7 @@
   WebSocketPolicy policy=WebSocketPolicy.newServerPolicy();
   policy.setMasker(new RandomMasker());
   StandardByteBufferPool bufferPool=new StandardByteBufferPool();
-  Generator gen=new Generator(policy);
+  Generator gen=new Generator(policy,bufferPool);
   Parser parser=new Parser(policy);
   FrameParseCapture capture=new FrameParseCapture();
   parser.addListener(capture);
@@ -13,8 +13,7 @@
     byte mask[]=new byte[4];
     new FixedMasker().genMask(mask);
     txt.setMask(mask);
-    BufferUtil.flipToFill(out);
-    gen.generate(out,txt);
+    out=gen.generate(policy.getBufferSize(),txt);
     BufferUtil.flipToFlush(out,0);
     parser.parse(out);
   }

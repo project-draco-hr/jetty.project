@@ -1,7 +1,7 @@
 {
   WebSocketPolicy policy=WebSocketPolicy.newServerPolicy();
   StandardByteBufferPool bufferPool=new StandardByteBufferPool();
-  Generator gen=new Generator(policy);
+  Generator gen=new Generator(policy,bufferPool);
   Parser parser=new Parser(policy);
   FrameParseCapture capture=new FrameParseCapture();
   parser.addListener(capture);
@@ -9,7 +9,7 @@
   ByteBuffer out=bufferPool.acquire(policy.getBufferSize(),false);
   try {
     BufferUtil.flipToFill(out);
-    gen.generate(out,FrameBuilder.text().payload(message.getBytes()).asFrame());
+    out=gen.generate(FrameBuilder.text().payload(message.getBytes()).asFrame());
     BufferUtil.flipToFlush(out,0);
     parser.parse(out);
   }
