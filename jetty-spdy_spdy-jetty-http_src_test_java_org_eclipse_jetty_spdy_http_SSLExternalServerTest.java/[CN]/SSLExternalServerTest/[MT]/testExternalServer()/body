@@ -1,0 +1,34 @@
+{
+  String host="encrypted.google.com";
+  int port=443;
+  InetSocketAddress address=new InetSocketAddress(host,port);
+  try {
+    Socket socket=new Socket();
+    socket.connect(address,5000);
+    socket.close();
+  }
+ catch (  IOException x) {
+    Assume.assumeNoException(x);
+  }
+  final short version=SPDY.V2;
+  Session session=startClient(version,address,null);
+  Headers headers=new Headers();
+  headers.put(HTTPSPDYHeader.SCHEME.name(version),"https");
+  headers.put(HTTPSPDYHeader.HOST.name(version),host + ":" + port);
+  headers.put(HTTPSPDYHeader.METHOD.name(version),"GET");
+  headers.put(HTTPSPDYHeader.URI.name(version),"/");
+  headers.put(HTTPSPDYHeader.VERSION.name(version),"HTTP/1.1");
+  final CountDownLatch latch=new CountDownLatch(1);
+  session.syn(new SynInfo(headers,true),new StreamFrameListener.Adapter(){
+    @Override public void onReply(    Stream stream,    ReplyInfo replyInfo){
+      Headers headers=replyInfo.getHeaders();
+      Headers.Header versionHeader=headers.get(HTTPSPDYHeader.STATUS.name(version));
+      if (versionHeader != null) {
+        Matcher matcher=Pattern.compile("(\\d{3}).*").matcher(versionHeader.value());
+        if (matcher.matches() && Integer.parseInt(matcher.group(1)) < 400)         latch.countDown();
+      }
+    }
+  }
+);
+  Assert.assertTrue(latch.await(5,TimeUnit.SECONDS));
+}

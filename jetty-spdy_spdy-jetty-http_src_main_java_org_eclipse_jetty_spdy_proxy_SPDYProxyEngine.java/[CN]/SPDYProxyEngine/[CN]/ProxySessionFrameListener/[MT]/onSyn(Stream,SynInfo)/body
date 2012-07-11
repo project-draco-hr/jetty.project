@@ -1,10 +1,11 @@
 {
   logger.debug("S -> P pushed {} on {}",serverSynInfo,serverStream);
   Headers headers=new Headers(serverSynInfo.getHeaders(),false);
+  addResponseProxyHeaders(serverStream,headers);
+  customizeResponseHeaders(serverStream,headers);
   Stream clientStream=(Stream)serverStream.getAssociatedStream().getAttribute(CLIENT_STREAM_ATTRIBUTE);
   convert(serverStream.getSession().getVersion(),clientStream.getSession().getVersion(),headers);
-  addResponseProxyHeaders(headers);
-  StreamHandler handler=new StreamHandler(clientStream);
+  StreamHandler handler=new StreamHandler(clientStream,serverSynInfo);
   serverStream.setAttribute(STREAM_HANDLER_ATTRIBUTE,handler);
   clientStream.syn(new SynInfo(headers,serverSynInfo.isClose()),getTimeout(),TimeUnit.MILLISECONDS,handler);
   return this;
