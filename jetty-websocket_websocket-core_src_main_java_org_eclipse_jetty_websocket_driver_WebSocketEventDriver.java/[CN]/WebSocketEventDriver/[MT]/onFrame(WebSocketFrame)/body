@@ -9,69 +9,34 @@
 switch (frame.getOpCode()) {
 case CLOSE:
 {
-        if (events.onClose == null) {
-          return;
-        }
         CloseInfo close=new CloseInfo(frame);
-        events.onClose.call(websocket,connection,close.getStatusCode(),close.getReason());
+        if (events.onClose != null) {
+          events.onClose.call(websocket,connection,close.getStatusCode(),close.getReason());
+        }
         throw new CloseException(close.getStatusCode(),close.getReason());
       }
+case PONG:
+{
+      WebSocketFrame pong=new WebSocketFrame(OpCode.PONG);
+      pong.setPayload(frame.getPayload());
+      connection.write(null,new FutureCallback<Void>(),pong);
+      break;
+    }
 case BINARY:
 {
-      if (events.onBinary == null) {
-        return;
-      }
-      if (events.onBinary.isStreaming()) {
-        boolean needsNotification=false;
-        if (activeStream == null) {
-          ByteBuffer buf=ByteBuffer.allocate(policy.getBufferSize());
-          this.activeStream=new MessageInputStream(buf);
-          needsNotification=true;
-        }
-        activeStream.appendBuffer(frame.getPayload());
-        if (needsNotification) {
-          events.onBinary.call(websocket,connection,activeStream);
-        }
-        if (frame.isFin()) {
-          activeStream.bufferComplete();
-          activeStream=null;
-        }
-      }
- else {
-        if (activeMessage == null) {
-          activeMessage=bufferPool.acquire(policy.getBufferSize(),false);
-          BufferUtil.clearToFill(activeMessage);
-        }
-        appendBuffer(activeMessage,frame.getPayload());
-        if (frame.isFin()) {
-          try {
-            BufferUtil.flipToFlush(activeMessage,0);
-            byte buf[]=BufferUtil.toArray(activeMessage);
-            events.onBinary.call(websocket,connection,buf,0,buf.length);
-          }
-  finally {
-            bufferPool.release(activeMessage);
-            activeMessage=null;
-          }
-        }
-      }
+    if (events.onBinary == null) {
       return;
     }
-case TEXT:
-{
-    if (events.onText == null) {
-      return;
-    }
-    if (events.onText.isStreaming()) {
+    if (events.onBinary.isStreaming()) {
       boolean needsNotification=false;
       if (activeStream == null) {
         ByteBuffer buf=ByteBuffer.allocate(policy.getBufferSize());
-        this.activeStream=new MessageReader(buf);
+        this.activeStream=new MessageInputStream(buf);
         needsNotification=true;
       }
       activeStream.appendBuffer(frame.getPayload());
       if (needsNotification) {
-        events.onText.call(websocket,connection,activeStream);
+        events.onBinary.call(websocket,connection,activeStream);
       }
       if (frame.isFin()) {
         activeStream.bufferComplete();
@@ -87,10 +52,8 @@ case TEXT:
       if (frame.isFin()) {
         try {
           BufferUtil.flipToFlush(activeMessage,0);
-          byte data[]=BufferUtil.toArray(activeMessage);
-          Utf8StringBuilder utf=new Utf8StringBuilder();
-          utf.append(data,0,data.length);
-          events.onText.call(websocket,connection,utf.toString());
+          byte buf[]=BufferUtil.toArray(activeMessage);
+          events.onBinary.call(websocket,connection,buf,0,buf.length);
         }
   finally {
           bufferPool.release(activeMessage);
@@ -100,6 +63,49 @@ case TEXT:
     }
     return;
   }
+case TEXT:
+{
+  if (events.onText == null) {
+    return;
+  }
+  if (events.onText.isStreaming()) {
+    boolean needsNotification=false;
+    if (activeStream == null) {
+      ByteBuffer buf=ByteBuffer.allocate(policy.getBufferSize());
+      this.activeStream=new MessageReader(buf);
+      needsNotification=true;
+    }
+    activeStream.appendBuffer(frame.getPayload());
+    if (needsNotification) {
+      events.onText.call(websocket,connection,activeStream);
+    }
+    if (frame.isFin()) {
+      activeStream.bufferComplete();
+      activeStream=null;
+    }
+  }
+ else {
+    if (activeMessage == null) {
+      activeMessage=bufferPool.acquire(policy.getBufferSize(),false);
+      BufferUtil.clearToFill(activeMessage);
+    }
+    appendBuffer(activeMessage,frame.getPayload());
+    if (frame.isFin()) {
+      try {
+        BufferUtil.flipToFlush(activeMessage,0);
+        byte data[]=BufferUtil.toArray(activeMessage);
+        Utf8StringBuilder utf=new Utf8StringBuilder();
+        utf.append(data,0,data.length);
+        events.onText.call(websocket,connection,utf.toString());
+      }
+  finally {
+        bufferPool.release(activeMessage);
+        activeMessage=null;
+      }
+    }
+  }
+  return;
+}
 }
 }
  catch (NotUtf8Exception e) {

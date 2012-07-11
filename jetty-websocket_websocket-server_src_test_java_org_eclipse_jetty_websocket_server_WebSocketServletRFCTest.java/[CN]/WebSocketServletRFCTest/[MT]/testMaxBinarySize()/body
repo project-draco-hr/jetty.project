@@ -11,7 +11,13 @@
     WebSocketFrame bin=WebSocketFrame.binary(buf).setFin(true);
     ByteBuffer bb=generator.generate(bin);
     BufferUtil.flipToFlush(bb,0);
-    client.writeRaw(bb);
+    try {
+      client.writeRaw(bb);
+      Assert.fail("Write should have failed due to terminated connection");
+    }
+ catch (    SocketException e) {
+      Assert.assertThat("Exception",e.getMessage(),containsString("Broken pipe"));
+    }
     Queue<WebSocketFrame> frames=client.readFrames(1,TimeUnit.SECONDS,1);
     WebSocketFrame frame=frames.remove();
     Assert.assertThat("frames[0].opcode",frame.getOpCode(),is(OpCode.CLOSE));
