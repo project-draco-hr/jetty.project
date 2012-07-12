@@ -25,11 +25,10 @@
   LOG.debug("HttpConnection: {}",http);
   LOG.debug("AsyncWebSocketConnection: {}",connection);
   List<Extension> extensions=initExtensions(request.getExtensions());
-  Parser.ListenerList listenerList=new Parser.ListenerList();
-  listenerList.addListener(websocket);
-  connection.getParser().setListener(listenerList);
+  IncomingFrames incoming=setupExtensionChain(websocket,extensions);
+  connection.getParser().setIncomingFramesHandler(incoming);
   LOG.debug("Handshake Response: {}",handshaker);
-  handshaker.doHandshakeResponse(request,response,extensions);
+  handshaker.doHandshakeResponse(request,response);
   addConnection(connection);
   websocket.setConnection(connection);
   websocket.onConnect();
