@@ -1,5 +1,18 @@
 {
-  String hostPort="badlocalhost:" + serverConnector.getLocalPort();
+  String invalidHostname="AMAZEBALLS_BADHOST.webtide.com";
+  try {
+    InetAddress addr=InetAddress.getByName(invalidHostname);
+    StringBuilder err=new StringBuilder();
+    err.append("DNS Hijacking detected: ");
+    err.append(invalidHostname).append(" should have not returned a valid IP address [");
+    err.append(addr.getHostAddress()).append("].  ");
+    err.append("Fix your DNS provider to have this test pass.");
+    err.append("\nFor more info see https://en.wikipedia.org/wiki/DNS_hijacking");
+    Assert.assertNull(err.toString(),addr);
+  }
+ catch (  UnknownHostException e) {
+  }
+  String hostPort=String.format("%s:%d",invalidHostname,serverConnector.getLocalPort());
   String request="" + "CONNECT " + hostPort + " HTTP/1.1\r\n"+ "Host: "+ hostPort+ "\r\n"+ "\r\n";
   Socket socket=newSocket();
   socket.setSoTimeout(30000);
@@ -9,7 +22,7 @@
     output.write(request.getBytes("UTF-8"));
     output.flush();
     Response response=readResponse(input);
-    assertEquals("500",response.getCode());
+    assertEquals("Response Code","500",response.getCode());
   }
   finally {
     socket.close();

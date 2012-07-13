@@ -1,0 +1,26 @@
+{
+  logger.debug("C -> P {} on {}",clientSynInfo,clientStream);
+  final Session clientSession=clientStream.getSession();
+  short clientVersion=clientSession.getVersion();
+  Headers headers=new Headers(clientSynInfo.getHeaders(),false);
+  Headers.Header hostHeader=headers.get(HTTPSPDYHeader.HOST.name(clientVersion));
+  if (hostHeader == null) {
+    rst(clientStream);
+    return null;
+  }
+  String host=hostHeader.value();
+  int colon=host.indexOf(':');
+  if (colon >= 0)   host=host.substring(0,colon);
+  ProxyServerInfo proxyServerInfo=getProxyServerInfo(host);
+  if (proxyServerInfo == null) {
+    rst(clientStream);
+    return null;
+  }
+  String protocol=proxyServerInfo.getProtocol();
+  ProxyEngine proxyEngine=proxyEngines.get(protocol);
+  if (proxyEngine == null) {
+    rst(clientStream);
+    return null;
+  }
+  return proxyEngine.proxy(clientStream,clientSynInfo,proxyServerInfo);
+}
