@@ -1,0 +1,16 @@
+{
+  _node1=createServer(new ServletHolder(httpServletClass.newInstance()),"/pipo","/molo/*");
+  setSessionIdManager(_node1,"node1");
+  _node1.start();
+  _node2=createServer(new ServletHolder(httpServletClass.newInstance()),"/pipo","/molo/*");
+  setSessionIdManager(_node2,"node2");
+  _node2.start();
+  BalancerServlet balancerServlet=new BalancerServlet();
+  ServletHolder balancerServletHolder=new ServletHolder(balancerServlet);
+  balancerServletHolder.setInitParameter("StickySessions",String.valueOf(_stickySessions));
+  balancerServletHolder.setInitParameter("ProxyPassReverse","true");
+  balancerServletHolder.setInitParameter("BalancerMember." + "node1" + ".ProxyTo","http://localhost:" + getServerPort(_node1));
+  balancerServletHolder.setInitParameter("BalancerMember." + "node2" + ".ProxyTo","http://localhost:" + getServerPort(_node2));
+  _balancerServer=createServer(balancerServletHolder,"/pipo","/molo/*");
+  _balancerServer.start();
+}
