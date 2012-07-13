@@ -1,0 +1,20 @@
+{
+  CredentialFrame credential=(CredentialFrame)frame;
+  byte[] proof=credential.getProof();
+  List<byte[]> certificates=serializeCertificates(credential.getCertificateChain());
+  int certificatesLength=0;
+  for (  byte[] certificate : certificates)   certificatesLength+=certificate.length;
+  int frameBodyLength=2 + 4 + proof.length+ certificates.size() * 4 + certificatesLength;
+  int totalLength=ControlFrame.HEADER_LENGTH + frameBodyLength;
+  ByteBuffer buffer=getByteBufferPool().acquire(totalLength,true);
+  generateControlFrameHeader(credential,frameBodyLength,buffer);
+  buffer.putShort(credential.getSlot());
+  buffer.putInt(proof.length);
+  buffer.put(proof);
+  for (  byte[] certificate : certificates) {
+    buffer.putInt(certificate.length);
+    buffer.put(certificate);
+  }
+  buffer.flip();
+  return buffer;
+}

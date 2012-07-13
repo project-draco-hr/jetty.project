@@ -1,0 +1,20 @@
+{
+  try {
+    Session session=serverSessions.get(host);
+    if (session == null) {
+      SPDYClient client=factory.newSPDYClient(version);
+      session=client.connect(address,sessionListener).get(getConnectTimeout(),TimeUnit.MILLISECONDS);
+      logger.debug("Proxy session connected to {}",address);
+      Session existing=serverSessions.putIfAbsent(host,session);
+      if (existing != null) {
+        session.goAway(getTimeout(),TimeUnit.MILLISECONDS,new Handler.Adapter<Void>());
+        session=existing;
+      }
+    }
+    return session;
+  }
+ catch (  Exception x) {
+    logger.debug(x);
+    return null;
+  }
+}

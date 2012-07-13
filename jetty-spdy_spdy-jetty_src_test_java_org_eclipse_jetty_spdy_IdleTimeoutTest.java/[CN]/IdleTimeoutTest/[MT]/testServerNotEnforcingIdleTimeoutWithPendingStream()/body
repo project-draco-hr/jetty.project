@@ -1,6 +1,5 @@
 {
   final int maxIdleTime=1000;
-  server=new Server();
   connector=newSPDYServerConnector(new ServerSessionFrameListener.Adapter(){
     @Override public StreamFrameListener onSyn(    Stream stream,    SynInfo synInfo){
       try {
@@ -15,11 +14,9 @@
     }
   }
 );
-  server.addConnector(connector);
   connector.setMaxIdleTime(maxIdleTime);
-  server.start();
   final CountDownLatch latch=new CountDownLatch(1);
-  Session session=startClient(new InetSocketAddress("localhost",connector.getLocalPort()),new SessionFrameListener.Adapter(){
+  Session session=startClient(startServer(null),new SessionFrameListener.Adapter(){
     @Override public void onGoAway(    Session session,    GoAwayInfo goAwayInfo){
       latch.countDown();
     }

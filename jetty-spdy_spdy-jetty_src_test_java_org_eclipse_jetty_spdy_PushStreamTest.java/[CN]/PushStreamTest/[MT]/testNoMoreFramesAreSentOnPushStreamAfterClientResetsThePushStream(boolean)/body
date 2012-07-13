@@ -1,0 +1,107 @@
+{
+  final short version=SPDY.V3;
+  final AtomicBoolean unexpectedExceptionOccured=new AtomicBoolean(false);
+  final CountDownLatch resetReceivedLatch=new CountDownLatch(1);
+  final CountDownLatch allDataFramesReceivedLatch=new CountDownLatch(1);
+  final CountDownLatch goAwayReceivedLatch=new CountDownLatch(1);
+  final int dataSizeInBytes=1024 * 256;
+  final byte[] transferBytes=createHugeByteArray(dataSizeInBytes);
+  InetSocketAddress serverAddress=startServer(new ServerSessionFrameListener.Adapter(){
+    @Override public StreamFrameListener onSyn(    final Stream stream,    SynInfo synInfo){
+      new Thread(new Runnable(){
+        @Override public void run(){
+          Stream pushStream=null;
+          try {
+            stream.reply(new ReplyInfo(false));
+            pushStream=stream.syn(new SynInfo(false)).get();
+            resetReceivedLatch.await(5,TimeUnit.SECONDS);
+          }
+ catch (          InterruptedException|ExecutionException e) {
+            e.printStackTrace();
+            unexpectedExceptionOccured.set(true);
+          }
+          pushStream.data(new BytesDataInfo(transferBytes,true));
+          stream.data(new StringDataInfo("close",true));
+        }
+      }
+).start();
+      return null;
+    }
+    @Override public void onRst(    Session session,    RstInfo rstInfo){
+      resetReceivedLatch.countDown();
+    }
+    @Override public void onGoAway(    Session session,    GoAwayInfo goAwayInfo){
+      goAwayReceivedLatch.countDown();
+    }
+  }
+);
+  final SocketChannel channel=SocketChannel.open(serverAddress);
+  final Generator generator=new Generator(new StandardByteBufferPool(),new StandardCompressionFactory.StandardCompressor());
+  int streamId=1;
+  ByteBuffer writeBuffer=generator.control(new SynStreamFrame(version,(byte)0,streamId,0,(byte)0,(short)0,new Headers()));
+  channel.write(writeBuffer);
+  assertThat("writeBuffer is fully written",writeBuffer.hasRemaining(),is(false));
+  final Parser parser=new Parser(new StandardCompressionFactory.StandardDecompressor());
+  parser.addListener(new Listener.Adapter(){
+    int bytesRead=0;
+    @Override public void onControlFrame(    ControlFrame frame){
+      if (frame instanceof SynStreamFrame) {
+        int pushStreamId=((SynStreamFrame)frame).getStreamId();
+        ByteBuffer writeBuffer=generator.control(new RstStreamFrame(version,pushStreamId,StreamStatus.CANCEL_STREAM.getCode(version)));
+        try {
+          channel.write(writeBuffer);
+        }
+ catch (        IOException e) {
+          e.printStackTrace();
+          unexpectedExceptionOccured.set(true);
+        }
+      }
+    }
+    @Override public void onDataFrame(    DataFrame frame,    ByteBuffer data){
+      if (frame.getStreamId() == 2)       bytesRead=bytesRead + frame.getLength();
+      if (bytesRead == dataSizeInBytes) {
+        allDataFramesReceivedLatch.countDown();
+        return;
+      }
+      if (flowControl) {
+        ByteBuffer writeBuffer=generator.control(new WindowUpdateFrame(version,frame.getStreamId(),frame.getLength()));
+        try {
+          channel.write(writeBuffer);
+        }
+ catch (        IOException e) {
+          e.printStackTrace();
+          unexpectedExceptionOccured.set(true);
+        }
+      }
+    }
+  }
+);
+  Thread reader=new Thread(new Runnable(){
+    @Override public void run(){
+      ByteBuffer readBuffer=ByteBuffer.allocate(dataSizeInBytes * 2);
+      while (read) {
+        try {
+          channel.read(readBuffer);
+        }
+ catch (        IOException e) {
+          e.printStackTrace();
+          unexpectedExceptionOccured.set(true);
+        }
+        readBuffer.flip();
+        parser.parse(readBuffer);
+        readBuffer.clear();
+      }
+    }
+  }
+);
+  reader.start();
+  read=false;
+  assertThat("no unexpected exceptions occured",unexpectedExceptionOccured.get(),is(false));
+  assertThat("not all dataframes have been received as the pushstream has been reset by the client.",allDataFramesReceivedLatch.await(streamId,TimeUnit.SECONDS),is(false));
+  ByteBuffer buffer=generator.control(new GoAwayFrame(version,streamId,SessionStatus.OK.getCode()));
+  channel.write(buffer);
+  Assert.assertThat(buffer.hasRemaining(),is(false));
+  assertThat("GoAway frame is received by server",goAwayReceivedLatch.await(5,TimeUnit.SECONDS),is(true));
+  channel.shutdownOutput();
+  channel.close();
+}

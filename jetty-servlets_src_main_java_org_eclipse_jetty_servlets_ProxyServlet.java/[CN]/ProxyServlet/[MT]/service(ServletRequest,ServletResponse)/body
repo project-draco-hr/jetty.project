@@ -40,10 +40,15 @@
  else           response.setStatus(status);
         }
         @Override protected void onResponseHeader(        Buffer name,        Buffer value) throws IOException {
-          String s=name.toString().toLowerCase();
+          String nameString=name.toString();
+          String s=nameString.toLowerCase();
           if (!_DontProxyHeaders.contains(s) || (HttpHeaders.CONNECTION_BUFFER.equals(name) && HttpHeaderValues.CLOSE_BUFFER.equals(value))) {
             if (debug != 0)             _log.debug(debug + " " + name+ ": "+ value);
-            response.addHeader(name.toString(),value.toString());
+            String filteredHeaderValue=filterResponseHeaderValue(nameString,value.toString(),request);
+            if (filteredHeaderValue != null && filteredHeaderValue.trim().length() > 0) {
+              if (debug != 0)               _log.debug(debug + " " + name+ ": (filtered): "+ filteredHeaderValue);
+              response.addHeader(nameString,filteredHeaderValue);
+            }
           }
  else           if (debug != 0)           _log.debug(debug + " " + name+ "! "+ value);
         }

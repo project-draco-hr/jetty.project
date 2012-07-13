@@ -28,7 +28,7 @@
   ServletHolder holder=null;
   if (holders != null) {
     for (    ServletHolder h : holders) {
-      if (h.getClassName().equals(clazz.getName()) && h.getName() != null && servletName.equals(h.getName())) {
+      if (h.getName() != null && servletName.equals(h.getName())) {
         holder=h;
         isNew=false;
         break;
@@ -58,18 +58,44 @@
     metaData.setOrigin(servletName + ".servlet.mappings");
   }
  else {
+    if (holder.getClassName() == null)     holder.setClassName(clazz.getName());
+    if (holder.getHeldClass() == null)     holder.setHeldClass(clazz);
     for (    WebInitParam ip : annotation.initParams()) {
       if (metaData.getOrigin(servletName + ".servlet.init-param" + ip.name()) == Origin.NotSet) {
         holder.setInitParameter(ip.name(),ip.value());
         metaData.setOrigin(servletName + ".servlet.init-param." + ip.name());
       }
     }
-    ServletMapping[] mappings=_context.getServletHandler().getServletMappings();
-    if (mappings == null && metaData.getOriginDescriptor(servletName + ".servlet.mappings") != null) {
-      ServletMapping mapping=new ServletMapping();
-      mapping.setServletName(servletName);
-      mapping.setPathSpecs(LazyList.toStringArray(urlPatternList));
-      _context.getServletHandler().addServletMapping(mapping);
+    boolean mappingsExist=false;
+    boolean anyNonDefaults=false;
+    ServletMapping[] allMappings=_context.getServletHandler().getServletMappings();
+    if (allMappings != null) {
+      for (      ServletMapping m : allMappings) {
+        if (m.getServletName() != null && servletName.equals(m.getServletName())) {
+          mappingsExist=true;
+          if (!m.isDefault()) {
+            anyNonDefaults=true;
+            break;
+          }
+        }
+      }
+    }
+    if (anyNonDefaults)     return;
+    boolean clash=false;
+    if (mappingsExist) {
+      for (      String p : urlPatternList) {
+        ServletMapping m=_context.getServletHandler().getServletMapping(p);
+        if (m != null && !m.isDefault()) {
+          clash=true;
+          break;
+        }
+      }
+    }
+    if (!mappingsExist || !clash) {
+      ServletMapping m=new ServletMapping();
+      m.setServletName(servletName);
+      m.setPathSpecs(LazyList.toStringArray(urlPatternList));
+      _context.getServletHandler().addServletMapping(m);
     }
   }
 }

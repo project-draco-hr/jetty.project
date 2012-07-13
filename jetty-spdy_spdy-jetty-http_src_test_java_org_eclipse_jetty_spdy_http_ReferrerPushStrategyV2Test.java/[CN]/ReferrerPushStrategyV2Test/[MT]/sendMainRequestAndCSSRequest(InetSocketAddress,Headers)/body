@@ -1,0 +1,23 @@
+{
+  Session session1=startClient(version(),address,null);
+  final CountDownLatch mainResourceLatch=new CountDownLatch(1);
+  session1.syn(new SynInfo(mainRequestHeaders,true),new StreamFrameListener.Adapter(){
+    @Override public void onData(    Stream stream,    DataInfo dataInfo){
+      dataInfo.consume(dataInfo.length());
+      if (dataInfo.isClose())       mainResourceLatch.countDown();
+    }
+  }
+);
+  Assert.assertTrue(mainResourceLatch.await(5,TimeUnit.SECONDS));
+  final CountDownLatch associatedResourceLatch1=new CountDownLatch(1);
+  Headers associatedRequestHeaders1=createHeaders(cssResource);
+  session1.syn(new SynInfo(associatedRequestHeaders1,true),new StreamFrameListener.Adapter(){
+    @Override public void onData(    Stream stream,    DataInfo dataInfo){
+      dataInfo.consume(dataInfo.length());
+      if (dataInfo.isClose())       associatedResourceLatch1.countDown();
+    }
+  }
+);
+  Assert.assertTrue(associatedResourceLatch1.await(5,TimeUnit.SECONDS));
+  return session1;
+}

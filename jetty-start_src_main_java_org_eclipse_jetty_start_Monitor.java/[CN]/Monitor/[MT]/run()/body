@@ -5,7 +5,10 @@
       socket=_socket.accept();
       LineNumberReader lin=new LineNumberReader(new InputStreamReader(socket.getInputStream()));
       String key=lin.readLine();
-      if (!_key.equals(key))       continue;
+      if (!_key.equals(key)) {
+        System.err.println("Ignoring command with incorrect key");
+        continue;
+      }
       String cmd=lin.readLine();
       Config.debug("command=" + cmd);
       if ("stop".equals(cmd)) {
@@ -21,7 +24,15 @@
  catch (        Exception e) {
           e.printStackTrace();
         }
-        if (_process != null)         _process.destroy();
+        if (_process != null) {
+          try {
+            _process.destroy();
+            _process.waitFor();
+          }
+ catch (          InterruptedException e) {
+            System.err.println("Interrupted waiting for child to terminate");
+          }
+        }
         System.exit(0);
       }
  else       if ("status".equals(cmd)) {

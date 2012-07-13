@@ -1,5 +1,12 @@
 {
-  stream.process(frame,data);
-  updateLastStreamId(stream);
+  ByteBufferDataInfo dataInfo=new ByteBufferDataInfo(data,frame.isClose(),frame.isCompress()){
+    @Override public void consume(    int delta){
+      super.consume(delta);
+      flowControlStrategy.onDataConsumed(StandardSession.this,stream,this,delta);
+    }
+  }
+;
+  flowControlStrategy.onDataReceived(this,stream,dataInfo);
+  stream.process(dataInfo);
   if (stream.isClosed())   removeStream(stream);
 }
