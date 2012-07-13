@@ -1,20 +1,18 @@
 {
   HttpTester request=new HttpTester();
-  HttpTester response=new HttpTester();
+  HttpTester.Response response;
   request.setMethod("GET");
   request.setVersion("HTTP/1.0");
   request.setHeader("Host","tester");
   request.setURI("/context/file.txt");
-  response.parse(tester.getResponses(request.generate()));
-  assertTrue(response.getMethod() == null);
+  response=HttpTester.parseResponse(tester.getResponses(request.generate()));
   assertEquals(HttpServletResponse.SC_NOT_FOUND,response.getStatus());
   request.setMethod("PUT");
   request.setURI("/context/file.txt");
   request.setHeader("Content-Type","text/plain");
   String data0="Now is the time for all good men to come to the aid of the party";
   request.setContent(data0);
-  response.parse(tester.getResponses(request.generate()));
-  assertTrue(response.getMethod() == null);
+  response=HttpTester.parseResponse(tester.getResponses(request.generate()));
   assertEquals(HttpServletResponse.SC_CREATED,response.getStatus());
   File file=new File(_dir,"file.txt");
   assertTrue(file.exists());
@@ -23,8 +21,7 @@
   request.setVersion("HTTP/1.0");
   request.setHeader("Host","tester");
   request.setURI("/context/file.txt");
-  response.parse(tester.getResponses(request.generate()));
-  assertTrue(response.getMethod() == null);
+  response=HttpTester.parseResponse(tester.getResponses(request.generate()));
   assertEquals(HttpServletResponse.SC_OK,response.getStatus());
   assertEquals(data0,response.getContent());
   request.setMethod("PUT");
@@ -32,8 +29,7 @@
   request.setHeader("Content-Type","text/plain");
   String data1="How Now BROWN COW!!!!";
   request.setContent(data1);
-  response.parse(tester.getResponses(request.generate()));
-  assertTrue(response.getMethod() == null);
+  response=HttpTester.parseResponse(tester.getResponses(request.generate()));
   assertEquals(HttpServletResponse.SC_OK,response.getStatus());
   file=new File(_dir,"file.txt");
   assertTrue(file.exists());
@@ -43,8 +39,8 @@
   request.setHeader("Content-Type","text/plain");
   String data2="Blah blah blah Blah blah";
   request.setContent(data2);
-  String to_send=request.generate();
-  URL url=new URL(tester.createSocketConnector(true));
+  String to_send=BufferUtil.toString(request.generate());
+  URL url=new URL(tester.createConnector(true));
   Socket socket=new Socket(url.getHost(),url.getPort());
   OutputStream out=socket.getOutputStream();
   int l=to_send.length();
@@ -59,10 +55,9 @@
     request.setVersion("HTTP/1.0");
     request.setHeader("Host","tester");
     request.setURI("/context/file.txt");
-    response.parse(tester.getResponses(request.generate()));
+    response=HttpTester.parseResponse(tester.getResponses(request.generate()));
   }
  while (response.getStatus() == 200);
-  assertTrue(response.getMethod() == null);
   assertEquals(HttpServletResponse.SC_NOT_FOUND,response.getStatus());
   out.write(to_send.substring(l - 5).getBytes());
   out.flush();
@@ -71,8 +66,7 @@
   request.setVersion("HTTP/1.0");
   request.setHeader("Host","tester");
   request.setURI("/context/file.txt");
-  response.parse(tester.getResponses(request.generate()));
-  assertTrue(response.getMethod() == null);
+  response=HttpTester.parseResponse(tester.getResponses(request.generate()));
   assertEquals(HttpServletResponse.SC_OK,response.getStatus());
   assertEquals(data2,response.getContent());
 }
