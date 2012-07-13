@@ -1,0 +1,43 @@
+{
+  if (frame.getOpCode().isControlFrame()) {
+    getNextOutgoingFrames().output(frame);
+    return;
+  }
+  int fragments=1;
+  int length=frame.getPayloadLength();
+  OpCode opcode=frame.getOpCode();
+  ByteBuffer payload=frame.getPayload().slice();
+  int originalLimit=payload.limit();
+  if (maxLength > 0) {
+    while (length > maxLength) {
+      fragments++;
+      WebSocketFrame frag=new WebSocketFrame(frame);
+      frag.setOpCode(opcode);
+      frag.setFin(false);
+      payload.limit(Math.min(payload.limit() + maxLength,originalLimit));
+      frag.setPayload(payload);
+      nextOutput(frag);
+      length-=maxLength;
+      opcode=OpCode.CONTINUATION;
+    }
+  }
+  if (fragments < minFragments) {
+    int fragmentsLeft=(minFragments - fragments);
+    int fragLength=length / fragmentsLeft;
+    while (fragments < minFragments) {
+      fragments++;
+      WebSocketFrame frag=new WebSocketFrame(frame);
+      frag.setOpCode(opcode);
+      frag.setFin(false);
+      frag.setPayload(payload);
+      nextOutput(frag);
+      length-=fragLength;
+      opcode=OpCode.CONTINUATION;
+    }
+  }
+  WebSocketFrame frag=new WebSocketFrame(frame);
+  frag.setOpCode(opcode);
+  payload.limit(originalLimit);
+  frag.setPayload(payload);
+  nextOutput(frag);
+}

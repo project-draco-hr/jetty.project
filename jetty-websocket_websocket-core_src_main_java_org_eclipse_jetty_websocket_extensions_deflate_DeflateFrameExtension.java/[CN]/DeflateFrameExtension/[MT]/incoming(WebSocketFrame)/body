@@ -1,0 +1,29 @@
+{
+  if (frame.getOpCode().isControlFrame() || !frame.isRsv1()) {
+    super.incoming(frame);
+    return;
+  }
+  ByteBuffer data=frame.getPayload();
+  int uncompressedLength=readUncompresseLength(frame,data);
+  inflater.setInput(BufferUtil.toArray(frame.getPayload()));
+  byte buf[]=new byte[uncompressedLength];
+  try {
+    int left=buf.length;
+    while (inflater.getRemaining() > 0) {
+      int inflated=inflater.inflate(buf,0,left);
+      if (inflated == 0) {
+        throw new DataFormatException("insufficient data");
+      }
+      left-=inflated;
+    }
+    frame.setPayload(buf);
+    nextIncoming(frame);
+  }
+ catch (  DataFormatException e) {
+    LOG.warn(e);
+    throw new BadPayloadException(e);
+  }
+ finally {
+    getBufferPool().release(data);
+  }
+}
