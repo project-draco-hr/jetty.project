@@ -24,13 +24,32 @@
   request.setAttribute(HttpConnection.UPGRADE_CONNECTION_ATTR,connection);
   LOG.debug("HttpConnection: {}",http);
   LOG.debug("AsyncWebSocketConnection: {}",connection);
+  WebSocketSession session=new WebSocketSession(websocket,connection,getPolicy(),response.getAcceptedSubProtocol());
   List<Extension> extensions=initExtensions(request.getExtensions());
-  IncomingFrames incoming=setupExtensionChain(websocket,extensions);
+  IncomingFrames incoming=session;
+  OutgoingFrames outgoing=connection;
+  if (extensions != null) {
+    Iterator<Extension> extIter;
+    extIter=extensions.iterator();
+    while (extIter.hasNext()) {
+      Extension ext=extIter.next();
+      ext.setNextOutgoingFrames(outgoing);
+      outgoing=ext;
+    }
+    Collections.reverse(extensions);
+    extIter=extensions.iterator();
+    while (extIter.hasNext()) {
+      Extension ext=extIter.next();
+      ext.setNextIncomingFrames(incoming);
+      incoming=ext;
+    }
+  }
+  session.setOutgoing(outgoing);
   connection.getParser().setIncomingFramesHandler(incoming);
   LOG.debug("Handshake Response: {}",handshaker);
   handshaker.doHandshakeResponse(request,response);
   addConnection(connection);
-  websocket.setConnection(connection);
+  websocket.setConnection(session);
   websocket.onConnect();
   LOG.debug("Websocket upgrade {} {} {} {}",request.getRequestURI(),version,response.getAcceptedSubProtocol(),connection);
   return true;
