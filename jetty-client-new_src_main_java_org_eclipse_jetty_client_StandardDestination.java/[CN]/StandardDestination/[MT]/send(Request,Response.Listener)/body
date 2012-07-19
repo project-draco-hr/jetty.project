@@ -1,4 +1,8 @@
 {
   if (!address.equals(request.address()))   throw new IllegalArgumentException("Invalid request address " + request.address() + " for destination "+ this);
-  return getConnection().send(request,listener);
+  StandardResponse response=new StandardResponse(request,listener);
+  Connection connection=connections.poll();
+  if (connection == null)   newConnection();
+  if (!requests.offer(response))   throw new RejectedExecutionException("Max requests per address " + client.getMaxQueueSizePerAddress() + " exceeded");
+  return response;
 }
