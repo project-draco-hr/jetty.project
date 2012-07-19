@@ -33,7 +33,7 @@ case FINOP:
         if (frame == null) {
           throw new ProtocolException("Fragment continuation frame without prior !FIN");
         }
-        opcode=frame.getOpCode();
+        opcode=lastDataOpcode;
       }
       frame=new WebSocketFrame();
       frame.setFin(fin);
@@ -41,6 +41,9 @@ case FINOP:
       frame.setRsv2(rsv2);
       frame.setRsv3(rsv3);
       frame.setOpCode(opcode);
+      if (opcode.isDataFrame()) {
+        lastDataOpcode=opcode;
+      }
       state=State.PAYLOAD_LEN;
       break;
     }

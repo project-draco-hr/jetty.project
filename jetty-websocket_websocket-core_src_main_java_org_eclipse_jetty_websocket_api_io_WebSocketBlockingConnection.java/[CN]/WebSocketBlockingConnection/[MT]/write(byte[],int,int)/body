@@ -1,10 +1,8 @@
 {
-  WebSocketFrame frame=WebSocketFrame.binary().setPayload(data,offset,length);
   try {
-    FutureCallback<Void> blocking=new FutureCallback<>();
-    DataFrameBytes<Void> bytes=new DataFrameBytes<>(conn,blocking,null,frame);
-    this.conn.getQueue().append(bytes);
-    blocking.get();
+    Blocker blocker=new Blocker();
+    conn.write(CONTEXT_BINARY,blocker,data,offset,length);
+    blocker.get();
   }
  catch (  InterruptedException e) {
     throw new IOException("Blocking write failed",e);
