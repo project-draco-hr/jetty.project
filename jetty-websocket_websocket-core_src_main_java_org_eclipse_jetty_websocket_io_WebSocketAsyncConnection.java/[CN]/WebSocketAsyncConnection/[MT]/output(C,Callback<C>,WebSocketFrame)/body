@@ -1,13 +1,15 @@
 {
-  if (frame.getOpCode().isControlFrame()) {
-    ControlFrameBytes<C> bytes=new ControlFrameBytes<C>(this,callback,context,frame);
-    scheduleTimeout(bytes);
-    queue.prepend(bytes);
-  }
+synchronized (queue) {
+    if (frame.getOpCode().isControlFrame()) {
+      ControlFrameBytes<C> bytes=new ControlFrameBytes<C>(this,callback,context,frame);
+      scheduleTimeout(bytes);
+      queue.prepend(bytes);
+    }
  else {
-    DataFrameBytes<C> bytes=new DataFrameBytes<C>(this,callback,context,frame);
-    scheduleTimeout(bytes);
-    queue.append(bytes);
+      DataFrameBytes<C> bytes=new DataFrameBytes<C>(this,callback,context,frame);
+      scheduleTimeout(bytes);
+      queue.append(bytes);
+    }
   }
   flush();
 }

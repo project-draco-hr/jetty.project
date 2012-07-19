@@ -10,6 +10,7 @@
     LOG.debug("Now: {} - expireOn: {} ({} ms)",now,expireOn,msDur);
     int len=0;
     while (incomingFrameQueue.size() < (startCount + expectedCount)) {
+      BufferUtil.clearToFill(buf);
       len=read(buf);
       if (len > 0) {
         LOG.debug("Read {} bytes",len);
@@ -22,7 +23,7 @@
  catch (      InterruptedException gnore) {
       }
       if (!debug && (System.currentTimeMillis() > expireOn)) {
-        throw new TimeoutException("Timeout reading all of the desired frames");
+        throw new TimeoutException(String.format("Timeout reading all [%d] expected frames. (managed to read [%d] frames)",expectedCount,incomingFrameQueue.size()));
       }
     }
   }

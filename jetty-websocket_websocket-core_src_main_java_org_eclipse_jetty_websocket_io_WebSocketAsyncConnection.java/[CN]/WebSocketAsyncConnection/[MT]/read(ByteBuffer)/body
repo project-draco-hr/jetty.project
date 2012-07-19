@@ -1,14 +1,22 @@
 {
-  while (true) {
-    int filled=fill(getEndPoint(),buffer);
-    if (filled == 0) {
-      break;
+  try {
+    while (true) {
+      int filled=getEndPoint().fill(buffer);
+      if (filled == 0) {
+        break;
+      }
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("Filled {} bytes - {}",filled,BufferUtil.toDetailString(buffer));
+      }
+      parser.parse(buffer);
     }
-    if (filled < 0) {
-      terminateConnection(StatusCode.PROTOCOL,null);
-      break;
-    }
-    LOG.debug("Filled {} bytes - {}",filled,BufferUtil.toDetailString(buffer));
-    parser.parse(buffer);
+  }
+ catch (  IOException e) {
+    LOG.warn(e);
+    terminateConnection(StatusCode.PROTOCOL,e.getMessage());
+  }
+catch (  CloseException e) {
+    LOG.warn(e);
+    terminateConnection(e.getStatusCode(),e.getMessage());
   }
 }
