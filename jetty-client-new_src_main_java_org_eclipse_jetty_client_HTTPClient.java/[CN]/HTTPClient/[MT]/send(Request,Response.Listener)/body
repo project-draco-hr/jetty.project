@@ -1,3 +1,9 @@
 {
-  return getDestination(request.address()).send(request,listener);
+  URI uri=request.uri();
+  String scheme=uri.getScheme();
+  if (!Arrays.asList("http","https").contains(scheme.toLowerCase()))   throw new IllegalArgumentException("Invalid protocol " + scheme);
+  String key=scheme.toLowerCase() + "://" + uri.getHost().toLowerCase();
+  int port=uri.getPort();
+  if (port < 0)   key+="https".equalsIgnoreCase(scheme) ? ":443" : ":80";
+  return getDestination(key).send(request,listener);
 }
