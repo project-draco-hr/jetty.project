@@ -44,26 +44,17 @@ if (id != null && id.equals("jsp")) {
 jspServletClass=servlet_class;
 try {
 Loader.loadClass(this.getClass(),servlet_class);
+if (holder.getInitParameter("scratchdir") == null) {
+  File tmp=context.getTempDirectory();
+  File scratch=new File(tmp,"jsp");
+  if (!scratch.exists())   scratch.mkdir();
+  holder.setInitParameter("scratchdir",scratch.getAbsolutePath());
+}
 }
  catch (ClassNotFoundException e) {
 LOG.info("NO JSP Support for {}, did not find {}",context.getContextPath(),servlet_class);
 jspServletClass=servlet_class="org.eclipse.jetty.servlet.NoJspServlet";
 }
-}
-if (servlet_class != null && "org.apache.jasper.servlet.JspServlet".equals(servlet_class)) {
-if (holder.getInitParameter("scratchdir") == null) {
-File tmp=context.getTempDirectory();
-File scratch=new File(tmp,"jsp");
-if (!scratch.exists()) scratch.mkdir();
-holder.setInitParameter("scratchdir",scratch.getAbsolutePath());
-if ("?".equals(holder.getInitParameter("classpath"))) {
-  String classpath=context.getClassPath();
-  LOG.debug("classpath=" + classpath);
-  if (classpath != null)   holder.setInitParameter("classpath",classpath);
-}
-}
-context.setAttribute("org.apache.catalina.jsp_classpath",context.getClassPath());
-holder.setInitParameter("com.sun.appserv.jsp.classpath",getSystemClassPath(context));
 }
 if (servlet_class != null) {
 ((WebDescriptor)descriptor).addClassName(servlet_class);
@@ -96,7 +87,6 @@ String jsp_file=node.getString("jsp-file",false,true);
 if (jsp_file != null) {
 holder.setForcedPath(jsp_file);
 holder.setClassName(jspServletClass);
-holder.setInitParameter("com.sun.appserv.jsp.classpath",getSystemClassPath(context));
 }
 XmlParser.Node startup=node.get("load-on-startup");
 if (startup != null) {

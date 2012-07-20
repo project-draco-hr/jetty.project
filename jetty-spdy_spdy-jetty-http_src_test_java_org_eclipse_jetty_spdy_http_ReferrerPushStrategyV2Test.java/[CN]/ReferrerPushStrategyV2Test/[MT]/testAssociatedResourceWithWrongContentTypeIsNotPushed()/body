@@ -1,4 +1,5 @@
 {
+  final String fakeResource="/fake.png";
   InetSocketAddress address=startHTTPServer(version(),new AbstractHandler(){
     @Override public void handle(    String target,    Request baseRequest,    HttpServletRequest request,    HttpServletResponse response) throws IOException, ServletException {
       String url=request.getRequestURI();
@@ -7,7 +8,7 @@
         response.setContentType("text/html");
         output.print("<html><head/><body>HELLO</body></html>");
       }
- else       if (url.equals("/fake.png")) {
+ else       if (url.equals(fakeResource)) {
         response.setContentType("text/html");
         output.print("<html><head/><body>IMAGE</body></html>");
       }
@@ -21,13 +22,7 @@
 );
   Session session1=startClient(version(),address,null);
   final CountDownLatch mainResourceLatch=new CountDownLatch(1);
-  Headers mainRequestHeaders=new Headers();
-  mainRequestHeaders.put(HTTPSPDYHeader.METHOD.name(version()),"GET");
-  String mainResource="/index.html";
-  mainRequestHeaders.put(HTTPSPDYHeader.URI.name(version()),mainResource);
-  mainRequestHeaders.put(HTTPSPDYHeader.VERSION.name(version()),"HTTP/1.1");
-  mainRequestHeaders.put(HTTPSPDYHeader.SCHEME.name(version()),"http");
-  mainRequestHeaders.put(HTTPSPDYHeader.HOST.name(version()),"localhost:" + connector.getLocalPort());
+  Headers mainRequestHeaders=createHeadersWithoutReferrer(mainResource);
   session1.syn(new SynInfo(mainRequestHeaders,true),new StreamFrameListener.Adapter(){
     @Override public void onData(    Stream stream,    DataInfo dataInfo){
       dataInfo.consume(dataInfo.length());
@@ -37,13 +32,8 @@
 );
   Assert.assertTrue(mainResourceLatch.await(5,TimeUnit.SECONDS));
   final CountDownLatch associatedResourceLatch=new CountDownLatch(1);
-  Headers associatedRequestHeaders=new Headers();
-  associatedRequestHeaders.put(HTTPSPDYHeader.METHOD.name(version()),"GET");
-  associatedRequestHeaders.put(HTTPSPDYHeader.URI.name(version()),"/stylesheet.css");
-  associatedRequestHeaders.put(HTTPSPDYHeader.VERSION.name(version()),"HTTP/1.1");
-  associatedRequestHeaders.put(HTTPSPDYHeader.SCHEME.name(version()),"http");
-  associatedRequestHeaders.put(HTTPSPDYHeader.HOST.name(version()),"localhost:" + connector.getLocalPort());
-  associatedRequestHeaders.put("referer","http://localhost:" + connector.getLocalPort() + mainResource);
+  String cssResource="/stylesheet.css";
+  Headers associatedRequestHeaders=createHeaders(cssResource);
   session1.syn(new SynInfo(associatedRequestHeaders,true),new StreamFrameListener.Adapter(){
     @Override public void onData(    Stream stream,    DataInfo dataInfo){
       dataInfo.consume(dataInfo.length());
@@ -53,13 +43,7 @@
 );
   Assert.assertTrue(associatedResourceLatch.await(5,TimeUnit.SECONDS));
   final CountDownLatch fakeAssociatedResourceLatch=new CountDownLatch(1);
-  Headers fakeAssociatedRequestHeaders=new Headers();
-  fakeAssociatedRequestHeaders.put(HTTPSPDYHeader.METHOD.name(version()),"GET");
-  fakeAssociatedRequestHeaders.put(HTTPSPDYHeader.URI.name(version()),"/fake.png");
-  fakeAssociatedRequestHeaders.put(HTTPSPDYHeader.VERSION.name(version()),"HTTP/1.1");
-  fakeAssociatedRequestHeaders.put(HTTPSPDYHeader.SCHEME.name(version()),"http");
-  fakeAssociatedRequestHeaders.put(HTTPSPDYHeader.HOST.name(version()),"localhost:" + connector.getLocalPort());
-  fakeAssociatedRequestHeaders.put("referer","http://localhost:" + connector.getLocalPort() + mainResource);
+  Headers fakeAssociatedRequestHeaders=createHeaders(fakeResource);
   session1.syn(new SynInfo(fakeAssociatedRequestHeaders,true),new StreamFrameListener.Adapter(){
     @Override public void onData(    Stream stream,    DataInfo dataInfo){
       dataInfo.consume(dataInfo.length());

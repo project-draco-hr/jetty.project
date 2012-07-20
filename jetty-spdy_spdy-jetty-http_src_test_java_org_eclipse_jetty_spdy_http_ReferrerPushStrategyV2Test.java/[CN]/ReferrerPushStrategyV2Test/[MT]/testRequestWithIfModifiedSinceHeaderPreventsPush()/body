@@ -11,13 +11,7 @@
 );
   Session session1=startClient(version(),address,null);
   final CountDownLatch mainResourceLatch=new CountDownLatch(1);
-  Headers mainRequestHeaders=new Headers();
-  mainRequestHeaders.put(HTTPSPDYHeader.METHOD.name(version()),"GET");
-  String mainResource="/index.html";
-  mainRequestHeaders.put(HTTPSPDYHeader.URI.name(version()),mainResource);
-  mainRequestHeaders.put(HTTPSPDYHeader.VERSION.name(version()),"HTTP/1.1");
-  mainRequestHeaders.put(HTTPSPDYHeader.SCHEME.name(version()),"http");
-  mainRequestHeaders.put(HTTPSPDYHeader.HOST.name(version()),"localhost:" + connector.getLocalPort());
+  Headers mainRequestHeaders=createHeaders(mainResource);
   mainRequestHeaders.put("If-Modified-Since","Tue, 27 Mar 2012 16:36:52 GMT");
   session1.syn(new SynInfo(mainRequestHeaders,true),new StreamFrameListener.Adapter(){
     @Override public void onData(    Stream stream,    DataInfo dataInfo){
@@ -28,13 +22,7 @@
 );
   Assert.assertTrue(mainResourceLatch.await(5,TimeUnit.SECONDS));
   final CountDownLatch associatedResourceLatch=new CountDownLatch(1);
-  Headers associatedRequestHeaders=new Headers();
-  associatedRequestHeaders.put(HTTPSPDYHeader.METHOD.name(version()),"GET");
-  associatedRequestHeaders.put(HTTPSPDYHeader.URI.name(version()),"/style.css");
-  associatedRequestHeaders.put(HTTPSPDYHeader.VERSION.name(version()),"HTTP/1.1");
-  associatedRequestHeaders.put(HTTPSPDYHeader.SCHEME.name(version()),"http");
-  associatedRequestHeaders.put(HTTPSPDYHeader.HOST.name(version()),"localhost:" + connector.getLocalPort());
-  associatedRequestHeaders.put("referer","http://localhost:" + connector.getLocalPort() + mainResource);
+  Headers associatedRequestHeaders=createHeaders(cssResource);
   session1.syn(new SynInfo(associatedRequestHeaders,true),new StreamFrameListener.Adapter(){
     @Override public void onData(    Stream stream,    DataInfo dataInfo){
       dataInfo.consume(dataInfo.length());
