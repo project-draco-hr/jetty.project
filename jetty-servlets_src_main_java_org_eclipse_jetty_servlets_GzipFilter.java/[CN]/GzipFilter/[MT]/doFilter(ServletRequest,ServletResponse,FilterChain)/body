@@ -1,16 +1,20 @@
 {
   HttpServletRequest request=(HttpServletRequest)req;
   HttpServletResponse response=(HttpServletResponse)res;
-  String ae=request.getHeader("accept-encoding");
-  if (ae != null && ae.indexOf("gzip") >= 0 && !response.containsHeader("Content-Encoding") && !HttpMethod.HEAD.is(request.getMethod())) {
-    if (_excluded != null) {
-      String ua=getUserAgent(request);
-      if (_excluded.contains(ua)) {
-        super.doFilter(request,response,chain);
-        return;
-      }
+  response.setHeader("Vary","Accept-Encoding");
+  String compressionType=selectCompression(request.getHeader("accept-encoding"));
+  if (compressionType != null && !response.containsHeader("Content-Encoding") && !HttpMethod.HEAD.is(request.getMethod())) {
+    String ua=getUserAgent(request);
+    if (isExcludedAgent(ua)) {
+      super.doFilter(request,response,chain);
+      return;
     }
-    final GzipResponseWrapper wrappedResponse=newGzipResponseWrapper(request,response);
+    String requestURI=request.getRequestURI();
+    if (isExcludedPath(requestURI)) {
+      super.doFilter(request,response,chain);
+      return;
+    }
+    CompressedResponseWrapper wrappedResponse=createWrappedResponse(request,response,compressionType);
     boolean exceptional=true;
     try {
       super.doFilter(request,wrappedResponse,chain);
@@ -19,23 +23,11 @@
   finally {
       Continuation continuation=ContinuationSupport.getContinuation(request);
       if (continuation.isSuspended() && continuation.isResponseWrapped()) {
-        continuation.addContinuationListener(new ContinuationListener(){
-          public void onComplete(          Continuation continuation){
-            try {
-              wrappedResponse.finish();
-            }
- catch (            IOException e) {
-              LOG.warn(e);
-            }
-          }
-          public void onTimeout(          Continuation continuation){
-          }
-        }
-);
+        continuation.addContinuationListener(new ContinuationListenerWaitingForWrappedResponseToFinish(wrappedResponse));
       }
  else       if (exceptional && !response.isCommitted()) {
         wrappedResponse.resetBuffer();
-        wrappedResponse.noGzip();
+        wrappedResponse.noCompression();
       }
  else       wrappedResponse.finish();
     }

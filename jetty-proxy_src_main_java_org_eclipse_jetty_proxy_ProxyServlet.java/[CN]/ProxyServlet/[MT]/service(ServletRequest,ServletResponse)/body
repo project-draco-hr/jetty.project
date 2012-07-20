@@ -13,7 +13,7 @@
  else {
       String uri=request.getRequestURI();
       if (request.getQueryString() != null)       uri+="?" + request.getQueryString();
-      HttpURI url=proxyHttpURI(request.getScheme(),request.getServerName(),request.getServerPort(),uri);
+      HttpURI url=proxyHttpURI(request,uri);
       if (debug != 0)       _log.debug(debug + " proxy " + uri+ "-->"+ url);
       if (url == null) {
         response.sendError(HttpServletResponse.SC_FORBIDDEN);
@@ -40,10 +40,15 @@
  else           response.setStatus(status);
         }
         @Override protected void onResponseHeader(        Buffer name,        Buffer value) throws IOException {
-          String s=name.toString().toLowerCase();
+          String nameString=name.toString();
+          String s=nameString.toLowerCase();
           if (!_DontProxyHeaders.contains(s) || (HttpHeaders.CONNECTION_BUFFER.equals(name) && HttpHeaderValues.CLOSE_BUFFER.equals(value))) {
             if (debug != 0)             _log.debug(debug + " " + name+ ": "+ value);
-            response.addHeader(name.toString(),value.toString());
+            String filteredHeaderValue=filterResponseHeaderValue(nameString,value.toString(),request);
+            if (filteredHeaderValue != null && filteredHeaderValue.trim().length() > 0) {
+              if (debug != 0)               _log.debug(debug + " " + name+ ": (filtered): "+ filteredHeaderValue);
+              response.addHeader(nameString,filteredHeaderValue);
+            }
           }
  else           if (debug != 0)           _log.debug(debug + " " + name+ "! "+ value);
         }
@@ -110,10 +115,12 @@
       if (!xForwardedFor) {
         exchange.addRequestHeader("X-Forwarded-For",request.getRemoteAddr());
         exchange.addRequestHeader("X-Forwarded-Proto",request.getScheme());
-        exchange.addRequestHeader("X-Forwarded-Host",request.getServerName());
+        exchange.addRequestHeader("X-Forwarded-Host",request.getHeader("Host"));
         exchange.addRequestHeader("X-Forwarded-Server",request.getLocalName());
       }
-      if (hasContent)       exchange.setRequestContentSource(in);
+      if (hasContent) {
+        exchange.setRequestContentSource(in);
+      }
       customizeExchange(exchange,request);
       long ctimeout=(_client.getTimeout() > exchange.getTimeout()) ? _client.getTimeout() : exchange.getTimeout();
       if (ctimeout == 0) {

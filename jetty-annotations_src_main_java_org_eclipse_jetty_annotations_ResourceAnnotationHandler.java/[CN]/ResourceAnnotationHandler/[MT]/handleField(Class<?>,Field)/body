@@ -1,0 +1,60 @@
+{
+  Resource resource=(Resource)field.getAnnotation(Resource.class);
+  if (resource != null) {
+    if (Modifier.isStatic(field.getModifiers())) {
+      LOG.warn("Skipping Resource annotation on " + clazz.getName() + "."+ field.getName()+ ": cannot be static");
+      return;
+    }
+    if (Modifier.isFinal(field.getModifiers())) {
+      LOG.warn("Skipping Resource annotation on " + clazz.getName() + "."+ field.getName()+ ": cannot be final");
+      return;
+    }
+    String name=clazz.getCanonicalName() + "/" + field.getName();
+    name=(resource.name() != null && !resource.name().trim().equals("") ? resource.name() : name);
+    String mappedName=(resource.mappedName() != null && !resource.mappedName().trim().equals("") ? resource.mappedName() : null);
+    Class<?> type=field.getType();
+    MetaData metaData=_context.getMetaData();
+    if (metaData.getOriginDescriptor("resource-ref." + name + ".injection") != null) {
+      return;
+    }
+    InjectionCollection injections=(InjectionCollection)_context.getAttribute(InjectionCollection.INJECTION_COLLECTION);
+    if (injections == null) {
+      injections=new InjectionCollection();
+      _context.setAttribute(InjectionCollection.INJECTION_COLLECTION,injections);
+    }
+    Injection injection=injections.getInjection(name,clazz,field);
+    if (injection == null) {
+      try {
+        boolean bound=org.eclipse.jetty.plus.jndi.NamingEntryUtil.bindToENC(_context,name,mappedName);
+        if (!bound)         bound=org.eclipse.jetty.plus.jndi.NamingEntryUtil.bindToENC(_context.getServer(),name,mappedName);
+        if (!bound)         bound=org.eclipse.jetty.plus.jndi.NamingEntryUtil.bindToENC(null,name,mappedName);
+        if (!bound) {
+          try {
+            InitialContext ic=new InitialContext();
+            String nameInEnvironment=(mappedName != null ? mappedName : name);
+            ic.lookup("java:comp/env/" + nameInEnvironment);
+            bound=true;
+          }
+ catch (          NameNotFoundException e) {
+            bound=false;
+          }
+        }
+        if (bound) {
+          LOG.debug("Bound " + (mappedName == null ? name : mappedName) + " as "+ name);
+          injection=new Injection();
+          injection.setTarget(clazz,field,type);
+          injection.setJndiName(name);
+          injection.setMappingName(mappedName);
+          injections.add(injection);
+          metaData.setOrigin("resource-ref." + name + ".injection");
+        }
+ else         if (!Util.isEnvEntryType(type)) {
+          throw new IllegalStateException("No resource at " + (mappedName == null ? name : mappedName));
+        }
+      }
+ catch (      NamingException e) {
+        if (!Util.isEnvEntryType(type))         throw new IllegalStateException(e);
+      }
+    }
+  }
+}

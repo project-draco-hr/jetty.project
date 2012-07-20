@@ -2,9 +2,17 @@
   if (!isStarting())   throw new IllegalStateException();
   if (!_enabled)   throw new UnsupportedOperationException();
   final ServletHandler handler=ServletContextHandler.this.getServletHandler();
-  final ServletHolder holder=handler.newServletHolder(Holder.Source.JAVAX_API);
-  holder.setName(servletName);
-  holder.setHeldClass(servletClass);
-  handler.addServlet(holder);
-  return dynamicHolderAdded(holder);
+  ServletHolder holder=handler.getServlet(servletName);
+  if (holder == null) {
+    holder=handler.newServletHolder(Holder.Source.JAVAX_API);
+    holder.setName(servletName);
+    holder.setHeldClass(servletClass);
+    handler.addServlet(holder);
+    return dynamicHolderAdded(holder);
+  }
+  if (holder.getClassName() == null && holder.getHeldClass() == null) {
+    holder.setHeldClass(servletClass);
+    return holder.getRegistration();
+  }
+ else   return null;
 }

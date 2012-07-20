@@ -1,5 +1,5 @@
 {
-  Object value=null;
+  Object value;
   String type=node.getAttribute("type");
   String ref=node.getAttribute("ref");
   if (ref != null) {
@@ -13,7 +13,7 @@
     int first=0;
     int last=node.size() - 1;
     if (type == null || !"String".equals(type)) {
-      Object item=null;
+      Object item;
       while (first <= last) {
         item=node.get(first);
         if (!(item instanceof String))         break;
@@ -45,13 +45,13 @@
     return null;
   }
   if (type == null) {
-    if (value != null && value instanceof String)     return ((String)value).trim();
+    if (value instanceof String)     return ((String)value).trim();
     return value;
   }
-  if ("String".equals(type) || "java.lang.String".equals(type))   return value.toString();
+  if (isTypeMatchingClass(type,String.class))   return value.toString();
   Class<?> pClass=TypeUtil.fromName(type);
   if (pClass != null)   return TypeUtil.valueOf(pClass,value.toString());
-  if ("URL".equals(type) || "java.net.URL".equals(type)) {
+  if (isTypeMatchingClass(type,URL.class)) {
     if (value instanceof URL)     return value;
     try {
       return new URL(value.toString());
@@ -60,7 +60,7 @@
       throw new InvocationTargetException(e);
     }
   }
-  if ("InetAddress".equals(type) || "java.net.InetAddress".equals(type)) {
+  if (isTypeMatchingClass(type,InetAddress.class)) {
     if (value instanceof InetAddress)     return value;
     try {
       return InetAddress.getByName(value.toString());
@@ -68,6 +68,9 @@
  catch (    UnknownHostException e) {
       throw new InvocationTargetException(e);
     }
+  }
+  for (  Class<?> collectionClass : __supportedCollections) {
+    if (isTypeMatchingClass(type,collectionClass))     return convertArrayToCollection(value,collectionClass);
   }
   throw new IllegalStateException("Unknown type " + type);
 }

@@ -10,7 +10,7 @@ case ServiceEvent.UNREGISTERING:
           getWebBundleDeployerHelp(sr).unregister(ctxtHandler);
         }
  catch (        Exception e) {
-          e.printStackTrace();
+          __logger.warn(e);
         }
       }
     }
@@ -40,9 +40,18 @@ case ServiceEvent.REGISTERED:
     }
     String defaultWebXmlPath=(String)sr.getProperty(OSGiWebappConstants.SERVICE_PROP_DEFAULT_WEB_XML_PATH);
     if (defaultWebXmlPath == null) {
-      defaultWebXmlPath=webapp.getDefaultsDescriptor();
+      String jettyHome=System.getProperty(DefaultJettyAtJettyHomeHelper.SYS_PROP_JETTY_HOME);
+      if (jettyHome != null) {
+        File etc=new File(jettyHome,"etc");
+        if (etc.exists() && etc.isDirectory()) {
+          File webDefault=new File(etc,"webdefault.xml");
+          if (webDefault.exists())           defaultWebXmlPath=webDefault.getAbsolutePath();
+ else           defaultWebXmlPath=webapp.getDefaultsDescriptor();
+        }
+ else         defaultWebXmlPath=webapp.getDefaultsDescriptor();
+      }
     }
-    String war=(String)sr.getProperty("war");
+    String war=(String)sr.getProperty(OSGiWebappConstants.SERVICE_PROP_WAR);
     try {
       IWebBundleDeployerHelper deployerHelper=getWebBundleDeployerHelp(sr);
       if (deployerHelper == null) {
@@ -55,7 +64,7 @@ case ServiceEvent.REGISTERED:
       }
     }
  catch (    Throwable e) {
-      e.printStackTrace();
+      __logger.warn(e);
     }
   }
  else {
@@ -77,7 +86,7 @@ case ServiceEvent.REGISTERED:
       }
     }
  catch (    Throwable e) {
-      e.printStackTrace();
+      __logger.warn(e);
     }
   }
 }

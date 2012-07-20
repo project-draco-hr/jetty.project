@@ -34,8 +34,19 @@
         }
         String attr=decodeName(name);
         Object value=decodeValue(attrs.get(name));
-        session.doPutOrRemove(attr,value);
-        session.bindValue(attr,value);
+        if (attrs.keySet().contains(name)) {
+          session.doPutOrRemove(attr,value);
+          session.bindValue(attr,value);
+        }
+ else {
+          session.doPutOrRemove(attr,value);
+        }
+      }
+      for (      String name : session.getNames()) {
+        if (!attrs.keySet().contains(name)) {
+          session.doPutOrRemove(name,null);
+          session.unbindValue(name,session.getAttribute(name));
+        }
       }
     }
     session.didActivate();

@@ -1,33 +1,9 @@
 {
 synchronized (this) {
-switch (_state) {
-case DISPATCHED:
-case REDISPATCHED:
-      _resumed=false;
-    _expired=false;
-  if (_event == null || request != _event.getSuppliedRequest() || response != _event.getSuppliedResponse() || context != _event.getServletContext())   _event=new AsyncEventState(context,request,response);
- else {
-    _event._dispatchContext=null;
-    _event._path=null;
+    _responseWrapped=!(response instanceof Response);
+    doSuspend(context,request,response);
+    if (request instanceof HttpServletRequest) {
+      _event._pathInContext=URIUtil.addPaths(((HttpServletRequest)request).getServletPath(),((HttpServletRequest)request).getPathInfo());
+    }
   }
-_state=State.ASYNCSTARTED;
-List<AsyncListener> listeners=_lastAsyncListeners;
-_lastAsyncListeners=_asyncListeners;
-_asyncListeners=listeners;
-if (_asyncListeners != null) _asyncListeners.clear();
-break;
-default :
-throw new IllegalStateException(this.getStatusString());
-}
-}
-if (_lastAsyncListeners != null) {
-for (AsyncListener listener : _lastAsyncListeners) {
-try {
-listener.onStartAsync(_event);
-}
- catch (Exception e) {
-LOG.warn(e);
-}
-}
-}
 }
