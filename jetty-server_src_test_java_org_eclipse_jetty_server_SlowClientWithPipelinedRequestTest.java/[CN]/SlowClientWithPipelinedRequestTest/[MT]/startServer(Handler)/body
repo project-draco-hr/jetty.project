@@ -1,0 +1,19 @@
+{
+  server=new Server();
+  connector=new SelectChannelConnector(){
+    @Override protected AsyncConnection newConnection(    SocketChannel channel,    AsyncEndPoint endpoint){
+      return new HttpConnection(this,endpoint,getServer()){
+        @Override public synchronized void onFillable(){
+          handles.incrementAndGet();
+          super.onFillable();
+        }
+      }
+;
+    }
+  }
+;
+  server.addConnector(connector);
+  connector.setPort(0);
+  server.setHandler(handler);
+  server.start();
+}

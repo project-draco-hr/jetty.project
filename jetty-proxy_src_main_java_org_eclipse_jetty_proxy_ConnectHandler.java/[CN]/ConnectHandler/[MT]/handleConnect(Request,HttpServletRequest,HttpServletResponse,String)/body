@@ -1,0 +1,39 @@
+{
+  boolean proceed=handleAuthentication(request,response,serverAddress);
+  if (!proceed)   return;
+  String host=serverAddress;
+  int port=80;
+  int colon=serverAddress.indexOf(':');
+  if (colon > 0) {
+    host=serverAddress.substring(0,colon);
+    port=Integer.parseInt(serverAddress.substring(colon + 1));
+  }
+  if (!validateDestination(host)) {
+    LOG.info("ProxyHandler: Forbidden destination " + host);
+    response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+    baseRequest.setHandled(true);
+    return;
+  }
+  SocketChannel channel;
+  try {
+    channel=connectToServer(request,host,port);
+  }
+ catch (  SocketException se) {
+    LOG.info("ConnectHandler: SocketException " + se.getMessage());
+    response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+    baseRequest.setHandled(true);
+    return;
+  }
+catch (  SocketTimeoutException ste) {
+    LOG.info("ConnectHandler: SocketTimeoutException" + ste.getMessage());
+    response.setStatus(HttpServletResponse.SC_GATEWAY_TIMEOUT);
+    baseRequest.setHandled(true);
+    return;
+  }
+catch (  IOException ioe) {
+    LOG.info("ConnectHandler: IOException" + ioe.getMessage());
+    response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+    baseRequest.setHandled(true);
+    return;
+  }
+}

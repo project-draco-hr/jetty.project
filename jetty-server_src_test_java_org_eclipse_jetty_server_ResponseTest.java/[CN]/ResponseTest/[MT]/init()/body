@@ -1,11 +1,10 @@
 {
-  _timer=new Timer(true);
   _server=new Server();
   _connector=new LocalHttpConnector();
   _server.addConnector(_connector);
   _server.setHandler(new DumpHandler());
   _server.start();
-  AsyncByteArrayEndPoint endp=new AsyncByteArrayEndPoint(_timer);
+  AsyncByteArrayEndPoint endp=new AsyncByteArrayEndPoint();
   HttpInput input=new HttpInput();
   AsyncConnection connection=new AbstractAsyncConnection(endp,new Executor(){
     @Override public void execute(    Runnable command){
@@ -37,6 +36,7 @@
       return 0;
     }
     @Override protected void flushResponse() throws IOException {
+      if (!_channel.getResponse().isCommitted())       _channel.getResponse().commit();
     }
     @Override protected void execute(    Runnable task){
     }

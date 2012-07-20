@@ -1,6 +1,6 @@
 {
   Server server=new Server();
-  Connector connector=new SelectChannelConnector();
+  SelectChannelConnector connector=new SelectChannelConnector();
   connector.setPort(Integer.getInteger("jetty.port",8080).intValue());
   server.setConnectors(new Connector[]{connector});
   String war=args.length > 0 ? args[0] : "../test-jetty-webapp/target/test-jetty-webapp-" + Server.getVersion();
@@ -9,6 +9,12 @@
   WebAppContext webapp=new WebAppContext();
   webapp.setContextPath(path);
   webapp.setWar(war);
+  if (war.contains("test-jetty-webapp")) {
+    org.eclipse.jetty.security.HashLoginService loginService=new org.eclipse.jetty.security.HashLoginService();
+    loginService.setName("Test Realm");
+    loginService.setConfig("src/test/resources/realm.properties");
+    webapp.getSecurityHandler().setLoginService(loginService);
+  }
   server.setHandler(webapp);
   server.start();
   server.join();

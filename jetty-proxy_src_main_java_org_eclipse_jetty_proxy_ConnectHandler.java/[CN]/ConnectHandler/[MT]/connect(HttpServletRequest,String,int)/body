@@ -1,0 +1,23 @@
+{
+  SocketChannel channel=SocketChannel.open();
+  if (channel == null) {
+    throw new IOException("unable to connect to " + host + ":"+ port);
+  }
+  try {
+    LOG.debug("Establishing connection to {}:{}",host,port);
+    channel.socket().setTcpNoDelay(true);
+    channel.socket().connect(new InetSocketAddress(host,port),getConnectTimeout());
+    LOG.debug("Established connection to {}:{}",host,port);
+    return channel;
+  }
+ catch (  IOException x) {
+    LOG.debug("Failed to establish connection to " + host + ":"+ port,x);
+    try {
+      channel.close();
+    }
+ catch (    IOException xx) {
+      LOG.ignore(xx);
+    }
+    throw x;
+  }
+}

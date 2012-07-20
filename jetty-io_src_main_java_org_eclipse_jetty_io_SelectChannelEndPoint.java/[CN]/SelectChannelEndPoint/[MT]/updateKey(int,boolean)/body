@@ -1,0 +1,16 @@
+{
+  int oldInterestOps=_interestOps;
+  int newInterestOps;
+  if (add)   newInterestOps=oldInterestOps | operation;
+ else   newInterestOps=oldInterestOps & ~operation;
+  if (isInputShutdown())   newInterestOps&=~SelectionKey.OP_READ;
+  if (isOutputShutdown())   newInterestOps&=~SelectionKey.OP_WRITE;
+  if (newInterestOps != oldInterestOps) {
+    _interestOps=newInterestOps;
+    LOG.debug("Key update {} -> {} for {}",oldInterestOps,newInterestOps,this);
+    _selector.submit(this);
+  }
+ else {
+    LOG.debug("Ignoring key update {} -> {} for {}",oldInterestOps,newInterestOps,this);
+  }
+}
