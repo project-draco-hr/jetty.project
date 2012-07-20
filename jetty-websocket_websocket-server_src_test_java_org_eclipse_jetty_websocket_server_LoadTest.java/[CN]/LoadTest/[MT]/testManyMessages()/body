@@ -1,0 +1,16 @@
+{
+  ExecutorService threadPool=Executors.newCachedThreadPool();
+  BlockheadClient client=new BlockheadClient(server.getServerUri());
+  try {
+    client.connect();
+    client.sendStandardRequest();
+    client.expectUpgradeResponse();
+    int iterations=2000;
+    LoadSocket.count.set(0);
+    threadPool.execute(new TextGen(client,iterations));
+    client.readFrames(iterations,TimeUnit.SECONDS,10);
+  }
+  finally {
+    client.close(StatusCode.NORMAL,"All Done");
+  }
+}
