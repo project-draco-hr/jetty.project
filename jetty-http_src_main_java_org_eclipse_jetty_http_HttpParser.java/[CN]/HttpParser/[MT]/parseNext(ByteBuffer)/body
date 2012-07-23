@@ -26,7 +26,7 @@ if (!Character.isWhitespace((char)b) || count++ > 4) {
 buffer.position(buffer.position() - 1);
 String chars=BufferUtil.toDetailString(buffer);
 BufferUtil.clear(buffer);
-throw new IOException(this + " Extra data after oshut: " + chars);
+throw new EofException(this + " Extra data after oshut: " + chars);
 }
 }
 return false;
@@ -139,13 +139,21 @@ break;
 }
 return false;
 }
- catch (Exception e) {
+ catch (EofException e) {
+LOG.debug(e);
+BufferUtil.clear(buffer);
+return false;
+}
+catch (Exception e) {
+BufferUtil.clear(buffer);
 if (isClosed()) {
 LOG.debug(e);
 throw new IllegalStateException(e);
 }
-LOG.warn(e);
+LOG.warn("badMessage: " + e.toString() + " for "+ _handler);
+LOG.debug(e);
 _handler.badMessage(400,e.toString());
+BufferUtil.clear(buffer);
 return true;
 }
 }
