@@ -1,0 +1,49 @@
+{
+  if (bundle == null)   return false;
+  ClassLoader cl=Thread.currentThread().getContextClassLoader();
+  Thread.currentThread().setContextClassLoader(getServerInstanceWrapper().getParentClassLoaderForWebapps());
+  String contextPath=null;
+  try {
+    Dictionary headers=bundle.getHeaders();
+    if (headers.get(OSGiWebappConstants.JETTY_WAR_FOLDER_PATH) != null) {
+      String base=(String)headers.get(OSGiWebappConstants.JETTY_WAR_FOLDER_PATH);
+      contextPath=getContextPath(bundle);
+      String originId=getOriginId(bundle,base);
+      OSGiApp app=new OSGiApp(getDeploymentManager(),this,bundle,originId);
+      app.setWebAppPath(base);
+      app.setContextPath(contextPath);
+      _bundleMap.put(bundle,app);
+      getDeploymentManager().addApp(app);
+      return true;
+    }
+    if (bundle.getEntry("/WEB-INF/web.xml") != null) {
+      String base=".";
+      contextPath=getContextPath(bundle);
+      String originId=getOriginId(bundle,base);
+      OSGiApp app=new OSGiApp(getDeploymentManager(),this,bundle,originId);
+      app.setContextPath(contextPath);
+      app.setWebAppPath(base);
+      _bundleMap.put(bundle,app);
+      getDeploymentManager().addApp(app);
+      return true;
+    }
+    if (headers.get(OSGiWebappConstants.RFC66_WEB_CONTEXTPATH) != null) {
+      String base=".";
+      contextPath=(String)headers.get(OSGiWebappConstants.RFC66_WEB_CONTEXTPATH);
+      String originId=getOriginId(bundle,base);
+      OSGiApp app=new OSGiApp(getDeploymentManager(),this,bundle,originId);
+      app.setContextPath(contextPath);
+      app.setWebAppPath(base);
+      _bundleMap.put(bundle,app);
+      getDeploymentManager().addApp(app);
+      return true;
+    }
+    return false;
+  }
+ catch (  Exception e) {
+    throw e;
+  }
+ finally {
+    Thread.currentThread().setContextClassLoader(cl);
+  }
+}

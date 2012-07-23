@@ -1,0 +1,39 @@
+{
+  Map<String,Bundle> bundlesIndexedBySymbolicName=new HashMap<String,Bundle>();
+  for (  Bundle b : bundleContext.getBundles()) {
+    bundlesIndexedBySymbolicName.put(b.getSymbolicName(),b);
+    System.err.println("Got " + b.getSymbolicName() + " "+ b.getVersion().toString()+ " "+ b.getState());
+  }
+  Bundle osgiBoot=bundlesIndexedBySymbolicName.get("org.eclipse.jetty.osgi.boot");
+  Assert.assertNotNull("Could not find the org.eclipse.jetty.osgi.boot bundle",osgiBoot);
+  Assert.assertTrue(osgiBoot.getState() == Bundle.ACTIVE);
+  Bundle testWebBundle=bundlesIndexedBySymbolicName.get("org.eclipse.jetty.osgi.testcontext");
+  Assert.assertNotNull("Could not find the org.eclipse.jetty.test-jetty-osgi-context.jar bundle",testWebBundle);
+  Assert.assertTrue("The bundle org.eclipse.jetty.testcontext is not correctly resolved",testWebBundle.getState() == Bundle.ACTIVE);
+  HttpClient client=new HttpClient();
+  client.setConnectorType(HttpClient.CONNECTOR_SELECT_CHANNEL);
+  try {
+    client.start();
+    ContentExchange getExchange=new ContentExchange();
+    getExchange.setURL("http://127.0.0.1:9876/acme/index.html");
+    getExchange.setMethod(HttpMethods.GET);
+    client.send(getExchange);
+    int state=getExchange.waitForDone();
+    Assert.assertEquals("state should be done",HttpExchange.STATUS_COMPLETED,state);
+    String content=null;
+    int responseStatus=getExchange.getResponseStatus();
+    Assert.assertEquals(HttpStatus.OK_200,responseStatus);
+    if (responseStatus == HttpStatus.OK_200) {
+      content=getExchange.getResponseContent();
+    }
+    Assert.assertTrue(content.indexOf("<h1>Test OSGi Context</h1>") != -1);
+  }
+  finally {
+    client.stop();
+  }
+  ServiceReference[] refs=bundleContext.getServiceReferences(ContextHandler.class.getName(),null);
+  Assert.assertNotNull(refs);
+  Assert.assertEquals(1,refs.length);
+  ContextHandler ch=(ContextHandler)bundleContext.getService(refs[0]);
+  Assert.assertEquals("/acme",ch.getContextPath());
+}
