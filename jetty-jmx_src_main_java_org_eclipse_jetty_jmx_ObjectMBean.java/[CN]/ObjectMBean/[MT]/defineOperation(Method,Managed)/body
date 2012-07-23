@@ -1,0 +1,36 @@
+{
+  String description=methodAnnotation.value();
+  boolean onMBean=methodAnnotation.proxied();
+  boolean convert=methodAnnotation.managed();
+  String impactName=methodAnnotation.impact();
+  String signature=method.getName();
+  LOG.debug("defineOperation " + method.getName() + " "+ onMBean+ ":"+ impactName+ ":"+ description);
+  try {
+    int impact=MBeanOperationInfo.UNKNOWN;
+    if (impactName == null || impactName.equals("UNKNOWN"))     impact=MBeanOperationInfo.UNKNOWN;
+ else     if (impactName.equals("ACTION"))     impact=MBeanOperationInfo.ACTION;
+ else     if (impactName.equals("INFO"))     impact=MBeanOperationInfo.INFO;
+ else     if (impactName.equals("ACTION_INFO"))     impact=MBeanOperationInfo.ACTION_INFO;
+ else     LOG.warn("Unknown impact '" + impactName + "' for "+ signature);
+    Annotation[][] allParameterAnnotations=method.getParameterAnnotations();
+    Class<?>[] methodTypes=method.getParameterTypes();
+    MBeanParameterInfo[] pInfo=new MBeanParameterInfo[allParameterAnnotations.length];
+    for (int i=0; i < allParameterAnnotations.length; ++i) {
+      Annotation[] parameterAnnotations=allParameterAnnotations[i];
+      for (      Annotation anno : parameterAnnotations) {
+        if (anno instanceof Name) {
+          Name nameAnnotation=(Name)anno;
+          pInfo[i]=new MBeanParameterInfo(nameAnnotation.value(),methodTypes[i].getName(),nameAnnotation.description());
+        }
+      }
+    }
+    Class returnClass=method.getReturnType();
+    _methods.put(signature,method);
+    if (convert)     _convert.add(signature);
+    return new MBeanOperationInfo(method.getName(),description,pInfo,returnClass.isPrimitive() ? TypeUtil.toName(returnClass) : (returnClass.getName()),impact);
+  }
+ catch (  Exception e) {
+    LOG.warn("Operation '" + signature + "'",e);
+    throw new IllegalArgumentException(e.toString());
+  }
+}
