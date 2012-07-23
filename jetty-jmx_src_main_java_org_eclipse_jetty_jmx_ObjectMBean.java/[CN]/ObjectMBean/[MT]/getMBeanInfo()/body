@@ -6,38 +6,38 @@
       Object constructors=null;
       Object operations=null;
       Object notifications=null;
-      Class o_class=_managed.getClass();
+      Class<?> o_class=_managed.getClass();
       Object influences=findInfluences(null,_managed.getClass());
       LOG.debug("Influence Count: " + LazyList.size(influences));
-      Set defined=new HashSet();
+      Managed primary=o_class.getAnnotation(Managed.class);
+      desc=primary.value();
       for (int i=0; i < LazyList.size(influences); i++) {
-        Class oClass=(Class)LazyList.get(influences,i);
-        LOG.debug("Influence: " + oClass.getCanonicalName());
-        if (Object.class.equals(oClass))         oClass=ObjectMBean.class;
-        String pName=oClass.getPackage().getName();
-        String cName=oClass.getName().substring(pName.length() + 1);
-        String rName=pName.replace('.','/') + "/jmx/" + cName+ "-mbean";
+        Class<?> oClass=(Class<?>)LazyList.get(influences,i);
+        Managed typeAnnotation=oClass.getAnnotation(Managed.class);
+        LOG.debug("Influenced by: " + oClass.getCanonicalName());
+        if (typeAnnotation == null) {
+          LOG.debug("Annotations not found for: " + oClass.getCanonicalName());
+          continue;
+        }
         try {
-          LOG.debug(rName);
-          ResourceBundle bundle=Loader.getResourceBundle(o_class,rName,true,Locale.getDefault());
-          Enumeration e=bundle.getKeys();
-          while (e.hasMoreElements()) {
-            String key=(String)e.nextElement();
-            String value=bundle.getString(key);
-            if (key.equals(cName)) {
-              if (desc == null)               desc=value;
+          for (          Field field : oClass.getDeclaredFields()) {
+            LOG.debug("Checking: " + field.getName());
+            Managed fieldAnnotation=field.getAnnotation(Managed.class);
+            if (fieldAnnotation != null) {
+              LOG.debug("Field Annotation found for: " + field.getName());
+              attributes=LazyList.add(attributes,defineAttribute(field.getName(),fieldAnnotation));
             }
- else             if (key.indexOf('(') > 0) {
-              if (!defined.contains(key) && key.indexOf('[') < 0) {
-                defined.add(key);
-                operations=LazyList.add(operations,defineOperation(key,value,bundle));
+          }
+          for (          Method method : oClass.getDeclaredMethods()) {
+            Managed methodAnnotation=method.getAnnotation(Managed.class);
+            if (methodAnnotation != null) {
+              if (methodAnnotation.attribute()) {
+                LOG.debug("Attribute Annotation found for: " + method.getName());
+                attributes=LazyList.add(attributes,defineAttribute(method.getName(),methodAnnotation));
               }
-            }
  else {
-              if (!defined.contains(key)) {
-                defined.add(key);
-                MBeanAttributeInfo info=defineAttribute(key,value);
-                if (info != null)                 attributes=LazyList.add(attributes,info);
+                LOG.debug("Method Annotation found for: " + method.getName());
+                operations=LazyList.add(operations,defineOperation(method,methodAnnotation));
               }
             }
           }
