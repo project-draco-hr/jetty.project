@@ -1,2 +1,20 @@
 {
+  if (frame.getOpCode().isControlFrame()) {
+    nextOutput(context,callback,frame);
+    return;
+  }
+  if (frame.getPayloadLength() < minLength) {
+    nextOutput(context,callback,frame);
+    return;
+  }
+  ByteBuffer data=frame.getPayload();
+  try {
+    ByteBuffer buf=deflate(data);
+    frame.setPayload(buf);
+    frame.setRsv1(deflater.finished());
+    nextOutput(context,callback,frame);
+  }
+  finally {
+    getBufferPool().release(data);
+  }
 }
