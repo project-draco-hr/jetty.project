@@ -51,7 +51,7 @@ synchronized (session) {
  else {
         String j_uri=(String)session.getAttribute(__J_URI);
         if (j_uri != null) {
-          MultiMap<String> j_post=(MultiMap<String>)session.getAttribute(__J_POST);
+          MultiMap j_post=(MultiMap)session.getAttribute(__J_POST);
           if (j_post != null) {
             StringBuffer buf=request.getRequestURL();
             if (request.getQueryString() != null)             buf.append("?").append(request.getQueryString());
@@ -67,7 +67,7 @@ synchronized (session) {
         return authentication;
       }
     }
-    if (_deferred.isDeferred(response))     return Authentication.UNAUTHENTICATED;
+    if (DeferredAuthentication.isDeferred(response))     return Authentication.UNAUTHENTICATED;
 synchronized (session) {
       if (session.getAttribute(__J_URI) == null || _alwaysSaveUri) {
         StringBuffer buf=request.getRequestURL();
@@ -76,7 +76,7 @@ synchronized (session) {
         if (MimeTypes.Type.FORM_ENCODED.is(req.getContentType()) && HttpMethod.POST.is(request.getMethod())) {
           Request base_request=(req instanceof Request) ? (Request)req : HttpChannel.getCurrentHttpChannel().getRequest();
           base_request.extractParameters();
-          session.setAttribute(__J_POST,new MultiMap<String>(base_request.getParameters()));
+          session.setAttribute(__J_POST,new MultiMap(base_request.getParameters()));
         }
       }
     }
@@ -91,10 +91,7 @@ synchronized (session) {
     }
     return Authentication.SEND_CONTINUE;
   }
- catch (  IOException e) {
-    throw new ServerAuthException(e);
-  }
-catch (  ServletException e) {
+ catch (  IOException|ServletException e) {
     throw new ServerAuthException(e);
   }
 }

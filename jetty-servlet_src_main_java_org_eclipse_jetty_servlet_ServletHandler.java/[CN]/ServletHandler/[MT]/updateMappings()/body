@@ -4,17 +4,17 @@
     _filterNameMappings=null;
   }
  else {
-    _filterPathMappings=new ArrayList();
+    _filterPathMappings=new ArrayList<>();
     _filterNameMappings=new MultiMap();
-    for (int i=0; i < _filterMappings.length; i++) {
-      FilterHolder filter_holder=(FilterHolder)_filterNameMap.get(_filterMappings[i].getFilterName());
-      if (filter_holder == null)       throw new IllegalStateException("No filter named " + _filterMappings[i].getFilterName());
-      _filterMappings[i].setFilterHolder(filter_holder);
-      if (_filterMappings[i].getPathSpecs() != null)       _filterPathMappings.add(_filterMappings[i]);
-      if (_filterMappings[i].getServletNames() != null) {
-        String[] names=_filterMappings[i].getServletNames();
-        for (int j=0; j < names.length; j++) {
-          if (names[j] != null)           _filterNameMappings.add(names[j],_filterMappings[i]);
+    for (    FilterMapping filtermapping : _filterMappings) {
+      FilterHolder filter_holder=_filterNameMap.get(filtermapping.getFilterName());
+      if (filter_holder == null)       throw new IllegalStateException("No filter named " + filtermapping.getFilterName());
+      filtermapping.setFilterHolder(filter_holder);
+      if (filtermapping.getPathSpecs() != null)       _filterPathMappings.add(filtermapping);
+      if (filtermapping.getServletNames() != null) {
+        String[] names=filtermapping.getServletNames();
+        for (        String name : names) {
+          if (name != null)           _filterNameMappings.add(name,filtermapping);
         }
       }
     }
@@ -23,13 +23,13 @@
     _servletPathMap=null;
   }
  else {
-    PathMap pm=new PathMap();
-    for (int i=0; i < _servletMappings.length; i++) {
-      ServletHolder servlet_holder=(ServletHolder)_servletNameMap.get(_servletMappings[i].getServletName());
-      if (servlet_holder == null)       throw new IllegalStateException("No such servlet: " + _servletMappings[i].getServletName());
- else       if (servlet_holder.isEnabled() && _servletMappings[i].getPathSpecs() != null) {
-        String[] pathSpecs=_servletMappings[i].getPathSpecs();
-        for (int j=0; j < pathSpecs.length; j++)         if (pathSpecs[j] != null)         pm.put(pathSpecs[j],servlet_holder);
+    PathMap<ServletHolder> pm=new PathMap<>();
+    for (    ServletMapping servletmapping : _servletMappings) {
+      ServletHolder servlet_holder=_servletNameMap.get(servletmapping.getServletName());
+      if (servlet_holder == null)       throw new IllegalStateException("No such servlet: " + servletmapping.getServletName());
+ else       if (servlet_holder.isEnabled() && servletmapping.getPathSpecs() != null) {
+        String[] pathSpecs=servletmapping.getPathSpecs();
+        for (        String pathSpec : pathSpecs)         if (pathSpec != null)         pm.put(pathSpec,servlet_holder);
       }
     }
     _servletPathMap=pm;
