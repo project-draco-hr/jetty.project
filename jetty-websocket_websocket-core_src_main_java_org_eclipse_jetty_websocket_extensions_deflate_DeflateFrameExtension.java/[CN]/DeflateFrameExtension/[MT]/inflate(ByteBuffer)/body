@@ -1,0 +1,28 @@
+{
+  if (LOG.isDebugEnabled()) {
+    LOG.debug("inflate: {}",BufferUtil.toDetailString(data));
+  }
+  int uncompressedLength=readUncompresseLength(data);
+  if (LOG.isDebugEnabled()) {
+    LOG.debug("uncompressedLength={}, data={}",uncompressedLength,BufferUtil.toDetailString(data));
+  }
+  byte compressed[]=BufferUtil.toArray(data);
+  inflater.reset();
+  inflater.setInput(compressed,0,compressed.length);
+  byte buf[]=new byte[uncompressedLength];
+  try {
+    int inflated=inflater.inflate(buf);
+    if (inflated == 0) {
+      throw new DataFormatException("Insufficient compressed data");
+    }
+    ByteBuffer ret=ByteBuffer.wrap(buf);
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("uncompressed={}",BufferUtil.toDetailString(ret));
+    }
+    return ret;
+  }
+ catch (  DataFormatException e) {
+    LOG.warn(e);
+    throw new BadPayloadException(e);
+  }
+}
