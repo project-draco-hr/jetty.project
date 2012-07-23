@@ -1,0 +1,20 @@
+{
+  URL url=null;
+  boolean tried_parent=false;
+  if (_parent != null && !_lookInOsgiFirst) {
+    tried_parent=true;
+    if (_parent != null)     url=_parent.getResource(name);
+  }
+  if (url == null) {
+    url=_osgiBundleClassLoader.getResource(name);
+    if (url == null && name.startsWith("/")) {
+      if (LOG.isDebugEnabled())       LOG.debug("HACK leading / off " + name);
+      url=_osgiBundleClassLoader.getResource(name.substring(1));
+    }
+  }
+  if (url == null && !tried_parent) {
+    if (_parent != null)     url=_parent.getResource(name);
+  }
+  if (url != null)   if (LOG.isDebugEnabled())   LOG.debug("getResource(" + name + ")="+ url);
+  return url;
+}

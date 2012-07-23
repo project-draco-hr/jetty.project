@@ -1,0 +1,20 @@
+{
+  if (_bundle == null)   return;
+  if (_webApp == null)   return;
+  ClassLoader cl=Thread.currentThread().getContextClassLoader();
+  LOG.debug("Context classloader = " + cl);
+  try {
+    Thread.currentThread().setContextClassLoader(_webApp.getClassLoader());
+    URL contextXmlUrl=_bundle.getEntry("/META-INF/jetty-webapp-context.xml");
+    if (contextXmlUrl == null)     return;
+    LOG.info("Applying " + contextXmlUrl + " to "+ _webApp);
+    XmlConfiguration xmlConfiguration=new XmlConfiguration(contextXmlUrl);
+    HashMap properties=new HashMap();
+    properties.put("Server",getDeploymentManager().getServer());
+    xmlConfiguration.getProperties().putAll(properties);
+    xmlConfiguration.configure(_webApp);
+  }
+  finally {
+    Thread.currentThread().setContextClassLoader(cl);
+  }
+}

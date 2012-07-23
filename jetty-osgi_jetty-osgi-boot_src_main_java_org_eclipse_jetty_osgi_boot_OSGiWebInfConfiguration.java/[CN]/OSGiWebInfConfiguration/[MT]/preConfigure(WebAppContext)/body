@@ -1,0 +1,28 @@
+{
+  super.preConfigure(context);
+  String tmp=(String)context.getAttribute(CONTAINER_BUNDLE_PATTERN);
+  Pattern pattern=(tmp == null ? null : Pattern.compile(tmp));
+  List<String> names=new ArrayList<String>();
+  tmp=System.getProperty("org.eclipse.jetty.osgi.tldbundles");
+  if (tmp != null) {
+    StringTokenizer tokenizer=new StringTokenizer(tmp,", \n\r\t",false);
+    while (tokenizer.hasMoreTokens())     names.add(tokenizer.nextToken());
+  }
+  HashSet<Resource> matchingResources=new HashSet<Resource>();
+  if (!names.isEmpty() || pattern != null) {
+    Bundle[] bundles=FrameworkUtil.getBundle(OSGiWebInfConfiguration.class).getBundleContext().getBundles();
+    for (    Bundle bundle : bundles) {
+      if (pattern != null) {
+        if (pattern.matcher(bundle.getSymbolicName()).matches()) {
+          matchingResources.addAll(getBundleAsResource(bundle));
+        }
+      }
+      if (names != null) {
+        if (names.contains(bundle.getSymbolicName()))         matchingResources.addAll(getBundleAsResource(bundle));
+      }
+    }
+  }
+  for (  Resource r : matchingResources) {
+    context.getMetaData().addContainerJar(r);
+  }
+}

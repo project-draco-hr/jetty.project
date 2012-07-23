@@ -1,0 +1,41 @@
+{
+  TreeMap<String,Resource> patchResourcesPath=new TreeMap<String,Resource>();
+  TreeMap<String,Resource> appendedResourcesPath=new TreeMap<String,Resource>();
+  Bundle bundle=(Bundle)context.getAttribute(OSGiWebappConstants.JETTY_OSGI_BUNDLE);
+  if (bundle != null) {
+    Bundle[] fragments=PackageAdminServiceTracker.INSTANCE.getFragmentsAndRequiredBundles(bundle);
+    if (fragments != null && fragments.length != 0) {
+      for (      Bundle frag : fragments) {
+        String fragFolder=(String)frag.getHeaders().get(OSGiWebappConstants.JETTY_WAR_FRAGMENT_FOLDER_PATH);
+        String patchFragFolder=(String)frag.getHeaders().get(OSGiWebappConstants.JETTY_WAR_PATCH_FRAGMENT_FOLDER_PATH);
+        if (fragFolder != null) {
+          URL fragUrl=frag.getEntry(fragFolder);
+          if (fragUrl == null) {
+            throw new IllegalArgumentException("Unable to locate " + fragFolder + " inside "+ " the fragment '"+ frag.getSymbolicName()+ "'");
+          }
+          fragUrl=BundleFileLocatorHelperFactory.getFactory().getHelper().getLocalURL(fragUrl);
+          String key=fragFolder.startsWith("/") ? fragFolder.substring(1) : fragFolder;
+          appendedResourcesPath.put(key + ";" + frag.getSymbolicName(),Resource.newResource(fragUrl));
+        }
+        if (patchFragFolder != null) {
+          URL patchFragUrl=frag.getEntry(patchFragFolder);
+          if (patchFragUrl == null) {
+            throw new IllegalArgumentException("Unable to locate " + patchFragUrl + " inside fragment '"+ frag.getSymbolicName()+ "'");
+          }
+          patchFragUrl=BundleFileLocatorHelperFactory.getFactory().getHelper().getLocalURL(patchFragUrl);
+          String key=patchFragFolder.startsWith("/") ? patchFragFolder.substring(1) : patchFragFolder;
+          patchResourcesPath.put(key + ";" + frag.getSymbolicName(),Resource.newResource(patchFragUrl));
+        }
+      }
+      if (!appendedResourcesPath.isEmpty())       context.setAttribute(WebInfConfiguration.RESOURCE_URLS,new ArrayList<Resource>(appendedResourcesPath.values()));
+    }
+  }
+  super.configure(context);
+  if (!patchResourcesPath.isEmpty()) {
+    Resource[] resources=new Resource[1 + patchResourcesPath.size()];
+    ResourceCollection mergedResources=new ResourceCollection(patchResourcesPath.values().toArray(new Resource[patchResourcesPath.size()]));
+    System.arraycopy(patchResourcesPath.values().toArray(new Resource[patchResourcesPath.size()]),0,resources,0,patchResourcesPath.size());
+    resources[resources.length - 1]=context.getBaseResource();
+    context.setBaseResource(new ResourceCollection(resources));
+  }
+}
