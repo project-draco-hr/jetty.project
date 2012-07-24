@@ -1,0 +1,52 @@
+{
+  OutgoingFramesCapture capture=new OutgoingFramesCapture();
+  FragmentExtension ext=new FragmentExtension();
+  ext.setBufferPool(new StandardByteBufferPool());
+  ext.setPolicy(WebSocketPolicy.newServerPolicy());
+  ExtensionConfig config=ExtensionConfig.parse("fragment;maxLength=20");
+  ext.setConfig(config);
+  ext.setNextOutgoingFrames(capture);
+  List<String> quote=new ArrayList<>();
+  quote.add("No amount of experimentation can ever prove me right;");
+  quote.add("a single experiment can prove me wrong.");
+  quote.add("-- Albert Einstein");
+  List<Callback<String>> callbacks=new ArrayList<>();
+  for (  String section : quote) {
+    WebSocketFrame frame=WebSocketFrame.text(section);
+    FutureCallback<String> callback=new FutureCallback<>();
+    ext.output("Q" + (callbacks.size()),callback,frame);
+    callbacks.add(callback);
+  }
+  ExpectedWrites expectedWrites=new ExpectedWrites();
+  expectedWrites.add(null,null).frame=new WebSocketFrame(OpCode.TEXT).setPayload("No amount of experim").setFin(false);
+  expectedWrites.add(null,null).frame=new WebSocketFrame(OpCode.CONTINUATION).setPayload("entation can ever pr").setFin(false);
+  expectedWrites.add("Q0",callbacks.get(0)).frame=new WebSocketFrame(OpCode.CONTINUATION).setPayload("ove me right;").setFin(true);
+  expectedWrites.add(null,null).frame=new WebSocketFrame(OpCode.TEXT).setPayload("a single experiment ").setFin(false);
+  expectedWrites.add("Q1",callbacks.get(1)).frame=new WebSocketFrame(OpCode.CONTINUATION).setPayload("can prove me wrong.").setFin(true);
+  expectedWrites.add("Q2",callbacks.get(2)).frame=new WebSocketFrame(OpCode.TEXT).setPayload("-- Albert Einstein").setFin(true);
+  int len=expectedWrites.size();
+  capture.assertFrameCount(len);
+  String prefix;
+  LinkedList<Write<?>> writes=capture.getWrites();
+  for (int i=0; i < len; i++) {
+    prefix="Write[" + i + "]";
+    Write<?> actualWrite=writes.get(i);
+    Write<String> expectedWrite=expectedWrites.get(i);
+    if (expectedWrite.context != null) {
+      Assert.assertThat(prefix + ".context",(String)actualWrite.context,is(expectedWrite.context));
+      Assert.assertSame(prefix + ".callback",expectedWrite.callback,actualWrite.callback);
+    }
+    WebSocketFrame actualFrame=actualWrite.frame;
+    WebSocketFrame expectedFrame=expectedWrite.frame;
+    prefix+=".frame";
+    Assert.assertThat(prefix + ".opcode",actualFrame.getOpCode(),is(expectedFrame.getOpCode()));
+    Assert.assertThat(prefix + ".fin",actualFrame.isFin(),is(expectedFrame.isFin()));
+    Assert.assertThat(prefix + ".rsv1",actualFrame.isRsv1(),is(expectedFrame.isRsv1()));
+    Assert.assertThat(prefix + ".rsv2",actualFrame.isRsv2(),is(expectedFrame.isRsv2()));
+    Assert.assertThat(prefix + ".rsv3",actualFrame.isRsv3(),is(expectedFrame.isRsv3()));
+    ByteBuffer expectedData=expectedFrame.getPayload().slice();
+    ByteBuffer actualData=actualFrame.getPayload().slice();
+    Assert.assertThat(prefix + ".payloadLength",actualData.remaining(),is(expectedData.remaining()));
+    ByteBufferAssert.assertEquals(prefix + ".payload",expectedData,actualData);
+  }
+}
