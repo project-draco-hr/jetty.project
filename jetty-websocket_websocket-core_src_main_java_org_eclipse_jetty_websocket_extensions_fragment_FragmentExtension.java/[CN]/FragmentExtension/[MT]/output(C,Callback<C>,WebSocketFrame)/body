@@ -3,51 +3,31 @@
     nextOutput(context,callback,frame);
     return;
   }
-  int fragments=1;
   int length=frame.getPayloadLength();
   OpCode opcode=frame.getOpCode();
   ByteBuffer payload=frame.getPayload().slice();
   int originalLimit=payload.limit();
   int currentPosition=payload.position();
-  if (maxLength > 0) {
-    while (length > maxLength) {
-      fragments++;
-      WebSocketFrame frag=new WebSocketFrame(frame);
-      frag.setOpCode(opcode);
-      frag.setFin(false);
-      payload.position(currentPosition);
-      payload.limit(Math.min(payload.position() + maxLength,originalLimit));
-      frag.setPayload(payload);
-      nextOutputNoCallback(frag);
-      length-=maxLength;
-      opcode=OpCode.CONTINUATION;
-      currentPosition=payload.limit();
-    }
-    WebSocketFrame frag=new WebSocketFrame(frame);
-    frag.setOpCode(opcode);
-    frag.setFin(frame.isFin());
-    payload.position(currentPosition);
-    payload.limit(originalLimit);
-    frag.setPayload(payload);
-    nextOutput(context,callback,frag);
+  if (maxLength <= 0) {
+    nextOutput(context,callback,frame);
     return;
   }
-  if (fragments < minFragments) {
-    int fragmentsLeft=(minFragments - fragments);
-    int fragLength=length / fragmentsLeft;
-    while (fragments < minFragments) {
-      fragments++;
-      WebSocketFrame frag=new WebSocketFrame(frame);
-      frag.setOpCode(opcode);
-      frag.setFin(false);
-      frag.setPayload(payload);
-      nextOutputNoCallback(frag);
-      length-=fragLength;
-      opcode=OpCode.CONTINUATION;
-    }
+  while (length > maxLength) {
+    WebSocketFrame frag=new WebSocketFrame(frame);
+    frag.setOpCode(opcode);
+    frag.setFin(false);
+    payload.position(currentPosition);
+    payload.limit(Math.min(payload.position() + maxLength,originalLimit));
+    frag.setPayload(payload);
+    nextOutputNoCallback(frag);
+    length-=maxLength;
+    opcode=OpCode.CONTINUATION;
+    currentPosition=payload.limit();
   }
   WebSocketFrame frag=new WebSocketFrame(frame);
   frag.setOpCode(opcode);
+  frag.setFin(frame.isFin());
+  payload.position(currentPosition);
   payload.limit(originalLimit);
   frag.setPayload(payload);
   nextOutput(context,callback,frag);
