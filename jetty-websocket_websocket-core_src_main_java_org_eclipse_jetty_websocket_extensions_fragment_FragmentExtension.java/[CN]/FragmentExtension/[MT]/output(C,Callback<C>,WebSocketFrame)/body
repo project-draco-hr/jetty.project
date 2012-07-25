@@ -12,21 +12,25 @@
     nextOutput(context,callback,frame);
     return;
   }
+  boolean continuation=false;
   while (length > maxLength) {
     WebSocketFrame frag=new WebSocketFrame(frame);
     frag.setOpCode(opcode);
     frag.setFin(false);
+    frag.setContinuation(continuation);
     payload.position(currentPosition);
     payload.limit(Math.min(payload.position() + maxLength,originalLimit));
     frag.setPayload(payload);
     nextOutputNoCallback(frag);
     length-=maxLength;
     opcode=OpCode.CONTINUATION;
+    continuation=true;
     currentPosition=payload.limit();
   }
   WebSocketFrame frag=new WebSocketFrame(frame);
   frag.setOpCode(opcode);
   frag.setFin(frame.isFin());
+  frag.setContinuation(continuation);
   payload.position(currentPosition);
   payload.limit(originalLimit);
   frag.setPayload(payload);

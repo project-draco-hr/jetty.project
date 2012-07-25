@@ -1,7 +1,39 @@
 {
   String respHeader=readResponseHeader();
+  if (LOG.isDebugEnabled()) {
+    LOG.debug("Response Header: {}{}",'\n',respHeader);
+  }
   Assert.assertThat("Response Code",respHeader,startsWith("HTTP/1.1 101 Switching Protocols"));
   Assert.assertThat("Response Header Upgrade",respHeader,containsString("Upgrade: WebSocket\r\n"));
   Assert.assertThat("Response Header Connection",respHeader,containsString("Connection: Upgrade\r\n"));
+  List<Extension> extensions=getExtensions(respHeader);
+  incoming=this;
+  outgoing=this;
+  if (extensions != null) {
+    Iterator<Extension> extIter;
+    extIter=extensions.iterator();
+    while (extIter.hasNext()) {
+      Extension ext=extIter.next();
+      ext.setNextOutgoingFrames(outgoing);
+      outgoing=ext;
+      if (ext.useRsv1()) {
+        generator.setRsv1InUse(true);
+      }
+      if (ext.useRsv2()) {
+        generator.setRsv2InUse(true);
+      }
+      if (ext.useRsv3()) {
+        generator.setRsv3InUse(true);
+      }
+    }
+    Collections.reverse(extensions);
+    extIter=extensions.iterator();
+    while (extIter.hasNext()) {
+      Extension ext=extIter.next();
+      ext.setNextIncomingFrames(incoming);
+      incoming=ext;
+    }
+  }
+  parser.setIncomingFramesHandler(incoming);
   return respHeader;
 }

@@ -1,7 +1,8 @@
 {
+  int fragSize=4;
   BlockheadClient client=new BlockheadClient(server.getServerUri());
   client.clearExtensions();
-  client.addExtensions("fragment;maxLength=4;minFragments=7");
+  client.addExtensions("fragment;maxLength=" + fragSize);
   client.setProtocols("onConnect");
   try {
     client.setTimeout(TimeUnit.SECONDS,1);
@@ -11,9 +12,12 @@
     Assert.assertThat("Response",resp,containsString("fragment"));
     String msg="Sent as a long message that should be split";
     client.write(WebSocketFrame.text(msg));
-    Queue<WebSocketFrame> frames=client.readFrames(1,TimeUnit.MILLISECONDS,1000);
-    WebSocketFrame frame=frames.remove();
-    Assert.assertThat("TEXT.payload",frame.getPayloadAsUTF8(),is(msg));
+    String parts[]=split(msg,fragSize);
+    Queue<WebSocketFrame> frames=client.readFrames(parts.length,TimeUnit.MILLISECONDS,1000);
+    for (int i=0; i < parts.length; i++) {
+      WebSocketFrame frame=frames.remove();
+      Assert.assertThat("text[" + i + "].payload",frame.getPayloadAsUTF8(),is(parts[i]));
+    }
   }
   finally {
     client.close();
