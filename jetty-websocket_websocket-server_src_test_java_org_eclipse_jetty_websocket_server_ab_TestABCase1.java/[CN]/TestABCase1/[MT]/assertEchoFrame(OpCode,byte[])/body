@@ -1,0 +1,24 @@
+{
+  BlockheadClient client=new BlockheadClient(server.getServerUri());
+  try {
+    client.connect();
+    client.sendStandardRequest();
+    client.expectUpgradeResponse();
+    ByteBuffer buf=ByteBuffer.allocate(payload.length + Generator.OVERHEAD);
+    BufferUtil.clearToFill(buf);
+    buf.put((byte)(0x00 | FIN | opcode.getCode()));
+    putPayloadLength(buf,payload.length);
+    putMask(buf);
+    buf.put(masked(payload));
+    BufferUtil.flipToFlush(buf,0);
+    client.writeRaw(buf);
+    Queue<WebSocketFrame> frames=client.readFrames(1,TimeUnit.MILLISECONDS,500);
+    WebSocketFrame frame=frames.remove();
+    Assert.assertThat("frame should be " + opcode + " frame",frame.getOpCode(),is(opcode));
+    Assert.assertThat(opcode + ".payloadLength",frame.getPayloadLength(),is(payload.length));
+    ByteBufferAssert.assertEquals(opcode + ".payload",payload,frame.getPayload());
+  }
+  finally {
+    client.close();
+  }
+}

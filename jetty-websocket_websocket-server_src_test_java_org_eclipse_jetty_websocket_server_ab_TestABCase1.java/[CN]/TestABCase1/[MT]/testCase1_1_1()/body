@@ -1,22 +1,3 @@
 {
-  BlockheadClient client=new BlockheadClient(server.getServerUri());
-  try {
-    client.connect();
-    client.sendStandardRequest();
-    client.expectUpgradeResponse();
-    ByteBuffer buf=ByteBuffer.allocate(16);
-    BufferUtil.clearToFill(buf);
-    buf.put((byte)(0x00 | FIN | OpCode.TEXT.getCode()));
-    putPayloadLength(buf,0);
-    putMask(buf);
-    BufferUtil.flipToFlush(buf,0);
-    client.writeRaw(buf);
-    Queue<WebSocketFrame> frames=client.readFrames(1,TimeUnit.MILLISECONDS,500);
-    WebSocketFrame frame=frames.remove();
-    Assert.assertThat("frame should be TEXT frame",frame.getOpCode(),is(OpCode.TEXT));
-    Assert.assertThat("Text.payloadLength",frame.getPayloadLength(),is(0));
-  }
-  finally {
-    client.close();
-  }
+  assertEchoEmptyFrame(OpCode.TEXT);
 }
