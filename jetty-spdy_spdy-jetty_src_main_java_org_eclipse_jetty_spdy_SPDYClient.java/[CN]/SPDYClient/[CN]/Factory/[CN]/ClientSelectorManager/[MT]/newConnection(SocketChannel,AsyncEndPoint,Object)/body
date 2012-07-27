@@ -11,30 +11,11 @@
         }
       }
 ;
-      endPoint.setAsyncConnection(sslConnection);
-      final AsyncEndPoint sslEndPoint=sslConnection.getSslEndPoint();
-      NextProtoNego.put(engine,new NextProtoNego.ClientProvider(){
-        @Override public boolean supports(){
-          return true;
-        }
-        @Override public void unsupported(){
-          ClientSPDYAsyncConnectionFactory connectionFactory=new ClientSPDYAsyncConnectionFactory();
-          AsyncConnection connection=connectionFactory.newAsyncConnection(channel,sslEndPoint,attachment);
-          sslEndPoint.setAsyncConnection(connection);
-        }
-        @Override public String selectProtocol(        List<String> protocols){
-          String protocol=client.selectProtocol(protocols);
-          if (protocol == null)           return null;
-          AsyncConnectionFactory connectionFactory=client.getAsyncConnectionFactory(protocol);
-          AsyncConnection connection=connectionFactory.newAsyncConnection(channel,sslEndPoint,attachment);
-          sslEndPoint.setAsyncConnection(connection);
-          return protocol;
-        }
-      }
-);
-      AsyncConnection connection=new EmptyAsyncConnection(sslEndPoint);
+      AsyncEndPoint sslEndPoint=sslConnection.getSslEndPoint();
+      NextProtoNegoClientAsyncConnection connection=new NextProtoNegoClientAsyncConnection(channel,sslEndPoint,attachment,client.factory.threadPool,client);
       sslEndPoint.setAsyncConnection(connection);
-      startHandshake(engine);
+      connectionOpened(connection);
+      NextProtoNego.put(engine,connection);
       return sslConnection;
     }
  else {

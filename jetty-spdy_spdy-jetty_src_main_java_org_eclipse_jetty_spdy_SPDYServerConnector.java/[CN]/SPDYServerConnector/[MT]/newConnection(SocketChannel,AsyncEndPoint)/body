@@ -1,34 +1,19 @@
 {
   if (sslContextFactory != null) {
     final SSLEngine engine=newSSLEngine(sslContextFactory,channel);
-    SslConnection sslConnection=new SslConnection(bufferPool,findExecutor(),endPoint,engine){
+    Executor executor=findExecutor();
+    SslConnection sslConnection=new SslConnection(bufferPool,executor,endPoint,engine){
       @Override public void onClose(){
         NextProtoNego.remove(engine);
         super.onClose();
       }
     }
 ;
-    endPoint.setAsyncConnection(sslConnection);
     final AsyncEndPoint sslEndPoint=sslConnection.getSslEndPoint();
-    NextProtoNego.put(engine,new NextProtoNego.ServerProvider(){
-      @Override public void unsupported(){
-        AsyncConnectionFactory connectionFactory=getDefaultAsyncConnectionFactory();
-        AsyncConnection connection=connectionFactory.newAsyncConnection(channel,sslEndPoint,SPDYServerConnector.this);
-        sslEndPoint.setAsyncConnection(connection);
-      }
-      @Override public List<String> protocols(){
-        return provideProtocols();
-      }
-      @Override public void protocolSelected(      String protocol){
-        AsyncConnectionFactory connectionFactory=getAsyncConnectionFactory(protocol);
-        AsyncConnection connection=connectionFactory.newAsyncConnection(channel,sslEndPoint,SPDYServerConnector.this);
-        sslEndPoint.setAsyncConnection(connection);
-      }
-    }
-);
-    AsyncConnection connection=new EmptyAsyncConnection(sslEndPoint);
+    NextProtoNegoServerAsyncConnection connection=new NextProtoNegoServerAsyncConnection(channel,sslEndPoint,this);
     sslEndPoint.setAsyncConnection(connection);
-    startHandshake(engine);
+    getSelectorManager().connectionOpened(connection);
+    NextProtoNego.put(engine,connection);
     return sslConnection;
   }
  else {
