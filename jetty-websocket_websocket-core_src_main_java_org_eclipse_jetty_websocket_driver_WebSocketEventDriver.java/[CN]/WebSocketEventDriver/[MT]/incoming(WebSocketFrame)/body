@@ -3,7 +3,7 @@
     LOG.debug("{}.onFrame({})",websocket.getClass().getSimpleName(),frame);
   }
   if ((frame instanceof Frame) && (events.onFrame != null)) {
-    events.onFrame.call(websocket,connection,frame);
+    events.onFrame.call(websocket,session,frame);
   }
   try {
 switch (frame.getOpCode()) {
@@ -11,7 +11,7 @@ case CLOSE:
 {
         CloseInfo close=new CloseInfo(frame);
         if (events.onClose != null) {
-          events.onClose.call(websocket,connection,close.getStatusCode(),close.getReason());
+          events.onClose.call(websocket,session,close.getStatusCode(),close.getReason());
         }
         throw new CloseException(close.getStatusCode(),close.getReason());
       }
@@ -25,7 +25,7 @@ case PING:
         BufferUtil.flipToFlush(pongBuf,0);
         pong.setPayload(pongBuf);
       }
-      connection.output("pong",new FutureCallback<String>(),pong);
+      session.output("pong",new FutureCallback<String>(),pong);
       break;
     }
 case BINARY:
@@ -42,7 +42,7 @@ case BINARY:
       }
       activeStream.appendBuffer(frame.getPayload());
       if (needsNotification) {
-        events.onBinary.call(websocket,connection,activeStream);
+        events.onBinary.call(websocket,session,activeStream);
       }
       if (frame.isFin()) {
         activeStream.bufferComplete();
@@ -59,7 +59,7 @@ case BINARY:
         try {
           BufferUtil.flipToFlush(activeMessage,0);
           byte buf[]=BufferUtil.toArray(activeMessage);
-          events.onBinary.call(websocket,connection,buf,0,buf.length);
+          events.onBinary.call(websocket,session,buf,0,buf.length);
         }
   finally {
           bufferPool.release(activeMessage);
@@ -83,7 +83,7 @@ case TEXT:
     }
     activeStream.appendBuffer(frame.getPayload());
     if (needsNotification) {
-      events.onText.call(websocket,connection,activeStream);
+      events.onText.call(websocket,session,activeStream);
     }
     if (frame.isFin()) {
       activeStream.bufferComplete();
@@ -102,7 +102,7 @@ case TEXT:
         byte data[]=BufferUtil.toArray(activeMessage);
         Utf8StringBuilder utf=new Utf8StringBuilder();
         utf.append(data,0,data.length);
-        events.onText.call(websocket,connection,utf.toString());
+        events.onText.call(websocket,session,utf.toString());
       }
   finally {
         bufferPool.release(activeMessage);

@@ -20,11 +20,12 @@
   AsyncEndPoint endp=http.getEndPoint();
   Executor executor=http.getConnector().findExecutor();
   ByteBufferPool bufferPool=http.getConnector().getByteBufferPool();
-  WebSocketAsyncConnection connection=new WebSocketAsyncConnection(endp,executor,scheduler,websocket.getPolicy(),bufferPool);
+  WebSocketServerAsyncConnection connection=new WebSocketServerAsyncConnection(endp,executor,scheduler,websocket.getPolicy(),bufferPool,this);
   request.setAttribute(HttpConnection.UPGRADE_CONNECTION_ATTR,connection);
   LOG.debug("HttpConnection: {}",http);
   LOG.debug("AsyncWebSocketConnection: {}",connection);
   WebSocketSession session=new WebSocketSession(websocket,connection,getPolicy(),response.getAcceptedSubProtocol());
+  connection.setSession(session);
   List<Extension> extensions=initExtensions(request.getExtensions());
   IncomingFrames incoming=session;
   OutgoingFrames outgoing=connection;
@@ -57,9 +58,6 @@
   connection.getParser().setIncomingFramesHandler(incoming);
   LOG.debug("Handshake Response: {}",handshaker);
   handshaker.doHandshakeResponse(request,response);
-  addConnection(connection);
-  websocket.setConnection(session);
-  websocket.onConnect();
   LOG.debug("Websocket upgrade {} {} {} {}",request.getRequestURI(),version,response.getAcceptedSubProtocol(),connection);
   return true;
 }
