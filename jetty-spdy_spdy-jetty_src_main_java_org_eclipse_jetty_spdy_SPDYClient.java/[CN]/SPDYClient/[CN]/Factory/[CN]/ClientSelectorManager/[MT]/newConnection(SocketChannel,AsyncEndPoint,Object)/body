@@ -4,14 +4,14 @@
   try {
     if (sslContextFactory != null) {
       final SSLEngine engine=client.newSSLEngine(sslContextFactory,channel);
-      SslConnection sslConnection=new SslConnection(engine,endPoint){
+      SslConnection sslConnection=new SslConnection(bufferPool,threadPool,endPoint,engine){
         @Override public void onClose(){
           NextProtoNego.remove(engine);
           super.onClose();
         }
       }
 ;
-      endPoint.setConnection(sslConnection);
+      endPoint.setAsyncConnection(sslConnection);
       final AsyncEndPoint sslEndPoint=sslConnection.getSslEndPoint();
       NextProtoNego.put(engine,new NextProtoNego.ClientProvider(){
         @Override public boolean supports(){
@@ -20,27 +20,27 @@
         @Override public void unsupported(){
           ClientSPDYAsyncConnectionFactory connectionFactory=new ClientSPDYAsyncConnectionFactory();
           AsyncConnection connection=connectionFactory.newAsyncConnection(channel,sslEndPoint,attachment);
-          sslEndPoint.setConnection(connection);
+          sslEndPoint.setAsyncConnection(connection);
         }
         @Override public String selectProtocol(        List<String> protocols){
           String protocol=client.selectProtocol(protocols);
           if (protocol == null)           return null;
           AsyncConnectionFactory connectionFactory=client.getAsyncConnectionFactory(protocol);
           AsyncConnection connection=connectionFactory.newAsyncConnection(channel,sslEndPoint,attachment);
-          sslEndPoint.setConnection(connection);
+          sslEndPoint.setAsyncConnection(connection);
           return protocol;
         }
       }
 );
       AsyncConnection connection=new EmptyAsyncConnection(sslEndPoint);
-      sslEndPoint.setConnection(connection);
+      sslEndPoint.setAsyncConnection(connection);
       startHandshake(engine);
       return sslConnection;
     }
  else {
       AsyncConnectionFactory connectionFactory=new ClientSPDYAsyncConnectionFactory();
       AsyncConnection connection=connectionFactory.newAsyncConnection(channel,endPoint,attachment);
-      endPoint.setConnection(connection);
+      endPoint.setAsyncConnection(connection);
       return connection;
     }
   }

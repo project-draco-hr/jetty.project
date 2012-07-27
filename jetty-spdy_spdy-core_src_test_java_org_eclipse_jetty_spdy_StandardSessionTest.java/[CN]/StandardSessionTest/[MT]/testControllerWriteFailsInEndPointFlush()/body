@@ -4,14 +4,14 @@
   SynStreamFrame synStreamFrame=new SynStreamFrame(SPDY.V2,SynInfo.FLAG_CLOSE,1,0,(byte)0,(short)0,null);
   IStream stream=new StandardStream(synStreamFrame.getStreamId(),synStreamFrame.getPriority(),session,null);
   stream.updateWindowSize(8192);
-  Handler.Adapter<Void> handler=new Handler.Adapter<Void>(){
-    @Override public void failed(    Void context,    Throwable x){
+  Callback.Empty<Void> callback=new Callback.Empty(){
+    @Override public void failed(    Object context,    Throwable x){
       failedCalledLatch.countDown();
     }
   }
 ;
-  stream.data(new StringDataInfo("data",false),5,TimeUnit.SECONDS,handler);
-  stream.data(new StringDataInfo("data",false),5,TimeUnit.SECONDS,handler);
-  verify(controller,times(1)).write(any(ByteBuffer.class),any(Handler.class),any(FrameBytes.class));
-  assertThat("Handler.failed has been called twice",failedCalledLatch.await(5,TimeUnit.SECONDS),is(true));
+  stream.data(new StringDataInfo("data",false),5,TimeUnit.SECONDS,callback);
+  stream.data(new StringDataInfo("data",false),5,TimeUnit.SECONDS,callback);
+  verify(controller,times(1)).write(any(ByteBuffer.class),any(Callback.class),any(FrameBytes.class));
+  assertThat("Callback.failed has been called twice",failedCalledLatch.await(5,TimeUnit.SECONDS),is(true));
 }

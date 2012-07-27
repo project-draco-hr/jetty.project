@@ -1,9 +1,8 @@
 {
-  final int maxIdleTime=1000;
   connector=newSPDYServerConnector(new ServerSessionFrameListener.Adapter(){
     @Override public StreamFrameListener onSyn(    Stream stream,    SynInfo synInfo){
       try {
-        Thread.sleep(2 * maxIdleTime);
+        Thread.sleep(2 * idleTimeout);
         stream.reply(new ReplyInfo(true));
         return null;
       }
@@ -14,7 +13,7 @@
     }
   }
 );
-  connector.setMaxIdleTime(maxIdleTime);
+  connector.setIdleTimeout(idleTimeout);
   final CountDownLatch latch=new CountDownLatch(1);
   Session session=startClient(startServer(null),new SessionFrameListener.Adapter(){
     @Override public void onGoAway(    Session session,    GoAwayInfo goAwayInfo){
@@ -29,6 +28,6 @@
     }
   }
 );
-  Assert.assertTrue(replyLatch.await(3 * maxIdleTime,TimeUnit.MILLISECONDS));
+  Assert.assertTrue(replyLatch.await(3 * idleTimeout,TimeUnit.MILLISECONDS));
   Assert.assertFalse(latch.await(1000,TimeUnit.MILLISECONDS));
 }

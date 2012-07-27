@@ -6,10 +6,10 @@
   ScheduledExecutorService scheduler=Executors.newSingleThreadScheduledExecutor();
   Generator generator=new Generator(new StandardByteBufferPool(),new StandardCompressionFactory.StandardCompressor());
   Session session=new StandardSession(SPDY.V2,bufferPool,threadPool,scheduler,new TestController(),null,1,null,generator,new FlowControlStrategy.None()){
-    @Override protected void write(    ByteBuffer buffer,    Handler<FrameBytes> handler,    FrameBytes frameBytes){
+    @Override protected void write(    ByteBuffer buffer,    Callback<FrameBytes> callback,    FrameBytes frameBytes){
       try {
         if (buffer.get(0) == 0)         unit.sleep(2 * timeout);
-        super.write(buffer,handler,frameBytes);
+        super.write(buffer,callback,frameBytes);
       }
  catch (      InterruptedException x) {
         throw new SPDYException(x);
@@ -19,9 +19,7 @@
 ;
   Stream stream=session.syn(new SynInfo(false),null).get(5,TimeUnit.SECONDS);
   final CountDownLatch failedLatch=new CountDownLatch(1);
-  stream.data(new StringDataInfo("data",true),timeout,unit,new Handler<Void>(){
-    @Override public void completed(    Void context){
-    }
+  stream.data(new StringDataInfo("data",true),timeout,unit,new Callback.Empty<Void>(){
     @Override public void failed(    Void context,    Throwable x){
       failedLatch.countDown();
     }
