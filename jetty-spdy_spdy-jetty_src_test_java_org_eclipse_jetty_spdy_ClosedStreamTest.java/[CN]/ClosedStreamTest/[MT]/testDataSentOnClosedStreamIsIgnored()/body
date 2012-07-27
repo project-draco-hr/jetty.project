@@ -17,15 +17,15 @@
   Generator generator=new Generator(new StandardByteBufferPool(),new StandardCompressionFactory.StandardCompressor());
   ByteBuffer writeBuffer=generator.control(new SynReplyFrame(SPDY.V2,(byte)0,streamId,new Headers()));
   channel.write(writeBuffer);
+  Assert.assertThat(writeBuffer.hasRemaining(),is(false));
   byte[] bytes=new byte[1];
   writeBuffer=generator.data(streamId,bytes.length,new BytesDataInfo(bytes,true));
   channel.write(writeBuffer);
+  Assert.assertThat(writeBuffer.hasRemaining(),is(false));
   writeBuffer.flip();
   channel.write(writeBuffer);
+  Assert.assertThat(writeBuffer.hasRemaining(),is(false));
   Assert.assertFalse(dataLatch.await(1,TimeUnit.SECONDS));
-  writeBuffer=generator.control(new GoAwayFrame(SPDY.V2,0,SessionStatus.OK.getCode()));
-  channel.write(writeBuffer);
-  channel.shutdownOutput();
-  channel.close();
+  session.goAway().get(5,TimeUnit.SECONDS);
   server.close();
 }

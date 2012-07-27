@@ -1,0 +1,14 @@
+{
+  InetSocketAddress proxyAddress=startProxy(startServer(new ServerSessionFrameListener.Adapter()));
+  proxyConnector.setDefaultAsyncConnectionFactory(proxyConnector.getAsyncConnectionFactory("spdy/" + version()));
+  final CountDownLatch pingLatch=new CountDownLatch(1);
+  Session client=factory.newSPDYClient(version()).connect(proxyAddress,new SessionFrameListener.Adapter(){
+    @Override public void onPing(    Session session,    PingInfo pingInfo){
+      pingLatch.countDown();
+    }
+  }
+).get(5,TimeUnit.SECONDS);
+  client.ping().get(5,TimeUnit.SECONDS);
+  Assert.assertTrue(pingLatch.await(5,TimeUnit.SECONDS));
+  client.goAway().get(5,TimeUnit.SECONDS);
+}

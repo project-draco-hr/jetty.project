@@ -3,44 +3,19 @@
   final SPDYClient client=sessionPromise.client;
   try {
     if (sslContextFactory != null) {
-      final AtomicReference<AsyncEndPoint> sslEndPointRef=new AtomicReference<>();
-      final AtomicReference<Object> attachmentRef=new AtomicReference<>(attachment);
-      SSLEngine engine=client.newSSLEngine(sslContextFactory,channel);
+      final SSLEngine engine=client.newSSLEngine(sslContextFactory,channel);
       SslConnection sslConnection=new SslConnection(bufferPool,threadPool,endPoint,engine){
         @Override public void onClose(){
-          sslEndPointRef.set(null);
-          attachmentRef.set(null);
+          NextProtoNego.remove(engine);
           super.onClose();
         }
       }
 ;
-      endPoint.setAsyncConnection(sslConnection);
       AsyncEndPoint sslEndPoint=sslConnection.getSslEndPoint();
-      sslEndPointRef.set(sslEndPoint);
-      NextProtoNego.put(engine,new NextProtoNego.ClientProvider(){
-        @Override public boolean supports(){
-          return true;
-        }
-        @Override public void unsupported(){
-          ClientSPDYAsyncConnectionFactory connectionFactory=new ClientSPDYAsyncConnectionFactory();
-          AsyncEndPoint sslEndPoint=sslEndPointRef.get();
-          AsyncConnection connection=connectionFactory.newAsyncConnection(channel,sslEndPoint,attachmentRef.get());
-          sslEndPoint.setAsyncConnection(connection);
-        }
-        @Override public String selectProtocol(        List<String> protocols){
-          String protocol=client.selectProtocol(protocols);
-          if (protocol == null)           return null;
-          AsyncConnectionFactory connectionFactory=client.getAsyncConnectionFactory(protocol);
-          AsyncEndPoint sslEndPoint=sslEndPointRef.get();
-          AsyncConnection connection=connectionFactory.newAsyncConnection(channel,sslEndPoint,attachmentRef.get());
-          sslEndPoint.setAsyncConnection(connection);
-          return protocol;
-        }
-      }
-);
-      AsyncConnection connection=new EmptyAsyncConnection(sslEndPoint);
+      NextProtoNegoClientAsyncConnection connection=new NextProtoNegoClientAsyncConnection(channel,sslEndPoint,attachment,client.factory.threadPool,client);
       sslEndPoint.setAsyncConnection(connection);
-      startHandshake(engine);
+      connectionOpened(connection);
+      NextProtoNego.put(engine,connection);
       return sslConnection;
     }
  else {

@@ -8,9 +8,16 @@
       frame.assertValid();
       payload=ByteBuffer.allocate(payloadLength);
     }
-    copyBuffer(buffer,payload,payload.remaining());
+    BufferUtil.put(buffer,payload);
     if (payload.position() >= payloadLength) {
       BufferUtil.flipToFlush(payload,0);
+      if (frame.isMasked()) {
+        byte mask[]=frame.getMask();
+        int end=payload.limit();
+        for (int i=payload.position(); i < end; i++) {
+          payload.put(i,(byte)(payload.get(i) ^ mask[i % 4]));
+        }
+      }
       frame.setPayload(payload);
       this.payload=null;
       return true;
