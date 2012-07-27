@@ -1,0 +1,38 @@
+{
+  int result=0;
+  for (int j=0; j < htmlResources.length; ++j) {
+    latch.set(new CountDownLatch(cssResources.length + jsResources.length + pngResources.length));
+    String primaryPath="/" + j + ".html";
+    String referrer=new StringBuilder("http://localhost:").append(connector.getLocalPort()).append(primaryPath).toString();
+    ContentExchange exchange=new ContentExchange(true);
+    exchange.setMethod("GET");
+    exchange.setRequestURI(primaryPath);
+    exchange.setVersion("HTTP/1.1");
+    exchange.setAddress(new Address("localhost",connector.getLocalPort()));
+    exchange.setRequestHeader("Host","localhost:" + connector.getLocalPort());
+    ++result;
+    httpClient.send(exchange);
+    Assert.assertEquals(HttpExchange.STATUS_COMPLETED,exchange.waitForDone());
+    Assert.assertEquals(200,exchange.getResponseStatus());
+    for (int i=0; i < cssResources.length; ++i) {
+      String path="/" + i + ".css";
+      exchange=createExchangeWithReferrer(referrer,path);
+      ++result;
+      httpClient.send(exchange);
+    }
+    for (int i=0; i < jsResources.length; ++i) {
+      String path="/" + i + ".js";
+      exchange=createExchangeWithReferrer(referrer,path);
+      ++result;
+      httpClient.send(exchange);
+    }
+    for (int i=0; i < pngResources.length; ++i) {
+      String path="/" + i + ".png";
+      exchange=createExchangeWithReferrer(referrer,path);
+      ++result;
+      httpClient.send(exchange);
+    }
+    Assert.assertTrue(latch.get().await(5,TimeUnit.SECONDS));
+  }
+  return result;
+}

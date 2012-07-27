@@ -1,0 +1,13 @@
+{
+  final CountDownLatch associatedResourceLatch2=new CountDownLatch(1);
+  String jsResource="/application.js";
+  Headers associatedRequestHeaders2=createHeaders(jsResource);
+  session1.syn(new SynInfo(associatedRequestHeaders2,true),new StreamFrameListener.Adapter(){
+    @Override public void onData(    Stream stream,    DataInfo dataInfo){
+      dataInfo.consume(dataInfo.length());
+      if (dataInfo.isClose())       associatedResourceLatch2.countDown();
+    }
+  }
+);
+  Assert.assertTrue(associatedResourceLatch2.await(5,TimeUnit.SECONDS));
+}

@@ -5,7 +5,7 @@
   Executor threadPool=Executors.newCachedThreadPool();
   ScheduledExecutorService scheduler=Executors.newSingleThreadScheduledExecutor();
   Generator generator=new Generator(new StandardByteBufferPool(),new StandardCompressionFactory.StandardCompressor());
-  Session session=new StandardSession(SPDY.V2,bufferPool,threadPool,scheduler,new TestController(),null,1,null,generator){
+  Session session=new StandardSession(SPDY.V2,bufferPool,threadPool,scheduler,new TestController(),null,1,null,generator,new FlowControlStrategy.None()){
     @Override public void flush(){
       try {
         unit.sleep(2 * timeout);
@@ -21,7 +21,7 @@
   session.syn(new SynInfo(true),null,timeout,unit,new Callback<Stream>(){
     @Override public void completed(    Stream stream){
     }
-    @Override public void failed(    Stream context,    Throwable x){
+    @Override public void failed(    Stream stream,    Throwable x){
       failedLatch.countDown();
     }
   }
