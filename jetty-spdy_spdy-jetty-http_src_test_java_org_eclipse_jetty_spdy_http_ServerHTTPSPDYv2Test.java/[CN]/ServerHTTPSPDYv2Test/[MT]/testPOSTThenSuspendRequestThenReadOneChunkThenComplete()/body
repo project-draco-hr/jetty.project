@@ -1,0 +1,46 @@
+{
+  final byte[] data=new byte[2000];
+  final CountDownLatch latch=new CountDownLatch(1);
+  Session session=startClient(version(),startHTTPServer(version(),new AbstractHandler(){
+    @Override public void handle(    String target,    final Request request,    HttpServletRequest httpRequest,    HttpServletResponse httpResponse) throws IOException, ServletException {
+      request.setHandled(true);
+      final Continuation continuation=ContinuationSupport.getContinuation(request);
+      continuation.suspend();
+      new Thread(){
+        @Override public void run(){
+          try {
+            InputStream input=request.getInputStream();
+            byte[] buffer=new byte[512];
+            int read=0;
+            while (read < data.length)             read+=input.read(buffer);
+            continuation.complete();
+            latch.countDown();
+          }
+ catch (          IOException x) {
+            x.printStackTrace();
+          }
+        }
+      }
+.start();
+    }
+  }
+),null);
+  Headers headers=new Headers();
+  headers.put(HTTPSPDYHeader.METHOD.name(version()),"POST");
+  headers.put(HTTPSPDYHeader.URI.name(version()),"/foo");
+  headers.put(HTTPSPDYHeader.VERSION.name(version()),"HTTP/1.1");
+  headers.put(HTTPSPDYHeader.SCHEME.name(version()),"http");
+  headers.put(HTTPSPDYHeader.HOST.name(version()),"localhost:" + connector.getLocalPort());
+  final CountDownLatch replyLatch=new CountDownLatch(1);
+  Stream stream=session.syn(new SynInfo(headers,false),new StreamFrameListener.Adapter(){
+    @Override public void onReply(    Stream stream,    ReplyInfo replyInfo){
+      Headers replyHeaders=replyInfo.getHeaders();
+      Assert.assertTrue(replyHeaders.get(HTTPSPDYHeader.STATUS.name(version())).value().contains("200"));
+      replyLatch.countDown();
+    }
+  }
+).get(5,TimeUnit.SECONDS);
+  stream.data(new BytesDataInfo(data,true));
+  Assert.assertTrue(latch.await(5,TimeUnit.SECONDS));
+  Assert.assertTrue(replyLatch.await(5,TimeUnit.SECONDS));
+}

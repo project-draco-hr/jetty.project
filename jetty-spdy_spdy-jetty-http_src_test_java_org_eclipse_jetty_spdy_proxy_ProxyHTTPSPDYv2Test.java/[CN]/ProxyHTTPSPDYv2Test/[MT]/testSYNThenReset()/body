@@ -1,0 +1,25 @@
+{
+  InetSocketAddress proxyAddress=startProxy(startServer(new ServerSessionFrameListener.Adapter(){
+    @Override public StreamFrameListener onSyn(    Stream stream,    SynInfo synInfo){
+      Assert.assertTrue(synInfo.isClose());
+      Headers requestHeaders=synInfo.getHeaders();
+      Assert.assertNotNull(requestHeaders.get("via"));
+      stream.getSession().rst(new RstInfo(stream.getId(),StreamStatus.REFUSED_STREAM));
+      return null;
+    }
+  }
+));
+  proxyConnector.setDefaultAsyncConnectionFactory(proxyConnector.getAsyncConnectionFactory("spdy/" + version()));
+  final CountDownLatch resetLatch=new CountDownLatch(1);
+  Session client=factory.newSPDYClient(version()).connect(proxyAddress,new SessionFrameListener.Adapter(){
+    @Override public void onRst(    Session session,    RstInfo rstInfo){
+      resetLatch.countDown();
+    }
+  }
+).get(5,TimeUnit.SECONDS);
+  Headers headers=new Headers();
+  headers.put(HTTPSPDYHeader.HOST.name(version()),"localhost:" + proxyAddress.getPort());
+  client.syn(new SynInfo(headers,true),null);
+  Assert.assertTrue(resetLatch.await(5,TimeUnit.SECONDS));
+  client.goAway().get(5,TimeUnit.SECONDS);
+}

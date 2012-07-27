@@ -3,50 +3,44 @@
   final SPDYClient client=sessionPromise.client;
   try {
     if (sslContextFactory != null) {
-      final AtomicReference<AsyncEndPoint> sslEndPointRef=new AtomicReference<>();
-      final AtomicReference<Object> attachmentRef=new AtomicReference<>(attachment);
-      SSLEngine engine=client.newSSLEngine(sslContextFactory,channel);
-      SslConnection sslConnection=new SslConnection(bufferPool,threadPool,endPoint,engine){
+      final SSLEngine engine=client.newSSLEngine(sslContextFactory,channel);
+      SslConnection sslConnection=new SslConnection(engine,endPoint){
         @Override public void onClose(){
-          sslEndPointRef.set(null);
-          attachmentRef.set(null);
+          NextProtoNego.remove(engine);
           super.onClose();
         }
       }
 ;
-      endPoint.setAsyncConnection(sslConnection);
-      AsyncEndPoint sslEndPoint=sslConnection.getSslEndPoint();
-      sslEndPointRef.set(sslEndPoint);
+      endPoint.setConnection(sslConnection);
+      final AsyncEndPoint sslEndPoint=sslConnection.getSslEndPoint();
       NextProtoNego.put(engine,new NextProtoNego.ClientProvider(){
         @Override public boolean supports(){
           return true;
         }
         @Override public void unsupported(){
           ClientSPDYAsyncConnectionFactory connectionFactory=new ClientSPDYAsyncConnectionFactory();
-          AsyncEndPoint sslEndPoint=sslEndPointRef.get();
-          AsyncConnection connection=connectionFactory.newAsyncConnection(channel,sslEndPoint,attachmentRef.get());
-          sslEndPoint.setAsyncConnection(connection);
+          AsyncConnection connection=connectionFactory.newAsyncConnection(channel,sslEndPoint,attachment);
+          sslEndPoint.setConnection(connection);
         }
         @Override public String selectProtocol(        List<String> protocols){
           String protocol=client.selectProtocol(protocols);
           if (protocol == null)           return null;
           AsyncConnectionFactory connectionFactory=client.getAsyncConnectionFactory(protocol);
-          AsyncEndPoint sslEndPoint=sslEndPointRef.get();
-          AsyncConnection connection=connectionFactory.newAsyncConnection(channel,sslEndPoint,attachmentRef.get());
-          sslEndPoint.setAsyncConnection(connection);
+          AsyncConnection connection=connectionFactory.newAsyncConnection(channel,sslEndPoint,attachment);
+          sslEndPoint.setConnection(connection);
           return protocol;
         }
       }
 );
       AsyncConnection connection=new EmptyAsyncConnection(sslEndPoint);
-      sslEndPoint.setAsyncConnection(connection);
+      sslEndPoint.setConnection(connection);
       startHandshake(engine);
       return sslConnection;
     }
  else {
       AsyncConnectionFactory connectionFactory=new ClientSPDYAsyncConnectionFactory();
       AsyncConnection connection=connectionFactory.newAsyncConnection(channel,endPoint,attachment);
-      endPoint.setAsyncConnection(connection);
+      endPoint.setConnection(connection);
       return connection;
     }
   }

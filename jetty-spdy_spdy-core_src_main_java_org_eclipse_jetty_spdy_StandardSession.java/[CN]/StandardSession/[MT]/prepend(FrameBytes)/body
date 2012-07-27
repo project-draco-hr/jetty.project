@@ -1,11 +1,16 @@
 {
+  Throwable failure;
 synchronized (queue) {
-    int index=0;
-    while (index < queue.size()) {
-      FrameBytes element=queue.get(index);
-      if (element.compareTo(frameBytes) <= 0)       break;
-      ++index;
+    failure=this.failure;
+    if (failure == null) {
+      int index=0;
+      while (index < queue.size()) {
+        FrameBytes element=queue.get(index);
+        if (element.compareTo(frameBytes) <= 0)         break;
+        ++index;
+      }
+      queue.add(index,frameBytes);
     }
-    queue.add(index,frameBytes);
   }
+  if (failure != null)   frameBytes.fail(new SPDYException(failure));
 }

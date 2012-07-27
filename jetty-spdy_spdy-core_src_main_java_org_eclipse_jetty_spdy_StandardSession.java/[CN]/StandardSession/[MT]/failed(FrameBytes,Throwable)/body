@@ -1,3 +1,13 @@
 {
-  throw new SPDYException(x);
+  List<FrameBytes> frameBytesToFail=new ArrayList<>();
+  frameBytesToFail.add(frameBytes);
+synchronized (queue) {
+    failure=x;
+    String logMessage=String.format("Failed write of %s, failing all %d frame(s) in queue",frameBytes,queue.size());
+    logger.debug(logMessage,x);
+    frameBytesToFail.addAll(queue);
+    queue.clear();
+    flushing=false;
+  }
+  for (  FrameBytes fb : frameBytesToFail)   fb.fail(x);
 }
