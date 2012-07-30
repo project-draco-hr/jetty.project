@@ -1,0 +1,31 @@
+{
+  threadPool=new QueuedThreadPool();
+  threadPool.start();
+  scheduler=Executors.newSingleThreadScheduledExecutor();
+  connector=ServerSocketChannel.open();
+  connector.bind(new InetSocketAddress("localhost",0));
+  selectorManager=new SelectorManager(){
+    @Override protected void execute(    Runnable task){
+      threadPool.execute(task);
+    }
+    @Override protected AsyncEndPoint newEndPoint(    SocketChannel channel,    ManagedSelector selector,    SelectionKey selectionKey) throws IOException {
+      return new SelectChannelEndPoint(channel,selector,selectionKey,scheduler,60000){
+        @Override protected void onIncompleteFlush(){
+          super.onIncompleteFlush();
+          interested.onIncompleteFlush();
+        }
+      }
+;
+    }
+    @Override public AsyncConnection newConnection(    SocketChannel channel,    final AsyncEndPoint endPoint,    Object attachment){
+      return new AbstractAsyncConnection(endPoint,threadPool){
+        @Override public void onFillable(){
+          interested.onFillable(endPoint,this);
+        }
+      }
+;
+    }
+  }
+;
+  selectorManager.start();
+}
