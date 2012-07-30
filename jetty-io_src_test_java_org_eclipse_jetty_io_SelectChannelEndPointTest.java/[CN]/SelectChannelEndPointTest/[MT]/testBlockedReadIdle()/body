@@ -11,7 +11,9 @@
     assertTrue(b > 0);
     assertEquals(c,(char)b);
   }
-  _lastEndp.setIdleTimeout(500);
+  Assert.assertTrue(_lastEndPointLatch.await(1,TimeUnit.SECONDS));
+  int idleTimeout=500;
+  _lastEndPoint.setIdleTimeout(idleTimeout);
   _blockAt=10;
   clientOutputStream.write("12345678".getBytes("UTF-8"));
   clientOutputStream.flush();
@@ -19,14 +21,14 @@
   int b=client.getInputStream().read();
   assertEquals('E',b);
   long idle=System.currentTimeMillis() - start;
-  assertTrue(idle > 400);
-  assertTrue(idle < 2000);
+  assertTrue(idle > idleTimeout / 2);
+  assertTrue(idle < idleTimeout * 2);
   for (  char c : "E: 12345678".toCharArray()) {
     b=client.getInputStream().read();
     assertTrue(b > 0);
     assertEquals(c,(char)b);
   }
-  assertTrue(_lastEndp.isOpen());
-  Thread.sleep(2000);
-  assertFalse(_lastEndp.isOpen());
+  assertTrue(_lastEndPoint.isOpen());
+  Thread.sleep(idleTimeout * 2);
+  assertFalse(_lastEndPoint.isOpen());
 }
