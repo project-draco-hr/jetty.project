@@ -1,6 +1,6 @@
 {
+  Object attachment=key.attachment();
   try {
-    Object attachment=key.attachment();
     if (attachment instanceof SelectableAsyncEndPoint) {
       key.interestOps(0);
       ((SelectableAsyncEndPoint)attachment).onSelected();
@@ -20,7 +20,7 @@
       }
  catch (      Exception x) {
         connectionFailed(channel,x,attachment);
-        key.cancel();
+        closeNoExceptions(channel);
       }
     }
  else {
@@ -28,6 +28,11 @@
     }
   }
  catch (  CancelledKeyException x) {
-    LOG.debug("Ignoring cancelled key for channel",key.channel());
+    LOG.debug("Ignoring cancelled key for channel {}",key.channel());
+    if (attachment instanceof EndPoint)     ((EndPoint)attachment).close();
+  }
+catch (  Exception x) {
+    LOG.warn("Could not process key for channel " + key.channel(),x);
+    if (attachment instanceof EndPoint)     ((EndPoint)attachment).close();
   }
 }
