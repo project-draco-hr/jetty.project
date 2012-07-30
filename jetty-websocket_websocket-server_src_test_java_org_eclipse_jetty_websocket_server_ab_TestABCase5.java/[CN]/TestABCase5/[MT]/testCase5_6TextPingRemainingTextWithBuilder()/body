@@ -16,12 +16,12 @@
     WebSocketFrame frame3=new WebSocketFrame(OpCode.CONTINUATION).setPayload(textPayload2);
     ByteBuffer buf3=laxGenerator.generate(frame3);
     client.writeRaw(buf3);
-    Queue<WebSocketFrame> frames=client.readFrames(2,TimeUnit.MILLISECONDS,500);
-    WebSocketFrame frame=frames.remove();
+    IncomingFramesCapture capture=client.readFrames(2,TimeUnit.MILLISECONDS,500);
+    WebSocketFrame frame=capture.getFrames().pop();
     Assert.assertThat("first frame should be pong frame",frame.getOpCode(),is(OpCode.PONG));
     ByteBuffer payload1=BufferUtil.toBuffer(pingPayload,StringUtil.__UTF8_CHARSET);
     ByteBufferAssert.assertEquals("Payload",payload1,frame.getPayload());
-    frame=frames.remove();
+    frame=capture.getFrames().pop();
     Assert.assertThat("second frame should be text frame",frame.getOpCode(),is(OpCode.TEXT));
     Assert.assertThat("TextFrame.payload",frame.getPayloadAsUTF8(),is(textPayload1 + textPayload2));
   }

@@ -14,8 +14,8 @@
     buf.put(fragment1.getBytes());
     BufferUtil.flipToFlush(buf,0);
     client.writeRaw(buf);
-    Queue<WebSocketFrame> frames=client.readFrames(1,TimeUnit.MILLISECONDS,500);
-    WebSocketFrame frame=frames.remove();
+    IncomingFramesCapture capture=client.readFrames(1,TimeUnit.MILLISECONDS,500);
+    WebSocketFrame frame=capture.getFrames().pop();
     Assert.assertThat("frame should be close frame",frame.getOpCode(),is(OpCode.CLOSE));
     Assert.assertThat("CloseFrame.status code",new CloseInfo(frame).getStatusCode(),is(1002));
     Assert.assertThat("CloseFrame.reason",new CloseInfo(frame).getReason(),is("Bad Continuation"));

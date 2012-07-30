@@ -15,11 +15,11 @@
     buf=strictGenerator.generate(close.asFrame());
     client.writeRaw(buf);
     client.flush();
-    Queue<WebSocketFrame> frames=client.readFrames(2,TimeUnit.MILLISECONDS,500);
-    WebSocketFrame frame=frames.remove();
+    IncomingFramesCapture capture=client.readFrames(2,TimeUnit.MILLISECONDS,500);
+    WebSocketFrame frame=capture.getFrames().get(0);
     Assert.assertThat("frame should be " + opcode + " frame",frame.getOpCode(),is(opcode));
     Assert.assertThat(opcode + ".payloadLength",frame.getPayloadLength(),is(0));
-    frame=frames.remove();
+    frame=capture.getFrames().get(1);
     Assert.assertThat("CLOSE.frame.opcode",frame.getOpCode(),is(OpCode.CLOSE));
     close=new CloseInfo(frame);
     Assert.assertThat("CLOSE.statusCode",close.getStatusCode(),is(StatusCode.NORMAL));
