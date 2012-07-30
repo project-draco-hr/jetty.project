@@ -1,0 +1,29 @@
+{
+  BlockheadClient client=new BlockheadClient(server.getServerUri());
+  try {
+    client.connect();
+    client.sendStandardRequest();
+    client.expectUpgradeResponse();
+    ByteBuffer buf=ByteBuffer.allocate(payload.length + Generator.OVERHEAD);
+    BufferUtil.clearToFill(buf);
+    buf.put((byte)(0x00 | FIN | OpCode.PING.getCode()));
+    putPayloadLength(buf,payload.length);
+    putMask(buf);
+    buf.put(masked(payload));
+    buf.put((byte)(0x00 | FIN | OpCode.CLOSE.getCode()));
+    putPayloadLength(buf,2);
+    putMask(buf);
+    buf.put(masked(new byte[]{0x03,(byte)0xE8}));
+    BufferUtil.flipToFlush(buf,0);
+    client.writeRaw(buf);
+    client.flush();
+    IncomingFramesCapture capture=client.readFrames(1,TimeUnit.MILLISECONDS,500);
+    WebSocketFrame frame=capture.getFrames().pop();
+    Assert.assertThat("CLOSE.frame.opcode",frame.getOpCode(),is(OpCode.CLOSE));
+    CloseInfo close=new CloseInfo(frame);
+    Assert.assertThat("CLOSE.statusCode",close.getStatusCode(),is(StatusCode.PROTOCOL));
+  }
+  finally {
+    client.disconnect();
+  }
+}
