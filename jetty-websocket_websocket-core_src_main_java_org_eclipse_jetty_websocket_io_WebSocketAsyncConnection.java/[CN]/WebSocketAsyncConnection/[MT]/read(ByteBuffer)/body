@@ -1,22 +1,31 @@
 {
+  AsyncEndPoint endPoint=getEndPoint();
   try {
     while (true) {
-      int filled=getEndPoint().fill(buffer);
+      int filled=endPoint.fill(buffer);
       if (filled == 0) {
-        break;
+        return 0;
       }
-      if (LOG.isDebugEnabled() && (filled > 0)) {
-        LOG.debug("Filled {} bytes - {}",filled,BufferUtil.toDetailString(buffer));
+ else       if (filled < 0) {
+        disconnect(false);
+        return -1;
       }
-      parser.parse(buffer);
+ else {
+        if (LOG.isDebugEnabled()) {
+          LOG.debug("Filled {} bytes - {}",filled,BufferUtil.toDetailString(buffer));
+        }
+        parser.parse(buffer);
+      }
     }
   }
  catch (  IOException e) {
     LOG.warn(e);
     terminateConnection(StatusCode.PROTOCOL,e.getMessage());
+    return -1;
   }
 catch (  CloseException e) {
     LOG.warn(e);
     terminateConnection(e.getStatusCode(),e.getMessage());
+    return -1;
   }
 }
