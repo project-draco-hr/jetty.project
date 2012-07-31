@@ -1,0 +1,21 @@
+{
+  ByteBuffer buf=ByteBuffer.allocate(32);
+  BufferUtil.clearToFill(buf);
+  byte opcode=3;
+  buf.put((byte)(0x00 | FIN | opcode));
+  putPayloadLength(buf,0);
+  putMask(buf);
+  BufferUtil.flipToFlush(buf,0);
+  List<WebSocketFrame> expect=new ArrayList<>();
+  expect.add(new CloseInfo(StatusCode.PROTOCOL).asFrame());
+  Fuzzer fuzzer=new Fuzzer(this);
+  try {
+    fuzzer.connect();
+    fuzzer.setSendMode(Fuzzer.SendMode.BULK);
+    fuzzer.send(buf);
+    fuzzer.expect(expect);
+  }
+  finally {
+    fuzzer.close();
+  }
+}

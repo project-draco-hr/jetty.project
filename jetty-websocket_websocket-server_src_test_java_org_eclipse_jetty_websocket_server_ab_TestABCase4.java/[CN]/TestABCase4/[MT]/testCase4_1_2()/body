@@ -1,0 +1,23 @@
+{
+  byte payload[]=StringUtil.getUtf8Bytes("reserved payload");
+  ByteBuffer buf=ByteBuffer.allocate(32);
+  BufferUtil.clearToFill(buf);
+  byte opcode=4;
+  buf.put((byte)(0x00 | FIN | opcode));
+  putPayloadLength(buf,payload.length);
+  putMask(buf);
+  buf.put(masked(payload));
+  BufferUtil.flipToFlush(buf,0);
+  List<WebSocketFrame> expect=new ArrayList<>();
+  expect.add(new CloseInfo(StatusCode.PROTOCOL).asFrame());
+  Fuzzer fuzzer=new Fuzzer(this);
+  try {
+    fuzzer.connect();
+    fuzzer.setSendMode(Fuzzer.SendMode.BULK);
+    fuzzer.send(buf);
+    fuzzer.expect(expect);
+  }
+  finally {
+    fuzzer.close();
+  }
+}
