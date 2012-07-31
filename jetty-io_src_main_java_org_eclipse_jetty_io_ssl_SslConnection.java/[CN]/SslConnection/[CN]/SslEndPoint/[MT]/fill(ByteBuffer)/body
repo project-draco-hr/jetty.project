@@ -13,10 +13,10 @@
       LOG.debug("{} filled {} encrypted bytes",SslConnection.this,net_filled);
       if (net_filled > 0)       _underflown=false;
       int pos=BufferUtil.flipToFill(app_in);
-      _unwrapResult=_sslEngine.unwrap(_netIn,app_in);
-      LOG.debug("{} unwrap {}",SslConnection.this,_unwrapResult);
+      SSLEngineResult unwrapResult=_sslEngine.unwrap(_netIn,app_in);
+      LOG.debug("{} unwrap {}",SslConnection.this,unwrapResult);
       BufferUtil.flipToFlush(app_in,pos);
-switch (_unwrapResult.getStatus()) {
+switch (unwrapResult.getStatus()) {
 case BUFFER_OVERFLOW:
         throw new IllegalStateException();
 case CLOSED:
@@ -45,8 +45,8 @@ throw new IllegalStateException();
 case BUFFER_UNDERFLOW:
 _underflown=true;
 default :
-if (_unwrapResult.bytesProduced() > 0) {
-if (app_in == buffer) return _unwrapResult.bytesProduced();
+if (unwrapResult.bytesProduced() > 0) {
+if (app_in == buffer) return unwrapResult.bytesProduced();
 return BufferUtil.append(_appIn,buffer);
 }
 switch (_sslEngine.getHandshakeStatus()) {
