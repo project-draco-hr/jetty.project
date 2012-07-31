@@ -1,0 +1,31 @@
+{
+  Assert.assertThat("Client connected",client.isConnected(),is(true));
+  LOG.debug("Sending {} frames (mode {})",send.size(),sendMode);
+  if ((sendMode == SendMode.BULK) || (sendMode == SendMode.SLOW)) {
+    int buflen=0;
+    for (    WebSocketFrame f : send) {
+      buflen+=f.getPayloadLength() + Generator.OVERHEAD;
+    }
+    ByteBuffer buf=ByteBuffer.allocate(buflen);
+    BufferUtil.clearToFill(buf);
+    for (    WebSocketFrame f : send) {
+      f.setMask(MASK);
+      BufferUtil.put(generator.generate(f),buf);
+    }
+    BufferUtil.flipToFlush(buf,0);
+switch (sendMode) {
+case BULK:
+      client.writeRaw(buf);
+    break;
+case SLOW:
+  client.writeRawSlowly(buf,slowSendSegmentSize);
+break;
+}
+}
+ else if (sendMode == SendMode.PER_FRAME) {
+for (WebSocketFrame f : send) {
+client.writeRaw(generator.generate(f));
+client.flush();
+}
+}
+}
