@@ -1,0 +1,17 @@
+{
+  _endp.close();
+  FutureCallback<String> callback=new FutureCallback<>();
+  _flusher.write(_context,callback,BufferUtil.toBuffer("How "),BufferUtil.toBuffer("now "),BufferUtil.toBuffer("brown "),BufferUtil.toBuffer("cow!"));
+  assertTrue(callback.isDone());
+  assertFalse(_flushIncomplete.get());
+  try {
+    assertEquals(_context,callback.get());
+    Assert.fail();
+  }
+ catch (  ExecutionException e) {
+    Throwable cause=e.getCause();
+    Assert.assertTrue(cause instanceof IOException);
+    Assert.assertThat(cause.getMessage(),Matchers.containsString("CLOSED"));
+  }
+  assertEquals("",_endp.takeOutputString());
+}

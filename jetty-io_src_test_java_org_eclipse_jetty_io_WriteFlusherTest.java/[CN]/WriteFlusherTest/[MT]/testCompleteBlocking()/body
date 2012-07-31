@@ -1,0 +1,20 @@
+{
+  FutureCallback<String> callback=new FutureCallback<>();
+  _flusher.write(_context,callback,BufferUtil.toBuffer("How "),BufferUtil.toBuffer("now "),BufferUtil.toBuffer("brown "),BufferUtil.toBuffer("cow!"));
+  assertFalse(callback.isDone());
+  assertFalse(callback.isCancelled());
+  assertTrue(_flushIncomplete.get());
+  try {
+    assertEquals(_context,callback.get(10,TimeUnit.MILLISECONDS));
+    Assert.fail();
+  }
+ catch (  TimeoutException to) {
+    _flushIncomplete.set(false);
+  }
+  assertEquals("How now br",_endp.takeOutputString());
+  _flusher.completeWrite();
+  assertTrue(callback.isDone());
+  assertEquals(_context,callback.get());
+  assertEquals("own cow!",_endp.takeOutputString());
+  assertFalse(_flushIncomplete.get());
+}
