@@ -1,0 +1,19 @@
+{
+  byte msg[]=Hex.asByteArray("CEBAE1BDB9CF83");
+  List<WebSocketFrame> send=new ArrayList<>();
+  send.add(new WebSocketFrame(OpCode.TEXT).setPayload(msg));
+  send.add(new CloseInfo(StatusCode.NORMAL).asFrame());
+  List<WebSocketFrame> expect=new ArrayList<>();
+  expect.add(new WebSocketFrame(OpCode.TEXT).setPayload(msg));
+  expect.add(new CloseInfo(StatusCode.NORMAL).asFrame());
+  Fuzzer fuzzer=new Fuzzer(this);
+  try {
+    fuzzer.connect();
+    fuzzer.setSendMode(Fuzzer.SendMode.BULK);
+    fuzzer.send(send);
+    fuzzer.expect(expect);
+  }
+  finally {
+    fuzzer.close();
+  }
+}
