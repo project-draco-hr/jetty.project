@@ -1,13 +1,14 @@
 {
-  setCurrentConnection(this);
   ByteBuffer buffer=bufferPool.acquire(policy.getBufferSize(),false);
   BufferUtil.clear(buffer);
+  boolean readMore=false;
   try {
-    read(buffer);
+    readMore=(read(buffer) != -1);
   }
   finally {
-    fillInterested();
-    setCurrentConnection(null);
     bufferPool.release(buffer);
+  }
+  if (readMore) {
+    fillInterested();
   }
 }

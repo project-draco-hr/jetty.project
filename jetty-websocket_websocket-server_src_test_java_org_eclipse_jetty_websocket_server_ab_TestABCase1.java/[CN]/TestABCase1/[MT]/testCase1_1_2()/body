@@ -1,26 +1,20 @@
 {
-  BlockheadClient client=new BlockheadClient(server.getServerUri());
+  byte payload[]=new byte[125];
+  Arrays.fill(payload,(byte)'*');
+  List<WebSocketFrame> send=new ArrayList<>();
+  send.add(WebSocketFrame.text().setPayload(payload));
+  send.add(new CloseInfo(StatusCode.NORMAL).asFrame());
+  List<WebSocketFrame> expect=new ArrayList<>();
+  expect.add(WebSocketFrame.text().setPayload(payload));
+  expect.add(new CloseInfo(StatusCode.NORMAL).asFrame());
+  Fuzzer fuzzer=new Fuzzer(this);
   try {
-    client.connect();
-    client.sendStandardRequest();
-    client.expectUpgradeResponse();
-    byte msg[]=new byte[125];
-    Arrays.fill(msg,(byte)'*');
-    ByteBuffer buf=ByteBuffer.allocate(msg.length + Generator.OVERHEAD);
-    BufferUtil.clearToFill(buf);
-    buf.put((byte)(0x00 | FIN | OpCode.TEXT.getCode()));
-    putPayloadLength(buf,msg.length);
-    putMask(buf);
-    buf.put(masked(msg));
-    BufferUtil.flipToFlush(buf,0);
-    client.writeRaw(buf);
-    Queue<WebSocketFrame> frames=client.readFrames(1,TimeUnit.MILLISECONDS,500);
-    WebSocketFrame frame=frames.remove();
-    Assert.assertThat("frame should be TEXT frame",frame.getOpCode(),is(OpCode.TEXT));
-    Assert.assertThat("Text.payloadLength",frame.getPayloadLength(),is(msg.length));
-    ByteBufferAssert.assertEquals("Text.payload",msg,frame.getPayload());
+    fuzzer.connect();
+    fuzzer.setSendMode(SendMode.BULK);
+    fuzzer.send(send);
+    fuzzer.expect(expect);
   }
   finally {
-    client.close();
+    fuzzer.close();
   }
 }

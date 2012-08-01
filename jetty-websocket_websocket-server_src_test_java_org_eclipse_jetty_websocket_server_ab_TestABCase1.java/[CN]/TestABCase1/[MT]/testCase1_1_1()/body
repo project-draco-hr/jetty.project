@@ -1,22 +1,18 @@
 {
-  BlockheadClient client=new BlockheadClient(server.getServerUri());
+  List<WebSocketFrame> send=new ArrayList<>();
+  send.add(WebSocketFrame.text());
+  send.add(new CloseInfo(StatusCode.NORMAL).asFrame());
+  List<WebSocketFrame> expect=new ArrayList<>();
+  expect.add(WebSocketFrame.text());
+  expect.add(new CloseInfo(StatusCode.NORMAL).asFrame());
+  Fuzzer fuzzer=new Fuzzer(this);
   try {
-    client.connect();
-    client.sendStandardRequest();
-    client.expectUpgradeResponse();
-    ByteBuffer buf=ByteBuffer.allocate(16);
-    BufferUtil.clearToFill(buf);
-    buf.put((byte)(0x00 | FIN | OpCode.TEXT.getCode()));
-    putPayloadLength(buf,0);
-    putMask(buf);
-    BufferUtil.flipToFlush(buf,0);
-    client.writeRaw(buf);
-    Queue<WebSocketFrame> frames=client.readFrames(1,TimeUnit.MILLISECONDS,500);
-    WebSocketFrame frame=frames.remove();
-    Assert.assertThat("frame should be TEXT frame",frame.getOpCode(),is(OpCode.TEXT));
-    Assert.assertThat("Text.payloadLength",frame.getPayloadLength(),is(0));
+    fuzzer.connect();
+    fuzzer.setSendMode(SendMode.BULK);
+    fuzzer.send(send);
+    fuzzer.expect(expect);
   }
   finally {
-    client.close();
+    fuzzer.close();
   }
 }

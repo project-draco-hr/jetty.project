@@ -7,7 +7,7 @@
     ByteBuffer buf=ByteBuffer.allocate(Generator.OVERHEAD + 2);
     BufferUtil.clearToFill(buf);
     String fragment1="fragment1";
-    buf.put((byte)(NOFIN | OpCode.PONG.getCode()));
+    buf.put((byte)(NOFIN | OpCode.PONG));
     byte b=0x00;
     b|=fragment1.length() & 0x7F;
     buf.put(b);
@@ -17,15 +17,15 @@
     ByteBuffer buf2=ByteBuffer.allocate(Generator.OVERHEAD + 2);
     BufferUtil.clearToFill(buf2);
     String fragment2="fragment2";
-    buf2.put((byte)(FIN | OpCode.CONTINUATION.getCode()));
+    buf2.put((byte)(FIN | OpCode.CONTINUATION));
     b=0x00;
     b|=fragment2.length() & 0x7F;
     buf2.put(b);
     buf2.put(fragment2.getBytes());
     BufferUtil.flipToFlush(buf2,0);
     client.writeRaw(buf2);
-    Queue<WebSocketFrame> frames=client.readFrames(1,TimeUnit.MILLISECONDS,500);
-    WebSocketFrame frame=frames.remove();
+    IncomingFramesCapture capture=client.readFrames(1,TimeUnit.MILLISECONDS,500);
+    WebSocketFrame frame=capture.getFrames().pop();
     Assert.assertThat("frame should be close frame",frame.getOpCode(),is(OpCode.CLOSE));
     Assert.assertThat("CloseFrame.status code",new CloseInfo(frame).getStatusCode(),is(1002));
   }

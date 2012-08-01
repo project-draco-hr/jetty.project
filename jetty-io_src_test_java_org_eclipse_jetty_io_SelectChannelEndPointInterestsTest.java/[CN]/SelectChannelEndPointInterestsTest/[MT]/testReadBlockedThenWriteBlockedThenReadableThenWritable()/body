@@ -1,0 +1,59 @@
+{
+  final AtomicInteger size=new AtomicInteger(1024 * 1024);
+  final AtomicReference<Exception> failure=new AtomicReference<>();
+  final CountDownLatch latch1=new CountDownLatch(1);
+  final CountDownLatch latch2=new CountDownLatch(1);
+  final AtomicBoolean writeBlocked=new AtomicBoolean();
+  init(new Interested(){
+    @Override public void onFillable(    AsyncEndPoint endPoint,    AbstractAsyncConnection connection){
+      ByteBuffer input=BufferUtil.allocate(2);
+      int read=fill(endPoint,input);
+      if (read == 1) {
+        byte b=input.get();
+        if (b == 1) {
+          connection.fillInterested();
+          ByteBuffer output=ByteBuffer.allocate(size.get());
+          endPoint.write(null,new Callback.Empty<>(),output);
+          latch1.countDown();
+        }
+ else {
+          latch2.countDown();
+        }
+      }
+ else {
+        failure.set(new Exception("Unexpectedly read " + read + " bytes"));
+      }
+    }
+    @Override public void onIncompleteFlush(){
+      writeBlocked.set(true);
+    }
+    private int fill(    AsyncEndPoint endPoint,    ByteBuffer buffer){
+      try {
+        return endPoint.fill(buffer);
+      }
+ catch (      IOException x) {
+        failure.set(x);
+        return 0;
+      }
+    }
+  }
+);
+  Socket client=new Socket();
+  client.connect(connector.getLocalAddress());
+  client.setSoTimeout(5000);
+  SocketChannel server=connector.accept();
+  server.configureBlocking(false);
+  selectorManager.accept(server);
+  OutputStream clientOutput=client.getOutputStream();
+  clientOutput.write(1);
+  clientOutput.flush();
+  Assert.assertTrue(latch1.await(5,TimeUnit.SECONDS));
+  clientOutput.write(2);
+  clientOutput.flush();
+  Assert.assertTrue(latch2.await(5,TimeUnit.SECONDS));
+  Thread.sleep(1000);
+  InputStream clientInput=client.getInputStream();
+  while (size.getAndDecrement() > 0)   clientInput.read();
+  client.close();
+  Assert.assertNull(failure.get());
+}

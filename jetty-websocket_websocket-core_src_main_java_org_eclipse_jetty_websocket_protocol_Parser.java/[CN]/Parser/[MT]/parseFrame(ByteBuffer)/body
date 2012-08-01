@@ -21,13 +21,22 @@ case FINOP:
       boolean rsv2=((b & 0x20) != 0);
       boolean rsv3=((b & 0x10) != 0);
       byte opc=(byte)(b & 0x0F);
-      OpCode opcode=OpCode.from(opc);
-      if (opcode == null) {
-        throw new WebSocketException("Unknown opcode: " + opc);
+      byte opcode=opc;
+      if (!OpCode.isKnown(opcode)) {
+        throw new ProtocolException("Unknown opcode: " + opc);
       }
-      LOG.debug("OpCode {}, fin={}",opcode.name(),fin);
-      if (opcode.isControlFrame() && !fin) {
-        throw new ProtocolException("Fragmented Control Frame [" + opcode.name() + "]");
+      LOG.debug("OpCode {}, fin={}",OpCode.name(opcode),fin);
+      if (!rsv1InUse && rsv1) {
+        throw new ProtocolException("RSV1 not allowed to be set");
+      }
+      if (!rsv2InUse && rsv2) {
+        throw new ProtocolException("RSV2 not allowed to be set");
+      }
+      if (!rsv3InUse && rsv3) {
+        throw new ProtocolException("RSV3 not allowed to be set");
+      }
+      if (OpCode.isControlFrame(opcode) && !fin) {
+        throw new ProtocolException("Fragmented Control Frame [" + OpCode.name(opcode) + "]");
       }
       if (opcode == OpCode.CONTINUATION) {
         if (frame == null) {
@@ -41,7 +50,7 @@ case FINOP:
       frame.setRsv2(rsv2);
       frame.setRsv3(rsv3);
       frame.setOpCode(opcode);
-      if (opcode.isDataFrame()) {
+      if (frame.isDataFrame()) {
         lastDataOpcode=opcode;
       }
       state=State.PAYLOAD_LEN;
