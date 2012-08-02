@@ -1,0 +1,21 @@
+{
+  if (aClass != null) {
+    influences=LazyList.add(influences,aClass);
+    ManagedObject mo=aClass.getAnnotation(ManagedObject.class);
+    if (mo != null && !"".equals(mo.wrapper())) {
+      String clazz=mo.wrapper();
+      try {
+        Class<?> mbean=Class.forName(clazz);
+        LOG.debug("MBean Influence found for " + aClass.getSimpleName());
+        influences=LazyList.add(influences,mbean);
+      }
+ catch (      ClassNotFoundException cnfe) {
+        LOG.debug("No MBean Influence for " + aClass.getSimpleName());
+      }
+    }
+    influences=findInfluences(influences,aClass.getSuperclass());
+    Class<?>[] ifs=aClass.getInterfaces();
+    for (int i=0; ifs != null && i < ifs.length; i++)     influences=findInfluences(influences,ifs[i]);
+  }
+  return influences;
+}

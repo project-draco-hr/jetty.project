@@ -9,11 +9,11 @@
       Class<?> o_class=_managed.getClass();
       Object influences=findInfluences(null,_managed.getClass());
       LOG.debug("Influence Count: " + LazyList.size(influences));
-      Managed primary=o_class.getAnnotation(Managed.class);
+      ManagedObject primary=o_class.getAnnotation(ManagedObject.class);
       desc=primary.value();
       for (int i=0; i < LazyList.size(influences); i++) {
         Class<?> oClass=(Class<?>)LazyList.get(influences,i);
-        Managed typeAnnotation=oClass.getAnnotation(Managed.class);
+        ManagedObject typeAnnotation=oClass.getAnnotation(ManagedObject.class);
         LOG.debug("Influenced by: " + oClass.getCanonicalName());
         if (typeAnnotation == null) {
           LOG.debug("Annotations not found for: " + oClass.getCanonicalName());
@@ -22,23 +22,22 @@
         try {
           for (          Field field : oClass.getDeclaredFields()) {
             LOG.debug("Checking: " + field.getName());
-            Managed fieldAnnotation=field.getAnnotation(Managed.class);
+            ManagedAttribute fieldAnnotation=field.getAnnotation(ManagedAttribute.class);
             if (fieldAnnotation != null) {
               LOG.debug("Field Annotation found for: " + field.getName());
               attributes=LazyList.add(attributes,defineAttribute(field.getName(),fieldAnnotation));
             }
           }
           for (          Method method : oClass.getDeclaredMethods()) {
-            Managed methodAnnotation=method.getAnnotation(Managed.class);
-            if (methodAnnotation != null) {
-              if (methodAnnotation.attribute()) {
-                LOG.debug("Attribute Annotation found for: " + method.getName());
-                attributes=LazyList.add(attributes,defineAttribute(method.getName(),methodAnnotation));
-              }
- else {
-                LOG.debug("Method Annotation found for: " + method.getName());
-                operations=LazyList.add(operations,defineOperation(method,methodAnnotation));
-              }
+            ManagedAttribute methodAttributeAnnotation=method.getAnnotation(ManagedAttribute.class);
+            if (methodAttributeAnnotation != null) {
+              LOG.debug("Attribute Annotation found for: " + method.getName());
+              attributes=LazyList.add(attributes,defineAttribute(method.getName(),methodAttributeAnnotation));
+            }
+            ManagedOperation methodOperationAnnotation=method.getAnnotation(ManagedOperation.class);
+            if (methodOperationAnnotation != null) {
+              LOG.debug("Method Annotation found for: " + method.getName());
+              operations=LazyList.add(operations,defineOperation(method,methodOperationAnnotation));
             }
           }
         }

@@ -1,19 +1,20 @@
 {
-  String description=fieldAnnotation.value();
-  boolean writable=fieldAnnotation.readonly();
-  boolean onMBean=fieldAnnotation.proxied();
-  boolean convert=fieldAnnotation.managed();
+  String description=attributeAnnotation.value();
+  boolean writable=attributeAnnotation.readonly();
+  boolean onMBean=attributeAnnotation.proxied();
+  boolean convert=attributeAnnotation.managed();
   String uName=name.substring(0,1).toUpperCase() + name.substring(1);
   Class oClass=onMBean ? this.getClass() : _managed.getClass();
-  if (LOG.isDebugEnabled())   LOG.debug("defineAttribute " + name + " "+ onMBean+ ":"+ writable+ ":"+ oClass+ ":"+ description);
+  LOG.debug("defineAttribute {} {}:{}:{}:{}",name,onMBean,writable,oClass,description);
   Class type=null;
   Method getter=null;
   Method setter=null;
-  String declaredGetter=fieldAnnotation.getter();
-  String declaredSetter=fieldAnnotation.setter();
+  String declaredGetter=attributeAnnotation.getter();
+  String declaredSetter=attributeAnnotation.setter();
   Method[] methods=oClass.getMethods();
   for (int m=0; m < methods.length; m++) {
     if ((methods[m].getModifiers() & Modifier.PUBLIC) == 0)     continue;
+    LOG.debug("Declared Getter: {} vs {}",declaredGetter,methods[m].getName());
     if (methods[m].getName().equals(declaredGetter) && methods[m].getParameterTypes().length == 0) {
       if (getter != null) {
         LOG.warn("Multiple mbean getters for attr " + name + " in "+ oClass);
