@@ -10,6 +10,7 @@
   _byteBufferPool=pool != null ? pool : new StandardByteBufferPool();
   _ssl=ssl;
   _sslContextFactory=sslContextFactory != null ? sslContextFactory : (ssl ? new SslContextFactory(SslContextFactory.DEFAULT_KEYSTORE_PATH) : null);
+  _httpConfig=httpConfig != null ? httpConfig : new HttpConfiguration(_sslContextFactory,ssl);
   addBean(_server,false);
   addBean(_executor,executor == null);
   addBean(_scheduler,scheduler == null);
@@ -19,7 +20,7 @@
     addBean(_sslContextFactory,false);
     setSoLingerTime(30000);
   }
-  _httpConfig=new HttpConfiguration(_sslContextFactory,ssl);
+  addBean(_httpConfig,httpConfig == null);
   if (acceptors <= 0)   acceptors=Math.max(1,(Runtime.getRuntime().availableProcessors()) / 4);
   if (acceptors > 2 * Runtime.getRuntime().availableProcessors())   LOG.warn("Acceptors should be <= 2*availableProcessors: " + this);
   _acceptors=new Thread[acceptors];

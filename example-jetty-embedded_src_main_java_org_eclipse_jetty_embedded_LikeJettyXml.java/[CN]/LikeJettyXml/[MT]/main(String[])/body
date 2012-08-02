@@ -1,7 +1,9 @@
 {
   String jetty_home=System.getProperty("jetty.home","../jetty-distribution/target/distribution");
   System.setProperty("jetty.home",jetty_home);
-  Server server=new Server();
+  QueuedThreadPool threadPool=new QueuedThreadPool();
+  threadPool.setMaxThreads(500);
+  Server server=new Server(threadPool);
   server.setDumpAfterStart(true);
   server.setDumpBeforeStop(true);
   MBeanContainer mbContainer=new MBeanContainer(ManagementFactory.getPlatformMBeanServer());
@@ -9,15 +11,12 @@
   server.getContainer().addEventListener(mbContainer);
   server.addBean(mbContainer,true);
   mbContainer.addBean(new Log());
-  QueuedThreadPool threadPool=new QueuedThreadPool();
-  threadPool.setMaxThreads(500);
-  server.setThreadPool(threadPool);
-  SelectChannelConnector connector=new SelectChannelConnector();
+  SelectChannelConnector connector=new SelectChannelConnector(server);
   connector.setPort(8080);
   connector.setIdleTimeout(30000);
-  connector.setConfidentialPort(8443);
+  connector.getHttpConfig().setConfidentialPort(8443);
   server.setConnectors(new Connector[]{connector});
-  SslSelectChannelConnector ssl_connector=new SslSelectChannelConnector();
+  SelectChannelConnector ssl_connector=new SelectChannelConnector(server,true);
   ssl_connector.setPort(8443);
   SslContextFactory cf=ssl_connector.getSslContextFactory();
   cf.setKeyStorePath(jetty_home + "/etc/keystore");
