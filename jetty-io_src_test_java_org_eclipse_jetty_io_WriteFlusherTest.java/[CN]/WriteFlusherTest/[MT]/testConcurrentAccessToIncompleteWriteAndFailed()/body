@@ -1,0 +1,34 @@
+{
+  ExecutorService executor=Executors.newFixedThreadPool(16);
+  final CountDownLatch failedCalledLatch=new CountDownLatch(1);
+  final CountDownLatch writeCalledLatch=new CountDownLatch(1);
+  final CountDownLatch completeWrite=new CountDownLatch(1);
+  final WriteFlusher writeFlusher=new WriteFlusher(_endPointMock){
+    protected void onIncompleteFlushed(){
+      writeCalledLatch.countDown();
+      System.out.println(System.currentTimeMillis() + ":" + Thread.currentThread().getName()+ " onIncompleteFlushed: calling completeWrite "+ writeCalledLatch.getCount());
+      try {
+        System.out.println(System.currentTimeMillis() + ":" + Thread.currentThread().getName()+ " going to sleep "+ getState());
+        Thread.sleep(1000);
+        System.out.println(System.currentTimeMillis() + ":" + Thread.currentThread().getName()+ " woken up");
+      }
+ catch (      InterruptedException e) {
+        e.printStackTrace();
+      }
+      System.out.println(System.currentTimeMillis() + ":" + Thread.currentThread().getName()+ " completeWrite call");
+      completeWrite();
+      completeWrite.countDown();
+    }
+  }
+;
+  endPointFlushExpectationPendingWrite();
+  System.out.println(System.currentTimeMillis() + ":" + Thread.currentThread().getName()+ " SUBMITTING WRITE");
+  executor.submit(new Writer(writeFlusher,new FutureCallback()));
+  assertThat("Write has been called.",writeCalledLatch.await(5,TimeUnit.SECONDS),is(true));
+  System.out.println(System.currentTimeMillis() + ":" + Thread.currentThread().getName()+ " SUBMITTING FAILED "+ writeFlusher.getState());
+  executor.submit(new FailedCaller(writeFlusher,failedCalledLatch));
+  assertThat("Failed has been called.",failedCalledLatch.await(5,TimeUnit.SECONDS),is(true));
+  System.out.println(System.currentTimeMillis() + ":" + Thread.currentThread().getName()+ " Calling write again "+ writeFlusher.getState());
+  writeFlusher.write(_context,new FutureCallback<String>(),BufferUtil.toBuffer("foobar"));
+  assertThat("completeWrite done",completeWrite.await(5,TimeUnit.SECONDS),is(true));
+}

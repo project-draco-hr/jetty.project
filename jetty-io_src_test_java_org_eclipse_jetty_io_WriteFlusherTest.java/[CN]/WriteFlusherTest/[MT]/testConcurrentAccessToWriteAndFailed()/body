@@ -1,0 +1,14 @@
+{
+  ExecutorService executor=Executors.newFixedThreadPool(16);
+  final CountDownLatch failedCalledLatch=new CountDownLatch(1);
+  final CountDownLatch writeCalledLatch=new CountDownLatch(1);
+  final WriteFlusher writeFlusher=new WriteFlusher(_endPointMock){
+    @Override protected void onIncompleteFlushed(){
+    }
+  }
+;
+  endPointFlushExpectation(writeCalledLatch);
+  executor.submit(new Writer(writeFlusher,new FutureCallback()));
+  assertThat("Write has been called.",writeCalledLatch.await(5,TimeUnit.SECONDS),is(true));
+  executor.submit(new FailedCaller(writeFlusher,failedCalledLatch)).get();
+}
