@@ -5,17 +5,11 @@
   send.add(new WebSocketFrame(OpCode.CONTINUATION).setPayload("fragment3").setFin(false));
   send.add(new WebSocketFrame(OpCode.TEXT).setPayload("fragment4").setFin(true));
   send.add(new CloseInfo(StatusCode.NORMAL).asFrame());
-  List<WebSocketFrame> expect=new ArrayList<>();
-  expect.add(WebSocketFrame.text("fragment1fragment2"));
-  expect.add(new CloseInfo(StatusCode.PROTOCOL).asFrame());
-  Fuzzer fuzzer=new Fuzzer(this);
-  try {
-    fuzzer.connect();
-    fuzzer.setSendMode(Fuzzer.SendMode.BULK);
-    fuzzer.send(send);
-    fuzzer.expect(expect);
-  }
-  finally {
-    fuzzer.close();
-  }
+  ByteBuffer completeBuf=UnitGenerator.generate(send);
+  UnitParser parser=new UnitParser();
+  IncomingFramesCapture capture=new IncomingFramesCapture();
+  parser.setIncomingFramesHandler(capture);
+  parser.parse(completeBuf);
+  capture.assertErrorCount(1);
+  capture.assertHasFrame(OpCode.TEXT,2);
 }

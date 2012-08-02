@@ -1,0 +1,15 @@
+{
+  List<WebSocketFrame> send=new ArrayList<>();
+  send.add(WebSocketFrame.pong().setPayload("ping"));
+  send.add(WebSocketFrame.text("hello, world"));
+  send.add(new CloseInfo(StatusCode.NORMAL).asFrame());
+  ByteBuffer completeBuf=UnitGenerator.generate(send);
+  UnitParser parser=new UnitParser();
+  IncomingFramesCapture capture=new IncomingFramesCapture();
+  parser.setIncomingFramesHandler(capture);
+  parser.parse(completeBuf);
+  capture.assertErrorCount(0);
+  capture.assertHasFrame(OpCode.TEXT,1);
+  capture.assertHasFrame(OpCode.CLOSE,1);
+  capture.assertHasFrame(OpCode.PONG,1);
+}
