@@ -1,0 +1,32 @@
+{
+  SessionPromise sessionPromise=(SessionPromise)attachment;
+  final SPDYClient client=sessionPromise.client;
+  try {
+    if (sslContextFactory != null) {
+      final SSLEngine engine=client.newSSLEngine(sslContextFactory,channel);
+      SslConnection sslConnection=new SslConnection(bufferPool,threadPool,endPoint,engine){
+        @Override public void onClose(){
+          NextProtoNego.remove(engine);
+          super.onClose();
+        }
+      }
+;
+      EndPoint sslEndPoint=sslConnection.getDecryptedEndPoint();
+      NextProtoNegoClientAsyncConnection connection=new NextProtoNegoClientAsyncConnection(channel,sslEndPoint,attachment,client.factory.threadPool,client);
+      sslEndPoint.setConnection(connection);
+      connectionOpened(connection);
+      NextProtoNego.put(engine,connection);
+      return sslConnection;
+    }
+ else {
+      AsyncConnectionFactory connectionFactory=new ClientSPDYAsyncConnectionFactory();
+      Connection connection=connectionFactory.newAsyncConnection(channel,endPoint,attachment);
+      endPoint.setConnection(connection);
+      return connection;
+    }
+  }
+ catch (  RuntimeException x) {
+    sessionPromise.failed(null,x);
+    throw x;
+  }
+}

@@ -1,0 +1,36 @@
+{
+  WebSocketClient.ConnectFuture confut=(WebSocketClient.ConnectFuture)attachment;
+  try {
+    String scheme=confut.getWebSocketUri().getScheme();
+    if ((sslContextFactory != null) && ("wss".equalsIgnoreCase(scheme))) {
+      final AtomicReference<EndPoint> sslEndPointRef=new AtomicReference<>();
+      final AtomicReference<Object> attachmentRef=new AtomicReference<>(attachment);
+      SSLEngine engine=newSSLEngine(sslContextFactory,channel);
+      SslConnection sslConnection=new SslConnection(bufferPool,executor,endPoint,engine){
+        @Override public void onClose(){
+          sslEndPointRef.set(null);
+          attachmentRef.set(null);
+          super.onClose();
+        }
+      }
+;
+      endPoint.setConnection(sslConnection);
+      EndPoint sslEndPoint=sslConnection.getDecryptedEndPoint();
+      sslEndPointRef.set(sslEndPoint);
+      startHandshake(engine);
+      Connection connection=newAsyncConnection(channel,sslEndPoint,attachment);
+      endPoint.setConnection(connection);
+      return connection;
+    }
+ else {
+      Connection connection=newAsyncConnection(channel,endPoint,attachment);
+      endPoint.setConnection(connection);
+      return connection;
+    }
+  }
+ catch (  Throwable t) {
+    LOG.debug(t);
+    confut.failed(null,t);
+    throw t;
+  }
+}

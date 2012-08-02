@@ -1,0 +1,45 @@
+{
+  ByteArrayEndPoint endp=new ByteArrayEndPoint(_scheduler,500);
+  endp.setInput("test");
+  endp.setGrowOutput(false);
+  endp.setOutput(BufferUtil.allocate(5));
+  assertTrue(endp.isOpen());
+  Thread.sleep(1000);
+  assertTrue(endp.isOpen());
+  ByteBuffer buffer=BufferUtil.allocate(1024);
+  FutureCallback<Void> fcb=new FutureCallback<>();
+  endp.fillInterested(null,fcb);
+  assertTrue(fcb.isDone());
+  assertEquals(null,fcb.get());
+  assertEquals(4,endp.fill(buffer));
+  assertEquals("test",BufferUtil.toString(buffer));
+  fcb=new FutureCallback<>();
+  endp.fillInterested(null,fcb);
+  long start=System.currentTimeMillis();
+  try {
+    fcb.get();
+    fail();
+  }
+ catch (  ExecutionException t) {
+    assertThat(t.getCause(),Matchers.instanceOf(TimeoutException.class));
+  }
+  assertThat(System.currentTimeMillis() - start,Matchers.greaterThan(100L));
+  assertTrue(endp.isOpen());
+  fcb=new FutureCallback<>();
+  start=System.currentTimeMillis();
+  endp.write(null,fcb,BufferUtil.toBuffer("This is too long"));
+  try {
+    fcb.get();
+    fail();
+  }
+ catch (  ExecutionException t) {
+    assertThat(t.getCause(),Matchers.instanceOf(TimeoutException.class));
+  }
+  assertThat(System.currentTimeMillis() - start,Matchers.greaterThan(100L));
+  assertTrue(endp.isOpen());
+  Thread.sleep(1000);
+  assertTrue(endp.isOpen());
+  endp.shutdownOutput();
+  Thread.sleep(1000);
+  assertFalse(endp.isOpen());
+}
