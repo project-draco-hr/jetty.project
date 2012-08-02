@@ -1,12 +1,17 @@
 {
   ExecutorService executor=Executors.newFixedThreadPool(16);
-  final CountDownLatch writeCalledLatch=new CountDownLatch(2);
   final WriteFlusher writeFlusher=new WriteFlusher(_endPointMock){
     @Override protected void onIncompleteFlushed(){
     }
   }
 ;
-  endPointFlushExpectation(writeCalledLatch);
+  when(_endPointMock.flush(any(ByteBuffer[].class))).thenAnswer(new Answer<Object>(){
+    @Override public Object answer(    InvocationOnMock invocation) throws Throwable {
+      Thread.sleep(5000);
+      return null;
+    }
+  }
+);
   executor.submit(new Writer(writeFlusher,new FutureCallback()));
   try {
     executor.submit(new Writer(writeFlusher,new FutureCallback())).get();

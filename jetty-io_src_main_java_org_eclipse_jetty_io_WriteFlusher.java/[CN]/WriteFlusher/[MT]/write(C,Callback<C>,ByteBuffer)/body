@@ -1,15 +1,15 @@
 {
-  logger.debug("write: starting write. {}",_state);
   if (callback == null)   throw new IllegalArgumentException();
+  logger.debug("write: {}",this);
   if (updateState(writingState) == null) {
-    callback.failed(context,failure);
+    fail(context,callback,failure);
     return;
   }
   try {
-    _endp.flush(buffers);
+    _endPoint.flush(buffers);
     for (    ByteBuffer b : buffers) {
       if (b.hasRemaining()) {
-        if (updateState(new PendingState(buffers,context,(Callback<Object>)callback)) == null)         callback.failed(context,failure);
+        if (updateState(new PendingState<>(buffers,context,callback)) == null)         fail(context,callback,failure);
  else         onIncompleteFlushed();
         return;
       }
@@ -19,6 +19,6 @@
   }
  catch (  IOException e) {
     updateState(failedState);
-    callback.failed(context,e);
+    fail(context,callback,e);
   }
 }
