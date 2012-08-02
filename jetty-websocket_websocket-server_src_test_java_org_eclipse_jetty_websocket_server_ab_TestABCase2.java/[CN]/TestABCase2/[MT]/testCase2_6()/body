@@ -1,5 +1,21 @@
 {
   byte payload[]=new byte[125];
   Arrays.fill(payload,(byte)0xFE);
-  assertSegmentedPingFrame(payload,1);
+  List<WebSocketFrame> send=new ArrayList<>();
+  send.add(WebSocketFrame.ping().setPayload(payload));
+  send.add(new CloseInfo(StatusCode.NORMAL).asFrame());
+  List<WebSocketFrame> expect=new ArrayList<>();
+  expect.add(WebSocketFrame.pong().setPayload(payload));
+  expect.add(new CloseInfo(StatusCode.NORMAL).asFrame());
+  Fuzzer fuzzer=new Fuzzer(this);
+  try {
+    fuzzer.connect();
+    fuzzer.setSendMode(Fuzzer.SendMode.SLOW);
+    fuzzer.setSlowSendSegmentSize(1);
+    fuzzer.send(send);
+    fuzzer.expect(expect);
+  }
+  finally {
+    fuzzer.close();
+  }
 }

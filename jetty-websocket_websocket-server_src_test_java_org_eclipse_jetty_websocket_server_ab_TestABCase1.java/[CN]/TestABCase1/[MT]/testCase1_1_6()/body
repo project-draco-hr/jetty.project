@@ -1,5 +1,20 @@
 {
   byte payload[]=new byte[65535];
   Arrays.fill(payload,(byte)'*');
-  assertEchoFrame(OpCode.TEXT,payload);
+  List<WebSocketFrame> send=new ArrayList<>();
+  send.add(WebSocketFrame.text().setPayload(payload));
+  send.add(new CloseInfo(StatusCode.NORMAL).asFrame());
+  List<WebSocketFrame> expect=new ArrayList<>();
+  expect.add(WebSocketFrame.text().setPayload(payload));
+  expect.add(new CloseInfo(StatusCode.NORMAL).asFrame());
+  Fuzzer fuzzer=new Fuzzer(this);
+  try {
+    fuzzer.connect();
+    fuzzer.setSendMode(SendMode.BULK);
+    fuzzer.send(send);
+    fuzzer.expect(expect);
+  }
+  finally {
+    fuzzer.close();
+  }
 }

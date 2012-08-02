@@ -1,0 +1,98 @@
+{
+  LOG.debug("{} fill enter",SslConnection.this);
+  try {
+    if (BufferUtil.hasContent(_decryptedInput))     return BufferUtil.append(_decryptedInput,buffer);
+    if (_encryptedInput == null)     _encryptedInput=_bufferPool.acquire(_sslEngine.getSession().getPacketBufferSize(),_encryptedDirectBuffers);
+ else     BufferUtil.compact(_encryptedInput);
+    ByteBuffer app_in;
+    if (BufferUtil.space(buffer) > _sslEngine.getSession().getApplicationBufferSize())     app_in=buffer;
+ else     if (_decryptedInput == null)     app_in=_decryptedInput=_bufferPool.acquire(_sslEngine.getSession().getApplicationBufferSize(),_decryptedDirectBuffers);
+ else     app_in=_decryptedInput;
+    while (true) {
+      int net_filled=getEndPoint().fill(_encryptedInput);
+      LOG.debug("{} filled {} encrypted bytes",SslConnection.this,net_filled);
+      if (net_filled > 0)       _needToFillMoreDataToProgress=false;
+      int pos=BufferUtil.flipToFill(app_in);
+      SSLEngineResult unwrapResult=_sslEngine.unwrap(_encryptedInput,app_in);
+      LOG.debug("{} unwrap {}",SslConnection.this,unwrapResult);
+      BufferUtil.flipToFlush(app_in,pos);
+switch (unwrapResult.getStatus()) {
+case BUFFER_OVERFLOW:
+        throw new IllegalStateException();
+case CLOSED:
+switch (_sslEngine.getHandshakeStatus()) {
+case NOT_HANDSHAKING:
+        return -1;
+case NEED_TASK:
+      _sslEngine.getDelegatedTask().run();
+    continue;
+case NEED_WRAP:
+  if (_flushRequiresFillToProgress)   return -1;
+_fillRequiresFlushToProgress=true;
+try {
+flush(BufferUtil.EMPTY_BUFFER);
+if (BufferUtil.isEmpty(_encryptedOutput)) {
+  _fillRequiresFlushToProgress=false;
+  return -1;
+}
+return unwrapResult.bytesProduced();
+}
+ catch (IOException e) {
+LOG.debug(e);
+return -1;
+}
+}
+throw new IllegalStateException();
+default :
+if (unwrapResult.getStatus() == Status.BUFFER_UNDERFLOW) _needToFillMoreDataToProgress=true;
+if (unwrapResult.bytesProduced() > 0) {
+if (app_in == buffer) return unwrapResult.bytesProduced();
+return BufferUtil.append(_decryptedInput,buffer);
+}
+switch (_sslEngine.getHandshakeStatus()) {
+case NOT_HANDSHAKING:
+if (net_filled < 0) _sslEngine.closeInbound();
+return 0;
+case NEED_TASK:
+_sslEngine.getDelegatedTask().run();
+continue;
+case NEED_WRAP:
+if (_flushRequiresFillToProgress) return 0;
+_fillRequiresFlushToProgress=true;
+flush(BufferUtil.EMPTY_BUFFER);
+if (BufferUtil.isEmpty(_encryptedOutput)) {
+_fillRequiresFlushToProgress=false;
+continue;
+}
+return 0;
+case NEED_UNWRAP:
+if (net_filled < 0) _sslEngine.closeInbound();
+ else if (net_filled > 0) continue;
+return 0;
+case FINISHED:
+throw new IllegalStateException();
+}
+}
+}
+}
+ catch (SSLException e) {
+getEndPoint().close();
+LOG.debug(e);
+throw new EofException(e);
+}
+catch (Exception e) {
+getEndPoint().close();
+throw e;
+}
+ finally {
+if (_encryptedInput != null && !_encryptedInput.hasRemaining()) {
+_bufferPool.release(_encryptedInput);
+_encryptedInput=null;
+}
+if (_decryptedInput != null && !_decryptedInput.hasRemaining()) {
+_bufferPool.release(_decryptedInput);
+_decryptedInput=null;
+}
+LOG.debug("{} fill exit",SslConnection.this);
+}
+}

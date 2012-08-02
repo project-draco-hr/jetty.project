@@ -1,0 +1,21 @@
+{
+  byte part1[]=Hex.asByteArray("CEBAE1BDB9CF83CEBCCEB5F4");
+  byte part2[]=Hex.asByteArray("90");
+  byte part3[]=Hex.asByteArray("8080656469746564");
+  List<WebSocketFrame> expect=new ArrayList<>();
+  expect.add(new CloseInfo(StatusCode.BAD_PAYLOAD).asFrame());
+  Fuzzer fuzzer=new Fuzzer(this);
+  try {
+    fuzzer.connect();
+    fuzzer.setSendMode(Fuzzer.SendMode.BULK);
+    fuzzer.send(new WebSocketFrame(OpCode.TEXT).setPayload(part1).setFin(false));
+    TimeUnit.SECONDS.sleep(1);
+    fuzzer.send(new WebSocketFrame(OpCode.CONTINUATION).setPayload(part2).setFin(false));
+    TimeUnit.SECONDS.sleep(1);
+    fuzzer.send(new WebSocketFrame(OpCode.CONTINUATION).setPayload(part3).setFin(true));
+    fuzzer.expect(expect);
+  }
+  finally {
+    fuzzer.close();
+  }
+}

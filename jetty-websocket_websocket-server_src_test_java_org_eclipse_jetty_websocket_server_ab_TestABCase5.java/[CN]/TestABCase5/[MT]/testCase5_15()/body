@@ -1,0 +1,21 @@
+{
+  List<WebSocketFrame> send=new ArrayList<>();
+  send.add(new WebSocketFrame(OpCode.TEXT).setPayload("fragment1").setFin(false));
+  send.add(new WebSocketFrame(OpCode.CONTINUATION).setPayload("fragment2").setFin(true));
+  send.add(new WebSocketFrame(OpCode.CONTINUATION).setPayload("fragment3").setFin(false));
+  send.add(new WebSocketFrame(OpCode.TEXT).setPayload("fragment4").setFin(true));
+  send.add(new CloseInfo(StatusCode.NORMAL).asFrame());
+  List<WebSocketFrame> expect=new ArrayList<>();
+  send.add(WebSocketFrame.text("fragment1fragment2"));
+  expect.add(new CloseInfo(StatusCode.PROTOCOL).asFrame());
+  Fuzzer fuzzer=new Fuzzer(this);
+  try {
+    fuzzer.connect();
+    fuzzer.setSendMode(Fuzzer.SendMode.BULK);
+    fuzzer.send(send);
+    fuzzer.expect(expect);
+  }
+  finally {
+    fuzzer.close();
+  }
+}

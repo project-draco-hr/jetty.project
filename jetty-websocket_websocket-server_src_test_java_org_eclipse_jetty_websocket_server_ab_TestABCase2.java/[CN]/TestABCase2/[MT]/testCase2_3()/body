@@ -1,4 +1,19 @@
 {
   byte payload[]=new byte[]{0x00,(byte)0xFF,(byte)0xFE,(byte)0xFD,(byte)0xFC,(byte)0xFB,0x00,(byte)0xFF};
-  assertPingFrame(payload);
+  List<WebSocketFrame> send=new ArrayList<>();
+  send.add(WebSocketFrame.ping().setPayload(payload));
+  send.add(new CloseInfo(StatusCode.NORMAL).asFrame());
+  List<WebSocketFrame> expect=new ArrayList<>();
+  expect.add(WebSocketFrame.pong().setPayload(payload));
+  expect.add(new CloseInfo(StatusCode.NORMAL).asFrame());
+  Fuzzer fuzzer=new Fuzzer(this);
+  try {
+    fuzzer.connect();
+    fuzzer.setSendMode(Fuzzer.SendMode.BULK);
+    fuzzer.send(send);
+    fuzzer.expect(expect);
+  }
+  finally {
+    fuzzer.close();
+  }
 }
