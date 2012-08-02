@@ -1,0 +1,39 @@
+{
+  byte[] MASK={0x11,0x22,0x33,0x44};
+  int pingCount=10;
+  Generator generator=new UnitGenerator();
+  List<WebSocketFrame> send=new ArrayList<>();
+  for (int i=0; i < pingCount; i++) {
+    String payload=String.format("ping-%d[%X]",i,i);
+    send.add(WebSocketFrame.ping().setPayload(payload));
+  }
+  send.add(new CloseInfo(StatusCode.NORMAL).asFrame());
+  int buflen=0;
+  for (  WebSocketFrame f : send) {
+    buflen+=f.getPayloadLength() + Generator.OVERHEAD;
+  }
+  ByteBuffer completeBuf=ByteBuffer.allocate(buflen);
+  BufferUtil.clearToFill(completeBuf);
+  for (  WebSocketFrame f : send) {
+    f.setMask(MASK);
+    ByteBuffer slice=f.getPayload().slice();
+    BufferUtil.put(generator.generate(f),completeBuf);
+    f.setPayload(slice);
+  }
+  BufferUtil.flipToFlush(completeBuf,0);
+  WebSocketPolicy policy=WebSocketPolicy.newServerPolicy();
+  Parser parser=new Parser(policy);
+  IncomingFramesCapture capture=new IncomingFramesCapture();
+  parser.setIncomingFramesHandler(capture);
+  parser.parse(completeBuf);
+  int frameCount=send.size();
+  capture.assertFrameCount(frameCount);
+  for (int i=0; i < frameCount; i++) {
+    WebSocketFrame actual=capture.getFrames().get(i);
+    WebSocketFrame expected=send.get(i);
+    String prefix="Frame[" + i + "]";
+    Assert.assertThat(prefix + ".opcode",actual.getOpCode(),is(expected.getOpCode()));
+    Assert.assertThat(prefix + ".payloadLength",actual.getPayloadLength(),is(expected.getPayloadLength()));
+    ByteBufferAssert.assertEquals(prefix + ".payload",expected.getPayload(),actual.getPayload());
+  }
+}
