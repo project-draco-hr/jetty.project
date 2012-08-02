@@ -1,6 +1,6 @@
 {
   byte[] MASK={0x11,0x22,0x33,0x44};
-  int pingCount=10;
+  int pingCount=1000;
   Generator generator=new UnitGenerator();
   List<WebSocketFrame> send=new ArrayList<>();
   for (int i=0; i < pingCount; i++) {
@@ -25,7 +25,14 @@
   Parser parser=new Parser(policy);
   IncomingFramesCapture capture=new IncomingFramesCapture();
   parser.setIncomingFramesHandler(capture);
-  parser.parse(completeBuf);
+  int segmentSize=5;
+  while (completeBuf.remaining() > 0) {
+    ByteBuffer part=completeBuf.slice();
+    int len=Math.min(segmentSize,part.remaining());
+    part.limit(part.position() + len);
+    parser.parse(part);
+    completeBuf.position(completeBuf.position() + len);
+  }
   int frameCount=send.size();
   capture.assertFrameCount(frameCount);
   for (int i=0; i < frameCount; i++) {

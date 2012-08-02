@@ -1,6 +1,6 @@
 {
   Assert.assertThat("Client connected",client.isConnected(),is(true));
-  LOG.debug("Sending {} frames (mode {})",send.size(),sendMode);
+  LOG.debug("[{}] Sending {} frames (mode {})",testname,send.size(),sendMode);
   if ((sendMode == SendMode.BULK) || (sendMode == SendMode.SLOW)) {
     int buflen=0;
     for (    WebSocketFrame f : send) {
@@ -10,6 +10,9 @@
     BufferUtil.clearToFill(buf);
     for (    WebSocketFrame f : send) {
       f.setMask(MASK);
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("payload: {}",BufferUtil.toDetailString(f.getPayload()));
+      }
       BufferUtil.put(generator.generate(f),buf);
     }
     BufferUtil.flipToFlush(buf,0);
