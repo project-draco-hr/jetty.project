@@ -1,14 +1,16 @@
 {
   try {
-    Class oClass=o.getClass();
+    Class<?> oClass=o.getClass();
     Object mbean=null;
     while (mbean == null && oClass != null) {
-      String pName=oClass.getPackage().getName();
-      String cName=oClass.getName().substring(pName.length() + 1);
-      String mName=pName + ".jmx." + cName+ "MBean";
+      ManagedObject mo=oClass.getAnnotation(ManagedObject.class);
+      String mName="";
+      if (mo != null) {
+        mName=mo.wrapper();
+      }
       try {
         Class mClass=(Object.class.equals(oClass)) ? oClass=ObjectMBean.class : Loader.loadClass(oClass,mName,true);
-        if (LOG.isDebugEnabled())         LOG.debug("mbeanFor " + o + " mClass="+ mClass);
+        LOG.debug("ObjectMbean: mbeanFor {} mClass={}",o,mClass);
         try {
           Constructor constructor=mClass.getConstructor(OBJ_ARG);
           mbean=constructor.newInstance(new Object[]{o});
@@ -20,7 +22,7 @@
             ((ModelMBean)mbean).setManagedResource(o,"objectReference");
           }
         }
-        if (LOG.isDebugEnabled())         LOG.debug("mbeanFor " + o + " is "+ mbean);
+        LOG.debug("mbeanFor {} is {}",o,mbean);
         return mbean;
       }
  catch (      ClassNotFoundException e) {

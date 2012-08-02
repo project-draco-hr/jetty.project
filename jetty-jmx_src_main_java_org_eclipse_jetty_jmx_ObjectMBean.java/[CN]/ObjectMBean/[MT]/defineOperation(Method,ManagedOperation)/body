@@ -3,8 +3,8 @@
   boolean onMBean=methodAnnotation.proxied();
   boolean convert=methodAnnotation.managed();
   String impactName=methodAnnotation.impact();
-  String signature=method.getName();
   LOG.debug("defineOperation " + method.getName() + " "+ onMBean+ ":"+ impactName+ ":"+ description);
+  String signature=method.getName();
   try {
     int impact=MBeanOperationInfo.UNKNOWN;
     if (impactName == null || impactName.equals("UNKNOWN"))     impact=MBeanOperationInfo.UNKNOWN;
@@ -24,7 +24,16 @@
         }
       }
     }
+    signature+="(";
+    for (int i=0; i < methodTypes.length; ++i) {
+      signature+=methodTypes[i].getName();
+      if (i != methodTypes.length - 1) {
+        signature+=",";
+      }
+    }
+    signature+=")";
     Class returnClass=method.getReturnType();
+    LOG.debug("Method Cache: " + signature);
     _methods.put(signature,method);
     if (convert)     _convert.add(signature);
     return new MBeanOperationInfo(method.getName(),description,pInfo,returnClass.isPrimitive() ? TypeUtil.toName(returnClass) : (returnClass.getName()),impact);
