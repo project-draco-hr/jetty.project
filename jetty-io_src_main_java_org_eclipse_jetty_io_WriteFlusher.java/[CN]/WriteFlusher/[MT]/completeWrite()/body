@@ -1,33 +1,20 @@
 {
-  if (!isWriting())   return;
+  State currentState=updateState(completingState);
+  if (currentState == null)   return;
   try {
-    while (true) {
-      _buffers=compact(_buffers);
-      _endp.flush(_buffers);
-      for (      ByteBuffer b : _buffers) {
-        if (b.hasRemaining()) {
-          onIncompleteFlushed();
-          return;
-        }
+    _endPoint.flush(currentState.getBuffers());
+    for (    ByteBuffer b : currentState.getBuffers()) {
+      if (b.hasRemaining()) {
+        if (updateState(currentState) == null)         currentState.fail(failure);
+ else         onIncompleteFlushed();
+        return;
       }
-      break;
     }
-    Callback<Object> callback=_callback;
-    Object context=_context;
-    _buffers=null;
-    _callback=null;
-    _context=null;
-    if (!_writing.compareAndSet(true,false))     throw new ConcurrentModificationException();
-    callback.completed(context);
+    updateState(idleState);
+    currentState.complete();
   }
  catch (  IOException e) {
-    Callback<Object> callback=_callback;
-    Object context=_context;
-    _buffers=null;
-    _callback=null;
-    _context=null;
-    if (!_writing.compareAndSet(true,false))     throw new ConcurrentModificationException();
-    callback.failed(context,e);
+    updateState(failedState);
+    currentState.fail(e);
   }
-  return;
 }

@@ -1,0 +1,23 @@
+{
+  ExecutorService executor=Executors.newFixedThreadPool(16);
+  final CountDownLatch failedCalledLatch=new CountDownLatch(1);
+  final CountDownLatch writeCalledLatch=new CountDownLatch(1);
+  final CountDownLatch writeCompleteLatch=new CountDownLatch(1);
+  final WriteFlusher writeFlusher=new WriteFlusher(_endPointMock){
+    @Override public <C>void write(    C context,    Callback<C> callback,    ByteBuffer... buffers){
+      super.write(context,callback,buffers);
+      writeCompleteLatch.countDown();
+    }
+    @Override protected void onIncompleteFlushed(){
+    }
+  }
+;
+  endPointFlushExpectation(writeCalledLatch,failedCalledLatch);
+  ExposingStateCallback callback=new ExposingStateCallback();
+  executor.submit(new Writer(writeFlusher,callback));
+  assertThat("Write has been called.",writeCalledLatch.await(5,TimeUnit.SECONDS),is(true));
+  executor.submit(new FailedCaller(writeFlusher,failedCalledLatch)).get();
+  assertThat("callback failed",callback.isFailed(),is(false));
+  assertThat("write complete",writeCompleteLatch.await(5,TimeUnit.SECONDS),is(true));
+  assertThat("callback completed",callback.isCompleted(),is(true));
+}
