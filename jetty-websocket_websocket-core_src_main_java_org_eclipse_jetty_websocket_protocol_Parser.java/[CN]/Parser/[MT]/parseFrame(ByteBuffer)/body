@@ -35,14 +35,23 @@ case FINOP:
       if (!rsv3InUse && rsv3) {
         throw new ProtocolException("RSV3 not allowed to be set");
       }
-      if (OpCode.isControlFrame(opcode) && !fin) {
-        throw new ProtocolException("Fragmented Control Frame [" + OpCode.name(opcode) + "]");
+      boolean isContinuation=false;
+      if (OpCode.isControlFrame(opcode)) {
+        if (!fin) {
+          throw new ProtocolException("Fragmented Control Frame [" + OpCode.name(opcode) + "]");
+        }
       }
-      if (opcode == OpCode.CONTINUATION) {
-        if (frame == null) {
-          throw new ProtocolException("Fragment continuation frame without prior !FIN");
+ else       if (opcode == OpCode.CONTINUATION) {
+        isContinuation=true;
+        if (priorDataFrame == null) {
+          throw new ProtocolException("CONTINUATION frame without prior !FIN");
         }
         opcode=lastDataOpcode;
+      }
+ else       if (OpCode.isDataFrame(opcode)) {
+        if ((priorDataFrame != null) && (!priorDataFrame.isFin())) {
+          throw new ProtocolException("Unexpected " + OpCode.name(opcode) + " frame, was expecting CONTINUATION");
+        }
       }
       frame=new WebSocketFrame();
       frame.setFin(fin);
@@ -50,6 +59,7 @@ case FINOP:
       frame.setRsv2(rsv2);
       frame.setRsv3(rsv3);
       frame.setOpCode(opcode);
+      frame.setContinuation(isContinuation);
       if (frame.isDataFrame()) {
         lastDataOpcode=opcode;
       }
@@ -127,8 +137,8 @@ break;
 case MASK_BYTES:
 {
 byte b=buffer.get();
+frame.getMask()[4 - cursor]=b;
 --cursor;
-frame.getMask()[cursor]=b;
 if (cursor == 0) {
 if (payloadLength == 0) {
   state=State.START;

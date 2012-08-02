@@ -1,0 +1,20 @@
+{
+  List<WebSocketFrame> send=new ArrayList<>();
+  send.add(new WebSocketFrame(OpCode.TEXT).setPayload("f1").setFin(false));
+  send.add(new WebSocketFrame(OpCode.CONTINUATION).setPayload(",f2").setFin(false));
+  send.add(new WebSocketFrame(OpCode.PING).setPayload("pong-1"));
+  send.add(new WebSocketFrame(OpCode.CONTINUATION).setPayload(",f3").setFin(false));
+  send.add(new WebSocketFrame(OpCode.CONTINUATION).setPayload(",f4").setFin(false));
+  send.add(new WebSocketFrame(OpCode.PING).setPayload("pong-2"));
+  send.add(new WebSocketFrame(OpCode.CONTINUATION).setPayload(",f5").setFin(true));
+  send.add(new CloseInfo(StatusCode.NORMAL).asFrame());
+  ByteBuffer completeBuf=UnitGenerator.generate(send);
+  UnitParser parser=new UnitParser();
+  IncomingFramesCapture capture=new IncomingFramesCapture();
+  parser.setIncomingFramesHandler(capture);
+  parser.parse(completeBuf);
+  capture.assertErrorCount(0);
+  capture.assertHasFrame(OpCode.TEXT,5);
+  capture.assertHasFrame(OpCode.CLOSE,1);
+  capture.assertHasFrame(OpCode.PING,2);
+}
