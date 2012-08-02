@@ -2,17 +2,17 @@
   try {
     if (_info == null) {
       String desc=null;
-      Object attributes=null;
-      Object constructors=null;
-      Object operations=null;
-      Object notifications=null;
+      List<MBeanAttributeInfo> attributes=new ArrayList<MBeanAttributeInfo>();
+      List<MBeanConstructorInfo> constructors=new ArrayList<MBeanConstructorInfo>();
+      List<MBeanOperationInfo> operations=new ArrayList<MBeanOperationInfo>();
+      List<MBeanNotificationInfo> notifications=new ArrayList<MBeanNotificationInfo>();
       Class<?> o_class=_managed.getClass();
-      Object influences=findInfluences(null,_managed.getClass());
-      LOG.debug("Influence Count: " + LazyList.size(influences));
+      List<Class<?>> influences=findInfluences(new ArrayList<Class<?>>(),_managed.getClass());
+      LOG.debug("Influence Count: " + influences.size());
       ManagedObject primary=o_class.getAnnotation(ManagedObject.class);
       desc=primary.value();
-      for (int i=0; i < LazyList.size(influences); i++) {
-        Class<?> oClass=(Class<?>)LazyList.get(influences,i);
+      for (int i=0; i < influences.size(); i++) {
+        Class<?> oClass=influences.get(i);
         ManagedObject typeAnnotation=oClass.getAnnotation(ManagedObject.class);
         LOG.debug("Influenced by: " + oClass.getCanonicalName());
         if (typeAnnotation == null) {
@@ -25,19 +25,19 @@
             ManagedAttribute fieldAnnotation=field.getAnnotation(ManagedAttribute.class);
             if (fieldAnnotation != null) {
               LOG.debug("Field Annotation found for: " + field.getName());
-              attributes=LazyList.add(attributes,defineAttribute(field.getName(),fieldAnnotation));
+              attributes.add(defineAttribute(field.getName(),fieldAnnotation));
             }
           }
           for (          Method method : oClass.getDeclaredMethods()) {
             ManagedAttribute methodAttributeAnnotation=method.getAnnotation(ManagedAttribute.class);
             if (methodAttributeAnnotation != null) {
               LOG.debug("Attribute Annotation found for: " + method.getName());
-              attributes=LazyList.add(attributes,defineAttribute(method.getName(),methodAttributeAnnotation));
+              attributes.add(defineAttribute(method.getName(),methodAttributeAnnotation));
             }
             ManagedOperation methodOperationAnnotation=method.getAnnotation(ManagedOperation.class);
             if (methodOperationAnnotation != null) {
               LOG.debug("Method Annotation found for: " + method.getName());
-              operations=LazyList.add(operations,defineOperation(method,methodOperationAnnotation));
+              operations.add(defineOperation(method,methodOperationAnnotation));
             }
           }
         }
@@ -45,7 +45,7 @@
           LOG.ignore(e);
         }
       }
-      _info=new MBeanInfo(o_class.getName(),desc,(MBeanAttributeInfo[])LazyList.toArray(attributes,MBeanAttributeInfo.class),(MBeanConstructorInfo[])LazyList.toArray(constructors,MBeanConstructorInfo.class),(MBeanOperationInfo[])LazyList.toArray(operations,MBeanOperationInfo.class),(MBeanNotificationInfo[])LazyList.toArray(notifications,MBeanNotificationInfo.class));
+      _info=new MBeanInfo(o_class.getName(),desc,(MBeanAttributeInfo[])attributes.toArray(),(MBeanConstructorInfo[])constructors.toArray(),(MBeanOperationInfo[])operations.toArray(),(MBeanNotificationInfo[])notifications.toArray());
     }
   }
  catch (  RuntimeException e) {
