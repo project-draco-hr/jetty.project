@@ -10,7 +10,12 @@
       List<Class<?>> influences=findInfluences(new ArrayList<Class<?>>(),_managed.getClass());
       LOG.debug("Influence Count: " + influences.size());
       ManagedObject primary=o_class.getAnnotation(ManagedObject.class);
-      desc=primary.value();
+      if (primary != null) {
+        desc=primary.value();
+      }
+ else {
+        LOG.debug("No @ManagedObject declared on {}",_managed.getClass());
+      }
       for (int i=0; i < influences.size(); i++) {
         Class<?> oClass=influences.get(i);
         ManagedObject typeAnnotation=oClass.getAnnotation(ManagedObject.class);
@@ -19,30 +24,25 @@
           LOG.debug("Annotations not found for: " + oClass.getCanonicalName());
           continue;
         }
-        try {
-          for (          Field field : oClass.getDeclaredFields()) {
-            LOG.debug("Checking: " + field.getName());
-            ManagedAttribute fieldAnnotation=field.getAnnotation(ManagedAttribute.class);
-            if (fieldAnnotation != null) {
-              LOG.debug("Field Annotation found for: " + field.getName());
-              attributes.add(defineAttribute(field.getName(),fieldAnnotation));
-            }
-          }
-          for (          Method method : oClass.getDeclaredMethods()) {
-            ManagedAttribute methodAttributeAnnotation=method.getAnnotation(ManagedAttribute.class);
-            if (methodAttributeAnnotation != null) {
-              LOG.debug("Attribute Annotation found for: " + method.getName());
-              attributes.add(defineAttribute(method.getName(),methodAttributeAnnotation));
-            }
-            ManagedOperation methodOperationAnnotation=method.getAnnotation(ManagedOperation.class);
-            if (methodOperationAnnotation != null) {
-              LOG.debug("Method Annotation found for: " + method.getName());
-              operations.add(defineOperation(method,methodOperationAnnotation));
-            }
+        for (        Field field : oClass.getDeclaredFields()) {
+          LOG.debug("Checking: " + field.getName());
+          ManagedAttribute fieldAnnotation=field.getAnnotation(ManagedAttribute.class);
+          if (fieldAnnotation != null) {
+            LOG.debug("Field Annotation found for: " + field.getName());
+            attributes.add(defineAttribute(field.getName(),fieldAnnotation));
           }
         }
- catch (        MissingResourceException e) {
-          LOG.ignore(e);
+        for (        Method method : oClass.getDeclaredMethods()) {
+          ManagedAttribute methodAttributeAnnotation=method.getAnnotation(ManagedAttribute.class);
+          if (methodAttributeAnnotation != null) {
+            LOG.debug("Attribute Annotation found for: " + method.getName());
+            attributes.add(defineAttribute(method.getName(),methodAttributeAnnotation));
+          }
+          ManagedOperation methodOperationAnnotation=method.getAnnotation(ManagedOperation.class);
+          if (methodOperationAnnotation != null) {
+            LOG.debug("Method Annotation found for: " + method.getName());
+            operations.add(defineOperation(method,methodOperationAnnotation));
+          }
         }
       }
       _info=new MBeanInfo(o_class.getName(),desc,(MBeanAttributeInfo[])attributes.toArray(new MBeanAttributeInfo[attributes.size()]),(MBeanConstructorInfo[])constructors.toArray(new MBeanConstructorInfo[constructors.size()]),(MBeanOperationInfo[])operations.toArray(new MBeanOperationInfo[operations.size()]),(MBeanNotificationInfo[])notifications.toArray(new MBeanNotificationInfo[notifications.size()]));

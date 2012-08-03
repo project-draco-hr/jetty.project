@@ -1,6 +1,6 @@
 {
   String description=attributeAnnotation.value();
-  boolean writable=attributeAnnotation.readonly();
+  boolean writable=!attributeAnnotation.readonly();
   boolean onMBean=attributeAnnotation.proxied();
   boolean convert=attributeAnnotation.managed();
   String uName=name.substring(0,1).toUpperCase() + name.substring(1);
@@ -14,7 +14,6 @@
   Method[] methods=oClass.getMethods();
   for (int m=0; m < methods.length; m++) {
     if ((methods[m].getModifiers() & Modifier.PUBLIC) == 0)     continue;
-    LOG.debug("Declared Getter: {} vs {}",declaredGetter,methods[m].getName());
     if (methods[m].getName().equals(declaredGetter) && methods[m].getParameterTypes().length == 0) {
       if (getter != null) {
         LOG.warn("Multiple mbean getters for attr " + name + " in "+ oClass);
@@ -80,16 +79,17 @@
   }
   if (convert) {
     if (type == null) {
-      LOG.warn("No mbean type for " + name + " on "+ _managed.getClass());
+      LOG.warn("No mbean type for {} on {}",name,_managed.getClass());
       return null;
     }
     if (type.isPrimitive() && !type.isArray()) {
-      LOG.warn("Cannot convert mbean primative " + name);
+      LOG.warn("Cannot convert mbean primative {}",name);
       return null;
     }
+    LOG.debug("passed convert checks {} for type {}",name,type);
   }
   if (getter == null && setter == null) {
-    LOG.warn("No mbean getter or setters found for " + name + " in "+ oClass);
+    LOG.warn("No mbean getter or setters found for {} in {}",name,oClass);
     return null;
   }
   try {
@@ -98,10 +98,16 @@
     MBeanAttributeInfo info=null;
     if (convert) {
       _convert.add(name);
-      if (type.isArray())       info=new MBeanAttributeInfo(name,OBJECT_NAME_ARRAY_CLASS,description,getter != null,setter != null,getter != null && getter.getName().startsWith("is"));
- else       info=new MBeanAttributeInfo(name,OBJECT_NAME_CLASS,description,getter != null,setter != null,getter != null && getter.getName().startsWith("is"));
+      if (type.isArray()) {
+        info=new MBeanAttributeInfo(name,OBJECT_NAME_ARRAY_CLASS,description,getter != null,setter != null,getter != null && getter.getName().startsWith("is"));
+      }
+ else {
+        info=new MBeanAttributeInfo(name,OBJECT_NAME_CLASS,description,getter != null,setter != null,getter != null && getter.getName().startsWith("is"));
+      }
     }
- else     info=new MBeanAttributeInfo(name,description,getter,setter);
+ else {
+      info=new MBeanAttributeInfo(name,description,getter,setter);
+    }
     return info;
   }
  catch (  Exception e) {
