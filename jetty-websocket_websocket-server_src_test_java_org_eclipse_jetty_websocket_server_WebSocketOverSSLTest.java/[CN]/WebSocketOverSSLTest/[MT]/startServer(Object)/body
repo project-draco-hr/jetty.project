@@ -1,11 +1,11 @@
 {
+  SslContextFactory sslContextFactory=new SslContextFactory();
+  sslContextFactory.setKeyStorePath(MavenTestingUtils.getTestResourceFile("keystore").getAbsolutePath());
+  sslContextFactory.setKeyStorePassword("storepwd");
+  sslContextFactory.setKeyManagerPassword("keypwd");
   _server=new Server();
-  SelectChannelConnector connector=new SelectChannelConnector(_server,true);
+  SelectChannelConnector connector=new SelectChannelConnector(_server,sslContextFactory);
   _server.addConnector(connector);
-  SslContextFactory cf=connector.getConnectionFactory().getSslContextFactory();
-  cf.setKeyStorePath(MavenTestingUtils.getTestResourceFile("keystore").getAbsolutePath());
-  cf.setKeyStorePassword("storepwd");
-  cf.setKeyManagerPassword("keypwd");
   _server.setHandler(new WebSocketHandler.Simple(websocket.getClass()));
   _server.start();
   _port=connector.getLocalPort();

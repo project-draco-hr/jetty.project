@@ -1,0 +1,25 @@
+{
+  SslContextFactory sslContextFactory=getSslContextFactory();
+  if (sslContextFactory != null) {
+    final SSLEngine engine=newSSLEngine(sslContextFactory,channel);
+    SslConnection sslConnection=new SslConnection(getByteBufferPool(),getExecutor(),endPoint,engine){
+      @Override public void onClose(){
+        NextProtoNego.remove(engine);
+        super.onClose();
+      }
+    }
+;
+    final EndPoint sslEndPoint=sslConnection.getDecryptedEndPoint();
+    NextProtoNegoServerConnection connection=new NextProtoNegoServerConnection(channel,sslEndPoint,this);
+    sslEndPoint.setConnection(connection);
+    getSelectorManager().connectionOpened(connection);
+    NextProtoNego.put(engine,connection);
+    return sslConnection;
+  }
+ else {
+    ConnectionFactory connectionFactory=getDefaultConnectionFactory();
+    Connection connection=connectionFactory.newConnection(channel,endPoint,this);
+    endPoint.setConnection(connection);
+    return connection;
+  }
+}

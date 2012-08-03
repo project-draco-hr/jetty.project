@@ -1,29 +1,24 @@
 {
   Thread current=Thread.currentThread();
-  String name;
+  String name=current.getName();
+  current.setName(name + " Acceptor" + _acceptor+ " "+ AbstractConnector.this);
 synchronized (AbstractConnector.this) {
-    if (!isRunning())     return;
     _acceptors[_acceptor]=current;
-    name=_acceptors[_acceptor].getName();
-    current.setName(name + " Acceptor" + _acceptor+ " "+ AbstractConnector.this);
   }
-  int old_priority=current.getPriority();
   try {
-    current.setPriority(old_priority);
-    while (isRunning() && getTransport() != null) {
+    while (isRunning()) {
       try {
         accept(_acceptor);
       }
  catch (      IOException|InterruptedException e) {
-        LOG.ignore(e);
+        logger.ignore(e);
       }
 catch (      Throwable e) {
-        LOG.warn(e);
+        logger.warn(e);
       }
     }
   }
   finally {
-    current.setPriority(old_priority);
     current.setName(name);
 synchronized (AbstractConnector.this) {
       _acceptors[_acceptor]=null;

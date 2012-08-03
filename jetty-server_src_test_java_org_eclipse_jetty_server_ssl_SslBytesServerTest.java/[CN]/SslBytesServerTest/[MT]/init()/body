@@ -1,7 +1,12 @@
 {
   threadPool=Executors.newCachedThreadPool();
   server=new Server();
-  SelectChannelConnector connector=new SelectChannelConnector(server,true){
+  File keyStore=MavenTestingUtils.getTestResourceFile("keystore");
+  SslContextFactory sslContextFactory=new SslContextFactory();
+  sslContextFactory.setKeyStorePath(keyStore.getAbsolutePath());
+  sslContextFactory.setKeyStorePassword("storepwd");
+  sslContextFactory.setKeyManagerPassword("keypwd");
+  SelectChannelConnector connector=new SelectChannelConnector(server,sslContextFactory){
     @Override protected SelectChannelEndPoint newEndPoint(    SocketChannel channel,    ManagedSelector selectSet,    SelectionKey key) throws IOException {
       SelectChannelEndPoint endp=super.newEndPoint(channel,selectSet,key);
       serverEndPoint.set(endp);
@@ -11,11 +16,6 @@
 ;
   connector.setIdleTimeout(idleTimeout);
   connector.setPort(0);
-  File keyStore=MavenTestingUtils.getTestResourceFile("keystore");
-  SslContextFactory cf=connector.getConnectionFactory().getSslContextFactory();
-  cf.setKeyStorePath(keyStore.getAbsolutePath());
-  cf.setKeyStorePassword("storepwd");
-  cf.setKeyManagerPassword("keypwd");
   server.addConnector(connector);
   server.setHandler(new AbstractHandler(){
     public void handle(    String target,    Request request,    HttpServletRequest httpRequest,    HttpServletResponse httpResponse) throws IOException, ServletException {
@@ -43,7 +43,7 @@
 );
   server.start();
   serverPort=connector.getLocalPort();
-  sslContext=cf.getSslContext();
+  sslContext=sslContextFactory.getSslContext();
   proxy=new SimpleProxy(threadPool,"localhost",serverPort);
   proxy.start();
   logger.debug(":{} <==> :{}",proxy.getPort(),serverPort);
