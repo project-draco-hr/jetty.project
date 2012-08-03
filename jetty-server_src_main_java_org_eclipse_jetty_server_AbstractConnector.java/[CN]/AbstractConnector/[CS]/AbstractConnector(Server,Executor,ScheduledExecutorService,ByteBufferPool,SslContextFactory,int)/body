@@ -1,0 +1,20 @@
+{
+  _server=server;
+  _executor=executor != null ? executor : _server.getThreadPool();
+  _scheduler=scheduler != null ? scheduler : Executors.newSingleThreadScheduledExecutor(new ThreadFactory(){
+    @Override public Thread newThread(    Runnable r){
+      return new Thread(r,"Scheduler-" + getName());
+    }
+  }
+);
+  _byteBufferPool=pool != null ? pool : new StandardByteBufferPool();
+  _sslContextFactory=sslContextFactory;
+  addBean(_server,false);
+  addBean(_executor,false);
+  addBean(_scheduler,scheduler == null);
+  addBean(_byteBufferPool,pool == null);
+  addBean(_sslContextFactory,true);
+  if (acceptors <= 0)   acceptors=Math.max(1,(Runtime.getRuntime().availableProcessors()) / 4);
+  if (acceptors > 2 * Runtime.getRuntime().availableProcessors())   logger.warn("Acceptors should be <= 2*availableProcessors: " + this);
+  _acceptors=new Thread[acceptors];
+}
