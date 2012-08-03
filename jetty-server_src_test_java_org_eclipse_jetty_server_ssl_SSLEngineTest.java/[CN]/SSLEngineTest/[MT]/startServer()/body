@@ -1,13 +1,15 @@
 {
-  server=new Server();
-  connector=new SelectChannelConnector(server,true);
   String keystore=MavenTestingUtils.getTestResourceFile("keystore").getAbsolutePath();
+  SslContextFactory sslContextFactory=new SslContextFactory();
+  sslContextFactory.setKeyStorePath(keystore);
+  sslContextFactory.setKeyStorePassword("storepwd");
+  sslContextFactory.setKeyManagerPassword("keypwd");
+  server=new Server();
+  connector=new SelectChannelConnector(server,sslContextFactory);
   connector.setPort(0);
-  SslContextFactory cf=connector.getConnectionFactory().getSslContextFactory();
-  cf.setKeyStorePath(keystore);
-  cf.setKeyStorePassword("storepwd");
-  cf.setKeyManagerPassword("keypwd");
-  connector.getConnectionFactory().getHttpConfig().setRequestBufferSize(512);
-  connector.getConnectionFactory().getHttpConfig().setRequestHeaderSize(512);
-  server.setConnectors(new Connector[]{connector});
+  HttpConfiguration httpConfiguration=new HttpConfiguration(sslContextFactory,true);
+  httpConfiguration.setRequestBufferSize(512);
+  httpConfiguration.setRequestHeaderSize(512);
+  connector.setDefaultConnectionFactory(new HttpServerConnectionFactory(connector,httpConfiguration));
+  server.addConnector(connector);
 }

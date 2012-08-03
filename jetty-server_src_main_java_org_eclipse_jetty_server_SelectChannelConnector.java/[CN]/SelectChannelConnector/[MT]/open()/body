@@ -1,22 +1,22 @@
 {
-synchronized (this) {
-    if (_acceptChannel == null) {
-      if (_inheritChannel) {
-        Channel channel=System.inheritedChannel();
-        if (channel instanceof ServerSocketChannel)         _acceptChannel=(ServerSocketChannel)channel;
- else         LOG.warn("Unable to use System.inheritedChannel() [" + channel + "]. Trying a new ServerSocketChannel at "+ getHost()+ ":"+ getPort());
-      }
-      if (_acceptChannel == null) {
-        _acceptChannel=ServerSocketChannel.open();
-        _acceptChannel.socket().setReuseAddress(getReuseAddress());
-        InetSocketAddress addr=getHost() == null ? new InetSocketAddress(getPort()) : new InetSocketAddress(getHost(),getPort());
-        _acceptChannel.socket().bind(addr,getAcceptQueueSize());
-        _localPort=_acceptChannel.socket().getLocalPort();
-        if (_localPort <= 0)         throw new IOException("Server channel not bound");
-        addBean(_acceptChannel);
-      }
-      _acceptChannel.configureBlocking(true);
-      addBean(_acceptChannel);
+  if (_acceptChannel == null) {
+    ServerSocketChannel serverChannel=null;
+    if (isInheritChannel()) {
+      Channel channel=System.inheritedChannel();
+      if (channel instanceof ServerSocketChannel)       serverChannel=(ServerSocketChannel)channel;
+ else       logger.warn("Unable to use System.inheritedChannel() [{}]. Trying a new ServerSocketChannel at {}:{}",channel,getHost(),getPort());
     }
+    if (serverChannel == null) {
+      serverChannel=ServerSocketChannel.open();
+      InetSocketAddress bindAddress=getHost() == null ? new InetSocketAddress(getPort()) : new InetSocketAddress(getHost(),getPort());
+      serverChannel.socket().bind(bindAddress,getAcceptQueueSize());
+      serverChannel.socket().setReuseAddress(getReuseAddress());
+      _localPort=serverChannel.socket().getLocalPort();
+      if (_localPort <= 0)       throw new IOException("Server channel not bound");
+      addBean(serverChannel);
+    }
+    serverChannel.configureBlocking(true);
+    addBean(serverChannel);
+    _acceptChannel=serverChannel;
   }
 }

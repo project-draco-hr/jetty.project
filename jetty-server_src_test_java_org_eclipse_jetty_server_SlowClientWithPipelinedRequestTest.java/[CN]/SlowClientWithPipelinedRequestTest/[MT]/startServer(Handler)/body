@@ -1,9 +1,10 @@
 {
   server=new Server();
-  connector=new SelectChannelConnector(server,new ConnectionFactory(){
-    @Override protected Connection newConnection(    Connector connector,    EndPoint endpoint){
-      return new HttpConnection(getHttpConfig(),connector,endpoint){
-        @Override public synchronized void onFillable(){
+  connector=new SelectChannelConnector(server);
+  connector.setDefaultConnectionFactory(new HttpServerConnectionFactory(connector){
+    @Override public Connection newConnection(    SocketChannel channel,    EndPoint endPoint,    Object attachment){
+      return new HttpConnection(getHttpConfiguration(),getConnector(),endPoint){
+        @Override public void onFillable(){
           handles.incrementAndGet();
           super.onFillable();
         }
@@ -11,7 +12,7 @@
 ;
     }
   }
-,null,null,null,0,0);
+);
   server.addConnector(connector);
   connector.setPort(0);
   server.setHandler(handler);
