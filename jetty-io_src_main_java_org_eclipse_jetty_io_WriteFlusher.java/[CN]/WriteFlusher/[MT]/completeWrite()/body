@@ -1,33 +1,23 @@
 {
-  if (!isWriting())   return;
+  State previous=_state.get();
+  PendingState<?> pending=null;
+  if (previous.getType() != StateType.PENDING)   return;
+  pending=(PendingState<?>)previous;
+  if (!updateState(pending,__COMPLETING))   return;
   try {
-    while (true) {
-      _buffers=compact(_buffers);
-      _endp.flush(_buffers);
-      for (      ByteBuffer b : _buffers) {
-        if (b.hasRemaining()) {
-          onIncompleteFlushed();
-          return;
-        }
+    ByteBuffer[] buffers=pending.getBuffers();
+    _endPoint.flush(buffers);
+    for (    ByteBuffer b : buffers) {
+      if (b.hasRemaining()) {
+        if (updateState(__COMPLETING,pending))         onIncompleteFlushed();
+        return;
       }
-      break;
     }
-    Callback<Object> callback=_callback;
-    Object context=_context;
-    _buffers=null;
-    _callback=null;
-    _context=null;
-    if (!_writing.compareAndSet(true,false))     throw new ConcurrentModificationException();
-    callback.completed(context);
+    if (updateState(__COMPLETING,__IDLE))     pending.complete();
+ else     pendingFail(pending);
   }
  catch (  IOException e) {
-    Callback<Object> callback=_callback;
-    Object context=_context;
-    _buffers=null;
-    _callback=null;
-    _context=null;
-    if (!_writing.compareAndSet(true,false))     throw new ConcurrentModificationException();
-    callback.failed(context,e);
+    if (updateState(__COMPLETING,__IDLE))     pending.fail(e);
+ else     pendingFail(pending);
   }
-  return;
 }
