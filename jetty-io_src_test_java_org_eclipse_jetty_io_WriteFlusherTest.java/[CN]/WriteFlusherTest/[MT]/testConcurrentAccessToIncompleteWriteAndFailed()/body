@@ -1,10 +1,9 @@
 {
-  ExecutorService executor=Executors.newFixedThreadPool(16);
   final CountDownLatch failedCalledLatch=new CountDownLatch(1);
   final CountDownLatch onIncompleteFlushedCalledLatch=new CountDownLatch(1);
   final CountDownLatch writeCalledLatch=new CountDownLatch(1);
   final CountDownLatch completeWrite=new CountDownLatch(1);
-  final WriteFlusher writeFlusher=new WriteFlusher(_endPointMock){
+  final WriteFlusher writeFlusher=new WriteFlusher(new EndPointMock(writeCalledLatch,failedCalledLatch)){
     protected void onIncompleteFlushed(){
       onIncompleteFlushedCalledLatch.countDown();
       completeWrite();
@@ -12,7 +11,6 @@
     }
   }
 ;
-  endPointFlushExpectationPendingWrite(writeCalledLatch,failedCalledLatch);
   ExposingStateCallback callback=new ExposingStateCallback();
   executor.submit(new Writer(writeFlusher,callback));
   assertThat("Write has been called.",writeCalledLatch.await(5,TimeUnit.SECONDS),is(true));
@@ -20,4 +18,7 @@
   assertThat("Failed has been called.",failedCalledLatch.await(5,TimeUnit.SECONDS),is(true));
   writeFlusher.write(_context,new FutureCallback<String>(),BufferUtil.toBuffer("foobar"));
   assertThat("completeWrite done",completeWrite.await(5,TimeUnit.SECONDS),is(true));
+  callback.get(5,TimeUnit.SECONDS);
+  assertThat("callback failed has not been called",callback.isFailed(),is(false));
+  assertThat("callback complete has been called",callback.isCompleted(),is(true));
 }

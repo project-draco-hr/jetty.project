@@ -1,5 +1,5 @@
 {
-  ExecutorService executor=Executors.newFixedThreadPool(16);
+  final CountDownLatch flushCalledLatch=new CountDownLatch(1);
   final WriteFlusher writeFlusher=new WriteFlusher(_endPointMock){
     @Override protected void onIncompleteFlushed(){
     }
@@ -7,12 +7,14 @@
 ;
   when(_endPointMock.flush(any(ByteBuffer[].class))).thenAnswer(new Answer<Object>(){
     @Override public Object answer(    InvocationOnMock invocation) throws Throwable {
+      flushCalledLatch.countDown();
       Thread.sleep(5000);
       return null;
     }
   }
 );
-  executor.submit(new Writer(writeFlusher,new FutureCallback()));
+  executor.submit(new Writer(writeFlusher,new FutureCallback<String>()));
+  assertThat("Flush has been called once",flushCalledLatch.await(5,TimeUnit.SECONDS),is(true));
   try {
     executor.submit(new Writer(writeFlusher,new FutureCallback())).get();
   }
