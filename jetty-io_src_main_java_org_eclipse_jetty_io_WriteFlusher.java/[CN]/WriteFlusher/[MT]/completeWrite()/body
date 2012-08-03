@@ -10,14 +10,15 @@
     for (    ByteBuffer b : buffers) {
       if (b.hasRemaining()) {
         if (updateState(__COMPLETING,pending))         onIncompleteFlushed();
+ else         fail(pending);
         return;
       }
     }
-    if (updateState(__COMPLETING,__IDLE))     pending.complete();
- else     pendingFail(pending);
+    if (!updateState(__COMPLETING,__IDLE))     ignoreFail();
+    pending.complete();
   }
  catch (  IOException e) {
     if (updateState(__COMPLETING,__IDLE))     pending.fail(e);
- else     pendingFail(pending);
+ else     fail(pending);
   }
 }

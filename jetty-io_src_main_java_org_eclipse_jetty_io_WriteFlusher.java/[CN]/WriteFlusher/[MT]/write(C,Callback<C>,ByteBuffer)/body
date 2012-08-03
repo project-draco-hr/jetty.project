@@ -8,14 +8,15 @@
       if (b.hasRemaining()) {
         PendingState<?> pending=new PendingState<>(buffers,context,callback);
         if (updateState(__WRITING,pending))         onIncompleteFlushed();
+ else         fail(new PendingState<>(buffers,context,callback));
         return;
       }
     }
-    if (updateState(__WRITING,__IDLE))     callback.completed(context);
- else     pendingFail(new PendingState<>(buffers,context,callback));
+    if (!updateState(__WRITING,__IDLE))     ignoreFail();
+    callback.completed(context);
   }
  catch (  IOException e) {
     if (updateState(__WRITING,__IDLE))     callback.failed(context,e);
- else     pendingFail(new PendingState<>(buffers,context,callback));
+ else     fail(new PendingState<>(buffers,context,callback));
   }
 }
