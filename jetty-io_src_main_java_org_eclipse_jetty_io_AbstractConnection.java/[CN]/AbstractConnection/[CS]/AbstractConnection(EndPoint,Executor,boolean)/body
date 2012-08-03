@@ -1,0 +1,19 @@
+{
+  if (executor == null)   throw new IllegalArgumentException("Executor must not be null!");
+  _endp=endp;
+  _readCallback=new ExecutorCallback<Void>(executor){
+    @Override protected void onCompleted(    Void context){
+      if (_readInterested.compareAndSet(true,false))       onFillable();
+    }
+    @Override protected void onFailed(    Void context,    Throwable x){
+      onFillInterestedFailed(x);
+    }
+    @Override protected boolean execute(){
+      return !executeOnlyFailure;
+    }
+    @Override public String toString(){
+      return String.format("%s@%x",getClass().getSimpleName(),AbstractConnection.this.hashCode());
+    }
+  }
+;
+}

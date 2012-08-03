@@ -1,18 +1,22 @@
 {
   _server=new Server();
-  _connector=new LocalHttpConnector();
+  _connector=new LocalConnector(_server);
   _server.addConnector(_connector);
   _server.setHandler(new DumpHandler());
   _server.start();
   _timer=new ScheduledThreadPoolExecutor(1);
-  AsyncByteArrayEndPoint endp=new AsyncByteArrayEndPoint(_timer,5000);
+  AbstractEndPoint endp=new ByteArrayEndPoint(_timer,5000);
   HttpInput input=new HttpInput();
-  AsyncConnection connection=new AbstractAsyncConnection(endp,new Executor(){
+  Connection connection=new AbstractConnection(endp,new Executor(){
     @Override public void execute(    Runnable command){
       command.run();
     }
   }
 ){
+    @Override public void onOpen(){
+      super.onOpen();
+      fillInterested();
+    }
     @Override public void onFillable(){
     }
   }
@@ -30,7 +34,7 @@
     @Override public ScheduledExecutorService getScheduler(){
       return null;
     }
-    @Override public HttpConnector getHttpConnector(){
+    @Override public HttpConfiguration getHttpConfiguration(){
       return null;
     }
     @Override protected int getContentBufferSize(){
@@ -46,6 +50,9 @@
     @Override protected void completeResponse() throws IOException {
     }
     @Override protected void commitResponse(    ResponseInfo info,    ByteBuffer content) throws IOException {
+    }
+    @Override public Connector getConnector(){
+      return null;
     }
   }
 ;

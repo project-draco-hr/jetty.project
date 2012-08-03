@@ -1,11 +1,11 @@
 {
   Server server=new Server();
-  SslSelectChannelConnector connector=new SslSelectChannelConnector();
+  SelectChannelConnector connector=new SelectChannelConnector(server,true);
   String keystore=System.getProperty("user.dir") + File.separator + "src"+ File.separator+ "test"+ File.separator+ "resources"+ File.separator+ "keystore";
   connector.setPort(0);
-  connector.getSslContextFactory().setKeyStorePath(keystore);
-  connector.getSslContextFactory().setKeyStorePassword("storepwd");
-  connector.getSslContextFactory().setKeyManagerPassword("keypwd");
+  connector.getConnectionFactory().getSslContextFactory().setKeyStorePath(keystore);
+  connector.getConnectionFactory().getSslContextFactory().setKeyStorePassword("storepwd");
+  connector.getConnectionFactory().getSslContextFactory().setKeyManagerPassword("keypwd");
   server.setConnectors(new Connector[]{connector});
   server.setHandler(new WriteHandler());
   server.start();
@@ -14,7 +14,7 @@
   int port=connector.getLocalPort();
   Socket socket=ctx.getSocketFactory().createSocket("localhost",port);
   OutputStream os=socket.getOutputStream();
-  os.write("GET /test HTTP/1.1\r\nHost:test\r\nConnection:close\r\n\r\n".getBytes());
+  os.write(("GET /test HTTP/1.1\r\n" + "Host:test\r\n" + "Connection:close\r\n\r\n").getBytes());
   os.flush();
   BufferedReader in=new BufferedReader(new InputStreamReader(socket.getInputStream()));
   String line;

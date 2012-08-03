@@ -1,0 +1,37 @@
+{
+  final SecureRandom random=new SecureRandom();
+  final ScheduledThreadPoolExecutor scheduler=new ScheduledThreadPoolExecutor(100);
+  ConcurrentFlusher[] flushers=new ConcurrentFlusher[50000];
+  FutureCallback<?>[] futures=new FutureCallback<?>[flushers.length];
+  for (int i=0; i < flushers.length; i++) {
+    int size=5 + random.nextInt(15);
+    ByteArrayEndPoint endp=new ByteArrayEndPoint(new byte[]{},size);
+    final ConcurrentFlusher flusher=new ConcurrentFlusher(endp,random,scheduler);
+    flushers[i]=flusher;
+    final FutureCallback<String> callback=new FutureCallback<>();
+    futures[i]=callback;
+    scheduler.schedule(new Runnable(){
+      @Override public void run(){
+        flusher.onFail(new Throwable("THE CAUSE"));
+      }
+    }
+,random.nextInt(75) + 1,TimeUnit.MILLISECONDS);
+    flusher.write(_context,callback,BufferUtil.toBuffer("How Now Brown Cow."),BufferUtil.toBuffer(" The quick brown fox jumped over the lazy dog!"));
+  }
+  int completed=0;
+  int failed=0;
+  for (int i=0; i < flushers.length; i++) {
+    try {
+      futures[i].get();
+      assertEquals("How Now Brown Cow. The quick brown fox jumped over the lazy dog!",flushers[i].toString());
+      completed++;
+    }
+ catch (    Exception e) {
+      assertThat(e.getMessage(),Matchers.containsString("THE CAUSE"));
+      failed++;
+    }
+  }
+  assertThat(completed,Matchers.greaterThan(0));
+  assertThat(failed,Matchers.greaterThan(0));
+  scheduler.shutdown();
+}

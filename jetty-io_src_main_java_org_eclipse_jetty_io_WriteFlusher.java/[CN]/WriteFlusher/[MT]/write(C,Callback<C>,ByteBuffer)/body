@@ -1,23 +1,22 @@
 {
   if (callback == null)   throw new IllegalArgumentException();
-  if (!_writing.compareAndSet(false,true))   throw new WritePendingException();
+  LOG.debug("write: {}",this);
+  if (!updateState(__IDLE,__WRITING))   throw new WritePendingException();
   try {
-    _endp.flush(buffers);
+    _endPoint.flush(buffers);
     for (    ByteBuffer b : buffers) {
       if (b.hasRemaining()) {
-        _buffers=buffers;
-        _context=context;
-        _callback=(Callback<Object>)callback;
-        _writing.set(true);
-        onIncompleteFlushed();
+        PendingState<?> pending=new PendingState<>(buffers,context,callback);
+        if (updateState(__WRITING,pending))         onIncompleteFlushed();
+ else         fail(new PendingState<>(buffers,context,callback));
         return;
       }
     }
-    if (!_writing.compareAndSet(true,false))     throw new ConcurrentModificationException();
+    if (!updateState(__WRITING,__IDLE))     ignoreFail();
     callback.completed(context);
   }
  catch (  IOException e) {
-    if (!_writing.compareAndSet(true,false))     throw new ConcurrentModificationException(e);
-    callback.failed(context,e);
+    if (updateState(__WRITING,__IDLE))     callback.failed(context,e);
+ else     fail(new PendingState<>(buffers,context,callback));
   }
 }

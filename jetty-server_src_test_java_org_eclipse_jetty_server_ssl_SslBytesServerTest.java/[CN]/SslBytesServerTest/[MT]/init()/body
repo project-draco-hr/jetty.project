@@ -1,20 +1,18 @@
 {
   threadPool=Executors.newCachedThreadPool();
   server=new Server();
-  SslSelectChannelConnector connector=new SslSelectChannelConnector(){
-    @Override protected SslConnection newSslConnection(    AsyncEndPoint endPoint,    SSLEngine engine){
-      serverEndPoint.set(endPoint);
-      return super.newSslConnection(endPoint,engine);
-    }
-    @Override protected AsyncConnection newPlainConnection(    SocketChannel channel,    AsyncEndPoint endPoint){
-      return super.newPlainConnection(channel,endPoint);
+  SelectChannelConnector connector=new SelectChannelConnector(server,true){
+    @Override protected SelectChannelEndPoint newEndPoint(    SocketChannel channel,    ManagedSelector selectSet,    SelectionKey key) throws IOException {
+      SelectChannelEndPoint endp=super.newEndPoint(channel,selectSet,key);
+      serverEndPoint.set(endp);
+      return endp;
     }
   }
 ;
   connector.setIdleTimeout(idleTimeout);
   connector.setPort(0);
   File keyStore=MavenTestingUtils.getTestResourceFile("keystore");
-  SslContextFactory cf=connector.getSslContextFactory();
+  SslContextFactory cf=connector.getConnectionFactory().getSslContextFactory();
   cf.setKeyStorePath(keyStore.getAbsolutePath());
   cf.setKeyStorePassword("storepwd");
   cf.setKeyManagerPassword("keypwd");

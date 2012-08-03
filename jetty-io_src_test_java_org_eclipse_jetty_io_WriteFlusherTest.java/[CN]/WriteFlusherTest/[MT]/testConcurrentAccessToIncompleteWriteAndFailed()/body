@@ -1,0 +1,23 @@
+{
+  ExecutorService executor=Executors.newFixedThreadPool(16);
+  final CountDownLatch failedCalledLatch=new CountDownLatch(1);
+  final CountDownLatch onIncompleteFlushedCalledLatch=new CountDownLatch(1);
+  final CountDownLatch writeCalledLatch=new CountDownLatch(1);
+  final CountDownLatch completeWrite=new CountDownLatch(1);
+  final WriteFlusher writeFlusher=new WriteFlusher(_endPointMock){
+    protected void onIncompleteFlushed(){
+      onIncompleteFlushedCalledLatch.countDown();
+      completeWrite();
+      completeWrite.countDown();
+    }
+  }
+;
+  endPointFlushExpectationPendingWrite(writeCalledLatch,failedCalledLatch);
+  ExposingStateCallback callback=new ExposingStateCallback();
+  executor.submit(new Writer(writeFlusher,callback));
+  assertThat("Write has been called.",writeCalledLatch.await(5,TimeUnit.SECONDS),is(true));
+  executor.submit(new FailedCaller(writeFlusher,failedCalledLatch));
+  assertThat("Failed has been called.",failedCalledLatch.await(5,TimeUnit.SECONDS),is(true));
+  writeFlusher.write(_context,new FutureCallback<String>(),BufferUtil.toBuffer("foobar"));
+  assertThat("completeWrite done",completeWrite.await(5,TimeUnit.SECONDS),is(true));
+}

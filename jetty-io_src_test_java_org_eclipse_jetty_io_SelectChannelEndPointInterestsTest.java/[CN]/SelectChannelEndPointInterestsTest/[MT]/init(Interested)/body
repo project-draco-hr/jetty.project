@@ -8,7 +8,7 @@
     @Override protected void execute(    Runnable task){
       threadPool.execute(task);
     }
-    @Override protected AsyncEndPoint newEndPoint(    SocketChannel channel,    ManagedSelector selector,    SelectionKey selectionKey) throws IOException {
+    @Override protected EndPoint newEndPoint(    SocketChannel channel,    ManagedSelector selector,    SelectionKey selectionKey) throws IOException {
       return new SelectChannelEndPoint(channel,selector,selectionKey,scheduler,60000){
         @Override protected void onIncompleteFlush(){
           super.onIncompleteFlush();
@@ -17,8 +17,12 @@
       }
 ;
     }
-    @Override public AsyncConnection newConnection(    SocketChannel channel,    final AsyncEndPoint endPoint,    Object attachment){
-      return new AbstractAsyncConnection(endPoint,threadPool){
+    @Override public Connection newConnection(    SocketChannel channel,    final EndPoint endPoint,    Object attachment){
+      return new AbstractConnection(endPoint,threadPool){
+        @Override public void onOpen(){
+          super.onOpen();
+          fillInterested();
+        }
         @Override public void onFillable(){
           interested.onFillable(endPoint,this);
         }
