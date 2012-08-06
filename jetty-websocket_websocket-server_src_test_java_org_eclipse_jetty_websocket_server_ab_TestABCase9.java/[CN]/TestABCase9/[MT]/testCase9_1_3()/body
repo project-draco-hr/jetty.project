@@ -1,0 +1,20 @@
+{
+  byte utf[]=new byte[1 * MBYTE];
+  Arrays.fill(utf,(byte)'y');
+  List<WebSocketFrame> send=new ArrayList<>();
+  send.add(WebSocketFrame.text().setPayload(utf));
+  send.add(new CloseInfo(StatusCode.NORMAL).asFrame());
+  List<WebSocketFrame> expect=new ArrayList<>();
+  expect.add(WebSocketFrame.text().setPayload(utf));
+  expect.add(new CloseInfo(StatusCode.NORMAL).asFrame());
+  Fuzzer fuzzer=new Fuzzer(this);
+  try {
+    fuzzer.connect();
+    fuzzer.setSendMode(Fuzzer.SendMode.BULK);
+    fuzzer.send(send);
+    fuzzer.expect(expect,TimeUnit.SECONDS,4);
+  }
+  finally {
+    fuzzer.close();
+  }
+}
