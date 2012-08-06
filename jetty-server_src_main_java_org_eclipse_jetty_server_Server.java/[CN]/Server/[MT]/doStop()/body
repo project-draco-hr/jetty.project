@@ -1,29 +1,26 @@
 {
   if (isDumpBeforeStop())   dumpStdErr();
   MultiException mex=new MultiException();
-  if (_graceful > 0) {
-    if (_connectors != null) {
-      for (int i=_connectors.length; i-- > 0; ) {
-        LOG.info("Graceful shutdown {}",_connectors[i]);
-        if (_connectors[i] instanceof NetworkConnector)         ((NetworkConnector)_connectors[i]).close();
-      }
+  long gracefulTimeout=getGracefulShutdown();
+  if (gracefulTimeout > 0) {
+    for (    Connector connector : _connectors) {
+      LOG.info("Graceful shutdown {}",connector);
+      if (connector instanceof NetworkConnector)       ((NetworkConnector)connector).close();
     }
     Handler[] contexts=getChildHandlersByClass(Graceful.class);
-    for (int c=0; c < contexts.length; c++) {
-      Graceful context=(Graceful)contexts[c];
-      LOG.info("Graceful shutdown {}",context);
-      context.setShutdown(true);
+    for (    Handler context : contexts) {
+      Graceful graceful=(Graceful)context;
+      LOG.info("Graceful shutdown {}",graceful);
+      graceful.setShutdown(true);
     }
-    Thread.sleep(_graceful);
+    Thread.sleep(gracefulTimeout);
   }
-  if (_connectors != null) {
-    for (int i=_connectors.length; i-- > 0; ) {
-      if (_connectors[i] != null)       try {
-        _connectors[i].stop();
-      }
- catch (      Throwable e) {
-        mex.add(e);
-      }
+  for (  Connector connector : _connectors) {
+    try {
+      connector.stop();
+    }
+ catch (    Throwable e) {
+      mex.add(e);
     }
   }
   try {

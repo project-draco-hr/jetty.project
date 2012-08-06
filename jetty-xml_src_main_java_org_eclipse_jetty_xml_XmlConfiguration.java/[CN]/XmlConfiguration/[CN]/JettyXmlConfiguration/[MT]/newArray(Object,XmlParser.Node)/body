@@ -5,21 +5,31 @@
   if (type != null) {
     aClass=TypeUtil.fromName(type);
     if (aClass == null) {
-      if ("String".equals(type))       aClass=java.lang.String.class;
- else       if ("URL".equals(type))       aClass=java.net.URL.class;
- else       if ("InetAddress".equals(type))       aClass=java.net.InetAddress.class;
- else       aClass=Loader.loadClass(XmlConfiguration.class,type,true);
-    }
-  }
-  Object al=null;
-  for (  Object nodeObject : node) {
-    XmlParser.Node item=(Node)nodeObject;
-    String nid=item.getAttribute("id");
-    Object v=value(obj,item);
-    al=LazyList.add(al,(v == null && aClass.isPrimitive()) ? 0 : v);
-    if (nid != null)     _idMap.put(nid,v);
-  }
-  Object array=LazyList.toArray(al,aClass);
-  if (id != null)   _idMap.put(id,array);
-  return array;
+switch (type) {
+case "String":
+        aClass=String.class;
+      break;
+case "URL":
+    aClass=URL.class;
+  break;
+case "InetAddress":
+aClass=InetAddress.class;
+break;
+default :
+aClass=Loader.loadClass(XmlConfiguration.class,type,true);
+break;
+}
+}
+}
+Object al=null;
+for (Object nodeObject : node) {
+XmlParser.Node item=(Node)nodeObject;
+String nid=item.getAttribute("id");
+Object v=value(obj,item);
+al=LazyList.add(al,(v == null && aClass.isPrimitive()) ? 0 : v);
+if (nid != null) _idMap.put(nid,v);
+}
+Object array=LazyList.toArray(al,aClass);
+if (id != null) _idMap.put(id,array);
+return array;
 }
