@@ -22,17 +22,12 @@
   }
   if (_attributes == null)   _attributes=new AttributesMap();
   _attributes.setAttribute(name,value);
-  if (_requestAttributeListeners != null) {
+  if (!_requestAttributeListeners.isEmpty()) {
     final ServletRequestAttributeEvent event=new ServletRequestAttributeEvent(_context,this,name,old_value == null ? value : old_value);
-    final int size=LazyList.size(_requestAttributeListeners);
-    for (int i=0; i < size; i++) {
-      final EventListener listener=(ServletRequestAttributeListener)LazyList.get(_requestAttributeListeners,i);
-      if (listener instanceof ServletRequestAttributeListener) {
-        final ServletRequestAttributeListener l=(ServletRequestAttributeListener)listener;
-        if (old_value == null)         l.attributeAdded(event);
- else         if (value == null)         l.attributeRemoved(event);
- else         l.attributeReplaced(event);
-      }
+    for (    ServletRequestAttributeListener l : _requestAttributeListeners) {
+      if (old_value == null)       l.attributeAdded(event);
+ else       if (value == null)       l.attributeRemoved(event);
+ else       l.attributeReplaced(event);
     }
   }
 }
