@@ -1,0 +1,17 @@
+{
+  if (finished) {
+    throw new IOException("Cannot append to finished buffer");
+  }
+  if (payload == null) {
+    return;
+  }
+  policy.assertValidBinaryMessageSize(size + payload.remaining());
+  size+=payload.remaining();
+synchronized (buf) {
+    BufferUtil.put(payload,buf);
+  }
+  if (needsNotification) {
+    needsNotification=true;
+    this.onEvent.call(websocket,session,this);
+  }
+}
