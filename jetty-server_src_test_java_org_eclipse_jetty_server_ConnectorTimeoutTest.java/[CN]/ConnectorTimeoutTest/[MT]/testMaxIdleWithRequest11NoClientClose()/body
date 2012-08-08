@@ -1,11 +1,12 @@
 {
-  final Exchanger<EndPoint> endpoint=new Exchanger<EndPoint>();
+  final Exchanger<EndPoint> exchanger=new Exchanger<>();
   configureServer(new EchoHandler(){
     @Override public void handle(    String target,    Request baseRequest,    HttpServletRequest request,    HttpServletResponse response) throws IOException, ServletException {
       try {
-        endpoint.exchange(baseRequest.getHttpChannel().getConnection().getEndPoint());
+        exchanger.exchange(baseRequest.getHttpChannel().getConnection().getEndPoint());
       }
  catch (      Exception e) {
+        e.printStackTrace();
       }
       super.handle(target,baseRequest,request,response);
     }
@@ -21,7 +22,7 @@
   os.write(("POST /echo HTTP/1.1\r\n" + "host: " + HOST + ":"+ _connector.getLocalPort()+ "\r\n"+ "content-type: text/plain; charset=utf-8\r\n"+ "content-length: "+ contentB.length+ "\r\n"+ "connection: close\r\n"+ "\r\n").getBytes("utf-8"));
   os.write(contentB);
   os.flush();
-  EndPoint endp=endpoint.exchange(null,10,TimeUnit.SECONDS);
+  EndPoint endPoint=exchanger.exchange(null,10,TimeUnit.SECONDS);
   IO.toString(is);
   assertEquals(-1,is.read());
   TimeUnit.MILLISECONDS.sleep(3 * MAX_IDLE_TIME);
@@ -34,5 +35,5 @@
   }
  catch (  SocketException e) {
   }
-  Assert.assertFalse(endp.isOpen());
+  Assert.assertFalse(endPoint.isOpen());
 }
