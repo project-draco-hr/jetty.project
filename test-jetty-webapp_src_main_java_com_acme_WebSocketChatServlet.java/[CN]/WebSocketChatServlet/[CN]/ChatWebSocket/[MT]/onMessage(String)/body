@@ -1,16 +1,25 @@
 {
+  if (!connection.isOpen()) {
+    return;
+  }
   if (data.indexOf("disconnect") >= 0) {
     try {
-      _connection.close();
+      connection.close();
     }
  catch (    IOException e) {
       LOG.warn(e);
     }
   }
  else {
-    for (    ChatWebSocket member : _members) {
+    ListIterator<ChatWebSocket> iter=members.listIterator();
+    while (iter.hasNext()) {
+      ChatWebSocket member=iter.next();
+      if (!member.connection.isOpen()) {
+        iter.remove();
+        continue;
+      }
       try {
-        member._connection.write(null,new FutureCallback<>(),data);
+        member.connection.write(null,new FutureCallback<>(),data);
       }
  catch (      IOException e) {
         LOG.warn(e);
