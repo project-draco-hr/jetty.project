@@ -1,0 +1,33 @@
+{
+  ByteBuffer payload=ByteBuffer.allocate(64);
+  BufferUtil.clearToFill(payload);
+  payload.put(TypeUtil.fromHexString("cebae1bdb9cf83cebcceb5"));
+  payload.put(TypeUtil.fromHexString("f4908080"));
+  payload.put(TypeUtil.fromHexString("656469746564"));
+  BufferUtil.flipToFlush(payload,0);
+  WebSocketFrame text=new WebSocketFrame();
+  text.setMask(TypeUtil.fromHexString("11223344"));
+  text.setPayload(payload);
+  text.setOpCode(OpCode.TEXT);
+  ByteBuffer buf=new UnitGenerator().generate(text);
+  ByteBuffer part1=ByteBuffer.allocate(17);
+  ByteBuffer part2=ByteBuffer.allocate(4);
+  ByteBuffer part3=ByteBuffer.allocate(10);
+  BufferUtil.put(buf,part1);
+  BufferUtil.put(buf,part2);
+  BufferUtil.put(buf,part3);
+  BufferUtil.flipToFlush(part1,0);
+  BufferUtil.flipToFlush(part2,0);
+  BufferUtil.flipToFlush(part3,0);
+  LOG.debug("Part1: {}",BufferUtil.toDetailString(part1));
+  LOG.debug("Part2: {}",BufferUtil.toDetailString(part2));
+  LOG.debug("Part3: {}",BufferUtil.toDetailString(part3));
+  UnitParser parser=new UnitParser();
+  IncomingFramesCapture capture=new IncomingFramesCapture();
+  parser.setIncomingFramesHandler(capture);
+  parser.parse(part1);
+  capture.assertErrorCount(0);
+  parser.parse(part2);
+  capture.assertErrorCount(1);
+  capture.assertHasErrors(BadPayloadException.class,1);
+}
