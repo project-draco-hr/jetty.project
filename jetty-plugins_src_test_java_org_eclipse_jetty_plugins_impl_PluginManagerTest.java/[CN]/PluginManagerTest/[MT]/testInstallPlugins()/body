@@ -1,0 +1,15 @@
+{
+  String pluginName="jetty-jmx";
+  String jmxPluginConfigJar=_classLoader.getResource("jetty-jmx-7.6.0.v20120127-plugin.jar").getFile();
+  File jmxPluginConfigJarFile=new File(jmxPluginConfigJar);
+  File jmxPluginConfigTempCopy=copyToTempFile(jmxPluginConfigJarFile);
+  Plugin plugin=new Plugin(pluginName,jmxPluginConfigTempCopy);
+  when(_mavenService.getPlugin(pluginName)).thenReturn(plugin);
+  _pluginManager.installPlugin(pluginName);
+  File metaInf=new File(_tmpDir + File.separator + "META-INF");
+  File jettyXmlConfigFile=new File(_tmpDir + File.separator + "start.d"+ File.separator+ "20-jetty-jmx.xml");
+  File jettyJmxJarFile=new File(_tmpDir + File.separator + "lib"+ File.separator+ "jetty-jmx-7.6.0.v20120127.jar");
+  assertThat("META-INF should be skipped",metaInf.exists(),not(true));
+  assertThat("20-jetty-jmx.xml does not exist",jettyXmlConfigFile.exists(),is(true));
+  assertThat("jetty-jmx-7.6.0.v20120127.jar does not exist",jettyJmxJarFile.exists(),is(true));
+}
