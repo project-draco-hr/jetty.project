@@ -21,13 +21,13 @@
   final CountDownLatch replyLatch=new CountDownLatch(1);
   session.syn(new SynInfo(headers,true),new StreamFrameListener.Adapter(){
     @Override public void onReply(    Stream stream,    ReplyInfo replyInfo){
-      Assert.assertTrue(replyInfo.isClose());
+      assertThat("replyInfo.isClose is true",replyInfo.isClose(),is(true));
       Headers replyHeaders=replyInfo.getHeaders();
-      Assert.assertTrue(replyHeaders.get("status").value().contains("200"));
+      assertThat("status is 200",replyHeaders.get("status").value().contains("200"),is(true));
       replyLatch.countDown();
     }
   }
 );
-  Assert.assertTrue(handlerLatch.await(5,TimeUnit.SECONDS));
+  Assert.assertTrue(handlerLatch.await(5000,TimeUnit.SECONDS));
   Assert.assertTrue(replyLatch.await(5,TimeUnit.SECONDS));
 }

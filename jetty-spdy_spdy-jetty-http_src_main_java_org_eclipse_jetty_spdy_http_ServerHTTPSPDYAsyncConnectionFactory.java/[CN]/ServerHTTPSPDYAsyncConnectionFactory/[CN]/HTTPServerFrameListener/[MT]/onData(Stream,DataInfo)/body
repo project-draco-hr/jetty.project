@@ -1,6 +1,14 @@
 {
   logger.debug("Received {} on {}",dataInfo,stream);
-  ServerHTTPSPDYAsyncConnection connection=(ServerHTTPSPDYAsyncConnection)stream.getAttribute(CONNECTION_ATTRIBUTE);
-  connection.content(dataInfo,dataInfo.isClose());
-  if (dataInfo.isClose())   connection.endRequest();
+  HTTPChannelOverSPDY channel=(HTTPChannelOverSPDY)stream.getAttribute(CHANNEL_ATTRIBUTE);
+  ByteBufferDataInfo copyDataInfo=new ByteBufferDataInfo(dataInfo.asByteBuffer(false),dataInfo.isClose(),dataInfo.isCompress()){
+    @Override public void consume(    int delta){
+      super.consume(delta);
+      dataInfo.consume(delta);
+    }
+  }
+;
+  logger.debug("Queuing last={} content {}",dataInfo.isClose(),copyDataInfo);
+  channel.getEventHandler().content(copyDataInfo.asByteBuffer(true));
+  if (dataInfo.isClose())   channel.endRequest();
 }

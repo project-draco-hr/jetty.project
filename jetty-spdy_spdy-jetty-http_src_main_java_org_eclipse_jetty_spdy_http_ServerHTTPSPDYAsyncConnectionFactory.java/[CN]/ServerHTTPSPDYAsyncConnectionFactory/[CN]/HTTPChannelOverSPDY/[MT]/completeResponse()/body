@@ -1,0 +1,23 @@
+{
+  logger.debug("completeResponse");
+  getEventHandler().commit();
+  Response response=getResponse();
+  logger.debug("completed");
+  Headers headers=new Headers();
+  headers.put(HTTPSPDYHeader.VERSION.name(getVersion()),HttpVersion.HTTP_1_1.asString());
+  StringBuilder status=new StringBuilder().append(response.getStatus());
+  String reason=response.getReason();
+  if (reason != null)   status.append(" ").append(reason.toString());
+  headers.put(HTTPSPDYHeader.STATUS.name(getVersion()),status.toString());
+  logger.debug("HTTP < {} {}",HttpVersion.HTTP_1_1,status);
+  HttpFields httpFields=response.getHttpFields();
+  if (httpFields != null) {
+    for (    HttpFields.Field httpField : httpFields) {
+      String name=httpField.getName().toLowerCase();
+      String value=httpField.getValue();
+      headers.put(name,value);
+      logger.debug("HTTP < {}: {}",name,value);
+    }
+  }
+  reply(stream,new ReplyInfo(headers,response.getContentCount() < 1));
+}

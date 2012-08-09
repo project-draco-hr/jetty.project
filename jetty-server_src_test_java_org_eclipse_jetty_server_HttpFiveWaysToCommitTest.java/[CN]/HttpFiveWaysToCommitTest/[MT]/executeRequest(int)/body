@@ -1,0 +1,17 @@
+{
+  URI uri=new URI("http://localhost:" + connector.getLocalPort() + "/");
+  HttpURLConnection connection=(HttpURLConnection)uri.toURL().openConnection();
+  connection.connect();
+  for (  String header : connection.getHeaderFields().keySet()) {
+    System.out.println(header + ": " + connection.getHeaderFields().get(header));
+  }
+  int responseCode=connection.getResponseCode();
+  assertThat("return code is 200 ok",responseCode,is(expectedStatus));
+  StringWriter writer=new StringWriter();
+  if (responseCode == HttpStatus.OK_200) {
+    InputStream inputStream=connection.getInputStream();
+    InputStreamReader reader=new InputStreamReader(inputStream);
+    IO.copy(reader,writer);
+  }
+  return writer;
+}
