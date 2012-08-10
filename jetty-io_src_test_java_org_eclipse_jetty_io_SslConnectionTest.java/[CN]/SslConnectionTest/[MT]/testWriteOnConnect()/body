@@ -1,0 +1,16 @@
+{
+  _testFill=false;
+  for (int i=0; i < 10; i++) {
+    _writeCallback=new FutureCallback<>();
+    Socket client=newClient();
+    client.setSoTimeout(60000);
+    SocketChannel server=_connector.accept();
+    server.configureBlocking(false);
+    _manager.accept(server);
+    byte[] buffer=new byte[1024];
+    int len=client.getInputStream().read(buffer);
+    Assert.assertEquals("Hello Client",new String(buffer,0,len,StringUtil.__UTF8_CHARSET));
+    Assert.assertEquals(null,_writeCallback.get(100,TimeUnit.MILLISECONDS));
+    client.close();
+  }
+}
