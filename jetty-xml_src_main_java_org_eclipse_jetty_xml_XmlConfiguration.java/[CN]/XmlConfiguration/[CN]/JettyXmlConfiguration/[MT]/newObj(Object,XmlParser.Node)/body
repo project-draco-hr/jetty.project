@@ -11,15 +11,33 @@
     }
     size++;
   }
+  Map<String,Object> namedArgMap=new HashMap<String,Object>();
+  List<Object> arguments=new LinkedList<>();
   Object[] arg=new Object[size];
   for (int i=0, j=0; j < size; i++) {
     Object o=node.get(i);
-    if (o instanceof String)     continue;
+    XmlParser.Node argNode=(XmlParser.Node)o;
+    if (o instanceof String) {
+      continue;
+    }
     arg[j++]=value(obj,(XmlParser.Node)o);
+    String namedAttribute=argNode.getAttribute("name");
+    if (namedAttribute != null) {
+      namedArgMap.put(namedAttribute,value(obj,(XmlParser.Node)o));
+    }
+    arguments.add(value(obj,(XmlParser.Node)o));
   }
   if (LOG.isDebugEnabled())   LOG.debug("XML new " + oClass);
   try {
-    Object n=TypeUtil.construct(oClass,arg);
+    Object n;
+    if (namedArgMap.size() > 0) {
+      LOG.debug("using named mapping");
+      n=TypeUtil.construct(oClass,arguments.toArray(),namedArgMap);
+    }
+ else {
+      LOG.debug("using normal mapping");
+      n=TypeUtil.construct(oClass,arguments.toArray());
+    }
     configure(n,node,argi);
     return n;
   }

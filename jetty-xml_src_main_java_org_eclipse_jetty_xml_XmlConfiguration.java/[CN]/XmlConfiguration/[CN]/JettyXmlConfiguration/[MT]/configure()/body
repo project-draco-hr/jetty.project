@@ -4,20 +4,33 @@
   Object obj=id == null ? null : _idMap.get(id);
   int index=_config.size();
   if (obj == null && oClass != null) {
-    List<Object> arguments=new ArrayList<>();
+    Map<String,Object> namedArgMap=new HashMap<String,Object>();
+    List<Object> arguments=new LinkedList<>();
     for (int i=0; i < _config.size(); i++) {
       Object o=_config.get(i);
-      if (o instanceof String)       continue;
-      if (!((XmlParser.Node)o).getTag().equals("Arg")) {
+      if (o instanceof String) {
+        continue;
+      }
+      XmlParser.Node node=(XmlParser.Node)o;
+      if (!(node.getTag().equals("Arg"))) {
         index=i;
         break;
       }
  else {
+        String namedAttribute=node.getAttribute("name");
+        if (namedAttribute != null) {
+          namedArgMap.put(namedAttribute,value(obj,(XmlParser.Node)o));
+        }
         arguments.add(value(obj,(XmlParser.Node)o));
       }
     }
     try {
-      obj=TypeUtil.construct(oClass,arguments.toArray());
+      if (namedArgMap.size() > 0) {
+        obj=TypeUtil.construct(oClass,arguments.toArray(),namedArgMap);
+      }
+ else {
+        obj=TypeUtil.construct(oClass,arguments.toArray());
+      }
     }
  catch (    NoSuchMethodException x) {
       throw new IllegalStateException("No suitable constructor on " + oClass,x);
