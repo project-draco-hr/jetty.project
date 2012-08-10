@@ -1,10 +1,10 @@
 {
   if (Thread.currentThread().getName().indexOf("selector") >= 0)   new Throwable().printStackTrace();
   LOG.debug("{} flush enter {}",SslConnection.this,Arrays.toString(appOuts));
+  int consumed=0;
   try {
     if (_cannotAcceptMoreAppDataToFlush)     return 0;
     if (_encryptedOutput == null)     _encryptedOutput=_bufferPool.acquire(_sslEngine.getSession().getPacketBufferSize() * 2,_encryptedDirectBuffers);
-    int consumed=0;
     while (true) {
       BufferUtil.compact(_encryptedOutput);
       int pos=BufferUtil.flipToFill(_encryptedOutput);
@@ -51,7 +51,7 @@ getEndPoint().close();
 throw e;
 }
  finally {
-LOG.debug("{} flush exit",SslConnection.this);
+LOG.debug("{} flush exit {}",SslConnection.this,consumed);
 releaseNetOut();
 }
 }
