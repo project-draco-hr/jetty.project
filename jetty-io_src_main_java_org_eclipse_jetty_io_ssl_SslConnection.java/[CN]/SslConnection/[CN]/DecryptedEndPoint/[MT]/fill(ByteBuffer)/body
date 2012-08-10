@@ -1,4 +1,5 @@
 {
+  if (Thread.currentThread().getName().contains("selector"))   new Throwable().printStackTrace();
   LOG.debug("{} fill enter",SslConnection.this);
   try {
     if (BufferUtil.hasContent(_decryptedInput))     return BufferUtil.append(_decryptedInput,buffer);
@@ -11,11 +12,11 @@
     while (true) {
       int net_filled=getEndPoint().fill(_encryptedInput);
       LOG.debug("{} filled {} encrypted bytes",SslConnection.this,net_filled);
-      if (net_filled > 0)       _needToFillMoreDataToProgress=false;
+      if (net_filled > 0)       _underFlown=false;
       int pos=BufferUtil.flipToFill(app_in);
       SSLEngineResult unwrapResult=_sslEngine.unwrap(_encryptedInput,app_in);
-      LOG.debug("{} unwrap {}",SslConnection.this,unwrapResult);
       BufferUtil.flipToFlush(app_in,pos);
+      LOG.debug("{} unwrap {}",SslConnection.this,unwrapResult);
 switch (unwrapResult.getStatus()) {
 case BUFFER_OVERFLOW:
         throw new IllegalStateException();
@@ -27,10 +28,10 @@ case NEED_TASK:
       _sslEngine.getDelegatedTask().run();
     continue;
 case NEED_WRAP:
-  if (_flushRequiresFillToProgress)   return -1;
+  if (buffer == __FLUSH_CALLED_FILL)   return -1;
 _fillRequiresFlushToProgress=true;
 try {
-flush(BufferUtil.EMPTY_BUFFER);
+flush(__FILL_CALLED_FLUSH);
 if (BufferUtil.isEmpty(_encryptedOutput)) {
   _fillRequiresFlushToProgress=false;
   return -1;
@@ -44,7 +45,7 @@ return -1;
 }
 throw new IllegalStateException();
 default :
-if (unwrapResult.getStatus() == Status.BUFFER_UNDERFLOW) _needToFillMoreDataToProgress=true;
+if (unwrapResult.getStatus() == Status.BUFFER_UNDERFLOW) _underFlown=true;
 if (unwrapResult.bytesProduced() > 0) {
 if (app_in == buffer) return unwrapResult.bytesProduced();
 return BufferUtil.append(_decryptedInput,buffer);
@@ -57,17 +58,21 @@ case NEED_TASK:
 _sslEngine.getDelegatedTask().run();
 continue;
 case NEED_WRAP:
-if (_flushRequiresFillToProgress) return 0;
+if (buffer == __FLUSH_CALLED_FILL) return 0;
 _fillRequiresFlushToProgress=true;
-flush(BufferUtil.EMPTY_BUFFER);
+flush(__FILL_CALLED_FLUSH);
 if (BufferUtil.isEmpty(_encryptedOutput)) {
 _fillRequiresFlushToProgress=false;
 continue;
 }
 return 0;
 case NEED_UNWRAP:
-if (net_filled < 0) _sslEngine.closeInbound();
- else if (net_filled > 0) continue;
+if (net_filled < 0) {
+if (isOpen()) _sslEngine.closeInbound();
+}
+ else if (net_filled > 0) {
+continue;
+}
 return 0;
 case FINISHED:
 throw new IllegalStateException();
@@ -85,6 +90,10 @@ getEndPoint().close();
 throw e;
 }
  finally {
+if (_decryptedEndPoint._flushRequiresFillToProgress) {
+_decryptedEndPoint._flushRequiresFillToProgress=false;
+getExecutor().execute(_runCompletWrite);
+}
 if (_encryptedInput != null && !_encryptedInput.hasRemaining()) {
 _bufferPool.release(_encryptedInput);
 _encryptedInput=null;

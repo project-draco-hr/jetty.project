@@ -1,10 +1,19 @@
 {
 synchronized (DecryptedEndPoint.this) {
+    LOG.debug("onIncompleteFlush {}",getEndPoint());
     if (BufferUtil.hasContent(_encryptedOutput)) {
       _cannotAcceptMoreAppDataToFlush=true;
       getEndPoint().write(null,_writeCallback,_encryptedOutput);
     }
- else     if (_sslEngine.getHandshakeStatus() == HandshakeStatus.NEED_UNWRAP)     SslConnection.this.fillInterested();
- else     getWriteFlusher().completeWrite();
+ else     if (_sslEngine.getHandshakeStatus() == HandshakeStatus.NEED_UNWRAP) {
+      _flushRequiresFillToProgress=true;
+      SslConnection.this.fillInterested();
+    }
+ else     if (isOutputShutdown()) {
+      getWriteFlusher().onClose();
+    }
+ else {
+      getWriteFlusher().completeWrite();
+    }
   }
 }
