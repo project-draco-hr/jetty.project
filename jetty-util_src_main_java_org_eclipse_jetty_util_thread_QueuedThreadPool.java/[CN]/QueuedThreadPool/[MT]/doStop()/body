@@ -1,17 +1,18 @@
 {
   super.doStop();
   long start=System.currentTimeMillis();
-  while (_threadsStarted.get() > 0 && (System.currentTimeMillis() - start) < (_maxStopTime / 2))   Thread.sleep(1);
-  _jobs.clear();
+  while (_threadsStarted.get() > 0 && (System.currentTimeMillis() - start) < (getStopTimeout() / 2))   Thread.sleep(1);
+  BlockingQueue<Runnable> jobs=getQueue();
+  jobs.clear();
   Runnable noop=new Runnable(){
     @Override public void run(){
     }
   }
 ;
-  for (int i=_threadsIdle.get(); i-- > 0; )   _jobs.offer(noop);
+  for (int i=_threadsIdle.get(); i-- > 0; )   jobs.offer(noop);
   Thread.yield();
   if (_threadsStarted.get() > 0)   for (  Thread thread : _threads)   thread.interrupt();
-  while (_threadsStarted.get() > 0 && (System.currentTimeMillis() - start) < _maxStopTime) {
+  while (_threadsStarted.get() > 0 && (System.currentTimeMillis() - start) < getStopTimeout()) {
     Thread.sleep(1);
   }
   Thread.yield();
