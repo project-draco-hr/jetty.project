@@ -1,0 +1,82 @@
+{
+  String name=attributeAnnotation.name();
+  if ("".equals(name)) {
+    name=toVariableName(method.getName());
+  }
+  String description=attributeAnnotation.value();
+  boolean readonly=attributeAnnotation.readonly();
+  boolean onMBean=attributeAnnotation.proxied();
+  boolean convert=attributeAnnotation.managed();
+  String uName=name.substring(0,1).toUpperCase() + name.substring(1);
+  Class<?> oClass=onMBean ? this.getClass() : _managed.getClass();
+  LOG.debug("defineAttribute {} {}:{}:{}:{}",name,onMBean,readonly,oClass,description);
+  Class<?> type=null;
+  Method setter=null;
+  type=method.getReturnType();
+  if (!readonly) {
+    String declaredSetter=attributeAnnotation.setter();
+    LOG.debug("DeclaredSetter:" + declaredSetter);
+    Method[] methods=oClass.getMethods();
+    for (int m=0; m < methods.length; m++) {
+      if ((methods[m].getModifiers() & Modifier.PUBLIC) == 0)       continue;
+      if (!"".equals(declaredSetter)) {
+        if (methods[m].getName().equals(declaredSetter) && methods[m].getParameterTypes().length == 1) {
+          if (setter != null) {
+            LOG.warn("Multiple setters for mbean attr " + name + " in "+ oClass);
+            continue;
+          }
+          setter=methods[m];
+          if (!type.equals(methods[m].getParameterTypes()[0])) {
+            LOG.warn("Type conflict for mbean attr " + name + " in "+ oClass);
+            continue;
+          }
+          LOG.debug("Declared Setter: " + declaredSetter);
+        }
+      }
+      if (methods[m].getName().equals("set" + uName) && methods[m].getParameterTypes().length == 1) {
+        if (setter != null) {
+          LOG.warn("Multiple setters for mbean attr " + name + " in "+ oClass);
+          continue;
+        }
+        setter=methods[m];
+        if (!type.equals(methods[m].getParameterTypes()[0])) {
+          LOG.warn("Type conflict for mbean attr " + name + " in "+ oClass);
+          continue;
+        }
+      }
+    }
+  }
+  if (convert) {
+    if (type == null) {
+      LOG.warn("No mbean type for {} on {}",name,_managed.getClass());
+      return null;
+    }
+    if (type.isPrimitive() && !type.isArray()) {
+      LOG.warn("Cannot convert mbean primative {}",name);
+      return null;
+    }
+    LOG.debug("passed convert checks {} for type {}",name,type);
+  }
+  try {
+    _getters.put(name,method);
+    _setters.put(name,setter);
+    MBeanAttributeInfo info=null;
+    if (convert) {
+      _convert.add(name);
+      if (type.isArray()) {
+        info=new MBeanAttributeInfo(name,OBJECT_NAME_ARRAY_CLASS,description,true,setter != null,method.getName().startsWith("is"));
+      }
+ else {
+        info=new MBeanAttributeInfo(name,OBJECT_NAME_CLASS,description,true,setter != null,method.getName().startsWith("is"));
+      }
+    }
+ else {
+      info=new MBeanAttributeInfo(name,description,method,setter);
+    }
+    return info;
+  }
+ catch (  Exception e) {
+    LOG.warn(e);
+    throw new IllegalArgumentException(e.toString());
+  }
+}
