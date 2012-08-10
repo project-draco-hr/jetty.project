@@ -3,8 +3,9 @@
     for (    SelectionKey key : _selector.keys()) {
       Object attachment=key.attachment();
       if (attachment instanceof EndPoint) {
-        EndPoint endpoint=(EndPoint)attachment;
-        endpoint.close();
+        EndPointCloser closer=new EndPointCloser((EndPoint)attachment);
+        execute(closer);
+        closer.await(getStopTimeout());
       }
     }
     closeNoExceptions(_selector);
