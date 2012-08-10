@@ -1,8 +1,8 @@
 {
   if (isDumpBeforeStop())   dumpStdErr();
   MultiException mex=new MultiException();
-  long gracefulTimeout=getGracefulShutdown();
-  if (gracefulTimeout > 0) {
+  long stopTimeout=getStopTimeout();
+  if (stopTimeout > 0) {
     for (    Connector connector : _connectors) {
       LOG.info("Graceful shutdown {}",connector);
       if (connector instanceof NetworkConnector)       ((NetworkConnector)connector).close();
@@ -11,9 +11,9 @@
     for (    Handler context : contexts) {
       Graceful graceful=(Graceful)context;
       LOG.info("Graceful shutdown {}",graceful);
-      graceful.setShutdown(true);
+      graceful.shutdown();
     }
-    Thread.sleep(gracefulTimeout);
+    Thread.sleep(stopTimeout);
   }
   for (  Connector connector : _connectors) {
     try {
