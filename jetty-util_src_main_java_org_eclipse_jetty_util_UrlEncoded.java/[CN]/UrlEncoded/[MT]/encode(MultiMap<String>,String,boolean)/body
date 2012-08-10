@@ -1,12 +1,14 @@
 {
   if (charset == null)   charset=ENCODING;
   StringBuilder result=new StringBuilder(128);
-  Iterator<Map.Entry<String,Object>> iter=map.entrySet().iterator();
-  while (iter.hasNext()) {
-    Map.Entry<String,Object> entry=iter.next();
+  boolean delim=false;
+  for (  Map.Entry<String,List<String>> entry : map.entrySet()) {
     String key=entry.getKey().toString();
-    Object list=entry.getValue();
-    int s=LazyList.size(list);
+    List<String> list=entry.getValue();
+    int s=list.size();
+    if (delim) {
+      result.append('&');
+    }
     if (s == 0) {
       result.append(encodeString(key,charset));
       if (equalsForNullValue)       result.append('=');
@@ -14,7 +16,7 @@
  else {
       for (int i=0; i < s; i++) {
         if (i > 0)         result.append('&');
-        Object val=LazyList.get(list,i);
+        String val=list.get(i);
         result.append(encodeString(key,charset));
         if (val != null) {
           String str=val.toString();
@@ -27,7 +29,7 @@
  else         if (equalsForNullValue)         result.append('=');
       }
     }
-    if (iter.hasNext())     result.append('&');
+    delim=true;
   }
   return result.toString();
 }
