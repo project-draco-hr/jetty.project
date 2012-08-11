@@ -1,25 +1,31 @@
 {
   super.doStop();
   long start=System.currentTimeMillis();
-  while (_threadsStarted.get() > 0 && (System.currentTimeMillis() - start) < (getStopTimeout() / 2))   Thread.sleep(1);
+  long timeout=getStopTimeout();
   BlockingQueue<Runnable> jobs=getQueue();
-  jobs.clear();
+  if (timeout <= 0)   jobs.clear();
   Runnable noop=new Runnable(){
     @Override public void run(){
     }
   }
 ;
-  for (int i=_threadsIdle.get(); i-- > 0; )   jobs.offer(noop);
-  Thread.yield();
+  for (int i=_threadsStarted.get(); i-- > 0; )   jobs.offer(noop);
+  long stopby=System.currentTimeMillis() + timeout / 2;
+  for (  Thread thread : _threads) {
+    long canwait=stopby - System.currentTimeMillis();
+    if (canwait > 0)     thread.join(canwait);
+  }
   if (_threadsStarted.get() > 0)   for (  Thread thread : _threads)   thread.interrupt();
-  while (_threadsStarted.get() > 0 && (System.currentTimeMillis() - start) < getStopTimeout()) {
-    Thread.sleep(1);
+  stopby=System.currentTimeMillis() + timeout / 2;
+  for (  Thread thread : _threads) {
+    long canwait=stopby - System.currentTimeMillis();
+    if (canwait > 0)     thread.join(canwait);
   }
   Thread.yield();
   int size=_threads.size();
   if (size > 0) {
     LOG.warn("{} threads could not be stopped",size);
-    if (size == 1 || LOG.isDebugEnabled()) {
+    if (size <= Runtime.getRuntime().availableProcessors() || LOG.isDebugEnabled()) {
       for (      Thread unstopped : _threads) {
         StringBuilder dmp=new StringBuilder();
         for (        StackTraceElement element : unstopped.getStackTrace()) {
