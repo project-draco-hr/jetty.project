@@ -1,21 +1,18 @@
 {
   Thread current=Thread.currentThread();
   String name=current.getName();
-  current.setName(name + " Acceptor" + _acceptor+ " "+ AbstractConnector.this);
+  current.setName(name + "-acceptor-" + _acceptor+ "-"+ AbstractConnector.this);
 synchronized (AbstractConnector.this) {
     _acceptors[_acceptor]=current;
   }
   try {
-    while (isRunning()) {
+    while (isAccepting()) {
       try {
         accept(_acceptor);
       }
- catch (      AsynchronousCloseException|InterruptedException e) {
-        logger.ignore(e);
-        break;
-      }
-catch (      Throwable e) {
-        logger.warn(e);
+ catch (      Throwable e) {
+        if (isAccepting())         LOG.warn(e);
+ else         LOG.debug(e);
       }
     }
   }
@@ -24,5 +21,6 @@ catch (      Throwable e) {
 synchronized (AbstractConnector.this) {
       _acceptors[_acceptor]=null;
     }
+    _stopping.countDown();
   }
 }
