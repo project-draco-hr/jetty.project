@@ -1,17 +1,26 @@
 {
   if (isDumpBeforeStop())   dumpStdErr();
   MultiException mex=new MultiException();
+  for (  Connector connector : _connectors) {
+    if (connector instanceof NetworkConnector)     ((NetworkConnector)connector).close();
+  }
+  Handler[] contexts=getChildHandlersByClass(Graceful.class);
+  for (  Handler context : contexts) {
+    Graceful graceful=(Graceful)context;
+    graceful.shutdown();
+  }
   long stopTimeout=getStopTimeout();
-  if (stopTimeout > 0) {
+  if (stopTimeout > 0 && LOG.isDebugEnabled()) {
+    long stop_by=System.currentTimeMillis() + stopTimeout;
+    LOG.info("Graceful shutdown {} by ",this,new Date(stop_by));
     for (    Connector connector : _connectors) {
-      LOG.info("Graceful shutdown {}",connector);
-      if (connector instanceof NetworkConnector)       ((NetworkConnector)connector).close();
+      if (connector instanceof AbstractConnector)       ((AbstractConnector)connector).setIdleTimeout(1);
     }
-    Handler[] contexts=getChildHandlersByClass(Graceful.class);
-    for (    Handler context : contexts) {
-      Graceful graceful=(Graceful)context;
-      LOG.info("Graceful shutdown {}",graceful);
-      graceful.shutdown();
+    for (    Connector connector : _connectors) {
+      while (connector.getStatistics().isRunning() && connector.getStatistics().getConnectionsOpen() > 0 && System.currentTimeMillis() < stop_by) {
+        System.err.println(((Dumpable)connector).dump());
+        Thread.sleep(100);
+      }
     }
   }
   for (  Connector connector : _connectors) {
