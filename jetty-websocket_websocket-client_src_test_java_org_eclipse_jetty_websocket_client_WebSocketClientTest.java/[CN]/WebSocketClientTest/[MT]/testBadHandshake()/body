@@ -1,15 +1,15 @@
 {
-  WebSocketClientFactory factory=new WebSocketClientFactory();
   WebSocketClient client=factory.newWebSocketClient();
   TrackingSocket wsocket=new TrackingSocket();
-  URI wsUri=new URI("ws://127.0.0.1:" + server.getPort() + "/");
+  URI wsUri=server.getWsUri();
   Future<WebSocketConnection> future=client.connect(wsUri,wsocket);
   ServerConnection connection=server.accept();
+  String req=connection.readRequest();
   connection.respond("HTTP/1.1 404 NOT FOUND\r\n\r\n");
   Throwable error=null;
   try {
     future.get(250,TimeUnit.MILLISECONDS);
-    Assert.fail();
+    Assert.fail("Should have resulted in an ExecutionException -> IOException");
   }
  catch (  ExecutionException e) {
     error=e.getCause();
