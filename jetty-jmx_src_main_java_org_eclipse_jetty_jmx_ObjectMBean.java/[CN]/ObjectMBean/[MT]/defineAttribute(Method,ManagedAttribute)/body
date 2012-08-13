@@ -6,7 +6,14 @@
   String description=attributeAnnotation.value();
   boolean readonly=attributeAnnotation.readonly();
   boolean onMBean=attributeAnnotation.proxied();
-  boolean convert=attributeAnnotation.managed();
+  boolean convert=false;
+  Class<?> returnType=method.getReturnType();
+  if (returnType.isArray()) {
+    returnType=returnType.getComponentType();
+  }
+  if (returnType.isAnnotationPresent(ManagedObject.class)) {
+    convert=true;
+  }
   String uName=name.substring(0,1).toUpperCase() + name.substring(1);
   Class<?> oClass=onMBean ? this.getClass() : _managed.getClass();
   LOG.debug("defineAttribute {} {}:{}:{}:{}",name,onMBean,readonly,oClass,description);
