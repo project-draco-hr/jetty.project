@@ -1,16 +1,13 @@
 {
-  if (constraintInfo == null)   return true;
-  RoleInfo roleInfo=(RoleInfo)constraintInfo;
+  if (roleInfo == null)   return true;
   if (roleInfo.isForbidden())   return false;
   UserDataConstraint dataConstraint=roleInfo.getUserDataConstraint();
-  if (dataConstraint == null || dataConstraint == UserDataConstraint.None) {
-    return true;
-  }
-  HttpConfiguration connector=HttpChannel.getCurrentHttpChannel().getHttpConfiguration();
+  if (dataConstraint == null || dataConstraint == UserDataConstraint.None)   return true;
+  HttpConfiguration httpConfiguration=HttpChannel.getCurrentHttpChannel().getHttpConfiguration();
   if (dataConstraint == UserDataConstraint.Integral) {
-    if (connector.isIntegral(request))     return true;
-    if (connector.getIntegralPort() > 0) {
-      String url=connector.getIntegralScheme() + "://" + request.getServerName()+ ":"+ connector.getIntegralPort()+ request.getRequestURI();
+    if (httpConfiguration.isIntegral(request))     return true;
+    if (httpConfiguration.getIntegralPort() > 0) {
+      String url=httpConfiguration.getIntegralScheme() + "://" + request.getServerName()+ ":"+ httpConfiguration.getIntegralPort()+ request.getRequestURI();
       if (request.getQueryString() != null)       url+="?" + request.getQueryString();
       response.setContentLength(0);
       response.sendRedirect(url);
@@ -20,9 +17,9 @@
     return false;
   }
  else   if (dataConstraint == UserDataConstraint.Confidential) {
-    if (connector.isConfidential(request))     return true;
-    if (connector.getConfidentialPort() > 0) {
-      String url=connector.getConfidentialScheme() + "://" + request.getServerName()+ ":"+ connector.getConfidentialPort()+ request.getRequestURI();
+    if (httpConfiguration.isConfidential(request))     return true;
+    if (httpConfiguration.getConfidentialPort() > 0) {
+      String url=httpConfiguration.getConfidentialScheme() + "://" + request.getServerName()+ ":"+ httpConfiguration.getConfidentialPort()+ request.getRequestURI();
       if (request.getQueryString() != null)       url+="?" + request.getQueryString();
       response.setContentLength(0);
       response.sendRedirect(url);
