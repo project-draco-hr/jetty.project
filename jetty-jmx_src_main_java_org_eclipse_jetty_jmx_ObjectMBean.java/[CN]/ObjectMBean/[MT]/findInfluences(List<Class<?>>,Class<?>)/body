@@ -1,17 +1,16 @@
 {
   if (aClass != null) {
     influences.add(aClass);
-    ManagedObject mo=aClass.getAnnotation(ManagedObject.class);
-    if (mo != null && !"".equals(mo.wrapper())) {
-      String clazz=mo.wrapper();
-      try {
-        Class<?> mbean=Class.forName(clazz);
-        LOG.debug("MBean Influence found for " + aClass.getSimpleName());
-        influences.add(mbean);
-      }
- catch (      ClassNotFoundException cnfe) {
-        LOG.debug("No MBean Influence for " + aClass.getSimpleName());
-      }
+    String pName=aClass.getPackage().getName();
+    String cName=aClass.getName().substring(pName.length() + 1);
+    String mName=pName + ".jmx." + cName+ "MBean";
+    try {
+      Class<?> mbeanClazz=Class.forName(mName);
+      LOG.debug("MBean Influence found for " + aClass.getSimpleName());
+      influences.add(mbeanClazz);
+    }
+ catch (    ClassNotFoundException cnfe) {
+      LOG.debug("No MBean Influence for " + aClass.getSimpleName());
     }
     influences=findInfluences(influences,aClass.getSuperclass());
     Class<?>[] ifs=aClass.getInterfaces();

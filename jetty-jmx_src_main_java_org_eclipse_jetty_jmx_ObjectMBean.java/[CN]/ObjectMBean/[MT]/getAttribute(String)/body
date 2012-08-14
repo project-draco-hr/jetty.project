@@ -7,23 +7,33 @@
     Object o=_managed;
     if (getter.getDeclaringClass().isInstance(this))     o=this;
     Object r=getter.invoke(o,(java.lang.Object[])null);
-    if (r != null && _convert.contains(name)) {
+    if (r != null) {
       if (r.getClass().isArray()) {
-        ObjectName[] on=new ObjectName[Array.getLength(r)];
-        for (int i=0; i < on.length; i++)         on[i]=_mbeanContainer.findMBean(Array.get(r,i));
-        r=on;
+        if (r.getClass().getComponentType().isAnnotationPresent(ManagedObject.class)) {
+          ObjectName[] on=new ObjectName[Array.getLength(r)];
+          for (int i=0; i < on.length; i++) {
+            on[i]=_mbeanContainer.findMBean(Array.get(r,i));
+          }
+          r=on;
+        }
       }
  else       if (r instanceof Collection<?>) {
         @SuppressWarnings("unchecked") Collection<Object> c=(Collection<Object>)r;
-        ObjectName[] on=new ObjectName[c.size()];
-        int i=0;
-        for (        Object obj : c)         on[i++]=_mbeanContainer.findMBean(obj);
-        r=on;
+        if (!c.isEmpty() && c.iterator().next().getClass().isAnnotationPresent(ManagedObject.class)) {
+          ObjectName[] on=new ObjectName[c.size()];
+          int i=0;
+          for (          Object obj : c) {
+            on[i++]=_mbeanContainer.findMBean(obj);
+          }
+          r=on;
+        }
       }
  else {
-        ObjectName mbean=_mbeanContainer.findMBean(r);
-        if (mbean == null)         return null;
-        r=mbean;
+        if (r.getClass().isAnnotationPresent(ManagedObject.class)) {
+          ObjectName mbean=_mbeanContainer.findMBean(r);
+          if (mbean == null)           return null;
+          r=mbean;
+        }
       }
     }
     return r;
