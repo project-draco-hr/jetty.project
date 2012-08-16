@@ -1,0 +1,19 @@
+{
+  List<WebSocketFrame> send=new ArrayList<>();
+  send.add(new WebSocketFrame(OpCode.TEXT).setPayload("an").setFin(false));
+  send.add(new CloseInfo(StatusCode.NORMAL).asFrame());
+  send.add(new WebSocketFrame(OpCode.CONTINUATION).setPayload("ticipation").setFin(true));
+  List<WebSocketFrame> expect=new ArrayList<>();
+  expect.add(new CloseInfo(StatusCode.NORMAL).asFrame());
+  Fuzzer fuzzer=new Fuzzer(this);
+  try {
+    fuzzer.connect();
+    fuzzer.setSendMode(Fuzzer.SendMode.BULK);
+    fuzzer.send(send);
+    fuzzer.expect(expect);
+    fuzzer.expectNoMoreFrames();
+  }
+  finally {
+    fuzzer.close();
+  }
+}

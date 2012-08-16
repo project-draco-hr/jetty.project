@@ -1,0 +1,16 @@
+{
+  CompressionFactory compressionFactory=new StandardCompressionFactory();
+  Parser parser=new Parser(compressionFactory.newDecompressor());
+  Generator generator=new Generator(bufferPool,compressionFactory.newCompressor());
+  SPDYServerConnector connector=(SPDYServerConnector)attachment;
+  ServerSessionFrameListener listener=provideServerSessionFrameListener(endPoint,attachment);
+  SPDYConnection connection=new ServerSPDYConnection(endPoint,bufferPool,parser,listener,connector);
+  FlowControlStrategy flowControlStrategy=connector.newFlowControlStrategy(version);
+  StandardSession session=new StandardSession(version,bufferPool,threadPool,scheduler,connection,connection,2,listener,generator,flowControlStrategy);
+  session.setAttribute("org.eclipse.jetty.spdy.remoteAddress",endPoint.getRemoteAddress());
+  session.setWindowSize(connector.getInitialWindowSize());
+  parser.addListener(session);
+  connection.setSession(session);
+  connector.sessionOpened(session);
+  return connection;
+}

@@ -3,16 +3,14 @@
     Class<?> oClass=o.getClass();
     Object mbean=null;
     while (mbean == null && oClass != null) {
-      ManagedObject mo=oClass.getAnnotation(ManagedObject.class);
-      String mName="";
-      if (mo != null) {
-        mName=mo.wrapper();
-      }
+      String pName=oClass.getPackage().getName();
+      String cName=oClass.getName().substring(pName.length() + 1);
+      String mName=pName + ".jmx." + cName+ "MBean";
       try {
-        Class mClass=(Object.class.equals(oClass)) ? oClass=ObjectMBean.class : Loader.loadClass(oClass,mName,true);
+        Class<?> mClass=(Object.class.equals(oClass)) ? oClass=ObjectMBean.class : Loader.loadClass(oClass,mName,true);
         LOG.debug("ObjectMbean: mbeanFor {} mClass={}",o,mClass);
         try {
-          Constructor constructor=mClass.getConstructor(OBJ_ARG);
+          Constructor<?> constructor=mClass.getConstructor(OBJ_ARG);
           mbean=constructor.newInstance(new Object[]{o});
         }
  catch (        Exception e) {

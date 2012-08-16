@@ -9,20 +9,20 @@
       payload=ByteBuffer.allocate(payloadLength);
       BufferUtil.clearToFill(payload);
     }
-    BufferUtil.put(buffer,payload);
+    ByteBuffer window=buffer.slice();
+    int bytesExpected=payloadLength - payload.position();
+    int bytesAvailable=buffer.remaining();
+    int windowBytes=Math.min(bytesAvailable,bytesExpected);
+    window.limit(window.position() + windowBytes);
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("Window: {}",BufferUtil.toDetailString(window));
+    }
+    maskProcessor.process(window);
+    strictnessProcessor.process(window);
+    int len=BufferUtil.put(window,payload);
+    buffer.position(buffer.position() + len);
     if (payload.position() >= payloadLength) {
       BufferUtil.flipToFlush(payload,0);
-      LOG.debug("PreMask: {}",BufferUtil.toDetailString(payload));
-      if (frame.isMasked()) {
-        byte mask[]=frame.getMask();
-        int offset;
-        int start=payload.position();
-        int end=payload.limit();
-        for (int i=start; i < end; i++) {
-          offset=(i - start);
-          payload.put(i,(byte)(payload.get(i) ^ mask[offset % 4]));
-        }
-      }
       frame.setPayload(payload);
       this.payload=null;
       return true;

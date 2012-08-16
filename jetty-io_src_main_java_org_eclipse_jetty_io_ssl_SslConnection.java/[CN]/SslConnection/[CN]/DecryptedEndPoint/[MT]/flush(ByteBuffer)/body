@@ -1,9 +1,10 @@
 {
+  if (Thread.currentThread().getName().contains("selector"))   new Throwable().printStackTrace();
   LOG.debug("{} flush enter {}",SslConnection.this,Arrays.toString(appOuts));
+  int consumed=0;
   try {
     if (_cannotAcceptMoreAppDataToFlush)     return 0;
     if (_encryptedOutput == null)     _encryptedOutput=_bufferPool.acquire(_sslEngine.getSession().getPacketBufferSize() * 2,_encryptedDirectBuffers);
-    int consumed=0;
     while (true) {
       BufferUtil.compact(_encryptedOutput);
       int pos=BufferUtil.flipToFill(_encryptedOutput);
@@ -18,8 +19,8 @@ case CLOSED:
           getEndPoint().flush(_encryptedOutput);
           if (BufferUtil.hasContent(_encryptedOutput))           return consumed;
         }
-      if (_fillRequiresFlushToProgress)       return consumed;
-    throw new EofException();
+      if (appOuts[0] == __FILL_CALLED_FLUSH)       return consumed;
+    return consumed;
 case BUFFER_UNDERFLOW:
   throw new IllegalStateException();
 default :
@@ -34,9 +35,9 @@ continue;
 case NEED_WRAP:
 continue;
 case NEED_UNWRAP:
-if (!_fillRequiresFlushToProgress && !getFillInterest().isInterested()) {
+if (appOuts[0] != __FILL_CALLED_FLUSH && !getFillInterest().isInterested()) {
 _flushRequiresFillToProgress=true;
-fill(BufferUtil.EMPTY_BUFFER);
+fill(__FLUSH_CALLED_FILL);
 }
 return consumed;
 case FINISHED:
@@ -50,7 +51,7 @@ getEndPoint().close();
 throw e;
 }
  finally {
-LOG.debug("{} flush exit",SslConnection.this);
-releaseNetOut();
+LOG.debug("{} flush exit, consumed {}",SslConnection.this,consumed);
+releaseEncryptedOutputBuffer();
 }
 }

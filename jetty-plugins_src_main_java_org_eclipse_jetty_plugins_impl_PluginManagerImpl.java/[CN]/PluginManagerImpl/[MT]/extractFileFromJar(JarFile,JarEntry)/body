@@ -1,0 +1,30 @@
+{
+  for (  String exclude : excludes)   if (jarEntry.getName().startsWith(exclude))   return;
+  System.out.println("Extracting: " + jarEntry.getName());
+  File f=new File(_jettyHome + File.separator + jarEntry.getName());
+  if (jarEntry.isDirectory()) {
+    f.mkdir();
+    return;
+  }
+  InputStream is=null;
+  FileOutputStream fos=null;
+  try {
+    is=jarFile.getInputStream(jarEntry);
+    fos=new FileOutputStream(f);
+    while (is.available() > 0) {
+      fos.write(is.read());
+    }
+  }
+ catch (  IOException e) {
+    throw new IllegalStateException("IOException while extracting plugin jar: ",e);
+  }
+ finally {
+    try {
+      fos.close();
+      is.close();
+    }
+ catch (    IOException e) {
+      throw new IllegalStateException("Couldn't close InputStream or FileOutputStream. This might be a file leak!",e);
+    }
+  }
+}

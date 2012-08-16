@@ -1,36 +1,29 @@
 {
+  LOG.debug("newConnection({},{},{})",channel,endPoint,attachment);
   WebSocketClient.ConnectFuture confut=(WebSocketClient.ConnectFuture)attachment;
   try {
     String scheme=confut.getWebSocketUri().getScheme();
-    if ((sslContextFactory != null) && ("wss".equalsIgnoreCase(scheme))) {
-      final AtomicReference<EndPoint> sslEndPointRef=new AtomicReference<>();
-      final AtomicReference<Object> attachmentRef=new AtomicReference<>(attachment);
-      SSLEngine engine=newSSLEngine(sslContextFactory,channel);
-      SslConnection sslConnection=new SslConnection(bufferPool,executor,endPoint,engine){
-        @Override public void onClose(){
-          sslEndPointRef.set(null);
-          attachmentRef.set(null);
-          super.onClose();
-        }
+    if ("wss".equalsIgnoreCase(scheme)) {
+      if (sslContextFactory != null) {
+        SSLEngine engine=newSSLEngine(sslContextFactory,channel);
+        SslConnection sslConnection=new SslConnection(bufferPool,executor,endPoint,engine);
+        EndPoint sslEndPoint=sslConnection.getDecryptedEndPoint();
+        Connection connection=newWebSocketConnection(channel,sslEndPoint,confut);
+        sslEndPoint.setConnection(connection);
+        connectionOpened(connection);
+        return sslConnection;
       }
-;
-      endPoint.setConnection(sslConnection);
-      EndPoint sslEndPoint=sslConnection.getDecryptedEndPoint();
-      sslEndPointRef.set(sslEndPoint);
-      startHandshake(engine);
-      Connection connection=newWebSocketConnection(channel,sslEndPoint,attachment);
-      endPoint.setConnection(connection);
-      return connection;
+ else {
+        throw new IOException("Cannot init SSL");
+      }
     }
  else {
-      Connection connection=newWebSocketConnection(channel,endPoint,attachment);
-      endPoint.setConnection(connection);
-      return connection;
+      return newWebSocketConnection(channel,endPoint,confut);
     }
   }
- catch (  Throwable t) {
-    LOG.debug(t);
-    confut.failed(null,t);
-    throw t;
+ catch (  IOException e) {
+    LOG.debug(e);
+    confut.failed(null,e);
+    throw e;
   }
 }

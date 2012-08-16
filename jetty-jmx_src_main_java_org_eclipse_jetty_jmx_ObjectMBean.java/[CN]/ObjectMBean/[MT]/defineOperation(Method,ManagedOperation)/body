@@ -1,9 +1,17 @@
 {
   String description=methodAnnotation.value();
   boolean onMBean=methodAnnotation.proxied();
-  boolean convert=methodAnnotation.managed();
+  boolean convert=false;
+  Class<?> returnType=method.getReturnType();
+  if (returnType.isArray()) {
+    LOG.debug("returnType is array, get component type");
+    returnType=returnType.getComponentType();
+  }
+  if (returnType.isAnnotationPresent(ManagedObject.class)) {
+    convert=true;
+  }
   String impactName=methodAnnotation.impact();
-  LOG.debug("defineOperation " + method.getName() + " "+ onMBean+ ":"+ impactName+ ":"+ description);
+  LOG.debug("defineOperation {} {}:{}:{}",method.getName(),onMBean,impactName,description);
   String signature=method.getName();
   try {
     int impact=MBeanOperationInfo.UNKNOWN;
@@ -32,8 +40,11 @@
       }
     }
     signature+=")";
-    Class returnClass=method.getReturnType();
+    Class<?> returnClass=method.getReturnType();
     LOG.debug("Method Cache: " + signature);
+    if (_methods.containsKey(signature)) {
+      return null;
+    }
     _methods.put(signature,method);
     if (convert)     _convert.add(signature);
     return new MBeanOperationInfo(method.getName(),description,pInfo,returnClass.isPrimitive() ? TypeUtil.toName(returnClass) : (returnClass.getName()),impact);

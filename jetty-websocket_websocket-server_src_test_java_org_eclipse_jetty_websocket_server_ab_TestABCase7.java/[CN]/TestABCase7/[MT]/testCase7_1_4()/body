@@ -1,0 +1,18 @@
+{
+  List<WebSocketFrame> send=new ArrayList<>();
+  send.add(new CloseInfo(StatusCode.NORMAL).asFrame());
+  send.add(WebSocketFrame.text("out of band text"));
+  List<WebSocketFrame> expect=new ArrayList<>();
+  expect.add(new CloseInfo(StatusCode.NORMAL).asFrame());
+  Fuzzer fuzzer=new Fuzzer(this);
+  try {
+    fuzzer.connect();
+    fuzzer.setSendMode(Fuzzer.SendMode.BULK);
+    fuzzer.send(send);
+    fuzzer.expect(expect);
+    fuzzer.expectNoMoreFrames();
+  }
+  finally {
+    fuzzer.close();
+  }
+}

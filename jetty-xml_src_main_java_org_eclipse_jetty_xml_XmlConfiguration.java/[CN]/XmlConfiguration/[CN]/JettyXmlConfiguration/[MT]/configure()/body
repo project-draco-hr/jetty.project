@@ -2,8 +2,40 @@
   Class<?> oClass=nodeClass(_config);
   String id=_config.getAttribute("id");
   Object obj=id == null ? null : _idMap.get(id);
-  if (obj == null && oClass != null)   obj=oClass.newInstance();
-  if (oClass != null && !oClass.isInstance(obj))   throw new ClassCastException(oClass.toString() + " in " + _url);
-  configure(obj,_config,0);
+  int index=_config.size();
+  if (obj == null && oClass != null) {
+    Map<String,Object> namedArgMap=new HashMap<String,Object>();
+    List<Object> arguments=new LinkedList<>();
+    for (int i=0; i < _config.size(); i++) {
+      Object o=_config.get(i);
+      if (o instanceof String) {
+        continue;
+      }
+      XmlParser.Node node=(XmlParser.Node)o;
+      if (!(node.getTag().equals("Arg"))) {
+        index=i;
+        break;
+      }
+ else {
+        String namedAttribute=node.getAttribute("name");
+        if (namedAttribute != null) {
+          namedArgMap.put(namedAttribute,value(obj,(XmlParser.Node)o));
+        }
+        arguments.add(value(obj,(XmlParser.Node)o));
+      }
+    }
+    try {
+      if (namedArgMap.size() > 0) {
+        obj=TypeUtil.construct(oClass,arguments.toArray(),namedArgMap);
+      }
+ else {
+        obj=TypeUtil.construct(oClass,arguments.toArray());
+      }
+    }
+ catch (    NoSuchMethodException x) {
+      throw new IllegalStateException("No suitable constructor on " + oClass,x);
+    }
+  }
+  configure(obj,_config,index);
   return obj;
 }

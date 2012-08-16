@@ -4,7 +4,7 @@
   if (!(response instanceof HttpServletResponse))   response=new ServletResponseHttpWrapper(response);
   final DispatcherType old_type=baseRequest.getDispatcherType();
   final Attributes old_attr=baseRequest.getAttributes();
-  MultiMap old_params=baseRequest.getParameters();
+  MultiMap<String> old_params=baseRequest.getParameters();
   try {
     baseRequest.setDispatcherType(DispatcherType.INCLUDE);
     baseRequest.getHttpChannel().include();
@@ -16,16 +16,10 @@
           baseRequest.extractParameters();
           old_params=baseRequest.getParameters();
         }
-        MultiMap parameters=new MultiMap();
+        MultiMap<String> parameters=new MultiMap<>();
         UrlEncoded.decodeTo(query,parameters,baseRequest.getCharacterEncoding());
-        if (old_params != null && old_params.size() > 0) {
-          Iterator iter=old_params.entrySet().iterator();
-          while (iter.hasNext()) {
-            Map.Entry entry=(Map.Entry)iter.next();
-            String name=(String)entry.getKey();
-            Object values=entry.getValue();
-            for (int i=0; i < LazyList.size(values); i++)             parameters.add(name,LazyList.get(values,i));
-          }
+        if (old_params != null) {
+          parameters.addAllValues(old_params);
         }
         baseRequest.setParameters(parameters);
       }

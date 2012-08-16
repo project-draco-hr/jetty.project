@@ -1,0 +1,34 @@
+{
+  byte msg[]=new byte[overallMsgSize];
+  Arrays.fill(msg,(byte)'M');
+  List<WebSocketFrame> send=new ArrayList<>();
+  byte frag[];
+  int remaining=msg.length;
+  int offset=0;
+  boolean fin;
+  byte op=opcode;
+  while (remaining > 0) {
+    int len=Math.min(remaining,fragmentSize);
+    frag=new byte[len];
+    System.arraycopy(msg,offset,frag,0,len);
+    remaining-=len;
+    fin=(remaining <= 0);
+    send.add(new WebSocketFrame(op).setPayload(frag).setFin(fin));
+    offset+=len;
+    op=OpCode.CONTINUATION;
+  }
+  send.add(new CloseInfo(StatusCode.NORMAL).asFrame());
+  List<WebSocketFrame> expect=new ArrayList<>();
+  expect.add(new WebSocketFrame(opcode).setPayload(msg));
+  expect.add(new CloseInfo(StatusCode.NORMAL).asFrame());
+  Fuzzer fuzzer=new Fuzzer(this);
+  try {
+    fuzzer.connect();
+    fuzzer.setSendMode(Fuzzer.SendMode.BULK);
+    fuzzer.send(send);
+    fuzzer.expect(expect,TimeUnit.SECONDS,8);
+  }
+  finally {
+    fuzzer.close();
+  }
+}

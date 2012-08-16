@@ -1,29 +1,34 @@
 {
   if (isDumpBeforeStop())   dumpStdErr();
   MultiException mex=new MultiException();
-  if (_graceful > 0) {
-    if (_connectors != null) {
-      for (int i=_connectors.length; i-- > 0; ) {
-        LOG.info("Graceful shutdown {}",_connectors[i]);
-        if (_connectors[i] instanceof NetworkConnector)         ((NetworkConnector)_connectors[i]).close();
-      }
-    }
-    Handler[] contexts=getChildHandlersByClass(Graceful.class);
-    for (int c=0; c < contexts.length; c++) {
-      Graceful context=(Graceful)contexts[c];
-      LOG.info("Graceful shutdown {}",context);
-      context.setShutdown(true);
-    }
-    Thread.sleep(_graceful);
+  for (  Connector connector : _connectors) {
+    if (connector instanceof NetworkConnector)     ((NetworkConnector)connector).close();
   }
-  if (_connectors != null) {
-    for (int i=_connectors.length; i-- > 0; ) {
-      if (_connectors[i] != null)       try {
-        _connectors[i].stop();
+  Handler[] contexts=getChildHandlersByClass(Graceful.class);
+  for (  Handler context : contexts) {
+    Graceful graceful=(Graceful)context;
+    graceful.shutdown();
+  }
+  long stopTimeout=getStopTimeout();
+  if (stopTimeout > 0 && LOG.isDebugEnabled()) {
+    long stop_by=System.currentTimeMillis() + stopTimeout;
+    LOG.info("Graceful shutdown {} by ",this,new Date(stop_by));
+    for (    Connector connector : _connectors) {
+      if (connector instanceof AbstractConnector)       ((AbstractConnector)connector).setIdleTimeout(1);
+    }
+    for (    Connector connector : _connectors) {
+      while (connector.getStatistics().isRunning() && connector.getStatistics().getConnectionsOpen() > 0 && System.currentTimeMillis() < stop_by) {
+        System.err.println(((Dumpable)connector).dump());
+        Thread.sleep(100);
       }
- catch (      Throwable e) {
-        mex.add(e);
-      }
+    }
+  }
+  for (  Connector connector : _connectors) {
+    try {
+      connector.stop();
+    }
+ catch (    Throwable e) {
+      mex.add(e);
     }
   }
   try {

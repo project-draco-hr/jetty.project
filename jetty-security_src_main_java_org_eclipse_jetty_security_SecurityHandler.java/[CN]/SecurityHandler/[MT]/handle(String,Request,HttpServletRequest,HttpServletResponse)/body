@@ -4,17 +4,17 @@
   if (handler == null)   return;
   final Authenticator authenticator=_authenticator;
   if (checkSecurity(baseRequest)) {
-    Object constraintInfo=prepareConstraintInfo(pathInContext,baseRequest);
-    if (!checkUserDataPermissions(pathInContext,baseRequest,base_response,constraintInfo)) {
+    RoleInfo roleInfo=prepareConstraintInfo(pathInContext,baseRequest);
+    if (!checkUserDataPermissions(pathInContext,baseRequest,base_response,roleInfo)) {
       if (!baseRequest.isHandled()) {
         response.sendError(Response.SC_FORBIDDEN);
         baseRequest.setHandled(true);
       }
       return;
     }
-    boolean isAuthMandatory=isAuthMandatory(baseRequest,base_response,constraintInfo);
+    boolean isAuthMandatory=isAuthMandatory(baseRequest,base_response,roleInfo);
     if (isAuthMandatory && authenticator == null) {
-      LOG.warn("No authenticator for: " + constraintInfo);
+      LOG.warn("No authenticator for: " + roleInfo);
       if (!baseRequest.isHandled()) {
         response.sendError(Response.SC_FORBIDDEN);
         baseRequest.setHandled(true);
@@ -37,7 +37,7 @@
         baseRequest.setAuthentication(authentication);
         if (_identityService != null)         previousIdentity=_identityService.associate(userAuth.getUserIdentity());
         if (isAuthMandatory) {
-          boolean authorized=checkWebResourcePermissions(pathInContext,baseRequest,base_response,constraintInfo,userAuth.getUserIdentity());
+          boolean authorized=checkWebResourcePermissions(pathInContext,baseRequest,base_response,roleInfo,userAuth.getUserIdentity());
           if (!authorized) {
             response.sendError(Response.SC_FORBIDDEN,"!role");
             baseRequest.setHandled(true);

@@ -1,6 +1,5 @@
 {
   Class<?> oClass=nodeClass(node);
-  String id=node.getAttribute("id");
   int size=0;
   int argi=node.size();
   for (int i=0; i < node.size(); i++) {
@@ -12,36 +11,37 @@
     }
     size++;
   }
+  Map<String,Object> namedArgMap=new HashMap<String,Object>();
+  List<Object> arguments=new LinkedList<>();
   Object[] arg=new Object[size];
   for (int i=0, j=0; j < size; i++) {
     Object o=node.get(i);
-    if (o instanceof String)     continue;
+    XmlParser.Node argNode=(XmlParser.Node)o;
+    if (o instanceof String) {
+      continue;
+    }
     arg[j++]=value(obj,(XmlParser.Node)o);
+    String namedAttribute=argNode.getAttribute("name");
+    if (namedAttribute != null) {
+      namedArgMap.put(namedAttribute,value(obj,(XmlParser.Node)o));
+    }
+    arguments.add(value(obj,(XmlParser.Node)o));
   }
   if (LOG.isDebugEnabled())   LOG.debug("XML new " + oClass);
-  Constructor<?>[] constructors=oClass.getConstructors();
-  for (int c=0; constructors != null && c < constructors.length; c++) {
-    if (constructors[c].getParameterTypes().length != size)     continue;
-    Object n=null;
-    boolean called=false;
-    try {
-      n=constructors[c].newInstance(arg);
-      called=true;
+  try {
+    Object n;
+    if (namedArgMap.size() > 0) {
+      LOG.debug("using named mapping");
+      n=TypeUtil.construct(oClass,arguments.toArray(),namedArgMap);
     }
- catch (    IllegalAccessException e) {
-      LOG.ignore(e);
+ else {
+      LOG.debug("using normal mapping");
+      n=TypeUtil.construct(oClass,arguments.toArray());
     }
-catch (    InstantiationException e) {
-      LOG.ignore(e);
-    }
-catch (    IllegalArgumentException e) {
-      LOG.ignore(e);
-    }
-    if (called) {
-      if (id != null)       _idMap.put(id,n);
-      configure(n,node,argi);
-      return n;
-    }
+    configure(n,node,argi);
+    return n;
   }
-  throw new IllegalStateException("No Constructor: " + node + " on "+ obj);
+ catch (  NoSuchMethodException e) {
+    throw new IllegalStateException("No suitable constructor: " + node + " on "+ obj);
+  }
 }

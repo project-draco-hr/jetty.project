@@ -1,11 +1,12 @@
 {
-  final Exchanger<EndPoint> endpoint=new Exchanger<EndPoint>();
+  final Exchanger<EndPoint> exchanger=new Exchanger<>();
   configureServer(new HelloWorldHandler(){
     @Override public void handle(    String target,    Request baseRequest,    HttpServletRequest request,    HttpServletResponse response) throws IOException, ServletException {
       try {
-        endpoint.exchange(baseRequest.getHttpChannel().getConnection().getEndPoint());
+        exchanger.exchange(baseRequest.getHttpChannel().getConnection().getEndPoint());
       }
  catch (      Exception e) {
+        e.printStackTrace();
       }
       super.handle(target,baseRequest,request,response);
     }
@@ -18,8 +19,8 @@
   InputStream is=client.getInputStream();
   os.write(("GET / HTTP/1.0\r\n" + "host: " + HOST + ":"+ _connector.getLocalPort()+ "\r\n"+ "connection: close\r\n"+ "\r\n").getBytes("utf-8"));
   os.flush();
-  EndPoint endp=endpoint.exchange(null,10,TimeUnit.SECONDS);
-  if (endp instanceof SslConnection.DecryptedEndPoint)   endp=((SslConnection.DecryptedEndPoint)endp).getConnection().getEndPoint();
+  EndPoint endPoint=exchanger.exchange(null,10,TimeUnit.SECONDS);
+  if (endPoint instanceof SslConnection.DecryptedEndPoint)   endPoint=endPoint.getConnection().getEndPoint();
   String result=IO.toString(is);
   Assert.assertThat("OK",result,containsString("200 OK"));
   assertEquals(-1,is.read());
@@ -33,5 +34,5 @@
   }
  catch (  SocketException e) {
   }
-  Assert.assertFalse(endp.isOpen());
+  Assert.assertFalse(endPoint.isOpen());
 }

@@ -1,18 +1,16 @@
 {
-  List<Object> dump=new ArrayList<Object>(getMaxThreads());
+  List<Object> dump=new ArrayList<>(getMaxThreads());
   for (  final Thread thread : _threads) {
     final StackTraceElement[] trace=thread.getStackTrace();
     boolean inIdleJobPoll=false;
-    if (trace != null) {
-      for (      StackTraceElement t : trace) {
-        if ("idleJobPoll".equals(t.getMethodName())) {
-          inIdleJobPoll=true;
-          break;
-        }
+    for (    StackTraceElement t : trace) {
+      if ("idleJobPoll".equals(t.getMethodName())) {
+        inIdleJobPoll=true;
+        break;
       }
     }
     final boolean idle=inIdleJobPoll;
-    if (_detailedDump) {
+    if (isDetailedDump()) {
       dump.add(new Dumpable(){
         @Override public void dump(        Appendable out,        String indent) throws IOException {
           out.append(String.valueOf(thread.getId())).append(' ').append(thread.getName()).append(' ').append(thread.getState().toString()).append(idle ? " IDLE" : "").append('\n');

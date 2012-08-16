@@ -1,0 +1,22 @@
+{
+  byte msg[]=new byte[256 * 1024];
+  Arrays.fill(msg,(byte)'*');
+  List<WebSocketFrame> send=new ArrayList<>();
+  send.add(new WebSocketFrame(OpCode.TEXT).setPayload(msg));
+  send.add(new CloseInfo(StatusCode.NORMAL).asFrame());
+  send.add(new WebSocketFrame(OpCode.PING).setPayload("out of band"));
+  List<WebSocketFrame> expect=new ArrayList<>();
+  send.add(new WebSocketFrame(OpCode.TEXT).setPayload(msg));
+  expect.add(new CloseInfo(StatusCode.NORMAL).asFrame());
+  Fuzzer fuzzer=new Fuzzer(this);
+  try {
+    fuzzer.connect();
+    fuzzer.setSendMode(Fuzzer.SendMode.BULK);
+    fuzzer.send(send);
+    fuzzer.expect(expect);
+    fuzzer.expectNoMoreFrames();
+  }
+  finally {
+    fuzzer.close();
+  }
+}

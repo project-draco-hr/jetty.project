@@ -1,0 +1,34 @@
+{
+  if (roleInfo == null)   return true;
+  if (roleInfo.isForbidden())   return false;
+  UserDataConstraint dataConstraint=roleInfo.getUserDataConstraint();
+  if (dataConstraint == null || dataConstraint == UserDataConstraint.None)   return true;
+  HttpConfiguration httpConfiguration=HttpChannel.getCurrentHttpChannel().getHttpConfiguration();
+  if (dataConstraint == UserDataConstraint.Integral) {
+    if (httpConfiguration.isIntegral(request))     return true;
+    if (httpConfiguration.getIntegralPort() > 0) {
+      String url=httpConfiguration.getIntegralScheme() + "://" + request.getServerName()+ ":"+ httpConfiguration.getIntegralPort()+ request.getRequestURI();
+      if (request.getQueryString() != null)       url+="?" + request.getQueryString();
+      response.setContentLength(0);
+      response.sendRedirect(url);
+    }
+ else     response.sendError(Response.SC_FORBIDDEN,"!Integral");
+    request.setHandled(true);
+    return false;
+  }
+ else   if (dataConstraint == UserDataConstraint.Confidential) {
+    if (httpConfiguration.isConfidential(request))     return true;
+    if (httpConfiguration.getConfidentialPort() > 0) {
+      String url=httpConfiguration.getConfidentialScheme() + "://" + request.getServerName()+ ":"+ httpConfiguration.getConfidentialPort()+ request.getRequestURI();
+      if (request.getQueryString() != null)       url+="?" + request.getQueryString();
+      response.setContentLength(0);
+      response.sendRedirect(url);
+    }
+ else     response.sendError(Response.SC_FORBIDDEN,"!Confidential");
+    request.setHandled(true);
+    return false;
+  }
+ else {
+    throw new IllegalArgumentException("Invalid dataConstraint value: " + dataConstraint);
+  }
+}

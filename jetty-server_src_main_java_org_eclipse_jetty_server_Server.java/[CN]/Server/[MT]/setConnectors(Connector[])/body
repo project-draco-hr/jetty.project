@@ -1,9 +1,11 @@
 {
   if (connectors != null) {
-    for (int i=0; i < connectors.length; i++) {
-      if (connectors[i].getServer() != this)       throw new IllegalArgumentException();
+    for (    Connector connector : connectors) {
+      if (connector.getServer() != this)       throw new IllegalArgumentException("Connector " + connector + " cannot be shared among server "+ connector.getServer()+ " and server "+ this);
     }
   }
-  _container.update(this,_connectors,connectors,"connector");
-  _connectors=connectors;
+  Connector[] oldConnectors=getConnectors();
+  _container.update(this,oldConnectors,connectors,"connector");
+  _connectors.removeAll(Arrays.asList(oldConnectors));
+  if (connectors != null)   _connectors.addAll(Arrays.asList(connectors));
 }

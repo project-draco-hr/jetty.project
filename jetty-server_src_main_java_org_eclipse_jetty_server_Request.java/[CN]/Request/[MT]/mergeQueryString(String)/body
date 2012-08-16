@@ -1,33 +1,23 @@
 {
-  MultiMap parameters=new MultiMap();
+  MultiMap<String> parameters=new MultiMap<>();
   UrlEncoded.decodeTo(query,parameters,getCharacterEncoding());
   boolean merge_old_query=false;
   if (!_paramsExtracted)   extractParameters();
   if (_parameters != null && _parameters.size() > 0) {
-    Iterator<Entry<String,Object>> iter=_parameters.entrySet().iterator();
-    while (iter.hasNext()) {
-      Map.Entry<String,Object> entry=iter.next();
-      String name=entry.getKey();
-      if (parameters.containsKey(name))       merge_old_query=true;
-      Object values=entry.getValue();
-      for (int i=0; i < LazyList.size(values); i++)       parameters.add(name,LazyList.get(values,i));
-    }
+    merge_old_query=parameters.addAllValues(_parameters);
   }
   if (_queryString != null && _queryString.length() > 0) {
     if (merge_old_query) {
       StringBuilder overridden_query_string=new StringBuilder();
-      MultiMap overridden_old_query=new MultiMap();
+      MultiMap<String> overridden_old_query=new MultiMap<>();
       UrlEncoded.decodeTo(_queryString,overridden_old_query,getCharacterEncoding());
-      MultiMap overridden_new_query=new MultiMap();
+      MultiMap<String> overridden_new_query=new MultiMap<>();
       UrlEncoded.decodeTo(query,overridden_new_query,getCharacterEncoding());
-      Iterator<Entry<String,Object>> iter=overridden_old_query.entrySet().iterator();
-      while (iter.hasNext()) {
-        Map.Entry<String,Object> entry=iter.next();
-        String name=entry.getKey();
+      for (      String name : overridden_old_query.keySet()) {
         if (!overridden_new_query.containsKey(name)) {
-          Object values=entry.getValue();
-          for (int i=0; i < LazyList.size(values); i++) {
-            overridden_query_string.append("&").append(name).append("=").append(LazyList.get(values,i));
+          List<String> values=overridden_old_query.get(name);
+          for (          String v : values) {
+            overridden_query_string.append("&").append(name).append("=").append(v);
           }
         }
       }

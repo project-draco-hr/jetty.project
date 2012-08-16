@@ -1,0 +1,42 @@
+{
+  final ServerSocketChannel connector=ServerSocketChannel.open();
+  connector.configureBlocking(true);
+  connector.socket().bind(null);
+  Socket client=SocketChannel.open(connector.socket().getLocalSocketAddress()).socket();
+  client.setSoTimeout(2000);
+  client.setSoLinger(false,-1);
+  Socket server=connector.accept().socket();
+  server.setSoTimeout(2000);
+  server.setSoLinger(false,-1);
+  client.getOutputStream().write(1);
+  assertEquals(1,server.getInputStream().read());
+  server.getOutputStream().write(1);
+  assertEquals(1,client.getInputStream().read());
+  final CountDownLatch alatch=new CountDownLatch(2);
+  Thread acceptor=new Thread(){
+    @Override public void run(){
+      try {
+        alatch.countDown();
+        connector.accept();
+      }
+ catch (      Throwable e) {
+      }
+ finally {
+        alatch.countDown();
+      }
+    }
+  }
+;
+  acceptor.start();
+  while (alatch.getCount() == 2)   Thread.sleep(10);
+  acceptor.interrupt();
+  assertTrue(alatch.await(10,TimeUnit.SECONDS));
+  assertFalse(connector.isOpen());
+  assertFalse(client.isClosed());
+  assertFalse(server.isClosed());
+  client.getOutputStream().write(42);
+  assertEquals(42,server.getInputStream().read());
+  server.getOutputStream().write(43);
+  assertEquals(43,client.getInputStream().read());
+  client.close();
+}
