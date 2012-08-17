@@ -1,11 +1,12 @@
 {
   LOG.debug("{} onReadable {}",this,_channel.isIdle());
+  int filled=-2;
   try {
     setCurrentConnection(this);
     while (true) {
       if (BufferUtil.isEmpty(_requestBuffer)) {
         if (_requestBuffer == null)         _requestBuffer=_bufferPool.acquire(_httpConfig.getRequestHeaderSize(),false);
-        int filled=getEndPoint().fill(_requestBuffer);
+        filled=getEndPoint().fill(_requestBuffer);
         LOG.debug("{} filled {}",this,filled);
         if (filled == 0) {
           releaseRequestBuffer();
@@ -14,7 +15,8 @@
         }
  else         if (filled < 0) {
           _parser.inputShutdown();
-          getEndPoint().shutdownOutput();
+          if (getEndPoint().isOutputShutdown())           getEndPoint().close();
+ else           getEndPoint().shutdownOutput();
           releaseRequestBuffer();
           return;
         }
