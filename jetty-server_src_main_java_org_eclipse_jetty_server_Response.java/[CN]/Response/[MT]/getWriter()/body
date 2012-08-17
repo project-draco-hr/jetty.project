@@ -7,7 +7,19 @@
       if (encoding == null)       encoding=StringUtil.__ISO_8859_1;
       setCharacterEncoding(encoding);
     }
-    _writer=_channel.getPrintWriter(encoding);
+    _writer=new PrintWriter(new HttpWriter(_out,encoding)){
+      public void close(){
+synchronized (lock) {
+          try {
+            out.close();
+          }
+ catch (          IOException e) {
+            setError();
+          }
+        }
+      }
+    }
+;
   }
   _outputState=OutputState.WRITER;
   return _writer;
