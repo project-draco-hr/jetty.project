@@ -48,62 +48,37 @@ case TRANSFER_ENCODING:
             }
           }
         break;
-case CONNECTION:
-switch (_value == null ? HttpHeaderValue.UNKNOWN : _value) {
-case CLOSE:
-        _persistent=false;
-      break;
-case KEEP_ALIVE:
-    _persistent=true;
-  break;
-default :
-{
-  for (  String v : _valueString.toString().split(",")) {
-    HttpHeaderValue val=HttpHeaderValue.CACHE.get(v.trim());
-switch (val == null ? HttpHeaderValue.UNKNOWN : val) {
-case CLOSE:
-      _persistent=false;
-    break;
-case KEEP_ALIVE:
-  _persistent=true;
-break;
-}
-}
-break;
-}
-}
-}
-}
-return_from_parse|=_handler.parsedHeader(_header,_headerString,_valueString);
+    }
+  }
+  return_from_parse|=_handler.parsedHeader(_header,_headerString,_valueString);
 }
 _headerString=_valueString=null;
 _header=null;
 _value=null;
 if (ch == HttpTokens.CARRIAGE_RETURN || ch == HttpTokens.LINE_FEED) {
-consumeCRLF(ch,buffer);
-_contentPosition=0;
-if (_endOfContent == EndOfContent.UNKNOWN_CONTENT) {
-if (_responseStatus == 0 || _responseStatus == 304 || _responseStatus == 204 || _responseStatus < 200) _endOfContent=EndOfContent.NO_CONTENT;
- else _endOfContent=EndOfContent.EOF_CONTENT;
-}
+  consumeCRLF(ch,buffer);
+  _contentPosition=0;
+  if (_endOfContent == EndOfContent.UNKNOWN_CONTENT) {
+    if (_responseStatus == 0 || _responseStatus == 304 || _responseStatus == 204 || _responseStatus < 200)     _endOfContent=EndOfContent.NO_CONTENT;
+ else     _endOfContent=EndOfContent.EOF_CONTENT;
+  }
 switch (_endOfContent) {
 case EOF_CONTENT:
-_state=State.EOF_CONTENT;
-_persistent=false;
-return_from_parse|=_handler.headerComplete(true,_persistent);
+    _state=State.EOF_CONTENT;
+  return_from_parse|=_handler.headerComplete();
 break;
 case CHUNKED_CONTENT:
 _state=State.CHUNKED_CONTENT;
-return_from_parse|=_handler.headerComplete(true,_persistent);
+return_from_parse|=_handler.headerComplete();
 break;
 case NO_CONTENT:
-return_from_parse|=_handler.headerComplete(false,_persistent);
+return_from_parse|=_handler.headerComplete();
 _state=State.END;
 return_from_parse|=_handler.messageComplete(_contentPosition);
 break;
 default :
 _state=State.CONTENT;
-return_from_parse|=_handler.headerComplete(true,_persistent);
+return_from_parse|=_handler.headerComplete();
 break;
 }
 }
