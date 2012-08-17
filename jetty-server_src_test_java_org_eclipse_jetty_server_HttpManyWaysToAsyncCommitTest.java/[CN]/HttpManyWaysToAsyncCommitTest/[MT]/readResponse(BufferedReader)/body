@@ -1,0 +1,23 @@
+{
+  String line=reader.readLine();
+  if (line == null)   throw new EOFException();
+  Matcher responseLine=Pattern.compile("HTTP/1.1" + "\\s+(\\d+)").matcher(line);
+  assertThat("http version is 1.1",responseLine.lookingAt(),is(true));
+  String code=responseLine.group(1);
+  Map<String,String> headers=new LinkedHashMap<>();
+  while ((line=reader.readLine()) != null) {
+    if (line.trim().length() == 0)     break;
+    parseHeader(line,headers);
+  }
+  StringBuilder body;
+  if (headers.containsKey("content-length")) {
+    body=parseContentLengthDelimitedBody(reader,headers);
+  }
+ else   if ("chunked".equals(headers.get("transfer-encoding"))) {
+    body=parseChunkedBody(reader);
+  }
+ else {
+    body=parseEOFDelimitedBody(reader,headers);
+  }
+  return new Response(code,headers,body.toString().trim());
+}
