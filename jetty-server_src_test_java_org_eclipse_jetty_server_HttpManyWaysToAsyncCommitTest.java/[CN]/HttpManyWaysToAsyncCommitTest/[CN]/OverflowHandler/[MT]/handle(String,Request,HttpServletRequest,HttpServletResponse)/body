@@ -1,0 +1,25 @@
+{
+  if (request.getAttribute(CONTEXT_ATTRIBUTE) == null) {
+    final AsyncContext asyncContext=baseRequest.startAsync();
+    new Thread(new Runnable(){
+      @Override public void run(){
+        try {
+          ServletResponse asyncContextResponse=asyncContext.getResponse();
+          asyncContextResponse.setBufferSize(3);
+          asyncContextResponse.getWriter().write("foobar");
+        }
+ catch (        IOException e) {
+          e.printStackTrace();
+        }
+        if (dispatch) {
+          request.setAttribute(CONTEXT_ATTRIBUTE,asyncContext);
+          asyncContext.dispatch();
+        }
+ else         asyncContext.complete();
+      }
+    }
+).run();
+  }
+  baseRequest.setHandled(true);
+  super.handle(target,baseRequest,request,response);
+}

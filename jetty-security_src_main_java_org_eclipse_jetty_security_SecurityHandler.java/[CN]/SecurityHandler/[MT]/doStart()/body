@@ -6,6 +6,20 @@
       String name=names.nextElement();
       if (name.startsWith("org.eclipse.jetty.security.") && getInitParameter(name) == null)       setInitParameter(name,context.getInitParameter(name));
     }
+    context.getContextHandler().addEventListener(new HttpSessionListener(){
+      public void sessionDestroyed(      HttpSessionEvent se){
+      }
+      public void sessionCreated(      HttpSessionEvent se){
+        HttpChannel channel=HttpChannel.getCurrentHttpChannel();
+        if (channel == null)         return;
+        Request request=channel.getRequest();
+        if (request == null)         return;
+        if (request.isSecure()) {
+          se.getSession().setAttribute(AbstractSessionManager.SESSION_KNOWN_ONLY_TO_AUTHENTICATED,Boolean.TRUE);
+        }
+      }
+    }
+);
   }
   if (_loginService == null) {
     _loginService=findLoginService();
