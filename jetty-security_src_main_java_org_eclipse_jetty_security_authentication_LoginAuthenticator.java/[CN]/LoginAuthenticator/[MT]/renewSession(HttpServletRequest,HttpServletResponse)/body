@@ -1,9 +1,13 @@
 {
   HttpSession httpSession=request.getSession(false);
-  if (_renewSession && httpSession != null && httpSession.getAttribute(AbstractSessionManager.SESSION_KNOWN_ONLY_TO_AUTHENTICATED) != Boolean.TRUE) {
-synchronized (this) {
-      httpSession=AbstractSessionManager.renewSession(request,httpSession,true);
+synchronized (httpSession) {
+    if (_renewSession && httpSession != null && httpSession.getAttribute(AbstractSessionManager.SESSION_KNOWN_ONLY_TO_AUTHENTICATED) != Boolean.TRUE) {
+      System.err.println(((HashedSession)httpSession).getAttributeMap());
+      HttpSession newSession=AbstractSessionManager.renewSession(request,httpSession,true);
+      LOG.debug("renew {}->{}",httpSession.getId(),newSession.getId());
+      System.err.println(((HashedSession)newSession).getAttributeMap());
+      httpSession=newSession;
     }
+    return httpSession;
   }
-  return httpSession;
 }
