@@ -2,7 +2,25 @@
   if (_expect100Continue) {
     if (available == 0) {
       if (_response.isCommitted())       throw new IllegalStateException("Committed before 100 Continues");
-      commitResponse(HttpGenerator.CONTINUE_100_INFO,null);
+      try {
+        write(HttpGenerator.CONTINUE_100_INFO,null).get();
+      }
+ catch (      final InterruptedException e) {
+        throw new InterruptedIOException(){
+{
+            this.initCause(e);
+          }
+        }
+;
+      }
+catch (      final ExecutionException e) {
+        throw new IOException(){
+{
+            this.initCause(e);
+          }
+        }
+;
+      }
     }
     _expect100Continue=false;
   }

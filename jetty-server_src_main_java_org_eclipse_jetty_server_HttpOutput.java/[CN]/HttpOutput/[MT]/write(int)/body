@@ -1,5 +1,7 @@
 {
   if (_closed)   throw new IOException("Closed");
-  _written+=_channel.write(ByteBuffer.wrap(new byte[]{(byte)b}));
-  checkAllWritten();
+  if (_aggregate == null)   _aggregate=_channel.getConnector().getByteBufferPool().acquire(_channel.getHttpConfiguration().getResponseBufferSize(),false);
+  BufferUtil.append(_aggregate,(byte)b);
+  _written++;
+  if (!checkAllWritten() && BufferUtil.isFull(_aggregate))   _channel.write(_aggregate,false);
 }

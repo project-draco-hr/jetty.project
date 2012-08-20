@@ -1,0 +1,101 @@
+{
+switch (_state) {
+case START:
+{
+      if (info == null)       return Result.NEED_INFO;
+      if (info.getHttpVersion() == HttpVersion.HTTP_0_9) {
+        _persistent=false;
+        _endOfContent=EndOfContent.EOF_CONTENT;
+        if (BufferUtil.hasContent(content))         _contentPrepared+=content.remaining();
+        _state=last ? State.COMPLETING : State.COMMITTED;
+        return Result.FLUSH;
+      }
+      if (headerOrChunk == null || headerOrChunk.capacity() <= CHUNK_SIZE)       return Result.NEED_HEADER;
+      if (_persistent == null)       _persistent=(info.getHttpVersion().ordinal() > HttpVersion.HTTP_1_0.ordinal());
+      ByteBuffer header=headerOrChunk;
+      int pos=BufferUtil.flipToFill(header);
+      try {
+        generateResponseLine(info,header);
+        int status=info.getStatus();
+        if (status >= 100 && status < 200) {
+          _noContent=true;
+          if (status != HttpStatus.SWITCHING_PROTOCOLS_101) {
+            header.put(HttpTokens.CRLF);
+            _state=State.COMPLETING_1XX;
+            return Result.FLUSH;
+          }
+        }
+ else         if (status == HttpStatus.NO_CONTENT_204 || status == HttpStatus.NOT_MODIFIED_304) {
+          _noContent=true;
+        }
+        generateHeaders(info,header,content,last);
+        int len=BufferUtil.length(content);
+        if (len > 0) {
+          _contentPrepared+=len;
+          if (isChunking() && !info.isHead())           prepareChunk(header,len);
+        }
+        _state=last ? State.COMPLETING : State.COMMITTED;
+      }
+ catch (      Exception e) {
+        if (e instanceof BufferOverflowException) {
+          LOG.warn("Response header too large");
+          LOG.debug(e);
+        }
+ else         LOG.warn(e);
+        _persistent=false;
+        BufferUtil.clearToFill(header);
+        generateResponseLine(RESPONSE_500_INFO,header);
+        generateHeaders(RESPONSE_500_INFO,header,null,true);
+        _state=State.COMPLETING;
+      }
+ finally {
+        BufferUtil.flipToFlush(header,pos);
+      }
+      return Result.FLUSH;
+    }
+case COMMITTED:
+{
+    int len=BufferUtil.length(content);
+    if (len > 0) {
+      if (isChunking() && (headerOrChunk == null || headerOrChunk.capacity() > CHUNK_SIZE))       return Result.NEED_CHUNK;
+      ByteBuffer chunk=headerOrChunk;
+      _contentPrepared+=len;
+      if (isChunking()) {
+        BufferUtil.clearToFill(chunk);
+        prepareChunk(chunk,len);
+        BufferUtil.flipToFlush(chunk,0);
+      }
+    }
+    if (last) {
+      _state=State.COMPLETING;
+      return len > 0 ? Result.FLUSH : Result.CONTINUE;
+    }
+    return len > 0 ? Result.FLUSH : Result.DONE;
+  }
+case COMPLETING_1XX:
+{
+  reset();
+  return Result.DONE;
+}
+case COMPLETING:
+{
+if (BufferUtil.hasContent(content)) throw new IllegalStateException();
+if (isChunking()) {
+  if (headerOrChunk == null || headerOrChunk.capacity() > CHUNK_SIZE)   return Result.NEED_CHUNK;
+  ByteBuffer chunk=headerOrChunk;
+  BufferUtil.clearToFill(chunk);
+  prepareChunk(chunk,0);
+  BufferUtil.flipToFlush(chunk,0);
+  _endOfContent=EndOfContent.UNKNOWN_CONTENT;
+  return Result.FLUSH;
+}
+_state=State.END;
+return Boolean.TRUE.equals(_persistent) ? Result.DONE : Result.SHUTDOWN_OUT;
+}
+case END:
+if (BufferUtil.hasContent(content)) throw new IllegalStateException();
+return Result.DONE;
+default :
+throw new IllegalStateException();
+}
+}

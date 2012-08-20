@@ -1,0 +1,42 @@
+{
+synchronized (this) {
+    ByteBuffer header=null;
+    try {
+      if (_generator.isEnd())       throw new EofException();
+      FutureCallback<Void> fcb=null;
+      loop:       while (true) {
+        HttpGenerator.Result result=_generator.generateResponse(info,header,content,true);
+        if (LOG.isDebugEnabled())         LOG.debug("{} send: {} ({},{})@{}",this,result,BufferUtil.toSummaryString(header),BufferUtil.toSummaryString(content),_generator.getState());
+switch (result) {
+case NEED_INFO:
+          throw new IllegalStateException();
+case NEED_HEADER:
+        if (header != null)         _bufferPool.release(header);
+      header=_bufferPool.acquire(_httpConfig.getResponseHeaderSize(),false);
+    continue;
+case NEED_CHUNK:
+  if (header != null)   _bufferPool.release(header);
+header=_bufferPool.acquire(HttpGenerator.CHUNK_SIZE,false);
+continue;
+case FLUSH:
+if (info.isHead()) {
+BufferUtil.clear(content);
+fcb=write(header,null);
+}
+ else fcb=write(header,content);
+continue;
+case SHUTDOWN_OUT:
+getEndPoint().shutdownOutput();
+continue;
+case DONE:
+if (fcb == null) fcb=__completed;
+break loop;
+}
+}
+return fcb;
+}
+  finally {
+if (header != null) _bufferPool.release(header);
+}
+}
+}

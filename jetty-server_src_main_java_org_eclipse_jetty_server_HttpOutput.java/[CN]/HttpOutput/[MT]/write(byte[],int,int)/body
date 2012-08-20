@@ -1,5 +1,26 @@
 {
   if (_closed)   throw new EofException();
-  _written+=_channel.write(ByteBuffer.wrap(b,off,len));
-  checkAllWritten();
+  if (_aggregate == null) {
+    int size=_channel.getHttpConfiguration().getResponseBufferSize();
+    if (len > size / 2) {
+      _channel.write(ByteBuffer.wrap(b,off,len),false);
+      _written+=len;
+      return;
+    }
+    _aggregate=_channel.getConnector().getByteBufferPool().acquire(size,false);
+  }
+  int space=BufferUtil.space(_aggregate);
+  if (len > space) {
+    if (BufferUtil.hasContent(_aggregate)) {
+      _channel.write(_aggregate,false);
+      space=BufferUtil.space(_aggregate);
+    }
+  }
+  if (len > space) {
+    _channel.write(ByteBuffer.wrap(b,off,len),false);
+    _written+=len;
+    return;
+  }
+  BufferUtil.append(_aggregate,b,off,len);
+  if (!checkAllWritten() && BufferUtil.isFull(_aggregate))   _channel.write(_aggregate,false);
 }
