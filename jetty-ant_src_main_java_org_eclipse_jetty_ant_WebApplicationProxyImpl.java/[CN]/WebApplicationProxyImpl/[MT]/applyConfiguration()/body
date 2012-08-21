@@ -1,0 +1,30 @@
+{
+  for (int i=0; i < configurations.length; i++) {
+    if (configurations[i] instanceof EnvConfiguration) {
+      try {
+        if (jettyEnvXml != null && jettyEnvXml.exists()) {
+          ((EnvConfiguration)configurations[i]).setJettyEnvXml(Resource.toURL(jettyEnvXml));
+        }
+      }
+ catch (      MalformedURLException e) {
+        throw new RuntimeException(e);
+      }
+    }
+ else     if (configurations[i] instanceof AntWebXmlConfiguration) {
+      ((AntWebXmlConfiguration)configurations[i]).setClassPathFiles(classPathFiles);
+      ((AntWebXmlConfiguration)configurations[i]).setWebAppBaseDir(warFile);
+      ((AntWebXmlConfiguration)configurations[i]).setWebXmlFile(webXmlFile);
+      ((AntWebXmlConfiguration)configurations[i]).setWebDefaultXmlFile(webDefaultXmlFile);
+    }
+  }
+  try {
+    ClassLoader loader=new WebAppClassLoader(this.getClass().getClassLoader(),webAppContext);
+    webAppContext.setParentLoaderPriority(true);
+    webAppContext.setClassLoader(loader);
+    if (webDefaultXmlFile != null)     webAppContext.setDefaultsDescriptor(webDefaultXmlFile.getCanonicalPath());
+  }
+ catch (  IOException e) {
+    TaskLog.log(e.toString());
+  }
+  webAppContext.setConfigurations(configurations);
+}

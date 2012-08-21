@@ -1,0 +1,45 @@
+{
+  List scanList=new ArrayList();
+  scanList.add(webApp.getWebXmlFile());
+  scanList.addAll(webApp.getLibraries());
+  scanList.addAll(webApp.getExtraScanTargets());
+  Scanner.Listener changeListener=new Scanner.BulkListener(){
+    public void filesChanged(    List changedFiles){
+      if (hasAnyFileChanged(changedFiles)) {
+        try {
+          webApp.stop();
+          webApp.applyConfiguration();
+          webApp.start();
+        }
+ catch (        Exception e) {
+          e.printStackTrace();
+        }
+      }
+    }
+    /** 
+ * Checks if any file in this particular application has changed.
+ * This is not that easy, because some applications may use the same
+ * class'es directory.
+ * @param changedFiles list of changed files.
+ * @return true if any of passed files has changed, false otherwise.
+ */
+    private boolean hasAnyFileChanged(    List changedFiles){
+      Iterator changes=changedFiles.iterator();
+      while (changes.hasNext()) {
+        String className=(String)changes.next();
+        if (webApp.isFileScanned(className)) {
+          return true;
+        }
+      }
+      return false;
+    }
+  }
+;
+  TaskLog.log("Web application '" + webApp.getName() + "': starting scanner at interval of "+ scanIntervalSeconds+ " seconds.");
+  Scanner scanner=new Scanner();
+  scanner.setScanInterval(scanIntervalSeconds);
+  scanner.addListener(changeListener);
+  scanner.setScanDirs(scanList);
+  scanner.setReportExistingFilesOnStartup(false);
+  scanner.start();
+}
