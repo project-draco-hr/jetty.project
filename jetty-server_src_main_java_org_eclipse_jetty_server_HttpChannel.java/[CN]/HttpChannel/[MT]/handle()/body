@@ -1,11 +1,11 @@
 {
-  LOG.debug("{} process",this);
+  LOG.debug("{} handle enter",this);
+  setCurrentHttpChannel(this);
   String threadName=null;
   if (LOG.isDebugEnabled()) {
     threadName=Thread.currentThread().getName();
     Thread.currentThread().setName(threadName + " - " + _uri);
   }
-  setCurrentHttpChannel(this);
   try {
     boolean handling=_state.handling();
     while (handling && getServer().isRunning()) {
@@ -30,12 +30,6 @@ catch (      EofException e) {
         _state.error(e);
         _request.setHandled(true);
       }
-catch (      ServletException e) {
-        LOG.warn(String.valueOf(_uri),e);
-        _state.error(e);
-        _request.setHandled(true);
-        commitError(500,null,e.toString());
-      }
 catch (      Throwable e) {
         LOG.warn(String.valueOf(_uri),e);
         _state.error(e);
@@ -46,34 +40,11 @@ catch (      Throwable e) {
         handling=!_state.unhandle();
       }
     }
+    return complete1();
   }
   finally {
+    if (threadName != null && LOG.isDebugEnabled())     Thread.currentThread().setName(threadName);
     setCurrentHttpChannel(null);
-    if (threadName != null)     Thread.currentThread().setName(threadName);
-    if (_state.isCompleting()) {
-      try {
-        _state.completed();
-        if (_expect100Continue) {
-          LOG.debug("100 continues not sent");
-          _expect100Continue=false;
-          if (!_response.isCommitted())           _response.addHeader(HttpHeader.CONNECTION,HttpHeaderValue.CLOSE.toString());
- else           LOG.warn("Can't close non-100 response");
-        }
-        if (!_response.isCommitted() && !_request.isHandled())         _response.sendError(404);
-        _response.complete();
-        _request.getHttpInput().consumeAll();
-      }
- catch (      EofException e) {
-        LOG.debug(e);
-      }
-catch (      Exception e) {
-        LOG.warn(e);
-      }
- finally {
-        _request.setHandled(true);
-        completed();
-      }
-    }
-    LOG.debug("{} !process",this);
+    LOG.debug("{} handle exit",this);
   }
 }

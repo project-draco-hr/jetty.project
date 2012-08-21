@@ -1,0 +1,21 @@
+{
+  LOG.debug("{} complete",this);
+  if (!_state.isCompleting())   return false;
+  _state.completed();
+  if (isExpecting100Continue()) {
+    LOG.debug("100-Continue response not sent");
+    _expect100Continue=false;
+    if (!isCommitted())     _response.addHeader(HttpHeader.CONNECTION,HttpHeaderValue.CLOSE.toString());
+ else     LOG.warn("Cannot send 'Connection: close' for 100-Continue, response is already committed");
+  }
+  if (!_response.isCommitted() && !_request.isHandled())   commitError(404,null,null);
+  _request.setHandled(true);
+  _request.getHttpInput().consumeAll();
+  try {
+    _response.getHttpOutput().close();
+  }
+ catch (  IOException x) {
+    x.printStackTrace();
+  }
+  return true;
+}
