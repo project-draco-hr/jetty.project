@@ -1,0 +1,18 @@
+{
+  if (isIncluding())   return;
+  if (isCommitted()) {
+    LOG.warn("Could not commit error {} {}, response already committed",code,message);
+    return;
+  }
+  resetBuffer();
+  _characterEncoding=null;
+  setHeader(HttpHeader.EXPIRES,null);
+  setHeader(HttpHeader.LAST_MODIFIED,null);
+  setHeader(HttpHeader.CACHE_CONTROL,null);
+  setHeader(HttpHeader.CONTENT_TYPE,null);
+  setHeader(HttpHeader.CONTENT_LENGTH,null);
+  if (message == null)   message=HttpStatus.getMessage(code);
+  setStatus(code,message);
+  _outputType=OutputType.NONE;
+  _channel.sendError(newResponseInfo(),content);
+}

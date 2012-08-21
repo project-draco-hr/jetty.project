@@ -1,0 +1,49 @@
+{
+  ByteBuffer header=null;
+  out:   while (true) {
+    HttpGenerator.Result result=_generator.generateResponse(info,header,content,complete);
+    if (logger.isDebugEnabled())     logger.debug("{} generate: {} ({},{},{})@{}",this,result,BufferUtil.toSummaryString(header),BufferUtil.toSummaryString(content),complete,_generator.getState());
+switch (result) {
+case NEED_HEADER:
+{
+        if (header != null)         _bufferPool.release(header);
+        header=_bufferPool.acquire(_configuration.getResponseHeaderSize(),false);
+        continue;
+      }
+case NEED_CHUNK:
+{
+      if (header != null)       _bufferPool.release(header);
+      header=_bufferPool.acquire(HttpGenerator.CHUNK_SIZE,false);
+      continue;
+    }
+case FLUSH:
+{
+    if (info.isHead()) {
+      write(header);
+      BufferUtil.clear(content);
+    }
+ else {
+      write(header == null ? BufferUtil.EMPTY_BUFFER : header,content);
+    }
+    continue;
+  }
+case SHUTDOWN_OUT:
+{
+  _endPoint.shutdownOutput();
+  continue;
+}
+case DONE:
+{
+break out;
+}
+case CONTINUE:
+{
+break;
+}
+default :
+{
+throw new IllegalStateException();
+}
+}
+}
+}

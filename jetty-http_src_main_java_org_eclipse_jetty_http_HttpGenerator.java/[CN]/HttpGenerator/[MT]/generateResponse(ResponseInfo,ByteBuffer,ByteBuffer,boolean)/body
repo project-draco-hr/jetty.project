@@ -57,7 +57,7 @@ case COMMITTED:
 {
     int len=BufferUtil.length(content);
     if (len > 0) {
-      if (isChunking() && (headerOrChunk == null || headerOrChunk.capacity() > CHUNK_SIZE))       return Result.NEED_CHUNK;
+      if (isChunking() && BufferUtil.space(headerOrChunk) < CHUNK_SIZE)       return Result.NEED_CHUNK;
       ByteBuffer chunk=headerOrChunk;
       _contentPrepared+=len;
       if (isChunking()) {
@@ -81,7 +81,7 @@ case COMPLETING:
 {
 if (BufferUtil.hasContent(content)) throw new IllegalStateException();
 if (isChunking()) {
-  if (headerOrChunk == null || headerOrChunk.capacity() > CHUNK_SIZE)   return Result.NEED_CHUNK;
+  if (BufferUtil.space(headerOrChunk) < CHUNK_SIZE)   return Result.NEED_CHUNK;
   ByteBuffer chunk=headerOrChunk;
   BufferUtil.clearToFill(chunk);
   prepareChunk(chunk,0);
