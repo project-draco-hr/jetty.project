@@ -1,75 +1,60 @@
 {
-  LOG.debug("{} onReadable {}",this,_channel.getState());
+  LOG.debug("{} onFillable {}",this,_channel.getState());
   setCurrentConnection(this);
   try {
     while (true) {
-      if (BufferUtil.isEmpty(_requestBuffer)) {
-        if (_requestBuffer == null)         _requestBuffer=_bufferPool.acquire(_configuration.getRequestHeaderSize(),false);
-        int filled=getEndPoint().fill(_requestBuffer);
-        LOG.debug("{} filled {}",this,filled);
-        if (filled == 0) {
-          releaseRequestBuffer();
-          fillInterested();
-          return;
-        }
- else         if (filled < 0) {
-          _parser.inputShutdown();
-          if (getEndPoint().isOutputShutdown())           getEndPoint().close();
- else           getEndPoint().shutdownOutput();
-          releaseRequestBuffer();
-          return;
-        }
- else {
-          _headerBytes+=filled;
-        }
-      }
-      if (_parser.parseNext(_requestBuffer)) {
+      if (readAndParse()) {
         _headerBytes=0;
-        releaseRequestBuffer();
         if (!_channel.getRequest().isPersistent())         _generator.setPersistent(false);
         boolean complete=_channel.handle();
-        if (_channel.getResponse().getStatus() == HttpStatus.SWITCHING_PROTOCOLS_101) {
-          Connection connection=(Connection)_channel.getRequest().getAttribute(UPGRADE_CONNECTION_ATTRIBUTE);
-          if (connection != null) {
-            LOG.debug("Upgrade from {} to {}",this,connection);
-            getEndPoint().setConnection(connection);
-          }
-        }
-        HttpConnection.this.reset();
-        if (getCurrentConnection() != HttpConnection.this) {
-          if (_parser.isStart()) {
-            if (_requestBuffer == null) {
-              fillInterested();
+        if (complete) {
+          if (_channel.getResponse().getStatus() == HttpStatus.SWITCHING_PROTOCOLS_101) {
+            Connection connection=(Connection)_channel.getRequest().getAttribute(UPGRADE_CONNECTION_ATTRIBUTE);
+            if (connection != null) {
+              LOG.debug("Upgrade from {} to {}",this,connection);
+              getEndPoint().setConnection(connection);
             }
- else             if (getConnector().isStarted()) {
-              LOG.debug("{} pipelined",this);
-              try {
-                getExecutor().execute(this);
+          }
+          reset();
+          if (getCurrentConnection() != HttpConnection.this) {
+            if (_parser.isStart()) {
+              if (_requestBuffer == null) {
+                fillInterested();
               }
- catch (              RejectedExecutionException e) {
-                if (getConnector().isStarted())                 LOG.warn(e);
- else                 LOG.ignore(e);
+ else               if (getConnector().isStarted()) {
+                LOG.debug("{} pipelined",this);
+                try {
+                  getExecutor().execute(this);
+                }
+ catch (                RejectedExecutionException e) {
+                  if (getConnector().isStarted())                   LOG.warn(e);
+ else                   LOG.ignore(e);
+                  getEndPoint().close();
+                }
+              }
+ else {
                 getEndPoint().close();
               }
             }
- else {
-              getEndPoint().close();
+            if (_parser.isClosed() && !getEndPoint().isOutputShutdown()) {
+              LOG.warn("Endpoint output not shutdown when seeking EOF");
+              getEndPoint().shutdownOutput();
             }
           }
-          if (_parser.isClosed() && !getEndPoint().isOutputShutdown()) {
-            LOG.warn("Endpoint output not shutdown when seeking EOF");
-            getEndPoint().shutdownOutput();
+          if (getEndPoint().isOpen() && getEndPoint().isOutputShutdown()) {
+            fillInterested();
           }
+          if (getEndPoint().getConnection() != this)           return;
         }
-        if (getEndPoint().isOpen() && getEndPoint().isOutputShutdown()) {
-          fillInterested();
-        }
-        if (getEndPoint().getConnection() != this)         return;
       }
  else       if (_headerBytes >= _configuration.getRequestHeaderSize()) {
         _parser.reset();
         _parser.close();
         _channel.getResponse().sendError(Response.SC_REQUEST_ENTITY_TOO_LARGE,null,null);
+        break;
+      }
+ else {
+        releaseRequestBuffer();
       }
     }
   }

@@ -1,0 +1,23 @@
+{
+  if (_requestBuffer == null) {
+    _requestBuffer=_bufferPool.acquire(_configuration.getRequestHeaderSize(),false);
+    int filled=getEndPoint().fill(_requestBuffer);
+    LOG.debug("{} filled {}",this,filled);
+    if (filled == 0) {
+      releaseRequestBuffer();
+      fillInterested();
+      return false;
+    }
+ else     if (filled < 0) {
+      _parser.inputShutdown();
+      if (getEndPoint().isOutputShutdown())       getEndPoint().close();
+ else       getEndPoint().shutdownOutput();
+      releaseRequestBuffer();
+      return false;
+    }
+ else {
+      _headerBytes+=filled;
+    }
+  }
+  return _parser.parseNext(_requestBuffer);
+}
