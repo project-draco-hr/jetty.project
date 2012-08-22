@@ -1,12 +1,11 @@
 {
-  LOG.debug("{} onReadable {}",this,_channel.isIdle());
-  int filled=-2;
+  LOG.debug("{} onReadable {}",this,_channel.getState());
+  setCurrentConnection(this);
   try {
-    setCurrentConnection(this);
     while (true) {
       if (BufferUtil.isEmpty(_requestBuffer)) {
-        if (_requestBuffer == null)         _requestBuffer=_bufferPool.acquire(_httpConfig.getRequestHeaderSize(),false);
-        filled=getEndPoint().fill(_requestBuffer);
+        if (_requestBuffer == null)         _requestBuffer=_bufferPool.acquire(_configuration.getRequestHeaderSize(),false);
+        int filled=getEndPoint().fill(_requestBuffer);
         LOG.debug("{} filled {}",this,filled);
         if (filled == 0) {
           releaseRequestBuffer();
@@ -72,7 +71,7 @@
         }
         if (getEndPoint().getConnection() != this)         return;
       }
- else       if (_headerBytes >= _httpConfig.getRequestHeaderSize()) {
+ else       if (_headerBytes >= _configuration.getRequestHeaderSize()) {
         _parser.reset();
         _parser.close();
         _channel.getResponse().sendError(Response.SC_REQUEST_ENTITY_TOO_LARGE,null,null);
