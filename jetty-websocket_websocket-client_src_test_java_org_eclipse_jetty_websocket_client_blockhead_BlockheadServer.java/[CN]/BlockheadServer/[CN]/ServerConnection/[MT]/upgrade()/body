@@ -1,19 +1,75 @@
 {
+  List<ExtensionConfig> extensionConfigs=new ArrayList<>();
+  Pattern patExts=Pattern.compile("^Sec-WebSocket-Extensions: (.*)$",Pattern.CASE_INSENSITIVE);
+  Pattern patKey=Pattern.compile("^Sec-WebSocket-Key: (.*)$",Pattern.CASE_INSENSITIVE);
+  Matcher mat;
   String key="not sent";
   BufferedReader in=new BufferedReader(new InputStreamReader(getInputStream()));
   for (String line=in.readLine(); line != null; line=in.readLine()) {
     if (line.length() == 0) {
       break;
     }
-    if (line.startsWith("Sec-WebSocket-Key:")) {
-      key=line.substring(18).trim();
+    mat=patExts.matcher(line);
+    if (mat.matches()) {
+      String econf=mat.group(1);
+      ExtensionConfig config=ExtensionConfig.parse(econf);
+      extensionConfigs.add(config);
+      continue;
+    }
+    mat=patKey.matcher(line);
+    if (mat.matches()) {
+      key=mat.group(1);
     }
   }
+  List<Extension> extensions=new ArrayList<>();
+  for (  ExtensionConfig config : extensionConfigs) {
+    Extension ext=extensionRegistry.newInstance(config);
+    extensions.add(ext);
+  }
+  incoming=this;
+  outgoing=this;
+  if (!extensions.isEmpty()) {
+    Iterator<Extension> extIter;
+    extIter=extensions.iterator();
+    while (extIter.hasNext()) {
+      Extension ext=extIter.next();
+      ext.setNextOutgoingFrames(outgoing);
+      outgoing=ext;
+      if (ext.useRsv1()) {
+        generator.setRsv1InUse(true);
+      }
+      if (ext.useRsv2()) {
+        generator.setRsv2InUse(true);
+      }
+      if (ext.useRsv3()) {
+        generator.setRsv3InUse(true);
+      }
+    }
+    Collections.reverse(extensions);
+    extIter=extensions.iterator();
+    while (extIter.hasNext()) {
+      Extension ext=extIter.next();
+      ext.setNextIncomingFrames(incoming);
+      incoming=ext;
+    }
+  }
+  parser.setIncomingFramesHandler(incoming);
   StringBuilder resp=new StringBuilder();
   resp.append("HTTP/1.1 101 Upgrade\r\n");
   resp.append("Sec-WebSocket-Accept: ");
   resp.append(AcceptHash.hashKey(key)).append("\r\n");
+  if (!extensions.isEmpty()) {
+    resp.append("Sec-WebSocket-Extensions: ");
+    boolean delim=false;
+    for (    Extension ext : extensions) {
+      if (delim) {
+        resp.append(", ");
+      }
+      resp.append(ext.getParameterizedName());
+      delim=true;
+    }
+    resp.append("\r\n");
+  }
   resp.append("\r\n");
   write(resp.toString().getBytes());
-  parser.setIncomingFramesHandler(incomingFrames);
 }
