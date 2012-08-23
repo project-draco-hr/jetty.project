@@ -1,9 +1,8 @@
 {
   configureServer(new DataHandler());
   long start=System.currentTimeMillis();
-  Socket client=newSocket(HOST,_connector.getLocalPort());
   int total=0;
-  try {
+  try (Socket client=newSocket(HOST,_connector.getLocalPort())){
     OutputStream os=client.getOutputStream();
     InputStream is=client.getInputStream();
     os.write(("GET /data?writes=512&block=1024 HTTP/1.1\r\n" + "host: " + HOST + ":"+ _connector.getLocalPort()+ "\r\n"+ "connection: close\r\n"+ "content-type: unknown\r\n"+ "\r\n").getBytes());
@@ -19,7 +18,4 @@
     assertTrue(total > (512 * 1024));
     assertTrue(30000L > (System.currentTimeMillis() - start));
   }
-  finally {
-    client.close();
-  }
-}
+ }

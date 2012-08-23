@@ -1,7 +1,6 @@
 {
   configureServer(new EchoHandler());
-  Socket client=newSocket(HOST,_connector.getLocalPort());
-  try {
+  try (Socket client=newSocket(HOST,_connector.getLocalPort())){
     OutputStream os=client.getOutputStream();
     InputStream is=client.getInputStream();
     os.write(("POST /echo?charset=utf-8 HTTP/1.1\r\n" + "host: " + HOST + ":"+ _connector.getLocalPort()+ "\r\n"+ "content-type: text/plain; charset=utf-8\r\n"+ "content-length: 10\r\n"+ "\r\n").getBytes("iso-8859-1"));
@@ -14,11 +13,8 @@
     os.write(contentB);
     os.flush();
     String in=IO.toString(is);
-    assertTrue(in.indexOf("123456789") >= 0);
-    assertTrue(in.indexOf("abcdefghi") >= 0);
-    assertTrue(in.indexOf("Wibble") >= 0);
+    assertTrue(in.contains("123456789"));
+    assertTrue(in.contains("abcdefghi"));
+    assertTrue(in.contains("Wibble"));
   }
-  finally {
-    client.close();
-  }
-}
+ }
