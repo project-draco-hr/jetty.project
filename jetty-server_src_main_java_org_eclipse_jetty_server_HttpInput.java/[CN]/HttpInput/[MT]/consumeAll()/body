@@ -1,2 +1,20 @@
 {
+synchronized (lock()) {
+    while (!_inputEOF) {
+      ByteBuffer content=_inputQ.peekUnsafe();
+      while (content != null) {
+        content.clear();
+        _inputQ.pollUnsafe();
+        onContentConsumed(content);
+        content=_inputQ.peekUnsafe();
+        if (content == null)         onAllContentConsumed();
+      }
+      try {
+        blockForContent();
+      }
+ catch (      IOException e) {
+        throw new RuntimeIOException(e);
+      }
+    }
+  }
 }

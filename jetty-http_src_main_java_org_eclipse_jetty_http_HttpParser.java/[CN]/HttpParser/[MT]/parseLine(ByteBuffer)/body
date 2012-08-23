@@ -2,6 +2,10 @@
   boolean return_from_parse=false;
   while (_state.ordinal() < State.HEADER.ordinal() && buffer.hasRemaining() && !return_from_parse) {
     byte ch=buffer.get();
+    if (_maxHeaderBytes > 0 && ++_headerBytes > _maxHeaderBytes) {
+      badMessage(buffer,HttpStatus.REQUEST_URI_TOO_LONG_414,null);
+      return true;
+    }
     if (_eol == HttpTokens.CARRIAGE_RETURN && ch == HttpTokens.LINE_FEED) {
       _eol=HttpTokens.LINE_FEED;
       continue;
@@ -16,7 +20,7 @@ case METHOD:
         _state=State.SPACE1;
       }
  else       if (ch < HttpTokens.SPACE && ch >= 0) {
-        badMessage(buffer,"No URI");
+        badMessage(buffer,HttpStatus.BAD_REQUEST_400,"No URI");
         return true;
       }
  else       _string.append((char)ch);
@@ -26,13 +30,13 @@ case RESPONSE_VERSION:
     String version=takeString();
     _version=HttpVersion.CACHE.get(version);
     if (_version == null) {
-      badMessage(buffer,"Unknown Version");
+      badMessage(buffer,HttpStatus.BAD_REQUEST_400,"Unknown Version");
       return true;
     }
     _state=State.SPACE1;
   }
  else   if (ch < HttpTokens.SPACE && ch >= 0) {
-    badMessage(buffer,"No Status");
+    badMessage(buffer,HttpStatus.BAD_REQUEST_400,"No Status");
     return true;
   }
  else   _string.append((char)ch);
@@ -50,7 +54,7 @@ if (_responseHandler != null) {
 }
 }
  else if (ch < HttpTokens.SPACE) {
-badMessage(buffer,_requestHandler != null ? "No URI" : "No Status");
+badMessage(buffer,HttpStatus.BAD_REQUEST_400,_requestHandler != null ? "No URI" : "No Status");
 return true;
 }
 break;
@@ -129,7 +133,7 @@ if (ch == HttpTokens.CARRIAGE_RETURN || ch == HttpTokens.LINE_FEED) {
 String version=takeString();
 _version=HttpVersion.CACHE.get(version);
 if (_version == null) {
-badMessage(buffer,"Unknown Version");
+badMessage(buffer,HttpStatus.BAD_REQUEST_400,"Unknown Version");
 return true;
 }
 _eol=ch;

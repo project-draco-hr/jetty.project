@@ -4,55 +4,12 @@
   try {
     while (true) {
       if (readAndParse()) {
-        _headerBytes=0;
-        if (!_channel.getRequest().isPersistent())         _generator.setPersistent(false);
-        boolean complete=_channel.handle();
-        if (complete) {
-          if (_channel.getResponse().getStatus() == HttpStatus.SWITCHING_PROTOCOLS_101) {
-            Connection connection=(Connection)_channel.getRequest().getAttribute(UPGRADE_CONNECTION_ATTRIBUTE);
-            if (connection != null) {
-              LOG.debug("Upgrade from {} to {}",this,connection);
-              getEndPoint().setConnection(connection);
-            }
-          }
-          reset();
-          if (getCurrentConnection() != HttpConnection.this) {
-            if (_parser.isStart()) {
-              if (_requestBuffer == null) {
-                fillInterested();
-              }
- else               if (getConnector().isStarted()) {
-                LOG.debug("{} pipelined",this);
-                try {
-                  getExecutor().execute(this);
-                }
- catch (                RejectedExecutionException e) {
-                  if (getConnector().isStarted())                   LOG.warn(e);
- else                   LOG.ignore(e);
-                  getEndPoint().close();
-                }
-              }
- else {
-                getEndPoint().close();
-              }
-            }
-            if (_parser.isClosed() && !getEndPoint().isOutputShutdown()) {
-              LOG.warn("Endpoint output not shutdown when seeking EOF");
-              getEndPoint().shutdownOutput();
-            }
-          }
-          if (getEndPoint().isOpen() && getEndPoint().isOutputShutdown()) {
-            fillInterested();
-          }
-          if (getEndPoint().getConnection() != this)           return;
+        _channel.run();
+        if (_channel.getState().isSuspending()) {
+          if (_channel.getRequest().getHttpInput().available() == 0)           releaseRequestBuffer();
+          return;
         }
-      }
- else       if (_headerBytes >= _configuration.getRequestHeaderSize()) {
-        _parser.reset();
-        _parser.close();
-        _generator.setPersistent(false);
-        _channel.getResponse().sendError(Response.SC_REQUEST_ENTITY_TOO_LARGE,null,null);
-        break;
+        if (getEndPoint().getConnection() != this)         return;
       }
  else {
         releaseRequestBuffer();

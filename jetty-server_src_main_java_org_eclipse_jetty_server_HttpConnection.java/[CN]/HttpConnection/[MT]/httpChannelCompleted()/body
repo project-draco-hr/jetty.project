@@ -1,0 +1,40 @@
+{
+  if (_parser.isInContent() && _generator.isPersistent())   _channel.getRequest().getHttpInput().consumeAll();
+  if (_channel.getResponse().getStatus() == HttpStatus.SWITCHING_PROTOCOLS_101) {
+    Connection connection=(Connection)_channel.getRequest().getAttribute(UPGRADE_CONNECTION_ATTRIBUTE);
+    if (connection != null) {
+      LOG.debug("Upgrade from {} to {}",this,connection);
+      getEndPoint().setConnection(connection);
+    }
+  }
+  reset();
+  if (getCurrentConnection() != HttpConnection.this) {
+    if (_parser.isStart()) {
+      if (_requestBuffer == null) {
+        fillInterested();
+      }
+ else       if (getConnector().isStarted()) {
+        LOG.debug("{} pipelined",this);
+        try {
+          getExecutor().execute(this);
+        }
+ catch (        RejectedExecutionException e) {
+          if (getConnector().isStarted())           LOG.warn(e);
+ else           LOG.ignore(e);
+          getEndPoint().close();
+        }
+      }
+ else {
+        getEndPoint().close();
+      }
+    }
+    if (_parser.isClosed() && !getEndPoint().isOutputShutdown()) {
+      LOG.warn("Endpoint output not shutdown when seeking EOF");
+      getEndPoint().shutdownOutput();
+    }
+  }
+  if (getEndPoint().isOpen() && getEndPoint().isOutputShutdown()) {
+    fillInterested();
+  }
+  if (getEndPoint().getConnection() != this)   return;
+}
