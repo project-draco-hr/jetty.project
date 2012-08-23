@@ -3,7 +3,24 @@
   setCurrentConnection(this);
   try {
     while (true) {
-      if (readAndParse()) {
+      if (BufferUtil.isEmpty(_requestBuffer)) {
+        if (_requestBuffer == null)         _requestBuffer=_bufferPool.acquire(_configuration.getRequestHeaderSize(),false);
+        int filled=getEndPoint().fill(_requestBuffer);
+        LOG.debug("{} filled {}",this,filled);
+        if (filled == 0) {
+          releaseRequestBuffer();
+          fillInterested();
+          return;
+        }
+ else         if (filled < 0) {
+          _parser.inputShutdown();
+          if (getEndPoint().isOutputShutdown())           getEndPoint().close();
+ else           getEndPoint().shutdownOutput();
+          releaseRequestBuffer();
+          return;
+        }
+      }
+      if (_parser.parseNext(_requestBuffer)) {
         _channel.run();
         if (_channel.getState().isSuspending()) {
           if (_channel.getRequest().getHttpInput().available() == 0)           releaseRequestBuffer();

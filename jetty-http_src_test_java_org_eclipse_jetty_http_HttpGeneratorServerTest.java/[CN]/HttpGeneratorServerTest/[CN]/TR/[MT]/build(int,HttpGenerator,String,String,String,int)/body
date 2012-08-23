@@ -20,13 +20,14 @@
     content=chunks[c++];
   }
   ByteBuffer header=null;
+  ByteBuffer chunk=null;
   HttpGenerator.ResponseInfo info=null;
   loop:   while (true) {
     if (source != null && content != null && content.remaining() == 0 && c < nchunks) {
       content=chunks[c++];
     }
     boolean last=!BufferUtil.hasContent(content);
-    HttpGenerator.Result result=gen.generateResponse(info,header,content,last);
+    HttpGenerator.Result result=gen.generateResponse(info,header,chunk,content,last);
 switch (result) {
 case NEED_INFO:
       info=new HttpGenerator.ResponseInfo(HttpVersion.fromVersion(version),_fields,_contentLength,_code,reason,_head);
@@ -35,12 +36,16 @@ case NEED_HEADER:
   header=BufferUtil.allocate(2048);
 continue;
 case NEED_CHUNK:
-header=BufferUtil.allocate(HttpGenerator.CHUNK_SIZE);
+chunk=BufferUtil.allocate(HttpGenerator.CHUNK_SIZE);
 continue;
 case FLUSH:
 if (BufferUtil.hasContent(header)) {
 response+=BufferUtil.toString(header);
 header.position(header.limit());
+}
+if (BufferUtil.hasContent(chunk)) {
+response+=BufferUtil.toString(chunk);
+chunk.position(chunk.limit());
 }
 if (BufferUtil.hasContent(content)) {
 response+=BufferUtil.toString(content);

@@ -3,9 +3,8 @@ switch (_state) {
 case START:
 {
       if (info == null)       return Result.NEED_INFO;
-      if (headerOrChunk == null || headerOrChunk.capacity() <= CHUNK_SIZE)       return Result.NEED_HEADER;
+      if (header == null)       return Result.NEED_HEADER;
       if (_persistent == null)       _persistent=(info.getHttpVersion().ordinal() > HttpVersion.HTTP_1_0.ordinal());
-      ByteBuffer header=headerOrChunk;
       int pos=BufferUtil.flipToFill(header);
       try {
         generateRequestLine(info,header);
@@ -32,8 +31,7 @@ case COMMITTED:
     int len=BufferUtil.length(content);
     if (len > 0) {
       if (isChunking()) {
-        if (headerOrChunk == null || headerOrChunk.capacity() > CHUNK_SIZE)         return Result.NEED_CHUNK;
-        ByteBuffer chunk=headerOrChunk;
+        if (chunk == null)         return Result.NEED_CHUNK;
         BufferUtil.clearToFill(chunk);
         prepareChunk(chunk,len);
         BufferUtil.flipToFlush(chunk,0);
@@ -50,8 +48,7 @@ case COMPLETING:
 {
   if (BufferUtil.hasContent(content))   throw new IllegalStateException();
   if (isChunking()) {
-    if (headerOrChunk == null || headerOrChunk.capacity() > CHUNK_SIZE)     return Result.NEED_CHUNK;
-    ByteBuffer chunk=headerOrChunk;
+    if (chunk == null)     return Result.NEED_CHUNK;
     BufferUtil.clearToFill(chunk);
     prepareChunk(chunk,0);
     BufferUtil.flipToFlush(chunk,0);
