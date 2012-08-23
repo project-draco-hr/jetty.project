@@ -1,21 +1,19 @@
 {
   if (request.getAttribute(CONTEXT_ATTRIBUTE) == null) {
     final AsyncContext asyncContext=baseRequest.startAsync();
+    request.setAttribute(CONTEXT_ATTRIBUTE,asyncContext);
     new Thread(new Runnable(){
       @Override public void run(){
         try {
           ServletResponse asyncContextResponse=asyncContext.getResponse();
           asyncContextResponse.getWriter().write("foo");
           asyncContextResponse.setContentLength(3);
+          if (dispatch)           asyncContext.dispatch();
+ else           asyncContext.complete();
         }
  catch (        IOException e) {
-          e.printStackTrace();
+          markFailed(e);
         }
-        if (dispatch) {
-          request.setAttribute(CONTEXT_ATTRIBUTE,asyncContext);
-          asyncContext.dispatch();
-        }
- else         asyncContext.complete();
       }
     }
 ).run();
