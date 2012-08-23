@@ -7,9 +7,14 @@
       if (!committed)       LOG.warn("Could not send response error 500, response is already committed");
     }
  else {
-      _request.setAttribute(RequestDispatcher.ERROR_EXCEPTION,x);
-      _request.setAttribute(RequestDispatcher.ERROR_EXCEPTION_TYPE,x.getClass());
-      _response.sendError(500,x.getMessage());
+      if (!isCommitted()) {
+        _request.setAttribute(RequestDispatcher.ERROR_EXCEPTION,x);
+        _request.setAttribute(RequestDispatcher.ERROR_EXCEPTION_TYPE,x.getClass());
+        _response.sendError(500,x.getMessage());
+      }
+ else {
+        LOG.warn("Could not send response error 500, response is already committed");
+      }
     }
   }
  catch (  IOException e) {
