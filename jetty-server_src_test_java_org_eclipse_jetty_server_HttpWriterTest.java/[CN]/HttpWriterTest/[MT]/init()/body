@@ -1,28 +1,20 @@
 {
   _bytes=BufferUtil.allocate(2048);
+  final HttpConfiguration configuration=new HttpConfiguration(null,false);
+  final ByteBufferPool bufferPool=new StandardByteBufferPool();
   HttpChannel channel=new HttpChannel(null,null,null,null,null){
     @Override public HttpConfiguration getHttpConfiguration(){
-      return null;
+      return configuration;
     }
-    @Override protected void execute(    Runnable task){
-      task.run();
-    }
-    @Override public ScheduledExecutorService getScheduler(){
-      return null;
-    }
-    @Override public Connector getConnector(){
-      return null;
-    }
-    protected void flush(    ByteBuffer content,    boolean last) throws IOException {
-      BufferUtil.flipPutFlip(content,_bytes);
-    }
-    protected FutureCallback<Void> write(    ResponseInfo info,    ByteBuffer content) throws IOException {
-      BufferUtil.flipPutFlip(content,_bytes);
-      FutureCallback<Void> fcb=new FutureCallback<>();
-      fcb.completed(null);
-      return fcb;
+    @Override public ByteBufferPool getByteBufferPool(){
+      return bufferPool;
     }
   }
 ;
-  _httpOut=new HttpOutput(channel);
+  _httpOut=new HttpOutput(channel){
+    @Override public void write(    byte[] b,    int off,    int len) throws IOException {
+      BufferUtil.append(_bytes,b,off,len);
+    }
+  }
+;
 }
