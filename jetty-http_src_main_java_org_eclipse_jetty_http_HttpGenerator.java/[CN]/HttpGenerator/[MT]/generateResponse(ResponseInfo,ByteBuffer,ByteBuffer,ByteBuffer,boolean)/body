@@ -36,16 +36,8 @@ case START:
         _state=last ? State.COMPLETING : State.COMMITTED;
       }
  catch (      Exception e) {
-        if (e instanceof BufferOverflowException) {
-          LOG.warn("Response header too large");
-          LOG.debug(e);
-        }
- else         LOG.warn(e);
-        _persistent=false;
-        BufferUtil.clearToFill(header);
-        generateResponseLine(RESPONSE_500_INFO,header);
-        generateHeaders(RESPONSE_500_INFO,header,null,true);
-        _state=State.COMPLETING;
+        String message=(e instanceof BufferOverflowException) ? "Response header too large" : e.getMessage();
+        throw new IOException(message,e);
       }
  finally {
         BufferUtil.flipToFlush(header,pos);
@@ -77,7 +69,10 @@ case COMPLETING_1XX:
 }
 case COMPLETING:
 {
-if (BufferUtil.hasContent(content)) throw new IllegalStateException();
+if (BufferUtil.hasContent(content)) {
+  LOG.debug("discarding content in COMPLETING");
+  BufferUtil.clear(content);
+}
 if (isChunking()) {
   if (chunk == null)   return Result.NEED_CHUNK;
   BufferUtil.clearToFill(chunk);
@@ -90,7 +85,10 @@ _state=State.END;
 return Boolean.TRUE.equals(_persistent) ? Result.DONE : Result.SHUTDOWN_OUT;
 }
 case END:
-if (BufferUtil.hasContent(content)) throw new IllegalStateException();
+if (BufferUtil.hasContent(content)) {
+LOG.debug("discarding content in COMPLETING");
+BufferUtil.clear(content);
+}
 return Result.DONE;
 default :
 throw new IllegalStateException();
