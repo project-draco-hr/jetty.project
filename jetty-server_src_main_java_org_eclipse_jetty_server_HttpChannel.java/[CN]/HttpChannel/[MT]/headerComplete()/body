@@ -1,18 +1,12 @@
 {
   _requests.incrementAndGet();
-  boolean persistent;
 switch (_version) {
 case HTTP_0_9:
-    persistent=false;
-  break;
+    break;
 case HTTP_1_0:
-persistent=_request.getHttpFields().contains(HttpHeader.CONNECTION,HttpHeaderValue.KEEP_ALIVE.asString());
-if (persistent) _response.getHttpFields().add(HttpHeader.CONNECTION,HttpHeaderValue.KEEP_ALIVE);
-if (getServer().getSendDateHeader()) _response.getHttpFields().putDateField(HttpHeader.DATE.toString(),_request.getTimeStamp());
+  if (getServer().getSendDateHeader())   _response.getHttpFields().putDateField(HttpHeader.DATE.toString(),_request.getTimeStamp());
 break;
 case HTTP_1_1:
-persistent=!_request.getHttpFields().contains(HttpHeader.CONNECTION,HttpHeaderValue.CLOSE.asString());
-if (!persistent) _response.getHttpFields().add(HttpHeader.CONNECTION,HttpHeaderValue.CLOSE);
 if (getServer().getSendDateHeader()) _response.getHttpFields().putDateField(HttpHeader.DATE.toString(),_request.getTimeStamp());
 if (_expect) {
 badMessage(HttpStatus.EXPECTATION_FAILED_417,null);
@@ -22,6 +16,5 @@ break;
 default :
 throw new IllegalStateException();
 }
-_request.setPersistent(persistent);
 return _expect100Continue;
 }
