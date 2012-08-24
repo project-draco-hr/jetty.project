@@ -1,8 +1,7 @@
 {
   configureServer(new DataHandler());
   long start=System.currentTimeMillis();
-  Socket client=newSocket(HOST,_connector.getLocalPort());
-  try {
+  try (Socket client=newSocket(HOST,_connector.getLocalPort())){
     OutputStream os=client.getOutputStream();
     InputStream is=client.getInputStream();
     os.write(("GET /data?writes=1024&block=256 HTTP/1.1\r\n" + "host: " + HOST + ":"+ _connector.getLocalPort()+ "\r\n"+ "connection: close\r\n"+ "content-type: unknown\r\n"+ "content-length: 30\r\n"+ "\r\n").getBytes());
@@ -19,15 +18,18 @@
     int total=0;
     int len=0;
     byte[] buf=new byte[1024 * 64];
+    int sleeps=0;
     while (len >= 0) {
-      Thread.sleep(100);
       len=is.read(buf);
-      if (len > 0)       total+=len;
+      if (len > 0) {
+        total+=len;
+        if ((total / 10240) > sleeps) {
+          sleeps++;
+          Thread.sleep(100);
+        }
+      }
     }
     assertTrue(total > (1024 * 256));
     assertTrue(30000L > (System.currentTimeMillis() - start));
   }
-  finally {
-    client.close();
-  }
-}
+ }

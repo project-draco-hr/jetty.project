@@ -1,0 +1,29 @@
+{
+  LOG.debug("newConnection({},{},{})",channel,endPoint,attachment);
+  IWebSocketClient client=(IWebSocketClient)attachment;
+  try {
+    String scheme=client.getWebSocketUri().getScheme();
+    if ("wss".equalsIgnoreCase(scheme)) {
+      if (sslContextFactory != null) {
+        SSLEngine engine=newSSLEngine(sslContextFactory,channel);
+        SslConnection sslConnection=new SslConnection(bufferPool,executor,endPoint,engine);
+        EndPoint sslEndPoint=sslConnection.getDecryptedEndPoint();
+        Connection connection=newUpgradeConnection(channel,sslEndPoint,client);
+        sslEndPoint.setConnection(connection);
+        connectionOpened(connection);
+        return sslConnection;
+      }
+ else {
+        throw new IOException("Cannot init SSL");
+      }
+    }
+ else {
+      return newUpgradeConnection(channel,endPoint,client);
+    }
+  }
+ catch (  IOException e) {
+    LOG.debug(e);
+    client.failed(null,e);
+    throw e;
+  }
+}

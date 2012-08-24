@@ -1,14 +1,21 @@
 {
-  while (true) {
 synchronized (lock()) {
-      _inputQ.clear();
-    }
-    if (_inputEOF)     return;
-    try {
-      blockForContent();
-    }
- catch (    IOException e) {
-      LOG.warn(e);
+    while (!_inputEOF && !_earlyEOF) {
+      ByteBuffer content=_inputQ.peekUnsafe();
+      while (content != null) {
+        content.clear();
+        _inputQ.pollUnsafe();
+        onContentConsumed(content);
+        content=_inputQ.peekUnsafe();
+        if (content == null)         onAllContentConsumed();
+      }
+      try {
+        blockForContent();
+      }
+ catch (      IOException e) {
+        e.printStackTrace();
+        throw new RuntimeIOException(e);
+      }
     }
   }
 }

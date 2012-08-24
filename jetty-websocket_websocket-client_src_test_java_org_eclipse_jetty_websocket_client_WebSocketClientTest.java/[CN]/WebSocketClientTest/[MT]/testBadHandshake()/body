@@ -1,21 +1,16 @@
 {
-  WebSocketClient client=factory.newWebSocketClient();
   TrackingSocket wsocket=new TrackingSocket();
+  WebSocketClient client=factory.newWebSocketClient(wsocket);
   URI wsUri=server.getWsUri();
-  Future<WebSocketConnection> future=client.connect(wsUri,wsocket);
+  FutureCallback<UpgradeResponse> future=client.connect(wsUri);
   ServerConnection connection=server.accept();
-  String req=connection.readRequest();
+  connection.readRequest();
   connection.respond("HTTP/1.1 404 NOT FOUND\r\n\r\n");
-  Throwable error=null;
   try {
-    future.get(250,TimeUnit.MILLISECONDS);
-    Assert.fail("Should have resulted in an ExecutionException -> IOException");
+    future.get(500,TimeUnit.MILLISECONDS);
+    Assert.fail("Expected ExecutionException -> UpgradeException");
   }
  catch (  ExecutionException e) {
-    error=e.getCause();
+    FutureCallback.rethrow(e);
   }
-  wsocket.assertNotOpened();
-  wsocket.assertCloseCode(StatusCode.PROTOCOL);
-  Assert.assertTrue(error instanceof IOException);
-  Assert.assertTrue(error.getMessage().indexOf("404 NOT FOUND") > 0);
 }

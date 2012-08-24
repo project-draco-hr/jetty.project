@@ -1,0 +1,59 @@
+{
+  if (_channel.isExpecting100Continue())   _generator.setPersistent(false);
+  ByteBuffer header=null;
+  ByteBuffer chunk=null;
+  out:   while (true) {
+    HttpGenerator.Result result=_generator.generateResponse(info,header,chunk,content,lastContent);
+    if (LOG.isDebugEnabled())     LOG.debug("{} generate: {} ({},{},{})@{}",this,result,BufferUtil.toSummaryString(header),BufferUtil.toSummaryString(content),lastContent,_generator.getState());
+switch (result) {
+case NEED_HEADER:
+{
+        header=_bufferPool.acquire(_configuration.getResponseHeaderSize(),false);
+        continue;
+      }
+case NEED_CHUNK:
+{
+      chunk=_bufferPool.acquire(HttpGenerator.CHUNK_SIZE,false);
+      continue;
+    }
+case FLUSH:
+{
+    if (_channel.getRequest().isHead()) {
+      BufferUtil.clear(chunk);
+      BufferUtil.clear(content);
+    }
+    if (BufferUtil.hasContent(header)) {
+      if (BufferUtil.hasContent(content))       blockingWrite(header,content);
+ else       blockingWrite(header);
+    }
+ else     if (BufferUtil.hasContent(chunk)) {
+      if (BufferUtil.hasContent(content))       blockingWrite(chunk,content);
+ else       blockingWrite(chunk);
+    }
+ else     if (BufferUtil.hasContent(content)) {
+      blockingWrite(content);
+    }
+    continue;
+  }
+case SHUTDOWN_OUT:
+{
+  getEndPoint().shutdownOutput();
+  continue;
+}
+case DONE:
+{
+if (header != null) _bufferPool.release(header);
+if (chunk != null) _bufferPool.release(chunk);
+break out;
+}
+case CONTINUE:
+{
+break;
+}
+default :
+{
+throw new IllegalStateException("generateResponse=" + result);
+}
+}
+}
+}

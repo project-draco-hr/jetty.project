@@ -1,4 +1,11 @@
 {
-  if (!_closed)   _channel.completeResponse();
+  if (!_closed) {
+    if (BufferUtil.hasContent(_aggregate))     _channel.write(_aggregate,!_channel.getResponse().isIncluding());
+ else     _channel.write(BufferUtil.EMPTY_BUFFER,!_channel.getResponse().isIncluding());
+  }
   _closed=true;
+  if (_aggregate != null) {
+    _channel.getConnector().getByteBufferPool().release(_aggregate);
+    _aggregate=null;
+  }
 }

@@ -1,9 +1,15 @@
 {
 synchronized (lock()) {
+    ByteBuffer content=_inputQ.peekUnsafe();
+    ;
+    while (content != null) {
+      content.clear();
+      _inputQ.pollUnsafe();
+      onContentConsumed(content);
+      content=_inputQ.peekUnsafe();
+      if (content == null)       onAllContentConsumed();
+    }
     _inputEOF=false;
-    if (_content != null)     onContentConsumed(_content);
-    while ((_content=_inputQ.poll()) != null)     onContentConsumed(_content);
-    if (_content != null)     onAllContentConsumed();
-    _content=null;
+    _earlyEOF=false;
   }
 }

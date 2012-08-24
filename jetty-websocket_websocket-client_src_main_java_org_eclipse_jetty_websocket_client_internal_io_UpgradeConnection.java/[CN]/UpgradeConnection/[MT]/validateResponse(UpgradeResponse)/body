@@ -1,0 +1,15 @@
+{
+  String reqKey=request.getKey();
+  String expectedHash=AcceptHash.hashKey(reqKey);
+  response.validateWebSocketHash(expectedHash);
+  List<ExtensionConfig> extensions=new ArrayList<>();
+  Iterator<String> extIter=response.getHeaderValues("Sec-WebSocket-Extensions");
+  while (extIter.hasNext()) {
+    String extVal=extIter.next();
+    QuotedStringTokenizer tok=new QuotedStringTokenizer(extVal,",");
+    while (tok.hasMoreTokens()) {
+      extensions.add(ExtensionConfig.parse(tok.nextToken()));
+    }
+  }
+  response.setExtensions(extensions);
+}

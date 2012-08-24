@@ -1,15 +1,12 @@
 {
-  WebSocketClient client=factory.newWebSocketClient();
-  client.getPolicy().setIdleTimeout(10000);
   TrackingSocket wsocket=new TrackingSocket();
+  WebSocketClient client=factory.newWebSocketClient(wsocket);
+  client.getPolicy().setIdleTimeout(10000);
   URI wsUri=server.getWsUri();
-  Future<WebSocketConnection> future=client.connect(wsUri,wsocket);
+  Future<UpgradeResponse> future=client.connect(wsUri);
   final ServerConnection ssocket=server.accept();
   ssocket.upgrade();
-  WebSocketConnection connection=future.get(250,TimeUnit.MILLISECONDS);
-  Assert.assertNotNull(connection);
-  wsocket.assertWasOpened();
-  wsocket.assertNotClosed();
+  UpgradeResponse resp=future.get(250,TimeUnit.MILLISECONDS);
   final int messages=200000;
   final AtomicLong totalB=new AtomicLong();
   Thread consumer=new Thread(){
@@ -37,7 +34,7 @@ catch (      Exception e) {
   long start=System.currentTimeMillis();
   String mesg="This is a test message to send";
   for (int i=0; i < messages; i++) {
-    connection.write(null,new FutureCallback<Void>(),mesg);
+    wsocket.getConnection().write(null,new FutureCallback<Void>(),mesg);
   }
   long writeDur=(System.currentTimeMillis() - start);
   while (totalB.get() < (messages * (mesg.length() + 6L))) {

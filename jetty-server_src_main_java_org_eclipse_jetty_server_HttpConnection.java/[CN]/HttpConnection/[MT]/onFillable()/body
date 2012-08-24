@@ -1,10 +1,11 @@
 {
-  LOG.debug("{} onReadable {}",this,_channel.isIdle());
+  LOG.debug("{} onFillable {}",this,_channel.getState());
+  setCurrentConnection(this);
   try {
-    setCurrentConnection(this);
     while (true) {
-      if (BufferUtil.isEmpty(_requestBuffer)) {
-        if (_requestBuffer == null)         _requestBuffer=_bufferPool.acquire(_httpConfig.getRequestHeaderSize(),false);
+      boolean event=_parser.parseNext(_requestBuffer == null ? BufferUtil.EMPTY_BUFFER : _requestBuffer);
+      if (!event && BufferUtil.isEmpty(_requestBuffer)) {
+        if (_requestBuffer == null)         _requestBuffer=_bufferPool.acquire(_configuration.getRequestHeaderSize(),false);
         int filled=getEndPoint().fill(_requestBuffer);
         LOG.debug("{} filled {}",this,filled);
         if (filled == 0) {
@@ -14,33 +15,33 @@
         }
  else         if (filled < 0) {
           _parser.inputShutdown();
-          getEndPoint().shutdownOutput();
+          if (getEndPoint().isOutputShutdown())           getEndPoint().close();
+ else           getEndPoint().shutdownOutput();
           releaseRequestBuffer();
           return;
         }
- else {
-          _headerBytes+=filled;
-        }
+        event=_parser.parseNext(_requestBuffer);
       }
-      if (_parser.parseNext(_requestBuffer)) {
-        releaseRequestBuffer();
-        _headerBytes=0;
-        if (!_parser.isPersistent())         _generator.setPersistent(false);
-        _channel.handle();
-        if (_channel.isSuspended()) {
-          if (_httpInput.available() == 0)           releaseRequestBuffer();
+      if (event) {
+        while (_parser.inContentState()) {
+          if (!_parser.parseNext(_requestBuffer == null ? BufferUtil.EMPTY_BUFFER : _requestBuffer))           break;
+        }
+        _channel.run();
+        if (_channel.getState().isSuspending()) {
+          if (_channel.getRequest().getHttpInput().available() == 0)           releaseRequestBuffer();
           return;
         }
-        if (getEndPoint().getConnection() != this)         return;
-      }
- else       if (_headerBytes >= _httpConfig.getRequestHeaderSize()) {
-        _parser.reset();
-        _parser.close();
-        _channel.getEventHandler().badMessage(HttpStatus.REQUEST_ENTITY_TOO_LARGE_413,null);
+        if (getEndPoint().getConnection() != this) {
+          releaseRequestBuffer();
+          return;
+        }
       }
     }
   }
- catch (  IOException e) {
+ catch (  EofException e) {
+    LOG.debug(e);
+  }
+catch (  IOException e) {
     if (_parser.isIdle())     LOG.debug(e);
  else     LOG.warn(this.toString(),e);
     getEndPoint().close();

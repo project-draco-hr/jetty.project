@@ -1,3 +1,31 @@
 {
-  throw new IllegalStateException("Not implemented");
+  if (isClosed())   throw new IOException("Closed");
+  if (content instanceof HttpContent) {
+    HttpContent httpContent=(HttpContent)content;
+    Response response=_channel.getResponse();
+    String contentType=httpContent.getContentType();
+    if (contentType != null)     response.getHttpFields().put(HttpHeader.CONTENT_TYPE,contentType);
+    if (httpContent.getContentLength() > 0)     response.getHttpFields().putLongField(HttpHeader.CONTENT_LENGTH,httpContent.getContentLength());
+    String lm=httpContent.getLastModified();
+    if (lm != null)     response.getHttpFields().put(HttpHeader.LAST_MODIFIED,lm);
+ else     if (httpContent.getResource() != null) {
+      long lml=httpContent.getResource().lastModified();
+      if (lml != -1)       response.getHttpFields().putDateField(HttpHeader.LAST_MODIFIED,lml);
+    }
+    content=httpContent.getDirectBuffer();
+    if (content == null)     content=httpContent.getIndirectBuffer();
+    if (content == null)     content=httpContent.getInputStream();
+  }
+ else   if (content instanceof Resource) {
+    Resource resource=(Resource)content;
+    _channel.getResponse().getHttpFields().putDateField(HttpHeader.LAST_MODIFIED,resource.lastModified());
+    content=resource.getInputStream();
+  }
+  if (content instanceof ByteBuffer) {
+    _channel.write((ByteBuffer)content,true);
+  }
+ else   if (content instanceof InputStream) {
+    throw new IllegalArgumentException("not implemented!");
+  }
+ else   throw new IllegalArgumentException("unknown content type?");
 }

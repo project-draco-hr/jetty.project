@@ -1,59 +1,19 @@
 {
   _server=new Server();
-  _connector=new LocalConnector(_server);
-  _server.addConnector(_connector);
+  _timer=new ScheduledThreadPoolExecutor(1);
+  LocalConnector connector=new LocalConnector(_server,null,_timer,null,null,1);
+  _server.addConnector(connector);
   _server.setHandler(new DumpHandler());
   _server.start();
-  _timer=new ScheduledThreadPoolExecutor(1);
   AbstractEndPoint endp=new ByteArrayEndPoint(_timer,5000);
   HttpInput input=new HttpInput();
-  Connection connection=new AbstractConnection(endp,new Executor(){
-    @Override public void execute(    Runnable command){
-      command.run();
+  _channel=new HttpChannel(connector,new HttpConfiguration(null,false),endp,new HttpTransport(){
+    @Override public void commit(    HttpGenerator.ResponseInfo info,    ByteBuffer content,    boolean lastContent) throws IOException {
+    }
+    @Override public void write(    ByteBuffer content,    boolean lastContent) throws IOException {
+    }
+    @Override public void completed(){
     }
   }
-){
-    @Override public void onOpen(){
-      super.onOpen();
-      fillInterested();
-    }
-    @Override public void onFillable(){
-    }
-  }
-;
-  _channel=new HttpChannel(_server,connection,input){
-    @Override protected int write(    ByteBuffer content) throws IOException {
-      int length=content.remaining();
-      content.clear();
-      return length;
-    }
-    @Override protected void resetBuffer(){
-    }
-    @Override protected void increaseContentBufferSize(    int size){
-    }
-    @Override public ScheduledExecutorService getScheduler(){
-      return null;
-    }
-    @Override public HttpConfiguration getHttpConfiguration(){
-      return null;
-    }
-    @Override protected int getContentBufferSize(){
-      return 0;
-    }
-    @Override protected void flushResponse() throws IOException {
-      if (!_channel.getResponse().isCommitted())       _channel.getResponse().commit();
-    }
-    @Override protected void execute(    Runnable task){
-    }
-    @Override protected void completed(){
-    }
-    @Override protected void completeResponse() throws IOException {
-    }
-    @Override protected void commitResponse(    ResponseInfo info,    ByteBuffer content) throws IOException {
-    }
-    @Override public Connector getConnector(){
-      return null;
-    }
-  }
-;
+,input);
 }

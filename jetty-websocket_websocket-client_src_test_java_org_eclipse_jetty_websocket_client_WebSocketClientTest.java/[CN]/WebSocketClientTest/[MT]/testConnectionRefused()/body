@@ -1,17 +1,13 @@
 {
-  WebSocketClient client=factory.newWebSocketClient();
   TrackingSocket wsocket=new TrackingSocket();
+  WebSocketClient client=factory.newWebSocketClient(wsocket);
   URI wsUri=new URI("ws://127.0.0.1:1");
-  Future<WebSocketConnection> future=client.connect(wsUri,wsocket);
-  Throwable error=null;
+  Future<UpgradeResponse> future=client.connect(wsUri);
   try {
-    future.get(1,TimeUnit.SECONDS);
-    Assert.fail("Expected ExecutionException");
+    future.get(1000,TimeUnit.MILLISECONDS);
+    Assert.fail("Expected ExecutionException -> ConnectException");
   }
  catch (  ExecutionException e) {
-    error=e.getCause();
+    FutureCallback.rethrow(e);
   }
-  wsocket.assertNotOpened();
-  wsocket.assertCloseCode(StatusCode.NO_CLOSE);
-  Assert.assertTrue(error instanceof ConnectException);
 }
