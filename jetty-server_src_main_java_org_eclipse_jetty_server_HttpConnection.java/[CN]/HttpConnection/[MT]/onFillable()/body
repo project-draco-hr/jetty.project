@@ -3,7 +3,8 @@
   setCurrentConnection(this);
   try {
     while (true) {
-      if (BufferUtil.isEmpty(_requestBuffer)) {
+      boolean event=_parser.parseNext(_requestBuffer == null ? BufferUtil.EMPTY_BUFFER : _requestBuffer);
+      if (!event && BufferUtil.isEmpty(_requestBuffer)) {
         if (_requestBuffer == null)         _requestBuffer=_bufferPool.acquire(_configuration.getRequestHeaderSize(),false);
         int filled=getEndPoint().fill(_requestBuffer);
         LOG.debug("{} filled {}",this,filled);
@@ -19,8 +20,12 @@
           releaseRequestBuffer();
           return;
         }
+        event=_parser.parseNext(_requestBuffer);
       }
-      if (_parser.parseNext(_requestBuffer)) {
+      if (event) {
+        while (_parser.inContentState()) {
+          if (!_parser.parseNext(_requestBuffer == null ? BufferUtil.EMPTY_BUFFER : _requestBuffer))           break;
+        }
         _channel.run();
         if (_channel.getState().isSuspending()) {
           if (_channel.getRequest().getHttpInput().available() == 0)           releaseRequestBuffer();
@@ -33,7 +38,10 @@
       }
     }
   }
- catch (  IOException e) {
+ catch (  EofException e) {
+    LOG.debug(e);
+  }
+catch (  IOException e) {
     if (_parser.isIdle())     LOG.debug(e);
  else     LOG.warn(this.toString(),e);
     getEndPoint().close();

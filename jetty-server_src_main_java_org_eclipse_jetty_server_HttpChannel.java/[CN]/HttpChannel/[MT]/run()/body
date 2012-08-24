@@ -25,13 +25,9 @@
  catch (      ContinuationThrowable e) {
         LOG.ignore(e);
       }
-catch (      EofException e) {
-        LOG.debug(e);
-        _state.error(e);
-        _request.setHandled(true);
-      }
-catch (      Throwable e) {
-        LOG.warn(String.valueOf(_uri),e);
+catch (      Exception e) {
+        if (e instanceof EofException)         LOG.debug(e);
+ else         LOG.warn(String.valueOf(_uri),e);
         _state.error(e);
         _request.setHandled(true);
         handleException(e);
@@ -47,12 +43,6 @@ catch (      Throwable e) {
     if (_state.isCompleting()) {
       try {
         _state.completed();
-        if (_expect100Continue) {
-          LOG.debug("100 continues not sent");
-          _expect100Continue=false;
-          if (!_response.isCommitted())           _response.getHttpFields().add(HttpHeader.CONNECTION,HttpHeaderValue.CLOSE.toString());
- else           LOG.warn("Can't close non-100 response");
-        }
         if (!_response.isCommitted() && !_request.isHandled())         _response.sendError(404);
         _response.complete();
       }
