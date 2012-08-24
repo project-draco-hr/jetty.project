@@ -1,0 +1,82 @@
+{
+switch (state) {
+case INITIAL:
+{
+      break;
+    }
+case REQUEST:
+{
+    short version=stream.getSession().getVersion();
+    Headers.Header methodHeader=headers.get(HTTPSPDYHeader.METHOD.name(version));
+    Headers.Header uriHeader=headers.get(HTTPSPDYHeader.URI.name(version));
+    Headers.Header versionHeader=headers.get(HTTPSPDYHeader.VERSION.name(version));
+    if (methodHeader == null || uriHeader == null || versionHeader == null) {
+      badMessage(400,"Missing required request line elements");
+      break;
+    }
+    HttpMethod httpMethod=HttpMethod.fromString(methodHeader.value());
+    HttpVersion httpVersion=HttpVersion.fromString(versionHeader.value());
+    String uriString=uriHeader.value();
+    LOG.debug("HTTP > {} {} {}",httpMethod,uriString,httpVersion);
+    startRequest(httpMethod,httpMethod.asString(),uriString,httpVersion);
+    Headers.Header schemeHeader=headers.get(HTTPSPDYHeader.SCHEME.name(version));
+    if (schemeHeader != null)     getRequest().setScheme(schemeHeader.value());
+    updateState(State.HEADERS);
+    handle();
+    break;
+  }
+case HEADERS:
+{
+  for (  Headers.Header header : headers) {
+    String name=header.name();
+    HttpHeader httpHeader=HttpHeader.CACHE.get(name);
+    HTTPSPDYHeader specialHeader=HTTPSPDYHeader.from(stream.getSession().getVersion(),name);
+    if (specialHeader != null) {
+      if (specialHeader == HTTPSPDYHeader.HOST)       name="host";
+ else       continue;
+    }
+switch (name) {
+case "connection":
+case "keep-alive":
+case "proxy-connection":
+case "transfer-encoding":
+{
+        continue;
+      }
+default :
+{
+      String value=header.value();
+      LOG.debug("HTTP > {}: {}",name,value);
+      parsedHeader(httpHeader,name,value);
+      break;
+    }
+}
+}
+break;
+}
+case HEADERS_COMPLETE:
+{
+if (headerComplete()) run();
+break;
+}
+case CONTENT:
+{
+final ByteBuffer buffer=this.buffer;
+if (buffer != null && buffer.hasRemaining()) if (content(buffer)) run();
+break;
+}
+case FINAL:
+{
+if (messageComplete(0)) run();
+break;
+}
+case ASYNC:
+{
+break;
+}
+default :
+{
+throw new IllegalStateException();
+}
+}
+}

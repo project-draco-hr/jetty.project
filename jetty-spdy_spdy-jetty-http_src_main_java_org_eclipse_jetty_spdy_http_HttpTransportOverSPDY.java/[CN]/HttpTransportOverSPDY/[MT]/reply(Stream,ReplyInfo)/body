@@ -1,0 +1,22 @@
+{
+  if (!stream.isUnidirectional())   stream.reply(replyInfo);
+  Headers responseHeaders=replyInfo.getHeaders();
+  short version=stream.getSession().getVersion();
+  if (responseHeaders.get(HTTPSPDYHeader.STATUS.name(version)).value().startsWith("200") && !stream.isClosed()) {
+    Headers.Header scheme=requestHeaders.get(HTTPSPDYHeader.SCHEME.name(version));
+    Headers.Header host=requestHeaders.get(HTTPSPDYHeader.HOST.name(version));
+    Headers.Header uri=requestHeaders.get(HTTPSPDYHeader.URI.name(version));
+    Set<String> pushResources=pushStrategy.apply(stream,requestHeaders,responseHeaders);
+    for (    String pushResource : pushResources) {
+      Headers pushHeaders=createPushHeaders(scheme,host,pushResource);
+      final Headers pushRequestHeaders=createRequestHeaders(scheme,host,uri,pushResource);
+      stream.syn(new SynInfo(pushHeaders,false),0,TimeUnit.MILLISECONDS,new Callback.Empty<Stream>(){
+        @Override public void completed(        Stream pushStream){
+          HttpChannelOverSPDY pushChannel=newHttpChannelOverSPDY(pushStream,pushRequestHeaders);
+          pushChannel.beginRequest(pushRequestHeaders,true);
+        }
+      }
+);
+    }
+  }
+}

@@ -1,12 +1,15 @@
 {
   logger.debug("Received {} on {}",synInfo,stream);
-  HTTPChannelOverSPDY channel=new HTTPChannelOverSPDY(connector,null,endPoint,stream);
-  stream.setAttribute(CHANNEL_ATTRIBUTE,channel);
   Headers headers=synInfo.getHeaders();
+  HttpTransportOverSPDY transport=new HttpTransportOverSPDY(connector,configuration,endPoint,pushStrategy,stream,headers);
+  HttpChannelOverSPDY channel=new HttpChannelOverSPDY(connector,configuration,endPoint,transport,stream);
+  stream.setAttribute(CHANNEL_ATTRIBUTE,channel);
+  channel.beginRequest(headers,synInfo.isClose());
   if (headers.isEmpty()) {
     return this;
   }
-  channel.beginRequest(headers,synInfo.isClose());
-  if (synInfo.isClose())   return null;
- else   return this;
+ else {
+    if (synInfo.isClose())     return null;
+ else     return this;
+  }
 }

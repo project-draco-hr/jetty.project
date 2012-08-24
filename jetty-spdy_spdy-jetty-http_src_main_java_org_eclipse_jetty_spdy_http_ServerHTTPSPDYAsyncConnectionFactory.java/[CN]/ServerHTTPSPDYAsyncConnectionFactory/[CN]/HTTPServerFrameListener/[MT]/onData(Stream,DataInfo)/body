@@ -1,14 +1,6 @@
 {
   logger.debug("Received {} on {}",dataInfo,stream);
-  HTTPChannelOverSPDY channel=(HTTPChannelOverSPDY)stream.getAttribute(CHANNEL_ATTRIBUTE);
-  ByteBufferDataInfo copyDataInfo=new ByteBufferDataInfo(dataInfo.asByteBuffer(false),dataInfo.isClose(),dataInfo.isCompress()){
-    @Override public void consume(    int delta){
-      super.consume(delta);
-      dataInfo.consume(delta);
-    }
-  }
-;
-  logger.debug("Queuing last={} content {}",dataInfo.isClose(),copyDataInfo);
-  channel.content(copyDataInfo.asByteBuffer(true));
+  HttpChannelOverSPDY channel=(HttpChannelOverSPDY)stream.getAttribute(CHANNEL_ATTRIBUTE);
+  channel.content(dataInfo,dataInfo.isClose());
   if (dataInfo.isClose())   channel.endRequest();
 }
