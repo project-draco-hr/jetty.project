@@ -1,6 +1,6 @@
 {
 synchronized (lock()) {
-    while (!_inputEOF) {
+    while (!_inputEOF && !_earlyEOF) {
       ByteBuffer content=_inputQ.peekUnsafe();
       while (content != null) {
         content.clear();
@@ -10,9 +10,11 @@ synchronized (lock()) {
         if (content == null)         onAllContentConsumed();
       }
       try {
+        System.err.println("consume block");
         blockForContent();
       }
  catch (      IOException e) {
+        e.printStackTrace();
         throw new RuntimeIOException(e);
       }
     }

@@ -5,6 +5,7 @@
       while (event && BufferUtil.hasContent(_requestBuffer) && _parser.inContentState())       _parser.parseNext(_requestBuffer);
       if (event)       return;
       if (BufferUtil.isEmpty(_requestBuffer)) {
+        if (getEndPoint().isInputShutdown())         return;
         FutureCallback<Void> block=new FutureCallback<>();
         getEndPoint().fillInterested(null,block);
         LOG.debug("{} block readable on {}",this,block);
@@ -19,8 +20,13 @@
       }
     }
   }
- catch (  InterruptedException x) {
-    throw new InterruptedIOException();
+ catch (  final InterruptedException x) {
+    throw new InterruptedIOException(getEndPoint().toString()){
+{
+        initCause(x);
+      }
+    }
+;
   }
 catch (  ExecutionException e) {
     FutureCallback.rethrow(e);
