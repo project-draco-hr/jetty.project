@@ -1,6 +1,8 @@
 {
   configureServer(new HelloWorldHandler());
   try (Socket client=newSocket(HOST,_connector.getLocalPort())){
+    ((StdErrLog)Log.getLogger(HttpConnection.class)).setHideStacks(true);
+    ((StdErrLog)Log.getLogger(HttpConnection.class)).info("expect request is too large, then ISE extra data ...");
     OutputStream os=client.getOutputStream();
     byte[] buffer=new byte[64 * 1024];
     Arrays.fill(buffer,(byte)'A');
@@ -9,7 +11,7 @@
     String response=readResponse(client);
     Assert.assertThat(response,Matchers.containsString("HTTP/1.1 413 "));
   }
- catch (  SocketException e) {
-    Log.getLogger(SslConnection.class).warn("Investigate this!!!",e);
+  finally {
+    ((StdErrLog)Log.getLogger(HttpConnection.class)).setHideStacks(true);
   }
 }

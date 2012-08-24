@@ -5,17 +5,22 @@
   try (Socket client=newSocket(HOST,_connector.getLocalPort())){
     OutputStream os=client.getOutputStream();
     InputStream is=client.getInputStream();
-    os.write(("GET /data?writes=512&block=1024 HTTP/1.1\r\n" + "host: " + HOST + ":"+ _connector.getLocalPort()+ "\r\n"+ "connection: close\r\n"+ "content-type: unknown\r\n"+ "\r\n").getBytes());
+    os.write(("GET /data?writes=256&block=1024 HTTP/1.1\r\n" + "host: " + HOST + ":"+ _connector.getLocalPort()+ "\r\n"+ "connection: close\r\n"+ "content-type: unknown\r\n"+ "\r\n").getBytes());
     os.flush();
     int len=0;
     byte[] buf=new byte[1024 * 32];
-    int i=0;
+    int sleeps=0;
     while (len >= 0) {
-      if (i++ % 10 == 0)       Thread.sleep(1000);
       len=is.read(buf);
-      if (len > 0)       total+=len;
+      if (len > 0) {
+        total+=len;
+        if ((total / 10240) > sleeps) {
+          Thread.sleep(200);
+          sleeps++;
+        }
+      }
     }
-    assertTrue(total > (512 * 1024));
+    assertTrue(total > (256 * 1024));
     assertTrue(30000L > (System.currentTimeMillis() - start));
   }
  }

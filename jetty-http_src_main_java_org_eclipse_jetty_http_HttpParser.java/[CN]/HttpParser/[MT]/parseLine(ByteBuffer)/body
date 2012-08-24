@@ -3,7 +3,15 @@
   while (_state.ordinal() < State.HEADER.ordinal() && buffer.hasRemaining() && !return_from_parse) {
     byte ch=buffer.get();
     if (_maxHeaderBytes > 0 && ++_headerBytes > _maxHeaderBytes) {
-      badMessage(buffer,HttpStatus.REQUEST_ENTITY_TOO_LARGE_413,null);
+      if (_state == State.URI) {
+        LOG.warn("URI is too large >" + _maxHeaderBytes);
+        badMessage(buffer,HttpStatus.REQUEST_URI_TOO_LONG_414,null);
+      }
+ else {
+        if (_requestHandler != null)         LOG.warn("request is too large >" + _maxHeaderBytes);
+ else         LOG.warn("response is too large >" + _maxHeaderBytes);
+        badMessage(buffer,HttpStatus.REQUEST_ENTITY_TOO_LARGE_413,null);
+      }
       return true;
     }
     if (_eol == HttpTokens.CARRIAGE_RETURN && ch == HttpTokens.LINE_FEED) {
