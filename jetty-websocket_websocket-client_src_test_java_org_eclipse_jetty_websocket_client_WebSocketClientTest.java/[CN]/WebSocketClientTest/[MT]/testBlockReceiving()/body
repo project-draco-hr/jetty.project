@@ -1,34 +1,15 @@
 {
-  final AtomicBoolean open=new AtomicBoolean(false);
-  final AtomicInteger close=new AtomicInteger();
-  final CountDownLatch _latch=new CountDownLatch(1);
-  final StringBuilder closeMessage=new StringBuilder();
   final Exchanger<String> exchanger=new Exchanger<String>();
-  WebSocketListener socket=new WebSocketAdapter(){
-    @Override public void onWebSocketClose(    int statusCode,    String reason){
-      close.set(statusCode);
-      closeMessage.append(reason);
-      _latch.countDown();
-    }
-    @Override public void onWebSocketConnect(    WebSocketConnection connection){
-      open.set(true);
-    }
-    @Override public void onWebSocketText(    String message){
-      try {
-        exchanger.exchange(message);
-      }
- catch (      InterruptedException e) {
-      }
-    }
-  }
-;
-  WebSocketClient client=factory.newWebSocketClient(socket);
+  TrackingSocket tsocket=new TrackingSocket();
+  tsocket.messageExchanger=exchanger;
+  WebSocketClient client=factory.newWebSocketClient(tsocket);
   client.getPolicy().setIdleTimeout(60000);
   URI wsUri=server.getWsUri();
   Future<UpgradeResponse> future=client.connect(wsUri);
   ServerConnection sconnection=server.accept();
   sconnection.setSoTimeout(60000);
-  UpgradeResponse resp=future.get(250,TimeUnit.MILLISECONDS);
+  sconnection.upgrade();
+  future.get(500,TimeUnit.MILLISECONDS);
   byte[] send=new byte[]{(byte)0x81,(byte)0x05,(byte)'H',(byte)'e',(byte)'l',(byte)'l',(byte)'o'};
   final int messages=100000;
   final AtomicInteger m=new AtomicInteger();
@@ -70,11 +51,7 @@ catch (      Exception e) {
   long readDur=(System.currentTimeMillis() - start);
   Assert.assertThat("read duration",readDur,greaterThan(1000L));
   Assert.assertEquals(m.get(),messages);
-  start=System.currentTimeMillis();
-  sconnection.write(new byte[]{(byte)0x88,(byte)0x02,(byte)4,(byte)87},0,4);
-  sconnection.flush();
-  _latch.await(10,TimeUnit.SECONDS);
-  Assert.assertTrue((System.currentTimeMillis() - start) < 5000);
-  Assert.assertEquals(1002,close.get());
-  Assert.assertEquals("Invalid close code 1111",closeMessage.toString());
+  sconnection.close(StatusCode.NORMAL);
+  Assert.assertTrue("Client Socket Closed",tsocket.closeLatch.await(10,TimeUnit.SECONDS));
+  tsocket.assertCloseCode(StatusCode.NORMAL);
 }
