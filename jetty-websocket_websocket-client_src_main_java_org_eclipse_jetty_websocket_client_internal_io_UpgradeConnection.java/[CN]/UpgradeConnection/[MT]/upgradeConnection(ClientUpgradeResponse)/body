@@ -1,0 +1,44 @@
+{
+  EndPoint endp=getEndPoint();
+  Executor executor=getExecutor();
+  WebSocketClientConnection connection=new WebSocketClientConnection(endp,executor,client);
+  WebSocketEventDriver websocket=client.getWebSocket();
+  WebSocketPolicy policy=client.getPolicy();
+  String acceptedSubProtocol=response.getAcceptedSubProtocol();
+  WebSocketSession session=new WebSocketSession(websocket,connection,policy,acceptedSubProtocol);
+  connection.setSession(session);
+  List<Extension> extensions=client.getFactory().initExtensions(response.getExtensions());
+  IncomingFrames incoming=session;
+  OutgoingFrames outgoing=connection;
+  if (extensions != null) {
+    Iterator<Extension> extIter;
+    extIter=extensions.iterator();
+    while (extIter.hasNext()) {
+      Extension ext=extIter.next();
+      ext.setNextOutgoingFrames(outgoing);
+      outgoing=ext;
+      if (ext.useRsv1()) {
+        connection.getGenerator().setRsv1InUse(true);
+        connection.getParser().setRsv1InUse(true);
+      }
+      if (ext.useRsv2()) {
+        connection.getGenerator().setRsv2InUse(true);
+        connection.getParser().setRsv2InUse(true);
+      }
+      if (ext.useRsv3()) {
+        connection.getGenerator().setRsv3InUse(true);
+        connection.getParser().setRsv3InUse(true);
+      }
+    }
+    Collections.reverse(extensions);
+    extIter=extensions.iterator();
+    while (extIter.hasNext()) {
+      Extension ext=extIter.next();
+      ext.setNextIncomingFrames(incoming);
+      incoming=ext;
+    }
+  }
+  session.setOutgoing(outgoing);
+  connection.getParser().setIncomingFramesHandler(incoming);
+  endp.setConnection(connection);
+}
