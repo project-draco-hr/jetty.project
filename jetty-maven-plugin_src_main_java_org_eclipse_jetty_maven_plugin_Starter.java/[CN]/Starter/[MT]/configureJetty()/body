@@ -1,0 +1,28 @@
+{
+  LOG.debug("Starting Jetty Server ...");
+  this.server=new JettyServer();
+  applyJettyXml();
+  Connector[] connectors=this.server.getConnectors();
+  if (connectors == null || connectors.length == 0) {
+    connectors=new Connector[]{this.server.createDefaultConnector(server,System.getProperty(PORT_SYSPROPERTY,null))};
+    this.server.setConnectors(connectors);
+  }
+  HandlerCollection handlers=(HandlerCollection)server.getChildHandlerByClass(HandlerCollection.class);
+  if (handlers == null) {
+    handlers=new HandlerCollection();
+    server.setHandler(handlers);
+  }
+  this.server.configureHandlers();
+  webApp=new JettyWebAppContext();
+  configureWebApp();
+  if (contextXml != null) {
+    XmlConfiguration xmlConfiguration=new XmlConfiguration(Resource.toURL(contextXml));
+    xmlConfiguration.getIdMap().put("Server",server);
+    xmlConfiguration.configure(webApp);
+  }
+  this.server.addWebApplication(webApp);
+  System.err.println("STOP PORT=" + stopPort + ", STOP KEY="+ stopKey);
+  if (stopPort > 0 && stopKey != null) {
+    monitor=new Monitor(stopPort,stopKey,new Server[]{server},true);
+  }
+}
