@@ -1,0 +1,47 @@
+{
+  try {
+    getLog().debug("Starting Jetty Server ...");
+    printSystemProperties();
+    this.server=new JettyServer();
+    setServer(this.server);
+    applyJettyXml();
+    Connector[] connectors=this.server.getConnectors();
+    if (connectors == null || connectors.length == 0) {
+      this.server.setConnectors(this.connectors);
+      connectors=this.server.getConnectors();
+      if (connectors == null || connectors.length == 0) {
+        this.connectors=new Connector[]{this.server.createDefaultConnector(server,System.getProperty(PORT_SYSPROPERTY,null))};
+        this.server.setConnectors(this.connectors);
+      }
+    }
+    if (this.requestLog != null)     getServer().setRequestLog(this.requestLog);
+    this.server.configureHandlers();
+    configureWebApplication();
+    this.server.addWebApplication(webApp);
+    for (int i=0; (this.loginServices != null) && i < this.loginServices.length; i++) {
+      getLog().debug(this.loginServices[i].getClass().getName() + ": " + this.loginServices[i].toString());
+      getServer().addBean(this.loginServices[i]);
+    }
+    finishConfigurationBeforeStart();
+    this.server.start();
+    getLog().info("Started Jetty Server");
+    if (stopPort > 0 && stopKey != null) {
+      Monitor monitor=new Monitor(stopPort,stopKey,new Server[]{server},!daemon);
+      monitor.start();
+    }
+    configureScanner();
+    startScanner();
+    startConsoleScanner();
+    if (!daemon) {
+      server.join();
+    }
+  }
+ catch (  Exception e) {
+    throw new MojoExecutionException("Failure",e);
+  }
+ finally {
+    if (!daemon) {
+      getLog().info("Jetty server exiting.");
+    }
+  }
+}

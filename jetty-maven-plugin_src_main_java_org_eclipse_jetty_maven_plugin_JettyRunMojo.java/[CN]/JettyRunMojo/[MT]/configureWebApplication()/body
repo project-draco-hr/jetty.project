@@ -1,0 +1,31 @@
+{
+  super.configureWebApplication();
+  Resource webAppSourceDirectoryResource=Resource.newResource(webAppSourceDirectory.getCanonicalPath());
+  if (webApp.getWar() == null)   webApp.setWar(webAppSourceDirectoryResource.toString());
+  if (webApp.getBaseResource() == null)   webApp.setBaseResource(webAppSourceDirectoryResource);
+  if (getClassesDirectory() != null)   webApp.setClasses(getClassesDirectory());
+  if (useTestScope && (testClassesDirectory != null))   webApp.setTestClasses(testClassesDirectory);
+  webApp.setWebInfLib(getDependencyFiles());
+  if (webApp.getDescriptor() == null) {
+    if (webXml != null) {
+      Resource r=Resource.newResource(webXml);
+      if (r.exists() && !r.isDirectory()) {
+        webApp.setDescriptor(r.toString());
+      }
+    }
+    if (webApp.getDescriptor() == null && webApp.getBaseResource() != null) {
+      Resource r=webApp.getBaseResource().addPath("WEB-INF/web.xml");
+      if (r.exists() && !r.isDirectory()) {
+        webApp.setDescriptor(r.toString());
+      }
+    }
+    if (webApp.getDescriptor() == null && (webAppSourceDirectory != null)) {
+      File f=new File(new File(webAppSourceDirectory,"WEB-INF"),"web.xml");
+      if (f.exists() && f.isFile()) {
+        webApp.setDescriptor(f.getCanonicalPath());
+      }
+    }
+  }
+  getLog().info("web.xml file = " + webApp.getDescriptor());
+  getLog().info("Webapp directory = " + getWebAppSourceDirectory().getCanonicalPath());
+}
