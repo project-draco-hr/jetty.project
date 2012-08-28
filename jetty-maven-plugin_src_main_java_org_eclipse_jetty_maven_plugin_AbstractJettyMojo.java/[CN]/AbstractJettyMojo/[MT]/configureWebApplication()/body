@@ -1,0 +1,21 @@
+{
+  if (webApp == null)   webApp=new JettyWebAppContext();
+  if (contextXml != null) {
+    File file=FileUtils.getFile(contextXml);
+    XmlConfiguration xmlConfiguration=new XmlConfiguration(Resource.toURL(file));
+    getLog().info("Applying context xml file " + contextXml);
+    xmlConfiguration.configure(webApp);
+  }
+  String cp=webApp.getContextPath();
+  if (cp == null || "".equals(cp)) {
+    webApp.setContextPath((contextPath.startsWith("/") ? contextPath : "/" + contextPath));
+  }
+  if (webApp.getTempDirectory() == null && tmpDirectory != null) {
+    if (!tmpDirectory.exists())     tmpDirectory.mkdirs();
+    webApp.setTempDirectory(tmpDirectory);
+  }
+  getLog().info("Context path = " + webApp.getContextPath());
+  getLog().info("Tmp directory = " + (webApp.getTempDirectory() == null ? " determined at runtime" : webApp.getTempDirectory()));
+  getLog().info("Web defaults = " + (webApp.getDefaultsDescriptor() == null ? " jetty default" : webApp.getDefaultsDescriptor()));
+  getLog().info("Web overrides = " + (webApp.getOverrideDescriptor() == null ? " none" : webApp.getOverrideDescriptor()));
+}

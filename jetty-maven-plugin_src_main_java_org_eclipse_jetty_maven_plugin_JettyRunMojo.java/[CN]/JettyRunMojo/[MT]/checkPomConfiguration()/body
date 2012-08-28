@@ -1,0 +1,64 @@
+{
+  try {
+    if ((getWebAppSourceDirectory() == null) || !getWebAppSourceDirectory().exists()) {
+      webAppSourceDirectory=new File(project.getBasedir(),"src" + File.separator + "main"+ File.separator+ "webapp");
+      getLog().info("webAppSourceDirectory " + getWebAppSourceDirectory() + " does not exist. Defaulting to "+ webAppSourceDirectory.getAbsolutePath());
+    }
+ else     getLog().info("Webapp source directory = " + getWebAppSourceDirectory().getCanonicalPath());
+  }
+ catch (  IOException e) {
+    throw new MojoExecutionException("Webapp source directory does not exist",e);
+  }
+  if (!"automatic".equalsIgnoreCase(reload) && !"manual".equalsIgnoreCase(reload)) {
+    throw new MojoExecutionException("invalid reload mechanic specified, must be 'automatic' or 'manual'");
+  }
+ else {
+    getLog().info("Reload Mechanic: " + reload);
+  }
+  try {
+    if (getClassesDirectory() != null) {
+      if (!getClassesDirectory().exists())       getLog().info("Classes directory " + getClassesDirectory().getCanonicalPath() + " does not exist");
+ else       getLog().info("Classes = " + getClassesDirectory().getCanonicalPath());
+    }
+ else     getLog().info("Classes directory not set");
+  }
+ catch (  IOException e) {
+    throw new MojoExecutionException("Location of classesDirectory does not exist");
+  }
+  setExtraScanTargets(new ArrayList<File>());
+  if (scanTargets != null) {
+    for (int i=0; i < scanTargets.length; i++) {
+      getLog().info("Added extra scan target:" + scanTargets[i]);
+      getExtraScanTargets().add(scanTargets[i]);
+    }
+  }
+  if (scanTargetPatterns != null) {
+    for (int i=0; i < scanTargetPatterns.length; i++) {
+      Iterator itor=scanTargetPatterns[i].getIncludes().iterator();
+      StringBuffer strbuff=new StringBuffer();
+      while (itor.hasNext()) {
+        strbuff.append((String)itor.next());
+        if (itor.hasNext())         strbuff.append(",");
+      }
+      String includes=strbuff.toString();
+      itor=scanTargetPatterns[i].getExcludes().iterator();
+      strbuff=new StringBuffer();
+      while (itor.hasNext()) {
+        strbuff.append((String)itor.next());
+        if (itor.hasNext())         strbuff.append(",");
+      }
+      String excludes=strbuff.toString();
+      try {
+        List<File> files=FileUtils.getFiles(scanTargetPatterns[i].getDirectory(),includes,excludes);
+        itor=files.iterator();
+        while (itor.hasNext())         getLog().info("Adding extra scan target from pattern: " + itor.next());
+        List<File> currentTargets=getExtraScanTargets();
+        if (currentTargets != null && !currentTargets.isEmpty())         currentTargets.addAll(files);
+ else         setExtraScanTargets(files);
+      }
+ catch (      IOException e) {
+        throw new MojoExecutionException(e.getMessage());
+      }
+    }
+  }
+}
