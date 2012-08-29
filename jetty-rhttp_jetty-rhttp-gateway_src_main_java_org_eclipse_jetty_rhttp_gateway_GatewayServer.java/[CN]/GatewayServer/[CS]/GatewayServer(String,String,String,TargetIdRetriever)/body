@@ -1,0 +1,15 @@
+{
+  HandlerCollection handlers=new HandlerCollection();
+  setHandler(handlers);
+  context=new ServletContextHandler(handlers,contextPath,ServletContextHandler.SESSIONS);
+  gateway=createGateway();
+  ExternalServlet externalServlet=new ExternalServlet(gateway,targetIdRetriever);
+  externalServletHolder=new ServletHolder(externalServlet);
+  context.addServlet(externalServletHolder,externalServletPath + "/*");
+  logger.debug("External servlet mapped to {}/*",externalServletPath);
+  ConnectorServlet gatewayServlet=new ConnectorServlet(gateway);
+  connectorServletHolder=new ServletHolder(gatewayServlet);
+  connectorServletHolder.setInitParameter("clientTimeout","15000");
+  context.addServlet(connectorServletHolder,gatewayServletPath + "/*");
+  logger.debug("Gateway servlet mapped to {}/*",gatewayServletPath);
+}

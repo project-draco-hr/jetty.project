@@ -1,0 +1,28 @@
+{
+  ProxyExchange exchange=new ProxyExchange();
+  Address address=Address.from(request.getHeaders().get("Host"));
+  if (address.getPort() == 0)   address=new Address(address.getHost(),80);
+  exchange.setAddress(address);
+  exchange.setMethod(request.getMethod());
+  exchange.setURI(request.getURI());
+  for (  Map.Entry<String,String> header : request.getHeaders().entrySet())   exchange.setRequestHeader(header.getKey(),header.getValue());
+  exchange.setRequestContent(new ByteArrayBuffer(request.getBody()));
+  int status=syncSend(exchange);
+  if (status == HttpExchange.STATUS_COMPLETED) {
+    int statusCode=exchange.getResponseStatus();
+    String statusMessage=exchange.getResponseMessage();
+    Map<String,String> responseHeaders=exchange.getResponseHeaders();
+    byte[] responseBody=exchange.getResponseBody();
+    RHTTPResponse response=new RHTTPResponse(request.getId(),statusCode,statusMessage,responseHeaders,responseBody);
+    client.deliver(response);
+  }
+ else {
+    int statusCode=HttpServletResponse.SC_SERVICE_UNAVAILABLE;
+    String statusMessage="Gateway error";
+    HashMap<String,String> responseHeaders=new HashMap<String,String>();
+    responseHeaders.put("Connection","close");
+    byte[] responseBody=new byte[0];
+    RHTTPResponse response=new RHTTPResponse(request.getId(),statusCode,statusMessage,responseHeaders,responseBody);
+    client.deliver(response);
+  }
+}

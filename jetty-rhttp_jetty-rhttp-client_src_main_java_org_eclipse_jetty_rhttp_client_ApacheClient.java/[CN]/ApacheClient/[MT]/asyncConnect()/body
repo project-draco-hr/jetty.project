@@ -1,0 +1,25 @@
+{
+  new Thread(){
+    @Override public void run(){
+      try {
+        HttpPost connect=new HttpPost(gatewayPath + "/" + urlEncode(getTargetId())+ "/connect");
+        getLogger().debug("Client {} connect sent to gateway",getTargetId(),null);
+        HttpResponse response=httpClient.execute(connect);
+        int statusCode=response.getStatusLine().getStatusCode();
+        HttpEntity entity=response.getEntity();
+        byte[] responseContent=EntityUtils.toByteArray(entity);
+        if (statusCode == HttpStatus.SC_OK)         connectComplete(responseContent);
+ else         if (statusCode == HttpStatus.SC_UNAUTHORIZED)         notifyConnectRequired();
+ else         notifyConnectException();
+      }
+ catch (      NoHttpResponseException x) {
+        notifyConnectClosed();
+      }
+catch (      IOException x) {
+        getLogger().debug("",x);
+        notifyConnectException();
+      }
+    }
+  }
+.start();
+}

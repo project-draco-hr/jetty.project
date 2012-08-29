@@ -1,0 +1,68 @@
+{
+  final CountDownLatch respondLatch=new CountDownLatch(1);
+  final CountDownLatch suspendLatch=new CountDownLatch(1);
+  final AtomicBoolean suspended=new AtomicBoolean(true);
+  GatewayServer server=new GatewayServer(){
+    @Override protected Gateway createGateway(){
+      StandardGateway gateway=new StandardGateway(){
+        @Override public ExternalRequest newExternalRequest(        HttpServletRequest httpRequest,        HttpServletResponse httpResponse) throws IOException {
+          return new SlowToSuspendExternalRequest(super.newExternalRequest(httpRequest,httpResponse),respondLatch,suspendLatch,suspended);
+        }
+      }
+;
+      return gateway;
+    }
+  }
+;
+  SelectChannelConnector connector=new SelectChannelConnector();
+  server.addConnector(connector);
+  server.start();
+  try {
+    Address address=new Address("localhost",connector.getLocalPort());
+    HttpClient httpClient=new HttpClient();
+    httpClient.setConnectorType(HttpClient.CONNECTOR_SELECT_CHANNEL);
+    httpClient.start();
+    try {
+      String targetId="1";
+      final RHTTPClient client=new JettyClient(httpClient,address,server.getContext().getContextPath() + GatewayServer.DFT_CONNECT_PATH,targetId);
+      final AtomicReference<Exception> exception=new AtomicReference<Exception>();
+      client.addListener(new RHTTPListener(){
+        public void onRequest(        RHTTPRequest request){
+          try {
+            RHTTPResponse response=new RHTTPResponse(request.getId(),200,"OK",new HashMap<String,String>(),request.getBody());
+            client.deliver(response);
+          }
+ catch (          Exception x) {
+            exception.set(x);
+          }
+        }
+      }
+);
+      client.connect();
+      try {
+        ContentExchange exchange=new ContentExchange(true);
+        exchange.setMethod(HttpMethods.POST);
+        exchange.setAddress(address);
+        exchange.setURI(server.getContext().getContextPath() + GatewayServer.DFT_EXT_PATH + "/"+ URLEncoder.encode(targetId,"UTF-8"));
+        String requestContent="body";
+        exchange.setRequestContent(new ByteArrayBuffer(requestContent.getBytes("UTF-8")));
+        httpClient.send(exchange);
+        int status=exchange.waitForDone();
+        assertEquals(HttpExchange.STATUS_COMPLETED,status);
+        assertEquals(HttpServletResponse.SC_OK,exchange.getResponseStatus());
+        assertNull(exception.get());
+        suspendLatch.await();
+        assertFalse(suspended.get());
+      }
+  finally {
+        client.disconnect();
+      }
+    }
+  finally {
+      httpClient.stop();
+    }
+  }
+  finally {
+    server.stop();
+  }
+}

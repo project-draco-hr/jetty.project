@@ -1,0 +1,20 @@
+{
+  Map<String,Object> arguments=parse(args);
+  int port=8080;
+  if (arguments.containsKey(PORT_ARG))   port=(Integer)arguments.get(PORT_ARG);
+  String resources=null;
+  if (arguments.containsKey(RESOURCES_ARG))   resources=(String)arguments.get(RESOURCES_ARG);
+  TargetIdRetriever retriever=null;
+  if (arguments.containsKey(RETRIEVER_ARG))   retriever=(TargetIdRetriever)arguments.get(RETRIEVER_ARG);
+  GatewayServer server=new GatewayServer();
+  Connector connector=new SelectChannelConnector();
+  connector.setPort(port);
+  server.addConnector(connector);
+  if (resources != null) {
+    server.getContext().setResourceBase(resources);
+    ServletHolder resourcesServletHolder=server.getContext().addServlet(DefaultServlet.class,"__r/*");
+    resourcesServletHolder.setInitParameter("dirAllowed","true");
+  }
+  if (retriever != null)   server.setTargetIdRetriever(retriever);
+  server.start();
+}

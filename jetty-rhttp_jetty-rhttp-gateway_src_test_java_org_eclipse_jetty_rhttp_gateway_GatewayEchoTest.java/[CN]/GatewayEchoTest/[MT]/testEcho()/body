@@ -1,0 +1,29 @@
+{
+  GatewayEchoServer server=new GatewayEchoServer();
+  server.start();
+  try {
+    HttpClient httpClient=new HttpClient();
+    httpClient.setConnectorType(HttpClient.CONNECTOR_SELECT_CHANNEL);
+    httpClient.start();
+    try {
+      ContentExchange exchange=new ContentExchange(true);
+      exchange.setMethod(HttpMethods.POST);
+      exchange.setAddress(server.getAddress());
+      exchange.setURI(server.getURI() + "/");
+      String requestBody="body";
+      exchange.setRequestContent(new ByteArrayBuffer(requestBody.getBytes("UTF-8")));
+      httpClient.send(exchange);
+      int status=exchange.waitForDone();
+      assertEquals(HttpExchange.STATUS_COMPLETED,status);
+      assertEquals(HttpServletResponse.SC_OK,exchange.getResponseStatus());
+      String responseContent=exchange.getResponseContent();
+      assertEquals(responseContent,requestBody);
+    }
+  finally {
+      httpClient.stop();
+    }
+  }
+  finally {
+    server.stop();
+  }
+}

@@ -1,0 +1,35 @@
+{
+  final CountDownLatch serverLatch=new CountDownLatch(1);
+  Server server=new Server();
+  Connector connector=new SelectChannelConnector();
+  server.addConnector(connector);
+  server.setHandler(new AbstractHandler(){
+    public void handle(    String target,    Request request,    HttpServletRequest httpRequest,    HttpServletResponse httpResponse) throws IOException, ServletException {
+      request.setHandled(true);
+      if (target.endsWith("/handshake")) {
+        serverLatch.countDown();
+        throw new TestException();
+      }
+    }
+  }
+);
+  server.start();
+  try {
+    RHTTPClient client=createClient(connector.getLocalPort(),"test2");
+    try {
+      try {
+        client.connect();
+        fail();
+      }
+ catch (      IOException x) {
+      }
+      assertTrue(serverLatch.await(1000,TimeUnit.MILLISECONDS));
+    }
+  finally {
+      destroyClient(client);
+    }
+  }
+  finally {
+    server.stop();
+  }
+}

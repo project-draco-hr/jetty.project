@@ -1,0 +1,16 @@
+{
+  if (gateway.getClientDelegate(targetId) == null) {
+    httpResponse.sendError(HttpServletResponse.SC_UNAUTHORIZED);
+    return;
+  }
+  byte[] body=Utils.read(httpRequest.getInputStream());
+  RHTTPResponse response=RHTTPResponse.fromFrameBytes(body);
+  ExternalRequest externalRequest=gateway.removeExternalRequest(response.getId());
+  if (externalRequest != null) {
+    externalRequest.respond(response);
+    logger.debug("Deliver request from device {}, gateway request {}, response {}",new Object[]{targetId,externalRequest,response});
+  }
+ else {
+    logger.debug("Deliver request from device {}, missing gateway request, response {}",targetId,response);
+  }
+}

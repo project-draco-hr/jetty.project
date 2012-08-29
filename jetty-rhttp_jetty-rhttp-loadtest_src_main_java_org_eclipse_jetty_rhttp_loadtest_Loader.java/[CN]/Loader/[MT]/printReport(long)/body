@@ -1,0 +1,48 @@
+{
+  long responseCount=responses.get() + failures.get();
+  System.err.print("Messages - Success/Failures/Expected = ");
+  System.err.print(responses.get());
+  System.err.print("/");
+  System.err.print(failures.get());
+  System.err.print("/");
+  System.err.println(expectedCount);
+  long elapsedNanos=end.get() - start.get();
+  if (elapsedNanos > 0) {
+    System.err.print("Messages - Elapsed | Rate = ");
+    System.err.print(TimeUnit.NANOSECONDS.toMillis(elapsedNanos));
+    System.err.print(" ms | ");
+    System.err.print(responseCount * 1000 * 1000* 1000 / elapsedNanos);
+    System.err.println(" responses/s ");
+  }
+  if (latencies.size() > 1) {
+    long maxLatencyBucketFrequency=0L;
+    long[] latencyBucketFrequencies=new long[20];
+    long latencyRange=maxLatency.get() - minLatency.get();
+    for (Iterator<Map.Entry<Long,AtomicLong>> entries=latencies.entrySet().iterator(); entries.hasNext(); ) {
+      Map.Entry<Long,AtomicLong> entry=entries.next();
+      long latency=entry.getKey();
+      Long bucketIndex=(latency - minLatency.get()) * latencyBucketFrequencies.length / latencyRange;
+      int index=bucketIndex.intValue() == latencyBucketFrequencies.length ? latencyBucketFrequencies.length - 1 : bucketIndex.intValue();
+      long value=entry.getValue().get();
+      latencyBucketFrequencies[index]+=value;
+      if (latencyBucketFrequencies[index] > maxLatencyBucketFrequency)       maxLatencyBucketFrequency=latencyBucketFrequencies[index];
+      entries.remove();
+    }
+    System.err.println("Messages - Latency Distribution Curve (X axis: Frequency, Y axis: Latency):");
+    for (int i=0; i < latencyBucketFrequencies.length; i++) {
+      long latencyBucketFrequency=latencyBucketFrequencies[i];
+      int value=Math.round(latencyBucketFrequency * (float)latencyBucketFrequencies.length / maxLatencyBucketFrequency);
+      if (value == latencyBucketFrequencies.length)       value=value - 1;
+      for (int j=0; j < value; ++j)       System.err.print(" ");
+      System.err.print("@");
+      for (int j=value + 1; j < latencyBucketFrequencies.length; ++j)       System.err.print(" ");
+      System.err.print("  _  ");
+      System.err.print(TimeUnit.NANOSECONDS.toMillis((latencyRange * (i + 1) / latencyBucketFrequencies.length) + minLatency.get()));
+      System.err.println(" ms (" + latencyBucketFrequency + ")");
+    }
+  }
+  System.err.print("Messages - Latency Min/Ave/Max = ");
+  System.err.print(TimeUnit.NANOSECONDS.toMillis(minLatency.get()) + "/");
+  System.err.print(responseCount == 0 ? "-/" : TimeUnit.NANOSECONDS.toMillis(totLatency.get() / responseCount) + "/");
+  System.err.println(TimeUnit.NANOSECONDS.toMillis(maxLatency.get()) + " ms");
+}

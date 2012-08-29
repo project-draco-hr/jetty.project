@@ -1,0 +1,54 @@
+{
+  GatewayServer server=new GatewayServer();
+  Connector connector=new SelectChannelConnector();
+  server.addConnector(connector);
+  final long clientTimeout=2000L;
+  server.getConnectorServlet().setInitParameter("clientTimeout","" + clientTimeout);
+  final long gatewayTimeout=4000L;
+  ((StandardGateway)server.getGateway()).setGatewayTimeout(gatewayTimeout);
+  server.start();
+  try {
+    Address address=new Address("localhost",connector.getLocalPort());
+    HttpClient httpClient=new HttpClient();
+    httpClient.setConnectorType(HttpClient.CONNECTOR_SELECT_CHANNEL);
+    httpClient.start();
+    try {
+      String targetId="1";
+      final RHTTPClient client=new JettyClient(httpClient,address,server.getContext().getContextPath() + GatewayServer.DFT_CONNECT_PATH,targetId){
+        private final AtomicInteger connects=new AtomicInteger();
+        @Override protected void asyncConnect(){
+          if (connects.incrementAndGet() == 2) {
+            try {
+              Thread.sleep(clientTimeout * 2);
+            }
+ catch (            InterruptedException x) {
+              throw new RuntimeException(x);
+            }
+          }
+          super.asyncConnect();
+        }
+      }
+;
+      final CountDownLatch connectLatch=new CountDownLatch(1);
+      client.addClientListener(new ClientListener.Adapter(){
+        @Override public void connectRequired(){
+          connectLatch.countDown();
+        }
+      }
+);
+      client.connect();
+      try {
+        assertTrue(connectLatch.await(gatewayTimeout + clientTimeout * 3,TimeUnit.MILLISECONDS));
+      }
+  finally {
+        client.disconnect();
+      }
+    }
+  finally {
+      httpClient.stop();
+    }
+  }
+  finally {
+    server.stop();
+  }
+}

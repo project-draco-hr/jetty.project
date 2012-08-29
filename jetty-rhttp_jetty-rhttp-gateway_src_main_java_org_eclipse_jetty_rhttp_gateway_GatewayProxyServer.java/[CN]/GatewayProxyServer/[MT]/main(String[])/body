@@ -1,0 +1,18 @@
+{
+  GatewayServer server=new GatewayServer();
+  Connector plainConnector=new SelectChannelConnector();
+  plainConnector.setPort(8080);
+  server.addConnector(plainConnector);
+  ((StandardGateway)server.getGateway()).setExternalTimeout(180000);
+  ((StandardGateway)server.getGateway()).setGatewayTimeout(20000);
+  server.setTargetIdRetriever(new ProxyTargetIdRetriever());
+  server.start();
+  HttpClient httpClient=new HttpClient();
+  httpClient.setConnectorType(HttpClient.CONNECTOR_SOCKET);
+  httpClient.start();
+  RHTTPClient client=new JettyClient(httpClient,new Address("localhost",plainConnector.getPort()),server.getContext().getContextPath() + "/gw","proxy");
+  client.addListener(new ProxyListener(httpClient,client));
+  client.connect();
+  Runtime.getRuntime().addShutdownHook(new Shutdown(server,httpClient,client));
+  logger.info("{} started",GatewayProxyServer.class.getSimpleName());
+}

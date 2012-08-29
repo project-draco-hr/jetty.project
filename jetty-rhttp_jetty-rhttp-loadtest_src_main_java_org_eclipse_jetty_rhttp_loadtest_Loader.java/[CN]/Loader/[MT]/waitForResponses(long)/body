@@ -1,0 +1,27 @@
+{
+  long arrived=responses.get() + failures.get();
+  long lastArrived=0;
+  int maxRetries=20;
+  int retries=maxRetries;
+  while (arrived < expected) {
+    System.err.println("Waiting for responses to arrive " + arrived + "/"+ expected);
+    Thread.sleep(500);
+    if (lastArrived == arrived) {
+      --retries;
+      if (retries == 0)       break;
+    }
+ else {
+      lastArrived=arrived;
+      retries=maxRetries;
+    }
+    arrived=responses.get() + failures.get();
+  }
+  if (arrived < expected) {
+    System.err.println("Interrupting wait for responses " + arrived + "/"+ expected);
+    return false;
+  }
+ else {
+    System.err.println("All responses arrived " + arrived + "/"+ expected);
+    return true;
+  }
+}

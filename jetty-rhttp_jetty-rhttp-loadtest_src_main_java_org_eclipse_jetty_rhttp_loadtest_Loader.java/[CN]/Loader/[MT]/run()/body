@@ -1,0 +1,120 @@
+{
+  HttpClient httpClient=new HttpClient();
+  httpClient.setMaxConnectionsPerAddress(40000);
+  QueuedThreadPool threadPool=new QueuedThreadPool();
+  threadPool.setMaxThreads(500);
+  threadPool.setDaemon(true);
+  httpClient.setThreadPool(threadPool);
+  httpClient.setIdleTimeout(5000);
+  httpClient.start();
+  Random random=new Random();
+  BufferedReader console=new BufferedReader(new InputStreamReader(System.in));
+  System.err.print("server [localhost]: ");
+  String value=console.readLine().trim();
+  if (value.length() == 0)   value="localhost";
+  String host=value;
+  System.err.print("port [8080]: ");
+  value=console.readLine().trim();
+  if (value.length() == 0)   value="8080";
+  int port=Integer.parseInt(value);
+  System.err.print("context []: ");
+  value=console.readLine().trim();
+  if (value.length() == 0)   value="";
+  String context=value;
+  System.err.print("external path [/]: ");
+  value=console.readLine().trim();
+  if (value.length() == 0)   value="/";
+  String externalPath=value;
+  System.err.print("gateway path [/__gateway]: ");
+  value=console.readLine().trim();
+  if (value.length() == 0)   value="/__gateway";
+  String gatewayPath=value;
+  int clients=100;
+  int batchCount=1000;
+  int batchSize=5;
+  long batchPause=5;
+  int requestSize=50;
+  while (true) {
+    System.err.println("-----");
+    System.err.print("clients [" + clients + "]: ");
+    value=console.readLine();
+    if (value == null)     break;
+    value=value.trim();
+    if (value.length() == 0)     value="" + clients;
+    clients=Integer.parseInt(value);
+    System.err.println("Waiting for clients to be ready...");
+    Address gatewayAddress=new Address(host,port);
+    String gatewayURI=context + gatewayPath;
+    int currentClients=this.clients.size();
+    if (currentClients < clients) {
+      for (int i=0; i < clients - currentClients; ++i) {
+        final RHTTPClient client=new JettyClient(httpClient,gatewayAddress,gatewayURI,nodeName + (currentClients + i));
+        client.addListener(new EchoListener(client));
+        client.connect();
+        this.clients.add(client);
+        if (i % 10 == 0) {
+          Thread.sleep(100);
+        }
+      }
+    }
+ else     if (currentClients > clients) {
+      for (int i=0; i < currentClients - clients; ++i) {
+        RHTTPClient client=this.clients.remove(currentClients - i - 1);
+        client.disconnect();
+      }
+    }
+    System.err.println("Clients ready");
+    currentClients=this.clients.size();
+    if (currentClients > 0) {
+      System.err.print("batch count [" + batchCount + "]: ");
+      value=console.readLine().trim();
+      if (value.length() == 0)       value="" + batchCount;
+      batchCount=Integer.parseInt(value);
+      System.err.print("batch size [" + batchSize + "]: ");
+      value=console.readLine().trim();
+      if (value.length() == 0)       value="" + batchSize;
+      batchSize=Integer.parseInt(value);
+      System.err.print("batch pause [" + batchPause + "]: ");
+      value=console.readLine().trim();
+      if (value.length() == 0)       value="" + batchPause;
+      batchPause=Long.parseLong(value);
+      System.err.print("request size [" + requestSize + "]: ");
+      value=console.readLine().trim();
+      if (value.length() == 0)       value="" + requestSize;
+      requestSize=Integer.parseInt(value);
+      String requestBody="";
+      for (int i=0; i < requestSize; i++)       requestBody+="x";
+      String externalURL="http://" + host + ":"+ port+ context+ externalPath;
+      if (!externalURL.endsWith("/"))       externalURL+="/";
+      reset();
+      long start=System.nanoTime();
+      long expected=0;
+      for (int i=0; i < batchCount; ++i) {
+        for (int j=0; j < batchSize; ++j) {
+          int clientIndex=random.nextInt(this.clients.size());
+          RHTTPClient client=this.clients.get(clientIndex);
+          String targetId=client.getTargetId();
+          String url=externalURL + targetId;
+          ExternalExchange exchange=new ExternalExchange();
+          exchange.setMethod("GET");
+          exchange.setURL(url);
+          exchange.setRequestContent(new ByteArrayBuffer(requestBody,"UTF-8"));
+          exchange.send(httpClient);
+          ++expected;
+        }
+        if (batchPause > 0)         Thread.sleep(batchPause);
+      }
+      long end=System.nanoTime();
+      long elapsedNanos=end - start;
+      if (elapsedNanos > 0) {
+        System.err.print("Messages - Elapsed | Rate = ");
+        System.err.print(TimeUnit.NANOSECONDS.toMillis(elapsedNanos));
+        System.err.print(" ms | ");
+        System.err.print(expected * 1000 * 1000* 1000 / elapsedNanos);
+        System.err.println(" requests/s ");
+      }
+      waitForResponses(expected);
+      printReport(expected);
+    }
+  }
+}
