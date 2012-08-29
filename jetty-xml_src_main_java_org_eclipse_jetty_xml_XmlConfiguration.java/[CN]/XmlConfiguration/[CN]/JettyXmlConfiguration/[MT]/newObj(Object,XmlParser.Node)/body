@@ -1,30 +1,24 @@
 {
   Class<?> oClass=nodeClass(node);
   int size=0;
-  int argi=node.size();
+  int argIndex=node.size();
   for (int i=0; i < node.size(); i++) {
     Object o=node.get(i);
     if (o instanceof String)     continue;
     if (!((XmlParser.Node)o).getTag().equals("Arg")) {
-      argi=i;
+      argIndex=i;
       break;
     }
     size++;
   }
-  Map<String,Object> namedArgMap=new HashMap<String,Object>();
+  Map<String,Object> namedArgMap=new HashMap<>();
   List<Object> arguments=new LinkedList<>();
-  Object[] arg=new Object[size];
-  for (int i=0, j=0; j < size; i++) {
+  for (int i=0; i < size; i++) {
     Object o=node.get(i);
     XmlParser.Node argNode=(XmlParser.Node)o;
-    if (o instanceof String) {
-      continue;
-    }
-    arg[j++]=value(obj,(XmlParser.Node)o);
+    if (o instanceof String)     continue;
     String namedAttribute=argNode.getAttribute("name");
-    if (namedAttribute != null) {
-      namedArgMap.put(namedAttribute,value(obj,(XmlParser.Node)o));
-    }
+    if (namedAttribute != null)     namedArgMap.put(namedAttribute,value(obj,(XmlParser.Node)o));
     arguments.add(value(obj,(XmlParser.Node)o));
   }
   if (LOG.isDebugEnabled())   LOG.debug("XML new " + oClass);
@@ -38,7 +32,7 @@
       LOG.debug("using normal mapping");
       n=TypeUtil.construct(oClass,arguments.toArray());
     }
-    configure(n,node,argi);
+    configure(n,node,argIndex);
     return n;
   }
  catch (  NoSuchMethodException e) {

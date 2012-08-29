@@ -11,7 +11,10 @@
       SSLEngineResult wrapResult=_sslEngine.wrap(appOuts,_encryptedOutput);
       LOG.debug("{} wrap {}",SslConnection.this,wrapResult);
       BufferUtil.flipToFlush(_encryptedOutput,pos);
-      consumed+=wrapResult.bytesConsumed();
+      if (wrapResult.bytesConsumed() > 0) {
+        consumed+=wrapResult.bytesConsumed();
+        for (        ByteBuffer b : appOuts)         if (BufferUtil.isEmpty(b))         BufferUtil.clear(b);
+      }
 switch (wrapResult.getStatus()) {
 case CLOSED:
         if (BufferUtil.hasContent(_encryptedOutput)) {

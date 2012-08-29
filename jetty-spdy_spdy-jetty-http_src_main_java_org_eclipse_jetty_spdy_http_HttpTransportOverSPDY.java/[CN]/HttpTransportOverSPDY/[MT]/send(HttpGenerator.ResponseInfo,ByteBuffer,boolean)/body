@@ -1,0 +1,27 @@
+{
+  short version=stream.getSession().getVersion();
+  Headers headers=new Headers();
+  HttpVersion httpVersion=HttpVersion.HTTP_1_1;
+  headers.put(HTTPSPDYHeader.VERSION.name(version),httpVersion.asString());
+  int status=info.getStatus();
+  StringBuilder httpStatus=new StringBuilder().append(status);
+  String reason=info.getReason();
+  if (reason == null)   reason=HttpStatus.getMessage(status);
+  if (reason != null)   httpStatus.append(" ").append(reason);
+  headers.put(HTTPSPDYHeader.STATUS.name(version),httpStatus.toString());
+  LOG.debug("HTTP < {} {}",httpVersion,httpStatus);
+  HttpFields fields=info.getHttpFields();
+  if (fields != null) {
+    for (int i=0; i < fields.size(); ++i) {
+      HttpFields.Field field=fields.getField(i);
+      String name=field.getName();
+      String value=field.getValue();
+      headers.put(name,value);
+      LOG.debug("HTTP < {}: {}",name,value);
+    }
+  }
+  boolean noContent=BufferUtil.isEmpty(content);
+  boolean close=noContent && lastContent;
+  reply(stream,new ReplyInfo(headers,close));
+  if (!noContent)   stream.data(new ByteBufferDataInfo(content,lastContent));
+}

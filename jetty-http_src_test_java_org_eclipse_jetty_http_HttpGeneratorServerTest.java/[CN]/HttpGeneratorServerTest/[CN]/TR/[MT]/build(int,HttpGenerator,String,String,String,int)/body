@@ -21,48 +21,29 @@
   }
   ByteBuffer header=null;
   ByteBuffer chunk=null;
-  ByteBuffer buffer=null;
-  HttpGenerator.Info info=null;
-  while (!gen.isComplete()) {
+  HttpGenerator.ResponseInfo info=null;
+  loop:   while (true) {
     if (source != null && content != null && content.remaining() == 0 && c < nchunks) {
       content=chunks[c++];
     }
-    Action action=BufferUtil.hasContent(content) ? null : Action.COMPLETE;
-    HttpGenerator.Result result=gen.generate(info,header,chunk,buffer,content,action);
+    boolean last=!BufferUtil.hasContent(content);
+    HttpGenerator.Result result=gen.generateResponse(info,header,chunk,content,last);
 switch (result) {
 case NEED_INFO:
       info=new HttpGenerator.ResponseInfo(HttpVersion.fromVersion(version),_fields,_contentLength,_code,reason,_head);
-    break;
+    continue;
 case NEED_HEADER:
   header=BufferUtil.allocate(2048);
-break;
-case NEED_BUFFER:
-buffer=BufferUtil.allocate(8192);
-break;
+continue;
 case NEED_CHUNK:
-header=null;
 chunk=BufferUtil.allocate(HttpGenerator.CHUNK_SIZE);
-break;
+continue;
 case FLUSH:
 if (BufferUtil.hasContent(header)) {
 response+=BufferUtil.toString(header);
 header.position(header.limit());
 }
- else if (BufferUtil.hasContent(chunk)) {
-response+=BufferUtil.toString(chunk);
-chunk.position(chunk.limit());
-}
-if (BufferUtil.hasContent(buffer)) {
-response+=BufferUtil.toString(buffer);
-buffer.position(buffer.limit());
-}
-break;
-case FLUSH_CONTENT:
-if (BufferUtil.hasContent(header)) {
-response+=BufferUtil.toString(header);
-header.position(header.limit());
-}
- else if (BufferUtil.hasContent(chunk)) {
+if (BufferUtil.hasContent(chunk)) {
 response+=BufferUtil.toString(chunk);
 chunk.position(chunk.limit());
 }
@@ -71,8 +52,12 @@ response+=BufferUtil.toString(content);
 content.position(content.limit());
 }
 break;
-case OK:
+case CONTINUE:
+continue;
 case SHUTDOWN_OUT:
+break;
+case DONE:
+break loop;
 }
 }
 return response;

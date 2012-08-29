@@ -1,9 +1,13 @@
 {
 synchronized (lock()) {
+    T item=_inputQ.peekUnsafe();
+    while (item != null) {
+      _inputQ.pollUnsafe();
+      onContentConsumed(item);
+      item=_inputQ.peekUnsafe();
+      if (item == null)       onAllContentConsumed();
+    }
     _inputEOF=false;
-    if (_content != null)     onContentConsumed(_content);
-    while ((_content=_inputQ.poll()) != null)     onContentConsumed(_content);
-    if (_content != null)     onAllContentConsumed();
-    _content=null;
+    _earlyEOF=false;
   }
 }

@@ -1,0 +1,21 @@
+{
+  Set<String> paths=super.getResourcePaths(path);
+  if (paths.isEmpty() && path != null) {
+    path=URIUtil.canonicalPath(path);
+    if (path.startsWith(WEB_INF_LIB_PREFIX)) {
+      paths=new TreeSet<String>();
+      for (      String fileName : webInfJarMap.keySet()) {
+        paths.add(WEB_INF_LIB_PREFIX + "/" + fileName);
+      }
+    }
+ else     if (path.startsWith(WEB_INF_CLASSES_PREFIX)) {
+      int i=0;
+      while (paths.isEmpty() && (i < webInfClasses.size())) {
+        String newPath=path.replace(WEB_INF_CLASSES_PREFIX,webInfClasses.get(i).getPath());
+        paths=super.getResourcePaths(newPath);
+        i++;
+      }
+    }
+  }
+  return paths;
+}

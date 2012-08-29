@@ -1,28 +1,27 @@
 {
   if (isDumpBeforeStop())   dumpStdErr();
   MultiException mex=new MultiException();
-  for (  Connector connector : _connectors) {
-    if (connector instanceof NetworkConnector)     ((NetworkConnector)connector).close();
-  }
+  List<Future<Void>> futures=new ArrayList<>();
+  for (  Connector connector : _connectors)   futures.add(connector.shutdown((Void)null));
   Handler[] contexts=getChildHandlersByClass(Graceful.class);
-  for (  Handler context : contexts) {
-    Graceful graceful=(Graceful)context;
-    graceful.shutdown();
-  }
+  for (  Handler context : contexts)   futures.add(((Graceful)context).shutdown((Void)null));
   long stopTimeout=getStopTimeout();
-  if (stopTimeout > 0 && LOG.isDebugEnabled()) {
+  if (stopTimeout > 0) {
     long stop_by=System.currentTimeMillis() + stopTimeout;
     LOG.info("Graceful shutdown {} by ",this,new Date(stop_by));
-    for (    Connector connector : _connectors) {
-      if (connector instanceof AbstractConnector)       ((AbstractConnector)connector).setIdleTimeout(1);
-    }
-    for (    Connector connector : _connectors) {
-      while (connector.getStatistics().isRunning() && connector.getStatistics().getConnectionsOpen() > 0 && System.currentTimeMillis() < stop_by) {
-        System.err.println(((Dumpable)connector).dump());
-        Thread.sleep(100);
+    for (    Future<Void> future : futures) {
+      try {
+        if (!future.isDone())         future.get(Math.max(1L,stop_by - System.currentTimeMillis()),TimeUnit.MILLISECONDS);
+      }
+ catch (      ExecutionException e) {
+        mex.add(e.getCause());
+      }
+catch (      Exception e) {
+        mex.add(e.getCause());
       }
     }
   }
+  for (  Future<Void> future : futures)   if (!future.isDone())   future.cancel(true);
   for (  Connector connector : _connectors) {
     try {
       connector.stop();
@@ -37,6 +36,6 @@
  catch (  Throwable e) {
     mex.add(e);
   }
-  mex.ifExceptionThrow();
   if (getStopAtShutdown())   ShutdownThread.deregister(this);
+  mex.ifExceptionThrow();
 }

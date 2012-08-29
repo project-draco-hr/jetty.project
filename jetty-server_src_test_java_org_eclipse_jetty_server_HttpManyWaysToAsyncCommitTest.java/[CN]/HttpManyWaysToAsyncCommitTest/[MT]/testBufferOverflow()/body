@@ -1,8 +1,10 @@
 {
-  server.setHandler(new OverflowHandler(false));
+  OverflowHandler handler=new OverflowHandler(false);
+  server.setHandler(handler);
   server.start();
   SimpleHttpResponse response=executeRequest();
   assertThat("response code is 200",response.getCode(),is("200"));
   assertResponseBody(response,"foobar");
-  assertHeader(response,"content-length","6");
+  if (!"HTTP/1.0".equals(httpVersion))   assertHeader(response,"transfer-encoding","chunked");
+  assertThat("no exceptions",handler.failure(),is(nullValue()));
 }

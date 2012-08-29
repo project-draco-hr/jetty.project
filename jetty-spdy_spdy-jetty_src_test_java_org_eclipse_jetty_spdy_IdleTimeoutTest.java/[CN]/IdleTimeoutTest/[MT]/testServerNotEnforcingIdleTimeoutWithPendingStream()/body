@@ -1,5 +1,6 @@
 {
-  connector=newSPDYServerConnector(new ServerSessionFrameListener.Adapter(){
+  server=newServer();
+  connector=newSPDYServerConnector(server,new ServerSessionFrameListener.Adapter(){
     @Override public StreamFrameListener onSyn(    Stream stream,    SynInfo synInfo){
       try {
         Thread.sleep(2 * idleTimeout);
@@ -14,10 +15,10 @@
   }
 );
   connector.setIdleTimeout(idleTimeout);
-  final CountDownLatch latch=new CountDownLatch(1);
+  final CountDownLatch goAwayLatch=new CountDownLatch(1);
   Session session=startClient(startServer(null),new SessionFrameListener.Adapter(){
     @Override public void onGoAway(    Session session,    GoAwayInfo goAwayInfo){
-      latch.countDown();
+      goAwayLatch.countDown();
     }
   }
 );
@@ -29,5 +30,5 @@
   }
 );
   Assert.assertTrue(replyLatch.await(3 * idleTimeout,TimeUnit.MILLISECONDS));
-  Assert.assertFalse(latch.await(1000,TimeUnit.MILLISECONDS));
+  Assert.assertFalse(goAwayLatch.await(idleTimeout / 2,TimeUnit.MILLISECONDS));
 }

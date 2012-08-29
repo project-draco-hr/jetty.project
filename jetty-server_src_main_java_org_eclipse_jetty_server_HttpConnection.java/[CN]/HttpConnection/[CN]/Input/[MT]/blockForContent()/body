@@ -1,0 +1,37 @@
+{
+  try {
+    while (true) {
+      boolean event=_parser.parseNext(_requestBuffer == null ? BufferUtil.EMPTY_BUFFER : _requestBuffer);
+      while (event && BufferUtil.hasContent(_requestBuffer) && _parser.inContentState())       _parser.parseNext(_requestBuffer);
+      if (event)       return;
+      if (BufferUtil.isEmpty(_requestBuffer)) {
+        if (getEndPoint().isInputShutdown()) {
+          _parser.inputShutdown();
+          return;
+        }
+        FutureCallback<Void> block=new FutureCallback<>();
+        getEndPoint().fillInterested(null,block);
+        LOG.debug("{} block readable on {}",this,block);
+        block.get();
+        if (_requestBuffer == null)         _requestBuffer=_bufferPool.acquire(_configuration.getRequestBufferSize(),false);
+        int filled=getEndPoint().fill(_requestBuffer);
+        LOG.debug("{} block filled {}",this,filled);
+        if (filled < 0) {
+          _parser.inputShutdown();
+          return;
+        }
+      }
+    }
+  }
+ catch (  final InterruptedException x) {
+    throw new InterruptedIOException(getEndPoint().toString()){
+{
+        initCause(x);
+      }
+    }
+;
+  }
+catch (  ExecutionException e) {
+    FutureCallback.rethrow(e);
+  }
+}

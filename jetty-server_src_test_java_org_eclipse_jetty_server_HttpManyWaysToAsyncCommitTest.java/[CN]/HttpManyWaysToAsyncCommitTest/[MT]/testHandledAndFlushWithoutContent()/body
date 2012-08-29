@@ -1,7 +1,9 @@
 {
-  server.setHandler(new SetHandledAndFlushWithoutContentHandler(false));
+  SetHandledAndFlushWithoutContentHandler handler=new SetHandledAndFlushWithoutContentHandler(false);
+  server.setHandler(handler);
   server.start();
   SimpleHttpResponse response=executeRequest();
   assertThat("response code is 200",response.getCode(),is("200"));
-  if ("HTTP/1.1".equals(httpVersion))   assertHeader(response,"transfer-encoding","chunked");
+  assertThat("no exceptions",handler.failure(),is(nullValue()));
+  if (!"HTTP/1.0".equals(httpVersion))   assertHeader(response,"transfer-encoding","chunked");
 }

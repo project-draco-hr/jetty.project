@@ -1,23 +1,27 @@
 {
   ByteBuffer header=BufferUtil.allocate(2048);
   HttpGenerator gen=new HttpGenerator();
-  HttpGenerator.Result result=gen.generate(null,null,null,null,null,Action.COMPLETE);
-  assertEquals(HttpGenerator.State.COMMITTING_COMPLETING,gen.getState());
+  HttpGenerator.Result result=gen.generateRequest(null,null,null,null,true);
   assertEquals(HttpGenerator.Result.NEED_INFO,result);
+  assertEquals(HttpGenerator.State.START,gen.getState());
   Info info=new Info("GET","/index.html");
   info.getHttpFields().add("Host","something");
   info.getHttpFields().add("User-Agent","test");
   assertTrue(!gen.isChunking());
-  result=gen.generate(info,header,null,null,null,null);
+  result=gen.generateRequest(info,null,null,null,true);
+  assertEquals(HttpGenerator.Result.NEED_HEADER,result);
+  assertEquals(HttpGenerator.State.START,gen.getState());
+  result=gen.generateRequest(info,header,null,null,true);
   assertEquals(HttpGenerator.Result.FLUSH,result);
+  assertEquals(HttpGenerator.State.COMPLETING,gen.getState());
   assertTrue(!gen.isChunking());
-  String head=BufferUtil.toString(header);
+  String out=BufferUtil.toString(header);
   BufferUtil.clear(header);
-  result=gen.generate(info,null,null,null,null,null);
-  assertEquals(HttpGenerator.Result.OK,result);
+  result=gen.generateResponse(null,null,null,null,false);
+  assertEquals(HttpGenerator.Result.DONE,result);
   assertEquals(HttpGenerator.State.END,gen.getState());
   assertTrue(!gen.isChunking());
   assertEquals(0,gen.getContentPrepared());
-  assertThat(head,containsString("GET /index.html HTTP/1.1"));
-  assertThat(head,not(containsString("Content-Length")));
+  assertThat(out,containsString("GET /index.html HTTP/1.1"));
+  assertThat(out,not(containsString("Content-Length")));
 }

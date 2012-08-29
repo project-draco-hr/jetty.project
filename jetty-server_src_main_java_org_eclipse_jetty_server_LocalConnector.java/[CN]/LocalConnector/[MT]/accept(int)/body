@@ -1,9 +1,24 @@
 {
   LOG.debug("accepting {}",acceptorID);
-  LocalEndPoint endp=_connects.take();
-  Connection connection=getDefaultConnectionFactory().newConnection(null,endp,null);
-  endp.setConnection(connection);
-  endp.onOpen();
-  connectionOpened(connection);
-  connection.onOpen();
+  LocalEndPoint endPoint=_connects.take();
+  endPoint.onOpen();
+  SslContextFactory sslContextFactory=getSslContextFactory();
+  if (sslContextFactory != null) {
+    SSLEngine engine=sslContextFactory.newSSLEngine(endPoint.getRemoteAddress());
+    engine.setUseClientMode(false);
+    SslConnection sslConnection=new SslConnection(getByteBufferPool(),getExecutor(),endPoint,engine);
+    endPoint.setConnection(sslConnection);
+    connectionOpened(sslConnection);
+    sslConnection.onOpen();
+    EndPoint appEndPoint=sslConnection.getDecryptedEndPoint();
+    Connection connection=getDefaultConnectionFactory().newConnection(null,appEndPoint,null);
+    appEndPoint.setConnection(connection);
+    connection.onOpen();
+  }
+ else {
+    Connection connection=getDefaultConnectionFactory().newConnection(null,endPoint,null);
+    endPoint.setConnection(connection);
+    connectionOpened(connection);
+    connection.onOpen();
+  }
 }

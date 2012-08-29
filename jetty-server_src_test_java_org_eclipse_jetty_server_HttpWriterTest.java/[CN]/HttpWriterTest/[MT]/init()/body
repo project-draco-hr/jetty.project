@@ -1,38 +1,20 @@
 {
   _bytes=BufferUtil.allocate(2048);
-  HttpChannel channel=new HttpChannel(null,null,null){
+  final HttpConfiguration configuration=new HttpConfiguration(null,false);
+  final ByteBufferPool bufferPool=new MappedByteBufferPool();
+  HttpChannel channel=new HttpChannel<ByteBuffer>(null,null,null,null,null){
     @Override public HttpConfiguration getHttpConfiguration(){
-      return null;
+      return configuration;
     }
-    @Override protected int write(    ByteBuffer content) throws IOException {
-      return BufferUtil.append(content,_bytes);
-    }
-    @Override protected void commitResponse(    ResponseInfo info,    ByteBuffer content) throws IOException {
-    }
-    @Override protected int getContentBufferSize(){
-      return 0;
-    }
-    @Override protected void increaseContentBufferSize(    int size){
-    }
-    @Override protected void resetBuffer(){
-      BufferUtil.clear(_bytes);
-    }
-    @Override protected void flushResponse() throws IOException {
-    }
-    @Override protected void completeResponse() throws IOException {
-    }
-    @Override protected void completed(){
-    }
-    @Override protected void execute(    Runnable task){
-      task.run();
-    }
-    @Override public ScheduledExecutorService getScheduler(){
-      return null;
-    }
-    @Override public Connector getConnector(){
-      return null;
+    @Override public ByteBufferPool getByteBufferPool(){
+      return bufferPool;
     }
   }
 ;
-  _httpOut=new HttpOutput(channel);
+  _httpOut=new HttpOutput(channel){
+    @Override public void write(    byte[] b,    int off,    int len) throws IOException {
+      BufferUtil.append(_bytes,b,off,len);
+    }
+  }
+;
 }

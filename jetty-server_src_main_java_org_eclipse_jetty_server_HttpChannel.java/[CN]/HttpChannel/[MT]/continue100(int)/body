@@ -1,9 +1,10 @@
 {
-  if (_expect100Continue) {
-    if (available == 0) {
-      if (_response.isCommitted())       throw new IllegalStateException("Committed before 100 Continues");
-      commitResponse(HttpGenerator.CONTINUE_100_INFO,null);
-    }
+  if (isExpecting100Continue()) {
     _expect100Continue=false;
+    if (available == 0) {
+      if (_response.isCommitted())       throw new IOException("Committed before 100 Continues");
+      boolean committed=commitResponse(HttpGenerator.CONTINUE_100_INFO,null,false);
+      if (!committed)       throw new IOException("Concurrent commit while trying to send 100-Continue");
+    }
   }
 }
