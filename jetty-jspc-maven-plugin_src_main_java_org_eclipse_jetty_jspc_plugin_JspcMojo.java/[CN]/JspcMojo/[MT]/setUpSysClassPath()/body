@@ -1,0 +1,34 @@
+{
+  StringBuffer buff=new StringBuffer();
+  for (Iterator<Artifact> iter=pluginArtifacts.iterator(); iter.hasNext(); ) {
+    Artifact pluginArtifact=iter.next();
+    if ("jar".equalsIgnoreCase(pluginArtifact.getType())) {
+      if (getLog().isDebugEnabled()) {
+        getLog().debug("Adding plugin artifact " + pluginArtifact);
+      }
+      buff.append(pluginArtifact.getFile().getAbsolutePath());
+      if (iter.hasNext())       buff.append(File.pathSeparator);
+    }
+  }
+  if (useProvidedScope) {
+    for (Iterator<Artifact> iter=projectArtifacts.iterator(); iter.hasNext(); ) {
+      Artifact artifact=iter.next();
+      if (Artifact.SCOPE_PROVIDED.equals(artifact.getScope())) {
+        String path=artifact.getFile().getAbsolutePath();
+        if (!buff.toString().contains(path)) {
+          if (buff.length() != 0)           buff.append(File.pathSeparator);
+          buff.append(path);
+          if (getLog().isDebugEnabled()) {
+            getLog().debug("Adding provided artifact: " + artifact);
+          }
+        }
+ else {
+          if (getLog().isDebugEnabled()) {
+            getLog().debug("Skipping provided artifact: " + artifact);
+          }
+        }
+      }
+    }
+  }
+  return buff.toString();
+}
