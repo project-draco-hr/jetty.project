@@ -1,0 +1,20 @@
+{
+  Headers headers=new Headers(clientSynInfo.getHeaders(),false);
+  short serverVersion=getVersion(proxyServerInfo.getProtocol());
+  InetSocketAddress address=proxyServerInfo.getAddress();
+  Session serverSession=produceSession(proxyServerInfo.getHost(),serverVersion,address);
+  if (serverSession == null) {
+    rst(clientStream);
+    return null;
+  }
+  final Session clientSession=clientStream.getSession();
+  addRequestProxyHeaders(clientStream,headers);
+  customizeRequestHeaders(clientStream,headers);
+  convert(clientSession.getVersion(),serverVersion,headers);
+  SynInfo serverSynInfo=new SynInfo(headers,clientSynInfo.isClose());
+  StreamFrameListener listener=new ProxyStreamFrameListener(clientStream);
+  StreamHandler handler=new StreamHandler(clientStream,serverSynInfo);
+  clientStream.setAttribute(STREAM_HANDLER_ATTRIBUTE,handler);
+  serverSession.syn(serverSynInfo,listener,timeout,TimeUnit.MILLISECONDS,handler);
+  return this;
+}

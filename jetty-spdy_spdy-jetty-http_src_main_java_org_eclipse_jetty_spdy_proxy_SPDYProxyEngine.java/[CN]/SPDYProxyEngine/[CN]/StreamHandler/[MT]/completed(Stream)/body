@@ -1,0 +1,23 @@
+{
+  logger.debug("P -> S {} from {} to {}",serverSynInfo,clientStream,serverStream);
+  serverStream.setAttribute(CLIENT_STREAM_ATTRIBUTE,clientStream);
+  DataInfoHandler dataInfoHandler;
+synchronized (queue) {
+    this.serverStream=serverStream;
+    dataInfoHandler=queue.peek();
+    if (dataInfoHandler != null) {
+      if (dataInfoHandler.flushing) {
+        logger.debug("SYN completed, flushing {}, queue size {}",dataInfoHandler.dataInfo,queue.size());
+        dataInfoHandler=null;
+      }
+ else {
+        dataInfoHandler.flushing=true;
+        logger.debug("SYN completed, queue size {}",queue.size());
+      }
+    }
+ else {
+      logger.debug("SYN completed, queue empty");
+    }
+  }
+  if (dataInfoHandler != null)   flush(serverStream,dataInfoHandler);
+}
