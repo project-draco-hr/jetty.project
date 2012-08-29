@@ -1,0 +1,24 @@
+{
+  if (!_isTxServiceAvailable) {
+    LOG.warn("No tx manager found");
+  }
+ else {
+    _utId=Integer.toHexString(_random.nextInt());
+    if (_txMgrPropertiesFile == null) {
+      System.setProperty("com.atomikos.icatch.no_file","true");
+      File tmpDir=new File(System.getProperty("java.io.tmpdir"));
+      tmpDir=new File(tmpDir,_utId);
+      tmpDir.mkdir();
+      LOG.debug("Made " + tmpDir.getAbsolutePath());
+      System.setProperty("com.atomikos.icatch.log_base_dir ",tmpDir.getCanonicalPath());
+      System.setProperty("com.atomikos.icatch.console_file_name","tm-debug.log");
+      System.setProperty("com.atomikos.icatch.output_dir",tmpDir.getCanonicalPath());
+      System.setProperty("com.atomikos.icatch.tm_unique_name",_utId);
+    }
+ else {
+      System.setProperty("com.atomikos.icatch.file",_txMgrPropertiesFile);
+    }
+    Class utsClass=Thread.currentThread().getContextClassLoader().loadClass("com.atomikos.icatch.jta.UserTransactionImp");
+    Transaction txMgrResource=new Transaction((UserTransaction)utsClass.newInstance());
+  }
+}
