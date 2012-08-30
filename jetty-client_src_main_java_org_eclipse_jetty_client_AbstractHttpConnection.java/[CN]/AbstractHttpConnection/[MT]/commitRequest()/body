@@ -33,23 +33,18 @@ synchronized (this) {
       requestHeaders.putLongField(HttpHeaders.CONTENT_LENGTH,requestContent.length());
       _generator.completeHeader(requestHeaders,false);
       _generator.addContent(new View(requestContent),true);
+      _exchange.setStatus(HttpExchange.STATUS_WAITING_FOR_RESPONSE);
     }
  else {
       InputStream requestContentStream=_exchange.getRequestContentSource();
       if (requestContentStream != null) {
         _generator.completeHeader(requestHeaders,false);
-        int available=requestContentStream.available();
-        if (available > 0) {
-          byte[] buf=new byte[available];
-          int length=requestContentStream.read(buf);
-          _generator.addContent(new ByteArrayBuffer(buf,0,length),false);
-        }
       }
  else {
         requestHeaders.remove(HttpHeaders.CONTENT_LENGTH);
         _generator.completeHeader(requestHeaders,true);
+        _exchange.setStatus(HttpExchange.STATUS_WAITING_FOR_RESPONSE);
       }
     }
-    _exchange.setStatus(HttpExchange.STATUS_WAITING_FOR_RESPONSE);
   }
 }
