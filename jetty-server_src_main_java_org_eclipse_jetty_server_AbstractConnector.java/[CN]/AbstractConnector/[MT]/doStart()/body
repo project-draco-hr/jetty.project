@@ -1,11 +1,6 @@
 {
-  if (_server == null)   throw new IllegalStateException("No server");
-  if (_name == null)   _name=(getHost() == null ? "0.0.0.0" : getHost()) + ":" + getPort();
-  open();
-  _name=_name + "/" + getLocalPort();
   super.doStart();
-synchronized (this) {
-    for (int i=0; i < _acceptors.length; i++)     findExecutor().execute(new Acceptor(i));
-  }
+  _stopping=new CountDownLatch(_acceptors.length);
+  for (int i=0; i < _acceptors.length; i++)   getExecutor().execute(new Acceptor(i));
   LOG.info("Started {}",this);
 }

@@ -3,10 +3,15 @@
     return;
   }
   try {
-    LOG.debug("Parsing {} bytes",buffer.remaining());
     while (parseFrame(buffer)) {
-      LOG.debug("Parsed Frame: " + frame);
+      LOG.debug("{} Parsed Frame: {}",policy.getBehavior(),frame);
       notifyFrame(frame);
+      if (frame.isDataFrame() && frame.isFin()) {
+        priorDataFrame=null;
+      }
+ else {
+        priorDataFrame=frame;
+      }
     }
   }
  catch (  WebSocketException e) {

@@ -11,7 +11,10 @@ synchronized (queue) {
       buffer=frameBytes.getByteBuffer();
       if (buffer != null) {
         queue.remove(i);
-        if (stream != null && !streams.containsValue(stream) && !stream.isUnidirectional())         frameBytes.fail(new StreamException(stream.getId(),StreamStatus.INVALID_STREAM));
+        if (stream != null && stream.isReset()) {
+          frameBytes.fail(new StreamException(stream.getId(),StreamStatus.INVALID_STREAM));
+          return;
+        }
         break;
       }
       if (stalledStreams == null)       stalledStreams=new HashSet<>();

@@ -7,8 +7,20 @@
       getPolicy().assertValidPayloadLength(payloadLength);
       frame.assertValid();
       payload=ByteBuffer.allocate(payloadLength);
+      BufferUtil.clearToFill(payload);
     }
-    copyBuffer(buffer,payload,payload.remaining());
+    ByteBuffer window=buffer.slice();
+    int bytesExpected=payloadLength - payload.position();
+    int bytesAvailable=buffer.remaining();
+    int windowBytes=Math.min(bytesAvailable,bytesExpected);
+    window.limit(window.position() + windowBytes);
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("Window: {}",BufferUtil.toDetailString(window));
+    }
+    maskProcessor.process(window);
+    strictnessProcessor.process(window);
+    int len=BufferUtil.put(window,payload);
+    buffer.position(buffer.position() + len);
     if (payload.position() >= payloadLength) {
       BufferUtil.flipToFlush(payload,0);
       frame.setPayload(payload);

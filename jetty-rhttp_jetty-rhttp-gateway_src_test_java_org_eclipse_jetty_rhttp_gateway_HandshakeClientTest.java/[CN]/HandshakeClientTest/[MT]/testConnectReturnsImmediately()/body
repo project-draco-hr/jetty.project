@@ -1,0 +1,31 @@
+{
+  GatewayServer server=new GatewayServer();
+  SelectChannelConnector connector=new SelectChannelConnector();
+  server.addConnector(connector);
+  long gwt=5000L;
+  ((StandardGateway)server.getGateway()).setGatewayTimeout(gwt);
+  server.start();
+  try {
+    HttpClient httpClient=new HttpClient();
+    httpClient.setConnectorType(HttpClient.CONNECTOR_SELECT_CHANNEL);
+    httpClient.start();
+    try {
+      RHTTPClient client=new JettyClient(httpClient,new Address("localhost",connector.getLocalPort()),server.getContext().getContextPath() + GatewayServer.DFT_CONNECT_PATH,"test1");
+      long start=System.currentTimeMillis();
+      client.connect();
+      try {
+        long end=System.currentTimeMillis();
+        assertTrue(end - start < gwt / 2);
+      }
+  finally {
+        client.disconnect();
+      }
+    }
+  finally {
+      httpClient.stop();
+    }
+  }
+  finally {
+    server.stop();
+  }
+}

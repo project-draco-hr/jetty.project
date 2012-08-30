@@ -1,13 +1,20 @@
 {
-  if (data.indexOf("disconnect") >= 0)   _connection.disconnect();
- else {
-    for (    ChatWebSocket member : _members) {
-      try {
-        member._connection.sendMessage(data);
-      }
- catch (      IOException e) {
-        LOG.warn(e);
-      }
+  if (data.contains("disconnect")) {
+    connection.close();
+    return;
+  }
+  ListIterator<ChatWebSocket> iter=members.listIterator();
+  while (iter.hasNext()) {
+    ChatWebSocket member=iter.next();
+    if (!member.connection.isOpen()) {
+      iter.remove();
+      continue;
+    }
+    try {
+      member.connection.write(null,new FutureCallback<>(),data);
+    }
+ catch (    IOException e) {
+      LOG.warn(e);
     }
   }
 }

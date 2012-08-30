@@ -1,0 +1,34 @@
+{
+  Derived derived=new Derived();
+  ObjectMBean mbean=(ObjectMBean)ObjectMBean.mbeanFor(derived);
+  mbean.setMBeanContainer(container);
+  container.addBean(derived);
+  MBeanInfo info=mbean.getMBeanInfo();
+  Assert.assertEquals("operation count does not match",5,info.getOperations().length);
+  MBeanOperationInfo[] opinfos=info.getOperations();
+  boolean publish=false;
+  boolean doodle=false;
+  boolean good=false;
+  for (int i=0; i < opinfos.length; ++i) {
+    MBeanOperationInfo opinfo=opinfos[i];
+    if ("publish".equals(opinfo.getName())) {
+      publish=true;
+      Assert.assertEquals("description doesn't match","publish something",opinfo.getDescription());
+    }
+    if ("doodle".equals(opinfo.getName())) {
+      doodle=true;
+      Assert.assertEquals("description doesn't match","Doodle something",opinfo.getDescription());
+      MBeanParameterInfo[] pinfos=opinfo.getSignature();
+      Assert.assertEquals("parameter description doesn't match","A description of the argument",pinfos[0].getDescription());
+      Assert.assertEquals("parameter name doesn't match","doodle",pinfos[0].getName());
+    }
+    if ("good".equals(opinfo.getName())) {
+      good=true;
+      Assert.assertEquals("description does not match","test of proxy operations",opinfo.getDescription());
+      Assert.assertEquals("execution contexts wrong","not bad",mbean.invoke("good",new Object[]{},new String[]{}));
+    }
+  }
+  Assert.assertTrue("publish operation was not not found",publish);
+  Assert.assertTrue("doodle operation was not not found",doodle);
+  Assert.assertTrue("good operation was not not found",good);
+}

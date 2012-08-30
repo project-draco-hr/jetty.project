@@ -1,0 +1,17 @@
+{
+  Set<String> pushResources=referrerPushStrategy.apply(stream,requestHeaders,new Headers());
+  assertThat("pushResources is empty",pushResources.size(),is(0));
+  String origin=SCHEME + "://" + HOST;
+  String referrerUrl=origin + MAIN_URI;
+  requestHeaders.put(HTTPSPDYHeader.URI.name(VERSION),"image.jpg");
+  requestHeaders.put("referer",referrerUrl);
+  pushResources=referrerPushStrategy.apply(stream,requestHeaders,new Headers());
+  assertThat("pushResources is empty",pushResources.size(),is(0));
+  requestHeaders.put(HTTPSPDYHeader.URI.name(VERSION),"style.css");
+  pushResources=referrerPushStrategy.apply(stream,requestHeaders,new Headers());
+  assertThat("pushResources is empty",pushResources.size(),is(0));
+  requestHeaders.put(HTTPSPDYHeader.URI.name(VERSION),MAIN_URI);
+  pushResources=referrerPushStrategy.apply(stream,requestHeaders,new Headers());
+  assertThat("pushResources contains two elements image.jpg and style.css",pushResources.size(),is(2));
+  return referrerUrl;
+}

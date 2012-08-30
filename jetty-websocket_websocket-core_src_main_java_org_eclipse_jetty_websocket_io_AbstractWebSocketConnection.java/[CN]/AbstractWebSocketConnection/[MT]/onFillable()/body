@@ -1,0 +1,19 @@
+{
+  LOG.debug("{} onFillable()",policy.getBehavior());
+  ByteBuffer buffer=bufferPool.acquire(policy.getBufferSize(),false);
+  BufferUtil.clear(buffer);
+  boolean readMore=false;
+  try {
+    isFilling=true;
+    readMore=(read(buffer) != -1);
+  }
+  finally {
+    bufferPool.release(buffer);
+  }
+  if (readMore && (suspendToken.get() == false)) {
+    fillInterested();
+  }
+ else {
+    isFilling=false;
+  }
+}

@@ -1,8 +1,7 @@
 {
   Request baseRequest=(request instanceof Request) ? ((Request)request) : HttpChannel.getCurrentHttpChannel().getRequest();
   Response base_response=baseRequest.getResponse();
-  response.resetBuffer();
-  base_response.fwdReset();
+  base_response.resetForForward();
   if (!(request instanceof HttpServletRequest))   request=new ServletRequestHttpWrapper(request);
   if (!(response instanceof HttpServletResponse))   response=new ServletResponseHttpWrapper(response);
   final boolean old_handled=baseRequest.isHandled();
@@ -48,22 +47,7 @@
       baseRequest.setPathInfo(_uri);
       baseRequest.setAttributes(attr);
       _contextHandler.handle(_path,baseRequest,(HttpServletRequest)request,(HttpServletResponse)response);
-      if (baseRequest.getResponse().isWriting()) {
-        try {
-          response.getWriter().close();
-        }
- catch (        IllegalStateException e) {
-          response.getOutputStream().close();
-        }
-      }
- else {
-        try {
-          response.getOutputStream().close();
-        }
- catch (        IllegalStateException e) {
-          response.getWriter().close();
-        }
-      }
+      if (!baseRequest.getAsyncContinuation().isAsyncStarted())       commitResponse(response,baseRequest);
     }
   }
   finally {

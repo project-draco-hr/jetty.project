@@ -1,0 +1,26 @@
+{
+  GatewayEchoServer server=new GatewayEchoServer();
+  server.start();
+  HttpClient httpClient=new HttpClient();
+  httpClient.setConnectorType(HttpClient.CONNECTOR_SELECT_CHANNEL);
+  httpClient.start();
+  String uri=server.getURI() + "/";
+  char[] chars=new char[1024];
+  Arrays.fill(chars,'x');
+  String requestBody=new String(chars);
+  int count=1000;
+  CountDownLatch latch=new CountDownLatch(count);
+  for (int i=0; i < count; ++i) {
+    GatewayLoadTestExchange exchange=new GatewayLoadTestExchange(latch);
+    exchange.setMethod(HttpMethods.POST);
+    exchange.setAddress(server.getAddress());
+    exchange.setURI(uri + i);
+    exchange.setRequestContent(new ByteArrayBuffer(requestBody.getBytes("UTF-8")));
+    exchange.setStartNanos(System.nanoTime());
+    httpClient.send(exchange);
+    Thread.sleep(5);
+  }
+  latch.await();
+  printLatencies(count);
+  assertEquals(count,responses.get() + failures.get());
+}

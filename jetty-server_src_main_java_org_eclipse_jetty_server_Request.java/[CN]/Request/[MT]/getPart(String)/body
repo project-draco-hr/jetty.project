@@ -1,7 +1,18 @@
 {
-  if (getContentType() == null || !getContentType().startsWith("multipart/form-data"))   return null;
+  if (getContentType() == null || !getContentType().startsWith("multipart/form-data"))   throw new ServletException("Content-Type != multipart/form-data");
   if (_multiPartInputStream == null) {
     _multiPartInputStream=new MultiPartInputStream(getInputStream(),getContentType(),(MultipartConfigElement)getAttribute(__MULTIPART_CONFIG_ELEMENT),(_context != null ? (File)_context.getAttribute("javax.servlet.context.tempdir") : null));
+    Collection<Part> parts=_multiPartInputStream.getParts();
+    for (    Part p : parts) {
+      MultiPartInputStream.MultiPart mp=(MultiPartInputStream.MultiPart)p;
+      if (mp.getContentDispositionFilename() == null && mp.getFile() == null) {
+        String charset=null;
+        if (mp.getContentType() != null)         charset=MimeTypes.getCharsetFromContentType(mp.getContentType());
+        String content=new String(mp.getBytes(),charset == null ? StringUtil.__UTF8 : charset);
+        getParameter("");
+        getParameters().add(mp.getName(),content);
+      }
+    }
   }
   return _multiPartInputStream.getPart(name);
 }

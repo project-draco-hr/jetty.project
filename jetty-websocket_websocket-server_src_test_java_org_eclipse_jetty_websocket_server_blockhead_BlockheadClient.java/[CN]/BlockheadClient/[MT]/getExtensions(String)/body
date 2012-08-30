@@ -1,0 +1,15 @@
+{
+  List<Extension> extensions=new ArrayList<>();
+  Pattern expat=Pattern.compile("Sec-WebSocket-Extensions: (.*)\r",Pattern.CASE_INSENSITIVE);
+  Matcher mat=expat.matcher(respHeader);
+  int offset=0;
+  while (mat.find(offset)) {
+    String econf=mat.group(1);
+    LOG.debug("Found Extension Response: {}",econf);
+    ExtensionConfig config=ExtensionConfig.parse(econf);
+    Extension ext=extensionRegistry.newInstance(config);
+    extensions.add(ext);
+    offset=mat.end(1);
+  }
+  return extensions;
+}

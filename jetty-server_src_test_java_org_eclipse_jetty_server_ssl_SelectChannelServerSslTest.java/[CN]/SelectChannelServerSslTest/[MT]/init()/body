@@ -1,15 +1,15 @@
 {
-  SslSelectChannelConnector connector=new SslSelectChannelConnector();
   String keystorePath=System.getProperty("basedir",".") + "/src/test/resources/keystore";
-  SslContextFactory cf=connector.getSslContextFactory();
-  cf.setKeyStorePath(keystorePath);
-  cf.setKeyStorePassword("storepwd");
-  cf.setKeyManagerPassword("keypwd");
-  cf.setTrustStore(keystorePath);
-  cf.setTrustStorePassword("storepwd");
+  SslContextFactory sslContextFactory=new SslContextFactory();
+  sslContextFactory.setKeyStorePath(keystorePath);
+  sslContextFactory.setKeyStorePassword("storepwd");
+  sslContextFactory.setKeyManagerPassword("keypwd");
+  sslContextFactory.setTrustStore(keystorePath);
+  sslContextFactory.setTrustStorePassword("storepwd");
+  SelectChannelConnector connector=new SelectChannelConnector(_server,sslContextFactory);
   startServer(connector);
   KeyStore keystore=KeyStore.getInstance(KeyStore.getDefaultType());
-  keystore.load(new FileInputStream(connector.getKeystore()),"storepwd".toCharArray());
+  keystore.load(new FileInputStream(connector.getSslContextFactory().getKeyStorePath()),"storepwd".toCharArray());
   TrustManagerFactory trustManagerFactory=TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
   trustManagerFactory.init(keystore);
   __sslContext=SSLContext.getInstance("TLS");

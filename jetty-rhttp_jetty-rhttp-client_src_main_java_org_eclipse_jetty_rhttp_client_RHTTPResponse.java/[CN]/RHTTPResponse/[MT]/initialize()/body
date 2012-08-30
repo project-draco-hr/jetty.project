@@ -1,0 +1,26 @@
+{
+  try {
+    final ByteArrayOutputStream body=new ByteArrayOutputStream();
+    HttpParser parser=new HttpParser(new ByteArrayBuffer(responseBytes),new HttpParser.EventHandler(){
+      @Override public void startRequest(      Buffer method,      Buffer uri,      Buffer httpVersion) throws IOException {
+      }
+      @Override public void startResponse(      Buffer httpVersion,      int statusCode,      Buffer statusMessage) throws IOException {
+        RHTTPResponse.this.code=statusCode;
+        RHTTPResponse.this.message=statusMessage.toString("UTF-8");
+        RHTTPResponse.this.headers=new LinkedHashMap<String,String>();
+      }
+      @Override public void parsedHeader(      Buffer name,      Buffer value) throws IOException {
+        RHTTPResponse.this.headers.put(name.toString("UTF-8"),value.toString("UTF-8"));
+      }
+      @Override public void content(      Buffer content) throws IOException {
+        content.writeTo(body);
+      }
+    }
+);
+    parser.parse();
+    this.body=body.toByteArray();
+  }
+ catch (  IOException x) {
+    throw new AssertionError(x);
+  }
+}

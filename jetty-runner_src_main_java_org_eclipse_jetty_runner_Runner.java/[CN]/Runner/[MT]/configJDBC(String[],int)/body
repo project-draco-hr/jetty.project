@@ -1,0 +1,45 @@
+{
+  String jdbcClass=null;
+  String jdbcProperties=null;
+  String jdbcJndiName=null;
+  if (!_isTxServiceAvailable) {
+    LOG.warn("JDBC TX support not found on classpath");
+    i+=3;
+  }
+ else {
+    jdbcClass=args[++i];
+    jdbcProperties=args[++i];
+    jdbcJndiName=args[++i];
+    if (jdbcClass != null) {
+      if (isXADataSource(jdbcClass)) {
+        Class simpleDataSourceBeanClass=Thread.currentThread().getContextClassLoader().loadClass("com.atomikos.jdbc.SimpleDataSourceBean");
+        Object o=simpleDataSourceBeanClass.newInstance();
+        simpleDataSourceBeanClass.getMethod("setXaDataSourceClassName",new Class[]{String.class}).invoke(o,new Object[]{jdbcClass});
+        simpleDataSourceBeanClass.getMethod("setXaDataSourceProperties",new Class[]{String.class}).invoke(o,new Object[]{jdbcProperties});
+        simpleDataSourceBeanClass.getMethod("setUniqueResourceName",new Class[]{String.class}).invoke(o,new Object[]{jdbcJndiName});
+        org.eclipse.jetty.plus.jndi.Resource jdbcResource=new org.eclipse.jetty.plus.jndi.Resource(jdbcJndiName,o);
+      }
+ else {
+        String[] props=jdbcProperties.split(";");
+        String user=null;
+        String password=null;
+        String url=null;
+        for (int j=0; props != null && j < props.length; j++) {
+          String[] pair=props[j].split("=");
+          if (pair != null && pair[0].equalsIgnoreCase("user"))           user=pair[1];
+ else           if (pair != null && pair[0].equalsIgnoreCase("password"))           password=pair[1];
+ else           if (pair != null && pair[0].equalsIgnoreCase("url"))           url=pair[1];
+        }
+        Class nonXADataSourceBeanClass=Thread.currentThread().getContextClassLoader().loadClass("com.atomikos.jdbc.nonxa.NonXADataSourceBean");
+        Object o=nonXADataSourceBeanClass.newInstance();
+        nonXADataSourceBeanClass.getMethod("setDriverClassName",new Class[]{String.class}).invoke(o,new Object[]{jdbcClass});
+        nonXADataSourceBeanClass.getMethod("setUniqueResourceName",new Class[]{String.class}).invoke(o,new Object[]{jdbcJndiName});
+        nonXADataSourceBeanClass.getMethod("setUrl",new Class[]{String.class}).invoke(o,new Object[]{url});
+        nonXADataSourceBeanClass.getMethod("setUser",new Class[]{String.class}).invoke(o,new Object[]{user});
+        nonXADataSourceBeanClass.getMethod("setPassword",new Class[]{String.class}).invoke(o,new Object[]{password});
+        org.eclipse.jetty.plus.jndi.Resource jdbcResource=new org.eclipse.jetty.plus.jndi.Resource(jdbcJndiName,o);
+      }
+    }
+  }
+  return i;
+}

@@ -1,0 +1,18 @@
+{
+  short version=stream.getSession().getVersion();
+  Headers.Header methodHeader=headers.get(HTTPSPDYHeader.METHOD.name(version));
+  Headers.Header uriHeader=headers.get(HTTPSPDYHeader.URI.name(version));
+  Headers.Header versionHeader=headers.get(HTTPSPDYHeader.VERSION.name(version));
+  if (methodHeader == null || uriHeader == null || versionHeader == null) {
+    badMessage(400,"Missing required request line elements");
+    return false;
+  }
+  HttpMethod httpMethod=HttpMethod.fromString(methodHeader.value());
+  HttpVersion httpVersion=HttpVersion.fromString(versionHeader.value());
+  String uriString=uriHeader.value();
+  LOG.debug("HTTP > {} {} {}",httpMethod,uriString,httpVersion);
+  startRequest(httpMethod,httpMethod.asString(),uriString,httpVersion);
+  Headers.Header schemeHeader=headers.get(HTTPSPDYHeader.SCHEME.name(version));
+  if (schemeHeader != null)   getRequest().setScheme(schemeHeader.value());
+  return true;
+}

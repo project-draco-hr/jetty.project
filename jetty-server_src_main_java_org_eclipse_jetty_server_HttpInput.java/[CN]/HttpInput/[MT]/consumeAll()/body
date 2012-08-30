@@ -1,14 +1,19 @@
 {
-  while (true) {
-synchronized (_inputQ.lock()) {
-      _inputQ.clear();
-    }
-    if (_inputEOF)     return;
-    try {
-      blockForContent();
-    }
- catch (    IOException e) {
-      LOG.warn(e);
+synchronized (lock()) {
+    while (!isShutdown() && !isEarlyEOF()) {
+      T item=_inputQ.peekUnsafe();
+      while (item != null) {
+        _inputQ.pollUnsafe();
+        onContentConsumed(item);
+        item=_inputQ.peekUnsafe();
+        if (item == null)         onAllContentConsumed();
+      }
+      try {
+        blockForContent();
+      }
+ catch (      IOException e) {
+        throw new RuntimeIOException(e);
+      }
     }
   }
 }

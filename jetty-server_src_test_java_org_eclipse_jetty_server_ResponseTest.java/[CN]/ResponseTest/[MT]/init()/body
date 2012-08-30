@@ -1,51 +1,19 @@
 {
-  _timer=new Timer(true);
   _server=new Server();
-  _connector=new LocalHttpConnector();
-  _server.addConnector(_connector);
+  _timer=new ScheduledThreadPoolExecutor(1);
+  LocalConnector connector=new LocalConnector(_server,null,_timer,null,null,1);
+  _server.addConnector(connector);
   _server.setHandler(new DumpHandler());
   _server.start();
-  AsyncByteArrayEndPoint endp=new AsyncByteArrayEndPoint(_timer);
-  HttpInput input=new HttpInput();
-  AsyncConnection connection=new AbstractAsyncConnection(endp,new Executor(){
-    @Override public void execute(    Runnable command){
-      command.run();
+  AbstractEndPoint endp=new ByteArrayEndPoint(_timer,5000);
+  ByteBufferHttpInput input=new ByteBufferHttpInput();
+  _channel=new HttpChannel(connector,new HttpConfiguration(null,false),endp,new HttpTransport(){
+    @Override public void send(    HttpGenerator.ResponseInfo info,    ByteBuffer content,    boolean lastContent) throws IOException {
+    }
+    @Override public void send(    ByteBuffer content,    boolean lastContent) throws IOException {
+    }
+    @Override public void completed(){
     }
   }
-){
-    @Override public void onFillable(){
-    }
-  }
-;
-  _channel=new HttpChannel(_server,connection,input){
-    @Override protected int write(    ByteBuffer content) throws IOException {
-      int length=content.remaining();
-      content.clear();
-      return length;
-    }
-    @Override protected void resetBuffer(){
-    }
-    @Override protected void increaseContentBufferSize(    int size){
-    }
-    @Override public Timer getTimer(){
-      return null;
-    }
-    @Override public HttpConnector getHttpConnector(){
-      return null;
-    }
-    @Override protected int getContentBufferSize(){
-      return 0;
-    }
-    @Override protected void flushResponse() throws IOException {
-    }
-    @Override protected void execute(    Runnable task){
-    }
-    @Override protected void completed(){
-    }
-    @Override protected void completeResponse() throws IOException {
-    }
-    @Override protected void commit(    ResponseInfo info,    ByteBuffer content) throws IOException {
-    }
-  }
-;
+,input);
 }

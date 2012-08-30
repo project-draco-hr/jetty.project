@@ -1,0 +1,24 @@
+{
+  if (LOG.isDebugEnabled()) {
+    LOG.debug("output({}, {}, {})",context,callback,frame);
+  }
+synchronized (queue) {
+    FrameBytes<C> bytes=null;
+    if (frame.isControlFrame()) {
+      bytes=new ControlFrameBytes<C>(this,callback,context,frame);
+    }
+ else {
+      bytes=new DataFrameBytes<C>(this,callback,context,frame);
+    }
+    scheduleTimeout(bytes);
+    if (isOpen()) {
+      if (frame.getOpCode() == OpCode.PING) {
+        queue.prepend(bytes);
+      }
+ else {
+        queue.append(bytes);
+      }
+    }
+  }
+  flush();
+}

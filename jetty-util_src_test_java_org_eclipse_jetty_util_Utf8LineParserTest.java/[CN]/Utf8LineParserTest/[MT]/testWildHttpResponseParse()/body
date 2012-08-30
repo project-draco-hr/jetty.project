@@ -1,0 +1,38 @@
+{
+  List<String> expected=new ArrayList<>();
+  expected.add("HTTP/1.0 200 OK");
+  expected.add("Date: Thu, 09 Aug 2012 16:16:39 GMT");
+  expected.add("Content-Length: 35");
+  expected.add("X-Content-Type-Options: nosniff");
+  expected.add("Pragma: no-cache");
+  expected.add("Expires: Wed, 19 Apr 2000 11:43:00 GMT");
+  expected.add("Last-Modified: Wed, 21 Jan 2004 19:51:30 GMT");
+  expected.add("Content-Type: image/gif");
+  expected.add("Cache-Control: private, no-cache, no-cache=Set-Cookie, proxy-revalidate");
+  expected.add("Age: 518097");
+  expected.add("Server: GFE/2.0");
+  expected.add("Connection: Keep-Alive");
+  expected.add("");
+  ByteBuffer buf=ByteBuffer.allocate(512);
+  for (  String line : expected) {
+    appendUtf8(buf,line + "\r\n");
+  }
+  BufferUtil.flipToFlush(buf,0);
+  Utf8LineParser utfparser=new Utf8LineParser();
+  List<String> actual=new ArrayList<>();
+  int count=0;
+  int excessive=expected.size() + 10;
+  boolean done=false;
+  while (!done) {
+    String line=utfparser.parse(buf);
+    if (line != null) {
+      actual.add(line);
+    }
+ else {
+      done=true;
+    }
+    count++;
+    Assert.assertThat("Parse Count is excessive (bug in code!)",count,lessThan(excessive));
+  }
+  assertEquals(expected,actual);
+}

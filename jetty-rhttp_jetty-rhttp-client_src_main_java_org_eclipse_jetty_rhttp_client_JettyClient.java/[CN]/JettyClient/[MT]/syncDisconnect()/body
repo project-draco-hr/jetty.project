@@ -1,0 +1,18 @@
+{
+  DisconnectExchange exchange=new DisconnectExchange();
+  exchange.setMethod(HttpMethods.POST);
+  exchange.setAddress(gatewayAddress);
+  exchange.setURI(gatewayPath + "/" + urlEncode(getTargetId())+ "/disconnect");
+  httpClient.send(exchange);
+  getLogger().debug("Client {} disconnect sent to gateway",getTargetId(),null);
+  try {
+    int status=exchange.waitForDone();
+    if (status != HttpExchange.STATUS_COMPLETED)     throw new IOException("Disconnect failed");
+    if (exchange.getResponseStatus() != 200)     throw new IOException("Disconnect failed");
+    getLogger().debug("Client {} disconnect returned from gateway",getTargetId(),null);
+  }
+ catch (  InterruptedException x) {
+    Thread.currentThread().interrupt();
+    throw newIOException(x);
+  }
+}

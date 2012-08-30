@@ -9,8 +9,8 @@
     WebSocketFrame txt=WebSocketFrame.text().setPayload(buf);
     ByteBuffer bb=generator.generate(txt);
     client.writeRaw(bb);
-    Queue<WebSocketFrame> frames=client.readFrames(1,TimeUnit.SECONDS,1);
-    WebSocketFrame frame=frames.remove();
+    IncomingFramesCapture capture=client.readFrames(1,TimeUnit.SECONDS,1);
+    WebSocketFrame frame=capture.getFrames().get(0);
     Assert.assertThat("frames[0].opcode",frame.getOpCode(),is(OpCode.CLOSE));
     CloseInfo close=new CloseInfo(frame);
     Assert.assertThat("Close Status Code",close.getStatusCode(),is(StatusCode.BAD_PAYLOAD));

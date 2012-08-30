@@ -1,0 +1,26 @@
+{
+  getLog().info("Restarting webapp");
+  getLog().debug("Stopping webapp ...");
+  webApp.stop();
+  getLog().debug("Reconfiguring webapp ...");
+  checkPomConfiguration();
+  if (reconfigureScanner) {
+    getLog().info("Reconfiguring scanner after change to pom.xml ...");
+    ArrayList<File> scanList=getScanList();
+    scanList.clear();
+    scanList.add(getProject().getFile());
+    File webInfDir=new File(war,"WEB-INF");
+    scanList.add(new File(webInfDir,"web.xml"));
+    File jettyWebXmlFile=findJettyWebXmlFile(webInfDir);
+    if (jettyWebXmlFile != null)     scanList.add(jettyWebXmlFile);
+    File jettyEnvXmlFile=new File(webInfDir,"jetty-env.xml");
+    if (jettyEnvXmlFile.exists())     scanList.add(jettyEnvXmlFile);
+    scanList.add(new File(webInfDir,"classes"));
+    scanList.add(new File(webInfDir,"lib"));
+    setScanList(scanList);
+    getScanner().setScanDirs(scanList);
+  }
+  getLog().debug("Restarting webapp ...");
+  webApp.start();
+  getLog().info("Restart completed.");
+}

@@ -1,0 +1,16 @@
+{
+  SslContextFactory sslContextFactory=getSslContextFactory();
+  if (sslContextFactory != null) {
+    SSLEngine engine=sslContextFactory.newSSLEngine(endPoint.getRemoteAddress());
+    engine.setUseClientMode(false);
+    SslConnection sslConnection=new SslConnection(getByteBufferPool(),getExecutor(),endPoint,engine);
+    EndPoint appEndPoint=sslConnection.getDecryptedEndPoint();
+    Connection connection=getDefaultConnectionFactory().newConnection(channel,appEndPoint,attachment);
+    appEndPoint.setConnection(connection);
+    connection.onOpen();
+    return sslConnection;
+  }
+ else {
+    return getDefaultConnectionFactory().newConnection(channel,endPoint,attachment);
+  }
+}

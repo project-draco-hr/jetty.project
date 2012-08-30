@@ -1,0 +1,24 @@
+{
+  _beanFactory.registerSingleton("properties",_propertyMap);
+  for (  String bean : _beanFactory.getBeanDefinitionNames()) {
+    __log.debug("{} - {}",bean,Arrays.asList(_beanFactory.getAliases(bean)));
+    String[] aliases=_beanFactory.getAliases(bean);
+    if ("Main".equals(bean) || aliases != null && Arrays.asList(aliases).contains("Main")) {
+      _main=bean;
+      break;
+    }
+  }
+  if (_main == null)   _main=_beanFactory.getBeanDefinitionNames()[0];
+  __log.debug("idMap {}",_idMap);
+  for (  String id : _idMap.keySet()) {
+    __log.debug("register {}",id);
+    _beanFactory.registerSingleton(id,_idMap.get(id));
+  }
+  for (  String id : _idMap.keySet()) {
+    if (_beanFactory.containsBeanDefinition(id)) {
+      __log.debug("reconfigure {}",id);
+      _beanFactory.configureBean(_idMap.get(id),id);
+    }
+  }
+  for (  String id : _beanFactory.getSingletonNames())   _idMap.put(id,_beanFactory.getBean(id));
+}

@@ -14,8 +14,9 @@
   Generator generator=new UnitGenerator();
   boolean done=false;
   while (!done) {
-    Assert.assertThat("Too many parts",totalParts,lessThan(20));
+    Assert.assertThat("Too many parts",totalParts,lessThanOrEqualTo(expectedParts));
     ByteBuffer buf=generator.generate(windowSize,frame);
+    Assert.assertThat("Generated should not exceed window size",buf.remaining(),lessThanOrEqualTo(windowSize));
     totalBytes+=buf.remaining();
     totalParts++;
     BufferUtil.put(buf,completeBuf);
@@ -25,7 +26,7 @@
   Assert.assertThat("Created Bytes",totalBytes,is(payload.length + expectedHeaderSize));
   WebSocketPolicy policy=WebSocketPolicy.newServerPolicy();
   Parser parser=new Parser(policy);
-  FrameParseCapture capture=new FrameParseCapture();
+  IncomingFramesCapture capture=new IncomingFramesCapture();
   parser.setIncomingFramesHandler(capture);
   BufferUtil.flipToFlush(completeBuf,0);
   parser.parse(completeBuf);

@@ -1,0 +1,16 @@
+{
+  server=new GatewayServer();
+  Connector connector=new SelectChannelConnector();
+  server.addConnector(connector);
+  server.setTargetIdRetriever(new EchoTargetIdRetriever());
+  server.start();
+  server.dumpStdErr();
+  address=new Address("localhost",connector.getLocalPort());
+  uri=server.getContext().getContextPath() + GatewayServer.DFT_EXT_PATH;
+  httpClient=new HttpClient();
+  httpClient.setConnectorType(HttpClient.CONNECTOR_SELECT_CHANNEL);
+  httpClient.start();
+  client=new JettyClient(httpClient,new Address("localhost",connector.getLocalPort()),server.getContext().getContextPath() + GatewayServer.DFT_CONNECT_PATH,"echo");
+  client.addListener(new EchoListener(client));
+  client.connect();
+}

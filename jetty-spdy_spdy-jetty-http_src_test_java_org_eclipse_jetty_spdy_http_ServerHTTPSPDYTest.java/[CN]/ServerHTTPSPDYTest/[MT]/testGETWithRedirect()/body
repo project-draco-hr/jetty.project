@@ -1,7 +1,7 @@
 {
   final String suffix="/redirect";
   final CountDownLatch handlerLatch=new CountDownLatch(1);
-  Session session=startClient(startHTTPServer(new AbstractHandler(){
+  Session session=startClient(version,startHTTPServer(version,new AbstractHandler(){
     @Override public void handle(    String target,    Request request,    HttpServletRequest httpRequest,    HttpServletResponse httpResponse) throws IOException, ServletException {
       request.setHandled(true);
       String location=httpResponse.encodeRedirectURL(String.format("%s://%s:%d%s",request.getScheme(),request.getLocalAddr(),request.getLocalPort(),target + suffix));
@@ -11,11 +11,11 @@
   }
 ),null);
   Headers headers=new Headers();
-  headers.put("method","GET");
-  headers.put("url","/foo");
-  headers.put("version","HTTP/1.1");
-  headers.put("scheme","http");
-  headers.put("host","localhost:" + connector.getLocalPort());
+  headers.put(HTTPSPDYHeader.METHOD.name(version),"GET");
+  headers.put(HTTPSPDYHeader.URI.name(version),"/foo");
+  headers.put(HTTPSPDYHeader.VERSION.name(version),"HTTP/1.1");
+  headers.put(HTTPSPDYHeader.SCHEME.name(version),"http");
+  headers.put(HTTPSPDYHeader.HOST.name(version),"localhost:" + connector.getLocalPort());
   final CountDownLatch replyLatch=new CountDownLatch(1);
   session.syn(new SynInfo(headers,true),new StreamFrameListener.Adapter(){
     private final AtomicInteger replies=new AtomicInteger();
@@ -23,7 +23,7 @@
       Assert.assertEquals(1,replies.incrementAndGet());
       Assert.assertTrue(replyInfo.isClose());
       Headers replyHeaders=replyInfo.getHeaders();
-      Assert.assertTrue(replyHeaders.get("status").value().contains("302"));
+      Assert.assertTrue(replyHeaders.get(HTTPSPDYHeader.STATUS.name(version)).value().contains("302"));
       Assert.assertTrue(replyHeaders.get("location").value().endsWith(suffix));
       replyLatch.countDown();
     }

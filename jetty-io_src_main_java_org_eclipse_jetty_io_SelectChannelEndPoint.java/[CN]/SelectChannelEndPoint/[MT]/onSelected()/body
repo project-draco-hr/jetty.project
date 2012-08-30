@@ -1,19 +1,9 @@
 {
-  boolean can_read;
-  boolean can_write;
-synchronized (this) {
-    _selected=true;
-    try {
-      if (_key == null || !_key.isValid())       return;
-      can_read=(_key.isReadable() && (_key.interestOps() & SelectionKey.OP_READ) == SelectionKey.OP_READ);
-      can_write=(_key.isWritable() && (_key.interestOps() & SelectionKey.OP_WRITE) == SelectionKey.OP_WRITE);
-      _interestOps=0;
-    }
-  finally {
-      _selector.submit(this);
-      _selected=false;
-    }
-  }
-  if (can_read)   _readInterest.readable();
-  if (can_write)   _writeFlusher.completeWrite();
+  int oldInterestOps=_key.interestOps();
+  int readyOps=_key.readyOps();
+  int newInterestOps=oldInterestOps & ~readyOps;
+  setKeyInterests(oldInterestOps,newInterestOps);
+  updateLocalInterests(readyOps,false);
+  if (_key.isReadable())   getFillInterest().fillable();
+  if (_key.isWritable())   getWriteFlusher().completeWrite();
 }

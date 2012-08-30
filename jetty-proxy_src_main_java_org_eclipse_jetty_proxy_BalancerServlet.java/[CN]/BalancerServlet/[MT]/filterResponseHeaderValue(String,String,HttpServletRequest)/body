@@ -1,0 +1,18 @@
+{
+  if (_proxyPassReverse && REVERSE_PROXY_HEADERS.contains(headerName)) {
+    HttpURI locationURI=new HttpURI(headerValue);
+    if (isAbsoluteLocation(locationURI) && isBackendLocation(locationURI)) {
+      Request jettyRequest=(Request)request;
+      URI reverseUri;
+      try {
+        reverseUri=new URI(jettyRequest.getRootURL().append(locationURI.getCompletePath()).toString()).normalize();
+        return reverseUri.toURL().toString();
+      }
+ catch (      Exception e) {
+        _log.warn("Not filtering header response",e);
+        return headerValue;
+      }
+    }
+  }
+  return headerValue;
+}

@@ -3,7 +3,7 @@
   final String query="p=1";
   final String uri=path + "?" + query;
   final CountDownLatch handlerLatch=new CountDownLatch(1);
-  Session session=startClient(startHTTPServer(new AbstractHandler(){
+  Session session=startClient(version,startHTTPServer(version,new AbstractHandler(){
     @Override public void handle(    String target,    Request request,    HttpServletRequest httpRequest,    HttpServletResponse httpResponse) throws IOException, ServletException {
       request.setHandled(true);
       Assert.assertEquals("GET",httpRequest.getMethod());
@@ -15,17 +15,17 @@
   }
 ),null);
   Headers headers=new Headers();
-  headers.put("method","GET");
-  headers.put("url",uri);
-  headers.put("version","HTTP/1.1");
-  headers.put("scheme","http");
-  headers.put("host","localhost:" + connector.getLocalPort());
+  headers.put(HTTPSPDYHeader.METHOD.name(version),"GET");
+  headers.put(HTTPSPDYHeader.URI.name(version),uri);
+  headers.put(HTTPSPDYHeader.VERSION.name(version),"HTTP/1.1");
+  headers.put(HTTPSPDYHeader.SCHEME.name(version),"http");
+  headers.put(HTTPSPDYHeader.HOST.name(version),"localhost:" + connector.getLocalPort());
   final CountDownLatch replyLatch=new CountDownLatch(1);
   session.syn(new SynInfo(headers,true),new StreamFrameListener.Adapter(){
     @Override public void onReply(    Stream stream,    ReplyInfo replyInfo){
       Assert.assertTrue(replyInfo.isClose());
       Headers replyHeaders=replyInfo.getHeaders();
-      Assert.assertTrue(replyHeaders.get("status").value().contains("200"));
+      Assert.assertTrue(replyHeaders.get(HTTPSPDYHeader.STATUS.name(version)).value().contains("200"));
       replyLatch.countDown();
     }
   }

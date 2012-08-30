@@ -1,0 +1,16 @@
+{
+  long latency=end - start;
+  long oldMinLatency=minLatency.get();
+  while (latency < oldMinLatency) {
+    if (minLatency.compareAndSet(oldMinLatency,latency))     break;
+    oldMinLatency=minLatency.get();
+  }
+  long oldMaxLatency=maxLatency.get();
+  while (latency > oldMaxLatency) {
+    if (maxLatency.compareAndSet(oldMaxLatency,latency))     break;
+    oldMaxLatency=maxLatency.get();
+  }
+  totLatency.addAndGet(latency);
+  latencies.putIfAbsent(latency,new AtomicLong(0L));
+  latencies.get(latency).incrementAndGet();
+}

@@ -1,0 +1,60 @@
+{
+  if (Thread.currentThread().getName().contains("selector"))   new Throwable().printStackTrace();
+  LOG.debug("{} flush enter {}",SslConnection.this,Arrays.toString(appOuts));
+  int consumed=0;
+  try {
+    if (_cannotAcceptMoreAppDataToFlush)     return 0;
+    if (_encryptedOutput == null)     _encryptedOutput=_bufferPool.acquire(_sslEngine.getSession().getPacketBufferSize() * 2,_encryptedDirectBuffers);
+    while (true) {
+      BufferUtil.compact(_encryptedOutput);
+      int pos=BufferUtil.flipToFill(_encryptedOutput);
+      SSLEngineResult wrapResult=_sslEngine.wrap(appOuts,_encryptedOutput);
+      LOG.debug("{} wrap {}",SslConnection.this,wrapResult);
+      BufferUtil.flipToFlush(_encryptedOutput,pos);
+      if (wrapResult.bytesConsumed() > 0) {
+        consumed+=wrapResult.bytesConsumed();
+        for (        ByteBuffer b : appOuts)         if (BufferUtil.isEmpty(b))         BufferUtil.clear(b);
+      }
+switch (wrapResult.getStatus()) {
+case CLOSED:
+        if (BufferUtil.hasContent(_encryptedOutput)) {
+          _cannotAcceptMoreAppDataToFlush=true;
+          getEndPoint().flush(_encryptedOutput);
+          if (BufferUtil.hasContent(_encryptedOutput))           return consumed;
+        }
+      if (appOuts[0] == __FILL_CALLED_FLUSH)       return consumed;
+    return consumed;
+case BUFFER_UNDERFLOW:
+  throw new IllegalStateException();
+default :
+if (LOG.isDebugEnabled()) LOG.debug("{} {} {}",this,wrapResult.getStatus(),BufferUtil.toDetailString(_encryptedOutput));
+if (BufferUtil.hasContent(_encryptedOutput)) getEndPoint().flush(_encryptedOutput);
+switch (_sslEngine.getHandshakeStatus()) {
+case NOT_HANDSHAKING:
+return consumed;
+case NEED_TASK:
+_sslEngine.getDelegatedTask().run();
+continue;
+case NEED_WRAP:
+continue;
+case NEED_UNWRAP:
+if (appOuts[0] != __FILL_CALLED_FLUSH && !getFillInterest().isInterested()) {
+_flushRequiresFillToProgress=true;
+fill(__FLUSH_CALLED_FILL);
+}
+return consumed;
+case FINISHED:
+throw new IllegalStateException();
+}
+}
+}
+}
+ catch (Exception e) {
+getEndPoint().close();
+throw e;
+}
+ finally {
+LOG.debug("{} flush exit, consumed {}",SslConnection.this,consumed);
+releaseEncryptedOutputBuffer();
+}
+}

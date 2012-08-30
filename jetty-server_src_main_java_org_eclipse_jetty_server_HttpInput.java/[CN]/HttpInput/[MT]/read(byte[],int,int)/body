@@ -1,22 +1,24 @@
 {
-synchronized (_inputQ.lock()) {
-    ByteBuffer content=null;
-    while (content == null) {
-      content=_inputQ.peekUnsafe();
-      while (content != null && !content.hasRemaining()) {
+  T item=null;
+synchronized (lock()) {
+    while (item == null) {
+      item=_inputQ.peekUnsafe();
+      while (item != null && remaining(item) == 0) {
         _inputQ.pollUnsafe();
-        content=_inputQ.peekUnsafe();
+        onContentConsumed(item);
+        LOG.debug("{} consumed {}",this,item);
+        item=_inputQ.peekUnsafe();
       }
-      if (content == null) {
-        if (_inputEOF) {
-          onEof();
+      if (item == null) {
+        onAllContentConsumed();
+        if (isEarlyEOF())         throw new EofException();
+        if (isShutdown()) {
+          onEOF();
           return -1;
         }
         blockForContent();
       }
     }
-    int l=Math.min(len,content.remaining());
-    content.get(b,off,l);
-    return l;
   }
+  return get(item,b,off,len);
 }

@@ -1,0 +1,35 @@
+{
+  GatewayServer server=new GatewayServer();
+  Connector connector=new SelectChannelConnector();
+  server.addConnector(connector);
+  server.start();
+  try {
+    Address address=new Address("localhost",connector.getLocalPort());
+    HttpClient httpClient=new HttpClient();
+    httpClient.setConnectorType(HttpClient.CONNECTOR_SELECT_CHANNEL);
+    httpClient.start();
+    try {
+      String targetId="1";
+      final RHTTPClient client1=new JettyClient(httpClient,address,server.getContext().getContextPath() + GatewayServer.DFT_CONNECT_PATH,targetId);
+      client1.connect();
+      try {
+        final RHTTPClient client2=new JettyClient(httpClient,address,server.getContext().getContextPath() + GatewayServer.DFT_CONNECT_PATH,targetId);
+        try {
+          client2.connect();
+          fail();
+        }
+ catch (        IOException x) {
+        }
+      }
+  finally {
+        client1.disconnect();
+      }
+    }
+  finally {
+      httpClient.stop();
+    }
+  }
+  finally {
+    server.stop();
+  }
+}

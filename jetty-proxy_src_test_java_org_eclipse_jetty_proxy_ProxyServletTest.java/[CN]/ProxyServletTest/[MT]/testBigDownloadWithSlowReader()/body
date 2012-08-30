@@ -7,6 +7,7 @@
   for (int i=0; i < 6 * 1024; ++i)   fos.write(buffer);
   fos.close();
   init(new HttpServlet(){
+    private static final long serialVersionUID=1L;
     @Override protected void doGet(    HttpServletRequest request,    HttpServletResponse response) throws ServletException, IOException {
       FileInputStream fis=new FileInputStream(file);
       ServletOutputStream output=response.getOutputStream();
@@ -17,7 +18,7 @@
     }
   }
 );
-  String url="http://localhost:" + connector.getLocalPort() + "/proxy"+ "/test";
+  String url="http://localhost:" + _connector.getLocalPort() + "/proxy/test";
   ContentExchange exchange=new ContentExchange(true){
     @Override protected void onResponseContent(    Buffer content) throws IOException {
       try {
@@ -32,7 +33,7 @@
 ;
   exchange.setURL(url);
   long start=System.nanoTime();
-  client.send(exchange);
+  _client.send(exchange);
   Assert.assertEquals(HttpExchange.STATUS_COMPLETED,exchange.waitForDone());
   long elapsed=System.nanoTime() - start;
   Assert.assertEquals(HttpStatus.OK_200,exchange.getResponseStatus());

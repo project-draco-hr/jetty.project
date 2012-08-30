@@ -1,0 +1,19 @@
+{
+  byte[] requestBytes=request.getRequestBytes();
+  ByteArrayEndPoint endPoint=new ByteArrayEndPoint(requestBytes,1024);
+  endPoint.setGrowOutput(true);
+  AbstractHttpConnection connection=new BlockingHttpConnection(ReverseHTTPConnector.this,endPoint,getServer());
+  connectionOpened(connection);
+  try {
+    while (endPoint.getIn().length() > 0)     connection.handle();
+    byte[] responseBytes=endPoint.getOut().asArray();
+    RHTTPResponse response=RHTTPResponse.fromResponseBytes(request.getId(),responseBytes);
+    client.deliver(response);
+  }
+ catch (  Exception x) {
+    LOG.debug(x);
+  }
+ finally {
+    connectionClosed(connection);
+  }
+}

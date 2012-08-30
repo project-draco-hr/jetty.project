@@ -1,22 +1,29 @@
 {
-  WebSocketClientFactory factory=new WebSocketClientFactory();
-  int bufferSize=512;
-  factory.getPolicy().setBufferSize(512);
-  WebSocketClient client=factory.newWebSocketClient();
-  TrackingSocket wsocket=new TrackingSocket();
-  URI wsUri=new URI("ws://127.0.0.1:" + server.getPort() + "/");
-  Future<WebSocketConnection> future=client.connect(wsUri,wsocket);
-  ServerConnection ssocket=server.accept();
-  ssocket.upgrade();
-  Assert.assertTrue(wsocket.openLatch.await(1,TimeUnit.SECONDS));
-  int length=bufferSize + (bufferSize / 2);
-  ssocket.write(0x80 | 0x01);
-  ssocket.write(0x7E);
-  ssocket.write(length >> 8);
-  ssocket.write(length & 0xFF);
-  for (int i=0; i < length; ++i) {
-    ssocket.write('x');
+  WebSocketClientFactory factSmall=new WebSocketClientFactory();
+  factSmall.start();
+  try {
+    int bufferSize=512;
+    factSmall.getPolicy().setBufferSize(512);
+    TrackingSocket wsocket=new TrackingSocket();
+    WebSocketClient client=factSmall.newWebSocketClient(wsocket);
+    URI wsUri=server.getWsUri();
+    Future<UpgradeResponse> future=client.connect(wsUri);
+    ServerConnection ssocket=server.accept();
+    ssocket.upgrade();
+    future.get(500,TimeUnit.MILLISECONDS);
+    Assert.assertTrue(wsocket.openLatch.await(1,TimeUnit.SECONDS));
+    int length=bufferSize + (bufferSize / 2);
+    ssocket.write(0x80 | 0x01);
+    ssocket.write(0x7E);
+    ssocket.write(length >> 8);
+    ssocket.write(length & 0xFF);
+    for (int i=0; i < length; ++i) {
+      ssocket.write('x');
+    }
+    ssocket.flush();
+    Assert.assertTrue(wsocket.dataLatch.await(1000,TimeUnit.SECONDS));
   }
-  ssocket.flush();
-  Assert.assertTrue(wsocket.dataLatch.await(1000,TimeUnit.SECONDS));
+  finally {
+    factSmall.stop();
+  }
 }

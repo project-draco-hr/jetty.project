@@ -1,0 +1,14 @@
+{
+  if (isRemotelyClosed()) {
+    logger.debug("Stream is remotely closed, ignoring {}",dataInfo);
+    return;
+  }
+  if (!canReceive()) {
+    logger.debug("Protocol error receiving {}, resetting" + dataInfo);
+    session.rst(new RstInfo(getId(),StreamStatus.PROTOCOL_ERROR));
+    return;
+  }
+  updateCloseState(dataInfo.isClose(),false);
+  notifyOnData(dataInfo);
+  session.flush();
+}

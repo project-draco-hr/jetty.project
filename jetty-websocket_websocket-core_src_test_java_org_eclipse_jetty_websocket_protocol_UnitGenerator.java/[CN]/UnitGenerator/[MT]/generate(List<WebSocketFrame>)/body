@@ -1,0 +1,18 @@
+{
+  byte[] MASK={0x11,0x22,0x33,0x44};
+  Generator generator=new UnitGenerator();
+  int buflen=0;
+  for (  WebSocketFrame f : frames) {
+    buflen+=f.getPayloadLength() + Generator.OVERHEAD;
+  }
+  ByteBuffer completeBuf=ByteBuffer.allocate(buflen);
+  BufferUtil.clearToFill(completeBuf);
+  for (  WebSocketFrame f : frames) {
+    f.setMask(MASK);
+    ByteBuffer slice=f.getPayload().slice();
+    BufferUtil.put(generator.generate(f),completeBuf);
+    f.setPayload(slice);
+  }
+  BufferUtil.flipToFlush(completeBuf,0);
+  return completeBuf;
+}

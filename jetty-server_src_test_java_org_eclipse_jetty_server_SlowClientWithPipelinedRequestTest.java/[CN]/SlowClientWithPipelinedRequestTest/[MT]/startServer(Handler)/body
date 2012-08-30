@@ -1,0 +1,20 @@
+{
+  server=new Server();
+  connector=new SelectChannelConnector(server);
+  connector.setDefaultConnectionFactory(new HttpServerConnectionFactory(connector){
+    @Override public Connection newConnection(    SocketChannel channel,    EndPoint endPoint,    Object attachment){
+      return new HttpConnection(getHttpConfiguration(),getConnector(),endPoint){
+        @Override public void onFillable(){
+          handles.incrementAndGet();
+          super.onFillable();
+        }
+      }
+;
+    }
+  }
+);
+  server.addConnector(connector);
+  connector.setPort(0);
+  server.setHandler(handler);
+  server.start();
+}

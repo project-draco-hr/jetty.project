@@ -1,0 +1,188 @@
+{
+  for (int i=0; i < args.length; i++) {
+    if ("--version".equals(args[i])) {
+    }
+    if ("--lib".equals(args[i])) {
+      Resource lib=Resource.newResource(args[++i]);
+      if (!lib.exists() || !lib.isDirectory())       usage("No such lib directory " + lib);
+      expandJars(lib);
+    }
+ else     if ("--jar".equals(args[i])) {
+      Resource jar=Resource.newResource(args[++i]);
+      if (!jar.exists() || jar.isDirectory())       usage("No such jar " + jar);
+      _classpath.add(jar.getURL());
+    }
+ else     if ("--classes".equals(args[i])) {
+      Resource classes=Resource.newResource(args[++i]);
+      if (!classes.exists() || !classes.isDirectory())       usage("No such classes directory " + classes);
+      _classpath.add(classes.getURL());
+    }
+ else     if (args[i].startsWith("--"))     i++;
+  }
+  initClassLoader();
+  try {
+    if (Thread.currentThread().getContextClassLoader().loadClass("com.atomikos.icatch.jta.UserTransactionImp") != null)     _isTxServiceAvailable=true;
+  }
+ catch (  ClassNotFoundException e) {
+    _isTxServiceAvailable=false;
+  }
+  if (System.getProperties().containsKey("DEBUG"))   Log.getLog().setDebugEnabled(true);
+  LOG.info("Runner");
+  LOG.debug("Runner classpath {}",_classpath);
+  String contextPath="/";
+  boolean contextPathSet=false;
+  int port=8080;
+  int stopPort=0;
+  String stopKey=null;
+  boolean transactionManagerProcessed=false;
+  boolean runnerServerInitialized=false;
+  for (int i=0; i < args.length; i++) {
+    if ("--port".equals(args[i]))     port=Integer.parseInt(args[++i]);
+ else     if ("--stop-port".equals(args[i]))     stopPort=Integer.parseInt(args[++i]);
+ else     if ("--stop-key".equals(args[i]))     stopKey=args[++i];
+ else     if ("--log".equals(args[i]))     _logFile=args[++i];
+ else     if ("--out".equals(args[i])) {
+      String outFile=args[++i];
+      PrintStream out=new PrintStream(new RolloverFileOutputStream(outFile,true,-1));
+      LOG.info("Redirecting stderr/stdout to " + outFile);
+      System.setErr(out);
+      System.setOut(out);
+    }
+ else     if ("--path".equals(args[i])) {
+      contextPath=args[++i];
+      contextPathSet=true;
+    }
+ else     if ("--config".equals(args[i])) {
+      _configFile=args[++i];
+    }
+ else     if ("--lib".equals(args[i])) {
+      ++i;
+    }
+ else     if ("--jar".equals(args[i])) {
+      ++i;
+    }
+ else     if ("--classes".equals(args[i])) {
+      ++i;
+    }
+ else     if ("--stats".equals(args[i])) {
+      _enableStatsGathering=true;
+      _statsPropFile=args[++i];
+      _statsPropFile=("unsecure".equalsIgnoreCase(_statsPropFile) ? null : _statsPropFile);
+    }
+ else     if ("--txFile".equals(args[i])) {
+      _txMgrPropertiesFile=args[++i];
+    }
+ else     if ("--jdbc".equals(args[i])) {
+      i=configJDBC(args,i);
+    }
+ else {
+      if (!transactionManagerProcessed) {
+        processTransactionManagement();
+        transactionManagerProcessed=true;
+      }
+      if (!runnerServerInitialized) {
+        if (_server == null) {
+          _server=new Server();
+        }
+        if (_configFile != null) {
+          XmlConfiguration xmlConfiguration=new XmlConfiguration(Resource.newResource(_configFile).getURL());
+          xmlConfiguration.configure(_server);
+        }
+        HandlerCollection handlers=(HandlerCollection)_server.getChildHandlerByClass(HandlerCollection.class);
+        if (handlers == null) {
+          handlers=new HandlerCollection();
+          _server.setHandler(handlers);
+        }
+        _contexts=(ContextHandlerCollection)handlers.getChildHandlerByClass(ContextHandlerCollection.class);
+        if (_contexts == null) {
+          _contexts=new ContextHandlerCollection();
+          prependHandler(_contexts,handlers);
+        }
+        if (_enableStatsGathering) {
+          if (handlers.getChildHandlerByClass(StatisticsHandler.class) == null) {
+            StatisticsHandler statsHandler=new StatisticsHandler();
+            prependHandler(statsHandler,handlers);
+            ServletContextHandler statsContext=new ServletContextHandler(_contexts,"/stats");
+            statsContext.addServlet(new ServletHolder(new StatisticsServlet()),"/");
+            statsContext.setSessionHandler(new SessionHandler());
+            if (_statsPropFile != null) {
+              HashLoginService loginService=new HashLoginService("StatsRealm",_statsPropFile);
+              Constraint constraint=new Constraint();
+              constraint.setName("Admin Only");
+              constraint.setRoles(new String[]{"admin"});
+              constraint.setAuthenticate(true);
+              ConstraintMapping cm=new ConstraintMapping();
+              cm.setConstraint(constraint);
+              cm.setPathSpec("/*");
+              ConstraintSecurityHandler securityHandler=new ConstraintSecurityHandler();
+              securityHandler.setLoginService(loginService);
+              securityHandler.setConstraintMappings(Collections.singletonList(cm));
+              securityHandler.setAuthenticator(new BasicAuthenticator());
+              statsContext.setSecurityHandler(securityHandler);
+            }
+          }
+        }
+        if (handlers.getChildHandlerByClass(DefaultHandler.class) == null) {
+          handlers.addHandler(new DefaultHandler());
+        }
+        _logHandler=(RequestLogHandler)handlers.getChildHandlerByClass(RequestLogHandler.class);
+        if (_logHandler == null) {
+          _logHandler=new RequestLogHandler();
+          handlers.addHandler(_logHandler);
+        }
+        Connector[] connectors=_server.getConnectors();
+        if (connectors == null || connectors.length == 0) {
+          Connector connector=new SelectChannelConnector();
+          connector.setPort(port);
+          _server.addConnector(connector);
+          if (_enableStatsGathering)           connector.setStatsOn(true);
+        }
+ else {
+          if (_enableStatsGathering) {
+            for (int j=0; j < connectors.length; j++) {
+              connectors[j].setStatsOn(true);
+            }
+          }
+        }
+        runnerServerInitialized=true;
+      }
+      Resource ctx=Resource.newResource(args[i]);
+      if (!ctx.exists())       usage("Context '" + ctx + "' does not exist");
+      if (!ctx.isDirectory() && ctx.toString().toLowerCase().endsWith(".xml")) {
+        XmlConfiguration xmlConfiguration=new XmlConfiguration(ctx.getURL());
+        xmlConfiguration.getIdMap().put("Server",_server);
+        ContextHandler handler=(ContextHandler)xmlConfiguration.configure();
+        _contexts.addHandler(handler);
+        if (contextPathSet)         handler.setContextPath(contextPath);
+        handler.setAttribute("org.eclipse.jetty.server.webapp.ContainerIncludeJarPattern",".*/.*jsp-api-[^/]*\\.jar$|.*/.*jsp-[^/]*\\.jar$|.*/.*taglibs[^/]*\\.jar$");
+      }
+ else {
+        if (contextPathSet && !(contextPath.startsWith("/")))         contextPath="/" + contextPath;
+        LOG.info("Deploying " + ctx.toString() + " @ "+ contextPath);
+        WebAppContext webapp=new WebAppContext(_contexts,ctx.toString(),contextPath);
+        webapp.setConfigurationClasses(__plusConfigurationClasses);
+        webapp.setAttribute("org.eclipse.jetty.server.webapp.ContainerIncludeJarPattern",".*/.*jsp-api-[^/]*\\.jar$|.*/.*jsp-[^/]*\\.jar$|.*/.*taglibs[^/]*\\.jar$");
+        System.err.println(Arrays.asList(_contexts.getHandlers()));
+      }
+    }
+  }
+  if (_server == null)   usage("No Contexts defined");
+  _server.setStopAtShutdown(true);
+  _server.setSendServerVersion(true);
+switch ((stopPort > 0 ? 1 : 0) + (stopKey != null ? 2 : 0)) {
+case 1:
+    usage("Must specify --stop-key when --stop-port is specified");
+  break;
+case 2:
+usage("Must specify --stop-port when --stop-key is specified");
+break;
+case 3:
+_monitor=new Monitor(stopPort,stopKey);
+break;
+}
+if (_logFile != null) {
+NCSARequestLog requestLog=new NCSARequestLog(_logFile);
+requestLog.setExtended(false);
+_logHandler.setRequestLog(requestLog);
+}
+}

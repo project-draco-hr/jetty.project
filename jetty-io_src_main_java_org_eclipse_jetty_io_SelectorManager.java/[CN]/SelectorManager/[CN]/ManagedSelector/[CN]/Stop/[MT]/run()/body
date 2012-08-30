@@ -3,16 +3,14 @@
     for (    SelectionKey key : _selector.keys()) {
       Object attachment=key.attachment();
       if (attachment instanceof EndPoint) {
-        EndPoint endpoint=(EndPoint)attachment;
-        endpoint.close();
+        EndPointCloser closer=new EndPointCloser((EndPoint)attachment);
+        execute(closer);
+        closer.await(getStopTimeout());
       }
     }
-    _selector.close();
+    closeNoExceptions(_selector);
   }
- catch (  IOException x) {
-    LOG.ignore(x);
-  }
- finally {
+  finally {
     latch.countDown();
   }
 }

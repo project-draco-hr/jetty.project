@@ -1,0 +1,18 @@
+{
+  HandshakeExchange exchange=new HandshakeExchange();
+  exchange.setMethod(HttpMethods.POST);
+  exchange.setAddress(gatewayAddress);
+  exchange.setURI(gatewayPath + "/" + urlEncode(getTargetId())+ "/handshake");
+  httpClient.send(exchange);
+  getLogger().debug("Client {} handshake sent to gateway",getTargetId(),null);
+  try {
+    int exchangeStatus=exchange.waitForDone();
+    if (exchangeStatus != HttpExchange.STATUS_COMPLETED)     throw new IOException("Handshake failed");
+    if (exchange.getResponseStatus() != 200)     throw new IOException("Handshake failed");
+    getLogger().debug("Client {} handshake returned from gateway",getTargetId(),null);
+  }
+ catch (  InterruptedException x) {
+    Thread.currentThread().interrupt();
+    throw newIOException(x);
+  }
+}

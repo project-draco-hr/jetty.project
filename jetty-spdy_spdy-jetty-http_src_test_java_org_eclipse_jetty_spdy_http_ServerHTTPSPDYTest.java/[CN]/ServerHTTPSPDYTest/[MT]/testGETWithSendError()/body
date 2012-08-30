@@ -1,6 +1,6 @@
 {
   final CountDownLatch handlerLatch=new CountDownLatch(1);
-  Session session=startClient(startHTTPServer(new AbstractHandler(){
+  Session session=startClient(version,startHTTPServer(version,new AbstractHandler(){
     @Override public void handle(    String target,    Request request,    HttpServletRequest httpRequest,    HttpServletResponse httpResponse) throws IOException, ServletException {
       request.setHandled(true);
       httpResponse.sendError(HttpServletResponse.SC_NOT_FOUND);
@@ -9,11 +9,11 @@
   }
 ),null);
   Headers headers=new Headers();
-  headers.put("method","GET");
-  headers.put("url","/foo");
-  headers.put("version","HTTP/1.1");
-  headers.put("scheme","http");
-  headers.put("host","localhost:" + connector.getLocalPort());
+  headers.put(HTTPSPDYHeader.METHOD.name(version),"GET");
+  headers.put(HTTPSPDYHeader.URI.name(version),"/foo");
+  headers.put(HTTPSPDYHeader.VERSION.name(version),"HTTP/1.1");
+  headers.put(HTTPSPDYHeader.SCHEME.name(version),"http");
+  headers.put(HTTPSPDYHeader.HOST.name(version),"localhost:" + connector.getLocalPort());
   final CountDownLatch replyLatch=new CountDownLatch(1);
   final CountDownLatch dataLatch=new CountDownLatch(1);
   session.syn(new SynInfo(headers,true),new StreamFrameListener.Adapter(){
@@ -22,12 +22,11 @@
       Assert.assertEquals(1,replies.incrementAndGet());
       Assert.assertFalse(replyInfo.isClose());
       Headers replyHeaders=replyInfo.getHeaders();
-      Assert.assertTrue(replyHeaders.get("status").value().contains("404"));
+      Assert.assertTrue(replyHeaders.get(HTTPSPDYHeader.STATUS.name(version)).value().contains("404"));
       replyLatch.countDown();
     }
     @Override public void onData(    Stream stream,    DataInfo dataInfo){
-      Assert.assertTrue(dataInfo.isClose());
-      dataLatch.countDown();
+      if (dataInfo.isClose())       dataLatch.countDown();
     }
   }
 );

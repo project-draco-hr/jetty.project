@@ -3,19 +3,20 @@
     LOG.debug("{}.onFrame({})",websocket.getClass().getSimpleName(),frame);
   }
   if ((frame instanceof Frame) && (events.onFrame != null)) {
-    events.onFrame.call(websocket,connection,frame);
+    events.onFrame.call(websocket,session,frame);
   }
   try {
 switch (frame.getOpCode()) {
-case CLOSE:
+case OpCode.CLOSE:
 {
-        CloseInfo close=new CloseInfo(frame);
+        boolean validate=true;
+        CloseInfo close=new CloseInfo(frame,validate);
         if (events.onClose != null) {
-          events.onClose.call(websocket,connection,close.getStatusCode(),close.getReason());
+          events.onClose.call(websocket,session,close.getStatusCode(),close.getReason());
         }
         throw new CloseException(close.getStatusCode(),close.getReason());
       }
-case PING:
+case OpCode.PING:
 {
       WebSocketFrame pong=new WebSocketFrame(OpCode.PONG);
       if (frame.getPayloadLength() > 0) {
@@ -24,91 +25,50 @@ case PING:
         BufferUtil.put(frame.getPayload(),pongBuf);
         BufferUtil.flipToFlush(pongBuf,0);
         pong.setPayload(pongBuf);
+        if (LOG.isDebugEnabled()) {
+          LOG.debug("Pong with {}",BufferUtil.toDetailString(pongBuf));
+        }
       }
-      connection.output("pong",new FutureCallback<String>(),pong);
+      session.output("pong",new FutureCallback<String>(),pong);
       break;
     }
-case BINARY:
+case OpCode.BINARY:
 {
     if (events.onBinary == null) {
       return;
     }
-    if (events.onBinary.isStreaming()) {
-      boolean needsNotification=false;
-      if (activeStream == null) {
-        ByteBuffer buf=ByteBuffer.allocate(policy.getBufferSize());
-        this.activeStream=new MessageInputStream(buf);
-        needsNotification=true;
+    if (activeMessage == null) {
+      if (events.onBinary.isStreaming()) {
+        activeMessage=new MessageInputStream(websocket,events.onBinary,session,bufferPool,policy);
       }
-      activeStream.appendBuffer(frame.getPayload());
-      if (needsNotification) {
-        events.onBinary.call(websocket,connection,activeStream);
-      }
-      if (frame.isFin()) {
-        activeStream.bufferComplete();
-        activeStream=null;
+ else {
+        activeMessage=new SimpleBinaryMessage(websocket,events.onBinary,session,bufferPool,policy);
       }
     }
- else {
-      if (activeMessage == null) {
-        activeMessage=bufferPool.acquire(policy.getBufferSize(),false);
-        BufferUtil.clearToFill(activeMessage);
-      }
-      appendBuffer(activeMessage,frame.getPayload());
-      if (frame.isFin()) {
-        try {
-          BufferUtil.flipToFlush(activeMessage,0);
-          byte buf[]=BufferUtil.toArray(activeMessage);
-          events.onBinary.call(websocket,connection,buf,0,buf.length);
-        }
-  finally {
-          bufferPool.release(activeMessage);
-          activeMessage=null;
-        }
-      }
+    activeMessage.appendMessage(frame.getPayload());
+    if (frame.isFin()) {
+      activeMessage.messageComplete();
+      activeMessage=null;
     }
     return;
   }
-case TEXT:
+case OpCode.TEXT:
 {
   if (events.onText == null) {
     return;
   }
-  if (events.onText.isStreaming()) {
-    boolean needsNotification=false;
-    if (activeStream == null) {
-      ByteBuffer buf=ByteBuffer.allocate(policy.getBufferSize());
-      this.activeStream=new MessageReader(buf);
-      needsNotification=true;
+  if (activeMessage == null) {
+    if (events.onText.isStreaming()) {
+      activeMessage=new MessageReader(websocket,events.onBinary,session,policy);
     }
-    activeStream.appendBuffer(frame.getPayload());
-    if (needsNotification) {
-      events.onText.call(websocket,connection,activeStream);
-    }
-    if (frame.isFin()) {
-      activeStream.bufferComplete();
-      activeStream=null;
+ else {
+      activeMessage=new SimpleTextMessage(websocket,events.onText,session,policy);
     }
   }
- else {
-    if (activeMessage == null) {
-      activeMessage=bufferPool.acquire(policy.getBufferSize(),false);
-      BufferUtil.clearToFill(activeMessage);
-    }
-    appendBuffer(activeMessage,frame.getPayload());
-    if (frame.isFin()) {
-      try {
-        BufferUtil.flipToFlush(activeMessage,0);
-        byte data[]=BufferUtil.toArray(activeMessage);
-        Utf8StringBuilder utf=new Utf8StringBuilder();
-        utf.append(data,0,data.length);
-        events.onText.call(websocket,connection,utf.toString());
-      }
-  finally {
-        bufferPool.release(activeMessage);
-        activeMessage=null;
-      }
-    }
+  activeMessage.appendMessage(frame.getPayload());
+  if (frame.isFin()) {
+    activeMessage.messageComplete();
+    activeMessage=null;
   }
   return;
 }

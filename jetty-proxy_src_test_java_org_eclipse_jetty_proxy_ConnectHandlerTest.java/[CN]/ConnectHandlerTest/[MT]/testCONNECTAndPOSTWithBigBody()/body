@@ -1,0 +1,29 @@
+{
+  String hostPort="localhost:" + ((Connector.NetConnector)serverConnector).getLocalPort();
+  boolean stress=Boolean.getBoolean("STRESS");
+  if (!stress) {
+    return;
+  }
+  String request="" + "CONNECT " + hostPort + " HTTP/1.1\r\n"+ "Host: "+ hostPort+ "\r\n"+ "\r\n";
+  Socket socket=newSocket();
+  try {
+    OutputStream output=socket.getOutputStream();
+    BufferedReader input=new BufferedReader(new InputStreamReader(socket.getInputStream()));
+    output.write(request.getBytes("UTF-8"));
+    output.flush();
+    Response response=readResponse(input);
+    assertEquals("200",response.getCode());
+    StringBuilder body=new StringBuilder();
+    String chunk="0123456789ABCDEF";
+    for (int i=0; i < 1024 * 1024; ++i)     body.append(chunk);
+    request="" + "POST /echo HTTP/1.1\r\n" + "Host: " + hostPort + "\r\n"+ "Content-Length: "+ body.length()+ "\r\n"+ "\r\n"+ body;
+    output.write(request.getBytes("UTF-8"));
+    output.flush();
+    response=readResponse(input);
+    assertEquals("200",response.getCode());
+    assertEquals("POST /echo\r\n" + body,response.getBody());
+  }
+  finally {
+    socket.close();
+  }
+}

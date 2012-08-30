@@ -1,0 +1,29 @@
+{
+  StringBuilder chunkSize=new StringBuilder();
+  String validHex="0123456789ABCDEF";
+  boolean foundCR=false;
+  boolean foundLF=false;
+  int b;
+  while (!(foundCR && foundLF)) {
+    b=inputStream.read();
+    Assert.assertThat("Should not have hit EOL (yet) during chunk size read",b,not(-1));
+    if (b == 0x0D) {
+      foundCR=true;
+    }
+ else     if (b == 0x0A) {
+      foundLF=true;
+    }
+ else {
+      foundCR=false;
+      foundLF=false;
+      char c=(char)b;
+      if (validHex.indexOf(c) >= 0) {
+        chunkSize.append(c);
+      }
+ else {
+        Assert.fail(String.format("Encountered invalid chunk size byte 0x%X",b));
+      }
+    }
+  }
+  return Long.parseLong(chunkSize.toString(),16);
+}

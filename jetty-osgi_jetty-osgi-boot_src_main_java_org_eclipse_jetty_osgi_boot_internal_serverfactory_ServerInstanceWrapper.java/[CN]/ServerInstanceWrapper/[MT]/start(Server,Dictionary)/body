@@ -4,30 +4,28 @@
   try {
     ClassLoader libExtClassLoader=null;
     String sharedURLs=(String)props.get(OSGiServerConstants.MANAGED_JETTY_SHARED_LIB_FOLDER_URLS);
-    try {
-      List<File> shared=sharedURLs != null ? extractFiles(sharedURLs) : null;
-      libExtClassLoader=LibExtClassLoaderHelper.createLibExtClassLoader(shared,null,server,JettyBootstrapActivator.class.getClassLoader());
-    }
- catch (    MalformedURLException e) {
-      e.printStackTrace();
-    }
+    List<File> shared=sharedURLs != null ? extractFiles(sharedURLs) : null;
+    libExtClassLoader=LibExtClassLoaderHelper.createLibExtClassLoader(shared,null,server,JettyBootstrapActivator.class.getClassLoader());
     Thread.currentThread().setContextClassLoader(libExtClassLoader);
     configure(server,props);
     init();
-    try {
-      URL[] jarsWithTlds=getJarsWithTlds();
-      _commonParentClassLoaderForWebapps=jarsWithTlds == null ? libExtClassLoader : new TldLocatableURLClassloader(libExtClassLoader,jarsWithTlds);
-    }
- catch (    MalformedURLException e) {
-      e.printStackTrace();
-    }
+    URL[] jarsWithTlds=getJarsWithTlds();
+    _commonParentClassLoaderForWebapps=jarsWithTlds == null ? libExtClassLoader : new TldLocatableURLClassloader(libExtClassLoader,jarsWithTlds);
     server.start();
+    _webBundleDeployerHelper=new WebBundleDeployerHelper(this);
   }
- catch (  Throwable t) {
-    t.printStackTrace();
+ catch (  Exception e) {
+    if (server != null) {
+      try {
+        server.stop();
+      }
+ catch (      Exception x) {
+        LOG.ignore(x);
+      }
+    }
+    throw e;
   }
  finally {
     Thread.currentThread().setContextClassLoader(contextCl);
   }
-  _webBundleDeployerHelper=new WebBundleDeployerHelper(this);
 }

@@ -1,22 +1,22 @@
 {
   MultiException mx=new MultiException();
   if (_filters != null) {
-    for (int i=0; i < _filters.length; i++)     _filters[i].start();
+    for (    FilterHolder filter : _filters)     filter.start();
   }
   if (_servlets != null) {
-    ServletHolder[] servlets=(ServletHolder[])_servlets.clone();
+    ServletHolder[] servlets=_servlets.clone();
     Arrays.sort(servlets);
-    for (int i=0; i < servlets.length; i++) {
+    for (    ServletHolder servlet : servlets) {
       try {
-        if (servlets[i].getClassName() == null && servlets[i].getForcedPath() != null) {
-          ServletHolder forced_holder=(ServletHolder)_servletPathMap.match(servlets[i].getForcedPath());
+        if (servlet.getClassName() == null && servlet.getForcedPath() != null) {
+          ServletHolder forced_holder=(ServletHolder)_servletPathMap.match(servlet.getForcedPath());
           if (forced_holder == null || forced_holder.getClassName() == null) {
-            mx.add(new IllegalStateException("No forced path servlet for " + servlets[i].getForcedPath()));
+            mx.add(new IllegalStateException("No forced path servlet for " + servlet.getForcedPath()));
             continue;
           }
-          servlets[i].setClassName(forced_holder.getClassName());
+          servlet.setClassName(forced_holder.getClassName());
         }
-        servlets[i].start();
+        servlet.start();
       }
  catch (      Throwable e) {
         LOG.debug(Log.EXCEPTION,e);

@@ -1,17 +1,8 @@
 {
   Object old_value=_attributes == null ? null : _attributes.getAttribute(name);
   if (_attributes != null)   _attributes.removeAttribute(name);
-  if (old_value != null) {
-    if (_requestAttributeListeners != null) {
-      final ServletRequestAttributeEvent event=new ServletRequestAttributeEvent(_context,this,name,old_value);
-      final int size=LazyList.size(_requestAttributeListeners);
-      for (int i=0; i < size; i++) {
-        final EventListener listener=(ServletRequestAttributeListener)LazyList.get(_requestAttributeListeners,i);
-        if (listener instanceof ServletRequestAttributeListener) {
-          final ServletRequestAttributeListener l=(ServletRequestAttributeListener)listener;
-          l.attributeRemoved(event);
-        }
-      }
-    }
+  if (old_value != null && !_requestAttributeListeners.isEmpty()) {
+    final ServletRequestAttributeEvent event=new ServletRequestAttributeEvent(_context,this,name,old_value);
+    for (    ServletRequestAttributeListener listener : _requestAttributeListeners)     listener.attributeRemoved(event);
   }
 }

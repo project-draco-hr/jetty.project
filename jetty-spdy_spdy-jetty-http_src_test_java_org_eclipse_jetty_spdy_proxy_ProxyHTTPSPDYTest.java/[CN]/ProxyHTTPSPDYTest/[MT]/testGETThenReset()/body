@@ -1,0 +1,22 @@
+{
+  InetSocketAddress proxyAddress=startProxy(startServer(new ServerSessionFrameListener.Adapter(){
+    @Override public StreamFrameListener onSyn(    Stream stream,    SynInfo synInfo){
+      Assert.assertTrue(synInfo.isClose());
+      Headers requestHeaders=synInfo.getHeaders();
+      Assert.assertNotNull(requestHeaders.get("via"));
+      stream.getSession().rst(new RstInfo(stream.getId(),StreamStatus.REFUSED_STREAM));
+      return null;
+    }
+  }
+));
+  Socket client=new Socket();
+  client.connect(proxyAddress);
+  OutputStream output=client.getOutputStream();
+  String request="" + "GET / HTTP/1.1\r\n" + "Host: localhost:" + proxyAddress.getPort() + "\r\n"+ "\r\n";
+  output.write(request.getBytes("UTF-8"));
+  output.flush();
+  InputStream input=client.getInputStream();
+  BufferedReader reader=new BufferedReader(new InputStreamReader(input,"UTF-8"));
+  Assert.assertNull(reader.readLine());
+  client.close();
+}

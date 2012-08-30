@@ -2,9 +2,17 @@
   if (isStarted())   throw new IllegalStateException();
   if (!_enabled)   throw new UnsupportedOperationException();
   final ServletHandler handler=ServletContextHandler.this.getServletHandler();
-  final FilterHolder holder=handler.newFilterHolder(Holder.Source.JAVAX_API);
-  holder.setName(filterName);
-  holder.setHeldClass(filterClass);
-  handler.addFilter(holder);
-  return holder.getRegistration();
+  FilterHolder holder=handler.getFilter(filterName);
+  if (holder == null) {
+    holder=handler.newFilterHolder(Holder.Source.JAVAX_API);
+    holder.setName(filterName);
+    holder.setHeldClass(filterClass);
+    handler.addFilter(holder);
+    return holder.getRegistration();
+  }
+  if (holder.getClassName() == null && holder.getHeldClass() == null) {
+    holder.setHeldClass(filterClass);
+    return holder.getRegistration();
+  }
+ else   return null;
 }

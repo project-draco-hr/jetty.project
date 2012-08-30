@@ -1,15 +1,16 @@
 {
+  Object attachment=key.attachment();
   try {
-    Object att=key.attachment();
-    if (att instanceof Selectable) {
-      if (key.isReadable() || key.isWritable())       ((Selectable)att).onSelected();
+    if (attachment instanceof SelectableEndPoint) {
+      ((SelectableEndPoint)attachment).onSelected();
     }
  else     if (key.isConnectable()) {
       SocketChannel channel=(SocketChannel)key.channel();
       try {
         boolean connected=channel.finishConnect();
         if (connected) {
-          AsyncEndPoint endpoint=createEndPoint(channel,key);
+          key.interestOps(0);
+          EndPoint endpoint=createEndPoint(channel,key);
           key.attach(endpoint);
         }
  else {
@@ -17,8 +18,8 @@
         }
       }
  catch (      Exception x) {
-        connectionFailed(channel,x,att);
-        key.cancel();
+        connectionFailed(channel,x,attachment);
+        closeNoExceptions(channel);
       }
     }
  else {
@@ -26,6 +27,11 @@
     }
   }
  catch (  CancelledKeyException x) {
-    LOG.debug("Ignoring cancelled key for channel",key.channel());
+    LOG.debug("Ignoring cancelled key for channel {}",key.channel());
+    if (attachment instanceof EndPoint)     ((EndPoint)attachment).close();
+  }
+catch (  Exception x) {
+    LOG.warn("Could not process key for channel " + key.channel(),x);
+    if (attachment instanceof EndPoint)     ((EndPoint)attachment).close();
   }
 }

@@ -1,5 +1,4 @@
 {
-  final long maxIdleTime=1000;
   final CountDownLatch latch=new CountDownLatch(1);
   InetSocketAddress address=startServer(new ServerSessionFrameListener.Adapter(){
     @Override public StreamFrameListener onSyn(    Stream stream,    SynInfo synInfo){
@@ -16,13 +15,13 @@
   clientFactory=newSPDYClientFactory(threadPool);
   clientFactory.start();
   SPDYClient client=clientFactory.newSPDYClient(SPDY.V2);
-  client.setMaxIdleTime(maxIdleTime);
+  client.setIdleTimeout(idleTimeout);
   Session session=client.connect(address,null).get(5,TimeUnit.SECONDS);
   final CountDownLatch replyLatch=new CountDownLatch(1);
   session.syn(new SynInfo(true),new StreamFrameListener.Adapter(){
     @Override public void onReply(    Stream stream,    ReplyInfo replyInfo){
       try {
-        Thread.sleep(2 * maxIdleTime);
+        Thread.sleep(2 * idleTimeout);
         replyLatch.countDown();
       }
  catch (      InterruptedException e) {
@@ -31,6 +30,6 @@
     }
   }
 );
-  Assert.assertFalse(latch.await(2 * maxIdleTime,TimeUnit.MILLISECONDS));
-  Assert.assertTrue(replyLatch.await(3 * maxIdleTime,TimeUnit.MILLISECONDS));
+  Assert.assertFalse(latch.await(2 * idleTimeout,TimeUnit.MILLISECONDS));
+  Assert.assertTrue(replyLatch.await(3 * idleTimeout,TimeUnit.MILLISECONDS));
 }

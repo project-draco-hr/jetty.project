@@ -1,0 +1,20 @@
+{
+synchronized (lock) {
+    if (!responded) {
+      httpResponse.setStatus(response.getStatusCode());
+      for (      Map.Entry<String,String> header : response.getHeaders().entrySet())       httpResponse.setHeader(header.getKey(),header.getValue());
+      ServletOutputStream output=httpResponse.getOutputStream();
+      output.write(response.getBody());
+      output.flush();
+      if (continuation != null) {
+        continuation.complete();
+        continuation=null;
+      }
+      responded=true;
+      if (logger.isDebugEnabled()) {
+        String eol=System.getProperty("line.separator");
+        logger.debug("Request {} responded {}{}{}{}{}",new Object[]{request,response,eol,request.toLongString(),eol,response.toLongString()});
+      }
+    }
+  }
+}

@@ -1,23 +1,21 @@
 {
   System.err.printf("[GzipTester] requesting /context/%s%n",requestedFilename);
-  HttpTester request=new HttpTester();
-  HttpTester response=new HttpTester();
+  HttpTester.Request request=HttpTester.newRequest();
+  HttpTester.Response response;
   request.setMethod("GET");
   request.setVersion("HTTP/1.0");
   request.setHeader("Host","tester");
-  request.setHeader("Accept-Encoding","gzip");
+  request.setHeader("Accept-Encoding",compressionType);
+  if (this.userAgent != null)   request.setHeader("User-Agent",this.userAgent);
   request.setURI("/context/" + requestedFilename);
-  ByteArrayBuffer reqsBuff=new ByteArrayBuffer(request.generate().getBytes());
-  ByteArrayBuffer respBuff=servletTester.getResponses(reqsBuff);
-  response.parse(respBuff.asArray());
+  response=HttpTester.parseResponse(tester.getResponses(request.generate()));
   dumpHeaders(requestedFilename + " / Response Headers",response);
   String prefix=requestedFilename + " / Response";
-  Assert.assertThat(prefix + ".method",response.getMethod(),nullValue());
   Assert.assertThat(prefix + ".status",response.getStatus(),is(HttpServletResponse.SC_OK));
-  Assert.assertThat(prefix + ".header[Content-Length]",response.getHeader("Content-Length"),notNullValue());
-  Assert.assertThat(prefix + ".header[Content-Encoding] (should not be recompressed by GzipFilter)",response.getHeader("Content-Encoding"),nullValue());
-  Assert.assertThat(prefix + ".header[Content-Type] (should have a Content-Type associated with it)",response.getHeader("Content-Type"),notNullValue());
-  Assert.assertThat(prefix + ".header[Content-Type]",response.getHeader("Content-Type"),is(expectedContentType));
+  Assert.assertThat(prefix + ".header[Content-Length]",response.get("Content-Length"),notNullValue());
+  Assert.assertThat(prefix + ".header[Content-Encoding] (should not be recompressed by GzipFilter)",response.get("Content-Encoding"),nullValue());
+  Assert.assertThat(prefix + ".header[Content-Type] (should have a Content-Type associated with it)",response.get("Content-Type"),notNullValue());
+  Assert.assertThat(prefix + ".header[Content-Type]",response.get("Content-Type"),is(expectedContentType));
   ByteArrayInputStream bais=null;
   DigestOutputStream digester=null;
   try {

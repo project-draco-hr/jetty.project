@@ -1,9 +1,9 @@
 {
   _server=new Server();
-  _connector=new LocalHttpConnector();
+  _connector=new LocalConnector(_server);
   _server.setConnectors(new Connector[]{_connector});
   ContextHandler _context=new ContextHandler();
-  _session=new SessionHandler();
+  SessionHandler _session=new SessionHandler();
   HashLoginService _loginService=new HashLoginService(TEST_REALM);
   _loginService.putUser("user",new Password("password"));
   _loginService.putUser("user2",new Password("password"),new String[]{"user"});
@@ -12,4 +12,9 @@
   _server.setHandler(_context);
   _context.setHandler(_session);
   _server.addBean(_loginService);
+  _security=new ConstraintSecurityHandler();
+  _session.setHandler(_security);
+  RequestHandler _handler=new RequestHandler();
+  _security.setHandler(_handler);
+  _security.setConstraintMappings(getConstraintMappings(),getKnownRoles());
 }

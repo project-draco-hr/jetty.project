@@ -1,0 +1,59 @@
+{
+  GatewayServer server=new GatewayServer();
+  Connector connector=new SelectChannelConnector();
+  server.addConnector(connector);
+  final long gatewayTimeout=5000L;
+  ((StandardGateway)server.getGateway()).setGatewayTimeout(gatewayTimeout);
+  final long externalTimeout=gatewayTimeout * 2;
+  ((StandardGateway)server.getGateway()).setExternalTimeout(externalTimeout);
+  server.start();
+  try {
+    Address address=new Address("localhost",connector.getLocalPort());
+    HttpClient httpClient=new HttpClient();
+    httpClient.setConnectorType(HttpClient.CONNECTOR_SELECT_CHANNEL);
+    httpClient.start();
+    try {
+      String targetId="1";
+      final RHTTPClient client=new JettyClient(httpClient,address,server.getContext().getContextPath() + GatewayServer.DFT_CONNECT_PATH,targetId);
+      final AtomicReference<Exception> exceptionRef=new AtomicReference<Exception>();
+      client.addListener(new RHTTPListener(){
+        public void onRequest(        RHTTPRequest request){
+          try {
+            Thread.sleep(gatewayTimeout + 1000L);
+            RHTTPResponse response=new RHTTPResponse(request.getId(),200,"OK",new HashMap<String,String>(),request.getBody());
+            client.deliver(response);
+          }
+ catch (          Exception x) {
+            exceptionRef.set(x);
+          }
+        }
+      }
+);
+      client.connect();
+      try {
+        ContentExchange exchange=new ContentExchange(true);
+        exchange.setMethod(HttpMethods.POST);
+        exchange.setAddress(address);
+        exchange.setURI(server.getContext().getContextPath() + GatewayServer.DFT_EXT_PATH + "/"+ URLEncoder.encode(targetId,"UTF-8"));
+        String requestContent="body";
+        exchange.setRequestContent(new ByteArrayBuffer(requestContent.getBytes("UTF-8")));
+        httpClient.send(exchange);
+        int status=exchange.waitForDone();
+        assertEquals(HttpExchange.STATUS_COMPLETED,status);
+        assertEquals(HttpServletResponse.SC_OK,exchange.getResponseStatus());
+        assertNull(exceptionRef.get());
+        String responseContent=exchange.getResponseContent();
+        assertEquals(responseContent,requestContent);
+      }
+  finally {
+        client.disconnect();
+      }
+    }
+  finally {
+      httpClient.stop();
+    }
+  }
+  finally {
+    server.stop();
+  }
+}

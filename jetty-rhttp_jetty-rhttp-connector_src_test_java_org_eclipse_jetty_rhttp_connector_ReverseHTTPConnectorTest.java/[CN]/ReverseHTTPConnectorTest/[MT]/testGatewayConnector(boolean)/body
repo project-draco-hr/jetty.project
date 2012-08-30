@@ -1,0 +1,51 @@
+{
+  Server server=new Server();
+  final CountDownLatch handlerLatch=new CountDownLatch(1);
+  CountDownLatch clientLatch=new CountDownLatch(1);
+  AtomicReference<RHTTPResponse> responseRef=new AtomicReference<RHTTPResponse>();
+  ReverseHTTPConnector connector=new ReverseHTTPConnector(new TestClient(clientLatch,responseRef));
+  server.addConnector(connector);
+  final String method="POST";
+  final String uri="/test";
+  final byte[] requestBody=withRequestBody ? "REQUEST-BODY".getBytes("UTF-8") : new byte[0];
+  final int statusCode=HttpServletResponse.SC_CREATED;
+  final String headerName="foo";
+  final String headerValue="bar";
+  final byte[] responseBody="RESPONSE-BODY".getBytes("UTF-8");
+  server.setHandler(new AbstractHandler(){
+    public void handle(    String pathInfo,    org.eclipse.jetty.server.Request request,    HttpServletRequest httpRequest,    HttpServletResponse httpResponse) throws IOException, ServletException {
+      assertEquals(method,httpRequest.getMethod());
+      assertEquals(uri,httpRequest.getRequestURI());
+      assertEquals(headerValue,httpRequest.getHeader(headerName));
+      ByteArrayOutputStream baos=new ByteArrayOutputStream();
+      InputStream input=httpRequest.getInputStream();
+      int read;
+      while ((read=input.read()) >= 0)       baos.write(read);
+      baos.close();
+      assertTrue(Arrays.equals(requestBody,baos.toByteArray()));
+      httpResponse.setStatus(statusCode);
+      httpResponse.setHeader(headerName,headerValue);
+      OutputStream output=httpResponse.getOutputStream();
+      output.write(responseBody);
+      output.flush();
+      request.setHandled(true);
+      handlerLatch.countDown();
+    }
+  }
+);
+  server.start();
+  HashMap<String,String> headers=new HashMap<String,String>();
+  headers.put("Host","localhost");
+  headers.put(headerName,headerValue);
+  headers.put("Content-Length",String.valueOf(requestBody.length));
+  RHTTPRequest request=new RHTTPRequest(1,method,uri,headers,requestBody);
+  request=RHTTPRequest.fromRequestBytes(request.getId(),request.getRequestBytes());
+  connector.onRequest(request);
+  assertTrue(handlerLatch.await(1000,TimeUnit.MILLISECONDS));
+  assertTrue(clientLatch.await(1000,TimeUnit.MILLISECONDS));
+  RHTTPResponse response=responseRef.get();
+  assertEquals(request.getId(),response.getId());
+  assertEquals(statusCode,response.getStatusCode());
+  assertEquals(headerValue,response.getHeaders().get(headerName));
+  assertTrue(Arrays.equals(response.getBody(),responseBody));
+}

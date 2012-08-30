@@ -1,0 +1,73 @@
+{
+switch (_state) {
+case START:
+{
+      if (info == null)       return Result.NEED_INFO;
+      if (header == null)       return Result.NEED_HEADER;
+      if (_persistent == null)       _persistent=(info.getHttpVersion().ordinal() > HttpVersion.HTTP_1_0.ordinal());
+      int pos=BufferUtil.flipToFill(header);
+      try {
+        generateRequestLine(info,header);
+        if (info.getHttpVersion() == HttpVersion.HTTP_0_9)         _noContent=true;
+ else         generateHeaders(info,header,content,last);
+        int len=BufferUtil.length(content);
+        if (len > 0) {
+          _contentPrepared+=len;
+          if (isChunking())           prepareChunk(header,len);
+        }
+        _state=last ? State.COMPLETING : State.COMMITTED;
+      }
+ catch (      Exception e) {
+        String message=(e instanceof BufferOverflowException) ? "Response header too large" : e.getMessage();
+        throw new IOException(message,e);
+      }
+ finally {
+        BufferUtil.flipToFlush(header,pos);
+      }
+      return Result.FLUSH;
+    }
+case COMMITTED:
+{
+    int len=BufferUtil.length(content);
+    if (len > 0) {
+      if (isChunking()) {
+        if (chunk == null)         return Result.NEED_CHUNK;
+        BufferUtil.clearToFill(chunk);
+        prepareChunk(chunk,len);
+        BufferUtil.flipToFlush(chunk,0);
+      }
+      _contentPrepared+=len;
+    }
+    if (last) {
+      _state=State.COMPLETING;
+      return len > 0 ? Result.FLUSH : Result.CONTINUE;
+    }
+    return len > 0 ? Result.FLUSH : Result.DONE;
+  }
+case COMPLETING:
+{
+  if (BufferUtil.hasContent(content)) {
+    LOG.debug("discarding content in COMPLETING");
+    BufferUtil.clear(content);
+  }
+  if (isChunking()) {
+    if (chunk == null)     return Result.NEED_CHUNK;
+    BufferUtil.clearToFill(chunk);
+    prepareChunk(chunk,0);
+    BufferUtil.flipToFlush(chunk,0);
+    _endOfContent=EndOfContent.UNKNOWN_CONTENT;
+    return Result.FLUSH;
+  }
+  _state=State.END;
+  return Boolean.TRUE.equals(_persistent) ? Result.DONE : Result.SHUTDOWN_OUT;
+}
+case END:
+if (BufferUtil.hasContent(content)) {
+LOG.debug("discarding content in COMPLETING");
+BufferUtil.clear(content);
+}
+return Result.DONE;
+default :
+throw new IllegalStateException();
+}
+}

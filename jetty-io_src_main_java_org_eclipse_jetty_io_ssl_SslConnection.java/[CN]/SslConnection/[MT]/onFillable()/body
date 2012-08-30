@@ -1,8 +1,11 @@
 {
-  LOG.debug("{} onReadable",this);
-  if (_appEndPoint._readInterest.isInterested())   _appEndPoint._readInterest.readable();
-  if (_appEndPoint._writeFlusher.isWriting() && _appEndPoint._flushUnwrap) {
-    _appEndPoint._flushUnwrap=false;
-    _appEndPoint._writeFlusher.completeWrite();
+  LOG.debug("onFillable enter {}",getEndPoint());
+  _decryptedEndPoint.getFillInterest().fillable();
+synchronized (_decryptedEndPoint) {
+    if (_decryptedEndPoint._flushRequiresFillToProgress) {
+      _decryptedEndPoint._flushRequiresFillToProgress=false;
+      getExecutor().execute(_runCompletWrite);
+    }
   }
+  LOG.debug("onFillable exit {}",getEndPoint());
 }

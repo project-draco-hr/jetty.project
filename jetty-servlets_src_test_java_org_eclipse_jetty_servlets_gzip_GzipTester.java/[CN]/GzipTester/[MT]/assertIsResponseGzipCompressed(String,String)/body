@@ -1,19 +1,16 @@
 {
   System.err.printf("[GzipTester] requesting /context/%s%n",requestedFilename);
-  HttpTester request=new HttpTester();
-  HttpTester response=new HttpTester();
+  HttpTester.Request request=HttpTester.newRequest();
+  HttpTester.Response response;
   request.setMethod("GET");
   request.setVersion("HTTP/1.0");
   request.setHeader("Host","tester");
-  request.setHeader("Accept-Encoding","gzip");
+  request.setHeader("Accept-Encoding",compressionType);
+  if (this.userAgent != null)   request.setHeader("User-Agent",this.userAgent);
   request.setURI("/context/" + requestedFilename);
-  ByteArrayBuffer reqsBuff=new ByteArrayBuffer(request.generate().getBytes());
-  ByteArrayBuffer respBuff=servletTester.getResponses(reqsBuff);
-  response.parse(respBuff.asArray());
-  Assert.assertThat("Response.method",response.getMethod(),nullValue());
-  Assert.assertThat("Response.status",response.getStatus(),is(HttpServletResponse.SC_OK));
-  Assert.assertThat("Response.header[Content-Length]",response.getHeader("Content-Length"),notNullValue());
-  Assert.assertThat("Response.header[Content-Encoding]",response.getHeader("Content-Encoding"),containsString("gzip"));
+  response=HttpTester.parseResponse(tester.getResponses(request.generate()));
+  Assert.assertThat("Response.header[Content-Length]",response.get("Content-Length"),notNullValue());
+  Assert.assertThat("Response.header[Content-Encoding]",response.get("Content-Encoding"),containsString(compressionType));
   File serverFile=testdir.getFile(serverFilename);
   String expected=IO.readToString(serverFile);
   String actual=null;
@@ -22,11 +19,16 @@
   ByteArrayOutputStream out=null;
   try {
     bais=new ByteArrayInputStream(response.getContentBytes());
-    in=new GZIPInputStream(bais);
+    if (compressionType.equals(GzipFilter.GZIP)) {
+      in=new GZIPInputStream(bais);
+    }
+ else     if (compressionType.equals(GzipFilter.DEFLATE)) {
+      in=new InflaterInputStream(bais,new Inflater(true));
+    }
     out=new ByteArrayOutputStream();
     IO.copy(in,out);
     actual=out.toString(encoding);
-    Assert.assertEquals("Uncompressed contents",expected,actual);
+    assertThat("Uncompressed contents",actual,equalTo(expected));
   }
   finally {
     IO.close(out);

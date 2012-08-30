@@ -1,0 +1,21 @@
+{
+  TrackingSocket cliSock=new TrackingSocket();
+  WebSocketClient client=factory.newWebSocketClient(cliSock);
+  client.getPolicy().setIdleTimeout(10000);
+  URI wsUri=server.getWsUri();
+  UpgradeRequest request=client.getUpgradeRequest();
+  request.setSubProtocols("echo");
+  Future<UpgradeResponse> future=client.connect(wsUri);
+  final ServerConnection srvSock=server.accept();
+  srvSock.upgrade();
+  UpgradeResponse resp=future.get(500,TimeUnit.MILLISECONDS);
+  Assert.assertThat("Response",resp,notNullValue());
+  Assert.assertThat("Response.success",resp.isSuccess(),is(true));
+  cliSock.assertWasOpened();
+  cliSock.assertNotClosed();
+  Assert.assertThat("Factory.sockets.size",factory.getConnectionManager().getClients().size(),is(1));
+  cliSock.getConnection().write(null,new FutureCallback<Void>(),"Hello World!");
+  srvSock.echoMessage(1,TimeUnit.MILLISECONDS,500);
+  cliSock.waitForMessage(TimeUnit.MILLISECONDS,500);
+  cliSock.assertMessage("Hello World!");
+}

@@ -1,0 +1,23 @@
+{
+  List<WebSocketFrame> send=new ArrayList<>();
+  send.add(new WebSocketFrame(OpCode.CONTINUATION).setPayload("sorry").setFin(false));
+  send.add(new WebSocketFrame(OpCode.TEXT).setPayload("hello, world"));
+  send.add(new CloseInfo(StatusCode.NORMAL).asFrame());
+  List<WebSocketFrame> expect=new ArrayList<>();
+  expect.add(new CloseInfo(StatusCode.PROTOCOL).asFrame());
+  Fuzzer fuzzer=new Fuzzer(this);
+  try {
+    fuzzer.connect();
+    fuzzer.setSendMode(Fuzzer.SendMode.SLOW);
+    fuzzer.setSlowSendSegmentSize(1);
+    try {
+      fuzzer.send(send);
+    }
+ catch (    SocketException ignore) {
+    }
+    fuzzer.expect(expect);
+  }
+  finally {
+    fuzzer.close();
+  }
+}

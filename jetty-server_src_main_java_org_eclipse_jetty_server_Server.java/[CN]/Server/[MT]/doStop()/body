@@ -1,29 +1,33 @@
 {
   if (isDumpBeforeStop())   dumpStdErr();
   MultiException mex=new MultiException();
-  if (_graceful > 0) {
-    if (_connectors != null) {
-      for (int i=_connectors.length; i-- > 0; ) {
-        LOG.info("Graceful shutdown {}",_connectors[i]);
-        if (_connectors[i] instanceof NetConnector)         ((NetConnector)_connectors[i]).close();
+  List<Future<Void>> futures=new ArrayList<>();
+  for (  Connector connector : _connectors)   futures.add(connector.shutdown((Void)null));
+  Handler[] contexts=getChildHandlersByClass(Graceful.class);
+  for (  Handler context : contexts)   futures.add(((Graceful)context).shutdown((Void)null));
+  long stopTimeout=getStopTimeout();
+  if (stopTimeout > 0) {
+    long stop_by=System.currentTimeMillis() + stopTimeout;
+    LOG.info("Graceful shutdown {} by ",this,new Date(stop_by));
+    for (    Future<Void> future : futures) {
+      try {
+        if (!future.isDone())         future.get(Math.max(1L,stop_by - System.currentTimeMillis()),TimeUnit.MILLISECONDS);
+      }
+ catch (      ExecutionException e) {
+        mex.add(e.getCause());
+      }
+catch (      Exception e) {
+        mex.add(e.getCause());
       }
     }
-    Handler[] contexts=getChildHandlersByClass(Graceful.class);
-    for (int c=0; c < contexts.length; c++) {
-      Graceful context=(Graceful)contexts[c];
-      LOG.info("Graceful shutdown {}",context);
-      context.setShutdown(true);
-    }
-    Thread.sleep(_graceful);
   }
-  if (_connectors != null) {
-    for (int i=_connectors.length; i-- > 0; ) {
-      if (_connectors[i] != null)       try {
-        _connectors[i].stop();
-      }
- catch (      Throwable e) {
-        mex.add(e);
-      }
+  for (  Future<Void> future : futures)   if (!future.isDone())   future.cancel(true);
+  for (  Connector connector : _connectors) {
+    try {
+      connector.stop();
+    }
+ catch (    Throwable e) {
+      mex.add(e);
     }
   }
   try {
@@ -32,6 +36,6 @@
  catch (  Throwable e) {
     mex.add(e);
   }
-  mex.ifExceptionThrow();
   if (getStopAtShutdown())   ShutdownThread.deregister(this);
+  mex.ifExceptionThrow();
 }

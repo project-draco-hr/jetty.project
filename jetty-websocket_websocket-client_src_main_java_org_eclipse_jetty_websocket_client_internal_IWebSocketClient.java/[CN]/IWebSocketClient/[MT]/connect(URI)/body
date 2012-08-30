@@ -1,0 +1,24 @@
+{
+  if (!factory.isStarted()) {
+    throw new IllegalStateException(WebSocketClientFactory.class.getSimpleName() + " is not started");
+  }
+  if (!websocketUri.isAbsolute()) {
+    throw new IllegalArgumentException("WebSocket URI must be absolute");
+  }
+  if (StringUtil.isBlank(websocketUri.getScheme())) {
+    throw new IllegalArgumentException("WebSocket URI must include a scheme");
+  }
+  String scheme=websocketUri.getScheme().toLowerCase();
+  if (("ws".equals(scheme) == false) && ("wss".equals(scheme) == false)) {
+    throw new IllegalArgumentException("WebSocket URI scheme only supports [ws] and [wss], not [" + scheme + "]");
+  }
+  this.websocketUri=websocketUri;
+  FutureCallback<UpgradeResponse> result=null;
+  LOG.debug("connect({})",websocketUri);
+  ConnectionManager manager=factory.getConnectionManager();
+  result=manager.connectVirtual(this);
+  if (result == null) {
+    result=manager.connectPhysical(this);
+  }
+  return result;
+}

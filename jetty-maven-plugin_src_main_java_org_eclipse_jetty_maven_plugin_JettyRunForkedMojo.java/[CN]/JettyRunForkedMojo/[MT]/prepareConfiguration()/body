@@ -1,0 +1,63 @@
+{
+  try {
+    File propsFile=new File(target,"fork.props");
+    if (propsFile.exists())     propsFile.delete();
+    propsFile.createNewFile();
+    Properties props=new Properties();
+    if (webXml != null)     props.put("web.xml",webXml);
+    if (contextPath != null)     props.put("context.path",contextPath);
+    if (tmpDirectory != null) {
+      if (!tmpDirectory.exists())       tmpDirectory.mkdirs();
+      props.put("tmp.dir",tmpDirectory.getAbsolutePath());
+    }
+    if (webAppSourceDirectory != null)     props.put("base.dir",webAppSourceDirectory.getAbsolutePath());
+    StringBuilder builder=new StringBuilder();
+    if (baseAppFirst) {
+      add((webAppSourceDirectory == null ? null : webAppSourceDirectory.getAbsolutePath()),builder);
+      if (resourceBases != null) {
+        for (        File resDir : resourceBases)         add(resDir.getAbsolutePath(),builder);
+      }
+    }
+ else {
+      if (resourceBases != null) {
+        for (        File resDir : resourceBases)         add(resDir.getAbsolutePath(),builder);
+      }
+      add((webAppSourceDirectory == null ? null : webAppSourceDirectory.getAbsolutePath()),builder);
+    }
+    props.put("res.dirs",builder.toString());
+    List<File> classDirs=getClassesDirs();
+    StringBuffer strbuff=new StringBuffer();
+    for (int i=0; i < classDirs.size(); i++) {
+      File f=classDirs.get(i);
+      strbuff.append(f.getAbsolutePath());
+      if (i < classDirs.size() - 1)       strbuff.append(",");
+    }
+    if (classesDirectory != null) {
+      props.put("classes.dir",classesDirectory.getAbsolutePath());
+    }
+    if (useTestScope && testClassesDirectory != null) {
+      props.put("testClasses.dir",testClassesDirectory.getAbsolutePath());
+    }
+    List<File> deps=getDependencyFiles();
+    strbuff.setLength(0);
+    for (int i=0; i < deps.size(); i++) {
+      File d=deps.get(i);
+      strbuff.append(d.getAbsolutePath());
+      if (i < deps.size() - 1)       strbuff.append(",");
+    }
+    props.put("lib.jars",strbuff.toString());
+    List<File> overlays=getOverlays();
+    strbuff.setLength(0);
+    for (int i=0; i < overlays.size(); i++) {
+      File f=overlays.get(i);
+      strbuff.append(f.getAbsolutePath());
+      if (i < overlays.size() - 1)       strbuff.append(",");
+    }
+    props.put("overlay.files",strbuff.toString());
+    props.store(new BufferedOutputStream(new FileOutputStream(propsFile)),"properties for forked webapp");
+    return propsFile;
+  }
+ catch (  Exception e) {
+    throw new MojoExecutionException("Prepare webapp configuration",e);
+  }
+}

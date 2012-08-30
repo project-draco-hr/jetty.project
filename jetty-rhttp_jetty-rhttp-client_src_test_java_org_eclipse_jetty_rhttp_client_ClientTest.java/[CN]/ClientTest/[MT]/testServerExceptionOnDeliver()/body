@@ -1,0 +1,47 @@
+{
+  final CountDownLatch serverLatch=new CountDownLatch(1);
+  Server server=new Server();
+  Connector connector=new SelectChannelConnector();
+  server.addConnector(connector);
+  server.setHandler(new AbstractHandler(){
+    public void handle(    String target,    Request request,    HttpServletRequest httpRequest,    HttpServletResponse httpResponse) throws IOException, ServletException {
+      request.setHandled(true);
+      if (target.endsWith("/connect")) {
+        serverLatch.countDown();
+        try {
+          Thread.sleep(10000);
+        }
+ catch (        InterruptedException x) {
+          Thread.currentThread().interrupt();
+        }
+      }
+ else       if (target.endsWith("/deliver")) {
+        throw new TestException();
+      }
+    }
+  }
+);
+  server.start();
+  try {
+    RHTTPClient client=createClient(connector.getLocalPort(),"test4");
+    try {
+      final CountDownLatch deliverLatch=new CountDownLatch(1);
+      client.addClientListener(new ClientListener.Adapter(){
+        @Override public void deliverException(        RHTTPResponse response){
+          deliverLatch.countDown();
+        }
+      }
+);
+      client.connect();
+      assertTrue(serverLatch.await(1000,TimeUnit.MILLISECONDS));
+      client.deliver(new RHTTPResponse(1,200,"OK",new LinkedHashMap<String,String>(),new byte[0]));
+      assertTrue(deliverLatch.await(1000,TimeUnit.MILLISECONDS));
+    }
+  finally {
+      destroyClient(client);
+    }
+  }
+  finally {
+    server.stop();
+  }
+}

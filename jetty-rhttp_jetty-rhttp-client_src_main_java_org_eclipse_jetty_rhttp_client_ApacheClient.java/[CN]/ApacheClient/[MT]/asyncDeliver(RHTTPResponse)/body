@@ -1,0 +1,22 @@
+{
+  new Thread(){
+    @Override public void run(){
+      try {
+        HttpPost deliver=new HttpPost(gatewayPath + "/" + urlEncode(getTargetId())+ "/deliver");
+        deliver.setEntity(new ByteArrayEntity(response.getFrameBytes()));
+        getLogger().debug("Client {} deliver sent to gateway, response {}",getTargetId(),response);
+        HttpResponse httpResponse=httpClient.execute(deliver);
+        int statusCode=httpResponse.getStatusLine().getStatusCode();
+        HttpEntity entity=httpResponse.getEntity();
+        if (entity != null)         entity.consumeContent();
+        if (statusCode == HttpStatus.SC_UNAUTHORIZED)         notifyConnectRequired();
+ else         if (statusCode != HttpStatus.SC_OK)         notifyDeliverException(response);
+      }
+ catch (      IOException x) {
+        getLogger().debug("",x);
+        notifyDeliverException(response);
+      }
+    }
+  }
+.start();
+}

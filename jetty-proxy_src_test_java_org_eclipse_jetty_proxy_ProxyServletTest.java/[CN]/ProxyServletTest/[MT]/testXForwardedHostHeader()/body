@@ -1,0 +1,17 @@
+{
+  init(new HttpServlet(){
+    private static final long serialVersionUID=1L;
+    @Override protected void doGet(    HttpServletRequest req,    HttpServletResponse resp) throws ServletException, IOException {
+      PrintWriter writer=resp.getWriter();
+      writer.write(req.getHeader("X-Forwarded-Host"));
+      writer.flush();
+    }
+  }
+);
+  String url="http://localhost:" + _connector.getLocalPort() + "/proxy/test";
+  ContentExchange exchange=new ContentExchange();
+  exchange.setURL(url);
+  _client.send(exchange);
+  exchange.waitForDone();
+  assertThat("Response expected to contain content of X-Forwarded-Host Header from the request",exchange.getResponseContent(),equalTo("localhost:" + _connector.getLocalPort()));
+}

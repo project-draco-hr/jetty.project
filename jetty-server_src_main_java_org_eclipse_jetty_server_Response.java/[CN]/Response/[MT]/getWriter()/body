@@ -1,5 +1,5 @@
 {
-  if (_outputState == OutputState.STREAM)   throw new IllegalStateException("STREAM");
+  if (_outputType == OutputType.STREAM)   throw new IllegalStateException("STREAM");
   if (_writer == null) {
     String encoding=_characterEncoding;
     if (encoding == null) {
@@ -7,8 +7,16 @@
       if (encoding == null)       encoding=StringUtil.__ISO_8859_1;
       setCharacterEncoding(encoding);
     }
-    _writer=_channel.getPrintWriter(encoding);
+    if (StringUtil.__ISO_8859_1.equalsIgnoreCase(encoding)) {
+      _writer=new PrintWriter(new Iso88591HttpWriter(_out));
+    }
+ else     if (StringUtil.__UTF8.equalsIgnoreCase(encoding)) {
+      _writer=new PrintWriter(new Utf8HttpWriter(_out));
+    }
+ else {
+      _writer=new PrintWriter(new EncodingHttpWriter(_out,encoding));
+    }
+    _outputType=OutputType.WRITER;
   }
-  _outputState=OutputState.WRITER;
   return _writer;
 }

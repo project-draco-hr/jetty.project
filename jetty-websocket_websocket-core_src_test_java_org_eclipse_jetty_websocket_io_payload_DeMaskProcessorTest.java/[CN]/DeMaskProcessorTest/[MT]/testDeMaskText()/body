@@ -1,0 +1,14 @@
+{
+  String message="0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF";
+  WebSocketFrame frame=WebSocketFrame.text(message);
+  frame.setMask(TypeUtil.fromHexString("11223344"));
+  ByteBuffer buf=new UnitGenerator().generate(frame);
+  LOG.debug("Buf: {}",BufferUtil.toDetailString(buf));
+  ByteBuffer payload=buf.slice();
+  payload.position(6);
+  LOG.debug("Payload: {}",BufferUtil.toDetailString(payload));
+  DeMaskProcessor demask=new DeMaskProcessor();
+  demask.reset(frame);
+  demask.process(payload);
+  ByteBufferAssert.assertEquals("DeMasked Text Payload",message,payload);
+}

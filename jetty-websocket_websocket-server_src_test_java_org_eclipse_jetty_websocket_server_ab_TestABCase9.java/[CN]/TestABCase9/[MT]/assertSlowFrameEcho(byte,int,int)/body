@@ -1,0 +1,21 @@
+{
+  byte msg[]=new byte[overallMsgSize];
+  Arrays.fill(msg,(byte)'M');
+  List<WebSocketFrame> send=new ArrayList<>();
+  send.add(new WebSocketFrame(opcode).setPayload(msg));
+  send.add(new CloseInfo(StatusCode.NORMAL).asFrame());
+  List<WebSocketFrame> expect=new ArrayList<>();
+  expect.add(new WebSocketFrame(opcode).setPayload(msg));
+  expect.add(new CloseInfo(StatusCode.NORMAL).asFrame());
+  Fuzzer fuzzer=new Fuzzer(this);
+  try {
+    fuzzer.connect();
+    fuzzer.setSendMode(Fuzzer.SendMode.SLOW);
+    fuzzer.setSlowSendSegmentSize(segmentSize);
+    fuzzer.send(send);
+    fuzzer.expect(expect,TimeUnit.SECONDS,8);
+  }
+  finally {
+    fuzzer.close();
+  }
+}

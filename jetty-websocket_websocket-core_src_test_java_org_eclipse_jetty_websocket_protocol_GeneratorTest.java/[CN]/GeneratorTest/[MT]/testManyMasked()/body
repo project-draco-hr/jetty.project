@@ -1,0 +1,25 @@
+{
+  int pingCount=10;
+  List<WebSocketFrame> send=new ArrayList<>();
+  for (int i=0; i < pingCount; i++) {
+    String payload=String.format("ping-%d[%X]",i,i);
+    send.add(WebSocketFrame.ping().setPayload(payload));
+  }
+  send.add(new CloseInfo(StatusCode.NORMAL).asFrame());
+  ByteBuffer completeBuf=UnitGenerator.generate(send);
+  UnitParser parser=new UnitParser();
+  IncomingFramesCapture capture=new IncomingFramesCapture();
+  parser.setIncomingFramesHandler(capture);
+  int segmentSize=5;
+  parser.parseSlowly(completeBuf,segmentSize);
+  int frameCount=send.size();
+  capture.assertFrameCount(frameCount);
+  for (int i=0; i < frameCount; i++) {
+    WebSocketFrame actual=capture.getFrames().get(i);
+    WebSocketFrame expected=send.get(i);
+    String prefix="Frame[" + i + "]";
+    Assert.assertThat(prefix + ".opcode",actual.getOpCode(),is(expected.getOpCode()));
+    Assert.assertThat(prefix + ".payloadLength",actual.getPayloadLength(),is(expected.getPayloadLength()));
+    ByteBufferAssert.assertEquals(prefix + ".payload",expected.getPayload(),actual.getPayload());
+  }
+}

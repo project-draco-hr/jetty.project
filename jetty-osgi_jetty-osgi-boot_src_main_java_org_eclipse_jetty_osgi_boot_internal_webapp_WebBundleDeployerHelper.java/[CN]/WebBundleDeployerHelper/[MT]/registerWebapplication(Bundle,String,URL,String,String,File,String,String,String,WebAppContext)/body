@@ -2,8 +2,10 @@
   ClassLoader contextCl=Thread.currentThread().getContextClassLoader();
   String[] oldServerClasses=null;
   try {
+    applyMetaInfContextXml(contributor,context);
     OSGiWebappClassLoader composite=createWebappClassLoader(contributor);
     Thread.currentThread().setContextClassLoader(composite);
+    baseWebappInstallURL=DefaultFileLocatorHelper.getLocalURL(baseWebappInstallURL);
     context.setWar(baseWebappInstallURL.toString());
     context.setContextPath(contextPath);
     context.setExtraClasspath(extraClasspath);
@@ -25,7 +27,7 @@
     if (defaultWebXmlPath != null && defaultWebXmlPath.length() != 0) {
       File defaultWebXml=null;
       if (defaultWebXmlPath.startsWith("/") || defaultWebXmlPath.startsWith("file:/")) {
-        defaultWebXml=new File(webXmlPath);
+        defaultWebXml=new File(defaultWebXmlPath);
       }
  else {
         defaultWebXml=new File(bundleInstall,defaultWebXmlPath);
@@ -35,8 +37,8 @@
       }
     }
     context.setParentLoaderPriority(_wrapper.getOSGiAppProvider().isParentLoaderPriority());
+    configureWebappClassLoader(contributor,context,composite,requireTldBundle);
     configureWebAppContext(context,contributor,requireTldBundle);
-    configureWebappClassLoader(contributor,context,composite);
     oldServerClasses=context.getServerClasses();
     context.setServerClasses(null);
     _wrapper.getOSGiAppProvider().addContext(contributor,pathInBundleToWebApp,context);

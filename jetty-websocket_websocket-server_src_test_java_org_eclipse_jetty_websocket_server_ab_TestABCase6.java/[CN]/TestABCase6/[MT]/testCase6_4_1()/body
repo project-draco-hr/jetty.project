@@ -1,0 +1,21 @@
+{
+  byte part1[]=StringUtil.getUtf8Bytes("\u03BA\u1F79\u03C3\u03BC\u03B5");
+  byte part2[]=Hex.asByteArray("F4908080");
+  byte part3[]=StringUtil.getUtf8Bytes("edited");
+  List<WebSocketFrame> expect=new ArrayList<>();
+  expect.add(new CloseInfo(StatusCode.BAD_PAYLOAD).asFrame());
+  Fuzzer fuzzer=new Fuzzer(this);
+  try {
+    fuzzer.connect();
+    fuzzer.setSendMode(Fuzzer.SendMode.BULK);
+    fuzzer.send(new WebSocketFrame(OpCode.TEXT).setPayload(part1).setFin(false));
+    TimeUnit.SECONDS.sleep(1);
+    fuzzer.send(new WebSocketFrame(OpCode.CONTINUATION).setPayload(part2).setFin(false));
+    TimeUnit.SECONDS.sleep(1);
+    fuzzer.send(new WebSocketFrame(OpCode.CONTINUATION).setPayload(part3).setFin(true));
+    fuzzer.expect(expect);
+  }
+  finally {
+    fuzzer.close();
+  }
+}

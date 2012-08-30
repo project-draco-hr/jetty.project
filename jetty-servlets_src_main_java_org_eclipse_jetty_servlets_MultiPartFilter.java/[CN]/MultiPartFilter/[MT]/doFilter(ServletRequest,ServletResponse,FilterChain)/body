@@ -6,9 +6,8 @@
   }
   InputStream in=new BufferedInputStream(request.getInputStream());
   String content_type=srequest.getContentType();
-  MultiMap<String> params=new MultiMap<String>();
-  for (Iterator<Map.Entry<String,String[]>> i=request.getParameterMap().entrySet().iterator(); i.hasNext(); ) {
-    Map.Entry<String,String[]> entry=i.next();
+  MultiMap params=new MultiMap();
+  for (  Map.Entry<String,String[]> entry : request.getParameterMap().entrySet()) {
     Object value=entry.getValue();
     if (value instanceof String[])     params.addValues(entry.getKey(),(String[])value);
  else     params.add(entry.getKey(),value);
@@ -24,12 +23,15 @@
         MultiPartInputStream.MultiPart mp=(MultiPartInputStream.MultiPart)p;
         if (mp.getFile() != null) {
           request.setAttribute(mp.getName(),mp.getFile());
-          if (mp.getContentDispositionFilename() != null)           params.add(mp.getName(),mp.getContentDispositionFilename());
+          if (mp.getContentDispositionFilename() != null) {
+            params.add(mp.getName(),mp.getContentDispositionFilename());
+            if (mp.getContentType() != null)             params.add(mp.getName() + CONTENT_TYPE_SUFFIX,mp.getContentType());
+          }
           if (_deleteFiles) {
             mp.getFile().deleteOnExit();
-            ArrayList files=(ArrayList)request.getAttribute(FILES);
+            ArrayList<File> files=(ArrayList<File>)request.getAttribute(FILES);
             if (files == null) {
-              files=new ArrayList();
+              files=new ArrayList<>();
               request.setAttribute(FILES,files);
             }
             files.add(mp.getFile());
@@ -39,6 +41,7 @@
           ByteArrayOutputStream bytes=new ByteArrayOutputStream();
           IO.copy(p.getInputStream(),bytes);
           params.add(p.getName(),bytes.toByteArray());
+          if (p.getContentType() != null)           params.add(p.getName() + CONTENT_TYPE_SUFFIX,p.getContentType());
         }
       }
     }

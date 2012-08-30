@@ -1,0 +1,46 @@
+{
+  final CountDownLatch connectLatch=new CountDownLatch(1);
+  final CountDownLatch stopLatch=new CountDownLatch(1);
+  Server server=new Server();
+  Connector connector=new SocketConnector();
+  server.addConnector(connector);
+  server.setHandler(new AbstractHandler(){
+    public void handle(    String target,    Request request,    HttpServletRequest httpRequest,    HttpServletResponse httpResponse) throws IOException, ServletException {
+      request.setHandled(true);
+      if (target.endsWith("/connect")) {
+        connectLatch.countDown();
+        try {
+          Thread.sleep(10000);
+        }
+ catch (        InterruptedException e) {
+          stopLatch.countDown();
+        }
+      }
+    }
+  }
+);
+  server.start();
+  try {
+    RHTTPClient client=createClient(connector.getLocalPort(),"test5");
+    try {
+      final CountDownLatch serverLatch=new CountDownLatch(1);
+      client.addClientListener(new ClientListener.Adapter(){
+        @Override public void connectClosed(){
+          serverLatch.countDown();
+        }
+      }
+);
+      client.connect();
+      assertTrue(connectLatch.await(2000,TimeUnit.MILLISECONDS));
+      server.stop();
+      assertTrue(stopLatch.await(2000,TimeUnit.MILLISECONDS));
+      assertTrue(serverLatch.await(2000,TimeUnit.MILLISECONDS));
+    }
+  finally {
+      destroyClient(client);
+    }
+  }
+  finally {
+    server.stop();
+  }
+}

@@ -1,0 +1,19 @@
+{
+  byte payload[]=new byte[126];
+  Arrays.fill(payload,(byte)0xFE);
+  List<WebSocketFrame> send=new ArrayList<>();
+  send.add(WebSocketFrame.binary(payload).setOpCode(OpCode.PING));
+  send.add(new CloseInfo(StatusCode.NORMAL).asFrame());
+  List<WebSocketFrame> expect=new ArrayList<>();
+  expect.add(new CloseInfo(StatusCode.PROTOCOL).asFrame());
+  Fuzzer fuzzer=new Fuzzer(this);
+  try {
+    fuzzer.connect();
+    fuzzer.setSendMode(Fuzzer.SendMode.BULK);
+    fuzzer.send(send);
+    fuzzer.expect(expect);
+  }
+  finally {
+    fuzzer.close();
+  }
+}

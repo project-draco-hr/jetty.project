@@ -1,0 +1,11 @@
+{
+  _endp.setGrowOutput(true);
+  FutureCallback<String> callback=new FutureCallback<>();
+  _flusher.onFail(new IOException("Ignored because no operation in progress"));
+  _flusher.write(_context,callback,BufferUtil.toBuffer("How "),BufferUtil.toBuffer("now "),BufferUtil.toBuffer("brown "),BufferUtil.toBuffer("cow!"));
+  assertCallbackIsDone(callback);
+  assertFlushIsComplete();
+  assertThat("context and callback.get() are equal",_context,equalTo(callback.get()));
+  assertThat("string in endpoint matches expected string","How now brown cow!",equalTo(_endp.takeOutputString()));
+  assertTrue(_flusher.isIdle());
+}

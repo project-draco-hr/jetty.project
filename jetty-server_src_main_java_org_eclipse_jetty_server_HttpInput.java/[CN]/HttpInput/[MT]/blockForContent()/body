@@ -1,8 +1,9 @@
 {
-synchronized (_inputQ.lock()) {
-    while (_inputQ.isEmpty()) {
+synchronized (lock()) {
+    while (_inputQ.isEmpty() && !isShutdown() && !isEarlyEOF()) {
       try {
-        _inputQ.lock().wait();
+        LOG.debug("{} waiting for content",this);
+        lock().wait();
       }
  catch (      InterruptedException e) {
         throw (IOException)new InterruptedIOException().initCause(e);
