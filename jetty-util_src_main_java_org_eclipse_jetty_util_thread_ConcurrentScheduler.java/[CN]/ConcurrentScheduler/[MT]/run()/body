@@ -1,0 +1,49 @@
+{
+  try {
+    _runner=Thread.currentThread();
+    while (isRunning()) {
+      try {
+        long now=System.currentTimeMillis();
+        long sleep=MAX_SLEEP;
+        QNode next=_delayQ._head.next();
+        while (next != null && !next.isTail()) {
+          long dequeue_at=next._dequeueAt;
+          if (dequeue_at <= now) {
+            Event event=next.dequeue();
+            if (event != null)             _timerQ.add(event);
+          }
+ else {
+            long interval=dequeue_at - now;
+            if (interval < sleep)             sleep=interval;
+            break;
+          }
+          next=_delayQ._head.next();
+        }
+        for (Iterator<Event> i=_timerQ.iterator(); i.hasNext(); ) {
+          Event event=i.next();
+          if (!event.isScheduled())           i.remove();
+ else           if (event._executeAt <= now) {
+            i.remove();
+            if (event._state.compareAndSet(State.SCHEDULED,State.DONE)) {
+              _executor.execute(event._task);
+            }
+          }
+ else {
+            long interval=event._executeAt - now;
+            if (interval < sleep)             sleep=interval;
+            break;
+          }
+        }
+        if (sleep > 0) {
+          Thread.sleep(sleep);
+        }
+      }
+ catch (      InterruptedException i) {
+        LOG.ignore(i);
+      }
+    }
+  }
+  finally {
+    _runner=null;
+  }
+}

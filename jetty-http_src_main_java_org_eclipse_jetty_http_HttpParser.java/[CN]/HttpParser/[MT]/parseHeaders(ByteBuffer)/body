@@ -21,7 +21,7 @@ case HttpTokens.TAB:
 {
           _length=-1;
           _string.setLength(0);
-          _state=State.HEADER_VALUE;
+          setState(State.HEADER_VALUE);
           break;
         }
 default :
@@ -100,20 +100,20 @@ if (_responseStatus == 0 || _responseStatus == 304 || _responseStatus == 204 || 
 }
 switch (_endOfContent) {
 case EOF_CONTENT:
-_state=State.EOF_CONTENT;
+setState(State.EOF_CONTENT);
 return_from_parse|=_handler.headerComplete();
 break;
 case CHUNKED_CONTENT:
-_state=State.CHUNKED_CONTENT;
+setState(State.CHUNKED_CONTENT);
 return_from_parse|=_handler.headerComplete();
 break;
 case NO_CONTENT:
 return_from_parse|=_handler.headerComplete();
-_state=State.END;
+setState(State.END);
 return_from_parse|=_handler.messageComplete(_contentPosition);
 break;
 default :
-_state=State.CONTENT;
+setState(State.CONTENT);
 return_from_parse|=_handler.headerComplete();
 break;
 }
@@ -124,11 +124,11 @@ _header=HttpHeader.lookAheadGet(buffer.array(),buffer.arrayOffset() + buffer.pos
 if (_header != null) {
 _headerString=_header.asString();
 buffer.position(buffer.position() + _headerString.length());
-_state=buffer.get(buffer.position() - 1) == ':' ? State.HEADER_VALUE : State.HEADER_NAME;
+setState(buffer.get(buffer.position() - 1) == ':' ? State.HEADER_VALUE : State.HEADER_NAME);
 break;
 }
 }
-_state=State.HEADER_NAME;
+setState(State.HEADER_NAME);
 _string.setLength(0);
 _string.append((char)ch);
 _length=1;
@@ -143,14 +143,14 @@ case HttpTokens.LINE_FEED:
 consumeCRLF(ch,buffer);
 _headerString=takeLengthString();
 _header=HttpHeader.CACHE.get(_headerString);
-_state=State.HEADER;
+setState(State.HEADER);
 break;
 case HttpTokens.COLON:
 if (_headerString == null) {
 _headerString=takeLengthString();
 _header=HttpHeader.CACHE.get(_headerString);
 }
-_state=State.HEADER_VALUE;
+setState(State.HEADER_VALUE);
 break;
 case HttpTokens.SPACE:
 case HttpTokens.TAB:
@@ -168,7 +168,7 @@ _headerString=null;
 }
 _string.append((char)ch);
 _length=_string.length();
-_state=State.HEADER_IN_NAME;
+setState(State.HEADER_IN_NAME);
 }
 }
 break;
@@ -180,7 +180,7 @@ consumeCRLF(ch,buffer);
 _headerString=takeString();
 _length=-1;
 _header=HttpHeader.CACHE.get(_headerString);
-_state=State.HEADER;
+setState(State.HEADER);
 break;
 case HttpTokens.COLON:
 if (_headerString == null) {
@@ -188,11 +188,11 @@ _headerString=takeString();
 _header=HttpHeader.CACHE.get(_headerString);
 }
 _length=-1;
-_state=State.HEADER_VALUE;
+setState(State.HEADER_VALUE);
 break;
 case HttpTokens.SPACE:
 case HttpTokens.TAB:
-_state=State.HEADER_NAME;
+setState(State.HEADER_NAME);
 _string.append((char)ch);
 break;
 default :
@@ -219,7 +219,7 @@ _value=null;
 _valueString=takeLengthString();
 }
 }
-_state=State.HEADER;
+setState(State.HEADER);
 break;
 case HttpTokens.SPACE:
 case HttpTokens.TAB:
@@ -228,7 +228,7 @@ default :
 {
 _string.append((char)ch);
 _length=_string.length();
-_state=State.HEADER_IN_VALUE;
+setState(State.HEADER_IN_VALUE);
 }
 }
 break;
@@ -252,12 +252,12 @@ _valueString=takeString();
 }
 _length=-1;
 }
-_state=State.HEADER;
+setState(State.HEADER);
 break;
 case HttpTokens.SPACE:
 case HttpTokens.TAB:
 _string.append((char)ch);
-_state=State.HEADER_VALUE;
+setState(State.HEADER_VALUE);
 break;
 default :
 _string.append((char)ch);
