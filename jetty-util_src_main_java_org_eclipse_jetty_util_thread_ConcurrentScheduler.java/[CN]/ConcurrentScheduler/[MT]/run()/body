@@ -15,7 +15,9 @@
                 if (event.compareAndSet(State.SCHEDULED,State.DONE))                 event.execute();
               }
  else {
+                long interval=event._executeAt - now;
                 _timerQ.add(event);
+                if (interval < sleep)                 sleep=interval;
               }
             }
           }
@@ -31,7 +33,6 @@
           if (!event.isScheduled())           i.remove();
  else           if (event._executeAt <= now) {
             i.remove();
-            event.execute();
             if (event.compareAndSet(State.SCHEDULED,State.DONE))             event.execute();
           }
  else {
