@@ -1,0 +1,16 @@
+{
+  ArrayList<Option> options=new ArrayList<Option>();
+  options.addAll(TestJettyOSGiBootCore.provisionCoreJetty());
+  File base=MavenTestingUtils.getBasedir();
+  File src=new File(base,"src");
+  File tst=new File(src,"test");
+  File config=new File(tst,"config");
+  if (LOGGING_ENABLED) {
+    options.addAll(Arrays.asList(options(systemProperty("org.ops4j.pax.logging.DefaultServiceLog.level").value("INFO"))));
+  }
+  if (REMOTE_DEBUGGING) {
+    options.addAll(Arrays.asList(options(PaxRunnerOptions.vmOption("-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=5006"))));
+  }
+  options.addAll(Arrays.asList(options(PaxRunnerOptions.vmOption("-Djetty.port=9876 -Djetty.home=" + config.getAbsolutePath() + " -D"+ OSGiServerConstants.MANAGED_JETTY_XML_CONFIG_URLS+ "=etc/jetty.xml;etc/jetty-deployer.xml;etc/jetty-selector.xml;etc/jetty-testrealm.xml"),mavenBundle().groupId("org.eclipse.jetty.orbit").artifactId("javax.servlet.jsp").versionAsInProject(),mavenBundle().groupId("org.eclipse.jetty.orbit").artifactId("javax.servlet.jsp.jstl").versionAsInProject(),mavenBundle().groupId("org.eclipse.jetty.orbit").artifactId("javax.el").versionAsInProject(),mavenBundle().groupId("org.eclipse.jetty.orbit").artifactId("com.sun.el").versionAsInProject(),mavenBundle().groupId("org.eclipse.jetty.orbit").artifactId("org.apache.jasper.glassfish").versionAsInProject(),mavenBundle().groupId("org.eclipse.jetty.orbit").artifactId("org.apache.taglibs.standard.glassfish").versionAsInProject(),mavenBundle().groupId("org.eclipse.jetty.orbit").artifactId("org.eclipse.jdt.core").versionAsInProject(),mavenBundle().groupId("org.eclipse.jetty.osgi").artifactId("jetty-osgi-boot").versionAsInProject().start(),mavenBundle().groupId("org.eclipse.jetty.osgi").artifactId("jetty-osgi-boot-jsp").versionAsInProject().start(),mavenBundle().groupId("org.eclipse.jetty.osgi").artifactId("test-jetty-osgi-context").versionAsInProject().start())));
+  return options.toArray(new Option[options.size()]);
+}
