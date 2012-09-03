@@ -1,0 +1,42 @@
+{
+synchronized (this) {
+    if (starts.decrementAndGet() > 0)     return false;
+    memoryPoller.cancel(false);
+    scheduler.shutdown();
+    System.err.println("- - - - - - - - - - - - - - - - - - - - ");
+    System.err.println("Statistics Ended at " + new Date());
+    long elapsedTime=System.nanoTime() - startTime;
+    System.err.println("Elapsed time: " + TimeUnit.NANOSECONDS.toMillis(elapsedTime) + " ms");
+    long elapsedJITCTime=jitCompiler.getTotalCompilationTime() - startJITCTime;
+    System.err.println("\tTime in JIT compilation: " + elapsedJITCTime + " ms");
+    if (hasCollectors) {
+      long elapsedYoungCollectionsTime=youngCollector.getCollectionTime() - startYoungCollectionsTime;
+      long youngCollections=youngCollector.getCollectionCount() - startYoungCollections;
+      System.err.println("\tTime in Young Generation GC: " + elapsedYoungCollectionsTime + " ms ("+ youngCollections+ " collections)");
+      long elapsedOldCollectionsTime=oldCollector.getCollectionTime() - startOldCollectionsTime;
+      long oldCollections=oldCollector.getCollectionCount() - startOldCollections;
+      System.err.println("\tTime in Old Generation GC: " + elapsedOldCollectionsTime + " ms ("+ oldCollections+ " collections)");
+    }
+ else {
+      System.err.println("\tTime in GC: N/A");
+    }
+    if (hasMemoryPools) {
+      System.err.println("Garbage Generated in Young Generation: " + mebiBytes(totalYoungUsed) + " MiB");
+      System.err.println("Garbage Generated in Survivor Generation: " + mebiBytes(totalSurvivorUsed) + " MiB");
+      System.err.println("Garbage Generated in Old Generation: " + mebiBytes(totalOldUsed) + " MiB");
+    }
+ else {
+      System.err.println("Garbage Generated: N/A");
+    }
+    if (operatingSystem instanceof com.sun.management.OperatingSystemMXBean) {
+      com.sun.management.OperatingSystemMXBean os=(com.sun.management.OperatingSystemMXBean)operatingSystem;
+      long elapsedProcessCPUTime=os.getProcessCpuTime() - startProcessCPUTime;
+      System.err.println("Average CPU Load: " + ((float)elapsedProcessCPUTime * 100 / elapsedTime) + "/"+ (100 * operatingSystem.getAvailableProcessors()));
+    }
+ else {
+      System.err.println("Average CPU Load: N/A");
+    }
+    System.err.println("----------------------------------------\n");
+    return true;
+  }
+}
