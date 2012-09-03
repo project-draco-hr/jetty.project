@@ -6,17 +6,25 @@
   }
   Map<String,Object> id_map=new HashMap<String,Object>();
   id_map.put("Server",server);
+  id_map.put((String)props.get(OSGiServerConstants.MANAGED_JETTY_SERVER_NAME),server);
   Map<String,String> properties=new HashMap<String,String>();
   Enumeration<Object> en=props.keys();
   while (en.hasMoreElements()) {
     Object key=en.nextElement();
     Object value=props.get(key);
-    properties.put(String.valueOf(key),String.valueOf(value));
+    String keyStr=String.valueOf(key);
+    String valStr=String.valueOf(value);
+    properties.put(keyStr,valStr);
+    server.setAttribute(keyStr,valStr);
   }
   for (  URL jettyConfiguration : jettyConfigurations) {
     InputStream is=null;
     try {
       Resource r=Resource.newResource(jettyConfiguration);
+      if (!r.exists()) {
+        LOG.warn("File does not exist " + r);
+        continue;
+      }
       is=r.getInputStream();
       XmlConfiguration config=new XmlConfiguration(is);
       config.getIdMap().putAll(id_map);
