@@ -1,0 +1,15 @@
+{
+  final RequestPair requestPair=requests.poll();
+  if (requestPair == null) {
+    idleConnections.offer(connection);
+  }
+ else {
+    activeConnections.offer(connection);
+    client.getExecutor().execute(new Runnable(){
+      @Override public void run(){
+        connection.send(requestPair.request,requestPair.listener);
+      }
+    }
+);
+  }
+}

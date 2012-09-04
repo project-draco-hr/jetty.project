@@ -2,20 +2,23 @@
   if (!scheme.equals(request.scheme()))   throw new IllegalArgumentException("Invalid request scheme " + request.scheme() + " for destination "+ this);
   if (!host.equals(request.host()))   throw new IllegalArgumentException("Invalid request host " + request.host() + " for destination "+ this);
   if (port != request.port())   throw new IllegalArgumentException("Invalid request port " + request.port() + " for destination "+ this);
-  HttpResponse response=new HttpResponse(request,listener);
+  RequestPair requestPair=new RequestPair(request,listener);
   if (client.isRunning()) {
-    if (requests.offer(response)) {
-      if (!client.isRunning() && requests.remove(response)) {
-        throw new RejectedExecutionException(HttpClient.class.getSimpleName() + " is shutting down");
+    if (requests.offer(requestPair)) {
+      if (!client.isRunning() && requests.remove(requestPair)) {
+        throw new RejectedExecutionException(HttpClient.class.getSimpleName() + " is stopping");
       }
  else {
-        Request.Listener requestListener=request.listener();
-        notifyRequestQueued(requestListener,request);
+        LOG.debug("Queued {}",request);
+        notifyRequestQueued(request.listener(),request);
         ensureConnection();
       }
     }
  else {
       throw new RejectedExecutionException("Max requests per address " + client.getMaxQueueSizePerAddress() + " exceeded");
     }
+  }
+ else {
+    throw new RejectedExecutionException(HttpClient.class.getSimpleName() + " is stopped");
   }
 }

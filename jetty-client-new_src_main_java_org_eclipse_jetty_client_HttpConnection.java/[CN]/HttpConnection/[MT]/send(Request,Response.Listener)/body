@@ -1,7 +1,13 @@
 {
   normalizeRequest(request);
-  HttpConversation conversation=client.conversationFor(request,listener);
-  this.conversation=conversation;
-  conversation.prepare(this,request,listener);
-  conversation.send();
+  HttpConversation conversation=client.conversationFor(request);
+  HttpExchange exchange=new HttpExchange(conversation,sender,receiver,request,listener);
+  if (this.exchange.compareAndSet(null,exchange)) {
+    conversation.add(exchange);
+    LOG.debug("{}({})",request,conversation);
+    exchange.send();
+  }
+ else {
+    throw new UnsupportedOperationException("Pipelined requests not supported");
+  }
 }

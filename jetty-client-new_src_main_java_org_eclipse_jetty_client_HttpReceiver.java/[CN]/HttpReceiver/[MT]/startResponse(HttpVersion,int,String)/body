@@ -1,10 +1,12 @@
 {
-  HttpResponse response=conversation.response();
-  response.version(version).status(status).reason(reason);
-  HttpClient client=conversation.connection().getHttpClient();
+  HttpExchange exchange=this.exchange.get();
+  HttpClient client=connection.getHttpClient();
+  HttpResponse response=exchange.response();
   Response.Listener listener=client.lookup(status);
-  if (listener != null)   conversation.listener(listener);
- else   conversation.listener(conversation.applicationListener());
-  notifyBegin(conversation.listener(),response);
+  if (listener == null)   listener=exchange.conversation().first().listener();
+  this.listener.set(listener);
+  response.version(version).status(status).reason(reason);
+  LOG.debug("{}",response);
+  notifyBegin(listener,response);
   return false;
 }

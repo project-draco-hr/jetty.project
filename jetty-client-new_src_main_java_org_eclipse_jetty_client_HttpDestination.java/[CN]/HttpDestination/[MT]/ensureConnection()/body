@@ -1,12 +1,17 @@
 {
-  int maxConnections=client.getMaxConnectionsPerAddress();
+  final int maxConnections=client.getMaxConnectionsPerAddress();
   while (true) {
-    int count=connectionCount.get();
-    if (count >= maxConnections)     break;
-    if (connectionCount.compareAndSet(count,count + 1)) {
+    int current=connectionCount.get();
+    final int next=current + 1;
+    if (next > maxConnections) {
+      LOG.debug("Max connections reached {}: {}",this,current);
+      break;
+    }
+    if (connectionCount.compareAndSet(current,next)) {
       newConnection(new Callback<Connection>(){
         @Override public void completed(        Connection connection){
-          dispatch(connection);
+          LOG.debug("Created connection {}/{} for {}",next,maxConnections,this);
+          process(connection);
         }
         @Override public void failed(        Connection connection,        Throwable x){
         }

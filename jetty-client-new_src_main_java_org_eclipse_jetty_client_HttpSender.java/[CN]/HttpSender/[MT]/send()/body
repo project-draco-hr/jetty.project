@@ -1,8 +1,9 @@
 {
   try {
-    HttpConnection connection=conversation.connection();
+    HttpClient client=connection.getHttpClient();
     EndPoint endPoint=connection.getEndPoint();
     ByteBufferPool byteBufferPool=client.getByteBufferPool();
+    final Request request=exchange.get().request();
     HttpGenerator.RequestInfo info=null;
     ByteBuffer content=contentChunks.hasNext() ? contentChunks.next() : BufferUtil.EMPTY_BUFFER;
     boolean lastContent=!contentChunks.hasNext();
@@ -11,7 +12,6 @@
 switch (result) {
 case NEED_INFO:
 {
-          Request request=conversation.request();
           info=new HttpGenerator.RequestInfo(request.version(),request.headers(),contentLength,request.method().asString(),request.path());
           break;
         }
@@ -29,7 +29,7 @@ case FLUSH:
 {
     StatefulExecutorCallback callback=new StatefulExecutorCallback(client.getExecutor()){
       @Override protected void pendingCompleted(){
-        notifyRequestHeadersComplete(conversation.request());
+        notifyRequestHeadersComplete(request);
         send();
       }
       @Override protected void failed(      Throwable x){
@@ -45,7 +45,7 @@ case FLUSH:
     if (callback.completed()) {
       if (!requestHeadersComplete) {
         requestHeadersComplete=true;
-        notifyRequestHeadersComplete(conversation.request());
+        notifyRequestHeadersComplete(request);
       }
       releaseBuffers();
       content=contentChunks.hasNext() ? contentChunks.next() : BufferUtil.EMPTY_BUFFER;
