@@ -1,14 +1,12 @@
 {
   if (isStarted()) {
     long interval=event._executeAt - now;
-    if (interval <= 0 && event._state.compareAndSet(State.NEW,State.DONE)) {
-      _executor.execute(event._task);
-    }
+    if (interval <= 0 && event.compareAndSet(State.NEW,State.DONE))     event.execute();
  else     if (_delayQ._delay > 0 && interval > _delayQ._delay) {
       long dequeue_at=now + _delayQ._delay;
       _delayQ.add(event,dequeue_at);
     }
- else     if (event._state.compareAndSet(State.NEW,State.SCHEDULED)) {
+ else     if (event.compareAndSet(State.NEW,State.SCHEDULED)) {
       _timerQ.add(event);
       if (interval <= MAX_SLEEP) {
         Thread th=_runner;
