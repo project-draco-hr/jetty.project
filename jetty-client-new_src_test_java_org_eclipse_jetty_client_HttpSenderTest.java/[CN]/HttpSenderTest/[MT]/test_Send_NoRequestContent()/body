@@ -1,0 +1,22 @@
+{
+  ByteArrayEndPoint endPoint=new ByteArrayEndPoint();
+  HttpConnection connection=new HttpConnection(client,endPoint);
+  Request httpRequest=new HttpRequest(client,URI.create("http://localhost/"));
+  final CountDownLatch headersLatch=new CountDownLatch(1);
+  final CountDownLatch successLatch=new CountDownLatch(1);
+  httpRequest.listener(new Request.Listener.Adapter(){
+    @Override public void onHeaders(    Request request){
+      headersLatch.countDown();
+    }
+    @Override public void onSuccess(    Request request){
+      successLatch.countDown();
+    }
+  }
+);
+  connection.send(httpRequest,null);
+  String requestString=endPoint.takeOutputString();
+  Assert.assertTrue(requestString.startsWith("GET "));
+  Assert.assertTrue(requestString.endsWith("\r\n\r\n"));
+  Assert.assertTrue(headersLatch.await(5,TimeUnit.SECONDS));
+  Assert.assertTrue(successLatch.await(5,TimeUnit.SECONDS));
+}

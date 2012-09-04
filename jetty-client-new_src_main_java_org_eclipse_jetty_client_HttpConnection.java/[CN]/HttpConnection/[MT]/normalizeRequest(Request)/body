@@ -1,0 +1,19 @@
+{
+  HttpVersion version=request.version();
+  HttpFields headers=request.headers();
+  ContentProvider content=request.content();
+  String path=request.path();
+  if (path.matches("\\s*"))   request.path("/");
+  if (content != null) {
+    long contentLength=content.length();
+    if (contentLength >= 0) {
+      if (!headers.containsKey(HttpHeader.CONTENT_LENGTH.asString()))       headers.put(HttpHeader.CONTENT_LENGTH,String.valueOf(contentLength));
+    }
+ else {
+      if (!headers.containsKey(HttpHeader.TRANSFER_ENCODING.asString()))       headers.put(HttpHeader.TRANSFER_ENCODING,"chunked");
+    }
+  }
+  if (version.getVersion() > 10) {
+    if (!headers.containsKey(HttpHeader.HOST.asString()))     headers.put(HttpHeader.HOST,request.host() + ":" + request.port());
+  }
+}

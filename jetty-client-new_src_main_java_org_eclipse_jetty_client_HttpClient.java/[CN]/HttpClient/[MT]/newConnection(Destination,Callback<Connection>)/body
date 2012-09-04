@@ -1,0 +1,17 @@
+{
+  SocketChannel channel=null;
+  try {
+    channel=SocketChannel.open();
+    SocketAddress bindAddress=getBindAddress();
+    if (bindAddress != null)     channel.bind(bindAddress);
+    channel.socket().setTcpNoDelay(true);
+    channel.configureBlocking(false);
+    channel.connect(new InetSocketAddress(destination.host(),destination.port()));
+    Future<Connection> result=new ConnectionCallback(destination,callback);
+    selectorManager.connect(channel,result);
+  }
+ catch (  IOException x) {
+    if (channel != null)     close(channel);
+    callback.failed(null,x);
+  }
+}

@@ -1,0 +1,28 @@
+{
+  ConnectionCallback callback=(ConnectionCallback)attachment;
+  Destination destination=callback.destination;
+  SslContextFactory sslContextFactory=getSslContextFactory();
+  if ("https".equals(destination.scheme())) {
+    if (sslContextFactory == null) {
+      IOException failure=new ConnectException("Missing " + SslContextFactory.class.getSimpleName() + " for "+ destination.scheme()+ " requests");
+      callback.failed(null,failure);
+      throw failure;
+    }
+ else {
+      SSLEngine engine=sslContextFactory.newSSLEngine(endPoint.getRemoteAddress());
+      engine.setUseClientMode(false);
+      SslConnection sslConnection=new SslConnection(getByteBufferPool(),getExecutor(),endPoint,engine);
+      EndPoint appEndPoint=sslConnection.getDecryptedEndPoint();
+      HttpConnection connection=new HttpConnection(HttpClient.this,appEndPoint);
+      appEndPoint.setConnection(connection);
+      callback.callback.completed(connection);
+      connection.onOpen();
+      return sslConnection;
+    }
+  }
+ else {
+    HttpConnection connection=new HttpConnection(HttpClient.this,endPoint);
+    callback.callback.completed(connection);
+    return connection;
+  }
+}

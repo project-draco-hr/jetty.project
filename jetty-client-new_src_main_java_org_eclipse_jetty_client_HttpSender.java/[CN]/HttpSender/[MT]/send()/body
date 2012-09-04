@@ -1,0 +1,85 @@
+{
+  try {
+    HttpConnection connection=conversation.connection();
+    EndPoint endPoint=connection.getEndPoint();
+    HttpClient client=connection.getHttpClient();
+    ByteBufferPool byteBufferPool=client.getByteBufferPool();
+    HttpGenerator.RequestInfo info=null;
+    ByteBuffer content=contentChunks.hasNext() ? contentChunks.next() : BufferUtil.EMPTY_BUFFER;
+    boolean lastContent=!contentChunks.hasNext();
+    while (true) {
+      HttpGenerator.Result result=generator.generateRequest(info,header,chunk,content,lastContent);
+switch (result) {
+case NEED_INFO:
+{
+          Request request=conversation.request();
+          info=new HttpGenerator.RequestInfo(request.version(),request.headers(),contentLength,request.method().asString(),request.path());
+          break;
+        }
+case NEED_HEADER:
+{
+        header=byteBufferPool.acquire(client.getRequestBufferSize(),false);
+        break;
+      }
+case NEED_CHUNK:
+{
+      chunk=byteBufferPool.acquire(HttpGenerator.CHUNK_SIZE,false);
+      break;
+    }
+case FLUSH:
+{
+    StatefulExecutorCallback callback=new StatefulExecutorCallback(client.getExecutor()){
+      @Override protected void pendingCompleted(){
+        notifyRequestHeadersComplete();
+        send();
+      }
+      @Override protected void failed(      Throwable x){
+        fail(x);
+      }
+    }
+;
+    if (header == null)     header=BufferUtil.EMPTY_BUFFER;
+    if (chunk == null)     chunk=BufferUtil.EMPTY_BUFFER;
+    if (content == null)     content=BufferUtil.EMPTY_BUFFER;
+    endPoint.write(null,callback,header,chunk,content);
+    if (callback.pending())     return;
+    if (callback.completed()) {
+      if (!requestHeadersComplete) {
+        requestHeadersComplete=true;
+        notifyRequestHeadersComplete();
+      }
+      releaseBuffers();
+      content=contentChunks.hasNext() ? contentChunks.next() : BufferUtil.EMPTY_BUFFER;
+      lastContent=!contentChunks.hasNext();
+    }
+    break;
+  }
+case SHUTDOWN_OUT:
+{
+  endPoint.shutdownOutput();
+  break;
+}
+case CONTINUE:
+{
+break;
+}
+case DONE:
+{
+if (generator.isEnd()) success();
+return;
+}
+default :
+{
+throw new IllegalStateException("Unknown result " + result);
+}
+}
+}
+}
+ catch (IOException x) {
+LOG.debug(x);
+fail(x);
+}
+ finally {
+releaseBuffers();
+}
+}

@@ -1,0 +1,33 @@
+{
+  ByteArrayEndPoint endPoint=new ByteArrayEndPoint();
+  HttpConnection connection=new HttpConnection(client,endPoint);
+  Request httpRequest=new HttpRequest(client,URI.create("http://localhost/"));
+  String content1="0123456789";
+  String content2="ABCDEF";
+  httpRequest.content(new ByteBufferContentProvider(ByteBuffer.wrap(content1.getBytes("UTF-8")),ByteBuffer.wrap(content2.getBytes("UTF-8"))){
+    @Override public long length(){
+      return -1;
+    }
+  }
+);
+  final CountDownLatch headersLatch=new CountDownLatch(1);
+  final CountDownLatch successLatch=new CountDownLatch(1);
+  httpRequest.listener(new Request.Listener.Adapter(){
+    @Override public void onHeaders(    Request request){
+      headersLatch.countDown();
+    }
+    @Override public void onSuccess(    Request request){
+      successLatch.countDown();
+    }
+  }
+);
+  connection.send(httpRequest,null);
+  String requestString=endPoint.takeOutputString();
+  Assert.assertTrue(requestString.startsWith("GET "));
+  String content=Integer.toHexString(content1.length()).toUpperCase() + "\r\n" + content1+ "\r\n";
+  content+=Integer.toHexString(content2.length()).toUpperCase() + "\r\n" + content2+ "\r\n";
+  content+="0\r\n\r\n";
+  Assert.assertTrue(requestString.endsWith("\r\n\r\n" + content));
+  Assert.assertTrue(headersLatch.await(5,TimeUnit.SECONDS));
+  Assert.assertTrue(successLatch.await(5,TimeUnit.SECONDS));
+}

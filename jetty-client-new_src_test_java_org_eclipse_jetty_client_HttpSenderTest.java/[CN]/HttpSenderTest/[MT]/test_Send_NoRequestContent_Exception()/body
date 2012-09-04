@@ -1,0 +1,20 @@
+{
+  ByteArrayEndPoint endPoint=new ByteArrayEndPoint();
+  endPoint.shutdownOutput();
+  HttpConnection connection=new HttpConnection(client,endPoint);
+  Request httpRequest=new HttpRequest(client,URI.create("http://localhost/"));
+  final CountDownLatch failureLatch=new CountDownLatch(2);
+  httpRequest.listener(new Request.Listener.Adapter(){
+    @Override public void onFailure(    Request request,    Throwable x){
+      failureLatch.countDown();
+    }
+  }
+);
+  connection.send(httpRequest,new Response.Listener.Adapter(){
+    @Override public void onFailure(    Response response,    Throwable failure){
+      failureLatch.countDown();
+    }
+  }
+);
+  Assert.assertTrue(failureLatch.await(5,TimeUnit.SECONDS));
+}

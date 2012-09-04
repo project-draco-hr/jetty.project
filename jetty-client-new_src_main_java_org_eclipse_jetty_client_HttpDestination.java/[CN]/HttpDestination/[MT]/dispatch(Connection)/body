@@ -1,0 +1,15 @@
+{
+  final Response response=requests.poll();
+  if (response == null) {
+    idleConnections.offer(connection);
+  }
+ else {
+    activeConnections.offer(connection);
+    client.getExecutor().execute(new Runnable(){
+      @Override public void run(){
+        connection.send(response.request(),response.listener());
+      }
+    }
+);
+  }
+}

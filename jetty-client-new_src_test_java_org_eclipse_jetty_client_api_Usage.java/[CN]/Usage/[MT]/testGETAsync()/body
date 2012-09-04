@@ -1,0 +1,16 @@
+{
+  HttpClient client=new HttpClient();
+  final AtomicReference<Response> responseRef=new AtomicReference<>();
+  final CountDownLatch latch=new CountDownLatch(1);
+  client.newRequest("localhost",8080).send(new Response.Listener.Adapter(){
+    @Override public void onSuccess(    Response response){
+      responseRef.set(response);
+      latch.countDown();
+    }
+  }
+);
+  Assert.assertTrue(latch.await(5,TimeUnit.SECONDS));
+  Response response=responseRef.get();
+  Assert.assertNotNull(response);
+  Assert.assertEquals(200,response.status());
+}

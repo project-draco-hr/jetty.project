@@ -1,9 +1,11 @@
 {
-  HTTPClient client=new HTTPClient();
-  try (Connection connection=client.getDestination(Address.from("localhost:8080")).connect(5,TimeUnit.SECONDS)){
-    Request.Builder builder=client.builder("localhost:8080");
-    Request request=builder.method("GET").path("/").header("Origin","localhost").build();
-    Future<Response> response=connection.send(request,new Response.Listener.Adapter());
-    response.get().getStatus();
+  HttpClient client=new HttpClient();
+  try (Connection connection=client.getDestination("http","localhost",8080).newConnection().get(5,TimeUnit.SECONDS)){
+    Request request=client.newRequest("localhost",8080);
+    BufferingResponseListener listener=new BufferingResponseListener();
+    connection.send(request,listener);
+    Response response=listener.await(5,TimeUnit.SECONDS);
+    Assert.assertNotNull(response);
+    Assert.assertEquals(200,response.status());
   }
  }
