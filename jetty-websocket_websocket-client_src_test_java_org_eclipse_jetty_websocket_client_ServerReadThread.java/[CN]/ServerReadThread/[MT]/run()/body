@@ -1,0 +1,38 @@
+{
+  ByteBufferPool bufferPool=conn.getBufferPool();
+  WebSocketPolicy policy=conn.getPolicy();
+  ByteBuffer buf=bufferPool.acquire(policy.getBufferSize(),false);
+  BufferUtil.clearToFill(buf);
+  int len=0;
+  try {
+    while (active) {
+      BufferUtil.clearToFill(buf);
+      len=conn.read(buf);
+      if (len > 0) {
+        LOG.debug("Read {} bytes",len);
+        BufferUtil.flipToFlush(buf,0);
+        conn.getParser().parse(buf);
+      }
+      LinkedList<WebSocketFrame> frames=conn.getIncomingFrames().getFrames();
+      WebSocketFrame frame;
+      while ((frame=frames.poll()) != null) {
+        frameCount.incrementAndGet();
+        if (frame.getOpCode() == OpCode.CLOSE) {
+          active=false;
+          CloseInfo close=new CloseInfo(frame);
+          conn.close(close.getStatusCode());
+        }
+        expectedMessageCount.countDown();
+      }
+      if (slowness > 0) {
+        TimeUnit.MILLISECONDS.sleep(slowness);
+      }
+    }
+  }
+ catch (  IOException|InterruptedException e) {
+    LOG.warn(e);
+  }
+ finally {
+    bufferPool.release(buf);
+  }
+}
