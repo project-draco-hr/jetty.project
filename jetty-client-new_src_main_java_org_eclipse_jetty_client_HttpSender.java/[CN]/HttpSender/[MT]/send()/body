@@ -2,7 +2,6 @@
   try {
     HttpConnection connection=conversation.connection();
     EndPoint endPoint=connection.getEndPoint();
-    HttpClient client=connection.getHttpClient();
     ByteBufferPool byteBufferPool=client.getByteBufferPool();
     HttpGenerator.RequestInfo info=null;
     ByteBuffer content=contentChunks.hasNext() ? contentChunks.next() : BufferUtil.EMPTY_BUFFER;
@@ -30,7 +29,7 @@ case FLUSH:
 {
     StatefulExecutorCallback callback=new StatefulExecutorCallback(client.getExecutor()){
       @Override protected void pendingCompleted(){
-        notifyRequestHeadersComplete();
+        notifyRequestHeadersComplete(conversation.request());
         send();
       }
       @Override protected void failed(      Throwable x){
@@ -46,7 +45,7 @@ case FLUSH:
     if (callback.completed()) {
       if (!requestHeadersComplete) {
         requestHeadersComplete=true;
-        notifyRequestHeadersComplete();
+        notifyRequestHeadersComplete(conversation.request());
       }
       releaseBuffers();
       content=contentChunks.hasNext() ? contentChunks.next() : BufferUtil.EMPTY_BUFFER;
