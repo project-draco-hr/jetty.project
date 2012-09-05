@@ -3,7 +3,12 @@
   connection.getBufferPool().release(buffer);
   super.completed(context);
   if (frame.getOpCode() == OpCode.CLOSE) {
-    connection.disconnect(false);
+    if (connection.getState() == BaseConnection.State.CLOSING) {
+      connection.disconnect(false);
+    }
+ else {
+      connection.notifyClosing();
+    }
   }
  else {
     connection.flush();

@@ -14,7 +14,14 @@ case OpCode.CLOSE:
         if (events.onClose != null) {
           events.onClose.call(websocket,session,close.getStatusCode(),close.getReason());
         }
-        throw new CloseException(close.getStatusCode(),close.getReason());
+        if (session.getState() == BaseConnection.State.CLOSING) {
+          session.disconnect();
+        }
+ else {
+          session.notifyClosing();
+          session.close(close.getStatusCode(),close.getReason());
+        }
+        return;
       }
 case OpCode.PING:
 {

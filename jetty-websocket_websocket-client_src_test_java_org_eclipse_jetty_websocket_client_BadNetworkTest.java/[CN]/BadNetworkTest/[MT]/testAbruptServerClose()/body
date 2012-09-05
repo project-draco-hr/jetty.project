@@ -1,0 +1,13 @@
+{
+  TrackingSocket wsocket=new TrackingSocket();
+  WebSocketClient client=factory.newWebSocketClient(wsocket);
+  URI wsUri=server.getWsUri();
+  Future<UpgradeResponse> future=client.connect(wsUri);
+  ServerConnection ssocket=server.accept();
+  ssocket.upgrade();
+  future.get(500,TimeUnit.MILLISECONDS);
+  wsocket.waitForConnected(500,TimeUnit.MILLISECONDS);
+  ssocket.disconnect();
+  wsocket.waitForClose(10,TimeUnit.SECONDS);
+  wsocket.assertCloseCode(StatusCode.NO_CLOSE);
+}
