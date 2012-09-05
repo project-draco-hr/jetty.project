@@ -1,0 +1,23 @@
+{
+  final AtomicReference<Response> responseRef=new AtomicReference<>();
+  final CountDownLatch latch=new CountDownLatch(1);
+  HttpExchange exchange=newExchange(new Response.Listener.Adapter(){
+    @Override public void onSuccess(    Response response){
+      responseRef.set(response);
+      latch.countDown();
+    }
+  }
+);
+  endPoint.setInput("" + "HTTP/1.1 200 OK\r\n" + "Content-length: 0\r\n"+ "\r\n");
+  receiver.receive(exchange);
+  Assert.assertTrue(latch.await(5,TimeUnit.SECONDS));
+  Response response=responseRef.get();
+  Assert.assertNotNull(response);
+  Assert.assertEquals(200,response.status());
+  Assert.assertEquals("OK",response.reason());
+  Assert.assertSame(HttpVersion.HTTP_1_1,response.version());
+  HttpFields headers=response.headers();
+  Assert.assertNotNull(headers);
+  Assert.assertEquals(1,headers.size());
+  Assert.assertEquals("0",headers.get(HttpHeader.CONTENT_LENGTH));
+}
