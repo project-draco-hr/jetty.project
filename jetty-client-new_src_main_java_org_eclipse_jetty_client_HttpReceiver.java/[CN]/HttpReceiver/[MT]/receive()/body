@@ -1,12 +1,12 @@
 {
-  this.exchange.set(exchange);
+  EndPoint endPoint=connection.getEndPoint();
   HttpClient client=connection.getHttpClient();
   ByteBufferPool bufferPool=client.getByteBufferPool();
   ByteBuffer buffer=bufferPool.acquire(client.getResponseBufferSize(),true);
-  EndPoint endPoint=connection.getEndPoint();
   try {
     while (true) {
       int read=endPoint.fill(buffer);
+      LOG.debug("Read {} bytes",read);
       if (read > 0) {
         parser.parseNext(buffer);
       }
@@ -22,7 +22,9 @@
   }
  catch (  IOException x) {
     LOG.debug(x);
-    bufferPool.release(buffer);
     fail(x);
+  }
+ finally {
+    bufferPool.release(buffer);
   }
 }
