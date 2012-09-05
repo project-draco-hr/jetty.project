@@ -1,10 +1,13 @@
 {
   HttpExchange exchange=connection.getExchange();
   if (exchange == null)   return;
+  HttpConversation conversation=exchange.conversation();
   HttpResponse response=exchange.response();
   LOG.debug("Failed {} {}",response,failure);
-  failed=true;
   parser.reset();
-  exchange.responseDone(false);
-  notifyFailure(listener.get(),response,failure);
+  failed=true;
+  complete.set(false);
+  exchange.responseComplete(false);
+  notifyFailure(conversation.listener(),response,failure);
+  conversation.complete();
 }
