@@ -1,13 +1,13 @@
 {
   ByteArrayEndPoint endPoint=new ByteArrayEndPoint();
-  HttpConnection connection=new HttpConnection(client,endPoint);
-  Request httpRequest=new HttpRequest(client,URI.create("http://localhost/"));
+  HttpConnection connection=new HttpConnection(client,endPoint,null);
+  Request request=client.newRequest(URI.create("http://localhost/"));
   String content1="0123456789";
   String content2="abcdef";
-  httpRequest.content(new ByteBufferContentProvider(ByteBuffer.wrap(content1.getBytes("UTF-8")),ByteBuffer.wrap(content2.getBytes("UTF-8"))));
+  request.content(new ByteBufferContentProvider(ByteBuffer.wrap(content1.getBytes("UTF-8")),ByteBuffer.wrap(content2.getBytes("UTF-8"))));
   final CountDownLatch headersLatch=new CountDownLatch(1);
   final CountDownLatch successLatch=new CountDownLatch(1);
-  httpRequest.listener(new Request.Listener.Adapter(){
+  request.listener(new Request.Listener.Adapter(){
     @Override public void onHeaders(    Request request){
       headersLatch.countDown();
     }
@@ -16,7 +16,7 @@
     }
   }
 );
-  connection.send(httpRequest,null);
+  connection.send(request,null);
   String requestString=endPoint.takeOutputString();
   Assert.assertTrue(requestString.startsWith("GET "));
   Assert.assertTrue(requestString.endsWith("\r\n\r\n" + content1 + content2));

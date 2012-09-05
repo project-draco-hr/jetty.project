@@ -1,6 +1,6 @@
 {
   ConnectionCallback callback=(ConnectionCallback)attachment;
-  Destination destination=callback.destination;
+  HttpDestination destination=callback.destination;
   SslContextFactory sslContextFactory=getSslContextFactory();
   if ("https".equals(destination.scheme())) {
     if (sslContextFactory == null) {
@@ -13,7 +13,7 @@
       engine.setUseClientMode(false);
       SslConnection sslConnection=new SslConnection(getByteBufferPool(),getExecutor(),endPoint,engine);
       EndPoint appEndPoint=sslConnection.getDecryptedEndPoint();
-      HttpConnection connection=new HttpConnection(HttpClient.this,appEndPoint);
+      HttpConnection connection=new HttpConnection(HttpClient.this,appEndPoint,destination);
       appEndPoint.setConnection(connection);
       callback.callback.completed(connection);
       connection.onOpen();
@@ -21,7 +21,7 @@
     }
   }
  else {
-    HttpConnection connection=new HttpConnection(HttpClient.this,endPoint);
+    HttpConnection connection=new HttpConnection(HttpClient.this,endPoint,destination);
     callback.callback.completed(connection);
     return connection;
   }

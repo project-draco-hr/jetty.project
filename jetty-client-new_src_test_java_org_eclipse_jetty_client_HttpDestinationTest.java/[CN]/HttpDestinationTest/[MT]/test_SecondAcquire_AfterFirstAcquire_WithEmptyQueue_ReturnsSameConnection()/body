@@ -1,0 +1,13 @@
+{
+  HttpDestination destination=new HttpDestination(client,"http","localhost",connector.getLocalPort());
+  Connection connection1=destination.acquire();
+  Assert.assertNull(connection1);
+  long start=System.nanoTime();
+  while (connection1 == null && TimeUnit.NANOSECONDS.toSeconds(System.nanoTime() - start) < 5) {
+    connection1=destination.idleConnections().peek();
+    TimeUnit.MILLISECONDS.sleep(50);
+  }
+  Assert.assertNotNull(connection1);
+  Connection connection2=destination.acquire();
+  Assert.assertSame(connection1,connection2);
+}

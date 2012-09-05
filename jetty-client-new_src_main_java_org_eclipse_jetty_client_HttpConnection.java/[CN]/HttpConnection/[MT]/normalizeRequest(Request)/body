@@ -1,4 +1,8 @@
 {
+  if (request.method() == null)   request.method(HttpMethod.GET);
+  if (request.version() == null)   request.version(HttpVersion.HTTP_1_1);
+  if (request.agent() == null)   request.agent(client.getUserAgent());
+  if (request.idleTimeout() <= 0)   request.idleTimeout(client.getIdleTimeout());
   HttpVersion version=request.version();
   HttpFields headers=request.headers();
   ContentProvider content=request.content();
@@ -14,6 +18,11 @@
     }
   }
   if (version.getVersion() > 10) {
-    if (!headers.containsKey(HttpHeader.HOST.asString()))     headers.put(HttpHeader.HOST,request.host() + ":" + request.port());
+    if (!headers.containsKey(HttpHeader.HOST.asString())) {
+      String value=request.host();
+      int port=request.port();
+      if (port > 0)       value+=":" + port;
+      headers.put(HttpHeader.HOST,value);
+    }
   }
 }

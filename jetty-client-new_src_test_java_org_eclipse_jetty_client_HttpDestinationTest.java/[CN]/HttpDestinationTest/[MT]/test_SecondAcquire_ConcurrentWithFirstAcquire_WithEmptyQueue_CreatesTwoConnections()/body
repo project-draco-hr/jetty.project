@@ -1,0 +1,24 @@
+{
+  final CountDownLatch latch=new CountDownLatch(1);
+  HttpDestination destination=new HttpDestination(client,"http","localhost",connector.getLocalPort()){
+    @Override protected void process(    Connection connection){
+      try {
+        latch.await(5,TimeUnit.SECONDS);
+        super.process(connection);
+      }
+ catch (      InterruptedException x) {
+        x.printStackTrace();
+      }
+    }
+  }
+;
+  Connection connection1=destination.acquire();
+  Assert.assertNull(connection1);
+  Connection connection2=destination.acquire();
+  Assert.assertNull(connection2);
+  latch.countDown();
+  Connection connection=destination.idleConnections().poll(5,TimeUnit.SECONDS);
+  Assert.assertNotNull(connection);
+  connection=destination.idleConnections().poll(5,TimeUnit.SECONDS);
+  Assert.assertNotNull(connection);
+}

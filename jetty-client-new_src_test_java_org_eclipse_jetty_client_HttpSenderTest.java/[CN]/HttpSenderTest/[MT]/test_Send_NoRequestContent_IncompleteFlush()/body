@@ -1,19 +1,16 @@
 {
   ByteArrayEndPoint endPoint=new ByteArrayEndPoint("",16);
-  HttpConnection connection=new HttpConnection(client,endPoint);
-  Request httpRequest=new HttpRequest(client,URI.create("http://localhost/"));
-  final CountDownLatch headersLatch=new CountDownLatch(1);
-  httpRequest.listener(new Request.Listener.Adapter(){
-    @Override public void onHeaders(    Request request){
-      headersLatch.countDown();
-    }
+  HttpConnection connection=new HttpConnection(client,endPoint,null);
+  Request request=client.newRequest(URI.create("http://localhost/"));
+  connection.send(request,null);
+  StringBuilder builder=new StringBuilder(endPoint.takeOutputString());
+  TimeUnit.SECONDS.sleep(1);
+  String chunk=endPoint.takeOutputString();
+  while (chunk.length() > 0) {
+    builder.append(chunk);
+    chunk=endPoint.takeOutputString();
   }
-);
-  connection.send(httpRequest,null);
-  StringBuilder request=new StringBuilder(endPoint.takeOutputString());
-  Assert.assertTrue(headersLatch.await(5,TimeUnit.SECONDS));
-  request.append(endPoint.takeOutputString());
-  String requestString=request.toString();
+  String requestString=builder.toString();
   Assert.assertTrue(requestString.startsWith("GET "));
   Assert.assertTrue(requestString.endsWith("\r\n\r\n"));
 }
