@@ -1,0 +1,14 @@
+{
+  for (  Connection connection : idleConnections)   connection.close();
+  idleConnections.clear();
+  for (  Connection connection : activeConnections)   connection.close();
+  activeConnections.clear();
+  AsynchronousCloseException failure=new AsynchronousCloseException();
+  RequestPair pair;
+  while ((pair=requests.poll()) != null) {
+    notifyRequestFailure(pair.request,failure);
+    notifyResponseFailure(pair.listener,failure);
+  }
+  connectionCount.set(0);
+  LOG.debug("Closed {}",this);
+}

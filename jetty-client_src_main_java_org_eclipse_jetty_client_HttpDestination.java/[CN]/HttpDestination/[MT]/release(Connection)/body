@@ -1,5 +1,16 @@
 {
   LOG.debug("Connection {} released",connection);
-  activeConnections.remove(connection);
-  idleConnections.offer(connection);
+  if (client.isRunning()) {
+    activeConnections.remove(connection);
+    idleConnections.offer(connection);
+    if (!client.isRunning()) {
+      LOG.debug("{} is stopping",client);
+      idleConnections.remove(connection);
+      connection.close();
+    }
+  }
+ else {
+    LOG.debug("{} is stopped",client);
+    connection.close();
+  }
 }

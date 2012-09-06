@@ -7,12 +7,12 @@
   String path=cookie.getPath();
   if (path == null || path.length() == 0)   path="/";
   String key=destination.host() + ":" + destination.port()+ path;
-  Map<String,HttpCookie> cookies=allCookies.get(key);
+  Queue<HttpCookie> cookies=allCookies.get(key);
   if (cookies == null) {
-    cookies=new ConcurrentHashMap<>();
-    Map<String,HttpCookie> existing=allCookies.putIfAbsent(key,cookies);
+    cookies=new ConcurrentLinkedQueue<>();
+    Queue<HttpCookie> existing=allCookies.putIfAbsent(key,cookies);
     if (existing != null)     cookies=existing;
   }
-  cookies.put(path,cookie);
+  cookies.add(cookie);
   return true;
 }
