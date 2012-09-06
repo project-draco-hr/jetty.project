@@ -1,0 +1,20 @@
+{
+  Set<String> availablePlugins=new HashSet<>();
+  File localMavenRepository=new File(_localRepository);
+  if (!localMavenRepository.exists()) {
+    System.out.println("Can't find local repo: " + localMavenRepository);
+    return availablePlugins;
+  }
+  System.out.println("Using local repository: " + localMavenRepository);
+  for (  String groupId : _groupIds) {
+    File file=new File(_localRepository + groupId);
+    if (!file.exists())     break;
+    String[] localMavenModuleList=file.list();
+    System.out.println("Trying the following modules: " + Arrays.toString(localMavenModuleList));
+    for (    String potentialPlugin : localMavenModuleList) {
+      File pluginFile=new File(_localRepository + getPluginPath(groupId,potentialPlugin));
+      if (pluginFile.exists())       availablePlugins.add(potentialPlugin);
+    }
+  }
+  return availablePlugins;
+}

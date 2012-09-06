@@ -12,7 +12,7 @@ quickStart(buffer);
 break;
 case CONTENT:
 if (_contentPosition == _contentLength) {
-_state=State.END;
+setState(State.END);
 if (_handler.messageComplete(_contentPosition)) return true;
 }
 break;
@@ -24,7 +24,7 @@ _headerBytes+=buffer.remaining();
 if (_headerBytes > _maxHeaderBytes) {
 String chars=BufferUtil.toDetailString(buffer);
 BufferUtil.clear(buffer);
-throw new IllegalStateException(this + " Extra data after oshut: " + chars);
+throw new IllegalStateException(this + " data when CLOSED: " + chars);
 }
 BufferUtil.clear(buffer);
 }
@@ -33,7 +33,7 @@ return false;
 if (_state.ordinal() < State.HEADER.ordinal()) if (parseLine(buffer)) return true;
 if (_state.ordinal() < State.END.ordinal()) if (parseHeaders(buffer)) return true;
 if (_responseStatus > 0 && _headResponse) {
-_state=State.END;
+setState(State.END);
 if (_handler.messageComplete(_contentLength)) return true;
 }
 byte ch;
@@ -54,7 +54,7 @@ case CONTENT:
 {
 long remaining=_contentLength - _contentPosition;
 if (remaining == 0) {
-_state=State.END;
+setState(State.END);
 if (_handler.messageComplete(_contentPosition)) return true;
 }
  else {
@@ -66,7 +66,7 @@ _contentPosition+=_contentChunk.remaining();
 buffer.position(buffer.position() + _contentChunk.remaining());
 if (_handler.content(_contentChunk)) return true;
 if (_contentPosition == _contentLength) {
-_state=State.END;
+setState(State.END);
 if (_handler.messageComplete(_contentPosition)) return true;
 }
 }
@@ -80,7 +80,7 @@ if (ch == HttpTokens.CARRIAGE_RETURN || ch == HttpTokens.LINE_FEED) _eol=buffer.
  else {
 _chunkLength=0;
 _chunkPosition=0;
-_state=State.CHUNK_SIZE;
+setState(State.CHUNK_SIZE);
 }
 break;
 }
@@ -91,12 +91,12 @@ if (ch == HttpTokens.CARRIAGE_RETURN || ch == HttpTokens.LINE_FEED) {
 _eol=ch;
 if (_chunkLength == 0) {
 if (_eol == HttpTokens.CARRIAGE_RETURN && buffer.hasRemaining() && buffer.get(buffer.position()) == HttpTokens.LINE_FEED) _eol=buffer.get();
-_state=State.END;
+setState(State.END);
 if (_handler.messageComplete(_contentPosition)) return true;
 }
- else _state=State.CHUNK;
+ else setState(State.CHUNK);
 }
- else if (ch <= HttpTokens.SPACE || ch == HttpTokens.SEMI_COLON) _state=State.CHUNK_PARAMS;
+ else if (ch <= HttpTokens.SPACE || ch == HttpTokens.SEMI_COLON) setState(State.CHUNK_PARAMS);
  else if (ch >= '0' && ch <= '9') _chunkLength=_chunkLength * 16 + (ch - '0');
  else if (ch >= 'a' && ch <= 'f') _chunkLength=_chunkLength * 16 + (10 + ch - 'a');
  else if (ch >= 'A' && ch <= 'F') _chunkLength=_chunkLength * 16 + (10 + ch - 'A');
@@ -110,10 +110,10 @@ if (ch == HttpTokens.CARRIAGE_RETURN || ch == HttpTokens.LINE_FEED) {
 _eol=ch;
 if (_chunkLength == 0) {
 if (_eol == HttpTokens.CARRIAGE_RETURN && buffer.hasRemaining() && buffer.get(buffer.position()) == HttpTokens.LINE_FEED) _eol=buffer.get();
-_state=State.END;
+setState(State.END);
 if (_handler.messageComplete(_contentPosition)) return true;
 }
- else _state=State.CHUNK;
+ else setState(State.CHUNK);
 }
 break;
 }
@@ -121,7 +121,7 @@ case CHUNK:
 {
 int remaining=_chunkLength - _chunkPosition;
 if (remaining == 0) {
-_state=State.CHUNKED_CONTENT;
+setState(State.CHUNKED_CONTENT);
 }
  else {
 _contentChunk=buffer.asReadOnlyBuffer();

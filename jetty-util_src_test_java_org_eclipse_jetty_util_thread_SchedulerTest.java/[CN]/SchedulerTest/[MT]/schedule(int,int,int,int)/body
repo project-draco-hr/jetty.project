@@ -1,0 +1,64 @@
+{
+  final Random random=new Random(1);
+  Thread[] test=new Thread[threads];
+  final AtomicInteger schedules=new AtomicInteger();
+  final SampleStatistic executions=new SampleStatistic();
+  final SampleStatistic cancellations=new SampleStatistic();
+  for (int i=test.length; i-- > 0; ) {
+    test[i]=new Thread(){
+      @Override public void run(){
+        try {
+          long now=System.currentTimeMillis();
+          long start=now;
+          long end=start + duration;
+          boolean last=false;
+          while (!last) {
+            final long expected=now + delay;
+            int cancel=random.nextInt(interval);
+            final boolean expected_to_execute;
+            last=now + 2 * interval > end;
+            if (cancel == 0 || last) {
+              expected_to_execute=true;
+              cancel=delay + 1000;
+            }
+ else             expected_to_execute=false;
+            schedules.incrementAndGet();
+            Scheduler.Task task=_scheduler.schedule(new Runnable(){
+              @Override public void run(){
+                long lateness=System.currentTimeMillis() - expected;
+                if (expected_to_execute)                 executions.set(lateness);
+ else                 executions.set(6666);
+              }
+            }
+,delay,TimeUnit.MILLISECONDS);
+            Thread.sleep(cancel);
+            now=System.currentTimeMillis();
+            if (task.cancel()) {
+              long lateness=now - expected;
+              if (expected_to_execute)               cancellations.set(lateness);
+ else               cancellations.set(0);
+            }
+ else {
+              if (!expected_to_execute) {
+                cancellations.set(9999);
+              }
+            }
+            Thread.yield();
+          }
+        }
+ catch (        InterruptedException e) {
+          e.printStackTrace();
+        }
+      }
+    }
+;
+  }
+  for (  Thread thread : test)   thread.start();
+  for (  Thread thread : test)   thread.join();
+  Assert.assertThat(executions.getCount(),Matchers.greaterThan(0L));
+  Assert.assertThat(cancellations.getCount(),Matchers.greaterThan(0L));
+  Assert.assertThat(0L + schedules.get(),Matchers.lessThanOrEqualTo(executions.getCount() + cancellations.getCount()));
+  Assert.assertThat(executions.getMax(),Matchers.lessThan(500L));
+  Assert.assertThat(executions.getMean(),Matchers.lessThan(500.0));
+  Assert.assertThat(cancellations.getMax(),Matchers.lessThan(500L));
+}

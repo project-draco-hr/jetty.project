@@ -1,0 +1,17 @@
+{
+  ArrayByteBufferPool bufferPool=new ArrayByteBufferPool(10,100,1000);
+  ArrayByteBufferPool.Bucket[] buckets=bufferPool.bucketsFor(true);
+  for (int size=999; size <= 1001; size++) {
+    bufferPool.clear();
+    ByteBuffer buffer=bufferPool.acquire(size,true);
+    assertTrue(buffer.isDirect());
+    assertThat(buffer.capacity(),greaterThanOrEqualTo(size));
+    for (    ArrayByteBufferPool.Bucket bucket : buckets)     assertTrue(bucket._queue.isEmpty());
+    bufferPool.release(buffer);
+    int pooled=0;
+    for (    ArrayByteBufferPool.Bucket bucket : buckets) {
+      pooled+=bucket._queue.size();
+    }
+    assertEquals(size <= 1000,1 == pooled);
+  }
+}

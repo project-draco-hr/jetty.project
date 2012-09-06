@@ -1,0 +1,16 @@
+{
+  TrackingSocket wsocket=new TrackingSocket();
+  WebSocketClient client=factory.newWebSocketClient(wsocket);
+  URI wsUri=server.getWsUri();
+  Future<UpgradeResponse> future=client.connect(wsUri);
+  ServerConnection ssocket=server.accept();
+  ssocket.upgrade();
+  future.get(500,TimeUnit.MILLISECONDS);
+  wsocket.waitForConnected(500,TimeUnit.MILLISECONDS);
+  long start=System.currentTimeMillis();
+  wsocket.waitForClose(10,TimeUnit.SECONDS);
+  long end=System.currentTimeMillis();
+  long dur=(end - start);
+  Assert.assertThat("Idle Timeout",dur,lessThanOrEqualTo(5000L));
+  wsocket.assertCloseCode(StatusCode.NORMAL);
+}
