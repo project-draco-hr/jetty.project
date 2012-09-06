@@ -1,0 +1,22 @@
+{
+  List<HttpCookie> result=new ArrayList<>();
+  String host=destination.host();
+  int port=destination.port();
+  String key=host + ":" + port+ path;
+  Map<String,HttpCookie> cookies=allCookies.get(key);
+  if (cookies != null)   accumulateCookies(destination,cookies,result);
+  if (!"/".equals(path)) {
+    key=host + ":" + port+ "/";
+    cookies=allCookies.get(key);
+    if (cookies != null)     accumulateCookies(destination,cookies,result);
+  }
+  int domains=host.split("\\.").length - 1;
+  for (int i=2; i <= domains; ++i) {
+    String[] hostParts=host.split("\\.",i);
+    host=hostParts[hostParts.length - 1];
+    key=host + ":" + port+ "/";
+    cookies=allCookies.get(key);
+    if (cookies != null)     accumulateCookies(destination,cookies,result);
+  }
+  return result;
+}

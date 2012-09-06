@@ -1,0 +1,23 @@
+{
+  final String name="foo";
+  final String value="bar";
+  start(new AbstractHandler(){
+    @Override public void handle(    String target,    Request baseRequest,    HttpServletRequest request,    HttpServletResponse response) throws IOException, ServletException {
+      Cookie[] cookies=request.getCookies();
+      Assert.assertEquals(1,cookies.length);
+      Cookie cookie=cookies[0];
+      Assert.assertEquals(name,cookie.getName());
+      Assert.assertEquals(value,cookie.getValue());
+      baseRequest.setHandled(true);
+    }
+  }
+);
+  String scheme="http";
+  String host="localhost";
+  int port=connector.getLocalPort();
+  String path="/path";
+  Destination destination=client.getDestination(scheme,host,port);
+  client.getCookieStore().addCookie(destination,new HttpCookie(name,value,null,path));
+  Response response=client.GET(scheme + "://" + host+ ":"+ port+ path).get(5,TimeUnit.SECONDS);
+  Assert.assertEquals(200,response.status());
+}

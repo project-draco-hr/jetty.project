@@ -1,0 +1,18 @@
+{
+  String destinationDomain=destination.host() + ":" + destination.port();
+  String domain=cookie.getDomain();
+  if (domain == null)   domain=destinationDomain;
+  if (domain.indexOf(':') < 0)   domain+=":" + ("https".equalsIgnoreCase(destination.scheme()) ? 443 : 80);
+  if (!domain.endsWith(destinationDomain))   return false;
+  String path=cookie.getPath();
+  if (path == null || path.length() == 0)   path="/";
+  String key=destination.host() + ":" + destination.port()+ path;
+  Map<String,HttpCookie> cookies=allCookies.get(key);
+  if (cookies == null) {
+    cookies=new ConcurrentHashMap<>();
+    Map<String,HttpCookie> existing=allCookies.putIfAbsent(key,cookies);
+    if (existing != null)     cookies=existing;
+  }
+  cookies.put(path,cookie);
+  return true;
+}

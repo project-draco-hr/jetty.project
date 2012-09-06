@@ -17,6 +17,15 @@
       if (!headers.containsKey(HttpHeader.TRANSFER_ENCODING.asString()))       headers.put(HttpHeader.TRANSFER_ENCODING,"chunked");
     }
   }
+  List<HttpCookie> cookies=client.getCookieStore().getCookies(getDestination(),request.path());
+  StringBuilder cookieString=null;
+  for (int i=0; i < cookies.size(); ++i) {
+    if (cookieString == null)     cookieString=new StringBuilder();
+    if (i > 0)     cookieString.append("; ");
+    HttpCookie cookie=cookies.get(i);
+    cookieString.append(cookie.getName()).append("=").append(cookie.getValue());
+  }
+  if (cookieString != null)   request.header(HttpHeader.COOKIE.asString(),cookieString.toString());
   if (version.getVersion() > 10) {
     if (!headers.containsKey(HttpHeader.HOST.asString())) {
       String value=request.host();
