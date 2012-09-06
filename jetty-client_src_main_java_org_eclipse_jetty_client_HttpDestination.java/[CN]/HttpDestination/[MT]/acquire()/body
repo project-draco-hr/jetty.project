@@ -15,7 +15,19 @@
           LOG.debug("Created connection {}/{} {} for {}",next,maxConnections,connection,this);
           process(connection);
         }
-        @Override public void failed(        Connection connection,        Throwable x){
+        @Override public void failed(        Connection connection,        final Throwable x){
+          LOG.debug("Connection failed {} for {}",x,this);
+          connectionCount.decrementAndGet();
+          client.getExecutor().execute(new Runnable(){
+            @Override public void run(){
+              RequestPair pair=requests.poll();
+              if (pair != null) {
+                notifyRequestFailure(pair.request,x);
+                notifyResponseFailure(pair.listener,x);
+              }
+            }
+          }
+);
         }
       }
 );
