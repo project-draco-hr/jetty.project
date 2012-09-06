@@ -11,7 +11,7 @@
     Assume.assumeNoException(x);
   }
   Session session=startClient(version,address,null);
-  Headers headers=new Headers();
+  Fields headers=new Fields();
   headers.put(HTTPSPDYHeader.SCHEME.name(version),"https");
   headers.put(HTTPSPDYHeader.HOST.name(version),host + ":" + port);
   headers.put(HTTPSPDYHeader.METHOD.name(version),"GET");
@@ -20,8 +20,8 @@
   final CountDownLatch latch=new CountDownLatch(1);
   session.syn(new SynInfo(headers,true),new StreamFrameListener.Adapter(){
     @Override public void onReply(    Stream stream,    ReplyInfo replyInfo){
-      Headers headers=replyInfo.getHeaders();
-      Headers.Header versionHeader=headers.get(HTTPSPDYHeader.STATUS.name(version));
+      Fields headers=replyInfo.getHeaders();
+      Fields.Field versionHeader=headers.get(HTTPSPDYHeader.STATUS.name(version));
       if (versionHeader != null) {
         Matcher matcher=Pattern.compile("(\\d{3}).*").matcher(versionHeader.value());
         if (matcher.matches() && Integer.parseInt(matcher.group(1)) < 400)         latch.countDown();

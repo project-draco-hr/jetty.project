@@ -2,7 +2,7 @@
   InetSocketAddress proxyAddress=startProxy(startServer(new ServerSessionFrameListener.Adapter(){
     @Override public StreamFrameListener onSyn(    Stream stream,    SynInfo synInfo){
       Assert.assertTrue(synInfo.isClose());
-      Headers requestHeaders=synInfo.getHeaders();
+      Fields requestHeaders=synInfo.getHeaders();
       Assert.assertNotNull(requestHeaders.get("via"));
       stream.getSession().rst(new RstInfo(stream.getId(),StreamStatus.REFUSED_STREAM));
       return null;
@@ -17,7 +17,7 @@
     }
   }
 ).get(5,TimeUnit.SECONDS);
-  Headers headers=new Headers();
+  Fields headers=new Fields();
   headers.put(HTTPSPDYHeader.HOST.name(version),"localhost:" + proxyAddress.getPort());
   client.syn(new SynInfo(headers,true),null);
   Assert.assertTrue(resetLatch.await(5,TimeUnit.SECONDS));
