@@ -6,17 +6,18 @@
     int current=connectionCount.get();
     final int next=current + 1;
     if (next > maxConnections) {
-      LOG.debug("Max connections reached {}: {}",this,current);
+      LOG.debug("Max connections {} reached for {}",current,this);
       return idleConnections.poll();
     }
     if (connectionCount.compareAndSet(current,next)) {
+      LOG.debug("Creating connection {}/{} for {}",next,maxConnections,this);
       newConnection(new Callback<Connection>(){
         @Override public void completed(        Connection connection){
-          LOG.debug("Created connection {}/{} {} for {}",next,maxConnections,connection,this);
+          LOG.debug("Created connection {}/{} {} for {}",next,maxConnections,connection,HttpDestination.this);
           process(connection);
         }
         @Override public void failed(        Connection connection,        final Throwable x){
-          LOG.debug("Connection failed {} for {}",x,this);
+          LOG.debug("Connection failed {} for {}",x,HttpDestination.this);
           connectionCount.decrementAndGet();
           client.getExecutor().execute(new Runnable(){
             @Override public void run(){

@@ -7,7 +7,12 @@
   Response response=client.GET(scheme + "://" + host+ ":"+ port+ path).get(5,TimeUnit.SECONDS);
   Assert.assertEquals(200,response.status());
   HttpDestination destination=(HttpDestination)client.getDestination(scheme,host,port);
-  HttpConnection connection=(HttpConnection)destination.getIdleConnections().peek();
+  long start=System.nanoTime();
+  HttpConnection connection=null;
+  while (connection == null && TimeUnit.NANOSECONDS.toSeconds(System.nanoTime() - start) < 5) {
+    connection=(HttpConnection)destination.getIdleConnections().peek();
+    TimeUnit.MILLISECONDS.sleep(10);
+  }
   Assert.assertNotNull(connection);
   client.getCookieStore().addCookie(destination,new HttpCookie("foo","bar",null,path));
   client.stop();

@@ -1,0 +1,34 @@
+{
+  start(new EmptyHandler());
+  client.setMaxConnectionsPerAddress(1);
+  final long idleTimeout=1000;
+  client.setIdleTimeout(idleTimeout);
+  final CountDownLatch latch=new CountDownLatch(3);
+  client.newRequest("http://localhost:" + connector.getLocalPort()).listener(new org.eclipse.jetty.client.api.Request.Listener.Adapter(){
+    @Override public void onBegin(    org.eclipse.jetty.client.api.Request request){
+      try {
+        TimeUnit.MILLISECONDS.sleep(2 * idleTimeout);
+      }
+ catch (      InterruptedException x) {
+        x.printStackTrace();
+      }
+    }
+    @Override public void onFailure(    org.eclipse.jetty.client.api.Request request,    Throwable failure){
+      latch.countDown();
+    }
+  }
+).send(new Response.Listener.Adapter(){
+    @Override public void onFailure(    Response response,    Throwable failure){
+      latch.countDown();
+    }
+  }
+);
+  client.newRequest("http://localhost:" + connector.getLocalPort()).send(new Response.Listener.Adapter(){
+    @Override public void onSuccess(    Response response){
+      Assert.assertEquals(200,response.status());
+      latch.countDown();
+    }
+  }
+);
+  Assert.assertTrue(latch.await(5 * idleTimeout,TimeUnit.MILLISECONDS));
+}
