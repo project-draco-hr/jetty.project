@@ -4,17 +4,40 @@
   _executor=executor;
   _readCallback=new ExecutorCallback<Void>(executor){
     @Override protected void onCompleted(    Void context){
-      if (_readInterested.compareAndSet(true,false))       onFillable();
-    }
-    @Override protected void onFailed(    Void context,    Throwable x){
-      onFillInterestedFailed(x);
-    }
-    @Override protected boolean shouldDispatchCompletion(){
-      return dispatchCompletion;
-    }
-    @Override public String toString(){
-      return String.format("%s@%x",getClass().getSimpleName(),AbstractConnection.this.hashCode());
-    }
+      if (_state.compareAndSet(State.INTERESTED,State.FILLING)) {
+        try {
+          onFillable();
+        }
+  finally {
+          loop:           while (true) {
+switch (_state.get()) {
+case IDLE:
+case INTERESTED:
+              throw new IllegalStateException();
+case FILLING:
+            if (_state.compareAndSet(State.FILLING,State.IDLE))             break loop;
+          break;
+case FILLING_INTERESTED:
+        if (_state.compareAndSet(State.FILLING_INTERESTED,State.INTERESTED)) {
+          getEndPoint().fillInterested(null,_readCallback);
+          break loop;
+        }
+      break;
   }
+}
+}
+}
+ else LOG.warn(new Throwable());
+}
+@Override protected void onFailed(Void context,Throwable x){
+onFillInterestedFailed(x);
+}
+@Override protected boolean shouldDispatchCompletion(){
+return dispatchCompletion;
+}
+@Override public String toString(){
+return String.format("%s@%x",getClass().getSimpleName(),AbstractConnection.this.hashCode());
+}
+}
 ;
 }

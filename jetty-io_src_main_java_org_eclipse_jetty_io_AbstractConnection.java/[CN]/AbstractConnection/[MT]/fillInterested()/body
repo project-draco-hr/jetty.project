@@ -1,4 +1,19 @@
 {
   LOG.debug("fillInterested {}",this);
-  if (_readInterested.compareAndSet(false,true))   getEndPoint().fillInterested(null,_readCallback);
+  loop:   while (true) {
+switch (_state.get()) {
+case IDLE:
+      if (_state.compareAndSet(State.IDLE,State.INTERESTED)) {
+        getEndPoint().fillInterested(null,_readCallback);
+        break loop;
+      }
+    break;
+case FILLING:
+  if (_state.compareAndSet(State.FILLING,State.FILLING_INTERESTED))   break loop;
+break;
+case FILLING_INTERESTED:
+case INTERESTED:
+break loop;
+}
+}
 }
