@@ -2,8 +2,13 @@
   generator.reset();
   committed=false;
   HttpExchange exchange=connection.getExchange();
-  LOG.debug("Sent {}",exchange.request());
+  Request request=exchange.request();
+  LOG.debug("Sent {}",request);
   boolean exchangeCompleted=exchange.requestComplete(true);
-  notifyRequestSuccess(exchange.request());
-  if (exchangeCompleted)   notifyComplete(exchange.conversation().listener(),exchange.response(),null);
+  notifyRequestSuccess(request);
+  if (exchangeCompleted) {
+    HttpConversation conversation=exchange.conversation();
+    Result result=new Result(request,exchange.response());
+    notifyComplete(conversation.listener(),result);
+  }
 }

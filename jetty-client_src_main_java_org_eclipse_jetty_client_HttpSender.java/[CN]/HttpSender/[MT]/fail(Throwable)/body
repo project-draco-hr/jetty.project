@@ -6,11 +6,14 @@
   generator.abort();
   failed=true;
   HttpExchange exchange=connection.getExchange();
-  LOG.debug("Failed {}",exchange.request());
+  Request request=exchange.request();
+  LOG.debug("Failed {}",request);
   boolean exchangeCompleted=exchange.requestComplete(false);
   if (!exchangeCompleted && !committed)   exchangeCompleted=exchange.responseComplete(false);
-  notifyRequestFailure(exchange.request(),failure);
-  Response.Listener listener=exchange.conversation().listener();
-  notifyResponseFailure(listener,failure);
-  if (exchangeCompleted)   notifyComplete(listener,exchange.response(),failure);
+  notifyRequestFailure(request,failure);
+  if (exchangeCompleted) {
+    HttpConversation conversation=exchange.conversation();
+    Result result=new Result(request,failure,exchange.response());
+    notifyComplete(conversation.listener(),result);
+  }
 }
