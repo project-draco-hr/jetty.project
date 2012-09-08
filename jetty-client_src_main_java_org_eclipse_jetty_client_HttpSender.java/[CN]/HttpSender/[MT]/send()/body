@@ -2,8 +2,9 @@
   try {
     HttpClient client=connection.getHttpClient();
     EndPoint endPoint=connection.getEndPoint();
+    HttpExchange exchange=connection.getExchange();
     ByteBufferPool byteBufferPool=client.getByteBufferPool();
-    final Request request=exchange.get().request();
+    final Request request=exchange.request();
     HttpGenerator.RequestInfo info=null;
     ByteBuffer content=contentChunks.hasNext() ? contentChunks.next() : BufferUtil.EMPTY_BUFFER;
     boolean lastContent=!contentChunks.hasNext();
@@ -44,7 +45,7 @@ case FLUSH:
 {
     StatefulExecutorCallback callback=new StatefulExecutorCallback(client.getExecutor()){
       @Override protected void pendingCompleted(){
-        notifyRequestHeaders(request);
+        if (!committed)         committed(request);
         send();
       }
       @Override protected void failed(      Throwable x){
@@ -57,10 +58,7 @@ case FLUSH:
     endPoint.write(null,callback,header,chunk,content);
     if (callback.pending())     return;
     if (callback.completed()) {
-      if (!headersComplete) {
-        headersComplete=true;
-        notifyRequestHeaders(request);
-      }
+      if (!committed)       committed(request);
       releaseBuffers();
       content=contentChunks.hasNext() ? contentChunks.next() : BufferUtil.EMPTY_BUFFER;
       lastContent=!contentChunks.hasNext();
@@ -88,7 +86,7 @@ throw new IllegalStateException("Unknown result " + result);
 }
 }
 }
- catch (IOException x) {
+ catch (Exception x) {
 LOG.debug(x);
 fail(x);
 }

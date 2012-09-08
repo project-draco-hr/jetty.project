@@ -1,0 +1,27 @@
+{
+  final RequestPair requestPair=requests.poll();
+  if (requestPair == null) {
+    LOG.debug("{} idle",connection);
+    idleConnections.offer(connection);
+    if (!client.isRunning()) {
+      LOG.debug("{} is stopping",client);
+      remove(connection);
+      connection.close();
+    }
+  }
+ else {
+    LOG.debug("{} active",connection);
+    activeConnections.offer(connection);
+    if (dispatch) {
+      client.getExecutor().execute(new Runnable(){
+        @Override public void run(){
+          connection.send(requestPair.request,requestPair.listener);
+        }
+      }
+);
+    }
+ else {
+      connection.send(requestPair.request,requestPair.listener);
+    }
+  }
+}

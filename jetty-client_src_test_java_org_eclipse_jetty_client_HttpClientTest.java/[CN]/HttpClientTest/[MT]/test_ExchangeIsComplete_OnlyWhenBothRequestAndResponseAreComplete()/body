@@ -1,0 +1,36 @@
+{
+  start(new EmptyHandler());
+  Path targetTestsDir=MavenTestingUtils.getTargetTestingDir().toPath();
+  Files.createDirectories(targetTestsDir);
+  Path file=Paths.get(targetTestsDir.toString(),"http_client_conversation.big");
+  try (OutputStream output=Files.newOutputStream(file,CREATE)){
+    byte[] kb=new byte[1024];
+    for (int i=0; i < 10 * 1024; ++i)     output.write(kb);
+  }
+   final CountDownLatch latch=new CountDownLatch(3);
+  final AtomicLong exchangeTime=new AtomicLong();
+  final AtomicLong requestTime=new AtomicLong();
+  final AtomicLong responseTime=new AtomicLong();
+  client.newRequest("localhost",connector.getLocalPort()).file(file).listener(new org.eclipse.jetty.client.api.Request.Listener.Adapter(){
+    @Override public void onSuccess(    org.eclipse.jetty.client.api.Request request){
+      requestTime.set(System.nanoTime());
+      latch.countDown();
+    }
+  }
+).send(new Response.Listener.Adapter(){
+    @Override public void onSuccess(    Response response){
+      responseTime.set(System.nanoTime());
+      latch.countDown();
+    }
+    @Override public void onComplete(    Response response,    Throwable failure){
+      exchangeTime.set(System.nanoTime());
+      latch.countDown();
+    }
+  }
+);
+  Assert.assertTrue(latch.await(10,TimeUnit.SECONDS));
+  Assert.assertTrue(requestTime.get() <= exchangeTime.get());
+  Assert.assertTrue(responseTime.get() <= exchangeTime.get());
+  Thread.sleep(1000);
+  Files.delete(file);
+}
