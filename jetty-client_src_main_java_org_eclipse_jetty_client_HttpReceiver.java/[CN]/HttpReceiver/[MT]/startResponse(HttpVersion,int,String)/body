@@ -1,12 +1,12 @@
 {
   HttpExchange exchange=connection.getExchange();
   HttpConversation conversation=exchange.conversation();
-  HttpClient client=connection.getHttpClient();
   HttpResponse response=exchange.response();
-  Response.Listener listener=client.lookup(status);
+  response.version(version).status(status).reason(reason);
+  HttpClient client=connection.getHttpClient();
+  Response.Listener listener=client.lookup(exchange.request(),response);
   if (listener == null)   listener=conversation.first().listener();
   conversation.listener(listener);
-  response.version(version).status(status).reason(reason);
   LOG.debug("Receiving {}",response);
   notifyBegin(listener,response);
   return false;

@@ -1,0 +1,35 @@
+{
+  if (!result.isFailed()) {
+    Request request=result.getRequest();
+    Response response=result.getResponse();
+    String location=response.headers().get("location");
+    int status=response.status();
+switch (status) {
+case 301:
+{
+        if (request.method() == HttpMethod.GET || request.method() == HttpMethod.HEAD)         redirect(result,request.method(),location);
+ else         fail(result,new HttpResponseException("HTTP protocol violation: received 301 for non GET or HEAD request",response));
+        break;
+      }
+case 302:
+case 303:
+{
+      redirect(result,HttpMethod.GET,location);
+      break;
+    }
+case 307:
+{
+    redirect(result,request.method(),location);
+    break;
+  }
+default :
+{
+  fail(result,new HttpResponseException("Unhandled HTTP status code " + status,response));
+  break;
+}
+}
+}
+ else {
+fail(result,result.getFailure());
+}
+}

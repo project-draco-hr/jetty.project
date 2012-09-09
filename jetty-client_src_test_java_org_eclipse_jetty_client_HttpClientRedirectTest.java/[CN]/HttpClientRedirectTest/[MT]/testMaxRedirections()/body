@@ -1,0 +1,14 @@
+{
+  client.setMaxRedirects(1);
+  try {
+    client.newRequest("localhost",connector.getLocalPort()).path("/303/localhost/302/localhost/done").send().get(5,TimeUnit.SECONDS);
+    fail();
+  }
+ catch (  ExecutionException x) {
+    HttpResponseException xx=(HttpResponseException)x.getCause();
+    Response response=xx.getResponse();
+    Assert.assertNotNull(response);
+    Assert.assertEquals(302,response.status());
+    Assert.assertTrue(response.headers().containsKey(HttpHeader.LOCATION.asString()));
+  }
+}
