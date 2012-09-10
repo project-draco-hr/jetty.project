@@ -1,16 +1,14 @@
 {
-  final FutureCallback<ContentResponse> result=new FutureCallback<>();
+  final FutureCallback<ContentResponse> callback=new FutureCallback<>();
   BufferingResponseListener listener=new BufferingResponseListener(){
-    @Override public void onSuccess(    Response response){
-      super.onSuccess(response);
-      result.completed(new HttpContentResponse(response,this));
-    }
-    @Override public void onFailure(    Response response,    Throwable failure){
-      super.onFailure(response,failure);
-      result.failed(new HttpContentResponse(response,this),failure);
+    @Override public void onComplete(    Result result){
+      super.onComplete(result);
+      HttpContentResponse contentResponse=new HttpContentResponse(result.getResponse(),content());
+      if (!result.isFailed())       callback.completed(contentResponse);
+ else       callback.failed(contentResponse,result.getFailure());
     }
   }
 ;
   send(listener);
-  return result;
+  return callback;
 }

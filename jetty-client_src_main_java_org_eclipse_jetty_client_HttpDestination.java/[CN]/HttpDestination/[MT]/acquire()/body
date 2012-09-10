@@ -14,7 +14,7 @@
       newConnection(new Callback<Connection>(){
         @Override public void completed(        Connection connection){
           LOG.debug("Created connection {}/{} {} for {}",next,maxConnections,connection,HttpDestination.this);
-          process(connection);
+          process(connection,true);
         }
         @Override public void failed(        Connection connection,        final Throwable x){
           LOG.debug("Connection failed {} for {}",x,HttpDestination.this);
@@ -23,8 +23,8 @@
             @Override public void run(){
               RequestPair pair=requests.poll();
               if (pair != null) {
-                notifyRequestFailure(pair.request,x);
-                notifyResponseFailure(pair.listener,x);
+                requestNotifier.notifyFailure(pair.request,x);
+                responseNotifier.notifyComplete(pair.listener,new Result(pair.request,x,null));
               }
             }
           }
