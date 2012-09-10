@@ -1,6 +1,7 @@
 {
   KeyStore keystore=KeyStore.getInstance(KeyStore.getDefaultType());
-  keystore.load(new FileInputStream(connector.getSslContextFactory().getKeyStorePath()),"storepwd".toCharArray());
+  SslContextFactory ctx=connector.getConnectionFactory(SslConnectionFactory.class).getSslContextFactory();
+  keystore.load(new FileInputStream(ctx.getKeyStorePath()),"storepwd".toCharArray());
   TrustManagerFactory trustManagerFactory=TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
   trustManagerFactory.init(keystore);
   SSLContext sslContext=SSLContext.getInstance("SSL");
@@ -22,6 +23,5 @@
   InputStream in=socket.getInputStream();
   String response=IO.toString(in);
   assertTrue(response.indexOf("200") > 0);
-  long end=System.nanoTime();
   assertEquals(requestContent.length,total);
 }

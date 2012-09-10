@@ -1,8 +1,3 @@
 {
-  super(server,sslContextFactory);
-  this.listener=listener;
-  setInitialWindowSize(65536);
-  putConnectionFactory("spdy/3",new ServerSPDYConnectionFactory(SPDY.V3,getByteBufferPool(),getExecutor(),getScheduler(),listener));
-  putConnectionFactory("spdy/2",new ServerSPDYConnectionFactory(SPDY.V2,getByteBufferPool(),getExecutor(),getScheduler(),listener));
-  setDefaultConnectionFactory(getConnectionFactory("spdy/2"));
+  super(server,sslContextFactory,sslContextFactory == null ? new ConnectionFactory[]{new SPDYServerConnectionFactory(SPDY.V2,listener)} : new ConnectionFactory[]{new NPNServerConnectionFactory("http/1.1","spdy/2","spdy/3"),new HttpConnectionFactory(),new SPDYServerConnectionFactory(SPDY.V2,listener),new SPDYServerConnectionFactory(SPDY.V3,listener)});
 }
