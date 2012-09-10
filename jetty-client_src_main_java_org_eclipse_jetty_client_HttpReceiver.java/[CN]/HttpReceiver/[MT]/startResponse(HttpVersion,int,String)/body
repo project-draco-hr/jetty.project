@@ -3,11 +3,20 @@
   HttpConversation conversation=exchange.conversation();
   HttpResponse response=exchange.response();
   response.version(version).status(status).reason(reason);
+  Response.Listener currentListener=exchange.listener();
+  Response.Listener initialListener=conversation.exchanges().peekFirst().listener();
   HttpClient client=connection.getHttpClient();
-  Response.Listener listener=client.lookup(exchange.request(),response);
-  if (listener == null)   listener=conversation.first().listener();
-  conversation.listener(listener);
+  Response.Listener handlerListener=client.lookup(exchange.request(),response);
+  if (handlerListener == null) {
+    conversation.last(exchange);
+    if (currentListener == initialListener)     conversation.listener(initialListener);
+ else     conversation.listener(new MultipleResponseListener(currentListener,initialListener));
+  }
+ else {
+    if (currentListener == initialListener)     conversation.listener(handlerListener);
+ else     conversation.listener(new MultipleResponseListener(currentListener,handlerListener));
+  }
   LOG.debug("Receiving {}",response);
-  notifyBegin(listener,response);
+  notifier.notifyBegin(conversation.listener(),response);
   return false;
 }

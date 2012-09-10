@@ -3,7 +3,15 @@
   if (existing == exchange) {
     LOG.debug("{} disassociated from {}",exchange,this);
     if (success) {
-      destination.release(this);
+      HttpFields responseHeaders=exchange.response().headers();
+      Collection<String> values=responseHeaders.getValuesCollection(HttpHeader.CONNECTION.asString());
+      if (values != null && values.contains("close")) {
+        destination.remove(this);
+        close();
+      }
+ else {
+        destination.release(this);
+      }
     }
  else {
       destination.remove(this);
