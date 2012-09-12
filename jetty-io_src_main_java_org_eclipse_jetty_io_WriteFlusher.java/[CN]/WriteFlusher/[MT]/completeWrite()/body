@@ -6,18 +6,13 @@
   if (!updateState(pending,__COMPLETING))   return;
   try {
     ByteBuffer[] buffers=pending.getBuffers();
-    _endPoint.flush(buffers);
+    boolean flushed=_endPoint.flush(buffers);
     for (    ByteBuffer b : buffers) {
-      if (BufferUtil.hasContent(b)) {
+      if (!flushed || BufferUtil.hasContent(b)) {
         if (updateState(__COMPLETING,pending))         onIncompleteFlushed();
  else         fail(pending);
         return;
       }
-    }
-    if (_endPoint.isBufferingOutput()) {
-      if (updateState(__COMPLETING,pending))       onIncompleteFlushed();
- else       fail(pending);
-      return;
     }
     if (!updateState(__COMPLETING,__IDLE))     ignoreFail();
     pending.complete();

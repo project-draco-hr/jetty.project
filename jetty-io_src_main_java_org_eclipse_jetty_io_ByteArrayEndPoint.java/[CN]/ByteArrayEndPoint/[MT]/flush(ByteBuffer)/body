@@ -1,7 +1,8 @@
 {
   if (_closed)   throw new IOException("CLOSED");
   if (_oshut)   throw new IOException("OSHUT");
-  int flushed=0;
+  boolean flushed=true;
+  boolean idle=true;
   for (  ByteBuffer b : buffers) {
     if (BufferUtil.hasContent(b)) {
       if (_growOutput && b.remaining() > BufferUtil.space(_out)) {
@@ -12,10 +13,13 @@
           _out=n;
         }
       }
-      flushed+=BufferUtil.flipPutFlip(b,_out);
-      if (BufferUtil.hasContent(b))       break;
+      if (BufferUtil.flipPutFlip(b,_out) > 0)       idle=false;
+      if (BufferUtil.hasContent(b)) {
+        flushed=false;
+        break;
+      }
     }
   }
-  if (flushed > 0)   notIdle();
+  if (!idle)   notIdle();
   return flushed;
 }
