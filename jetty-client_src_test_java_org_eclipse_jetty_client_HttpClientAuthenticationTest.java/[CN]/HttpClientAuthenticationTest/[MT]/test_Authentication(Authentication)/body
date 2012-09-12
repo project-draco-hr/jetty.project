@@ -1,0 +1,46 @@
+{
+  AuthenticationStore authenticationStore=client.getAuthenticationStore();
+  final AtomicInteger requests=new AtomicInteger();
+  Request.Listener.Adapter requestListener=new Request.Listener.Adapter(){
+    @Override public void onSuccess(    Request request){
+      requests.incrementAndGet();
+    }
+  }
+;
+  client.getRequestListeners().add(requestListener);
+  Request request=client.newRequest("localhost",connector.getLocalPort()).path("/test");
+  ContentResponse response=request.send().get(5,TimeUnit.SECONDS);
+  Assert.assertNotNull(response);
+  Assert.assertEquals(401,response.status());
+  Assert.assertEquals(1,requests.get());
+  client.getRequestListeners().remove(requestListener);
+  requests.set(0);
+  authenticationStore.addAuthentication(authentication);
+  requestListener=new Request.Listener.Adapter(){
+    @Override public void onSuccess(    Request request){
+      requests.incrementAndGet();
+    }
+  }
+;
+  client.getRequestListeners().add(requestListener);
+  response=request.send().get(5,TimeUnit.SECONDS);
+  Assert.assertNotNull(response);
+  Assert.assertEquals(200,response.status());
+  Assert.assertEquals(2,requests.get());
+  client.getRequestListeners().remove(requestListener);
+  requests.set(0);
+  requestListener=new Request.Listener.Adapter(){
+    @Override public void onSuccess(    Request request){
+      requests.incrementAndGet();
+    }
+  }
+;
+  client.getRequestListeners().add(requestListener);
+  request.header(HttpHeader.AUTHORIZATION.asString(),null);
+  response=request.send().get(555,TimeUnit.SECONDS);
+  Assert.assertNotNull(response);
+  Assert.assertEquals(200,response.status());
+  Assert.assertEquals(1,requests.get());
+  client.getRequestListeners().remove(requestListener);
+  requests.set(0);
+}
