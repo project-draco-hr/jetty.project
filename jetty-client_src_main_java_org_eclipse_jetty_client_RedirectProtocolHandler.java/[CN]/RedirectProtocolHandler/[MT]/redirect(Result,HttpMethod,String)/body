@@ -1,0 +1,18 @@
+{
+  Request request=result.getRequest();
+  HttpConversation conversation=client.getConversation(request);
+  Integer redirects=(Integer)conversation.getAttribute(ATTRIBUTE);
+  if (redirects == null)   redirects=0;
+  if (redirects < client.getMaxRedirects()) {
+    ++redirects;
+    conversation.setAttribute(ATTRIBUTE,redirects);
+    Request redirect=client.newRequest(request.id(),location);
+    redirect.method(method);
+    for (    HttpFields.Field header : request.headers())     redirect.header(header.getName(),header.getValue());
+    redirect.content(request.content());
+    redirect.send(new Adapter());
+  }
+ else {
+    fail(result,new HttpResponseException("Max redirects exceeded " + redirects,result.getResponse()));
+  }
+}

@@ -5,9 +5,15 @@
   connection.getEndPoint().shutdownOutput();
   generator.abort();
   failed=true;
-  HttpExchange exchange=this.exchange.getAndSet(null);
-  LOG.debug("Failed {}",exchange.request());
-  exchange.requestComplete(false);
-  notifyRequestFailure(exchange.request(),failure);
-  notifyResponseFailure(exchange.listener(),failure);
+  HttpExchange exchange=connection.getExchange();
+  Request request=exchange.request();
+  LOG.debug("Failed {}",request);
+  boolean exchangeCompleted=exchange.requestComplete(false);
+  if (!exchangeCompleted && !committed)   exchangeCompleted=exchange.responseComplete(false);
+  requestNotifier.notifyFailure(request,failure);
+  if (exchangeCompleted) {
+    HttpConversation conversation=exchange.conversation();
+    Result result=new Result(request,failure,exchange.response());
+    responseNotifier.notifyComplete(conversation.listener(),result);
+  }
 }
