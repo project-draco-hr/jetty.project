@@ -1,14 +1,12 @@
 {
   _server=new Server();
-  _connector=new LocalConnector(_server);
-  HttpConfiguration httpConfiguration=new HttpConfiguration(null,false);
-  httpConfiguration.setRequestHeaderSize(512);
-  httpConfiguration.setRequestBufferSize(1024);
-  httpConfiguration.setResponseHeaderSize(512);
-  httpConfiguration.setResponseBufferSize(2048);
-  httpConfiguration.setForwarded(true);
-  HttpServerConnectionFactory defaultConnectionFactory=new HttpServerConnectionFactory(_connector,httpConfiguration);
-  _connector.setDefaultConnectionFactory(defaultConnectionFactory);
+  HttpConnectionFactory http=new HttpConnectionFactory();
+  http.setInputBufferSize(1024);
+  http.getHttpChannelConfig().setRequestHeaderSize(512);
+  http.getHttpChannelConfig().setResponseHeaderSize(512);
+  http.getHttpChannelConfig().setOutputBufferSize(2048);
+  http.getHttpChannelConfig().addCustomizer(new ForwardedRequestCustomizer());
+  _connector=new LocalConnector(_server,http);
   _server.addConnector(_connector);
   _handler=new RequestHandler();
   _server.setHandler(_handler);

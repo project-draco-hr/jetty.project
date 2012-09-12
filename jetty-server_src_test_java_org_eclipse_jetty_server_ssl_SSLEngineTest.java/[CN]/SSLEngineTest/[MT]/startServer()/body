@@ -5,11 +5,10 @@
   sslContextFactory.setKeyStorePassword("storepwd");
   sslContextFactory.setKeyManagerPassword("keypwd");
   server=new Server();
-  connector=new SelectChannelConnector(server,sslContextFactory);
+  HttpConnectionFactory http=new HttpConnectionFactory();
+  http.setInputBufferSize(512);
+  http.getHttpChannelConfig().setRequestHeaderSize(512);
+  connector=new SelectChannelConnector(server,sslContextFactory,http);
   connector.setPort(0);
-  HttpConfiguration httpConfiguration=new HttpConfiguration(sslContextFactory,true);
-  httpConfiguration.setRequestBufferSize(512);
-  httpConfiguration.setRequestHeaderSize(512);
-  connector.setDefaultConnectionFactory(new HttpServerConnectionFactory(connector,httpConfiguration));
   server.addConnector(connector);
 }
