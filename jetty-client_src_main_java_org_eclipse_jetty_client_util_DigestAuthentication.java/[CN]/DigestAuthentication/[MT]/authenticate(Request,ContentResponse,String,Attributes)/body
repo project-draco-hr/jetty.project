@@ -1,0 +1,20 @@
+{
+  String type="igest";
+  wwwAuthenticate=wwwAuthenticate.substring(wwwAuthenticate.indexOf(type) + type.length());
+  Map<String,String> params=parseParams(wwwAuthenticate);
+  String nonce=params.get("nonce");
+  if (nonce == null || nonce.length() == 0)   return null;
+  String opaque=params.get("opaque");
+  String algorithm=params.get("algorithm");
+  if (algorithm == null)   algorithm="MD5";
+  MessageDigest digester=getMessageDigest(algorithm);
+  if (digester == null)   return null;
+  String serverQOP=params.get("qop");
+  String clientQOP=null;
+  if (serverQOP != null) {
+    List<String> serverQOPValues=Arrays.asList(serverQOP.split(","));
+    if (serverQOPValues.contains("auth"))     clientQOP="auth";
+ else     if (serverQOPValues.contains("auth-int"))     clientQOP="auth-int";
+  }
+  return new DigestResult(request.uri(),response.content(),realm,user,password,algorithm,nonce,clientQOP,opaque);
+}
