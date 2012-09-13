@@ -55,9 +55,14 @@ case FLUSH:
 ;
     if (header == null)     header=BufferUtil.EMPTY_BUFFER;
     if (chunk == null)     chunk=BufferUtil.EMPTY_BUFFER;
+    LOG.debug("Writing {} {} {}",header,chunk,content);
     endPoint.write(null,callback,header,chunk,content);
-    if (callback.pending())     return;
+    if (callback.pending()) {
+      LOG.debug("Write incomplete {} {} {}",header,chunk,content);
+      return;
+    }
     if (callback.completed()) {
+      LOG.debug("Write complete {} {} {}",header,chunk,content);
       if (!committed)       committed(request);
       releaseBuffers();
       content=contentChunks.hasNext() ? contentChunks.next() : BufferUtil.EMPTY_BUFFER;
