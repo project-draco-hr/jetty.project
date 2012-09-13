@@ -1,0 +1,23 @@
+{
+  final CountDownLatch latch=new CountDownLatch(1);
+  final AtomicReference<Future<ContentResponse>> ref=new AtomicReference<>();
+  start(new AbstractHandler(){
+    @Override public void handle(    String target,    Request baseRequest,    HttpServletRequest request,    HttpServletResponse response) throws IOException, ServletException {
+      try {
+        latch.await(5,TimeUnit.SECONDS);
+        baseRequest.setHandled(true);
+        ref.get().cancel(true);
+        OutputStream output=response.getOutputStream();
+        output.write(new byte[]{0,1,2,3,4,5,6,7});
+      }
+ catch (      InterruptedException x) {
+        throw new InterruptedIOException();
+      }
+    }
+  }
+);
+  Future<ContentResponse> future=client.newRequest("localhost",connector.getLocalPort()).send();
+  ref.set(future);
+  latch.countDown();
+  future.get(5,TimeUnit.SECONDS);
+}

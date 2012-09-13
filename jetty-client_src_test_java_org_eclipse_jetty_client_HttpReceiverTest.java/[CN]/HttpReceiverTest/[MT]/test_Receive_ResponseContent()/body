@@ -1,10 +1,10 @@
 {
   String content="0123456789ABCDEF";
   endPoint.setInput("" + "HTTP/1.1 200 OK\r\n" + "Content-length: " + content.length() + "\r\n"+ "\r\n"+ content);
-  BufferingResponseListener listener=new BufferingResponseListener();
+  BlockingResponseListener listener=new BlockingResponseListener();
   HttpExchange exchange=newExchange(listener);
   exchange.receive();
-  Response response=listener.await(5,TimeUnit.SECONDS);
+  Response response=listener.get(5,TimeUnit.SECONDS);
   Assert.assertNotNull(response);
   Assert.assertEquals(200,response.status());
   Assert.assertEquals("OK",response.reason());
@@ -13,6 +13,6 @@
   Assert.assertNotNull(headers);
   Assert.assertEquals(1,headers.size());
   Assert.assertEquals(String.valueOf(content.length()),headers.get(HttpHeader.CONTENT_LENGTH));
-  String received=listener.contentAsString("UTF-8");
+  String received=listener.getContent("UTF-8");
   Assert.assertEquals(content,received);
 }
