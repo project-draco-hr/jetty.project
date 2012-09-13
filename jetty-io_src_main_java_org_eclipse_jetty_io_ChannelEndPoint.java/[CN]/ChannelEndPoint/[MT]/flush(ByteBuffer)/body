@@ -8,7 +8,7 @@
         if (b.hasRemaining()) {
           int l=_channel.write(b);
           if (l > 0)           flushed+=l;
- else           break;
+          if (b.hasRemaining())           break;
         }
       }
     }
@@ -17,9 +17,13 @@
  catch (  ClosedChannelException|EOFException|SocketException e) {
     throw new EofException(e);
   }
+  boolean all_flushed=true;
   if (flushed > 0) {
     notIdle();
-    for (    ByteBuffer b : buffers)     if (BufferUtil.isEmpty(b))     BufferUtil.clear(b);
+    for (    ByteBuffer b : buffers) {
+      if (BufferUtil.isEmpty(b))       BufferUtil.clear(b);
+ else       all_flushed=false;
+    }
   }
-  return flushed;
+  return all_flushed;
 }

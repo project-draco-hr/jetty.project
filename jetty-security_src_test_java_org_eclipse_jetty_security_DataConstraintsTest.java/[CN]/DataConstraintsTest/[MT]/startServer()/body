@@ -1,27 +1,19 @@
 {
   _server=new Server();
-  _connector=new LocalConnector(_server);
+  HttpConnectionFactory http=new HttpConnectionFactory();
+  http.getHttpChannelConfig().setSecurePort(9999);
+  http.getHttpChannelConfig().setSecureScheme("BWTP");
+  _connector=new LocalConnector(_server,http);
   _connector.setIdleTimeout(300000);
-  HttpConfiguration httpConfiguration=new HttpConfiguration(null,false);
-  httpConfiguration.setIntegralPort(9998);
-  httpConfiguration.setIntegralScheme("FTP");
-  httpConfiguration.setConfidentialPort(9999);
-  httpConfiguration.setConfidentialScheme("SPDY");
-  _connector.setDefaultConnectionFactory(new HttpServerConnectionFactory(_connector,httpConfiguration));
-  _connectorS=new LocalConnector(_server);
-  _connectorS.setDefaultConnectionFactory(new HttpServerConnectionFactory(_connectorS,new HttpConfiguration(null,false){
-    @Override public void customize(    Request request) throws IOException {
+  HttpConnectionFactory https=new HttpConnectionFactory();
+  https.getHttpChannelConfig().addCustomizer(new HttpChannelConfig.Customizer(){
+    @Override public void customize(    Connector connector,    HttpChannelConfig channelConfig,    Request request){
       request.setScheme(HttpScheme.HTTPS.asString());
-      super.customize(request);
-    }
-    @Override public boolean isIntegral(    Request request){
-      return true;
-    }
-    @Override public boolean isConfidential(    Request request){
-      return true;
+      request.setSecure(true);
     }
   }
-));
+);
+  _connectorS=new LocalConnector(_server,https);
   _server.setConnectors(new Connector[]{_connector,_connectorS});
   ContextHandler _context=new ContextHandler();
   _session=new SessionHandler();
@@ -31,7 +23,7 @@
   _security=new ConstraintSecurityHandler();
   _session.setHandler(_security);
   _security.setHandler(new AbstractHandler(){
-    public void handle(    String target,    Request baseRequest,    HttpServletRequest request,    HttpServletResponse response) throws IOException, ServletException {
+    @Override public void handle(    String target,    Request baseRequest,    HttpServletRequest request,    HttpServletResponse response) throws IOException, ServletException {
       baseRequest.setHandled(true);
       response.sendError(404);
     }

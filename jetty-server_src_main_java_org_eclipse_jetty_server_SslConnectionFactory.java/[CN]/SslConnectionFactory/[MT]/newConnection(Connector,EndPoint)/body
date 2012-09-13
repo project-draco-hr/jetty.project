@@ -1,0 +1,11 @@
+{
+  SSLEngine engine=_sslContextFactory.newSSLEngine(endPoint.getRemoteAddress());
+  engine.setUseClientMode(false);
+  SslConnection sslConnection=new SslConnection(connector.getByteBufferPool(),connector.getExecutor(),endPoint,engine);
+  sslConnection.setInputBufferSize(getInputBufferSize());
+  EndPoint decrypted_endp=sslConnection.getDecryptedEndPoint();
+  ConnectionFactory next=connector.getConnectionFactory(_nextProtocol);
+  Connection connection=next.newConnection(connector,decrypted_endp);
+  decrypted_endp.setConnection(connection);
+  return sslConnection;
+}

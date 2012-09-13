@@ -1,0 +1,39 @@
+{
+  if (!request.uri().startsWith(uri))   return;
+  MessageDigest digester=getMessageDigest(algorithm);
+  if (digester == null)   return;
+  Charset charset=Charset.forName("ISO-8859-1");
+  String A1=user + ":" + realm+ ":"+ password;
+  String hashA1=toHexString(digester.digest(A1.getBytes(charset)));
+  String A2=request.method().asString() + ":" + request.uri();
+  if ("auth-int".equals(qop))   A2+=":" + toHexString(digester.digest(content));
+  String hashA2=toHexString(digester.digest(A2.getBytes(charset)));
+  String nonceCount;
+  String clientNonce;
+  String A3;
+  if (qop != null) {
+    nonceCount=nextNonceCount();
+    clientNonce=newClientNonce();
+    A3=hashA1 + ":" + nonce+ ":"+ nonceCount+ ":"+ clientNonce+ ":"+ qop+ ":"+ hashA2;
+  }
+ else {
+    nonceCount=null;
+    clientNonce=null;
+    A3=hashA1 + ":" + nonce+ ":"+ hashA2;
+  }
+  String hashA3=toHexString(digester.digest(A3.getBytes(charset)));
+  StringBuilder value=new StringBuilder("Digest");
+  value.append(" username=\"").append(user).append("\"");
+  value.append(", realm=\"").append(realm).append("\"");
+  value.append(", nonce=\"").append(nonce).append("\"");
+  if (opaque != null)   value.append(", opaque=\"").append(opaque).append("\"");
+  value.append(", algorithm=\"").append(algorithm).append("\"");
+  value.append(", uri=\"").append(request.uri()).append("\"");
+  if (qop != null) {
+    value.append(", qop=\"").append(qop).append("\"");
+    value.append(", nc=\"").append(nonceCount).append("\"");
+    value.append(", cnonce=\"").append(clientNonce).append("\"");
+  }
+  value.append(", response=\"").append(hashA3).append("\"");
+  request.header(HttpHeader.AUTHORIZATION.asString(),value.toString());
+}

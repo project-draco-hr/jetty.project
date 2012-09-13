@@ -1,0 +1,22 @@
+{
+  start(new EmptyServerHandler());
+  final AtomicBoolean begin=new AtomicBoolean();
+  try {
+    client.newRequest("localhost",connector.getLocalPort()).listener(new Request.Listener.Empty(){
+      @Override public void onQueued(      Request request){
+        request.abort();
+      }
+      @Override public void onBegin(      Request request){
+        begin.set(true);
+      }
+    }
+).send().get(5,TimeUnit.SECONDS);
+    fail();
+  }
+ catch (  ExecutionException x) {
+    HttpRequestException xx=(HttpRequestException)x.getCause();
+    Request request=xx.getRequest();
+    Assert.assertNotNull(request);
+    Assert.assertFalse(begin.get());
+  }
+}

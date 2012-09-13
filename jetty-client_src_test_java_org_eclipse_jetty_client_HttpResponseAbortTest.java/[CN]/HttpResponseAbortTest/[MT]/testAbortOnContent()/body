@@ -1,0 +1,29 @@
+{
+  start(new AbstractHandler(){
+    @Override public void handle(    String target,    Request baseRequest,    HttpServletRequest request,    HttpServletResponse response) throws IOException, ServletException {
+      try {
+        baseRequest.setHandled(true);
+        OutputStream output=response.getOutputStream();
+        output.write(1);
+        output.flush();
+        output.write(2);
+        output.flush();
+      }
+ catch (      IOException ignored) {
+      }
+    }
+  }
+);
+  final CountDownLatch latch=new CountDownLatch(1);
+  client.newRequest("localhost",connector.getLocalPort()).send(new Response.Listener.Empty(){
+    @Override public void onContent(    Response response,    ByteBuffer content){
+      response.abort();
+    }
+    @Override public void onComplete(    Result result){
+      Assert.assertTrue(result.isFailed());
+      latch.countDown();
+    }
+  }
+);
+  Assert.assertTrue(latch.await(555,TimeUnit.SECONDS));
+}

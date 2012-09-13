@@ -1,10 +1,13 @@
 {
   if (server == null)   server=newServer();
   if (connector == null)   connector=newSPDYServerConnector(server,listener);
-  if (listener == null)   listener=connector.getServerSessionFrameListener();
-  connector.setDefaultConnectionFactory(new ServerSPDYConnectionFactory(version,connector.getByteBufferPool(),connector.getExecutor(),connector.getScheduler(),listener));
+  if (listener == null)   listener=connector.getConnectionFactory(SPDYServerConnectionFactory.class).getServerSessionFrameListener();
+  ConnectionFactory spdy=new SPDYServerConnectionFactory(version,listener);
+  connector.addConnectionFactory(spdy);
   connector.setPort(0);
   server.addConnector(connector);
+  if (connector.getConnectionFactory(NPNServerConnectionFactory.class) != null)   connector.getConnectionFactory(NPNServerConnectionFactory.class).setDefaultProtocol(spdy.getProtocol());
+ else   connector.setDefaultProtocol(spdy.getProtocol());
   server.start();
   return new InetSocketAddress("localhost",connector.getLocalPort());
 }

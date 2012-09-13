@@ -18,12 +18,13 @@
     XmlParser.Node argNode=(XmlParser.Node)o;
     if (o instanceof String)     continue;
     String namedAttribute=argNode.getAttribute("name");
-    if (namedAttribute != null)     namedArgMap.put(namedAttribute,value(obj,(XmlParser.Node)o));
-    arguments.add(value(obj,(XmlParser.Node)o));
+    Object value=value(obj,(XmlParser.Node)o);
+    if (namedAttribute != null)     namedArgMap.put(namedAttribute,value);
+    arguments.add(value);
   }
   if (LOG.isDebugEnabled())   LOG.debug("XML new " + oClass);
+  Object n;
   try {
-    Object n;
     if (namedArgMap.size() > 0) {
       LOG.debug("using named mapping");
       n=TypeUtil.construct(oClass,arguments.toArray(),namedArgMap);
@@ -32,10 +33,10 @@
       LOG.debug("using normal mapping");
       n=TypeUtil.construct(oClass,arguments.toArray());
     }
-    configure(n,node,argIndex);
-    return n;
   }
  catch (  NoSuchMethodException e) {
     throw new IllegalStateException("No suitable constructor: " + node + " on "+ obj);
   }
+  configure(n,node,argIndex);
+  return n;
 }

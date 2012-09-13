@@ -1,5 +1,5 @@
 {
-  start(new EmptyHandler());
+  start(new EmptyServerHandler());
   String scheme="http";
   String host="localhost";
   int port=connector.getLocalPort();
@@ -10,7 +10,7 @@
   Assert.assertEquals(0,activeConnections.size());
   final CountDownLatch headersLatch=new CountDownLatch(1);
   final CountDownLatch failureLatch=new CountDownLatch(2);
-  client.newRequest(host,port).listener(new Request.Listener.Adapter(){
+  client.newRequest(host,port).listener(new Request.Listener.Empty(){
     @Override public void onBegin(    Request request){
       activeConnections.peek().close();
       headersLatch.countDown();
@@ -19,7 +19,7 @@
       failureLatch.countDown();
     }
   }
-).send(new Response.Listener.Adapter(){
+).send(new Response.Listener.Empty(){
     @Override public void onComplete(    Result result){
       Assert.assertTrue(result.isFailed());
       Assert.assertEquals(0,idleConnections.size());
