@@ -1,14 +1,17 @@
 {
-  LOG.debug("{} flush enter {}",SslConnection.this,Arrays.toString(appOuts));
+  if (DEBUG)   LOG.debug("{} flush enter {}",SslConnection.this,Arrays.toString(appOuts));
   int consumed=0;
   try {
-    if (_cannotAcceptMoreAppDataToFlush)     return false;
+    if (_cannotAcceptMoreAppDataToFlush) {
+      if (_sslEngine.isOutboundDone())       throw new EofException(new ClosedChannelException());
+      return false;
+    }
     if (_encryptedOutput == null)     _encryptedOutput=_bufferPool.acquire(_sslEngine.getSession().getPacketBufferSize() * 2,_encryptedDirectBuffers);
     while (true) {
       BufferUtil.compact(_encryptedOutput);
       int pos=BufferUtil.flipToFill(_encryptedOutput);
       SSLEngineResult wrapResult=_sslEngine.wrap(appOuts,_encryptedOutput);
-      LOG.debug("{} wrap {}",SslConnection.this,wrapResult);
+      if (DEBUG)       LOG.debug("{} wrap {}",SslConnection.this,wrapResult);
       BufferUtil.flipToFlush(_encryptedOutput,pos);
       if (wrapResult.bytesConsumed() > 0)       consumed+=wrapResult.bytesConsumed();
       boolean all_consumed=true;
@@ -27,7 +30,7 @@ case CLOSED:
 case BUFFER_UNDERFLOW:
     throw new IllegalStateException();
 default :
-  if (LOG.isDebugEnabled())   LOG.debug("{} {} {}",this,wrapResult.getStatus(),BufferUtil.toDetailString(_encryptedOutput));
+  if (DEBUG)   LOG.debug("{} {} {}",this,wrapResult.getStatus(),BufferUtil.toDetailString(_encryptedOutput));
 if (BufferUtil.hasContent(_encryptedOutput)) getEndPoint().flush(_encryptedOutput);
 switch (_sslEngine.getHandshakeStatus()) {
 case NOT_HANDSHAKING:
@@ -54,7 +57,7 @@ getEndPoint().close();
 throw e;
 }
  finally {
-LOG.debug("{} flush exit, consumed {}",SslConnection.this,consumed);
+if (DEBUG) LOG.debug("{} flush exit, consumed {}",SslConnection.this,consumed);
 releaseEncryptedOutputBuffer();
 }
 }

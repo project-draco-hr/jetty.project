@@ -1,5 +1,5 @@
 {
-  LOG.debug("{} fill enter",SslConnection.this);
+  if (DEBUG)   LOG.debug("{} fill enter",SslConnection.this);
   try {
     if (BufferUtil.hasContent(_decryptedInput))     return BufferUtil.flipPutFlip(_decryptedInput,buffer);
     if (_encryptedInput == null)     _encryptedInput=_bufferPool.acquire(_sslEngine.getSession().getPacketBufferSize(),_encryptedDirectBuffers);
@@ -10,12 +10,12 @@
  else     app_in=_decryptedInput;
     while (true) {
       int net_filled=getEndPoint().fill(_encryptedInput);
-      LOG.debug("{} filled {} encrypted bytes",SslConnection.this,net_filled);
+      if (DEBUG)       LOG.debug("{} filled {} encrypted bytes",SslConnection.this,net_filled);
       if (net_filled > 0)       _underFlown=false;
       int pos=BufferUtil.flipToFill(app_in);
       SSLEngineResult unwrapResult=_sslEngine.unwrap(_encryptedInput,app_in);
       BufferUtil.flipToFlush(app_in,pos);
-      LOG.debug("{} unwrap {}",SslConnection.this,unwrapResult);
+      if (DEBUG)       LOG.debug("{} unwrap {}",SslConnection.this,unwrapResult);
 switch (unwrapResult.getStatus()) {
 case BUFFER_OVERFLOW:
         throw new IllegalStateException();
@@ -81,7 +81,6 @@ throw new IllegalStateException();
 }
  catch (SSLException e) {
 getEndPoint().close();
-LOG.debug(e);
 throw new EofException(e);
 }
 catch (Exception e) {
@@ -101,6 +100,6 @@ if (_decryptedInput != null && !_decryptedInput.hasRemaining()) {
 _bufferPool.release(_decryptedInput);
 _decryptedInput=null;
 }
-LOG.debug("{} fill exit",SslConnection.this);
+if (DEBUG) LOG.debug("{} fill exit",SslConnection.this);
 }
 }
