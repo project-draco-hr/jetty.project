@@ -14,7 +14,7 @@
   }
 );
   try {
-    ContentResponse response=client.newRequest("localhost",connector.getLocalPort()).listener(new Request.Listener.Empty(){
+    ContentResponse response=client.newRequest("localhost",connector.getLocalPort()).scheme(scheme).listener(new Request.Listener.Empty(){
       @Override public void onHeaders(      Request request){
         request.abort();
       }
@@ -29,8 +29,16 @@
     assertEquals(500,response.status());
   }
  catch (  ExecutionException x) {
-    HttpRequestException xx=(HttpRequestException)x.getCause();
-    Request request=xx.getRequest();
-    Assert.assertNotNull(request);
+    Throwable cause=x.getCause();
+    if (cause instanceof EOFException) {
+    }
+ else     if (cause instanceof HttpRequestException) {
+      HttpRequestException xx=(HttpRequestException)cause;
+      Request request=xx.getRequest();
+      Assert.assertNotNull(request);
+    }
+ else {
+      throw x;
+    }
   }
 }

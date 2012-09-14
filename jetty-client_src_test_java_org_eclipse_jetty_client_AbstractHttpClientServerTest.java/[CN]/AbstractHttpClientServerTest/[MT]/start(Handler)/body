@@ -1,11 +1,18 @@
 {
+  if (sslContextFactory != null) {
+    sslContextFactory.setKeyStorePath("src/test/resources/keystore.jks");
+    sslContextFactory.setKeyStorePassword("storepwd");
+    sslContextFactory.setTrustStorePath("src/test/resources/truststore.jks");
+    sslContextFactory.setTrustStorePassword("storepwd");
+  }
   if (server == null)   server=new Server();
-  connector=new SelectChannelConnector(server);
+  connector=new SelectChannelConnector(server,sslContextFactory);
   server.addConnector(connector);
   server.setHandler(handler);
   server.start();
   QueuedThreadPool executor=new QueuedThreadPool();
   executor.setName(executor.getName() + "-client");
-  client=new HttpClient(executor);
+  client=new HttpClient(sslContextFactory);
+  client.setExecutor(executor);
   client.start();
 }

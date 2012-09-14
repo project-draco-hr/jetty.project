@@ -4,8 +4,8 @@
   final long idleTimeout=1000;
   client.setIdleTimeout(idleTimeout);
   final CountDownLatch latch=new CountDownLatch(3);
-  client.newRequest("http://localhost:" + connector.getLocalPort()).listener(new org.eclipse.jetty.client.api.Request.Listener.Empty(){
-    @Override public void onBegin(    org.eclipse.jetty.client.api.Request request){
+  client.newRequest("localhost",connector.getLocalPort()).scheme(scheme).listener(new Request.Listener.Empty(){
+    @Override public void onBegin(    Request request){
       try {
         TimeUnit.MILLISECONDS.sleep(2 * idleTimeout);
       }
@@ -13,7 +13,7 @@
         x.printStackTrace();
       }
     }
-    @Override public void onFailure(    org.eclipse.jetty.client.api.Request request,    Throwable failure){
+    @Override public void onFailure(    Request request,    Throwable failure){
       latch.countDown();
     }
   }
@@ -23,7 +23,7 @@
     }
   }
 );
-  client.newRequest("http://localhost:" + connector.getLocalPort()).send(new Response.Listener.Empty(){
+  client.newRequest("localhost",connector.getLocalPort()).scheme(scheme).send(new Response.Listener.Empty(){
     @Override public void onSuccess(    Response response){
       Assert.assertEquals(200,response.status());
       latch.countDown();

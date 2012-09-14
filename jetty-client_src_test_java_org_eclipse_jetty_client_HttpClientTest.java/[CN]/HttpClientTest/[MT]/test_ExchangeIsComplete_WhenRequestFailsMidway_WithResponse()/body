@@ -1,18 +1,28 @@
 {
-  final int chunkSize=16;
   start(new AbstractHandler(){
-    @Override public void handle(    String target,    Request baseRequest,    HttpServletRequest request,    HttpServletResponse response) throws IOException, ServletException {
+    @Override public void handle(    String target,    org.eclipse.jetty.server.Request baseRequest,    HttpServletRequest request,    HttpServletResponse response) throws IOException, ServletException {
       IO.copy(request.getInputStream(),response.getOutputStream());
     }
   }
 );
   final CountDownLatch latch=new CountDownLatch(1);
-  client.newRequest("localhost",connector.getLocalPort()).content(new ContentProvider(){
+  client.newRequest("localhost",connector.getLocalPort()).scheme(scheme).content(new ContentProvider(){
     @Override public long length(){
       return -1;
     }
     @Override public Iterator<ByteBuffer> iterator(){
-      return Arrays.asList(ByteBuffer.allocate(chunkSize),null).iterator();
+      return new Iterator<ByteBuffer>(){
+        @Override public boolean hasNext(){
+          return true;
+        }
+        @Override public ByteBuffer next(){
+          throw new NoSuchElementException("explicitly_thrown_by_test");
+        }
+        @Override public void remove(){
+          throw new UnsupportedOperationException();
+        }
+      }
+;
     }
   }
 ).send(new Response.Listener.Empty(){

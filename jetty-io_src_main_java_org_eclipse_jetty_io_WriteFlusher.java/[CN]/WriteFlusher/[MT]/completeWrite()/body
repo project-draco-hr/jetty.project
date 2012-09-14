@@ -1,5 +1,5 @@
 {
-  LOG.debug("completeWrite: {}",this);
+  if (DEBUG)   LOG.debug("completeWrite: {}",this);
   State previous=_state.get();
   if (previous.getType() != StateType.PENDING)   return;
   PendingState<?> pending=(PendingState<?>)previous;
@@ -7,6 +7,7 @@
   try {
     ByteBuffer[] buffers=pending.getBuffers();
     boolean flushed=_endPoint.flush(buffers);
+    if (DEBUG)     LOG.debug("flushed {}",flushed);
     for (    ByteBuffer b : buffers) {
       if (!flushed || BufferUtil.hasContent(b)) {
         if (updateState(__COMPLETING,pending))         onIncompleteFlushed();
@@ -18,6 +19,7 @@
     pending.complete();
   }
  catch (  IOException e) {
+    if (DEBUG)     LOG.debug("completeWrite exception",e);
     if (updateState(__COMPLETING,__IDLE))     pending.fail(e);
  else     fail(pending);
   }

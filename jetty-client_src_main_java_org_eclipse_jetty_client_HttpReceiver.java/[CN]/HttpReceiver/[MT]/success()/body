@@ -1,13 +1,11 @@
 {
   parser.reset();
+  success=true;
   HttpExchange exchange=connection.getExchange();
   HttpResponse response=exchange.response();
   LOG.debug("Received {}",response);
-  boolean exchangeComplete=exchange.responseComplete(true);
+  Result result=exchange.responseComplete(null);
   HttpConversation conversation=exchange.conversation();
   notifier.notifySuccess(conversation.listener(),response);
-  if (exchangeComplete) {
-    Result result=new Result(exchange.request(),response);
-    notifier.notifyComplete(conversation.listener(),result);
-  }
+  if (result != null)   notifier.notifyComplete(conversation.listener(),result);
 }

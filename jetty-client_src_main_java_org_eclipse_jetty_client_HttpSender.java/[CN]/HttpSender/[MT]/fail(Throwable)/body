@@ -2,18 +2,17 @@
   BufferUtil.clear(header);
   BufferUtil.clear(chunk);
   releaseBuffers();
-  connection.getEndPoint().shutdownOutput();
   generator.abort();
   failed=true;
   HttpExchange exchange=connection.getExchange();
   Request request=exchange.request();
   LOG.debug("Failed {} {}",request,failure);
-  boolean exchangeCompleted=exchange.requestComplete(false);
-  if (!exchangeCompleted && !committed)   exchangeCompleted=exchange.responseComplete(false);
+  Result result=exchange.requestComplete(failure);
+  if (result == null && !committed)   result=exchange.responseComplete(null);
+  if (result == null)   connection.getEndPoint().shutdownOutput();
   requestNotifier.notifyFailure(request,failure);
-  if (exchangeCompleted) {
+  if (result != null) {
     HttpConversation conversation=exchange.conversation();
-    Result result=new Result(request,failure,exchange.response());
     responseNotifier.notifyComplete(conversation.listener(),result);
   }
 }
