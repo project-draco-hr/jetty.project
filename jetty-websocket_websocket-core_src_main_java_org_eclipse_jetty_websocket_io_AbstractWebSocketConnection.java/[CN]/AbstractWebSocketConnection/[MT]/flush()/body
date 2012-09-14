@@ -2,6 +2,7 @@
   FrameBytes<?> frameBytes=null;
   ByteBuffer buffer=null;
 synchronized (queue) {
+    LOG.debug(".flush() - flushing={} - queue.size = {}",flushing,queue.size());
     if (flushing || queue.isEmpty()) {
       return;
     }
@@ -10,6 +11,7 @@ synchronized (queue) {
       queue.clear();
       return;
     }
+    LOG.debug("Next FrameBytes: {}",frameBytes);
     buffer=frameBytes.getByteBuffer();
     if (buffer == null) {
       return;
@@ -18,8 +20,8 @@ synchronized (queue) {
     if (LOG.isDebugEnabled()) {
       LOG.debug("Flushing {}, {} frame(s) in queue",frameBytes,queue.size());
     }
-  }
-  if (connectionState != BaseConnection.State.CLOSED) {
-    write(buffer,frameBytes);
+    if (connectionState != BaseConnection.State.CLOSED) {
+      write(buffer,frameBytes);
+    }
   }
 }
