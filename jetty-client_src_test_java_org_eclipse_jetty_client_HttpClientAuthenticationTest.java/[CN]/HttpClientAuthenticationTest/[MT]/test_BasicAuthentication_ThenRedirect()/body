@@ -1,0 +1,24 @@
+{
+  startBasic(new AbstractHandler(){
+    private final AtomicInteger requests=new AtomicInteger();
+    @Override public void handle(    String target,    org.eclipse.jetty.server.Request baseRequest,    HttpServletRequest request,    HttpServletResponse response) throws IOException, ServletException {
+      baseRequest.setHandled(true);
+      if (requests.incrementAndGet() == 1)       response.sendRedirect(scheme + "://" + request.getServerName()+ ":"+ request.getServerPort()+ request.getRequestURI());
+    }
+  }
+);
+  client.getAuthenticationStore().addAuthentication(new BasicAuthentication(scheme + "://localhost:" + connector.getLocalPort(),realm,"basic","basic"));
+  final AtomicInteger requests=new AtomicInteger();
+  Request.Listener.Empty requestListener=new Request.Listener.Empty(){
+    @Override public void onSuccess(    Request request){
+      requests.incrementAndGet();
+    }
+  }
+;
+  client.getRequestListeners().add(requestListener);
+  ContentResponse response=client.newRequest("localhost",connector.getLocalPort()).scheme(scheme).path("/secure").send().get(5,TimeUnit.SECONDS);
+  Assert.assertNotNull(response);
+  Assert.assertEquals(200,response.status());
+  Assert.assertEquals(3,requests.get());
+  client.getRequestListeners().remove(requestListener);
+}
