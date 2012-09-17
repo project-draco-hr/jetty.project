@@ -1,0 +1,32 @@
+{
+  start(new LoadHandler());
+  client.setMaxConnectionsPerAddress(32768);
+  client.setMaxQueueSizePerAddress(1024 * 1024);
+  Random random=new Random();
+  int iterations=1000;
+  CountDownLatch latch=new CountDownLatch(iterations);
+  List<String> failures=new ArrayList<>();
+  final Thread testThread=Thread.currentThread();
+  client.getScheduler().schedule(new Runnable(){
+    @Override public void run(){
+      for (      String host : Arrays.asList("localhost","127.0.0.1")) {
+        HttpDestination destination=(HttpDestination)client.getDestination(scheme,host,connector.getLocalPort());
+        for (        Connection connection : new ArrayList<>(destination.getActiveConnections())) {
+          HttpConnection active=(HttpConnection)connection;
+          logger.warn(active.getEndPoint() + " exchange " + active.getExchange());
+        }
+      }
+      testThread.interrupt();
+    }
+  }
+,iterations * ("http".equalsIgnoreCase(scheme) ? 10 : 100),TimeUnit.MILLISECONDS);
+  long begin=System.nanoTime();
+  for (int i=0; i < iterations; ++i) {
+    test(random,latch,failures);
+  }
+  Assert.assertTrue(latch.await(iterations,TimeUnit.SECONDS));
+  long end=System.nanoTime();
+  long elapsed=TimeUnit.NANOSECONDS.toMillis(end - begin);
+  logger.info("{} requests in {} ms, {} req/s",iterations,elapsed,elapsed > 0 ? iterations * 1000 / elapsed : -1);
+  Assert.assertTrue(failures.toString(),failures.isEmpty());
+}

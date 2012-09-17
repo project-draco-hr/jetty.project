@@ -1,0 +1,35 @@
+{
+  int maxContentLength=64 * 1024;
+  String host=random.nextBoolean() ? "localhost" : "127.0.0.1";
+  Request request=client.newRequest(host,connector.getLocalPort()).scheme(scheme);
+  HttpMethod method=random.nextBoolean() ? HttpMethod.GET : HttpMethod.POST;
+  request.method(method);
+  if (random.nextBoolean())   request.header("Connection","close");
+ else   if (random.nextBoolean())   request.header("X-Close","true");
+switch (method) {
+case GET:
+    if (random.nextBoolean())     request.header("X-Download",String.valueOf(random.nextInt(maxContentLength) + 1));
+  break;
+case POST:
+int contentLength=random.nextInt(maxContentLength) + 1;
+request.header("X-Upload",String.valueOf(contentLength));
+request.content(new BytesContentProvider(new byte[contentLength]));
+break;
+}
+request.send(new Response.Listener.Empty(){
+private final AtomicInteger contentLength=new AtomicInteger();
+@Override public void onHeaders(Response response){
+String content=response.headers().get("X-Content");
+if (content != null) contentLength.set(Integer.parseInt(content));
+}
+@Override public void onContent(Response response,ByteBuffer content){
+contentLength.addAndGet(-content.remaining());
+}
+@Override public void onComplete(Result result){
+if (result.isFailed()) failures.add("Result failed " + result);
+if (contentLength.get() != 0) failures.add("Content length mismatch " + contentLength);
+latch.countDown();
+}
+}
+);
+}
