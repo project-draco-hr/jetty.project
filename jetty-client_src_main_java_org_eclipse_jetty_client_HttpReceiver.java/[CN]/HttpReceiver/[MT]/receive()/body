@@ -8,15 +8,14 @@
       int read=endPoint.fill(buffer);
       LOG.debug("Read {} bytes",read);
       if (read > 0) {
-        parser.parseNext(buffer);
+        while (buffer.hasRemaining())         parser.parseNext(buffer);
       }
  else       if (read == 0) {
         connection.fillInterested();
         break;
       }
  else {
-        parser.shutdownInput();
-        if (!success)         fail(new EOFException());
+        if (!parser.shutdownInput())         fail(new EOFException());
         break;
       }
     }
@@ -25,7 +24,7 @@
     LOG.ignore(x);
     fail(x);
   }
-catch (  IOException x) {
+catch (  Exception x) {
     LOG.debug(x);
     fail(x);
   }
