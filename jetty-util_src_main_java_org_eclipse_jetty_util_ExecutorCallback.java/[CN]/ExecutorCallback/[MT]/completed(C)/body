@@ -1,30 +1,8 @@
 {
-  if (!alwaysDispatchCompletion()) {
-    if (_maxRecursion <= 0) {
-      onCompleted(context);
-      return;
-    }
+  if (alwaysDispatchCompletion()) {
+    _invoker.fork(context);
+  }
  else {
-      Integer calls=__calls.get();
-      if (calls < _maxRecursion) {
-        try {
-          __calls.set(calls + 1);
-          onCompleted(context);
-          return;
-        }
-  finally {
-          __calls.set(calls);
-        }
-      }
-    }
+    _invoker.invoke(context);
   }
-  _executor.execute(context == null ? _onNullContextCompleted : new Runnable(){
-    @Override public void run(){
-      onCompleted(context);
-    }
-    @Override public String toString(){
-      return String.format("ExectorCB$Completed@%x{%s}",hashCode(),context);
-    }
-  }
-);
 }
