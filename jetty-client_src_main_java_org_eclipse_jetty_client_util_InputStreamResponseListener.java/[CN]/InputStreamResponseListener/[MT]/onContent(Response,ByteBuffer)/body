@@ -2,6 +2,13 @@
   int remaining=content.remaining();
   byte[] bytes=new byte[remaining];
   content.get(bytes);
+  LOG.debug("Queued {}/{} bytes",bytes,bytes.length);
+  queue.offer(bytes);
   long newLength=length.addAndGet(remaining);
-  if (newLength > capacity)   ;
+  while (newLength >= capacity) {
+    LOG.debug("Queued bytes limit {}/{} exceeded, waiting",newLength,capacity);
+    if (!await())     break;
+    newLength=length.get();
+    LOG.debug("Queued bytes limit {}/{} exceeded, woken up",newLength,capacity);
+  }
 }
