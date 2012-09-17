@@ -1,0 +1,22 @@
+{
+  while (threadsToStart > 0) {
+    int threads=_threadsStarted.get();
+    if (threads >= _maxThreads)     return false;
+    if (!_threadsStarted.compareAndSet(threads,threads + 1))     continue;
+    boolean started=false;
+    try {
+      Thread thread=newThread(_runnable);
+      thread.setDaemon(isDaemon());
+      thread.setPriority(getThreadsPriority());
+      thread.setName(_name + "-" + thread.getId());
+      _threads.add(thread);
+      thread.start();
+      started=true;
+    }
+  finally {
+      if (!started)       _threadsStarted.decrementAndGet();
+    }
+    if (started)     threadsToStart--;
+  }
+  return true;
+}
