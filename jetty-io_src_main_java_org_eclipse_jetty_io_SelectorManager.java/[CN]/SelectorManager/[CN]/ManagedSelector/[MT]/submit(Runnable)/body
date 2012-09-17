@@ -1,5 +1,6 @@
 {
-  if (Thread.currentThread() != _thread) {
+  int submissions=_submissions.get();
+  if (Thread.currentThread() != _thread || submissions >= 4) {
     _changes.offer(change);
     LOG.debug("Queued change {}",change);
     boolean wakeup=_needsWakeup;
@@ -7,9 +8,15 @@
     return false;
   }
  else {
-    LOG.debug("Submitted change {}",change);
-    runChanges();
-    runChange(change);
-    return true;
+    _submissions.set(submissions + 1);
+    try {
+      LOG.debug("Submitted change {}",change);
+      runChanges();
+      runChange(change);
+      return true;
+    }
+  finally {
+      _submissions.set(submissions);
+    }
   }
 }
