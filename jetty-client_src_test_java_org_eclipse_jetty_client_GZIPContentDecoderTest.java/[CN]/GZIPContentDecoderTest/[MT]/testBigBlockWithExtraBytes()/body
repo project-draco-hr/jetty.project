@@ -1,0 +1,25 @@
+{
+  String data1="0123456789ABCDEF";
+  for (int i=0; i < 10; ++i)   data1+=data1;
+  ByteArrayOutputStream baos=new ByteArrayOutputStream();
+  GZIPOutputStream output=new GZIPOutputStream(baos);
+  output.write(data1.getBytes("UTF-8"));
+  output.close();
+  byte[] bytes1=baos.toByteArray();
+  String data2="HELLO";
+  byte[] bytes2=data2.getBytes("UTF-8");
+  byte[] bytes=new byte[bytes1.length + bytes2.length];
+  System.arraycopy(bytes1,0,bytes,0,bytes1.length);
+  System.arraycopy(bytes2,0,bytes,bytes1.length,bytes2.length);
+  String result="";
+  GZIPContentDecoder decoder=new GZIPContentDecoder(64);
+  ByteBuffer buffer=ByteBuffer.wrap(bytes);
+  while (buffer.hasRemaining()) {
+    ByteBuffer decoded=decoder.decode(buffer);
+    if (decoded.hasRemaining())     result+=Charset.forName("UTF-8").decode(decoded).toString();
+    if (decoder.finished())     break;
+  }
+  assertEquals(data1,result);
+  assertTrue(buffer.hasRemaining());
+  assertEquals(data2,Charset.forName("UTF-8").decode(buffer).toString());
+}

@@ -28,6 +28,18 @@
   if (cookieString != null)   request.header(HttpHeader.COOKIE.asString(),cookieString.toString());
   Authentication.Result authnResult=client.getAuthenticationStore().findAuthenticationResult(request.uri());
   if (authnResult != null)   authnResult.apply(request);
+  if (!headers.containsKey(HttpHeader.ACCEPT_ENCODING.asString())) {
+    Set<ContentDecoder.Factory> decoderFactories=client.getContentDecoderFactories();
+    if (!decoderFactories.isEmpty()) {
+      StringBuilder value=new StringBuilder();
+      for (Iterator<ContentDecoder.Factory> iterator=decoderFactories.iterator(); iterator.hasNext(); ) {
+        ContentDecoder.Factory decoderFactory=iterator.next();
+        value.append(decoderFactory.getEncoding());
+        if (iterator.hasNext())         value.append(",");
+      }
+      headers.put(HttpHeader.ACCEPT_ENCODING,value.toString());
+    }
+  }
   if (version.getVersion() > 10) {
     if (!headers.containsKey(HttpHeader.HOST.asString())) {
       String value=request.host();

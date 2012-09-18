@@ -1,0 +1,19 @@
+{
+  String data="0";
+  ByteArrayOutputStream baos=new ByteArrayOutputStream();
+  GZIPOutputStream output=new GZIPOutputStream(baos);
+  output.write(data.getBytes("UTF-8"));
+  output.close();
+  byte[] bytes=baos.toByteArray();
+  byte[] bytes1=new byte[bytes.length - 9];
+  System.arraycopy(bytes,0,bytes1,0,bytes1.length);
+  byte[] bytes2=new byte[bytes.length - bytes1.length];
+  System.arraycopy(bytes,bytes1.length,bytes2,0,bytes2.length);
+  GZIPContentDecoder decoder=new GZIPContentDecoder();
+  ByteBuffer decoded=decoder.decode(ByteBuffer.wrap(bytes1));
+  assertEquals(data,Charset.forName("UTF-8").decode(decoded).toString());
+  assertFalse(decoder.finished());
+  decoded=decoder.decode(ByteBuffer.wrap(bytes2));
+  assertEquals(0,decoded.remaining());
+  assertTrue(decoder.finished());
+}

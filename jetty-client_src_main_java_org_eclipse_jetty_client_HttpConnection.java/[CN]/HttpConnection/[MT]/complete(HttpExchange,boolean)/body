@@ -4,14 +4,17 @@
     LOG.debug("{} disassociated from {}",exchange,this);
     if (success) {
       HttpFields responseHeaders=exchange.response().headers();
-      Collection<String> values=responseHeaders.getValuesCollection(HttpHeader.CONNECTION.asString());
-      if (values != null && values.contains("close")) {
-        destination.remove(this);
-        close();
+      Enumeration<String> values=responseHeaders.getValues(HttpHeader.CONNECTION.asString(),",");
+      if (values != null) {
+        while (values.hasMoreElements()) {
+          if ("close".equalsIgnoreCase(values.nextElement())) {
+            destination.remove(this);
+            close();
+            return;
+          }
+        }
       }
- else {
-        destination.release(this);
-      }
+      destination.release(this);
     }
  else {
       destination.remove(this);
