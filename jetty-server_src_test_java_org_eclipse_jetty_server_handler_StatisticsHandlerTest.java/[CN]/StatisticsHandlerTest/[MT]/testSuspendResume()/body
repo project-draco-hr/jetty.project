@@ -2,7 +2,7 @@
   final AtomicReference<Continuation> continuationHandle=new AtomicReference<Continuation>();
   final CyclicBarrier barrier[]={new CyclicBarrier(2),new CyclicBarrier(2),new CyclicBarrier(2)};
   _statsHandler.setHandler(new AbstractHandler(){
-    public void handle(    String path,    Request request,    HttpServletRequest httpRequest,    HttpServletResponse httpResponse) throws IOException, ServletException {
+    @Override public void handle(    String path,    Request request,    HttpServletRequest httpRequest,    HttpServletResponse httpResponse) throws IOException, ServletException {
       request.setHandled(true);
       try {
         barrier[0].await();
@@ -34,7 +34,7 @@
   String request="GET / HTTP/1.1\r\n" + "Host: localhost\r\n" + "\r\n";
   _connector.executeRequest(request);
   barrier[0].await();
-  assertEquals(1,_connector.getStatistics().getConnectionsOpen());
+  assertEquals(1,_statistics.getConnectionsOpen());
   assertEquals(1,_statsHandler.getRequests());
   assertEquals(1,_statsHandler.getRequestsActive());
   assertEquals(1,_statsHandler.getDispatched());
@@ -52,9 +52,9 @@
   barrier[0].reset();
   barrier[1].reset();
   continuationHandle.get().addContinuationListener(new ContinuationListener(){
-    public void onTimeout(    Continuation continuation){
+    @Override public void onTimeout(    Continuation continuation){
     }
-    public void onComplete(    Continuation continuation){
+    @Override public void onComplete(    Continuation continuation){
       try {
         barrier[2].await();
       }
@@ -65,7 +65,7 @@
 );
   continuationHandle.get().resume();
   barrier[0].await();
-  assertEquals(1,_connector.getStatistics().getConnectionsOpen());
+  assertEquals(1,_statistics.getConnectionsOpen());
   assertEquals(1,_statsHandler.getRequests());
   assertEquals(1,_statsHandler.getRequestsActive());
   assertEquals(2,_statsHandler.getDispatched());
