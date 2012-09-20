@@ -5,28 +5,21 @@
     return ctx;
   }
   ClassLoader loader=null;
-  if (ContextHandler.getCurrentContext() != null) {
+  loader=Thread.currentThread().getContextClassLoader();
+  if (__log.isDebugEnabled() && loader != null)   __log.debug("Using thread context classloader");
+  if (loader == null && ContextHandler.getCurrentContext() != null) {
     loader=ContextHandler.getCurrentContext().getContextHandler().getClassLoader();
-  }
-  if (loader != null) {
-    if (__log.isDebugEnabled())     __log.debug("Using classloader of current org.eclipse.jetty.server.handler.ContextHandler");
-  }
- else {
-    loader=Thread.currentThread().getContextClassLoader();
-    if (__log.isDebugEnabled())     __log.debug("Using thread context classloader");
+    if (__log.isDebugEnabled() && loader != null)     __log.debug("Using classloader of current org.eclipse.jetty.server.handler.ContextHandler");
   }
   ctx=(Context)__contextMap.get(loader);
   if (ctx == null) {
-    ctx=getParentClassLoaderContext(loader);
-    if (ctx == null) {
-      Reference ref=(Reference)obj;
-      StringRefAddr parserAddr=(StringRefAddr)ref.get("parser");
-      String parserClassName=(parserAddr == null ? null : (String)parserAddr.getContent());
-      NameParser parser=(NameParser)(parserClassName == null ? null : loader.loadClass(parserClassName).newInstance());
-      ctx=new NamingContext(env,name.get(0),(NamingContext)nameCtx,parser);
-      if (__log.isDebugEnabled())       __log.debug("No entry for classloader: " + loader);
-      __contextMap.put(loader,ctx);
-    }
+    Reference ref=(Reference)obj;
+    StringRefAddr parserAddr=(StringRefAddr)ref.get("parser");
+    String parserClassName=(parserAddr == null ? null : (String)parserAddr.getContent());
+    NameParser parser=(NameParser)(parserClassName == null ? null : loader.loadClass(parserClassName).newInstance());
+    ctx=new NamingContext(env,name.get(0),(NamingContext)nameCtx,parser);
+    if (__log.isDebugEnabled())     __log.debug("Made context " + name.get(0) + " for classloader: "+ loader);
+    __contextMap.put(loader,ctx);
   }
   return ctx;
 }
