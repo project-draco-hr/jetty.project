@@ -7,8 +7,9 @@
         trust_managers=TRUST_ALL_CERTS;
       }
       SecureRandom secureRandom=(_secureRandomAlgorithm == null) ? null : SecureRandom.getInstance(_secureRandomAlgorithm);
-      _context=SSLContext.getInstance(_sslProtocol);
-      _context.init(null,trust_managers,secureRandom);
+      SSLContext context=SSLContext.getInstance(_sslProtocol);
+      context.init(null,trust_managers,secureRandom);
+      _context=context;
     }
  else {
       checkKeyStore();
@@ -34,11 +35,12 @@
       KeyManager[] keyManagers=getKeyManagers(keyStore);
       TrustManager[] trustManagers=getTrustManagers(trustStore,crls);
       SecureRandom secureRandom=(_secureRandomAlgorithm == null) ? null : SecureRandom.getInstance(_secureRandomAlgorithm);
-      _context=(_sslProvider == null) ? SSLContext.getInstance(_sslProtocol) : SSLContext.getInstance(_sslProtocol,_sslProvider);
-      _context.init(keyManagers,trustManagers,secureRandom);
-      SSLEngine engine=newSSLEngine();
-      LOG.info("Enabled Protocols {} of {}",Arrays.asList(engine.getEnabledProtocols()),Arrays.asList(engine.getSupportedProtocols()));
-      if (LOG.isDebugEnabled())       LOG.debug("Enabled Ciphers   {} of {}",Arrays.asList(engine.getEnabledCipherSuites()),Arrays.asList(engine.getSupportedCipherSuites()));
+      SSLContext context=_sslProvider == null ? SSLContext.getInstance(_sslProtocol) : SSLContext.getInstance(_sslProtocol,_sslProvider);
+      context.init(keyManagers,trustManagers,secureRandom);
+      _context=context;
     }
+    SSLEngine engine=newSSLEngine();
+    LOG.debug("Enabled Protocols {} of {}",Arrays.asList(engine.getEnabledProtocols()),Arrays.asList(engine.getSupportedProtocols()));
+    if (LOG.isDebugEnabled())     LOG.debug("Enabled Ciphers   {} of {}",Arrays.asList(engine.getEnabledCipherSuites()),Arrays.asList(engine.getSupportedCipherSuites()));
   }
 }
