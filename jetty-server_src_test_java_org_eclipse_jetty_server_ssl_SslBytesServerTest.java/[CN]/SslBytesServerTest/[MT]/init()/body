@@ -6,7 +6,46 @@
   sslContextFactory.setKeyStorePath(keyStore.getAbsolutePath());
   sslContextFactory.setKeyStorePassword("storepwd");
   sslContextFactory.setKeyManagerPassword("keypwd");
-  ServerConnector connector=new ServerConnector(server,sslContextFactory){
+  HttpConnectionFactory httpFactory=new HttpConnectionFactory(){
+    @Override public Connection newConnection(    Connector connector,    EndPoint endPoint){
+      return configure(new HttpConnection(getHttpChannelConfig(),connector,endPoint){
+        @Override protected HttpParser newHttpParser(){
+          return new HttpParser(newRequestHandler(),getHttpChannelConfig().getRequestHeaderSize()){
+            @Override public boolean parseNext(            ByteBuffer buffer){
+              httpParses.incrementAndGet();
+              return super.parseNext(buffer);
+            }
+          }
+;
+        }
+      }
+,connector,endPoint);
+    }
+  }
+;
+  httpFactory.getHttpChannelConfig().addCustomizer(new SecureRequestCustomizer());
+  SslConnectionFactory sslFactory=new SslConnectionFactory(sslContextFactory,httpFactory.getProtocol()){
+    @Override protected SslConnection newSslConnection(    Connector connector,    EndPoint endPoint,    SSLEngine engine){
+      return new SslConnection(connector.getByteBufferPool(),connector.getExecutor(),endPoint,engine){
+        @Override protected DecryptedEndPoint newDecryptedEndPoint(){
+          return new DecryptedEndPoint(){
+            @Override public int fill(            ByteBuffer buffer) throws IOException {
+              sslFills.incrementAndGet();
+              return super.fill(buffer);
+            }
+            @Override public boolean flush(            ByteBuffer... appOuts) throws IOException {
+              sslFlushes.incrementAndGet();
+              return super.flush(appOuts);
+            }
+          }
+;
+        }
+      }
+;
+    }
+  }
+;
+  ServerConnector connector=new ServerConnector(server,sslFactory,httpFactory){
     @Override protected SelectChannelEndPoint newEndPoint(    SocketChannel channel,    ManagedSelector selectSet,    SelectionKey key) throws IOException {
       SelectChannelEndPoint endp=super.newEndPoint(channel,selectSet,key);
       serverEndPoint.set(endp);
