@@ -7,10 +7,10 @@
       if (name.startsWith("org.eclipse.jetty.security.") && getInitParameter(name) == null)       setInitParameter(name,context.getInitParameter(name));
     }
     context.getContextHandler().addEventListener(new HttpSessionListener(){
-      public void sessionDestroyed(      HttpSessionEvent se){
+      @Override public void sessionDestroyed(      HttpSessionEvent se){
       }
-      public void sessionCreated(      HttpSessionEvent se){
-        HttpChannel channel=HttpChannel.getCurrentHttpChannel();
+      @Override public void sessionCreated(      HttpSessionEvent se){
+        HttpChannel<?> channel=HttpChannel.getCurrentHttpChannel();
         if (channel == null)         return;
         Request request=channel.getRequest();
         if (request == null)         return;
@@ -21,34 +21,22 @@
     }
 );
   }
-  if (_loginService == null) {
-    _loginService=findLoginService();
-    if (_loginService != null)     _loginServiceShared=true;
-  }
+  if (_loginService == null)   setLoginService(findLoginService());
   if (_identityService == null) {
-    if (_loginService != null)     _identityService=_loginService.getIdentityService();
-    if (_identityService == null)     _identityService=findIdentityService();
-    if (_identityService == null && _realmName != null)     _identityService=new DefaultIdentityService();
+    if (_loginService != null)     setIdentityService(_loginService.getIdentityService());
+    if (_identityService == null)     setIdentityService(findIdentityService());
+    if (_identityService == null && _realmName != null)     setIdentityService(new DefaultIdentityService());
   }
   if (_loginService != null) {
     if (_loginService.getIdentityService() == null)     _loginService.setIdentityService(_identityService);
  else     if (_loginService.getIdentityService() != _identityService)     throw new IllegalStateException("LoginService has different IdentityService to " + this);
   }
-  if (!_loginServiceShared && _loginService instanceof LifeCycle)   ((LifeCycle)_loginService).start();
   Authenticator.Factory authenticatorFactory=getAuthenticatorFactory();
-  if (_authenticator == null && authenticatorFactory != null && _identityService != null) {
-    _authenticator=authenticatorFactory.getAuthenticator(getServer(),ContextHandler.getCurrentContext(),this,_identityService,_loginService);
-    if (_authenticator != null)     _authMethod=_authenticator.getAuthMethod();
-  }
-  if (_authenticator == null) {
-    if (_realmName != null) {
-      LOG.warn("No ServerAuthentication for " + this);
-      throw new IllegalStateException("No ServerAuthentication");
-    }
-  }
- else {
-    _authenticator.setConfiguration(this);
-    if (_authenticator instanceof LifeCycle)     ((LifeCycle)_authenticator).start();
+  if (_authenticator == null && authenticatorFactory != null && _identityService != null)   setAuthenticator(authenticatorFactory.getAuthenticator(getServer(),ContextHandler.getCurrentContext(),this,_identityService,_loginService));
+  if (_authenticator != null)   _authenticator.setConfiguration(this);
+ else   if (_realmName != null) {
+    LOG.warn("No Authenticator for " + this);
+    throw new IllegalStateException("No Authenticator");
   }
   super.doStart();
 }

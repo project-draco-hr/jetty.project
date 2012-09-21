@@ -11,28 +11,21 @@
     client.connect();
     client.issueGET("/lots-of-fantasy-names.txt",true,false);
     respHeader=client.readResponseHeader();
-    System.out.println("Response Header #1 --\n" + respHeader);
     String expectedEncodingHeader=encodingHeader.equals(GzipFilter.DEFLATE) ? GzipFilter.DEFLATE : GzipFilter.GZIP;
     assertThat("Content-Encoding should be gzipped",respHeader,containsString("Content-Encoding: " + expectedEncodingHeader + "\r\n"));
     assertThat("Transfer-Encoding should be chunked",respHeader,containsString("Transfer-Encoding: chunked\r\n"));
     File rawOutputFile=new File(outputDir,"response-1.gz");
     FileOutputStream rawOutputStream=new FileOutputStream(rawOutputFile);
     long chunkSize=client.readChunkSize();
-    System.out.println("Chunk Size: " + chunkSize);
-    System.out.println("Attempting to read partial content ...");
     int readBytes=client.readBody(rawOutputStream,(int)(chunkSize * 0.20f));
-    System.out.printf("Read %,d bytes%n",readBytes);
     client.issueGET("/jetty_logo.png",true,false);
-    System.out.println("Finish reading remaining chunks ...");
     String line;
     chunkSize=chunkSize - readBytes;
     while (chunkSize > 0) {
       readBytes=client.readBody(rawOutputStream,(int)chunkSize);
-      System.out.printf("Read %,d bytes%n",readBytes);
       line=client.readLine();
       assertThat("Chunk delim should be an empty line with CR+LF",line,is(""));
       chunkSize=client.readChunkSize();
-      System.out.printf("Next Chunk: (0x%X) %,d bytes%n",chunkSize,chunkSize);
     }
     line=client.readLine();
     assertThat("Inter-pipeline delim should be an empty line with CR+LF",line,is(""));
@@ -49,7 +42,6 @@
     }
     IO.copy(uncompressedStream,digesterTxt);
     respHeader=client.readResponseHeader();
-    System.out.println("Response Header #2 --\n" + respHeader);
     assertThat("Content-Encoding should NOT be gzipped",respHeader,not(containsString("Content-Encoding: gzip\r\n")));
     assertThat("Transfer-Encoding should NOT be chunked",respHeader,not(containsString("Transfer-Encoding: chunked\r\n")));
     MessageDigest digestImg=MessageDigest.getInstance("SHA1");
