@@ -1,0 +1,56 @@
+{
+  LOG.debug("beanAdded {}->{}",parent,obj);
+  ObjectName pname=null;
+  if (parent != null) {
+    pname=_beans.get(parent);
+    if (pname == null) {
+      beanAdded(null,parent);
+      pname=_beans.get(parent);
+    }
+  }
+  if (obj == null || _beans.containsKey(obj))   return;
+  try {
+    Object mbean=ObjectMBean.mbeanFor(obj);
+    if (mbean == null)     return;
+    ObjectName oname=null;
+    if (mbean instanceof ObjectMBean) {
+      ((ObjectMBean)mbean).setMBeanContainer(this);
+      oname=((ObjectMBean)mbean).getObjectName();
+    }
+    if (oname == null) {
+      String domain=_domain;
+      if (domain == null)       domain=obj.getClass().getPackage().getName();
+      String type=obj.getClass().getName().toLowerCase();
+      int dot=type.lastIndexOf('.');
+      if (dot >= 0)       type=type.substring(dot + 1);
+      String context=(mbean instanceof ObjectMBean) ? makeName(((ObjectMBean)mbean).getObjectContextBasis()) : null;
+      String name=(mbean instanceof ObjectMBean) ? makeName(((ObjectMBean)mbean).getObjectNameBasis()) : null;
+      StringBuffer buf=new StringBuffer();
+      if (pname != null) {
+        buf.append("parent=").append(pname.getKeyProperty("type")).append("-");
+        if (pname.getKeyProperty("context") != null)         buf.append(pname.getKeyProperty("context")).append("-");
+        buf.append(pname.getKeyProperty("id")).append(",");
+      }
+      buf.append("type=").append(type);
+      if (context != null && context.length() > 1) {
+        buf.append(buf.length() > 0 ? "," : "");
+        buf.append("context=").append(context);
+      }
+      if (name != null && name.length() > 1) {
+        buf.append(buf.length() > 0 ? "," : "");
+        buf.append("name=").append(name);
+      }
+      String basis=buf.toString();
+      Integer count=_unique.get(basis);
+      count=count == null ? 0 : 1 + count;
+      _unique.put(basis,count);
+      oname=ObjectName.getInstance(domain + ":" + basis+ ",id="+ count);
+    }
+    ObjectInstance oinstance=_mbeanServer.registerMBean(mbean,oname);
+    LOG.debug("Registered {}",oinstance.getObjectName());
+    _beans.put(obj,oinstance.getObjectName());
+  }
+ catch (  Exception e) {
+    LOG.warn("bean: " + obj,e);
+  }
+}

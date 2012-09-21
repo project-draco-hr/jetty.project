@@ -1,0 +1,109 @@
+{
+  final Queue<String> handled=new ConcurrentLinkedQueue<>();
+  final Queue<String> operation=new ConcurrentLinkedQueue<>();
+  final Queue<Container> parent=new ConcurrentLinkedQueue<>();
+  final Queue<Object> child=new ConcurrentLinkedQueue<>();
+  Container.Listener listener=new Container.Listener(){
+    @Override public void beanRemoved(    Container p,    Object c){
+      handled.add(toString());
+      operation.add("removed");
+      parent.add(p);
+      child.add(c);
+    }
+    @Override public void beanAdded(    Container p,    Object c){
+      handled.add(toString());
+      operation.add("added");
+      parent.add(p);
+      child.add(c);
+    }
+    public @Override String toString(){
+      return "listener";
+    }
+  }
+;
+  ContainerLifeCycle c0=new ContainerLifeCycle(){
+    public @Override String toString(){
+      return "c0";
+    }
+  }
+;
+  ContainerLifeCycle c00=new ContainerLifeCycle(){
+    public @Override String toString(){
+      return "c00";
+    }
+  }
+;
+  c0.addBean(c00);
+  String b000="b000";
+  c00.addBean(b000);
+  c0.addBean(listener);
+  Assert.assertEquals("listener",handled.poll());
+  Assert.assertEquals("added",operation.poll());
+  Assert.assertEquals(c0,parent.poll());
+  Assert.assertEquals(c00,child.poll());
+  Assert.assertEquals("listener",handled.poll());
+  Assert.assertEquals("added",operation.poll());
+  Assert.assertEquals(c0,parent.poll());
+  Assert.assertEquals(listener,child.poll());
+  Container.InheritedListener inherited=new Container.InheritedListener(){
+    @Override public void beanRemoved(    Container p,    Object c){
+      handled.add(toString());
+      operation.add("removed");
+      parent.add(p);
+      child.add(c);
+    }
+    @Override public void beanAdded(    Container p,    Object c){
+      handled.add(toString());
+      operation.add("added");
+      parent.add(p);
+      child.add(c);
+    }
+    public @Override String toString(){
+      return "inherited";
+    }
+  }
+;
+  c0.addBean(inherited);
+  Assert.assertEquals("inherited",handled.poll());
+  Assert.assertEquals("added",operation.poll());
+  Assert.assertEquals(c0,parent.poll());
+  Assert.assertEquals(c00,child.poll());
+  Assert.assertEquals("inherited",handled.poll());
+  Assert.assertEquals("added",operation.poll());
+  Assert.assertEquals(c0,parent.poll());
+  Assert.assertEquals(listener,child.poll());
+  Assert.assertEquals("listener",handled.poll());
+  Assert.assertEquals("added",operation.poll());
+  Assert.assertEquals(c0,parent.poll());
+  Assert.assertEquals(inherited,child.poll());
+  Assert.assertEquals("inherited",handled.poll());
+  Assert.assertEquals("added",operation.poll());
+  Assert.assertEquals(c0,parent.poll());
+  Assert.assertEquals(inherited,child.poll());
+  c0.start();
+  Assert.assertEquals("inherited",handled.poll());
+  Assert.assertEquals("added",operation.poll());
+  Assert.assertEquals(c00,parent.poll());
+  Assert.assertEquals(b000,child.poll());
+  Assert.assertEquals("inherited",handled.poll());
+  Assert.assertEquals("added",operation.poll());
+  Assert.assertEquals(c00,parent.poll());
+  Assert.assertEquals(inherited,child.poll());
+  c0.removeBean(c00);
+  Assert.assertEquals("inherited",handled.poll());
+  Assert.assertEquals("removed",operation.poll());
+  Assert.assertEquals(c00,parent.poll());
+  Assert.assertEquals(inherited,child.poll());
+  Assert.assertEquals("inherited",handled.poll());
+  Assert.assertEquals("removed",operation.poll());
+  Assert.assertEquals(c00,parent.poll());
+  Assert.assertEquals(b000,child.poll());
+  Assert.assertEquals("listener",handled.poll());
+  Assert.assertEquals("removed",operation.poll());
+  Assert.assertEquals(c0,parent.poll());
+  Assert.assertEquals(c00,child.poll());
+  Assert.assertEquals("inherited",handled.poll());
+  Assert.assertEquals("removed",operation.poll());
+  Assert.assertEquals(c0,parent.poll());
+  Assert.assertEquals(c00,child.poll());
+}

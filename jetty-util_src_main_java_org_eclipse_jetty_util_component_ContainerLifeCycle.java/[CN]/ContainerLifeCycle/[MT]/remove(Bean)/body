@@ -1,0 +1,17 @@
+{
+  if (_beans.remove(bean)) {
+    unmanage(bean);
+    for (    Container.Listener l : _listeners)     l.beanRemoved(this,bean._bean);
+    if (bean._bean instanceof Container.Listener) {
+      Container.Listener listener=(Container.Listener)bean._bean;
+      if (_listeners.remove(listener)) {
+        for (        Bean b : _beans) {
+          listener.beanRemoved(this,b._bean);
+          if (listener instanceof InheritedListener && b.isManaged() && b._bean instanceof Container)           ((Container)b._bean).removeBean(listener);
+        }
+      }
+    }
+    return true;
+  }
+  return false;
+}

@@ -1,0 +1,52 @@
+{
+  if (contains(o))   return false;
+  Bean new_bean=new Bean(o);
+  if (o instanceof Container.Listener) {
+    Container.Listener listener=(Container.Listener)o;
+    _listeners.add(listener);
+    for (    Bean b : _beans) {
+      listener.beanAdded(this,b._bean);
+      if (listener instanceof InheritedListener && b.isManaged() && b._bean instanceof Container)       ((Container)b._bean).addBean(listener);
+    }
+  }
+  _beans.add(new_bean);
+  for (  Container.Listener l : _listeners)   l.beanAdded(this,o);
+  try {
+switch (managed) {
+case UNMANAGED:
+      unmanage(new_bean);
+    break;
+case MANAGED:
+  manage(new_bean);
+if (_started) {
+  LifeCycle l=(LifeCycle)o;
+  if (!l.isRunning())   l.start();
+}
+break;
+case AUTO:
+if (o instanceof LifeCycle) {
+LifeCycle l=(LifeCycle)o;
+if (_started) {
+if (l.isRunning()) unmanage(new_bean);
+ else {
+  manage(new_bean);
+  l.start();
+}
+}
+ else new_bean._managed=Managed.AUTO;
+}
+ else new_bean._managed=Managed.POJO;
+break;
+case POJO:
+new_bean._managed=Managed.POJO;
+}
+}
+ catch (RuntimeException|Error e) {
+throw e;
+}
+catch (Exception e) {
+throw new RuntimeException(e);
+}
+LOG.debug("{} added {}",this,new_bean);
+return true;
+}
