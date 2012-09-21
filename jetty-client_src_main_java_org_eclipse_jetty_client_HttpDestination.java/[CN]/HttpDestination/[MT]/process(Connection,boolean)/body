@@ -2,7 +2,10 @@
   final RequestPair requestPair=requests.poll();
   if (requestPair == null) {
     LOG.debug("{} idle",connection);
-    idleConnections.offer(connection);
+    if (!idleConnections.offer(connection)) {
+      LOG.debug("{} idle overflow");
+      connection.close();
+    }
     if (!client.isRunning()) {
       LOG.debug("{} is stopping",client);
       remove(connection);
@@ -11,7 +14,9 @@
   }
  else {
     LOG.debug("{} active",connection);
-    activeConnections.offer(connection);
+    if (!activeConnections.offer(connection)) {
+      LOG.warn("{} active overflow");
+    }
     if (dispatch) {
       client.getExecutor().execute(new Runnable(){
         @Override public void run(){
