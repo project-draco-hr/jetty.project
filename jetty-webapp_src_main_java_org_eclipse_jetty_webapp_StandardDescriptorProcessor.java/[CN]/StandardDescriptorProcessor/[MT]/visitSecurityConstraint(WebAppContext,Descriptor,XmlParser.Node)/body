@@ -34,12 +34,25 @@
       while (iter2.hasNext()) {
         String url=iter2.next().toString(false,true);
         url=normalizePattern(url);
+        context.getMetaData().setOrigin("constraint.url." + url,descriptor);
         Iterator<XmlParser.Node> iter3=collection.iterator("http-method");
+        Iterator<XmlParser.Node> iter4=collection.iterator("http-method-omission");
         if (iter3.hasNext()) {
+          if (iter4.hasNext())           throw new IllegalStateException("web-resource-collection cannot contain both http-method and http-method-omission");
           while (iter3.hasNext()) {
             String method=((XmlParser.Node)iter3.next()).toString(false,true);
             ConstraintMapping mapping=new ConstraintMapping();
             mapping.setMethod(method);
+            mapping.setPathSpec(url);
+            mapping.setConstraint(sc);
+            ((ConstraintAware)context.getSecurityHandler()).addConstraintMapping(mapping);
+          }
+        }
+ else         if (iter4.hasNext()) {
+          while (iter4.hasNext()) {
+            String method=((XmlParser.Node)iter4.next()).toString(false,true);
+            ConstraintMapping mapping=new ConstraintMapping();
+            mapping.setMethodOmissions(new String[]{method});
             mapping.setPathSpec(url);
             mapping.setConstraint(sc);
             ((ConstraintAware)context.getSecurityHandler()).addConstraintMapping(mapping);
