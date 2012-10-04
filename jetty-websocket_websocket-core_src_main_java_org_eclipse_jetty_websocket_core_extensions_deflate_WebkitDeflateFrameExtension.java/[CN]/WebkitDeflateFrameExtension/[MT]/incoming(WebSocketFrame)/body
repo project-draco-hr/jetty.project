@@ -1,0 +1,16 @@
+{
+  if (frame.isControlFrame() || !frame.isRsv1()) {
+    super.incoming(frame);
+    return;
+  }
+  LOG.debug("Decompressing Frame: {}",frame);
+  ByteBuffer data=frame.getPayload();
+  try {
+    ByteBuffer uncompressed=inflate(data);
+    frame.setPayload(uncompressed);
+    nextIncoming(frame);
+  }
+  finally {
+    getBufferPool().release(data);
+  }
+}

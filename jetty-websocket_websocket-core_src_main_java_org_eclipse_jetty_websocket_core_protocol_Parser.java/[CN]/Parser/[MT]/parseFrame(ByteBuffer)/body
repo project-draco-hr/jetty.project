@@ -25,7 +25,9 @@ case FINOP:
       if (!OpCode.isKnown(opcode)) {
         throw new ProtocolException("Unknown opcode: " + opc);
       }
-      LOG.debug("OpCode {}, fin={}",OpCode.name(opcode),fin);
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("OpCode {}, fin={} rsv={}{}{}",OpCode.name(opcode),fin,(rsv1 ? '1' : '.'),(rsv2 ? '1' : '.'),(rsv3 ? '1' : '.'));
+      }
       if (!rsv1InUse && rsv1) {
         throw new ProtocolException("RSV1 not allowed to be set");
       }
@@ -38,13 +40,18 @@ case FINOP:
       boolean isContinuation=false;
 switch (opcode) {
 case OpCode.TEXT:
-        strictnessProcessor=new UTF8Validator();
+        if (isTextFrameValidated) {
+          strictnessProcessor=new UTF8Validator();
+        }
+ else {
+          strictnessProcessor=NoOpValidator.INSTANCE;
+        }
       break;
 case OpCode.CLOSE:
     strictnessProcessor=new CloseReasonValidator();
   break;
 default :
-strictnessProcessor=BinaryValidator.INSTANCE;
+strictnessProcessor=NoOpValidator.INSTANCE;
 break;
 }
 if (OpCode.isControlFrame(opcode)) {
