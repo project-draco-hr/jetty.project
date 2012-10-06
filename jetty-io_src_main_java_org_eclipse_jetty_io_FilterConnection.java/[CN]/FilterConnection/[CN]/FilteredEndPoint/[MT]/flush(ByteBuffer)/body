@@ -1,0 +1,22 @@
+{
+  if (DEBUG)   LOG.debug("{} flush enter {}",FilterConnection.this,Arrays.toString(buffers));
+  if (BufferUtil.hasContent(_outBuffer))   return false;
+  if (_outBuffer == null)   _outBuffer=_bufferPool.acquire(_outputBufferSize,true);
+  boolean all_taken=true;
+  for (  ByteBuffer buffer : buffers) {
+    if (buffer == null)     continue;
+    BufferUtil.flipPutFlip(buffer,_outBuffer);
+    if (BufferUtil.hasContent(buffer)) {
+      all_taken=false;
+      break;
+    }
+  }
+  for (  Listener listener : _listeners)   listener.outgoing(getEndPoint(),_outBuffer);
+  boolean flushed=getEndPoint().flush(_outBuffer);
+  if (BufferUtil.isEmpty(_outBuffer)) {
+    _bufferPool.release(_outBuffer);
+    _outBuffer=null;
+  }
+  if (DEBUG)   LOG.debug("{} flush exit, consumed {}",FilterConnection.this,flushed);
+  return all_taken && flushed;
+}
