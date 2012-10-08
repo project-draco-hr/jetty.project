@@ -22,6 +22,7 @@
   assertTrue(f2.exists());
   assertFalse(f.exists());
   field1.delete();
+  assertFalse(f.exists());
   assertFalse(f2.exists());
   MultiPart stuff=(MultiPart)mpis.getPart("stuff");
   assertThat(stuff.getContentDispositionFilename(),is(filename));
@@ -31,12 +32,20 @@
   assertThat(stuff.getHeader("content-disposition"),is("form-data; name=\"stuff\"; filename=\"" + filename + "\""));
   assertThat(stuff.getHeaderNames().size(),is(2));
   assertThat(stuff.getSize(),is(51L));
-  f=((MultiPartInputStream.MultiPart)stuff).getFile();
-  assertThat(f,notNullValue());
+  File tmpfile=((MultiPartInputStream.MultiPart)stuff).getFile();
+  assertThat(tmpfile,notNullValue());
   assertThat(((MultiPartInputStream.MultiPart)stuff).getBytes(),nullValue());
-  assertThat(f.exists(),is(true));
-  assertThat(f.getName(),is(not("stuff with space.txt")));
+  assertThat(tmpfile.exists(),is(true));
+  assertThat(tmpfile.getName(),is(not("stuff with space.txt")));
   stuff.write(filename);
   f=new File(_dirname + File.separator + filename);
   assertThat(f.exists(),is(true));
+  assertThat(tmpfile.exists(),is(false));
+  try {
+    stuff.getInputStream();
+  }
+ catch (  Exception e) {
+    fail("Part.getInputStream() after file rename operation");
+  }
+  f.deleteOnExit();
 }
