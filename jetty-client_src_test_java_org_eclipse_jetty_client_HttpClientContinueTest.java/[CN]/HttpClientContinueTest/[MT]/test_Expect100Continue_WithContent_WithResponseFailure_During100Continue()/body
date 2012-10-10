@@ -1,0 +1,37 @@
+{
+  start(new AbstractHandler(){
+    @Override public void handle(    String target,    Request baseRequest,    HttpServletRequest request,    HttpServletResponse response) throws IOException, ServletException {
+      baseRequest.setHandled(true);
+      IO.copy(request.getInputStream(),new ByteArrayOutputStream());
+    }
+  }
+);
+  client.getProtocolHandlers().clear();
+  client.getProtocolHandlers().add(new ContinueProtocolHandler(client){
+    @Override public Response.Listener getResponseListener(){
+      final Response.Listener listener=super.getResponseListener();
+      return new Response.Listener.Empty(){
+        @Override public void onBegin(        Response response){
+          response.abort();
+        }
+        @Override public void onFailure(        Response response,        Throwable failure){
+          listener.onFailure(response,failure);
+        }
+      }
+;
+    }
+  }
+);
+  byte[] content=new byte[1024];
+  final CountDownLatch latch=new CountDownLatch(1);
+  client.newRequest("localhost",connector.getLocalPort()).scheme(scheme).header(HttpHeader.EXPECT.asString(),HttpHeaderValue.CONTINUE.asString()).content(new BytesContentProvider(content)).send(new BufferingResponseListener(){
+    @Override public void onComplete(    Result result){
+      Assert.assertTrue(result.isFailed());
+      Assert.assertNotNull(result.getRequestFailure());
+      Assert.assertNotNull(result.getResponseFailure());
+      latch.countDown();
+    }
+  }
+);
+  Assert.assertTrue(latch.await(5,TimeUnit.SECONDS));
+}

@@ -1,16 +1,18 @@
 {
   Request request=result.getRequest();
+  HttpConversation conversation=client.getConversation(request.conversation());
+  Response.Listener listener=conversation.exchanges().peekFirst().listener();
   ContentResponse response=new HttpContentResponse(result.getResponse(),getContent(),getEncoding());
   if (result.isFailed()) {
     Throwable failure=result.getFailure();
     LOG.debug("Authentication challenge failed {}",failure);
-    forwardFailure(request,response,failure);
+    notifier.forwardFailureComplete(listener,request,result.getRequestFailure(),response,result.getResponseFailure());
     return;
   }
   List<WWWAuthenticate> wwwAuthenticates=parseWWWAuthenticate(response);
   if (wwwAuthenticates.isEmpty()) {
     LOG.debug("Authentication challenge without WWW-Authenticate header");
-    forwardFailure(request,response,new HttpResponseException("HTTP protocol violation: 401 without WWW-Authenticate header",response));
+    notifier.forwardFailureComplete(listener,request,null,response,new HttpResponseException("HTTP protocol violation: 401 without WWW-Authenticate header",response));
     return;
   }
   final String uri=request.uri();
@@ -25,14 +27,13 @@
   }
   if (authentication == null) {
     LOG.debug("No authentication available for {}",request);
-    forwardSuccess(request,response);
+    notifier.forwardSuccessComplete(listener,request,response);
     return;
   }
-  HttpConversation conversation=client.getConversation(request);
   final Authentication.Result authnResult=authentication.authenticate(request,response,wwwAuthenticate.value,conversation);
   LOG.debug("Authentication result {}",authnResult);
   if (authnResult == null) {
-    forwardSuccess(request,response);
+    notifier.forwardSuccessComplete(listener,request,response);
     return;
   }
   authnResult.apply(request);
