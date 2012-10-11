@@ -21,7 +21,6 @@
   Executor executor=http.getConnector().getExecutor();
   ByteBufferPool bufferPool=http.getConnector().getByteBufferPool();
   WebSocketServerConnection connection=new WebSocketServerConnection(endp,executor,scheduler,driver.getPolicy(),bufferPool,this);
-  request.setAttribute(HttpConnection.UPGRADE_CONNECTION_ATTRIBUTE,connection);
   LOG.debug("HttpConnection: {}",http);
   LOG.debug("AsyncWebSocketConnection: {}",connection);
   WebSocketSession session=new WebSocketSession(driver,connection,getPolicy(),response.getAcceptedSubProtocol());
@@ -31,24 +30,14 @@
   IncomingFrames incoming=session;
   OutgoingFrames outgoing=connection;
   if (extensions != null) {
+    connection.getParser().configureFromExtensions(extensions);
+    connection.getGenerator().configureFromExtensions(extensions);
     Iterator<Extension> extIter;
     extIter=extensions.iterator();
     while (extIter.hasNext()) {
       Extension ext=extIter.next();
       ext.setNextOutgoingFrames(outgoing);
       outgoing=ext;
-      if (ext.useRsv1()) {
-        connection.getGenerator().setRsv1InUse(true);
-        connection.getParser().setRsv1InUse(true);
-      }
-      if (ext.useRsv2()) {
-        connection.getGenerator().setRsv2InUse(true);
-        connection.getParser().setRsv2InUse(true);
-      }
-      if (ext.useRsv3()) {
-        connection.getGenerator().setRsv3InUse(true);
-        connection.getParser().setRsv3InUse(true);
-      }
     }
     Collections.reverse(extensions);
     extIter=extensions.iterator();
@@ -60,6 +49,7 @@
   }
   session.setOutgoing(outgoing);
   connection.getParser().setIncomingFramesHandler(incoming);
+  request.setAttribute(HttpConnection.UPGRADE_CONNECTION_ATTRIBUTE,connection);
   LOG.debug("Handshake Response: {}",handshaker);
   handshaker.doHandshakeResponse(request,response);
   LOG.debug("Websocket upgrade {} {} {} {}",request.getRequestURI(),version,response.getAcceptedSubProtocol(),connection);

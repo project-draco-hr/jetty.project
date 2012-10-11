@@ -1,0 +1,28 @@
+{
+  int length=data.remaining();
+  deflater.reset();
+  deflater.setInput(BufferUtil.toArray(data));
+  deflater.finish();
+  int bufsize=Math.max(BUFFER_SIZE,length * 2);
+  ByteBuffer buf=getBufferPool().acquire(bufsize,false);
+  BufferUtil.clearToFill(buf);
+  if (LOG.isDebugEnabled()) {
+    LOG.debug("Uncompressed length={} - {}",length,buf.position());
+  }
+  while (!deflater.finished()) {
+    byte out[]=new byte[BUFFER_SIZE];
+    int len=deflater.deflate(out,0,out.length,Deflater.SYNC_FLUSH);
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("Deflater: finished={}, needsInput={}, len={} / input.len={}",deflater.finished(),deflater.needsInput(),len,length);
+    }
+    buf.put(out,0,len);
+  }
+  BufferUtil.flipToFlush(buf,0);
+  if (BFINAL_HACK) {
+    byte b0=buf.get(0);
+    if ((b0 & 1) != 0) {
+      buf.put(0,(b0^=1));
+    }
+  }
+  return buf;
+}

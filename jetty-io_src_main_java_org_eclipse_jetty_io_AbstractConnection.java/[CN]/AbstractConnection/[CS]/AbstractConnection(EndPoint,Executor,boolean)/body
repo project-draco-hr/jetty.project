@@ -2,7 +2,11 @@
   if (executor == null)   throw new IllegalArgumentException("Executor must not be null!");
   _endPoint=endp;
   _executor=executor;
-  _readCallback=new ExecutorCallback<Void>(executor){
+  _readCallback=new ExecutorCallback<Void>(executor,0){
+    @Override public void completed(    Void context){
+      if (executeOnfillable)       super.completed(context);
+ else       onCompleted(context);
+    }
     @Override protected void onCompleted(    Void context){
       if (_state.compareAndSet(State.INTERESTED,State.FILLING)) {
         try {
@@ -32,11 +36,8 @@ case FILLING_INTERESTED:
 @Override protected void onFailed(Void context,Throwable x){
 onFillInterestedFailed(x);
 }
-@Override protected boolean alwaysDispatchCompletion(){
-return dispatchCompletion;
-}
 @Override public String toString(){
-return String.format("AC.ReadCB@%x",AbstractConnection.this.hashCode());
+return String.format("AC.ExReadCB@%x",AbstractConnection.this.hashCode());
 }
 }
 ;

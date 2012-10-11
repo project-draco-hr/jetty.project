@@ -1,10 +1,23 @@
 {
   identifiedOsgiImpl=true;
   try {
-    isEquinox=bundle.getClass().getClassLoader().loadClass("org.eclipse.osgi.framework.internal.core.BundleHost") != null;
+    BundleWiringClass=bundle.getClass().getClassLoader().loadClass("org.osgi.framework.wiring.BundleWiring");
+    if (BundleWiringClass != null) {
+      BundleWiringClass_getClassLoader_method=BundleWiringClass.getDeclaredMethod("getClassLoader",new Class[]{});
+      BundleClass_adapt_method=bundle.getClass().getDeclaredMethod("adapt",new Class[]{Class.class});
+      BundleClass_adapt_method.setAccessible(true);
+      return;
+    }
   }
  catch (  Throwable t) {
-    isEquinox=false;
+  }
+  if (!bundle.getClass().getName().startsWith("org.apache.felix")) {
+    try {
+      isEquinox=bundle.getClass().getClassLoader().loadClass("org.eclipse.osgi.framework.internal.core.BundleHost") != null;
+    }
+ catch (    Throwable t) {
+      isEquinox=false;
+    }
   }
   if (!isEquinox) {
     try {

@@ -1,7 +1,17 @@
 {
   while (true) {
     int filled=fill();
-    if (filled == 0 && !completed)     fillInterested();
-    if (filled <= 0 || completed)     break;
+    if (filled == 0 && nextProtocol == null)     fillInterested();
+    if (filled <= 0 || nextProtocol != null)     break;
+  }
+  if (nextProtocol != null) {
+    ConnectionFactory connectionFactory=connector.getConnectionFactory(nextProtocol);
+    EndPoint endPoint=getEndPoint();
+    Connection oldConnection=endPoint.getConnection();
+    oldConnection.onClose();
+    Connection connection=connectionFactory.newConnection(connector,endPoint);
+    LOG.debug("{} switching from {} to {}",this,oldConnection,connection);
+    endPoint.setConnection(connection);
+    getEndPoint().getConnection().onOpen();
   }
 }

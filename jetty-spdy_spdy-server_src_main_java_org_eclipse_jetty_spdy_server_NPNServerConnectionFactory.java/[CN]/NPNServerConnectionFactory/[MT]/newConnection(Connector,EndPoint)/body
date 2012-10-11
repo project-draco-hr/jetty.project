@@ -9,5 +9,12 @@
   }
   String dft=_defaultProtocol;
   if (dft == null)   dft=_protocols.get(0);
-  return configure(new NextProtoNegoServerConnection((DecryptedEndPoint)endPoint,connector,protocols,_defaultProtocol),connector,endPoint);
+  SSLEngine engine=null;
+  EndPoint ep=endPoint;
+  while (engine == null && ep != null) {
+    if (ep instanceof SslConnection.DecryptedEndPoint)     engine=((SslConnection.DecryptedEndPoint)ep).getSslConnection().getSSLEngine();
+    if (ep instanceof FilterConnection.FilteredEndPoint)     ep=((FilterConnection.FilteredEndPoint)ep).getWrappedEndPoint();
+ else     ep=null;
+  }
+  return configure(new NextProtoNegoServerConnection(endPoint,engine,connector,protocols,_defaultProtocol),connector,endPoint);
 }

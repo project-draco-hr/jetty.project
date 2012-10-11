@@ -1,0 +1,41 @@
+{
+  if (Felix_BundleImpl_getArchive_method == null) {
+    if (felixIntroSpectionDone) {
+      return null;
+    }
+    felixIntroSpectionDone=true;
+    try {
+      Felix_BundleImpl_getArchive_method=bundle.getClass().getDeclaredMethod("getArchive",new Class[]{});
+      Felix_BundleImpl_getArchive_method.setAccessible(true);
+      Object archive=Felix_BundleImpl_getArchive_method.invoke(bundle);
+      Class bundleArchiveClass=archive.getClass();
+      Felix_BundleArchive_getCurrentRevision_method=bundleArchiveClass.getDeclaredMethod("getCurrentRevision",new Class[]{});
+      Felix_BundleArchive_getCurrentRevision_method.setAccessible(true);
+      Object revision=Felix_BundleArchive_getCurrentRevision_method.invoke(archive);
+      Class bundleRevisionClass=revision.getClass();
+      Felix_BundleRevision_getRevisionRootDir_method=bundleRevisionClass.getMethod("getRevisionRootDir",new Class[]{});
+      Felix_BundleRevision_getRevisionRootDir_method.setAccessible(true);
+    }
+ catch (    Throwable t) {
+      Felix_BundleImpl_getArchive_method=null;
+      return null;
+    }
+  }
+  if (Felix_BundleImpl_getArchive_method != null) {
+    try {
+      Object archive=Felix_BundleImpl_getArchive_method.invoke(bundle);
+      Object revision=Felix_BundleArchive_getCurrentRevision_method.invoke(archive);
+      File revRootDir=(File)Felix_BundleRevision_getRevisionRootDir_method.invoke(revision);
+      File bundleJar=new File(revRootDir,"bundle.jar");
+      if (bundleJar.exists()) {
+        return bundleJar;
+      }
+ else {
+        return revRootDir;
+      }
+    }
+ catch (    Throwable t) {
+    }
+  }
+  return null;
+}

@@ -7,33 +7,33 @@
       onClose();
       getEndPoint().setConnection(connection);
       connection.onOpen();
+      reset();
+      return;
     }
   }
   reset();
-  if (getCurrentConnection() != HttpConnection.this) {
-    if (_parser.isStart()) {
-      if (_requestBuffer == null) {
-        fillInterested();
+  if (_parser.isStart()) {
+    if (_requestBuffer == null) {
+      fillInterested();
+    }
+ else     if (getConnector().isStarted()) {
+      LOG.debug("{} pipelined",this);
+      try {
+        getExecutor().execute(this);
       }
- else       if (getConnector().isStarted()) {
-        LOG.debug("{} pipelined",this);
-        try {
-          getExecutor().execute(this);
-        }
- catch (        RejectedExecutionException e) {
-          if (getConnector().isStarted())           LOG.warn(e);
- else           LOG.ignore(e);
-          getEndPoint().close();
-        }
-      }
- else {
+ catch (      RejectedExecutionException e) {
+        if (getConnector().isStarted())         LOG.warn(e);
+ else         LOG.ignore(e);
         getEndPoint().close();
       }
     }
-    if (_parser.isClosed() && !getEndPoint().isOutputShutdown()) {
-      LOG.warn("Endpoint output not shutdown when seeking EOF");
-      getEndPoint().shutdownOutput();
+ else {
+      getEndPoint().close();
     }
+  }
+  if (_parser.isClosed() && !getEndPoint().isOutputShutdown()) {
+    LOG.warn("Endpoint output not shutdown when seeking EOF");
+    getEndPoint().shutdownOutput();
   }
   if (getEndPoint().isOpen() && getEndPoint().isOutputShutdown()) {
     fillInterested();
