@@ -3,11 +3,16 @@
     addBean(sslContextFactory);
     setDispatchIO(false);
   }
-  if (executor == null)   executor=new QueuedThreadPool();
+  String name=HttpClient.class.getSimpleName() + "@" + hashCode();
+  if (executor == null) {
+    QueuedThreadPool threadPool=new QueuedThreadPool();
+    threadPool.setName(name);
+    executor=threadPool;
+  }
   addBean(executor);
   if (byteBufferPool == null)   byteBufferPool=new MappedByteBufferPool();
   addBean(byteBufferPool);
-  if (scheduler == null)   scheduler=new TimerScheduler(HttpClient.class.getSimpleName() + "@" + hashCode()+ "-Scheduler");
+  if (scheduler == null)   scheduler=new TimerScheduler(name + "-scheduler");
   addBean(scheduler);
   selectorManager=newSelectorManager();
   addBean(selectorManager);
