@@ -1,0 +1,25 @@
+{
+  List<ConstraintMapping> mappings=new ArrayList<ConstraintMapping>();
+  Constraint constraint=ConstraintSecurityHandler.createConstraint(name,securityElement);
+  ConstraintMapping defaultMapping=new ConstraintMapping();
+  defaultMapping.setPathSpec(pathSpec);
+  defaultMapping.setConstraint(constraint);
+  mappings.add(defaultMapping);
+  List<String> methodOmissions=new ArrayList<String>();
+  Collection<HttpMethodConstraintElement> methodConstraints=securityElement.getHttpMethodConstraints();
+  if (methodConstraints != null) {
+    for (    HttpMethodConstraintElement methodConstraint : methodConstraints) {
+      Constraint mconstraint=ConstraintSecurityHandler.createConstraint(name,methodConstraint);
+      ConstraintMapping mapping=new ConstraintMapping();
+      mapping.setConstraint(mconstraint);
+      mapping.setPathSpec(pathSpec);
+      if (methodConstraint.getMethodName() != null) {
+        mapping.setMethod(methodConstraint.getMethodName());
+        methodOmissions.add(methodConstraint.getMethodName());
+      }
+      mappings.add(mapping);
+    }
+  }
+  if (methodOmissions.size() > 0)   defaultMapping.setMethodOmissions(methodOmissions.toArray(new String[methodOmissions.size()]));
+  return mappings;
+}

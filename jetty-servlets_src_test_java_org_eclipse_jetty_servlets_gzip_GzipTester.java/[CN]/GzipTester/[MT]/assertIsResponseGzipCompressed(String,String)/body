@@ -9,7 +9,9 @@
   request.setURI("/context/" + requestedFilename);
   response=HttpTester.parseResponse(tester.getResponses(request.generate()));
   Assert.assertThat("Response.header[Content-Length]",response.get("Content-Length"),notNullValue());
-  Assert.assertThat("Response.header[Content-Encoding]",response.get("Content-Encoding"),containsString(compressionType));
+  int qindex=compressionType.indexOf(";");
+  if (qindex < 0)   Assert.assertThat("Response.header[Content-Encoding]",response.get("Content-Encoding"),containsString(compressionType));
+ else   Assert.assertThat("Response.header[Content-Encoding]",response.get("Content-Encoding"),containsString(compressionType.substring(0,qindex)));
   File serverFile=testdir.getFile(serverFilename);
   String expected=IO.readToString(serverFile);
   String actual=null;
@@ -18,10 +20,10 @@
   ByteArrayOutputStream out=null;
   try {
     bais=new ByteArrayInputStream(response.getContentBytes());
-    if (compressionType.equals(GzipFilter.GZIP)) {
+    if (compressionType.startsWith(GzipFilter.GZIP)) {
       in=new GZIPInputStream(bais);
     }
- else     if (compressionType.equals(GzipFilter.DEFLATE)) {
+ else     if (compressionType.startsWith(GzipFilter.DEFLATE)) {
       in=new InflaterInputStream(bais,new Inflater(true));
     }
     out=new ByteArrayOutputStream();

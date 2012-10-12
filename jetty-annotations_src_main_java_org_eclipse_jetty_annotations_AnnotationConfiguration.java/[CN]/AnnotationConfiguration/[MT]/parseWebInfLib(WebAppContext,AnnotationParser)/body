@@ -4,10 +4,18 @@
   List<Resource> jars=context.getMetaData().getOrderedWebInfJars();
   if (jars == null || jars.isEmpty())   jars=context.getMetaData().getWebInfJars();
   for (  Resource r : jars) {
-    clearAnnotationList(parser.getAnnotationHandlers());
+    parser.clearHandlers();
     URI uri=r.getURI();
     FragmentDescriptor f=getFragmentFromJar(r,frags);
-    if (f == null || !isMetaDataComplete(f)) {
+    if (f == null || !isMetaDataComplete(f) || _classInheritanceHandler != null || !_containerInitializerAnnotationHandlers.isEmpty()) {
+      parser.registerHandler(_classInheritanceHandler);
+      parser.registerHandlers(_containerInitializerAnnotationHandlers);
+      if (f == null || !isMetaDataComplete(f)) {
+        for (        DiscoverableAnnotationHandler h : _discoverableAnnotationHandlers) {
+          if (h instanceof AbstractDiscoverableAnnotationHandler)           ((AbstractDiscoverableAnnotationHandler)h).setResource(r);
+        }
+        parser.registerHandlers(_discoverableAnnotationHandlers);
+      }
       parser.parse(uri,new ClassNameResolver(){
         public boolean isExcluded(        String name){
           if (context.isSystemClass(name))           return true;
@@ -20,9 +28,6 @@
         }
       }
 );
-      List<DiscoveredAnnotation> annotations=new ArrayList<DiscoveredAnnotation>();
-      gatherAnnotations(annotations,parser.getAnnotationHandlers());
-      context.getMetaData().addDiscoveredAnnotations(r,annotations);
     }
   }
 }

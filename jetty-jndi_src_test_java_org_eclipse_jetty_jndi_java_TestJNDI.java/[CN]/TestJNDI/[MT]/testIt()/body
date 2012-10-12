@@ -1,13 +1,20 @@
 {
+  Thread currentThread=Thread.currentThread();
+  ClassLoader currentLoader=currentThread.getContextClassLoader();
+  ClassLoader childLoader1=new URLClassLoader(new URL[0],currentLoader);
+  ClassLoader childLoader2=new URLClassLoader(new URL[0],currentLoader);
   try {
-    Thread currentThread=Thread.currentThread();
-    ClassLoader currentLoader=currentThread.getContextClassLoader();
-    ClassLoader childLoader1=new URLClassLoader(new URL[0],currentLoader);
-    ClassLoader childLoader2=new URLClassLoader(new URL[0],currentLoader);
     currentThread.setContextClassLoader(childLoader1);
     InitialContext initCtxA=new InitialContext();
     initCtxA.bind("blah","123");
     assertEquals("123",initCtxA.lookup("blah"));
+    initCtxA.destroySubcontext("blah");
+    try {
+      initCtxA.lookup("blah");
+      fail("context blah was not destroyed");
+    }
+ catch (    NameNotFoundException e) {
+    }
     InitialContext initCtx=new InitialContext();
     Context sub0=(Context)initCtx.lookup("java:");
     if (LOG.isDebugEnabled())     LOG.debug("------ Looked up java: --------------");
@@ -75,6 +82,7 @@
     assertTrue(!(sub1 == otherSub1));
     try {
       initCtx.lookup("java:comp/env/rubbish");
+      fail("env should not exist for this classloader");
     }
  catch (    NameNotFoundException e) {
     }
@@ -112,13 +120,17 @@
     }
  catch (    NamingException ne) {
     }
-    System.err.println("java:" + javaRootURLContext.getRoot().dump());
-    System.err.println("local:" + localContextRoot.getRoot().dump());
     initCtx.close();
   }
   finally {
     InitialContext ic=new InitialContext();
+    Context java=(Context)ic.lookup("java:");
+    java.destroySubcontext("zero");
+    java.destroySubcontext("fee");
+    currentThread.setContextClassLoader(childLoader1);
     Context comp=(Context)ic.lookup("java:comp");
     comp.destroySubcontext("env");
+    comp.unbind("crud");
+    comp.unbind("crud2");
   }
 }
