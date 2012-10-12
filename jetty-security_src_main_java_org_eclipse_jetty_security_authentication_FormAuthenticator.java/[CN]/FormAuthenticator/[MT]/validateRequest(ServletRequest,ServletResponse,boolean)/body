@@ -11,9 +11,9 @@
     if (isJSecurityCheck(uri)) {
       final String username=request.getParameter(__J_USERNAME);
       final String password=request.getParameter(__J_PASSWORD);
-      UserIdentity user=_loginService.login(username,password);
+      UserIdentity user=login(username,password,request);
+      session=request.getSession(true);
       if (user != null) {
-        session=renewSession(request,response);
         String nuri;
 synchronized (session) {
           nuri=(String)session.getAttribute(__J_URI);
@@ -21,8 +21,6 @@ synchronized (session) {
             nuri=request.getContextPath();
             if (nuri.length() == 0)             nuri=URIUtil.SLASH;
           }
-          Authentication cached=new SessionAuthentication(getAuthMethod(),user,password);
-          session.setAttribute(SessionAuthentication.__J_AUTHENTICATED,cached);
         }
         response.setContentLength(0);
         response.sendRedirect(response.encodeRedirectURL(nuri));
