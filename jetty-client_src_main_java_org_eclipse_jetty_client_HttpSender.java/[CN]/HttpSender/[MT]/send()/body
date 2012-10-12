@@ -1,29 +1,39 @@
 {
+  HttpClient client=connection.getHttpClient();
+  ByteBufferPool bufferPool=client.getByteBufferPool();
+  ByteBuffer header=null;
+  ByteBuffer chunk=null;
   try {
-    HttpClient client=connection.getHttpClient();
     EndPoint endPoint=connection.getEndPoint();
     HttpExchange exchange=connection.getExchange();
-    ByteBufferPool byteBufferPool=client.getByteBufferPool();
     final Request request=exchange.request();
-    HttpGenerator.RequestInfo info=null;
-    ByteBuffer content=contentChunks.hasNext() ? contentChunks.next() : BufferUtil.EMPTY_BUFFER;
-    boolean lastContent=!contentChunks.hasNext();
+    HttpConversation conversation=client.getConversation(request.conversation());
+    HttpGenerator.RequestInfo requestInfo=null;
+    boolean expect100=request.headers().contains(HttpHeader.EXPECT,HttpHeaderValue.CONTINUE.asString());
+    expect100&=conversation.getAttribute(EXPECT_100_ATTRIBUTE) == null;
+    if (expect100)     conversation.setAttribute(EXPECT_100_ATTRIBUTE,Boolean.TRUE);
+    ContentInfo contentInfo=this.expectedContent;
+    if (contentInfo == null)     contentInfo=new ContentInfo(contentIterator);
+ else     expect100=false;
+    this.expectedContent=null;
     while (true) {
-      HttpGenerator.Result result=generator.generateRequest(info,header,chunk,content,lastContent);
+      HttpGenerator.Result result=generator.generateRequest(requestInfo,header,chunk,contentInfo.content,contentInfo.lastContent);
 switch (result) {
 case NEED_INFO:
 {
-          info=new HttpGenerator.RequestInfo(request.version(),request.headers(),contentLength,request.method().asString(),request.path());
+          ContentProvider content=request.content();
+          long contentLength=content == null ? -1 : content.length();
+          requestInfo=new HttpGenerator.RequestInfo(request.version(),request.headers(),contentLength,request.method().asString(),request.path());
           break;
         }
 case NEED_HEADER:
 {
-        header=byteBufferPool.acquire(client.getRequestBufferSize(),false);
+        header=bufferPool.acquire(client.getRequestBufferSize(),false);
         break;
       }
 case NEED_CHUNK:
 {
-      chunk=byteBufferPool.acquire(HttpGenerator.CHUNK_SIZE,false);
+      chunk=bufferPool.acquire(HttpGenerator.CHUNK_SIZE,false);
       break;
     }
 case FLUSH:
@@ -34,23 +44,39 @@ case FLUSH:
  else {
       StatefulExecutorCallback callback=new StatefulExecutorCallback(client.getExecutor()){
         @Override protected void pendingCompleted(){
+          LOG.debug("Write completed for {}",request);
           if (!committed)           committed(request);
-          send();
+          if (expectedContent == null) {
+            send();
+          }
+ else {
+            LOG.debug("Expecting 100 Continue for {}",request);
+            expectedContent.ready();
+          }
         }
         @Override protected void failed(        Throwable x){
           fail(x);
         }
       }
 ;
-      if (header == null)       header=BufferUtil.EMPTY_BUFFER;
-      if (chunk == null)       chunk=BufferUtil.EMPTY_BUFFER;
-      endPoint.write(null,callback,header,chunk,content);
-      if (callback.pending())       return;
+      if (expect100) {
+        expectedContent=contentInfo;
+      }
+      write(callback,header,chunk,expect100 ? null : contentInfo.content);
+      if (callback.pending()) {
+        LOG.debug("Write pending for {}",request);
+        return;
+      }
       if (callback.completed()) {
         if (!committed)         committed(request);
-        releaseBuffers();
-        content=contentChunks.hasNext() ? contentChunks.next() : BufferUtil.EMPTY_BUFFER;
-        lastContent=!contentChunks.hasNext();
+        if (expect100) {
+          LOG.debug("Expecting 100 Continue for {}",request);
+          expectedContent.ready();
+          return;
+        }
+ else {
+          contentInfo=new ContentInfo(contentIterator);
+        }
       }
     }
     break;
@@ -81,6 +107,6 @@ LOG.debug(x);
 fail(x);
 }
  finally {
-releaseBuffers();
+releaseBuffers(bufferPool,header,chunk);
 }
 }

@@ -1,0 +1,25 @@
+{
+  start(new AbstractHandler(){
+    @Override public void handle(    String target,    Request baseRequest,    HttpServletRequest request,    HttpServletResponse response) throws IOException, ServletException {
+      baseRequest.setHandled(true);
+      ServletInputStream input=request.getInputStream();
+      response.flushBuffer();
+      IO.copy(input,response.getOutputStream());
+    }
+  }
+);
+  byte[] content1=new byte[10240];
+  byte[] content2=new byte[16384];
+  ContentResponse response=client.newRequest("localhost",connector.getLocalPort()).scheme(scheme).header(HttpHeader.EXPECT.asString(),HttpHeaderValue.CONTINUE.asString()).content(new BytesContentProvider(content1,content2){
+    @Override public long length(){
+      return -1;
+    }
+  }
+).send().get(5,TimeUnit.SECONDS);
+  Assert.assertNotNull(response);
+  Assert.assertEquals(200,response.status());
+  int index=0;
+  byte[] responseContent=response.content();
+  for (  byte b : content1)   Assert.assertEquals(b,responseContent[index++]);
+  for (  byte b : content2)   Assert.assertEquals(b,responseContent[index++]);
+}

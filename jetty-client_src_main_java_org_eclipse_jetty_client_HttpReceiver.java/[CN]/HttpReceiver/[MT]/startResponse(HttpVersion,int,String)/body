@@ -7,13 +7,15 @@
   Response.Listener currentListener=exchange.listener();
   Response.Listener initialListener=conversation.exchanges().peekFirst().listener();
   HttpClient client=connection.getHttpClient();
-  Response.Listener handlerListener=client.lookup(exchange.request(),response);
+  ProtocolHandler protocolHandler=client.findProtocolHandler(exchange.request(),response);
+  Response.Listener handlerListener=protocolHandler == null ? null : protocolHandler.getResponseListener();
   if (handlerListener == null) {
     conversation.last(exchange);
     if (currentListener == initialListener)     conversation.listener(initialListener);
  else     conversation.listener(new DoubleResponseListener(currentListener,initialListener));
   }
  else {
+    LOG.debug("Found protocol handler {}",protocolHandler);
     if (currentListener == initialListener)     conversation.listener(handlerListener);
  else     conversation.listener(new DoubleResponseListener(currentListener,handlerListener));
   }
