@@ -4,8 +4,12 @@
     Set<LoginCallbackImpl> loginCallbacks=clientSubject.getPrivateCredentials(LoginCallbackImpl.class);
     if (!loginCallbacks.isEmpty()) {
       LoginCallbackImpl loginCallback=loginCallbacks.iterator().next();
-      FormCredential form_cred=new FormCredential(username,pwdChars,loginCallback.getUserPrincipal(),loginCallback.getSubject());
-      session.setAttribute(__J_AUTHENTICATED,form_cred);
+      Set<UserIdentity> userIdentities=clientSubject.getPrivateCredentials(UserIdentity.class);
+      if (!userIdentities.isEmpty()) {
+        UserIdentity userIdentity=userIdentities.iterator().next();
+        SessionAuthentication sessionAuth=new SessionAuthentication(Constraint.__FORM_AUTH,userIdentity,password);
+        session.setAttribute(SessionAuthentication.__J_AUTHENTICATED,sessionAuth);
+      }
     }
     if (ssoSource != null) {
       UserInfo userInfo=new UserInfo(username,pwdChars);
