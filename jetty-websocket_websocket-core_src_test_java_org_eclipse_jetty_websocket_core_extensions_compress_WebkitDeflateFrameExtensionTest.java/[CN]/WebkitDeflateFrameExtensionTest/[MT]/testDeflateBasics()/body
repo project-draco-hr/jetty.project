@@ -1,0 +1,31 @@
+{
+  boolean nowrap=true;
+  Deflater compressor=new Deflater(Deflater.BEST_COMPRESSION,nowrap);
+  compressor.setStrategy(Deflater.DEFAULT_STRATEGY);
+  String text="info:";
+  byte uncompressed[]=StringUtil.getUtf8Bytes(text);
+  compressor.reset();
+  compressor.setInput(uncompressed,0,uncompressed.length);
+  compressor.finish();
+  ByteBuffer outbuf=ByteBuffer.allocate(64);
+  BufferUtil.clearToFill(outbuf);
+  while (!compressor.finished()) {
+    byte out[]=new byte[64];
+    int len=compressor.deflate(out,0,out.length,Deflater.SYNC_FLUSH);
+    if (len > 0) {
+      System.err.printf("Compressed %,d bytes%n",len);
+      outbuf.put(out,0,len);
+    }
+  }
+  compressor.end();
+  BufferUtil.flipToFlush(outbuf,0);
+  byte b0=outbuf.get(0);
+  if ((b0 & 1) != 0) {
+    outbuf.put(0,(b0^=1));
+  }
+  byte compressed[]=BufferUtil.toArray(outbuf);
+  String actual=TypeUtil.toHexString(compressed);
+  String expected="CaCc4bCbB70200";
+  System.out.printf("Compressed data: %s%n",actual);
+  Assert.assertThat("Compressed data",actual,is(expected));
+}

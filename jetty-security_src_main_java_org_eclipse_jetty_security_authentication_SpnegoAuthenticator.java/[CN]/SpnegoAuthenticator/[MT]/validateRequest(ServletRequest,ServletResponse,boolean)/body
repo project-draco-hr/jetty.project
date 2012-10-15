@@ -3,11 +3,11 @@
   HttpServletResponse res=(HttpServletResponse)response;
   String header=req.getHeader(HttpHeader.AUTHORIZATION.asString());
   if (!mandatory) {
-    return _deferred;
+    return new DeferredAuthentication(this);
   }
   if (header == null) {
     try {
-      if (_deferred.isDeferred(res)) {
+      if (DeferredAuthentication.isDeferred(res)) {
         return Authentication.UNAUTHENTICATED;
       }
       LOG.debug("SpengoAuthenticator: sending challenge");
@@ -21,7 +21,7 @@
   }
  else   if (header != null && header.startsWith(HttpHeader.NEGOTIATE.asString())) {
     String spnegoToken=header.substring(10);
-    UserIdentity user=_loginService.login(null,spnegoToken);
+    UserIdentity user=login(null,spnegoToken,request);
     if (user != null) {
       return new UserAuthentication(getAuthMethod(),user);
     }

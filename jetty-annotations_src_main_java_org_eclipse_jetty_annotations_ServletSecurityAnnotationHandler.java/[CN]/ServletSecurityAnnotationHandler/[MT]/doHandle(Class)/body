@@ -12,9 +12,13 @@
     return;
   }
   constraintMappings=new ArrayList<ConstraintMapping>();
-  HttpConstraint defaults=servletSecurity.value();
-  Constraint defaultConstraint=makeConstraint(clazz,defaults.rolesAllowed(),defaults.value(),defaults.transportGuarantee());
-  constraintMappings.addAll(makeMethodMappings(clazz,defaultConstraint,servletMappings,servletSecurity.httpMethodConstraints()));
+  ServletSecurityElement securityElement=new ServletSecurityElement(servletSecurity);
+  for (  ServletMapping sm : servletMappings) {
+    for (    String url : sm.getPathSpecs()) {
+      _context.getMetaData().setOrigin("constraint.url." + url,Origin.Annotation);
+      constraintMappings.addAll(ConstraintSecurityHandler.createConstraintsWithMappingsForPath(clazz.getName(),url,securityElement));
+    }
+  }
   ConstraintAware securityHandler=(ConstraintAware)_context.getSecurityHandler();
   for (  ConstraintMapping m : constraintMappings)   securityHandler.addConstraintMapping(m);
 }

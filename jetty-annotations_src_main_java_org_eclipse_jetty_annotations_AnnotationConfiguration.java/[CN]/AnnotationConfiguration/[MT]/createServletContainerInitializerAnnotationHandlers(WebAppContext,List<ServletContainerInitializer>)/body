@@ -1,0 +1,33 @@
+{
+  if (scis == null || scis.isEmpty())   return;
+  List<ContainerInitializer> initializers=new ArrayList<ContainerInitializer>();
+  context.setAttribute(CONTAINER_INITIALIZERS,initializers);
+  for (  ServletContainerInitializer service : scis) {
+    HandlesTypes annotation=service.getClass().getAnnotation(HandlesTypes.class);
+    ContainerInitializer initializer=new ContainerInitializer();
+    initializer.setTarget(service);
+    initializers.add(initializer);
+    if (annotation != null) {
+      Class[] classes=annotation.value();
+      if (classes != null) {
+        initializer.setInterestedTypes(classes);
+        if (context.getAttribute(CLASS_INHERITANCE_MAP) == null) {
+          MultiMap map=new MultiMap();
+          context.setAttribute(CLASS_INHERITANCE_MAP,map);
+          _classInheritanceHandler=new ClassInheritanceHandler(map);
+        }
+        for (        Class c : classes) {
+          if (c.isAnnotation()) {
+            if (LOG.isDebugEnabled())             LOG.debug("Registering annotation handler for " + c.getName());
+            _containerInitializerAnnotationHandlers.add(new ContainerInitializerAnnotationHandler(initializer,c));
+          }
+        }
+      }
+ else       if (LOG.isDebugEnabled())       LOG.debug("No classes in HandlesTypes on initializer " + service.getClass());
+    }
+ else     if (LOG.isDebugEnabled())     LOG.debug("No annotation on initializer " + service.getClass());
+  }
+  ServletContainerInitializerListener listener=new ServletContainerInitializerListener();
+  listener.setWebAppContext(context);
+  context.addEventListener(listener);
+}

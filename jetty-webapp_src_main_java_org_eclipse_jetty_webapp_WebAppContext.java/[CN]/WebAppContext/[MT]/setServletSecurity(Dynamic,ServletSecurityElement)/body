@@ -1,0 +1,37 @@
+{
+  Set<String> unchangedURLMappings=new HashSet<String>();
+  Collection<String> pathMappings=registration.getMappings();
+  if (pathMappings != null) {
+    Constraint constraint=ConstraintSecurityHandler.createConstraint(registration.getName(),servletSecurityElement);
+    for (    String pathSpec : pathMappings) {
+      Origin origin=getMetaData().getOrigin("constraint.url." + pathSpec);
+switch (origin) {
+case NotSet:
+{
+          List<ConstraintMapping> mappings=ConstraintSecurityHandler.createConstraintsWithMappingsForPath(registration.getName(),pathSpec,servletSecurityElement);
+          for (          ConstraintMapping m : mappings)           ((ConstraintAware)getSecurityHandler()).addConstraintMapping(m);
+          getMetaData().setOrigin("constraint.url." + pathSpec,Origin.API);
+          break;
+        }
+case WebXml:
+case WebDefaults:
+case WebOverride:
+case WebFragment:
+{
+        unchangedURLMappings.add(pathSpec);
+        break;
+      }
+case Annotation:
+case API:
+{
+      List<ConstraintMapping> constraintMappings=ConstraintSecurityHandler.removeConstraintMappingsForPath(pathSpec,((ConstraintAware)getSecurityHandler()).getConstraintMappings());
+      List<ConstraintMapping> freshMappings=ConstraintSecurityHandler.createConstraintsWithMappingsForPath(registration.getName(),pathSpec,servletSecurityElement);
+      constraintMappings.addAll(freshMappings);
+      ((ConstraintSecurityHandler)getSecurityHandler()).setConstraintMappings(constraintMappings);
+      break;
+    }
+}
+}
+}
+return unchangedURLMappings;
+}

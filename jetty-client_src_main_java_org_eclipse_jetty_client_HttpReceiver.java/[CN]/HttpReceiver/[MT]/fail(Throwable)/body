@@ -2,11 +2,14 @@
   HttpExchange exchange=connection.getExchange();
   if (exchange == null)   return;
   parser.close();
-  failed=true;
+  state=State.FAILURE;
   HttpResponse response=exchange.response();
   LOG.debug("Failed {} {}",response,failure);
   Result result=exchange.responseComplete(failure);
   HttpConversation conversation=exchange.conversation();
   notifier.notifyFailure(conversation.listener(),response,failure);
-  if (result != null)   notifier.notifyComplete(conversation.listener(),result);
+  if (result != null) {
+    notifier.notifyComplete(conversation.listener(),result);
+    reset();
+  }
 }

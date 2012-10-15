@@ -13,7 +13,12 @@
         getEndPoint().fillInterested(null,block);
         LOG.debug("{} block readable on {}",this,block);
         block.get();
-        if (_requestBuffer == null)         _requestBuffer=_bufferPool.acquire(getInputBufferSize(),false);
+        if (_requestBuffer == null) {
+          long content_length=_channel.getRequest().getContentLength();
+          int size=getInputBufferSize();
+          if (size < content_length)           size=size * 4;
+          _requestBuffer=_bufferPool.acquire(size,false);
+        }
         int filled=getEndPoint().fill(_requestBuffer);
         LOG.debug("{} block filled {}",this,filled);
         if (filled < 0) {

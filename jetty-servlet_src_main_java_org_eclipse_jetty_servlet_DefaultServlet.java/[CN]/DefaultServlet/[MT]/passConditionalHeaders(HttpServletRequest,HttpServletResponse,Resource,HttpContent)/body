@@ -3,13 +3,14 @@
     if (!HttpMethod.HEAD.is(request.getMethod())) {
       String ifms=request.getHeader(HttpHeader.IF_MODIFIED_SINCE.asString());
       if (ifms != null) {
+        Response r=Response.getResponse(response);
         if (content != null) {
           String mdlm=content.getLastModified();
           if (mdlm != null) {
             if (ifms.equals(mdlm)) {
-              response.reset();
-              response.setStatus(HttpServletResponse.SC_NOT_MODIFIED);
-              response.flushBuffer();
+              r.reset(true);
+              r.setStatus(HttpServletResponse.SC_NOT_MODIFIED);
+              r.flushBuffer();
               return false;
             }
           }
@@ -17,9 +18,9 @@
         long ifmsl=request.getDateHeader(HttpHeader.IF_MODIFIED_SINCE.asString());
         if (ifmsl != -1) {
           if (resource.lastModified() / 1000 <= ifmsl / 1000) {
-            response.reset();
-            response.setStatus(HttpServletResponse.SC_NOT_MODIFIED);
-            response.flushBuffer();
+            r.reset(true);
+            r.setStatus(HttpServletResponse.SC_NOT_MODIFIED);
+            r.flushBuffer();
             return false;
           }
         }

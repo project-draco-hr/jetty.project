@@ -3,8 +3,8 @@
   setCurrentConnection(this);
   try {
     while (true) {
-      boolean event=_parser.parseNext(_requestBuffer == null ? BufferUtil.EMPTY_BUFFER : _requestBuffer);
-      if (!event && BufferUtil.isEmpty(_requestBuffer)) {
+      boolean call_channel=_parser.parseNext(_requestBuffer == null ? BufferUtil.EMPTY_BUFFER : _requestBuffer);
+      if (!call_channel && BufferUtil.isEmpty(_requestBuffer)) {
         if (_requestBuffer == null)         _requestBuffer=_bufferPool.acquire(getInputBufferSize(),false);
         int filled=getEndPoint().fill(_requestBuffer);
         if (filled == 0)         filled=getEndPoint().fill(_requestBuffer);
@@ -21,21 +21,14 @@
           releaseRequestBuffer();
           return;
         }
-        event=_parser.parseNext(_requestBuffer);
+        call_channel=_parser.parseNext(_requestBuffer);
       }
-      if (event) {
+      if (call_channel) {
         while (_parser.inContentState()) {
           if (!_parser.parseNext(_requestBuffer == null ? BufferUtil.EMPTY_BUFFER : _requestBuffer))           break;
         }
-        _channel.run();
-        if (_channel.getState().isSuspending()) {
-          if (_channel.getRequest().getHttpInput().available() == 0)           releaseRequestBuffer();
-          return;
-        }
-        if (getEndPoint().getConnection() != this) {
-          releaseRequestBuffer();
-          return;
-        }
+        getExecutor().execute(_channelRunner);
+        return;
       }
     }
   }

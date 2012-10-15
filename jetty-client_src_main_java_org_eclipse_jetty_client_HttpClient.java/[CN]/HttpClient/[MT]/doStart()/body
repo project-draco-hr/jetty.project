@@ -1,13 +1,22 @@
 {
-  if (sslContextFactory != null)   addBean(sslContextFactory);
-  if (executor == null)   executor=new QueuedThreadPool();
+  if (sslContextFactory != null) {
+    addBean(sslContextFactory);
+    setDispatchIO(false);
+  }
+  String name=HttpClient.class.getSimpleName() + "@" + hashCode();
+  if (executor == null) {
+    QueuedThreadPool threadPool=new QueuedThreadPool();
+    threadPool.setName(name);
+    executor=threadPool;
+  }
   addBean(executor);
   if (byteBufferPool == null)   byteBufferPool=new MappedByteBufferPool();
   addBean(byteBufferPool);
-  if (scheduler == null)   scheduler=new TimerScheduler();
+  if (scheduler == null)   scheduler=new TimerScheduler(name + "-scheduler");
   addBean(scheduler);
   selectorManager=newSelectorManager();
   addBean(selectorManager);
+  handlers.add(new ContinueProtocolHandler(this));
   handlers.add(new RedirectProtocolHandler(this));
   handlers.add(new AuthenticationProtocolHandler(this));
   decoderFactories.add(new GZIPContentDecoder.Factory());

@@ -3,7 +3,13 @@
   if (context.getWebInf() != null) {
     Resource classesDir=context.getWebInf().addPath("classes/");
     if (classesDir.exists()) {
-      clearAnnotationList(parser.getAnnotationHandlers());
+      parser.clearHandlers();
+      for (      DiscoverableAnnotationHandler h : _discoverableAnnotationHandlers) {
+        if (h instanceof AbstractDiscoverableAnnotationHandler)         ((AbstractDiscoverableAnnotationHandler)h).setResource(null);
+      }
+      parser.registerHandlers(_discoverableAnnotationHandlers);
+      parser.registerHandler(_classInheritanceHandler);
+      parser.registerHandlers(_containerInitializerAnnotationHandlers);
       parser.parse(classesDir,new ClassNameResolver(){
         public boolean isExcluded(        String name){
           if (context.isSystemClass(name))           return true;
@@ -16,9 +22,6 @@
         }
       }
 );
-      List<DiscoveredAnnotation> annotations=new ArrayList<DiscoveredAnnotation>();
-      gatherAnnotations(annotations,parser.getAnnotationHandlers());
-      context.getMetaData().addDiscoveredAnnotations(annotations);
     }
   }
 }

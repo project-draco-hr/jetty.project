@@ -1,0 +1,16 @@
+{
+  if (websocket == null) {
+    throw new InvalidWebSocketException("null websocket object");
+  }
+  if (websocket instanceof WebSocketListener) {
+    WebSocketPolicy pojoPolicy=policy.clonePolicy();
+    WebSocketListener listener=(WebSocketListener)websocket;
+    return new ListenerEventDriver(pojoPolicy,listener);
+  }
+  EventMethods methods=getMethods(websocket.getClass());
+  if (methods != null) {
+    WebSocketPolicy pojoPolicy=policy.clonePolicy();
+    return new AnnotatedEventDriver(pojoPolicy,websocket,methods);
+  }
+  throw new InvalidWebSocketException(websocket.getClass().getName() + " does not implement " + WebSocketListener.class.getName()+ " or declare @WebSocket");
+}

@@ -1,9 +1,22 @@
 {
-  Map<String,RoleInfo> mappings=_constraintMap.match(pathInContext);
+  Map<String,RoleInfo> mappings=(Map<String,RoleInfo>)_constraintMap.match(pathInContext);
   if (mappings != null) {
     String httpMethod=request.getMethod();
     RoleInfo roleInfo=mappings.get(httpMethod);
-    if (roleInfo == null)     roleInfo=mappings.get(ALL_METHODS);
+    if (roleInfo == null) {
+      List<RoleInfo> applicableConstraints=new ArrayList<RoleInfo>();
+      RoleInfo all=mappings.get(ALL_METHODS);
+      if (all != null)       applicableConstraints.add(all);
+      for (      Entry<String,RoleInfo> entry : mappings.entrySet()) {
+        if (entry.getKey() != null && entry.getKey().contains(OMISSION_SUFFIX) && !(httpMethod + OMISSION_SUFFIX).equals(entry.getKey()))         applicableConstraints.add(entry.getValue());
+      }
+      if (applicableConstraints.size() == 1)       roleInfo=applicableConstraints.get(0);
+ else {
+        roleInfo=new RoleInfo();
+        roleInfo.setUserDataConstraint(UserDataConstraint.None);
+        for (        RoleInfo r : applicableConstraints)         roleInfo.combine(r);
+      }
+    }
     return roleInfo;
   }
   return null;

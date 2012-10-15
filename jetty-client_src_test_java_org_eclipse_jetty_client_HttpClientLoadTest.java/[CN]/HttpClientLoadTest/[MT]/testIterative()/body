@@ -2,10 +2,13 @@
   start(new LoadHandler());
   client.setMaxConnectionsPerAddress(32768);
   client.setMaxQueueSizePerAddress(1024 * 1024);
+  client.setDispatchIO(false);
   Random random=new Random();
   int iterations=200;
   CountDownLatch latch=new CountDownLatch(iterations);
   List<String> failures=new ArrayList<>();
+  int factor=logger.isDebugEnabled() ? 25 : 1;
+  factor*="http".equalsIgnoreCase(scheme) ? 10 : 1000;
   final Thread testThread=Thread.currentThread();
   client.getScheduler().schedule(new Runnable(){
     @Override public void run(){
@@ -20,7 +23,7 @@
       testThread.interrupt();
     }
   }
-,iterations * ("http".equalsIgnoreCase(scheme) ? 10 : 1000),TimeUnit.MILLISECONDS);
+,iterations * factor,TimeUnit.MILLISECONDS);
   long begin=System.nanoTime();
   for (int i=0; i < iterations; ++i) {
     test(random,latch,failures);

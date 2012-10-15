@@ -9,11 +9,11 @@
     String[] keywords=request.getParameter(ITEMS_PARAM).split(",");
     final AtomicInteger outstanding=new AtomicInteger(keywords.length);
     for (    final String item : keywords) {
-      _client.send(new AsyncRestRequest(item){
-        void onAuctionFound(        Map<String,String> auction){
+      _client.newRequest(restURL(item)).method(HttpMethod.GET).send(new AsyncRestRequest(){
+        @Override void onAuctionFound(        Map<String,String> auction){
           resultsQueue.add(auction);
         }
-        void onComplete(){
+        @Override void onComplete(){
           if (outstanding.decrementAndGet() <= 0)           async.dispatch();
         }
       }

@@ -35,12 +35,13 @@ synchronized (session) {
       }
       return AuthStatus.SEND_FAILURE;
     }
-    FormCredential form_cred=(FormCredential)session.getAttribute(__J_AUTHENTICATED);
-    if (form_cred != null) {
-      if (form_cred._subject == null)       return AuthStatus.SEND_FAILURE;
-      Set<Object> credentials=form_cred._subject.getPrivateCredentials();
+    SessionAuthentication sessionAuth=(SessionAuthentication)session.getAttribute(SessionAuthentication.__J_AUTHENTICATED);
+    if (sessionAuth != null) {
+      if (sessionAuth.getUserIdentity().getSubject() == null)       return AuthStatus.SEND_FAILURE;
+      Set<Object> credentials=sessionAuth.getUserIdentity().getSubject().getPrivateCredentials();
       if (credentials == null || credentials.isEmpty())       return AuthStatus.SEND_FAILURE;
       clientSubject.getPrivateCredentials().addAll(credentials);
+      clientSubject.getPrivateCredentials().add(sessionAuth.getUserIdentity());
       return AuthStatus.SUCCESS;
     }
  else     if (ssoSource != null) {
