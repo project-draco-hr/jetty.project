@@ -4,22 +4,19 @@
   }
   String lowername=name.toLowerCase();
   File file=new File(dir,name);
-  if (!file.isDirectory() && !lowername.endsWith(".war")) {
-    return false;
-  }
   if (lowername.startsWith("."))   return false;
   if (file.isDirectory()) {
-    if (new File(dir,name + ".war").exists() || new File(dir,name + ".WAR").exists())     return false;
+    if (lowername.endsWith(".d"))     return false;
+    if (exists(name + ".war") || exists(name + ".WAR"))     return false;
+    if (exists(name + ".xml") || exists(name + ".XML"))     return false;
     if ("cvs".equals(lowername) || "cvsroot".equals(lowername))     return false;
+    return true;
   }
-  if (_contexts != null) {
-    String context=name;
-    if (!file.isDirectory()) {
-      context=context.substring(0,context.length() - 4);
-    }
-    if (new File(_contexts,context + ".xml").exists() || new File(_contexts,context + ".XML").exists()) {
-      return false;
-    }
+  if (lowername.endsWith(".war")) {
+    String base=name.substring(0,name.length() - 4);
+    if (exists(base + ".xml") || exists(base + ".XML"))     return false;
+    return true;
   }
-  return true;
+  if (lowername.endsWith(".xml"))   return true;
+  return false;
 }

@@ -3,7 +3,13 @@
   File file=resource.getFile();
   if (!resource.exists())   throw new IllegalStateException("App resouce does not exist " + resource);
   String context=file.getName();
-  if (file.isDirectory()) {
+  if (resource.exists() && FileID.isXmlFile(file)) {
+    XmlConfiguration xmlc=new XmlConfiguration(resource.getURL());
+    xmlc.getIdMap().put("Server",getDeploymentManager().getServer());
+    if (getConfigurationManager() != null)     xmlc.getProperties().putAll(getConfigurationManager().getProperties());
+    return (ContextHandler)xmlc.configure();
+  }
+ else   if (file.isDirectory()) {
   }
  else   if (FileID.isWebArchiveFile(file)) {
     context=context.substring(0,context.length() - 4);
