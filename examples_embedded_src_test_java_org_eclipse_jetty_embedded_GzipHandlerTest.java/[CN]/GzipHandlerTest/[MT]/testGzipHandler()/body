@@ -1,0 +1,16 @@
+{
+  HttpTester.Request request=HttpTester.newRequest();
+  HttpTester.Response response;
+  request.setMethod("GET");
+  request.setVersion("HTTP/1.0");
+  request.setHeader("Host","tester");
+  request.setHeader("accept-encoding","gzip");
+  request.setURI("/");
+  response=HttpTester.parseResponse(_connector.getResponses(request.generate()));
+  assertTrue(response.get("Content-Encoding").equalsIgnoreCase("gzip"));
+  assertEquals(HttpServletResponse.SC_OK,response.getStatus());
+  InputStream testIn=new GZIPInputStream(new ByteArrayInputStream(response.getContentBytes()));
+  ByteArrayOutputStream testOut=new ByteArrayOutputStream();
+  IO.copy(testIn,testOut);
+  assertEquals(__content,testOut.toString("UTF8"));
+}
