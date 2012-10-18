@@ -22,16 +22,23 @@
     }
   }
 );
-  byte[] content=new byte[1024];
-  final CountDownLatch latch=new CountDownLatch(1);
-  client.newRequest("localhost",connector.getLocalPort()).scheme(scheme).header(HttpHeader.EXPECT.asString(),HttpHeaderValue.CONTINUE.asString()).content(new BytesContentProvider(content)).send(new BufferingResponseListener(){
-    @Override public void onComplete(    Result result){
-      Assert.assertTrue(result.isFailed());
-      Assert.assertNotNull(result.getRequestFailure());
-      Assert.assertNotNull(result.getResponseFailure());
-      latch.countDown();
+  try {
+    Log.getLogger(HttpChannel.class).info("Expecting Close warning...");
+    ((StdErrLog)Log.getLogger(HttpChannel.class)).setHideStacks(true);
+    byte[] content=new byte[1024];
+    final CountDownLatch latch=new CountDownLatch(1);
+    client.newRequest("localhost",connector.getLocalPort()).scheme(scheme).header(HttpHeader.EXPECT.asString(),HttpHeaderValue.CONTINUE.asString()).content(new BytesContentProvider(content)).send(new BufferingResponseListener(){
+      @Override public void onComplete(      Result result){
+        Assert.assertTrue(result.isFailed());
+        Assert.assertNotNull(result.getRequestFailure());
+        Assert.assertNotNull(result.getResponseFailure());
+        latch.countDown();
+      }
     }
-  }
 );
-  Assert.assertTrue(latch.await(5,TimeUnit.SECONDS));
+    Assert.assertTrue(latch.await(5,TimeUnit.SECONDS));
+  }
+  finally {
+    ((StdErrLog)Log.getLogger(HttpChannel.class)).setHideStacks(false);
+  }
 }
