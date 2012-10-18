@@ -1,6 +1,15 @@
 {
-  _changes.offer(change);
-  LOG.debug("Queued change {}",change);
-  boolean wakeup=_needsWakeup;
-  if (wakeup)   wakeup();
+  if (_thread == Thread.currentThread()) {
+    if (_runningChanges)     _changes.offer(change);
+ else {
+      runChanges();
+      runChange(change);
+    }
+  }
+ else {
+    _changes.offer(change);
+    LOG.debug("Queued change {}",change);
+    boolean wakeup=_needsWakeup;
+    if (wakeup)     wakeup();
+  }
 }
