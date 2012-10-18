@@ -14,6 +14,7 @@
     }
     content=httpContent.getDirectBuffer();
     if (content == null)     content=httpContent.getIndirectBuffer();
+    if (content == null)     content=httpContent.getReadableByteChannel();
     if (content == null)     content=httpContent.getInputStream();
   }
  else   if (content instanceof Resource) {
@@ -24,8 +25,43 @@
   if (content instanceof ByteBuffer) {
     _channel.write((ByteBuffer)content,true);
   }
- else   if (content instanceof InputStream) {
-    throw new IllegalArgumentException("not implemented!");
+ else   if (content instanceof ReadableByteChannel) {
+    ReadableByteChannel channel=(ReadableByteChannel)content;
+    ByteBuffer buffer=_channel.getByteBufferPool().acquire(getBufferSize(),true);
+    try {
+      while (channel.isOpen()) {
+        int pos=BufferUtil.flipToFill(buffer);
+        int len=channel.read(buffer);
+        if (len < 0)         break;
+        BufferUtil.flipToFlush(buffer,pos);
+        _channel.write(buffer,false);
+      }
+    }
+  finally {
+      close();
+      _channel.getByteBufferPool().release(buffer);
+    }
   }
- else   throw new IllegalArgumentException("unknown content type?");
+ else   if (content instanceof InputStream) {
+    InputStream in=(InputStream)content;
+    ByteBuffer buffer=_channel.getByteBufferPool().acquire(getBufferSize(),false);
+    byte[] array=buffer.array();
+    int offset=buffer.arrayOffset();
+    int size=array.length - offset;
+    try {
+      while (true) {
+        int len=in.read(array,offset,size);
+        if (len < 0)         break;
+        buffer.position(0);
+        buffer.limit(len);
+        _channel.write(buffer,false);
+      }
+      _channel.write(BufferUtil.EMPTY_BUFFER,true);
+    }
+  finally {
+      close();
+      _channel.getByteBufferPool().release(buffer);
+    }
+  }
+ else   throw new IllegalArgumentException("unknown content type " + content.getClass());
 }
