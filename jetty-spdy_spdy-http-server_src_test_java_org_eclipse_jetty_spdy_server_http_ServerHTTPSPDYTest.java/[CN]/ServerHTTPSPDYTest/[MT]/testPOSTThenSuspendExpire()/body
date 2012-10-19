@@ -1,30 +1,22 @@
 {
-  final byte[] data=new byte[2000];
-  final CountDownLatch latch=new CountDownLatch(1);
+  final CountDownLatch dispatchedAgainAfterExpire=new CountDownLatch(1);
   Session session=startClient(version,startHTTPServer(version,new AbstractHandler(){
     @Override public void handle(    String target,    final Request request,    HttpServletRequest httpRequest,    HttpServletResponse httpResponse) throws IOException, ServletException {
       request.setHandled(true);
       final Continuation continuation=ContinuationSupport.getContinuation(request);
-      continuation.suspend();
-      new Thread(){
-        @Override public void run(){
-          try {
-            readRequestData(request,data.length);
-            continuation.complete();
-            latch.countDown();
-          }
- catch (          IOException x) {
-            x.printStackTrace();
-          }
-        }
+      if (continuation.isInitial()) {
+        continuation.setTimeout(1000);
+        continuation.suspend();
       }
-.start();
+ else {
+        dispatchedAgainAfterExpire.countDown();
+      }
     }
   }
 ),null);
   Fields headers=createHeaders("POST");
   final CountDownLatch replyLatch=new CountDownLatch(1);
-  Stream stream=session.syn(new SynInfo(headers,false),new StreamFrameListener.Adapter(){
+  session.syn(new SynInfo(headers,false),new StreamFrameListener.Adapter(){
     @Override public void onReply(    Stream stream,    ReplyInfo replyInfo){
       Fields replyHeaders=replyInfo.getHeaders();
       Assert.assertTrue(replyHeaders.get(HTTPSPDYHeader.STATUS.name(version)).value().contains("200"));
@@ -32,7 +24,6 @@
     }
   }
 ).get(5,TimeUnit.SECONDS);
-  stream.data(new BytesDataInfo(data,true));
-  Assert.assertTrue(latch.await(5,TimeUnit.SECONDS));
-  Assert.assertTrue(replyLatch.await(5,TimeUnit.SECONDS));
+  Assert.assertTrue("Not dispatched again after expire",dispatchedAgainAfterExpire.await(5,TimeUnit.SECONDS));
+  Assert.assertTrue("Reply not sent",replyLatch.await(5,TimeUnit.SECONDS));
 }
