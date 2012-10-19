@@ -3,14 +3,10 @@
   final boolean new_context=baseRequest.takeNewContext();
   try {
     if (new_context) {
-      if (_requestAttributeListeners != null) {
-        final int s=LazyList.size(_requestAttributeListeners);
-        for (int i=0; i < s; i++)         baseRequest.addEventListener(((EventListener)LazyList.get(_requestAttributeListeners,i)));
-      }
-      if (_requestListeners != null) {
-        final int s=LazyList.size(_requestListeners);
+      if (!_requestAttributeListeners.isEmpty())       for (      ServletRequestAttributeListener l : _requestAttributeListeners)       baseRequest.addEventListener(l);
+      if (!_requestListeners.isEmpty()) {
         final ServletRequestEvent sre=new ServletRequestEvent(_scontext,request);
-        for (int i=0; i < s; i++)         ((ServletRequestListener)LazyList.get(_requestListeners,i)).requestInitialized(sre);
+        for (        ServletRequestListener l : _requestListeners)         l.requestInitialized(sre);
       }
     }
     if (DispatcherType.REQUEST.equals(dispatch) && isProtectedTarget(target)) {
@@ -24,12 +20,16 @@
   }
   finally {
     if (new_context) {
-      if (_requestListeners != null) {
+      if (!_requestListeners.isEmpty()) {
         final ServletRequestEvent sre=new ServletRequestEvent(_scontext,request);
-        for (int i=LazyList.size(_requestListeners); i-- > 0; )         ((ServletRequestListener)LazyList.get(_requestListeners,i)).requestDestroyed(sre);
+        ListIterator<ServletRequestListener> iter=_requestListeners.listIterator(_requestListeners.size());
+        while (iter.hasNext())         iter.next();
+        while (iter.hasPrevious())         iter.previous().requestDestroyed(sre);
       }
-      if (_requestAttributeListeners != null) {
-        for (int i=LazyList.size(_requestAttributeListeners); i-- > 0; )         baseRequest.removeEventListener(((EventListener)LazyList.get(_requestAttributeListeners,i)));
+      if (!_requestAttributeListeners.isEmpty()) {
+        ListIterator<ServletRequestAttributeListener> iter=_requestAttributeListeners.listIterator(_requestAttributeListeners.size());
+        while (iter.hasNext())         iter.next();
+        while (iter.hasPrevious())         baseRequest.removeEventListener(iter.previous());
       }
     }
   }
