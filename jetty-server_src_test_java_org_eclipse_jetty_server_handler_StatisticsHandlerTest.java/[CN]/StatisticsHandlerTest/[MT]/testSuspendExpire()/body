@@ -1,5 +1,5 @@
 {
-  final AtomicReference<Continuation> continuationHandle=new AtomicReference<Continuation>();
+  final AtomicReference<AsyncContext> asyncHolder=new AtomicReference<>();
   final CyclicBarrier barrier[]={new CyclicBarrier(2),new CyclicBarrier(2),new CyclicBarrier(2)};
   _statsHandler.setHandler(new AbstractHandler(){
     @Override public void handle(    String path,    Request request,    HttpServletRequest httpRequest,    HttpServletResponse httpResponse) throws IOException, ServletException {
@@ -7,11 +7,10 @@
       try {
         barrier[0].await();
         Thread.sleep(10);
-        Continuation continuation=ContinuationSupport.getContinuation(httpRequest);
-        if (continuationHandle.get() == null) {
-          continuation.setTimeout(100);
-          continuation.suspend();
-          continuationHandle.set(continuation);
+        if (asyncHolder.get() == null) {
+          AsyncContext async=request.startAsync();
+          async.setTimeout(100);
+          asyncHolder.set(async);
         }
       }
  catch (      Exception x) {
@@ -41,13 +40,16 @@
   assertEquals(1,_statsHandler.getDispatched());
   assertEquals(1,_statsHandler.getDispatchedActive());
   barrier[1].await();
-  assertTrue(_latchHandler.await(1000));
-  assertNotNull(continuationHandle.get());
-  assertTrue(continuationHandle.get().isSuspended());
-  continuationHandle.get().addContinuationListener(new ContinuationListener(){
-    @Override public void onTimeout(    Continuation continuation){
+  assertTrue(_latchHandler.await());
+  assertNotNull(asyncHolder.get());
+  asyncHolder.get().addListener(new AsyncListener(){
+    @Override public void onTimeout(    AsyncEvent event) throws IOException {
     }
-    @Override public void onComplete(    Continuation continuation){
+    @Override public void onStartAsync(    AsyncEvent event) throws IOException {
+    }
+    @Override public void onError(    AsyncEvent event) throws IOException {
+    }
+    @Override public void onComplete(    AsyncEvent event) throws IOException {
       try {
         barrier[2].await();
       }
@@ -60,29 +62,17 @@
   assertEquals(1,_statsHandler.getRequestsActive());
   assertEquals(1,_statsHandler.getDispatched());
   assertEquals(0,_statsHandler.getDispatchedActive());
-  _latchHandler.reset();
-  barrier[0].reset();
-  barrier[1].reset();
-  barrier[0].await();
-  assertEquals(1,_statsHandler.getRequests());
-  assertEquals(1,_statsHandler.getRequestsActive());
-  assertEquals(2,_statsHandler.getDispatched());
-  assertEquals(1,_statsHandler.getDispatchedActive());
-  barrier[1].await();
-  assertTrue(_latchHandler.await(1000));
   barrier[2].await();
   assertEquals(1,_statsHandler.getRequests());
   assertEquals(0,_statsHandler.getRequestsActive());
-  assertEquals(2,_statsHandler.getDispatched());
+  assertEquals(1,_statsHandler.getDispatched());
   assertEquals(0,_statsHandler.getDispatchedActive());
-  assertEquals(1,_statsHandler.getSuspends());
-  assertEquals(1,_statsHandler.getResumes());
+  assertEquals(1,_statsHandler.getAsyncRequests());
+  assertEquals(0,_statsHandler.getAsyncDispatches());
   assertEquals(1,_statsHandler.getExpires());
   assertEquals(1,_statsHandler.getResponses2xx());
   assertTrue(_statsHandler.getRequestTimeTotal() >= 30);
   assertEquals(_statsHandler.getRequestTimeTotal(),_statsHandler.getRequestTimeMax());
   assertEquals(_statsHandler.getRequestTimeTotal(),_statsHandler.getRequestTimeMean(),0.01);
-  assertTrue(_statsHandler.getDispatchedTimeTotal() >= 20);
-  assertTrue(_statsHandler.getDispatchedTimeMean() + 10 <= _statsHandler.getDispatchedTimeTotal());
-  assertTrue(_statsHandler.getDispatchedTimeMax() + 10 <= _statsHandler.getDispatchedTimeTotal());
+  assertThat(_statsHandler.getDispatchedTimeTotal(),greaterThanOrEqualTo(10L));
 }

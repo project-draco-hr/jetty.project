@@ -4,7 +4,7 @@
     response.sendError(503);
     return;
   }
-  Member member=room.get(username);
+  final Member member=room.get(username);
   if (member == null) {
     response.sendError(503);
     return;
@@ -30,18 +30,33 @@ synchronized (member) {
       response.setContentLength(bytes.length);
       response.getOutputStream().write(bytes);
     }
+ else     if (request.getDispatcherType() == DispatcherType.ASYNC) {
+      response.setContentType("text/json;charset=utf-8");
+      PrintWriter out=response.getWriter();
+      out.print("{action:\"poll\"}");
+    }
  else {
-      Continuation continuation=ContinuationSupport.getContinuation(request);
-      if (continuation.isInitial()) {
-        continuation.setTimeout(20000);
-        continuation.suspend();
-        member._continuation=continuation;
+      AsyncContext async=request.startAsync();
+      async.setTimeout(20000);
+      async.addListener(new AsyncListener(){
+        @Override public void onTimeout(        AsyncEvent event) throws IOException {
+        }
+        @Override public void onStartAsync(        AsyncEvent event) throws IOException {
+          AsyncContext async=member._async.get();
+          if (member._async.compareAndSet(async,null)) {
+            HttpServletResponse response=(HttpServletResponse)async.getResponse();
+            response.setContentType("text/json;charset=utf-8");
+            PrintWriter out=response.getWriter();
+            out.print("{action:\"poll\"}");
+          }
+        }
+        @Override public void onError(        AsyncEvent event) throws IOException {
+        }
+        @Override public void onComplete(        AsyncEvent event) throws IOException {
+        }
       }
- else {
-        response.setContentType("text/json;charset=utf-8");
-        PrintWriter out=response.getWriter();
-        out.print("{action:\"poll\"}");
-      }
+);
+      member._async.compareAndSet(null,async);
     }
   }
 }

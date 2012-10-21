@@ -11,11 +11,6 @@
     response.sendError(Integer.parseInt(request.getParameter("error")));
     return;
   }
-  if (request.getParameter("continue") != null) {
-    Continuation continuation=ContinuationSupport.getContinuation(request,response);
-    continuation.setTimeout(Long.parseLong(request.getParameter("continue")));
-    continuation.suspend();
-  }
   baseRequest.setHandled(true);
   response.setHeader(HttpHeader.CONTENT_TYPE.asString(),MimeTypes.Type.TEXT_HTML.asString());
   OutputStream out=response.getOutputStream();
@@ -27,16 +22,16 @@
   writer.write("<pre>\nencoding=" + request.getCharacterEncoding() + "\n</pre>\n");
   writer.write("<h3>Header:</h3><pre>");
   writer.write(request.getMethod() + " " + request.getRequestURI()+ " "+ request.getProtocol()+ "\n");
-  Enumeration headers=request.getHeaderNames();
+  Enumeration<String> headers=request.getHeaderNames();
   while (headers.hasMoreElements()) {
-    String name=(String)headers.nextElement();
+    String name=headers.nextElement();
     writer.write(name);
     writer.write(": ");
     writer.write(request.getHeader(name));
     writer.write("\n");
   }
   writer.write("</pre>\n<h3>Parameters:</h3>\n<pre>");
-  Enumeration names=request.getParameterNames();
+  Enumeration<String> names=request.getParameterNames();
   while (names.hasMoreElements()) {
     String name=names.nextElement().toString();
     String[] values=request.getParameterValues(name);
