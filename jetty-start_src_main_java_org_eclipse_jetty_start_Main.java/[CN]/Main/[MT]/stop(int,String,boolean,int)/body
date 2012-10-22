@@ -11,11 +11,13 @@
       System.err.println("Using empty key");
     }
     Socket s=new Socket(InetAddress.getByName("127.0.0.1"),_port);
+    if (wait && timeout > 0)     s.setSoTimeout(timeout * 1000);
     try {
       OutputStream out=s.getOutputStream();
       out.write((_key + "\r\nstop\r\n").getBytes());
       out.flush();
       if (wait) {
+        System.err.println("Waiting" + (timeout > 0 ? (" " + timeout + "sec") : "") + " for jetty to stop");
         LineNumberReader lin=new LineNumberReader(new InputStreamReader(s.getInputStream()));
         String response=lin.readLine();
         if ("Stopped".equals(response))         System.err.println("Stopped");
@@ -25,7 +27,11 @@
       s.close();
     }
   }
- catch (  ConnectException e) {
+ catch (  SocketTimeoutException e) {
+    System.err.println("Timed out waiting for stop confirmation");
+    System.exit(ERR_UNKNOWN);
+  }
+catch (  ConnectException e) {
     usageExit(e,ERR_NOT_STOPPED);
   }
 catch (  Exception e) {
