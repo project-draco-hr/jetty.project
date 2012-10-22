@@ -1,14 +1,20 @@
 {
-  parser.reset();
-  state=State.SUCCESS;
   HttpExchange exchange=connection.getExchange();
+  if (exchange == null)   return false;
+  AtomicMarkableReference<Result> completion=exchange.responseComplete(null);
+  if (!completion.isMarked())   return false;
+  parser.reset();
+  decoder=null;
+  if (!updateState(State.RECEIVE,State.IDLE))   throw new IllegalStateException();
+  exchange.terminate();
   HttpResponse response=exchange.response();
+  Response.Listener listener=exchange.conversation().listener();
+  responseNotifier.notifySuccess(listener,response);
   LOG.debug("Received {}",response);
-  Result result=exchange.responseComplete(null);
-  HttpConversation conversation=exchange.conversation();
-  notifier.notifySuccess(conversation.listener(),response);
+  Result result=completion.getReference();
   if (result != null) {
-    notifier.notifyComplete(conversation.listener(),result);
-    reset();
+    connection.complete(exchange,!result.isFailed());
+    responseNotifier.notifyComplete(listener,result);
   }
+  return true;
 }

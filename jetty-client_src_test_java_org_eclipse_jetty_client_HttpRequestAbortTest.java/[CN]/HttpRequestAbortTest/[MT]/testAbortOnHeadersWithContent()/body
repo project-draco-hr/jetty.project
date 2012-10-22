@@ -13,10 +13,9 @@
     }
   }
 );
+  StdErrLog.getLogger(HttpChannel.class).setHideStacks(true);
   try {
-    Log.getLogger(HttpChannel.class).info("Excpecting java.nio.channels.ClosedChannelException...");
-    ((StdErrLog)Log.getLogger(HttpChannel.class)).setHideStacks(true);
-    ContentResponse response=client.newRequest("localhost",connector.getLocalPort()).scheme(scheme).listener(new Request.Listener.Empty(){
+    client.newRequest("localhost",connector.getLocalPort()).scheme(scheme).listener(new Request.Listener.Empty(){
       @Override public void onHeaders(      Request request){
         request.abort();
       }
@@ -27,8 +26,7 @@
       }
     }
 ).send().get(5,TimeUnit.SECONDS);
-    Assert.assertNotNull(failure.get());
-    assertEquals(500,response.status());
+    Assert.fail();
   }
  catch (  ExecutionException x) {
     Throwable cause=x.getCause();
@@ -39,11 +37,16 @@
       Request request=xx.getRequest();
       Assert.assertNotNull(request);
     }
+ else     if (cause instanceof HttpResponseException) {
+      HttpResponseException xx=(HttpResponseException)cause;
+      Response response=xx.getResponse();
+      Assert.assertNotNull(response);
+    }
  else {
       throw x;
     }
   }
  finally {
-    ((StdErrLog)Log.getLogger(HttpChannel.class)).setHideStacks(false);
+    StdErrLog.getLogger(HttpChannel.class).setHideStacks(false);
   }
 }

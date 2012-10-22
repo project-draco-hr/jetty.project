@@ -1,5 +1,5 @@
 {
-  Request request=result.getRequest();
+  final Request request=result.getRequest();
   HttpConversation conversation=client.getConversation(request.conversation());
   Integer redirects=(Integer)conversation.getAttribute(ATTRIBUTE);
   if (redirects == null)   redirects=0;
@@ -11,6 +11,12 @@
     redirect.version(request.version());
     for (    HttpFields.Field header : request.headers())     redirect.header(header.getName(),header.getValue());
     redirect.content(request.content());
+    redirect.listener(new Request.Listener.Empty(){
+      @Override public void onBegin(      Request redirect){
+        if (request.aborted())         redirect.abort();
+      }
+    }
+);
     redirect.send(new Response.Listener.Empty());
   }
  else {

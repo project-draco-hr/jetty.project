@@ -4,8 +4,8 @@
   ByteBuffer header=null;
   ByteBuffer chunk=null;
   try {
-    EndPoint endPoint=connection.getEndPoint();
     HttpExchange exchange=connection.getExchange();
+    if (exchange == null)     return;
     final Request request=exchange.request();
     HttpConversation conversation=client.getConversation(request.conversation());
     HttpGenerator.RequestInfo requestInfo=null;
@@ -13,9 +13,9 @@
     expect100&=conversation.getAttribute(EXPECT_100_ATTRIBUTE) == null;
     if (expect100)     conversation.setAttribute(EXPECT_100_ATTRIBUTE,Boolean.TRUE);
     ContentInfo contentInfo=this.expectedContent;
+    this.expectedContent=null;
     if (contentInfo == null)     contentInfo=new ContentInfo(contentIterator);
  else     expect100=false;
-    this.expectedContent=null;
     while (true) {
       HttpGenerator.Result result=generator.generateRequest(requestInfo,header,chunk,contentInfo.content,contentInfo.lastContent);
 switch (result) {
@@ -38,53 +38,56 @@ case NEED_CHUNK:
     }
 case FLUSH:
 {
-    if (request.aborted()) {
-      fail(new HttpRequestException("Request aborted",request));
+switch (state.get()) {
+case SEND:
+case COMMIT:
+      break;
+default :
+    return;
+}
+StatefulExecutorCallback callback=new StatefulExecutorCallback(client.getExecutor()){
+  @Override protected void pendingCompleted(){
+    LOG.debug("Write completed for {}",request);
+    if (!commit(request))     return;
+    if (expectedContent == null) {
+      send();
     }
  else {
-      StatefulExecutorCallback callback=new StatefulExecutorCallback(client.getExecutor()){
-        @Override protected void pendingCompleted(){
-          LOG.debug("Write completed for {}",request);
-          if (!committed)           committed(request);
-          if (expectedContent == null) {
-            send();
-          }
- else {
-            LOG.debug("Expecting 100 Continue for {}",request);
-            expectedContent.ready();
-          }
-        }
-        @Override protected void failed(        Throwable x){
-          fail(x);
-        }
-      }
-;
-      if (expect100) {
-        expectedContent=contentInfo;
-      }
-      write(callback,header,chunk,expect100 ? null : contentInfo.content);
-      if (callback.pending()) {
-        LOG.debug("Write pending for {}",request);
-        return;
-      }
-      if (callback.completed()) {
-        if (!committed)         committed(request);
-        if (expect100) {
-          LOG.debug("Expecting 100 Continue for {}",request);
-          expectedContent.ready();
-          return;
-        }
- else {
-          contentInfo=new ContentInfo(contentIterator);
-        }
-      }
+      LOG.debug("Expecting 100 Continue for {}",request);
+      expectedContent.ready();
     }
-    break;
   }
+  @Override protected void failed(  Throwable x){
+    fail(x);
+  }
+}
+;
+if (expect100) {
+  expectedContent=contentInfo;
+}
+write(callback,header,chunk,expect100 ? null : contentInfo.content);
+if (callback.pending()) {
+  LOG.debug("Write pending for {}",request);
+  return;
+}
+if (callback.completed()) {
+  if (!commit(request))   return;
+  if (expect100) {
+    LOG.debug("Expecting 100 Continue for {}",request);
+    expectedContent.ready();
+    return;
+  }
+ else {
+    contentInfo=new ContentInfo(contentIterator);
+  }
+}
+break;
+}
 case SHUTDOWN_OUT:
 {
-  endPoint.shutdownOutput();
-  break;
+EndPoint endPoint=connection.getEndPoint();
+endPoint.shutdownOutput();
+break;
 }
 case CONTINUE:
 {
@@ -92,7 +95,7 @@ break;
 }
 case DONE:
 {
-if (generator.isEnd() && !failed) success();
+if (generator.isEnd()) success();
 return;
 }
 default :

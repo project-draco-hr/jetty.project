@@ -1,0 +1,26 @@
+{
+  final long delay=1000;
+  start(new AbstractHandler(){
+    @Override public void handle(    String target,    org.eclipse.jetty.server.Request baseRequest,    HttpServletRequest request,    HttpServletResponse response) throws IOException, ServletException {
+      try {
+        baseRequest.setHandled(true);
+        TimeUnit.MILLISECONDS.sleep(2 * delay);
+      }
+ catch (      InterruptedException x) {
+        throw new ServletException(x);
+      }
+    }
+  }
+);
+  Request request=client.newRequest("localhost",connector.getLocalPort()).scheme(scheme);
+  Future<ContentResponse> future=request.send();
+  TimeUnit.MILLISECONDS.sleep(delay);
+  request.abort();
+  try {
+    future.get(5,TimeUnit.SECONDS);
+  }
+ catch (  ExecutionException x) {
+    Throwable cause=x.getCause();
+    Assert.assertTrue(cause instanceof HttpResponseException);
+  }
+}

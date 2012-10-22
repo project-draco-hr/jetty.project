@@ -1,9 +1,9 @@
 {
   startBasic(new EmptyServerHandler());
-  final AtomicInteger requests=new AtomicInteger();
+  final AtomicReference<CountDownLatch> requests=new AtomicReference<>(new CountDownLatch(2));
   Request.Listener.Empty requestListener=new Request.Listener.Empty(){
     @Override public void onSuccess(    Request request){
-      requests.incrementAndGet();
+      requests.get().countDown();
     }
   }
 ;
@@ -15,22 +15,21 @@
   ContentResponse response=request.send().get(5,TimeUnit.SECONDS);
   Assert.assertNotNull(response);
   Assert.assertEquals(200,response.status());
-  Assert.assertEquals(2,requests.get());
-  requests.set(0);
+  Assert.assertTrue(requests.get().await(5,TimeUnit.SECONDS));
   authenticationStore.removeAuthentication(authentication);
+  requests.set(new CountDownLatch(1));
   request=client.newRequest("localhost",connector.getLocalPort()).scheme(scheme).path("/secure");
   response=request.send().get(5,TimeUnit.SECONDS);
   Assert.assertNotNull(response);
   Assert.assertEquals(200,response.status());
-  Assert.assertEquals(1,requests.get());
-  requests.set(0);
+  Assert.assertTrue(requests.get().await(5,TimeUnit.SECONDS));
   Authentication.Result result=authenticationStore.findAuthenticationResult(request.uri());
   Assert.assertNotNull(result);
   authenticationStore.removeAuthenticationResult(result);
+  requests.set(new CountDownLatch(1));
   request=client.newRequest("localhost",connector.getLocalPort()).scheme(scheme).path("/secure");
   response=request.send().get(5,TimeUnit.SECONDS);
   Assert.assertNotNull(response);
   Assert.assertEquals(401,response.status());
-  Assert.assertEquals(1,requests.get());
-  requests.set(0);
+  Assert.assertTrue(requests.get().await(5,TimeUnit.SECONDS));
 }

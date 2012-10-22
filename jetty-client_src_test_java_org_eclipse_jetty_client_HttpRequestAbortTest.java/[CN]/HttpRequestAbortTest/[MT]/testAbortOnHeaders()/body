@@ -1,10 +1,19 @@
 {
   start(new EmptyServerHandler());
-  ContentResponse response=client.newRequest("localhost",connector.getLocalPort()).scheme(scheme).listener(new Request.Listener.Empty(){
-    @Override public void onHeaders(    Request request){
-      request.abort();
+  final CountDownLatch aborted=new CountDownLatch(1);
+  try {
+    ContentResponse response=client.newRequest("localhost",connector.getLocalPort()).scheme(scheme).listener(new Request.Listener.Empty(){
+      @Override public void onHeaders(      Request request){
+        if (request.abort())         aborted.countDown();
+      }
     }
-  }
 ).send().get(5,TimeUnit.SECONDS);
-  assertEquals(200,response.status());
+    Assert.assertEquals(200,response.status());
+    Assert.assertFalse(aborted.await(1,TimeUnit.SECONDS));
+  }
+ catch (  ExecutionException x) {
+    Throwable cause=x.getCause();
+    Assert.assertTrue(cause instanceof HttpResponseException);
+    Assert.assertTrue(aborted.await(5,TimeUnit.SECONDS));
+  }
 }

@@ -1,9 +1,9 @@
 {
   AuthenticationStore authenticationStore=client.getAuthenticationStore();
-  final AtomicInteger requests=new AtomicInteger();
+  final AtomicReference<CountDownLatch> requests=new AtomicReference<>(new CountDownLatch(1));
   Request.Listener.Empty requestListener=new Request.Listener.Empty(){
     @Override public void onSuccess(    Request request){
-      requests.incrementAndGet();
+      requests.get().countDown();
     }
   }
 ;
@@ -12,13 +12,13 @@
   ContentResponse response=request.send().get(5,TimeUnit.SECONDS);
   Assert.assertNotNull(response);
   Assert.assertEquals(401,response.status());
-  Assert.assertEquals(1,requests.get());
+  Assert.assertTrue(requests.get().await(5,TimeUnit.SECONDS));
   client.getRequestListeners().remove(requestListener);
-  requests.set(0);
   authenticationStore.addAuthentication(authentication);
+  requests.set(new CountDownLatch(2));
   requestListener=new Request.Listener.Empty(){
     @Override public void onSuccess(    Request request){
-      requests.incrementAndGet();
+      requests.get().countDown();
     }
   }
 ;
@@ -26,12 +26,12 @@
   response=request.send().get(5,TimeUnit.SECONDS);
   Assert.assertNotNull(response);
   Assert.assertEquals(200,response.status());
-  Assert.assertEquals(2,requests.get());
+  Assert.assertTrue(requests.get().await(5,TimeUnit.SECONDS));
   client.getRequestListeners().remove(requestListener);
-  requests.set(0);
+  requests.set(new CountDownLatch(1));
   requestListener=new Request.Listener.Empty(){
     @Override public void onSuccess(    Request request){
-      requests.incrementAndGet();
+      requests.get().countDown();
     }
   }
 ;
@@ -40,7 +40,6 @@
   response=request.send().get(5,TimeUnit.SECONDS);
   Assert.assertNotNull(response);
   Assert.assertEquals(200,response.status());
-  Assert.assertEquals(1,requests.get());
+  Assert.assertTrue(requests.get().await(5,TimeUnit.SECONDS));
   client.getRequestListeners().remove(requestListener);
-  requests.set(0);
 }

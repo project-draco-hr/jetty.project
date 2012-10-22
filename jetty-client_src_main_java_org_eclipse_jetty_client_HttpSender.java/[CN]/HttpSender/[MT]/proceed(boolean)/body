@@ -1,8 +1,14 @@
 {
   ContentInfo contentInfo=expectedContent;
   if (contentInfo != null) {
-    contentInfo.await();
-    if (proceed)     send();
- else     fail(new HttpRequestException("Expectation failed",connection.getExchange().request()));
+    if (proceed) {
+      LOG.debug("Proceeding {}",connection.getExchange());
+      contentInfo.await();
+      send();
+    }
+ else {
+      HttpExchange exchange=connection.getExchange();
+      if (exchange != null)       fail(new HttpRequestException("Expectation failed",exchange.request()));
+    }
   }
 }

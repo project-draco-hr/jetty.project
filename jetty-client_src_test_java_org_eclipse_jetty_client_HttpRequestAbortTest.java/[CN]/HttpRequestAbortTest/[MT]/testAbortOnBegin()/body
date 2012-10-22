@@ -1,22 +1,22 @@
 {
   start(new EmptyServerHandler());
-  final AtomicBoolean headers=new AtomicBoolean();
+  final CountDownLatch aborted=new CountDownLatch(1);
+  final CountDownLatch headers=new CountDownLatch(1);
   try {
     client.newRequest("localhost",connector.getLocalPort()).scheme(scheme).listener(new Request.Listener.Empty(){
       @Override public void onBegin(      Request request){
-        request.abort();
+        if (request.abort())         aborted.countDown();
       }
       @Override public void onHeaders(      Request request){
-        headers.set(true);
+        headers.countDown();
       }
     }
 ).send().get(5,TimeUnit.SECONDS);
-    fail();
+    Assert.fail();
   }
  catch (  ExecutionException x) {
-    HttpRequestException xx=(HttpRequestException)x.getCause();
-    Request request=xx.getRequest();
-    Assert.assertNotNull(request);
-    Assert.assertFalse(headers.get());
+    Assert.assertThat(x.getCause(),Matchers.instanceOf(HttpResponseException.class));
+    Assert.assertTrue(aborted.await(5,TimeUnit.SECONDS));
+    Assert.assertFalse(headers.await(1,TimeUnit.SECONDS));
   }
 }

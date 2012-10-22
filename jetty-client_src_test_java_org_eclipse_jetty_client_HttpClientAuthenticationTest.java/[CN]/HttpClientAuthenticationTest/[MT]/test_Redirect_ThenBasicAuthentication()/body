@@ -7,10 +7,10 @@
   }
 );
   client.getAuthenticationStore().addAuthentication(new BasicAuthentication(scheme + "://localhost:" + connector.getLocalPort(),realm,"basic","basic"));
-  final AtomicInteger requests=new AtomicInteger();
+  final CountDownLatch requests=new CountDownLatch(3);
   Request.Listener.Empty requestListener=new Request.Listener.Empty(){
     @Override public void onSuccess(    Request request){
-      requests.incrementAndGet();
+      requests.countDown();
     }
   }
 ;
@@ -18,6 +18,6 @@
   ContentResponse response=client.newRequest("localhost",connector.getLocalPort()).scheme(scheme).path("/redirect").send().get(5,TimeUnit.SECONDS);
   Assert.assertNotNull(response);
   Assert.assertEquals(200,response.status());
-  Assert.assertEquals(3,requests.get());
+  Assert.assertTrue(requests.await(5,TimeUnit.SECONDS));
   client.getRequestListeners().remove(requestListener);
 }

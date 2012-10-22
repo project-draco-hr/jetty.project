@@ -1,25 +1,28 @@
 {
-  state=State.RECEIVE;
-  HttpExchange exchange=connection.getExchange();
-  HttpConversation conversation=exchange.conversation();
-  HttpResponse response=exchange.response();
-  response.version(version).status(status).reason(reason);
-  Response.Listener currentListener=exchange.listener();
-  Response.Listener initialListener=conversation.exchanges().peekFirst().listener();
-  HttpClient client=connection.getHttpClient();
-  ProtocolHandler protocolHandler=client.findProtocolHandler(exchange.request(),response);
-  Response.Listener handlerListener=protocolHandler == null ? null : protocolHandler.getResponseListener();
-  if (handlerListener == null) {
-    conversation.last(exchange);
-    if (currentListener == initialListener)     conversation.listener(initialListener);
- else     conversation.listener(new DoubleResponseListener(currentListener,initialListener));
-  }
+  if (updateState(State.IDLE,State.RECEIVE)) {
+    HttpExchange exchange=connection.getExchange();
+    if (exchange != null) {
+      HttpConversation conversation=exchange.conversation();
+      HttpResponse response=exchange.response();
+      response.version(version).status(status).reason(reason);
+      Response.Listener currentListener=exchange.listener();
+      Response.Listener initialListener=conversation.exchanges().peekFirst().listener();
+      HttpClient client=connection.getHttpClient();
+      ProtocolHandler protocolHandler=client.findProtocolHandler(exchange.request(),response);
+      Response.Listener handlerListener=protocolHandler == null ? null : protocolHandler.getResponseListener();
+      if (handlerListener == null) {
+        conversation.last(exchange);
+        if (currentListener == initialListener)         conversation.listener(initialListener);
+ else         conversation.listener(new DoubleResponseListener(currentListener,initialListener));
+      }
  else {
-    LOG.debug("Found protocol handler {}",protocolHandler);
-    if (currentListener == initialListener)     conversation.listener(handlerListener);
- else     conversation.listener(new DoubleResponseListener(currentListener,handlerListener));
+        LOG.debug("Found protocol handler {}",protocolHandler);
+        if (currentListener == initialListener)         conversation.listener(handlerListener);
+ else         conversation.listener(new DoubleResponseListener(currentListener,handlerListener));
+      }
+      LOG.debug("Receiving {}",response);
+      responseNotifier.notifyBegin(conversation.listener(),response);
+    }
   }
-  LOG.debug("Receiving {}",response);
-  notifier.notifyBegin(conversation.listener(),response);
   return false;
 }

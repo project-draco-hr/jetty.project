@@ -1,16 +1,20 @@
 {
-  HttpExchange exchange=connection.getExchange();
-  HttpConversation conversation=exchange.conversation();
-  HttpResponse response=exchange.response();
-  LOG.debug("Headers {}",response);
-  notifier.notifyHeaders(conversation.listener(),response);
-  Enumeration<String> contentEncodings=response.headers().getValues(HttpHeader.CONTENT_ENCODING.asString(),",");
-  if (contentEncodings != null) {
-    for (    ContentDecoder.Factory factory : connection.getHttpClient().getContentDecoderFactories()) {
-      while (contentEncodings.hasMoreElements()) {
-        if (factory.getEncoding().equalsIgnoreCase(contentEncodings.nextElement())) {
-          this.decoder=factory.newContentDecoder();
-          break;
+  if (updateState(State.RECEIVE,State.RECEIVE)) {
+    HttpExchange exchange=connection.getExchange();
+    if (exchange != null) {
+      HttpConversation conversation=exchange.conversation();
+      HttpResponse response=exchange.response();
+      LOG.debug("Headers {}",response);
+      responseNotifier.notifyHeaders(conversation.listener(),response);
+      Enumeration<String> contentEncodings=response.headers().getValues(HttpHeader.CONTENT_ENCODING.asString(),",");
+      if (contentEncodings != null) {
+        for (        ContentDecoder.Factory factory : connection.getHttpClient().getContentDecoderFactories()) {
+          while (contentEncodings.hasMoreElements()) {
+            if (factory.getEncoding().equalsIgnoreCase(contentEncodings.nextElement())) {
+              this.decoder=factory.newContentDecoder();
+              break;
+            }
+          }
         }
       }
     }

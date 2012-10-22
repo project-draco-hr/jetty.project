@@ -1,13 +1,17 @@
 {
-  HttpExchange exchange=connection.getExchange();
-  HttpConversation conversation=exchange.conversation();
-  HttpResponse response=exchange.response();
-  LOG.debug("Content {}: {} bytes",response,buffer.remaining());
-  ContentDecoder decoder=this.decoder;
-  if (decoder != null) {
-    buffer=decoder.decode(buffer);
-    LOG.debug("{} {}: {} bytes",decoder,response,buffer.remaining());
+  if (updateState(State.RECEIVE,State.RECEIVE)) {
+    HttpExchange exchange=connection.getExchange();
+    if (exchange != null) {
+      HttpConversation conversation=exchange.conversation();
+      HttpResponse response=exchange.response();
+      LOG.debug("Content {}: {} bytes",response,buffer.remaining());
+      ContentDecoder decoder=this.decoder;
+      if (decoder != null) {
+        buffer=decoder.decode(buffer);
+        LOG.debug("{} {}: {} bytes",decoder,response,buffer.remaining());
+      }
+      responseNotifier.notifyContent(conversation.listener(),response,buffer);
+    }
   }
-  notifier.notifyContent(conversation.listener(),response,buffer);
   return false;
 }
