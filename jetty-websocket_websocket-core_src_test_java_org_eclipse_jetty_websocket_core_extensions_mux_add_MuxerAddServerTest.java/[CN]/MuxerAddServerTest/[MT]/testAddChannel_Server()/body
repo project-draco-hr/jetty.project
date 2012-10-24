@@ -1,0 +1,28 @@
+{
+  LocalWebSocketConnection physical=new LocalWebSocketConnection(testname);
+  physical.setPolicy(WebSocketPolicy.newServerPolicy());
+  MuxReducer reducer=new MuxReducer();
+  Muxer muxer=new Muxer(physical,reducer);
+  DummyMuxAddServer addServer=new DummyMuxAddServer();
+  muxer.setAddServer(addServer);
+  MuxInjector inject=new MuxInjector(muxer);
+  StringBuilder request=new StringBuilder();
+  request.append("GET /echo HTTP/1.1\r\n");
+  request.append("Host: localhost\r\n");
+  request.append("Upgrade: websocket\r\n");
+  request.append("Connection: Upgrade\r\n");
+  request.append("Sec-WebSocket-Key: ZDTIRU5vU9xOfkg8JAgN3A==\r\n");
+  request.append("Sec-WebSocket-Version: 13\r\n");
+  request.append("\r\n");
+  MuxAddChannelRequest req=new MuxAddChannelRequest();
+  req.setChannelId(1);
+  req.setEnc((byte)0);
+  req.setHandshake(BufferUtil.toBuffer(request.toString()));
+  inject.op(req);
+  reducer.assertHasOp(MuxOp.ADD_CHANNEL_RESPONSE,1);
+  MuxAddChannelResponse response=(MuxAddChannelResponse)reducer.getOps().pop();
+  Assert.assertThat("AddChannelResponse.channelId",response.getChannelId(),is(1L));
+  Assert.assertThat("AddChannelResponse.failed",response.isFailed(),is(false));
+  Assert.assertThat("AddChannelResponse.handshake",response.getHandshake(),notNullValue());
+  Assert.assertThat("AddChannelResponse.handshakeSize",response.getHandshakeSize(),is(57L));
+}
