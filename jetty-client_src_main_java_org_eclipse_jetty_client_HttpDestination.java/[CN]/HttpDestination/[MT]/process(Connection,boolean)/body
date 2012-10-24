@@ -1,5 +1,5 @@
 {
-  final RequestPair requestPair=requests.poll();
+  RequestPair requestPair=requests.poll();
   if (requestPair == null) {
     LOG.debug("{} idle",connection);
     if (!idleConnections.offer(connection)) {
@@ -13,20 +13,28 @@
     }
   }
  else {
-    LOG.debug("{} active",connection);
-    if (!activeConnections.offer(connection)) {
-      LOG.warn("{} active overflow");
-    }
-    if (dispatch) {
-      client.getExecutor().execute(new Runnable(){
-        @Override public void run(){
-          connection.send(requestPair.request,requestPair.listener);
-        }
-      }
-);
+    final Request request=requestPair.request;
+    final Response.Listener listener=requestPair.listener;
+    if (request.aborted()) {
+      abort(request,listener,"Aborted");
+      LOG.debug("Aborted {} before processing",request);
     }
  else {
-      connection.send(requestPair.request,requestPair.listener);
+      LOG.debug("{} active",connection);
+      if (!activeConnections.offer(connection)) {
+        LOG.warn("{} active overflow");
+      }
+      if (dispatch) {
+        client.getExecutor().execute(new Runnable(){
+          @Override public void run(){
+            connection.send(request,listener);
+          }
+        }
+);
+      }
+ else {
+        connection.send(request,listener);
+      }
     }
   }
 }
