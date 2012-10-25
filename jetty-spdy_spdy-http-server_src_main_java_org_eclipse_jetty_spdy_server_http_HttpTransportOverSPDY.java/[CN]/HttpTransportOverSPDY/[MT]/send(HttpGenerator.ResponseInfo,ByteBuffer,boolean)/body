@@ -1,27 +1,12 @@
 {
-  short version=stream.getSession().getVersion();
-  Fields headers=new Fields();
-  HttpVersion httpVersion=HttpVersion.HTTP_1_1;
-  headers.put(HTTPSPDYHeader.VERSION.name(version),httpVersion.asString());
-  int status=info.getStatus();
-  StringBuilder httpStatus=new StringBuilder().append(status);
-  String reason=info.getReason();
-  if (reason == null)   reason=HttpStatus.getMessage(status);
-  if (reason != null)   httpStatus.append(" ").append(reason);
-  headers.put(HTTPSPDYHeader.STATUS.name(version),httpStatus.toString());
-  LOG.debug("HTTP < {} {}",httpVersion,httpStatus);
-  HttpFields fields=info.getHttpFields();
-  if (fields != null) {
-    for (int i=0; i < fields.size(); ++i) {
-      HttpFields.Field field=fields.getField(i);
-      String name=field.getName();
-      String value=field.getValue();
-      headers.put(name,value);
-      LOG.debug("HTTP < {}: {}",name,value);
-    }
+  send(info,content,lastContent,streamBlocker.getPhase(),streamBlocker);
+  try {
+    streamBlocker.block();
   }
-  boolean hasContent=!BufferUtil.isEmpty(content);
-  boolean close=!hasContent && lastContent;
-  reply(stream,new ReplyInfo(headers,close));
-  if (hasContent)   sendToStream(content,lastContent);
+ catch (  IOException e) {
+    throw e;
+  }
+catch (  Exception e) {
+    throw new EofException(e);
+  }
 }
