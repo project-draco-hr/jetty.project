@@ -6,7 +6,7 @@
     if (_lastScavengeTime > 0) {
       connection=getConnection();
       connection.setAutoCommit(true);
-      PreparedStatement statement=connection.prepareStatement(_selectExpiredSessions);
+      PreparedStatement statement=connection.prepareStatement(_selectBoundedExpiredSessions);
       long lowerBound=(_lastScavengeTime - _scavengeIntervalMs);
       long upperBound=_lastScavengeTime;
       if (LOG.isDebugEnabled())       LOG.debug(" Searching for sessions expired between " + lowerBound + " and "+ upperBound);
@@ -33,7 +33,8 @@
         if (LOG.isDebugEnabled())         LOG.debug("Deleting old expired sessions expired before " + upperBound);
         statement=connection.prepareStatement(_deleteOldExpiredSessions);
         statement.setLong(1,upperBound);
-        statement.executeUpdate();
+        int rows=statement.executeUpdate();
+        if (LOG.isDebugEnabled())         LOG.debug("Deleted " + rows + " rows");
       }
     }
   }
