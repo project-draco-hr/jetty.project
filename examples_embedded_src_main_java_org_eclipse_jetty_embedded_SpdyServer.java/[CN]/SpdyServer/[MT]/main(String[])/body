@@ -14,11 +14,9 @@
   config.addCustomizer(new ForwardedRequestCustomizer());
   config.addCustomizer(new SecureRequestCustomizer());
   HttpConnectionFactory http=new HttpConnectionFactory(config);
-  FilterConnectionFactory filter=new FilterConnectionFactory(http.getProtocol());
-  filter.addFilter(new FilterConnection.DumpToFileFilter("http-"));
-  ServerConnector httpConnector=new ServerConnector(server,filter,http);
+  ServerConnector httpConnector=new ServerConnector(server,http);
   httpConnector.setPort(8080);
-  httpConnector.setIdleTimeout(30000);
+  httpConnector.setIdleTimeout(10000);
   server.addConnector(httpConnector);
   SslContextFactory sslContextFactory=new SslContextFactory();
   sslContextFactory.setKeyStorePath(jetty_home + "/etc/keystore");
@@ -37,12 +35,8 @@
   NPNServerConnectionFactory npn=new NPNServerConnectionFactory(spdy3.getProtocol(),spdy2.getProtocol(),http.getProtocol());
   npn.setDefaultProtocol(http.getProtocol());
   npn.setInputBufferSize(1024);
-  FilterConnectionFactory npn_filter=new FilterConnectionFactory(npn.getProtocol());
-  npn_filter.addFilter(new FilterConnection.DumpToFileFilter("npn-"));
-  SslConnectionFactory ssl=new SslConnectionFactory(sslContextFactory,npn_filter.getProtocol());
-  FilterConnectionFactory ssl_filter=new FilterConnectionFactory(ssl.getProtocol());
-  ssl_filter.addFilter(new FilterConnection.DumpToFileFilter("ssl-"));
-  ServerConnector spdyConnector=new ServerConnector(server,ssl_filter,ssl,npn_filter,npn,spdy3,spdy2,http);
+  SslConnectionFactory ssl=new SslConnectionFactory(sslContextFactory,npn.getProtocol());
+  ServerConnector spdyConnector=new ServerConnector(server,ssl,npn,spdy3,spdy2,http);
   spdyConnector.setPort(8443);
   server.addConnector(spdyConnector);
   HandlerCollection handlers=new HandlerCollection();

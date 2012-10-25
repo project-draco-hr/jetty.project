@@ -1,8 +1,16 @@
 {
+  Future<Void> future=stream.data(new ByteBufferDataInfo(content,lastContent));
   try {
-    stream.data(new ByteBufferDataInfo(content,lastContent)).get();
+    if (endPoint.getIdleTimeout() > 0)     future.get(endPoint.getIdleTimeout(),TimeUnit.MILLISECONDS);
+ else     future.get();
   }
- catch (  Exception e) {
-    endPoint.close();
+ catch (  ExecutionException e) {
+    LOG.debug(e);
+    Throwable cause=e.getCause();
+    if (cause instanceof IOException)     throw (IOException)cause;
+    throw new RuntimeIOException(cause);
+  }
+catch (  Exception e) {
+    throw new RuntimeIOException(e);
   }
 }
