@@ -9,10 +9,9 @@
           _parser.shutdownInput();
           return;
         }
-        FutureCallback<Void> block=new FutureCallback<>();
-        getEndPoint().fillInterested(null,block);
-        LOG.debug("{} block readable on {}",this,block);
-        block.get();
+        getEndPoint().fillInterested(_readBlocker.getPhase(),_readBlocker);
+        LOG.debug("{} block readable on {}",this,_readBlocker);
+        _readBlocker.block();
         if (_requestBuffer == null) {
           long content_length=_channel.getRequest().getContentLength();
           int size=getInputBufferSize();
@@ -28,15 +27,15 @@
       }
     }
   }
- catch (  final InterruptedException x) {
+ catch (  TimeoutException e) {
+    throw new EofException(e);
+  }
+catch (  final InterruptedException x) {
     throw new InterruptedIOException(getEndPoint().toString()){
 {
         initCause(x);
       }
     }
 ;
-  }
-catch (  ExecutionException e) {
-    FutureCallback.rethrow(e);
   }
 }

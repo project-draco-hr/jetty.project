@@ -1,0 +1,29 @@
+{
+  final BlockingCallback fcb=_factory.newBlockingCallback();
+  final Exception ex=new Exception("FAILED");
+  final CountDownLatch latch=new CountDownLatch(1);
+  new Thread(new Runnable(){
+    @Override public void run(){
+      latch.countDown();
+      try {
+        TimeUnit.MILLISECONDS.sleep(100);
+      }
+ catch (      Exception e) {
+        e.printStackTrace();
+      }
+      fcb.failed(fcb.getPhase(),ex);
+    }
+  }
+).start();
+  latch.await();
+  long start=System.currentTimeMillis();
+  try {
+    fcb.block();
+    Assert.fail();
+  }
+ catch (  IOException ee) {
+    Assert.assertEquals(ex,ee.getCause());
+  }
+  Assert.assertThat(System.currentTimeMillis() - start,Matchers.greaterThan(10L));
+  Assert.assertThat(System.currentTimeMillis() - start,Matchers.lessThan(1000L));
+}

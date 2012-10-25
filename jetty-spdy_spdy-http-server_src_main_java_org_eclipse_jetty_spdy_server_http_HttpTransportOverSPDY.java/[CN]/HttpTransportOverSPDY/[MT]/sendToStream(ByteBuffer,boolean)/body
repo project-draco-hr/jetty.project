@@ -1,16 +1,15 @@
 {
-  Future<Void> future=stream.data(new ByteBufferDataInfo(content,lastContent));
+  FutureCallback<Void> future=new FutureCallback<>();
+  stream.data(new ByteBufferDataInfo(content,lastContent),endPoint.getIdleTimeout(),TimeUnit.MILLISECONDS,future);
   try {
-    if (endPoint.getIdleTimeout() > 0)     future.get(endPoint.getIdleTimeout(),TimeUnit.MILLISECONDS);
- else     future.get();
+    future.get();
   }
  catch (  ExecutionException e) {
     LOG.debug(e);
     Throwable cause=e.getCause();
-    if (cause instanceof IOException)     throw (IOException)cause;
-    throw new RuntimeIOException(cause);
+    throw new EofException(cause);
   }
 catch (  Exception e) {
-    throw new RuntimeIOException(e);
+    throw new EofException(e);
   }
 }
