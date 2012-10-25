@@ -1,0 +1,43 @@
+{
+  Connection connection=null;
+  List<String> expiredSessionIds=new ArrayList<String>();
+  try {
+    connection=getConnection();
+    connection.setTransactionIsolation(Connection.TRANSACTION_SERIALIZABLE);
+    connection.setAutoCommit(false);
+    PreparedStatement statement=connection.prepareStatement(_selectExpiredSessions);
+    long now=System.currentTimeMillis();
+    if (LOG.isDebugEnabled())     LOG.debug("Searching for sessions expired before {}",now);
+    statement.setLong(1,now);
+    ResultSet result=statement.executeQuery();
+    while (result.next()) {
+      String sessionId=result.getString("sessionId");
+      expiredSessionIds.add(sessionId);
+      if (LOG.isDebugEnabled())       LOG.debug("Found expired sessionId={}",sessionId);
+    }
+    Statement sessionsTableStatement=null;
+    Statement sessionIdsTableStatement=null;
+    if (!expiredSessionIds.isEmpty()) {
+      sessionsTableStatement=connection.createStatement();
+      sessionsTableStatement.executeUpdate(createCleanExpiredSessionsSql("delete from " + _sessionTable + " where sessionId in ",expiredSessionIds));
+      sessionIdsTableStatement=connection.createStatement();
+      sessionIdsTableStatement.executeUpdate(createCleanExpiredSessionsSql("delete from " + _sessionIdTable + " where id in ",expiredSessionIds));
+    }
+    connection.commit();
+synchronized (_sessionIds) {
+      _sessionIds.removeAll(expiredSessionIds);
+    }
+  }
+ catch (  Exception e) {
+    if (connection != null)     connection.rollback();
+    throw e;
+  }
+ finally {
+    try {
+      if (connection != null)       connection.close();
+    }
+ catch (    SQLException e) {
+      LOG.warn(e);
+    }
+  }
+}
