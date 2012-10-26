@@ -21,15 +21,7 @@
           connectionCount.decrementAndGet();
           client.getExecutor().execute(new Runnable(){
             @Override public void run(){
-              RequestPair pair=requests.poll();
-              if (pair != null) {
-                Request request=pair.request;
-                requestNotifier.notifyFailure(request,x);
-                Response.Listener listener=pair.listener;
-                HttpResponse response=new HttpResponse(request,listener);
-                responseNotifier.notifyFailure(listener,response,x);
-                responseNotifier.notifyComplete(listener,new Result(request,x,response,x));
-              }
+              drain(x);
             }
           }
 );

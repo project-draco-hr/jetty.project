@@ -3,12 +3,7 @@
   idleConnections.clear();
   for (  Connection connection : activeConnections)   connection.close();
   activeConnections.clear();
-  AsynchronousCloseException failure=new AsynchronousCloseException();
-  RequestPair pair;
-  while ((pair=requests.poll()) != null) {
-    requestNotifier.notifyFailure(pair.request,failure);
-    responseNotifier.notifyComplete(pair.listener,new Result(pair.request,failure,null));
-  }
+  drain(new AsynchronousCloseException());
   connectionCount.set(0);
   LOG.debug("Closed {}",this);
 }
