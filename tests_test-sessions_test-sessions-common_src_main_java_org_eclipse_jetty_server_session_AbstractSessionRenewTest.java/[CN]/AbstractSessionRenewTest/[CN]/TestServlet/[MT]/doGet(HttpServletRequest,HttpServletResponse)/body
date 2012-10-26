@@ -1,0 +1,29 @@
+{
+  String action=request.getParameter("action");
+  if ("create".equals(action)) {
+    HttpSession session=request.getSession(true);
+    assertTrue(session.isNew());
+  }
+ else   if ("renew".equals(action)) {
+    HttpSession beforeSession=request.getSession(false);
+    String beforeSessionId=beforeSession.getId();
+    assertTrue(beforeSession != null);
+    ((AbstractSession)beforeSession).renewId(request);
+    HttpSession afterSession=request.getSession(false);
+    String afterSessionId=afterSession.getId();
+    assertTrue(afterSession != null);
+    assertTrue(beforeSession == afterSession);
+    assertTrue(beforeSessionId != afterSessionId);
+    AbstractSessionManager sessionManager=(AbstractSessionManager)((AbstractSession)afterSession).getSessionManager();
+    AbstractSessionIdManager sessionIdManager=(AbstractSessionIdManager)sessionManager.getSessionIdManager();
+    assertTrue(sessionIdManager.idInUse(afterSessionId));
+    assertFalse(sessionIdManager.idInUse(beforeSessionId));
+    HttpSession session=sessionManager.getSession(afterSessionId);
+    assertNotNull(session);
+    session=sessionManager.getSession(beforeSessionId);
+    assertNull(session);
+    if (((AbstractSession)afterSession).isIdChanged()) {
+      ((org.eclipse.jetty.server.Response)response).addCookie(sessionManager.getSessionCookie(afterSession,request.getContextPath(),request.isSecure()));
+    }
+  }
+}

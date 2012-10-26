@@ -1,6 +1,11 @@
 {
   HttpSession session=getSession(false);
   if (session == null)   throw new IllegalStateException("No session");
-  AbstractSessionManager.renewSession(this,session,getRemoteUser() != null);
+  if (session instanceof AbstractSession) {
+    AbstractSession abstractSession=((AbstractSession)session);
+    abstractSession.renewId(this);
+    if (getRemoteUser() != null)     abstractSession.setAttribute(AbstractSession.SESSION_KNOWN_ONLY_TO_AUTHENTICATED,Boolean.TRUE);
+    if (abstractSession.isIdChanged())     _channel.getResponse().addCookie(_sessionManager.getSessionCookie(abstractSession,getContextPath(),isSecure()));
+  }
   return session.getId();
 }

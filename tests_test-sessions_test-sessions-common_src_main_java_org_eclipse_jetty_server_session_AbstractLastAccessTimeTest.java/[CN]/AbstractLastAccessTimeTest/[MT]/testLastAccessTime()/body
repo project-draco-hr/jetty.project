@@ -4,7 +4,12 @@
   int maxInactivePeriod=8;
   int scavengePeriod=2;
   AbstractTestServer server1=createServer(0,maxInactivePeriod,scavengePeriod);
-  server1.addContext(contextPath).addServlet(TestServlet.class,servletMapping);
+  TestServlet servlet1=new TestServlet();
+  ServletHolder holder1=new ServletHolder(servlet1);
+  ServletContextHandler context=server1.addContext(contextPath);
+  TestSessionListener listener1=new TestSessionListener();
+  context.addEventListener(listener1);
+  context.addServlet(holder1,servletMapping);
   server1.start();
   int port1=server1.getPort();
   try {
@@ -14,42 +19,29 @@
     int port2=server2.getPort();
     try {
       HttpClient client=new HttpClient();
-      client.setConnectorType(HttpClient.CONNECTOR_SOCKET);
       client.start();
       try {
-        ContentExchange exchange1=new ContentExchange(true);
-        exchange1.setMethod(HttpMethods.GET);
-        exchange1.setURL("http://localhost:" + port1 + contextPath+ servletMapping+ "?action=init");
-        client.send(exchange1);
-        exchange1.waitForDone();
-        assertEquals(HttpServletResponse.SC_OK,exchange1.getResponseStatus());
-        assertEquals("test",exchange1.getResponseContent());
-        String sessionCookie=exchange1.getResponseFields().getStringField("Set-Cookie");
+        Future<ContentResponse> future=client.GET("http://localhost:" + port1 + contextPath+ servletMapping+ "?action=init");
+        ContentResponse response1=future.get();
+        assertEquals(HttpServletResponse.SC_OK,response1.status());
+        assertEquals("test",response1.contentAsString());
+        String sessionCookie=response1.headers().getStringField("Set-Cookie");
         assertTrue(sessionCookie != null);
         sessionCookie=sessionCookie.replaceFirst("(\\W)(P|p)ath=","$1\\$Path=");
         int requestInterval=500;
         for (int i=0; i < maxInactivePeriod * (1000 / requestInterval); ++i) {
-          ContentExchange exchange2=new ContentExchange(true);
-          exchange2.setMethod(HttpMethods.GET);
-          exchange2.setURL("http://localhost:" + port2 + contextPath+ servletMapping);
-          exchange2.getRequestFields().add("Cookie",sessionCookie);
-          client.send(exchange2);
-          exchange2.waitForDone();
-          assertEquals(HttpServletResponse.SC_OK,exchange2.getResponseStatus());
-          assertEquals("test",exchange2.getResponseContent());
-          String setCookie=exchange1.getResponseFields().getStringField("Set-Cookie");
+          Request request=client.newRequest("http://localhost:" + port2 + contextPath+ servletMapping);
+          request.header("Cookie",sessionCookie);
+          future=request.send();
+          ContentResponse response2=future.get();
+          assertEquals(HttpServletResponse.SC_OK,response2.status());
+          assertEquals("test",response2.contentAsString());
+          String setCookie=response2.headers().getStringField("Set-Cookie");
           if (setCookie != null)           sessionCookie=setCookie.replaceFirst("(\\W)(P|p)ath=","$1\\$Path=");
           Thread.sleep(requestInterval);
         }
         Thread.sleep(scavengePeriod * 2500L);
-        exchange1=new ContentExchange(true);
-        exchange1.setMethod(HttpMethods.GET);
-        exchange1.setURL("http://localhost:" + port1 + contextPath+ servletMapping);
-        exchange1.getRequestFields().add("Cookie",sessionCookie);
-        client.send(exchange1);
-        exchange1.waitForDone();
-        assertEquals(HttpServletResponse.SC_OK,exchange1.getResponseStatus());
-        assertEquals("test",exchange1.getResponseContent());
+        assertTrue(listener1.destroyed == false);
       }
   finally {
         client.stop();
