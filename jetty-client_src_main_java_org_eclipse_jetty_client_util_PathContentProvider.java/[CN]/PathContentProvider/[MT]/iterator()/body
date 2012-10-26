@@ -1,3 +1,28 @@
 {
-  return new LazyIterator();
+  return new Iterator<ByteBuffer>(){
+    private final ByteBuffer buffer=ByteBuffer.allocateDirect(bufferSize);
+    private SeekableByteChannel channel;
+    private long position;
+    @Override public boolean hasNext(){
+      return position < length();
+    }
+    @Override public ByteBuffer next(){
+      try {
+        if (channel == null)         channel=Files.newByteChannel(filePath,StandardOpenOption.READ);
+        buffer.clear();
+        int read=channel.read(buffer);
+        if (read < 0)         throw new NoSuchElementException();
+        position+=read;
+        buffer.flip();
+        return buffer;
+      }
+ catch (      IOException x) {
+        throw (NoSuchElementException)new NoSuchElementException().initCause(x);
+      }
+    }
+    @Override public void remove(){
+      throw new UnsupportedOperationException();
+    }
+  }
+;
 }
