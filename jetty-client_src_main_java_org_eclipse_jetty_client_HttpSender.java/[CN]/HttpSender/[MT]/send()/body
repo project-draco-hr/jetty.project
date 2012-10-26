@@ -6,10 +6,10 @@
   try {
     HttpExchange exchange=connection.getExchange();
     if (exchange == null)     return;
-    final Request request=exchange.request();
-    HttpConversation conversation=client.getConversation(request.conversation());
+    final Request request=exchange.getRequest();
+    HttpConversation conversation=client.getConversation(request.getConversationID());
     HttpGenerator.RequestInfo requestInfo=null;
-    boolean expect100=request.headers().contains(HttpHeader.EXPECT,HttpHeaderValue.CONTINUE.asString());
+    boolean expect100=request.getHeaders().contains(HttpHeader.EXPECT,HttpHeaderValue.CONTINUE.asString());
     expect100&=conversation.getAttribute(EXPECT_100_ATTRIBUTE) == null;
     if (expect100)     conversation.setAttribute(EXPECT_100_ATTRIBUTE,Boolean.TRUE);
     ContentInfo contentInfo=this.expectedContent;
@@ -21,9 +21,9 @@
 switch (result) {
 case NEED_INFO:
 {
-          ContentProvider content=request.content();
-          long contentLength=content == null ? -1 : content.length();
-          requestInfo=new HttpGenerator.RequestInfo(request.version(),request.headers(),contentLength,request.method().asString(),request.path());
+          ContentProvider content=request.getContent();
+          long contentLength=content == null ? -1 : content.getLength();
+          requestInfo=new HttpGenerator.RequestInfo(request.getVersion(),request.getHeaders(),contentLength,request.getMethod().asString(),request.getPath());
           break;
         }
 case NEED_HEADER:

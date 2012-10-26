@@ -1,18 +1,18 @@
 {
-  if (request.method() == null)   request.method(HttpMethod.GET);
-  if (request.version() == null)   request.version(HttpVersion.HTTP_1_1);
-  if (request.agent() == null)   request.agent(client.getUserAgent());
-  if (request.idleTimeout() <= 0)   request.idleTimeout(client.getIdleTimeout());
-  HttpMethod method=request.method();
-  HttpVersion version=request.version();
-  HttpFields headers=request.headers();
-  ContentProvider content=request.content();
-  String path=request.path();
+  if (request.getMethod() == null)   request.method(HttpMethod.GET);
+  if (request.getVersion() == null)   request.version(HttpVersion.HTTP_1_1);
+  if (request.getAgent() == null)   request.agent(client.getUserAgent());
+  if (request.getIdleTimeout() <= 0)   request.idleTimeout(client.getIdleTimeout());
+  HttpMethod method=request.getMethod();
+  HttpVersion version=request.getVersion();
+  HttpFields headers=request.getHeaders();
+  ContentProvider content=request.getContent();
+  String path=request.getPath();
   if (path.matches("\\s*")) {
     path="/";
     request.path(path);
   }
-  Fields fields=request.params();
+  Fields fields=request.getParams();
   if (!fields.isEmpty()) {
     StringBuilder params=new StringBuilder();
     for (Iterator<Fields.Field> fieldIterator=fields.iterator(); fieldIterator.hasNext(); ) {
@@ -25,7 +25,7 @@
       }
       if (fieldIterator.hasNext())       params.append("&");
     }
-    if (method == HttpMethod.POST && request.content() != null)     method=HttpMethod.GET;
+    if (method == HttpMethod.POST && request.getContent() != null)     method=HttpMethod.GET;
 switch (method) {
 case GET:
 {
@@ -44,14 +44,14 @@ case POST:
 }
 if (version.getVersion() > 10) {
 if (!headers.containsKey(HttpHeader.HOST.asString())) {
-  String value=request.host();
-  int port=request.port();
+  String value=request.getHost();
+  int port=request.getPort();
   if (port > 0)   value+=":" + port;
   headers.put(HttpHeader.HOST,value);
 }
 }
 if (content != null) {
-long contentLength=content.length();
+long contentLength=content.getLength();
 if (contentLength >= 0) {
   if (!headers.containsKey(HttpHeader.CONTENT_LENGTH.asString()))   headers.put(HttpHeader.CONTENT_LENGTH,String.valueOf(contentLength));
 }
@@ -59,7 +59,7 @@ if (contentLength >= 0) {
   if (!headers.containsKey(HttpHeader.TRANSFER_ENCODING.asString()))   headers.put(HttpHeader.TRANSFER_ENCODING,"chunked");
 }
 }
-List<HttpCookie> cookies=client.getCookieStore().findCookies(getDestination(),request.path());
+List<HttpCookie> cookies=client.getCookieStore().findCookies(getDestination(),request.getPath());
 StringBuilder cookieString=null;
 for (int i=0; i < cookies.size(); ++i) {
 if (cookieString == null) cookieString=new StringBuilder();
@@ -68,7 +68,7 @@ HttpCookie cookie=cookies.get(i);
 cookieString.append(cookie.getName()).append("=").append(cookie.getValue());
 }
 if (cookieString != null) request.header(HttpHeader.COOKIE.asString(),cookieString.toString());
-Authentication.Result authnResult=client.getAuthenticationStore().findAuthenticationResult(request.uri());
+Authentication.Result authnResult=client.getAuthenticationStore().findAuthenticationResult(request.getURI());
 if (authnResult != null) authnResult.apply(request);
 if (!headers.containsKey(HttpHeader.ACCEPT_ENCODING.asString())) {
 Set<ContentDecoder.Factory> decoderFactories=client.getContentDecoderFactories();

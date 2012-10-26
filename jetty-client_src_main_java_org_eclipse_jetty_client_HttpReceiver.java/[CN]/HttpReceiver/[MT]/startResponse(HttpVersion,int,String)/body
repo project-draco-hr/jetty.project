@@ -2,26 +2,26 @@
   if (updateState(State.IDLE,State.RECEIVE)) {
     HttpExchange exchange=connection.getExchange();
     if (exchange != null) {
-      HttpConversation conversation=exchange.conversation();
-      HttpResponse response=exchange.response();
+      HttpConversation conversation=exchange.getConversation();
+      HttpResponse response=exchange.getResponse();
       response.version(version).status(status).reason(reason);
-      Response.Listener currentListener=exchange.listener();
-      Response.Listener initialListener=conversation.exchanges().peekFirst().listener();
+      Response.Listener currentListener=exchange.getResponseListener();
+      Response.Listener initialListener=conversation.getExchanges().peekFirst().getResponseListener();
       HttpClient client=connection.getHttpClient();
-      ProtocolHandler protocolHandler=client.findProtocolHandler(exchange.request(),response);
+      ProtocolHandler protocolHandler=client.findProtocolHandler(exchange.getRequest(),response);
       Response.Listener handlerListener=protocolHandler == null ? null : protocolHandler.getResponseListener();
       if (handlerListener == null) {
-        conversation.last(exchange);
-        if (currentListener == initialListener)         conversation.listener(initialListener);
- else         conversation.listener(new DoubleResponseListener(responseNotifier,currentListener,initialListener));
+        conversation.setLastExchange(exchange);
+        if (currentListener == initialListener)         conversation.setResponseListener(initialListener);
+ else         conversation.setResponseListener(new DoubleResponseListener(responseNotifier,currentListener,initialListener));
       }
  else {
         LOG.debug("Found protocol handler {}",protocolHandler);
-        if (currentListener == initialListener)         conversation.listener(handlerListener);
- else         conversation.listener(new DoubleResponseListener(responseNotifier,currentListener,handlerListener));
+        if (currentListener == initialListener)         conversation.setResponseListener(handlerListener);
+ else         conversation.setResponseListener(new DoubleResponseListener(responseNotifier,currentListener,handlerListener));
       }
       LOG.debug("Receiving {}",response);
-      responseNotifier.notifyBegin(conversation.listener(),response);
+      responseNotifier.notifyBegin(conversation.getResponseListener(),response);
     }
   }
   return false;

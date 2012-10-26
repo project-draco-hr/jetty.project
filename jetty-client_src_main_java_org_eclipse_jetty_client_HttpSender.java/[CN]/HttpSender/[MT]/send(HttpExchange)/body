@@ -1,18 +1,18 @@
 {
   if (!updateState(State.IDLE,State.SEND))   throw new IllegalStateException();
-  HttpConversation conversation=exchange.conversation();
-  Response.Listener currentListener=exchange.listener();
-  Response.Listener initialListener=conversation.exchanges().peekFirst().listener();
-  if (initialListener == currentListener)   conversation.listener(initialListener);
- else   conversation.listener(new DoubleResponseListener(responseNotifier,currentListener,initialListener));
-  Request request=exchange.request();
+  HttpConversation conversation=exchange.getConversation();
+  Response.Listener currentListener=exchange.getResponseListener();
+  Response.Listener initialListener=conversation.getExchanges().peekFirst().getResponseListener();
+  if (initialListener == currentListener)   conversation.setResponseListener(initialListener);
+ else   conversation.setResponseListener(new DoubleResponseListener(responseNotifier,currentListener,initialListener));
+  Request request=exchange.getRequest();
   if (request.aborted()) {
     exchange.abort(null);
   }
  else {
     LOG.debug("Sending {}",request);
     requestNotifier.notifyBegin(request);
-    ContentProvider content=request.content();
+    ContentProvider content=request.getContent();
     this.contentIterator=content == null ? Collections.<ByteBuffer>emptyIterator() : content.iterator();
     send();
   }
