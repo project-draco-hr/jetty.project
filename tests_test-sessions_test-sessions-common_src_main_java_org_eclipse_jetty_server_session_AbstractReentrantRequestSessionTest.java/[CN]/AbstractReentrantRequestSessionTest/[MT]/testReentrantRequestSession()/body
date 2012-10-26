@@ -7,15 +7,11 @@
   int port=server.getPort();
   try {
     HttpClient client=new HttpClient();
-    client.setConnectorType(HttpClient.CONNECTOR_SOCKET);
     client.start();
     try {
-      ContentExchange exchange=new ContentExchange(true);
-      exchange.setMethod(HttpMethods.GET);
-      exchange.setURL("http://localhost:" + port + contextPath+ servletMapping+ "?action=reenter&port="+ port+ "&path="+ contextPath+ servletMapping);
-      client.send(exchange);
-      exchange.waitForDone();
-      assertEquals(HttpServletResponse.SC_OK,exchange.getResponseStatus());
+      Future<ContentResponse> future=client.GET("http://localhost:" + port + contextPath+ servletMapping+ "?action=reenter&port="+ port+ "&path="+ contextPath+ servletMapping);
+      ContentResponse response=future.get();
+      assertEquals(HttpServletResponse.SC_OK,response.status());
     }
   finally {
       client.stop();
