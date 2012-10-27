@@ -11,34 +11,26 @@
   int port=server.getPort();
   try {
     HttpClient client=new HttpClient();
-    client.setConnectorType(HttpClient.CONNECTOR_SOCKET);
     client.start();
     try {
-      ContentExchange exchange=new ContentExchange(true);
-      exchange.setMethod(HttpMethods.GET);
-      exchange.setURL("http://localhost:" + port + contextPath+ servletMapping+ "?action=create");
-      client.send(exchange);
-      exchange.waitForDone();
-      assertEquals(HttpServletResponse.SC_OK,exchange.getResponseStatus());
-      String sessionCookie=exchange.getResponseFields().getStringField("Set-Cookie");
+      Future<ContentResponse> future=client.GET("http://localhost:" + port + contextPath+ servletMapping+ "?action=create");
+      ContentResponse response=future.get();
+      assertEquals(HttpServletResponse.SC_OK,response.getStatus());
+      String sessionCookie=response.getHeaders().getStringField("Set-Cookie");
       assertTrue(sessionCookie != null);
       sessionCookie=sessionCookie.replaceFirst("(\\W)(P|p)ath=","$1\\$Path=");
       assertTrue(testListener.isCreated());
-      exchange=new ContentExchange(true);
-      exchange.setMethod(HttpMethods.GET);
-      exchange.setURL("http://localhost:" + port + contextPath+ servletMapping+ "?action=delete");
-      exchange.getRequestFields().add("Cookie",sessionCookie);
-      client.send(exchange);
-      exchange.waitForDone();
-      assertEquals(HttpServletResponse.SC_OK,exchange.getResponseStatus());
+      Request request=client.newRequest("http://localhost:" + port + contextPath+ servletMapping+ "?action=delete");
+      request.header("Cookie",sessionCookie);
+      future=request.send();
+      response=future.get();
+      assertEquals(HttpServletResponse.SC_OK,response.getStatus());
       assertTrue(testListener.isDestroyed());
-      exchange=new ContentExchange(true);
-      exchange.setMethod(HttpMethods.GET);
-      exchange.setURL("http://localhost:" + port + contextPath+ servletMapping+ "?action=check");
-      exchange.getRequestFields().add("Cookie",sessionCookie);
-      client.send(exchange);
-      exchange.waitForDone();
-      assertEquals(HttpServletResponse.SC_OK,exchange.getResponseStatus());
+      request=client.newRequest("http://localhost:" + port + contextPath+ servletMapping+ "?action=check");
+      request.header("Cookie",sessionCookie);
+      future=request.send();
+      response=future.get();
+      assertEquals(HttpServletResponse.SC_OK,response.getStatus());
     }
   finally {
       client.stop();
