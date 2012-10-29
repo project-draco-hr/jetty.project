@@ -1,0 +1,55 @@
+{
+  String contextPath="";
+  String servletMapping="/server";
+  long purgeDelay=1000;
+  long purgeInvalidAge=1000;
+  long purgeValidAge=1000;
+  MongoTestServer server=createServer(0,1,0);
+  ServletContextHandler context=server.addContext(contextPath);
+  context.addServlet(TestServlet.class,servletMapping);
+  MongoSessionManager sessionManager=(MongoSessionManager)context.getSessionHandler().getSessionManager();
+  MongoSessionIdManager idManager=(MongoSessionIdManager)server.getServer().getSessionIdManager();
+  idManager.setPurge(true);
+  idManager.setPurgeDelay(purgeDelay);
+  idManager.setPurgeInvalidAge(purgeInvalidAge);
+  idManager.setPurgeValidAge(purgeValidAge);
+  server.start();
+  int port=server.getPort();
+  try {
+    HttpClient client=new HttpClient();
+    client.setConnectorType(HttpClient.CONNECTOR_SOCKET);
+    client.start();
+    try {
+      ContentExchange exchange=new ContentExchange(true);
+      exchange.setMethod(HttpMethods.GET);
+      exchange.setURL("http://localhost:" + port + contextPath+ servletMapping+ "?action=create");
+      client.send(exchange);
+      exchange.waitForDone();
+      assertEquals(HttpServletResponse.SC_OK,exchange.getResponseStatus());
+      String sessionCookie=exchange.getResponseFields().getStringField("Set-Cookie");
+      assertTrue(sessionCookie != null);
+      sessionCookie=sessionCookie.replaceFirst("(\\W)(P|p)ath=","$1\\$Path=");
+      exchange=new ContentExchange(true);
+      exchange.setMethod(HttpMethods.GET);
+      exchange.setURL("http://localhost:" + port + contextPath+ servletMapping+ "?action=invalidate");
+      exchange.getRequestFields().add("Cookie",sessionCookie);
+      client.send(exchange);
+      exchange.waitForDone();
+      assertEquals(HttpServletResponse.SC_OK,exchange.getResponseStatus());
+      Thread.currentThread().sleep(3 * purgeDelay);
+      exchange=new ContentExchange(true);
+      exchange.setMethod(HttpMethods.GET);
+      exchange.setURL("http://localhost:" + port + contextPath+ servletMapping+ "?action=test");
+      exchange.getRequestFields().add("Cookie",sessionCookie);
+      client.send(exchange);
+      exchange.waitForDone();
+      assertEquals(HttpServletResponse.SC_OK,exchange.getResponseStatus());
+    }
+  finally {
+      client.stop();
+    }
+  }
+  finally {
+    server.stop();
+  }
+}
