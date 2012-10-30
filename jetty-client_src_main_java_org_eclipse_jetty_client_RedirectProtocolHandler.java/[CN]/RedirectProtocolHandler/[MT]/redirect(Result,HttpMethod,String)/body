@@ -6,18 +6,15 @@
   if (redirects < client.getMaxRedirects()) {
     ++redirects;
     conversation.setAttribute(ATTRIBUTE,redirects);
-    Request redirect=client.newRequest(request.getConversationID(),location);
+    Request redirect=client.copyRequest(request,location);
     redirect.method(method);
-    redirect.version(request.getVersion());
-    for (    HttpFields.Field header : request.getHeaders())     redirect.header(header.getName(),header.getValue());
-    redirect.content(request.getContent());
     redirect.onRequestBegin(new Request.BeginListener(){
       @Override public void onBegin(      Request redirect){
         if (request.aborted())         redirect.abort(null);
       }
     }
 );
-    redirect.send(new Response.Listener.Empty());
+    redirect.send(null);
   }
  else {
     fail(result,new HttpResponseException("Max redirects exceeded " + redirects,result.getResponse()));

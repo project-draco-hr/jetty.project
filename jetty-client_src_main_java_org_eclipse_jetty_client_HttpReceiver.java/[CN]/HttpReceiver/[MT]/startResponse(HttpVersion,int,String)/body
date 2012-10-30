@@ -5,23 +5,34 @@
       HttpConversation conversation=exchange.getConversation();
       HttpResponse response=exchange.getResponse();
       response.version(version).status(status).reason(reason);
-      Response.Listener currentListener=exchange.getResponseListener();
-      Response.Listener initialListener=conversation.getExchanges().peekFirst().getResponseListener();
+      HttpExchange initialExchange=conversation.getExchanges().peekFirst();
       HttpClient client=connection.getHttpClient();
       ProtocolHandler protocolHandler=client.findProtocolHandler(exchange.getRequest(),response);
       Response.Listener handlerListener=protocolHandler == null ? null : protocolHandler.getResponseListener();
       if (handlerListener == null) {
         exchange.setLast(true);
-        if (currentListener == initialListener)         conversation.setResponseListener(initialListener);
- else         conversation.setResponseListener(new DoubleResponseListener(responseNotifier,currentListener,initialListener));
+        if (initialExchange == exchange) {
+          conversation.setResponseListeners(exchange.getResponseListeners());
+        }
+ else {
+          List<Response.ResponseListener> listeners=new ArrayList<>(exchange.getResponseListeners());
+          listeners.addAll(initialExchange.getResponseListeners());
+          conversation.setResponseListeners(listeners);
+        }
       }
  else {
         LOG.debug("Found protocol handler {}",protocolHandler);
-        if (currentListener == initialListener)         conversation.setResponseListener(handlerListener);
- else         conversation.setResponseListener(new DoubleResponseListener(responseNotifier,currentListener,handlerListener));
+        if (initialExchange == exchange) {
+          conversation.setResponseListeners(Collections.<Response.ResponseListener>singletonList(handlerListener));
+        }
+ else {
+          List<Response.ResponseListener> listeners=new ArrayList<>(exchange.getResponseListeners());
+          listeners.add(handlerListener);
+          conversation.setResponseListeners(listeners);
+        }
       }
       LOG.debug("Receiving {}",response);
-      responseNotifier.notifyBegin(conversation.getResponseListener(),response);
+      responseNotifier.notifyBegin(conversation.getResponseListeners(),response);
     }
   }
   return false;

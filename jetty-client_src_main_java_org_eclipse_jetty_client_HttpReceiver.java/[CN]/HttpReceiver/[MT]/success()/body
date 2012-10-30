@@ -8,13 +8,13 @@
   if (!updateState(State.RECEIVE,State.IDLE))   throw new IllegalStateException();
   exchange.terminateResponse();
   HttpResponse response=exchange.getResponse();
-  Response.Listener listener=exchange.getConversation().getResponseListener();
-  responseNotifier.notifySuccess(listener,response);
+  List<Response.ResponseListener> listeners=exchange.getConversation().getResponseListeners();
+  responseNotifier.notifySuccess(listeners,response);
   LOG.debug("Received {}",response);
   Result result=completion.getReference();
   if (result != null) {
     connection.complete(exchange,!result.isFailed());
-    responseNotifier.notifyComplete(listener,result);
+    responseNotifier.notifyComplete(listeners,result);
   }
   return true;
 }
