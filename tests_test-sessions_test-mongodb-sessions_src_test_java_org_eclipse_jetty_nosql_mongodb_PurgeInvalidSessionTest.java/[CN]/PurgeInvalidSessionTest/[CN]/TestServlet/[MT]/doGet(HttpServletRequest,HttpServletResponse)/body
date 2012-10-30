@@ -1,0 +1,26 @@
+{
+  String action=request.getParameter("action");
+  if ("create".equals(action)) {
+    HttpSession session=request.getSession(true);
+    assertTrue(session.isNew());
+  }
+ else   if ("invalidate".equals(action)) {
+    HttpSession existingSession=request.getSession(false);
+    assertNotNull(existingSession);
+    existingSession.invalidate();
+    String id=request.getRequestedSessionId();
+    assertNotNull(id);
+    id=id.substring(0,id.indexOf("."));
+    DBObject dbSession=_sessions.findOne(new BasicDBObject("id",id));
+    assertTrue(dbSession != null);
+  }
+ else   if ("test".equals(action)) {
+    String id=request.getRequestedSessionId();
+    assertNotNull(id);
+    id=id.substring(0,id.indexOf("."));
+    HttpSession existingSession=request.getSession(false);
+    assertTrue(existingSession == null);
+    DBObject dbSession=_sessions.findOne(new BasicDBObject("id",id));
+    assertTrue(dbSession == null);
+  }
+}
