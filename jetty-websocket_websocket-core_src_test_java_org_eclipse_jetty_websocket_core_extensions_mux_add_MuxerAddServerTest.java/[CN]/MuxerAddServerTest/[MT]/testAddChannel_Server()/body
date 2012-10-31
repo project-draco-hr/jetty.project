@@ -1,6 +1,7 @@
 {
   LocalWebSocketConnection physical=new LocalWebSocketConnection(testname);
   physical.setPolicy(WebSocketPolicy.newServerPolicy());
+  physical.onOpen();
   MuxReducer reducer=new MuxReducer();
   Muxer muxer=new Muxer(physical,reducer);
   DummyMuxAddServer addServer=new DummyMuxAddServer();
@@ -25,4 +26,7 @@
   Assert.assertThat("AddChannelResponse.failed",response.isFailed(),is(false));
   Assert.assertThat("AddChannelResponse.handshake",response.getHandshake(),notNullValue());
   Assert.assertThat("AddChannelResponse.handshakeSize",response.getHandshakeSize(),is(57L));
+  reducer.reset();
+  inject.frame(1,WebSocketFrame.text("Hello World"));
+  reducer.assertHasFrame(OpCode.TEXT,1L,1);
 }

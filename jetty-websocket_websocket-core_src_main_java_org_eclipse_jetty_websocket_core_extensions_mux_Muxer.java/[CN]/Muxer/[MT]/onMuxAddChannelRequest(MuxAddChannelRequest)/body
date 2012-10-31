@@ -12,14 +12,20 @@
   MuxChannel channel=new MuxChannel(channelId,this);
   this.channels.put(channelId,channel);
   try {
-    MuxAddChannelResponse response=addServer.handshake(physicalConnection,request);
-    if (response == null) {
-      LOG.warn("AddChannelResponse is null");
-      response=new MuxAddChannelResponse();
-      response.setChannelId(request.getChannelId());
-      response.setFailed(true);
+    String requestHandshake=BufferUtil.toUTF8String(request.getHandshake());
+    if (request.isDeltaEncoded()) {
+      requestHandshake=mergeHeaders(physicalRequestHeaders,requestHandshake);
     }
-    this.generator.generate(response);
+    String responseHandshake=addServer.handshake(channel,requestHandshake);
+    if (StringUtil.isNotBlank(responseHandshake)) {
+      MuxAddChannelResponse response=new MuxAddChannelResponse();
+      response.setChannelId(request.getChannelId());
+      response.setFailed(false);
+      response.setHandshake(responseHandshake);
+      this.generator.generate(response);
+    }
+ else {
+    }
   }
  catch (  Throwable t) {
     throw new MuxPhysicalConnectionException(MuxDropChannel.Reason.BAD_REQUEST,"Unable to parse request",t);
