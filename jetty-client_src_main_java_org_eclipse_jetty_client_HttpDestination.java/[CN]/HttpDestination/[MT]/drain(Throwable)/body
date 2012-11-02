@@ -1,11 +1,11 @@
 {
-  RequestPair pair;
-  while ((pair=requests.poll()) != null) {
-    Request request=pair.request;
+  RequestContext requestContext;
+  while ((requestContext=requests.poll()) != null) {
+    Request request=requestContext.request;
     requestNotifier.notifyFailure(request,x);
-    Response.Listener listener=pair.listener;
-    HttpResponse response=new HttpResponse(request,listener);
-    responseNotifier.notifyFailure(listener,response,x);
-    responseNotifier.notifyComplete(listener,new Result(request,x,response,x));
+    List<Response.ResponseListener> listeners=requestContext.listeners;
+    HttpResponse response=new HttpResponse(request,listeners);
+    responseNotifier.notifyFailure(listeners,response,x);
+    responseNotifier.notifyComplete(listeners,new Result(request,x,response,x));
   }
 }

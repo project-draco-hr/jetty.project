@@ -1,0 +1,27 @@
+{
+  JettyWebAppContext jwac=(JettyWebAppContext)context;
+  if (jwac.getClassPathFiles() == null || jwac.getClassPathFiles().size() == 0)   super.parseWebInfClasses(context,parser);
+ else {
+    LOG.debug("Scanning classes ");
+    MetaData metaData=context.getMetaData();
+    if (metaData == null)     throw new IllegalStateException("No metadata");
+    parser.clearHandlers();
+    for (    DiscoverableAnnotationHandler h : _discoverableAnnotationHandlers) {
+      if (h instanceof AbstractDiscoverableAnnotationHandler)       ((AbstractDiscoverableAnnotationHandler)h).setResource(null);
+    }
+    parser.registerHandlers(_discoverableAnnotationHandlers);
+    parser.registerHandler(_classInheritanceHandler);
+    parser.registerHandlers(_containerInitializerAnnotationHandlers);
+    for (    File f : jwac.getClassPathFiles()) {
+      if (f.isDirectory() && f.exists()) {
+        doParse(context,parser,Resource.newResource(f.toURL()));
+      }
+    }
+    if (context.getWebInf() != null && context.getWebInf().exists()) {
+      Resource classesDir=context.getWebInf().addPath("classes/");
+      if (classesDir.exists()) {
+        doParse(context,parser,classesDir);
+      }
+    }
+  }
+}

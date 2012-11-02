@@ -1,0 +1,26 @@
+{
+  if (!scheme.equals(request.getScheme()))   throw new IllegalArgumentException("Invalid request scheme " + request.getScheme() + " for destination "+ this);
+  if (!host.equals(request.getHost()))   throw new IllegalArgumentException("Invalid request host " + request.getHost() + " for destination "+ this);
+  int port=request.getPort();
+  if (port >= 0 && this.port != port)   throw new IllegalArgumentException("Invalid request port " + port + " for destination "+ this);
+  RequestContext requestContext=new RequestContext(request,listeners);
+  if (client.isRunning()) {
+    if (requests.offer(requestContext)) {
+      if (!client.isRunning() && requests.remove(requestContext)) {
+        throw new RejectedExecutionException(client + " is stopping");
+      }
+ else {
+        LOG.debug("Queued {}",request);
+        requestNotifier.notifyQueued(request);
+        Connection connection=acquire();
+        if (connection != null)         process(connection,false);
+      }
+    }
+ else {
+      throw new RejectedExecutionException("Max requests per address " + client.getMaxQueueSizePerAddress() + " exceeded");
+    }
+  }
+ else {
+    throw new RejectedExecutionException(client + " is stopped");
+  }
+}

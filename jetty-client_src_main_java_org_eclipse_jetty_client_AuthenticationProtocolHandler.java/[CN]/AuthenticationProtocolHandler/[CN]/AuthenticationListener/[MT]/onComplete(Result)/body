@@ -1,18 +1,18 @@
 {
   Request request=result.getRequest();
-  HttpConversation conversation=client.getConversation(request.getConversationID());
-  Response.Listener listener=conversation.getExchanges().peekFirst().getResponseListener();
+  HttpConversation conversation=client.getConversation(request.getConversationID(),false);
+  List<Response.ResponseListener> listeners=conversation.getExchanges().peekFirst().getResponseListeners();
   ContentResponse response=new HttpContentResponse(result.getResponse(),getContent(),getEncoding());
   if (result.isFailed()) {
     Throwable failure=result.getFailure();
     LOG.debug("Authentication challenge failed {}",failure);
-    notifier.forwardFailureComplete(listener,request,result.getRequestFailure(),response,result.getResponseFailure());
+    notifier.forwardFailureComplete(listeners,request,result.getRequestFailure(),response,result.getResponseFailure());
     return;
   }
   List<WWWAuthenticate> wwwAuthenticates=parseWWWAuthenticate(response);
   if (wwwAuthenticates.isEmpty()) {
     LOG.debug("Authentication challenge without WWW-Authenticate header");
-    notifier.forwardFailureComplete(listener,request,null,response,new HttpResponseException("HTTP protocol violation: 401 without WWW-Authenticate header",response));
+    notifier.forwardFailureComplete(listeners,request,null,response,new HttpResponseException("HTTP protocol violation: 401 without WWW-Authenticate header",response));
     return;
   }
   final String uri=request.getURI();
@@ -27,20 +27,21 @@
   }
   if (authentication == null) {
     LOG.debug("No authentication available for {}",request);
-    notifier.forwardSuccessComplete(listener,request,response);
+    notifier.forwardSuccessComplete(listeners,request,response);
     return;
   }
   final Authentication.Result authnResult=authentication.authenticate(request,response,wwwAuthenticate.value,conversation);
   LOG.debug("Authentication result {}",authnResult);
   if (authnResult == null) {
-    notifier.forwardSuccessComplete(listener,request,response);
+    notifier.forwardSuccessComplete(listeners,request,response);
     return;
   }
-  authnResult.apply(request);
-  request.send(new Response.Listener.Empty(){
+  Request newRequest=client.copyRequest(request,request.getURI());
+  authnResult.apply(newRequest);
+  newRequest.onResponseSuccess(new Response.SuccessListener(){
     @Override public void onSuccess(    Response response){
       client.getAuthenticationStore().addAuthenticationResult(authnResult);
     }
   }
-);
+).send(null);
 }

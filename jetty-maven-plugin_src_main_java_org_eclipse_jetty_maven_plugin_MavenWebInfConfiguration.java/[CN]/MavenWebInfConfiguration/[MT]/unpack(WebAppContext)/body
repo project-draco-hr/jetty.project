@@ -1,0 +1,41 @@
+{
+  super.unpack(context);
+  _originalResourceBase=context.getBaseResource();
+  JettyWebAppContext jwac=(JettyWebAppContext)context;
+  if (jwac.getOverlays() != null && !jwac.getOverlays().isEmpty()) {
+    Resource[] origResources=null;
+    int origSize=0;
+    if (jwac.getBaseResource() != null) {
+      if (jwac.getBaseResource() instanceof ResourceCollection) {
+        origResources=((ResourceCollection)jwac.getBaseResource()).getResources();
+        origSize=origResources.length;
+      }
+ else {
+        origResources=new Resource[1];
+        origResources[0]=jwac.getBaseResource();
+        origSize=1;
+      }
+    }
+    int overlaySize=jwac.getOverlays().size();
+    Resource[] newResources=new Resource[origSize + overlaySize];
+    int offset=0;
+    if (origSize > 0) {
+      if (jwac.getBaseAppFirst()) {
+        System.arraycopy(origResources,0,newResources,0,origSize);
+        offset=origSize;
+      }
+ else {
+        System.arraycopy(origResources,0,newResources,overlaySize,origSize);
+      }
+    }
+    _unpackedOverlays=new Resource[overlaySize];
+    List<Resource> overlays=jwac.getOverlays();
+    for (int idx=0; idx < overlaySize; idx++) {
+      LOG.info("Unpacking overlay: " + overlays.get(idx));
+      _unpackedOverlays[idx]=unpackOverlay(context,overlays.get(idx));
+      newResources[idx + offset]=_unpackedOverlays[idx];
+      LOG.info("Adding overlay: " + _unpackedOverlays[idx]);
+    }
+    jwac.setBaseResource(new ResourceCollection(newResources));
+  }
+}
