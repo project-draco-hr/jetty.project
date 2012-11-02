@@ -5,29 +5,31 @@
   if (request.getRsv() != 0) {
     throw new MuxPhysicalConnectionException(MuxDropChannel.Reason.UNKNOWN_REQUEST_ENCODING,"RSV Not allowed to be set");
   }
-  if (request.getChannelId() == CONTROL_CHANNEL_ID) {
-    throw new MuxPhysicalConnectionException(MuxDropChannel.Reason.UNKNOWN_MUX_CONTROL_BLOCK,"Invalid Channel ID");
-  }
   long channelId=request.getChannelId();
-  MuxChannel channel=new MuxChannel(channelId,this);
-  this.channels.put(channelId,channel);
+  MuxChannel channel=getChannel(channelId,true);
   try {
-    String requestHandshake=BufferUtil.toUTF8String(request.getHandshake());
-    if (request.isDeltaEncoded()) {
-      requestHandshake=mergeHeaders(physicalRequestHeaders,requestHandshake);
+switch (request.getEncoding()) {
+case MuxAddChannelRequest.IDENTITY_ENCODING:
+{
+        UpgradeRequest idenReq=MuxRequest.parse(request.getHandshake());
+        addServer.handshake(this,channel,idenReq);
+        break;
+      }
+case MuxAddChannelRequest.DELTA_ENCODING:
+{
+      UpgradeRequest baseReq=addServer.getPhysicalHandshakeRequest();
+      UpgradeRequest deltaReq=MuxRequest.parse(request.getHandshake());
+      UpgradeRequest mergedReq=MuxRequest.merge(baseReq,deltaReq);
+      addServer.handshake(this,channel,mergedReq);
+      break;
     }
-    String responseHandshake=addServer.handshake(channel,requestHandshake);
-    if (StringUtil.isNotBlank(responseHandshake)) {
-      MuxAddChannelResponse response=new MuxAddChannelResponse();
-      response.setChannelId(request.getChannelId());
-      response.setFailed(false);
-      response.setHandshake(responseHandshake);
-      this.generator.generate(response);
-    }
- else {
-    }
+default :
+{
+    break;
   }
- catch (  Throwable t) {
-    throw new MuxPhysicalConnectionException(MuxDropChannel.Reason.BAD_REQUEST,"Unable to parse request",t);
-  }
+}
+}
+ catch (Throwable t) {
+throw new MuxPhysicalConnectionException(MuxDropChannel.Reason.BAD_REQUEST,"Unable to parse request",t);
+}
 }
