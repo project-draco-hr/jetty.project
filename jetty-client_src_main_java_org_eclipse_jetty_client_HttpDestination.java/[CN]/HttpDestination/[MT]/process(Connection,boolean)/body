@@ -1,32 +1,41 @@
 {
-  final RequestPair requestPair=requests.poll();
-  if (requestPair == null) {
-    LOG.debug("{} idle",connection);
-    if (!idleConnections.offer(connection)) {
+  final HttpConnection httpConnection=(HttpConnection)connection;
+  RequestContext requestContext=requests.poll();
+  if (requestContext == null) {
+    LOG.debug("{} idle",httpConnection);
+    if (!idleConnections.offer(httpConnection)) {
       LOG.debug("{} idle overflow");
-      connection.close();
+      httpConnection.close();
     }
     if (!client.isRunning()) {
       LOG.debug("{} is stopping",client);
-      remove(connection);
-      connection.close();
+      remove(httpConnection);
+      httpConnection.close();
     }
   }
  else {
-    LOG.debug("{} active",connection);
-    if (!activeConnections.offer(connection)) {
-      LOG.warn("{} active overflow");
-    }
-    if (dispatch) {
-      client.getExecutor().execute(new Runnable(){
-        @Override public void run(){
-          connection.send(requestPair.request,requestPair.listener);
-        }
-      }
-);
+    final Request request=requestContext.request;
+    final List<Response.ResponseListener> listeners=requestContext.listeners;
+    if (request.isAborted()) {
+      abort(request,listeners,"Aborted");
+      LOG.debug("Aborted {} before processing",request);
     }
  else {
-      connection.send(requestPair.request,requestPair.listener);
+      LOG.debug("{} active",httpConnection);
+      if (!activeConnections.offer(httpConnection)) {
+        LOG.warn("{} active overflow");
+      }
+      if (dispatch) {
+        client.getExecutor().execute(new Runnable(){
+          @Override public void run(){
+            httpConnection.send(request,listeners);
+          }
+        }
+);
+      }
+ else {
+        httpConnection.send(request,listeners);
+      }
     }
   }
 }

@@ -1,10 +1,11 @@
 {
   HttpExchange existing=this.exchange.getAndSet(null);
   if (existing == exchange) {
+    exchange.awaitTermination();
     getEndPoint().setIdleTimeout(idleTimeout);
     LOG.debug("{} disassociated from {}",exchange,this);
     if (success) {
-      HttpFields responseHeaders=exchange.response().headers();
+      HttpFields responseHeaders=exchange.getResponse().getHeaders();
       Enumeration<String> values=responseHeaders.getValues(HttpHeader.CONNECTION.asString(),",");
       if (values != null) {
         while (values.hasMoreElements()) {

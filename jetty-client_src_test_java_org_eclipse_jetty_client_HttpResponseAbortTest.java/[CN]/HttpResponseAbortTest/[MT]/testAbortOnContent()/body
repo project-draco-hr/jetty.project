@@ -15,10 +15,12 @@
   }
 );
   final CountDownLatch latch=new CountDownLatch(1);
-  client.newRequest("localhost",connector.getLocalPort()).scheme(scheme).send(new Response.Listener.Empty(){
+  client.newRequest("localhost",connector.getLocalPort()).scheme(scheme).onResponseContent(new Response.ContentListener(){
     @Override public void onContent(    Response response,    ByteBuffer content){
-      response.abort();
+      response.abort(null);
     }
+  }
+).send(new Response.CompleteListener(){
     @Override public void onComplete(    Result result){
       Assert.assertTrue(result.isFailed());
       latch.countDown();

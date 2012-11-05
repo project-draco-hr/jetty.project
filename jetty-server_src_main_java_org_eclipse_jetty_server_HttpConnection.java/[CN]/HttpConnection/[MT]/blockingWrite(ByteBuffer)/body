@@ -1,16 +1,12 @@
 {
   try {
-    FutureCallback<Void> callback=new FutureCallback<>();
-    getEndPoint().write(null,callback,bytes);
-    callback.get();
+    getEndPoint().write(_writeBlocker.getPhase(),_writeBlocker,bytes);
+    _writeBlocker.block();
   }
  catch (  InterruptedException x) {
     throw (IOException)new InterruptedIOException().initCause(x);
   }
-catch (  ExecutionException x) {
-    Throwable cause=x.getCause();
-    if (cause instanceof IOException)     throw (IOException)cause;
- else     if (cause instanceof Exception)     throw new IOException(cause);
- else     throw (Error)cause;
+catch (  TimeoutException e) {
+    throw new IOException(e);
   }
 }

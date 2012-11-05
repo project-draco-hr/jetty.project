@@ -6,7 +6,7 @@
       if (_sslEngine.isOutboundDone())       throw new EofException(new ClosedChannelException());
       return false;
     }
-    if (_encryptedOutput == null)     _encryptedOutput=_bufferPool.acquire(_sslEngine.getSession().getPacketBufferSize() * 2,_encryptedDirectBuffers);
+    if (_encryptedOutput == null)     _encryptedOutput=_bufferPool.acquire(_sslEngine.getSession().getPacketBufferSize(),_encryptedDirectBuffers);
     while (true) {
       BufferUtil.compact(_encryptedOutput);
       int pos=BufferUtil.flipToFill(_encryptedOutput);
@@ -44,6 +44,7 @@ case NEED_UNWRAP:
 if (appOuts[0] != __FILL_CALLED_FLUSH && !getFillInterest().isInterested()) {
 _flushRequiresFillToProgress=true;
 fill(__FLUSH_CALLED_FILL);
+if (_sslEngine.getHandshakeStatus() == HandshakeStatus.NEED_WRAP) continue;
 }
 return all_consumed && BufferUtil.isEmpty(_encryptedOutput);
 case FINISHED:

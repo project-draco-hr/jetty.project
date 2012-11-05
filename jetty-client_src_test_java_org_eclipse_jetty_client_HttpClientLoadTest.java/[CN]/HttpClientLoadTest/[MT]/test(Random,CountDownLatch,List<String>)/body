@@ -7,12 +7,12 @@
   boolean ssl="https".equalsIgnoreCase(scheme);
   if (!ssl && random.nextBoolean())   request.header("Connection","close");
  else   if (!ssl && random.nextBoolean())   request.header("X-Close","true");
+  int contentLength=random.nextInt(maxContentLength) + 1;
 switch (method) {
 case GET:
-    if (random.nextBoolean())     request.header("X-Download",String.valueOf(random.nextInt(maxContentLength) + 1));
+    if (random.nextBoolean())     request.header("X-Download",String.valueOf(contentLength));
   break;
 case POST:
-int contentLength=random.nextInt(maxContentLength) + 1;
 request.header("X-Upload",String.valueOf(contentLength));
 request.content(new BytesContentProvider(new byte[contentLength]));
 break;
@@ -20,14 +20,17 @@ break;
 request.send(new Response.Listener.Empty(){
 private final AtomicInteger contentLength=new AtomicInteger();
 @Override public void onHeaders(Response response){
-String content=response.headers().get("X-Content");
+String content=response.getHeaders().get("X-Content");
 if (content != null) contentLength.set(Integer.parseInt(content));
 }
 @Override public void onContent(Response response,ByteBuffer content){
 contentLength.addAndGet(-content.remaining());
 }
 @Override public void onComplete(Result result){
-if (result.isFailed()) failures.add("Result failed " + result);
+if (result.isFailed()) {
+result.getFailure().printStackTrace();
+failures.add("Result failed " + result);
+}
 if (contentLength.get() != 0) failures.add("Content length mismatch " + contentLength);
 latch.countDown();
 }

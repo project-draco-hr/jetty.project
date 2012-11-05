@@ -1,0 +1,24 @@
+{
+  start(new AbstractHandler(){
+    @Override public void handle(    String target,    org.eclipse.jetty.server.Request baseRequest,    HttpServletRequest request,    HttpServletResponse response) throws IOException, ServletException {
+      baseRequest.setHandled(true);
+      if (!"/done".equals(request.getRequestURI()))       response.sendRedirect("/done");
+    }
+  }
+);
+  client.getProtocolHandlers().clear();
+  client.getProtocolHandlers().add(new RedirectProtocolHandler(client){
+    @Override public void onComplete(    Result result){
+      if (!result.isFailed())       result.getRequest().abort(null);
+      super.onComplete(result);
+    }
+  }
+);
+  try {
+    client.newRequest("localhost",connector.getLocalPort()).scheme(scheme).path("/redirect").send().get(5,TimeUnit.SECONDS);
+    Assert.fail();
+  }
+ catch (  ExecutionException x) {
+    Assert.assertThat(x.getCause(),Matchers.instanceOf(HttpResponseException.class));
+  }
+}

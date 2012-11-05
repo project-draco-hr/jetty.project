@@ -8,9 +8,9 @@
   sslContextFactory.setKeyManagerPassword("keypwd");
   HttpConnectionFactory httpFactory=new HttpConnectionFactory(){
     @Override public Connection newConnection(    Connector connector,    EndPoint endPoint){
-      return configure(new HttpConnection(getHttpChannelConfig(),connector,endPoint){
+      return configure(new HttpConnection(getHttpConfiguration(),connector,endPoint){
         @Override protected HttpParser newHttpParser(){
-          return new HttpParser(newRequestHandler(),getHttpChannelConfig().getRequestHeaderSize()){
+          return new HttpParser(newRequestHandler(),getHttpConfiguration().getRequestHeaderSize()){
             @Override public boolean parseNext(            ByteBuffer buffer){
               httpParses.incrementAndGet();
               return super.parseNext(buffer);
@@ -23,7 +23,7 @@
     }
   }
 ;
-  httpFactory.getHttpChannelConfig().addCustomizer(new SecureRequestCustomizer());
+  httpFactory.getHttpConfiguration().addCustomizer(new SecureRequestCustomizer());
   SslConnectionFactory sslFactory=new SslConnectionFactory(sslContextFactory,httpFactory.getProtocol()){
     @Override protected SslConnection newSslConnection(    Connector connector,    EndPoint endPoint,    SSLEngine engine){
       return new SslConnection(connector.getByteBufferPool(),connector.getExecutor(),endPoint,engine){

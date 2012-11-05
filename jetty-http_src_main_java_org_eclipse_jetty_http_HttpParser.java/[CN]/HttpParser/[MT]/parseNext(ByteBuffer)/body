@@ -13,7 +13,7 @@ break;
 case CONTENT:
 if (_contentPosition == _contentLength) {
 setState(State.END);
-if (_handler.messageComplete(_contentPosition)) return true;
+if (_handler.messageComplete()) return true;
 }
 break;
 case END:
@@ -36,7 +36,7 @@ if (_state.ordinal() < State.HEADER.ordinal()) if (parseLine(buffer)) return tru
 if (_state.ordinal() < State.END.ordinal()) if (parseHeaders(buffer)) return true;
 if (_responseStatus > 0 && _headResponse) {
 setState(State.END);
-if (_handler.messageComplete(_contentLength)) return true;
+if (_handler.messageComplete()) return true;
 }
 byte ch;
 while (_state.ordinal() > State.END.ordinal() && buffer.hasRemaining()) {
@@ -57,7 +57,7 @@ case CONTENT:
 long remaining=_contentLength - _contentPosition;
 if (remaining == 0) {
 setState(State.END);
-if (_handler.messageComplete(_contentPosition)) return true;
+if (_handler.messageComplete()) return true;
 }
  else {
 _contentChunk=buffer.asReadOnlyBuffer();
@@ -69,7 +69,7 @@ buffer.position(buffer.position() + _contentChunk.remaining());
 if (_handler.content(_contentChunk)) return true;
 if (_contentPosition == _contentLength) {
 setState(State.END);
-if (_handler.messageComplete(_contentPosition)) return true;
+if (_handler.messageComplete()) return true;
 }
 }
 break;
@@ -94,7 +94,7 @@ _eol=ch;
 if (_chunkLength == 0) {
 if (_eol == HttpTokens.CARRIAGE_RETURN && buffer.hasRemaining() && buffer.get(buffer.position()) == HttpTokens.LINE_FEED) _eol=buffer.get();
 setState(State.END);
-if (_handler.messageComplete(_contentPosition)) return true;
+if (_handler.messageComplete()) return true;
 }
  else setState(State.CHUNK);
 }
@@ -113,7 +113,7 @@ _eol=ch;
 if (_chunkLength == 0) {
 if (_eol == HttpTokens.CARRIAGE_RETURN && buffer.hasRemaining() && buffer.get(buffer.position()) == HttpTokens.LINE_FEED) _eol=buffer.get();
 setState(State.END);
-if (_handler.messageComplete(_contentPosition)) return true;
+if (_handler.messageComplete()) return true;
 }
  else setState(State.CHUNK);
 }

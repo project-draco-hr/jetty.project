@@ -9,10 +9,7 @@
       new Thread(){
         @Override public void run(){
           try {
-            InputStream input=request.getInputStream();
-            byte[] buffer=new byte[512];
-            int read=0;
-            while (read < data.length)             read+=input.read(buffer);
+            readRequestData(request,data.length);
             continuation.complete();
             latch.countDown();
           }
@@ -25,12 +22,7 @@
     }
   }
 ),null);
-  Fields headers=new Fields();
-  headers.put(HTTPSPDYHeader.METHOD.name(version),"POST");
-  headers.put(HTTPSPDYHeader.URI.name(version),"/foo");
-  headers.put(HTTPSPDYHeader.VERSION.name(version),"HTTP/1.1");
-  headers.put(HTTPSPDYHeader.SCHEME.name(version),"http");
-  headers.put(HTTPSPDYHeader.HOST.name(version),"localhost:" + connector.getLocalPort());
+  Fields headers=createHeaders("POST");
   final CountDownLatch replyLatch=new CountDownLatch(1);
   Stream stream=session.syn(new SynInfo(headers,false),new StreamFrameListener.Adapter(){
     @Override public void onReply(    Stream stream,    ReplyInfo replyInfo){

@@ -6,7 +6,7 @@
   String content1="0123456789";
   String content2="ABCDEF";
   request.content(new ByteBufferContentProvider(ByteBuffer.wrap(content1.getBytes("UTF-8")),ByteBuffer.wrap(content2.getBytes("UTF-8"))){
-    @Override public long length(){
+    @Override public long getLength(){
       return -1;
     }
   }
@@ -22,11 +22,11 @@
     }
   }
 );
-  connection.send(request,null);
+  connection.send(request,(Response.CompleteListener)null);
   String requestString=endPoint.takeOutputString();
   Assert.assertTrue(requestString.startsWith("GET "));
-  String content=Integer.toHexString(content1.length()).toUpperCase() + "\r\n" + content1+ "\r\n";
-  content+=Integer.toHexString(content2.length()).toUpperCase() + "\r\n" + content2+ "\r\n";
+  String content=Integer.toHexString(content1.length()).toUpperCase(Locale.ENGLISH) + "\r\n" + content1+ "\r\n";
+  content+=Integer.toHexString(content2.length()).toUpperCase(Locale.ENGLISH) + "\r\n" + content2+ "\r\n";
   content+="0\r\n\r\n";
   Assert.assertTrue(requestString.endsWith("\r\n\r\n" + content));
   Assert.assertTrue(headersLatch.await(5,TimeUnit.SECONDS));

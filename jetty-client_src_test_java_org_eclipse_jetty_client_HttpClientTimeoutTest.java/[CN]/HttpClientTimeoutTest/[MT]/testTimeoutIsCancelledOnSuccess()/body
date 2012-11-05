@@ -1,0 +1,18 @@
+{
+  long timeout=1000;
+  start(new TimeoutHandler(timeout));
+  final CountDownLatch latch=new CountDownLatch(1);
+  final byte[] content={0,1,2,3,4,5,6,7,8,9};
+  Request request=client.newRequest("localhost",connector.getLocalPort()).scheme(scheme).content(new InputStreamContentProvider(new ByteArrayInputStream(content)));
+  request.send(new TimedResponseListener(2 * timeout,TimeUnit.MILLISECONDS,request,new BufferingResponseListener(){
+    @Override public void onComplete(    Result result){
+      Assert.assertFalse(result.isFailed());
+      Assert.assertArrayEquals(content,getContent());
+      latch.countDown();
+    }
+  }
+));
+  Assert.assertTrue(latch.await(3 * timeout,TimeUnit.MILLISECONDS));
+  TimeUnit.MILLISECONDS.sleep(2 * timeout);
+  Assert.assertFalse(request.isAborted());
+}

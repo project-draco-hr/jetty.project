@@ -1,16 +1,13 @@
 {
-  final List<ContinuationListener> cListeners;
   final List<AsyncListener> aListeners;
 synchronized (this) {
 switch (_state) {
 case ASYNCSTARTED:
 case ASYNCWAIT:
-      cListeners=_continuationListeners;
-    aListeners=_asyncListeners;
-  break;
+      aListeners=_asyncListeners;
+    break;
 default :
-cListeners=null;
-aListeners=null;
+  aListeners=null;
 return;
 }
 _expired=true;
@@ -25,22 +22,11 @@ LOG.warn(e);
 }
 }
 }
-if (cListeners != null) {
-for (ContinuationListener listener : cListeners) {
-try {
-listener.onTimeout(this);
-}
- catch (Exception e) {
-LOG.warn(e);
-}
-}
-}
 synchronized (this) {
 switch (_state) {
 case ASYNCSTARTED:
 case ASYNCWAIT:
-if (_continuation) dispatch();
- else complete();
+complete();
 }
 }
 scheduleDispatch();

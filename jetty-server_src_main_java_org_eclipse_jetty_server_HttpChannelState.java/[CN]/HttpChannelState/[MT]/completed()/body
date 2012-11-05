@@ -1,15 +1,12 @@
 {
-  final List<ContinuationListener> cListeners;
   final List<AsyncListener> aListeners;
 synchronized (this) {
 switch (_state) {
 case COMPLETING:
       _state=State.COMPLETED;
-    cListeners=_continuationListeners;
-  aListeners=_asyncListeners;
-break;
+    aListeners=_asyncListeners;
+  break;
 default :
-cListeners=null;
 aListeners=null;
 throw new IllegalStateException(this.getStatusString());
 }
@@ -23,16 +20,6 @@ _event.getSuppliedRequest().setAttribute(RequestDispatcher.ERROR_MESSAGE,_event.
 listener.onError(_event);
 }
  else listener.onComplete(_event);
-}
- catch (Exception e) {
-LOG.warn(e);
-}
-}
-}
-if (cListeners != null) {
-for (ContinuationListener listener : cListeners) {
-try {
-listener.onComplete(this);
 }
  catch (Exception e) {
 LOG.warn(e);

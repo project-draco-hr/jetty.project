@@ -1,7 +1,13 @@
 {
   if (!_closed) {
-    if (BufferUtil.hasContent(_aggregate))     _channel.write(_aggregate,!_channel.getResponse().isIncluding());
- else     _channel.write(BufferUtil.EMPTY_BUFFER,!_channel.getResponse().isIncluding());
+    try {
+      if (BufferUtil.hasContent(_aggregate))       _channel.write(_aggregate,!_channel.getResponse().isIncluding());
+ else       _channel.write(BufferUtil.EMPTY_BUFFER,!_channel.getResponse().isIncluding());
+    }
+ catch (    IOException e) {
+      _channel.getEndPoint().shutdownOutput();
+      LOG.ignore(e);
+    }
   }
   _closed=true;
   if (_aggregate != null) {

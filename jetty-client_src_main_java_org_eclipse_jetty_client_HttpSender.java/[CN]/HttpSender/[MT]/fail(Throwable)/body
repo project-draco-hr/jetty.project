@@ -1,15 +1,29 @@
 {
-  generator.abort();
-  failed=true;
   HttpExchange exchange=connection.getExchange();
-  Request request=exchange.request();
-  LOG.debug("Failed {} {}",request,failure);
-  Result result=exchange.requestComplete(failure);
-  if (result == null && !committed)   result=exchange.responseComplete(null);
-  if (result == null)   connection.getEndPoint().shutdownOutput();
-  requestNotifier.notifyFailure(request,failure);
-  if (result != null) {
-    HttpConversation conversation=exchange.conversation();
-    responseNotifier.notifyComplete(conversation.listener(),result);
+  if (exchange == null)   return false;
+  AtomicMarkableReference<Result> completion=exchange.requestComplete(failure);
+  if (!completion.isMarked())   return false;
+  generator.abort();
+  State current;
+  while (true) {
+    current=state.get();
+    if (updateState(current,State.FAILURE))     break;
   }
+  exchange.terminateRequest();
+  Request request=exchange.getRequest();
+  requestNotifier.notifyFailure(request,failure);
+  LOG.debug("Failed {} {}",request,failure);
+  Result result=completion.getReference();
+  boolean notCommitted=current == State.IDLE || current == State.SEND;
+  if (result == null && notCommitted && !request.isAborted()) {
+    result=exchange.responseComplete(failure).getReference();
+    exchange.terminateResponse();
+    LOG.debug("Failed on behalf {}",exchange);
+  }
+  if (result != null) {
+    connection.complete(exchange,false);
+    HttpConversation conversation=exchange.getConversation();
+    responseNotifier.notifyComplete(conversation.getResponseListeners(),result);
+  }
+  return true;
 }

@@ -7,15 +7,11 @@
     String path=request.getParameter("path");
     try {
       HttpClient client=new HttpClient();
-      client.setConnectorType(HttpClient.CONNECTOR_SOCKET);
       client.start();
       try {
-        ContentExchange exchange=new ContentExchange(true);
-        exchange.setMethod(HttpMethods.GET);
-        exchange.setURL("http://localhost:" + port + path+ ";jsessionid="+ session.getId()+ "?action=none");
-        client.send(exchange);
-        exchange.waitForDone();
-        assertEquals(HttpServletResponse.SC_OK,exchange.getResponseStatus());
+        Future<ContentResponse> future=client.GET("http://localhost:" + port + path+ ";jsessionid="+ session.getId()+ "?action=none");
+        ContentResponse resp=future.get();
+        assertEquals(HttpServletResponse.SC_OK,resp.getStatus());
         assertEquals("true",session.getAttribute("reentrant"));
       }
   finally {

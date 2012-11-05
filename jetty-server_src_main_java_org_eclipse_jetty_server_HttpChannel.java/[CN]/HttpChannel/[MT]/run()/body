@@ -15,7 +15,7 @@
         if (_state.isInitial()) {
           _request.setTimeStamp(System.currentTimeMillis());
           _request.setDispatcherType(DispatcherType.REQUEST);
-          for (          HttpChannelConfig.Customizer customizer : _configuration.getCustomizers())           customizer.customize(getConnector(),_configuration,_request);
+          for (          HttpConfiguration.Customizer customizer : _configuration.getCustomizers())           customizer.customize(getConnector(),_configuration,_request);
           getServer().handle(this);
         }
  else {
@@ -23,8 +23,9 @@
           getServer().handleAsync(this);
         }
       }
- catch (      ContinuationThrowable e) {
-        LOG.ignore(e);
+ catch (      Error e) {
+        if ("ContinuationThrowable".equals(e.getClass().getSimpleName()))         LOG.ignore(e);
+ else         throw e;
       }
 catch (      Exception e) {
         if (e instanceof EofException)         LOG.debug(e);

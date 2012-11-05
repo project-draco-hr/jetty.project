@@ -4,7 +4,7 @@
     response.sendError(503);
     return;
   }
-  Member member=room.get(username);
+  final Member member=room.get(username);
   if (member == null) {
     response.sendError(503);
     return;
@@ -31,17 +31,10 @@ synchronized (member) {
       response.getOutputStream().write(bytes);
     }
  else {
-      Continuation continuation=ContinuationSupport.getContinuation(request);
-      if (continuation.isInitial()) {
-        continuation.setTimeout(20000);
-        continuation.suspend();
-        member._continuation=continuation;
-      }
- else {
-        response.setContentType("text/json;charset=utf-8");
-        PrintWriter out=response.getWriter();
-        out.print("{action:\"poll\"}");
-      }
+      AsyncContext async=request.startAsync();
+      async.setTimeout(10000);
+      async.addListener(member);
+      if (!member._async.compareAndSet(null,async))       throw new IllegalStateException();
     }
   }
 }

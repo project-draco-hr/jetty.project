@@ -1,6 +1,6 @@
 {
   InetSocketAddress address=startHTTPServer(version,new PushStrategyBenchmarkHandler());
-  ConnectionFactory factory=new HttpConnectionFactory(new HttpChannelConfig());
+  ConnectionFactory factory=new HttpConnectionFactory(new HttpConfiguration());
   connector.setDefaultProtocol(factory.getProtocol());
   HttpClient httpClient=new HttpClient();
   httpClient.setMaxConnectionsPerAddress(6);
@@ -8,13 +8,13 @@
   benchmarkHTTP(httpClient);
   httpClient.stop();
   PushStrategy pushStrategy=new PushStrategy.None();
-  factory=new HTTPSPDYServerConnectionFactory(version,new HttpChannelConfig(),pushStrategy);
+  factory=new HTTPSPDYServerConnectionFactory(version,new HttpConfiguration(),pushStrategy);
   connector.setDefaultProtocol(factory.getProtocol());
   Session session=startClient(version,address,new ClientSessionFrameListener());
   benchmarkSPDY(pushStrategy,session);
   session.goAway().get(5,TimeUnit.SECONDS);
   pushStrategy=new ReferrerPushStrategy();
-  factory=new HTTPSPDYServerConnectionFactory(version,new HttpChannelConfig(),pushStrategy);
+  factory=new HTTPSPDYServerConnectionFactory(version,new HttpConfiguration(),pushStrategy);
   connector.setDefaultProtocol(factory.getProtocol());
   session=startClient(version,address,new ClientSessionFrameListener());
   benchmarkSPDY(pushStrategy,session);

@@ -1,10 +1,12 @@
 {
   start(new EmptyServerHandler());
   final CountDownLatch latch=new CountDownLatch(1);
-  client.newRequest("localhost",connector.getLocalPort()).scheme(scheme).send(new Response.Listener.Empty(){
+  client.newRequest("localhost",connector.getLocalPort()).scheme(scheme).onResponseBegin(new Response.BeginListener(){
     @Override public void onBegin(    Response response){
-      response.abort();
+      response.abort(null);
     }
+  }
+).send(new Response.CompleteListener(){
     @Override public void onComplete(    Result result){
       Assert.assertTrue(result.isFailed());
       latch.countDown();

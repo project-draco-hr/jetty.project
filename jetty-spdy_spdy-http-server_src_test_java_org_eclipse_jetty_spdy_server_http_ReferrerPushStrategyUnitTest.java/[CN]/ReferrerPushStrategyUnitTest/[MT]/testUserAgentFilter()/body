@@ -1,0 +1,13 @@
+{
+  Fields requestHeaders=getBaseHeaders(VERSION);
+  setMockExpectations();
+  fillPushStrategyCache(requestHeaders);
+  Set<String> pushResources=referrerPushStrategy.apply(stream,requestHeaders,new Fields());
+  assertThat("pushResources contains two elements image.jpg and style.css as no user-agent header is present",pushResources.size(),is(2));
+  requestHeaders.put("User-Agent","Mozilla/5.0 (Macintosh; Intel Mac OS X 10_7_5) AppleWebKit/537.4 (KHTML, like Gecko) Chrome/22.0.1229.94 Safari/537.4");
+  pushResources=referrerPushStrategy.apply(stream,requestHeaders,new Fields());
+  assertThat("pushResources contains two elements image.jpg and style.css as chrome is not blacklisted",pushResources.size(),is(2));
+  requestHeaders.put("User-Agent","Mozilla/5.0 (Macintosh; Intel Mac OS X 10.7; rv:16.0) Gecko/20100101 Firefox/16.0");
+  pushResources=referrerPushStrategy.apply(stream,requestHeaders,new Fields());
+  assertThat("no resources are returned as we want to filter firefox",pushResources.size(),is(0));
+}

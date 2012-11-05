@@ -8,26 +8,25 @@
       int read=endPoint.fill(buffer);
       LOG.debug("Read {} bytes from {}",read,connection);
       if (read > 0) {
-        while (buffer.hasRemaining())         parser.parseNext(buffer);
+        parse(buffer);
       }
  else       if (read == 0) {
-        connection.fillInterested();
+        fillInterested();
         break;
       }
  else {
-        parser.shutdownInput();
-        if (state == State.IDLE || state == State.RECEIVE)         fail(new EOFException());
+        shutdown();
         break;
       }
     }
   }
  catch (  EofException x) {
     LOG.ignore(x);
-    fail(x);
+    failAndClose(x);
   }
 catch (  Exception x) {
     LOG.debug(x);
-    fail(x);
+    failAndClose(x);
   }
  finally {
     bufferPool.release(buffer);

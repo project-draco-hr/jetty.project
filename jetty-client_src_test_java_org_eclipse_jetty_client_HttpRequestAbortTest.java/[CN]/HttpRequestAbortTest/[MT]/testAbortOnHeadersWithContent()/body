@@ -13,20 +13,20 @@
     }
   }
 );
+  StdErrLog.getLogger(HttpChannel.class).setHideStacks(true);
   try {
-    ContentResponse response=client.newRequest("localhost",connector.getLocalPort()).scheme(scheme).listener(new Request.Listener.Empty(){
+    client.newRequest("localhost",connector.getLocalPort()).scheme(scheme).onRequestHeaders(new Request.HeadersListener(){
       @Override public void onHeaders(      Request request){
-        request.abort();
+        request.abort(null);
       }
     }
 ).content(new ByteBufferContentProvider(ByteBuffer.wrap(new byte[]{0}),ByteBuffer.wrap(new byte[]{1})){
-      @Override public long length(){
+      @Override public long getLength(){
         return -1;
       }
     }
 ).send().get(5,TimeUnit.SECONDS);
-    Assert.assertNotNull(failure.get());
-    assertEquals(500,response.status());
+    Assert.fail();
   }
  catch (  ExecutionException x) {
     Throwable cause=x.getCause();
@@ -37,8 +37,16 @@
       Request request=xx.getRequest();
       Assert.assertNotNull(request);
     }
+ else     if (cause instanceof HttpResponseException) {
+      HttpResponseException xx=(HttpResponseException)cause;
+      Response response=xx.getResponse();
+      Assert.assertNotNull(response);
+    }
  else {
       throw x;
     }
+  }
+ finally {
+    StdErrLog.getLogger(HttpChannel.class).setHideStacks(false);
   }
 }

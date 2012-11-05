@@ -1,13 +1,19 @@
 {
-  generator.reset();
-  committed=false;
   HttpExchange exchange=connection.getExchange();
-  Request request=exchange.request();
-  LOG.debug("Sent {}",request);
-  Result result=exchange.requestComplete(null);
+  if (exchange == null)   return false;
+  AtomicMarkableReference<Result> completion=exchange.requestComplete(null);
+  if (!completion.isMarked())   return false;
+  generator.reset();
+  if (!updateState(State.COMMIT,State.IDLE))   throw new IllegalStateException();
+  exchange.terminateRequest();
+  Request request=exchange.getRequest();
   requestNotifier.notifySuccess(request);
+  LOG.debug("Sent {}",request);
+  Result result=completion.getReference();
   if (result != null) {
-    HttpConversation conversation=exchange.conversation();
-    responseNotifier.notifyComplete(conversation.listener(),result);
+    connection.complete(exchange,!result.isFailed());
+    HttpConversation conversation=exchange.getConversation();
+    responseNotifier.notifyComplete(conversation.getResponseListeners(),result);
   }
+  return true;
 }

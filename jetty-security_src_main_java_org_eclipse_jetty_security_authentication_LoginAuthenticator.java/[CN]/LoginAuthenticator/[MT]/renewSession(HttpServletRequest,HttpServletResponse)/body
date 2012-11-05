@@ -2,10 +2,17 @@
   HttpSession httpSession=request.getSession(false);
   if (_renewSession && httpSession != null) {
 synchronized (httpSession) {
-      if (httpSession.getAttribute(AbstractSessionManager.SESSION_KNOWN_ONLY_TO_AUTHENTICATED) != Boolean.TRUE) {
-        HttpSession newSession=AbstractSessionManager.renewSession(request,httpSession,true);
-        LOG.debug("renew {}->{}",httpSession.getId(),newSession.getId());
-        httpSession=newSession;
+      if (httpSession.getAttribute(AbstractSession.SESSION_KNOWN_ONLY_TO_AUTHENTICATED) != Boolean.TRUE) {
+        if (httpSession instanceof AbstractSession) {
+          AbstractSession abstractSession=(AbstractSession)httpSession;
+          String oldId=abstractSession.getId();
+          abstractSession.renewId(request);
+          abstractSession.setAttribute(AbstractSession.SESSION_KNOWN_ONLY_TO_AUTHENTICATED,Boolean.TRUE);
+          if (abstractSession.isIdChanged() && response != null && (response instanceof Response))           ((Response)response).addCookie(abstractSession.getSessionManager().getSessionCookie(abstractSession,request.getContextPath(),request.isSecure()));
+          LOG.debug("renew {}->{}",oldId,abstractSession.getId());
+        }
+ else         LOG.warn("Unable to renew session " + httpSession);
+        return httpSession;
       }
     }
   }

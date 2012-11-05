@@ -1,15 +1,15 @@
 {
   String content="0123456789ABCDEF";
   endPoint.setInput("" + "HTTP/1.1 200 OK\r\n" + "Content-length: " + content.length() + "\r\n"+ "\r\n"+ content);
-  BlockingResponseListener listener=new BlockingResponseListener();
-  HttpExchange exchange=newExchange(listener);
+  HttpExchange exchange=newExchange();
+  BlockingResponseListener listener=(BlockingResponseListener)exchange.getResponseListeners().get(0);
   exchange.receive();
   Response response=listener.get(5,TimeUnit.SECONDS);
   Assert.assertNotNull(response);
-  Assert.assertEquals(200,response.status());
-  Assert.assertEquals("OK",response.reason());
-  Assert.assertSame(HttpVersion.HTTP_1_1,response.version());
-  HttpFields headers=response.headers();
+  Assert.assertEquals(200,response.getStatus());
+  Assert.assertEquals("OK",response.getReason());
+  Assert.assertSame(HttpVersion.HTTP_1_1,response.getVersion());
+  HttpFields headers=response.getHeaders();
   Assert.assertNotNull(headers);
   Assert.assertEquals(1,headers.size());
   Assert.assertEquals(String.valueOf(content.length()),headers.get(HttpHeader.CONTENT_LENGTH));

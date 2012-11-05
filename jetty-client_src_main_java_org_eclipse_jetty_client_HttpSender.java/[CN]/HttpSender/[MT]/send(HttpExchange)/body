@@ -1,12 +1,23 @@
 {
-  Request request=exchange.request();
-  if (request.aborted()) {
-    fail(new HttpRequestException("Request aborted",request));
+  if (!updateState(State.IDLE,State.SEND))   throw new IllegalStateException();
+  HttpConversation conversation=exchange.getConversation();
+  HttpExchange initialExchange=conversation.getExchanges().peekFirst();
+  if (initialExchange == exchange) {
+    conversation.setResponseListeners(exchange.getResponseListeners());
+  }
+ else {
+    List<Response.ResponseListener> listeners=new ArrayList<>(exchange.getResponseListeners());
+    listeners.addAll(initialExchange.getResponseListeners());
+    conversation.setResponseListeners(listeners);
+  }
+  Request request=exchange.getRequest();
+  if (request.isAborted()) {
+    exchange.abort(null);
   }
  else {
     LOG.debug("Sending {}",request);
     requestNotifier.notifyBegin(request);
-    ContentProvider content=request.content();
+    ContentProvider content=request.getContent();
     this.contentIterator=content == null ? Collections.<ByteBuffer>emptyIterator() : content.iterator();
     send();
   }

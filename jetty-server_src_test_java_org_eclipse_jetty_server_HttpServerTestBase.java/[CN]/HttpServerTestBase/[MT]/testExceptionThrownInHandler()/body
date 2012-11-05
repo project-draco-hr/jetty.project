@@ -1,7 +1,7 @@
 {
   configureServer(new AbstractHandler(){
     @Override public void handle(    String target,    Request baseRequest,    HttpServletRequest request,    HttpServletResponse response) throws IOException, ServletException {
-      throw new ServletException("handler exception");
+      throw new ServletException("TEST handler exception");
     }
   }
 );
@@ -9,8 +9,15 @@
   request.append("Host: localhost\r\n\r\n");
   Socket client=newSocket(HOST,_connector.getLocalPort());
   OutputStream os=client.getOutputStream();
-  os.write(request.toString().getBytes());
-  os.flush();
-  String response=readResponse(client);
-  assertThat("response code is 500",response.contains("500"),is(true));
+  try {
+    ((StdErrLog)Log.getLogger(HttpChannel.class)).setHideStacks(true);
+    Log.getLogger(HttpChannel.class).info("Expecting ServletException: TEST handler exception...");
+    os.write(request.toString().getBytes());
+    os.flush();
+    String response=readResponse(client);
+    assertThat("response code is 500",response.contains("500"),is(true));
+  }
+  finally {
+    ((StdErrLog)Log.getLogger(HttpChannel.class)).setHideStacks(false);
+  }
 }
