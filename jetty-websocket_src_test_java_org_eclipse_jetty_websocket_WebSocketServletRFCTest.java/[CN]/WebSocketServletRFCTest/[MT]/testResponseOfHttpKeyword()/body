@@ -1,0 +1,21 @@
+{
+  WebSocketClientFactory clientFactory=new WebSocketClientFactory();
+  clientFactory.start();
+  WebSocketClient wsc=clientFactory.newWebSocketClient();
+  MessageSender sender=new MessageSender();
+  wsc.open(serverUri,sender);
+  String message="GET";
+  try {
+    sender.awaitConnect();
+    sender.sendMessage(message);
+    TimeUnit.MILLISECONDS.sleep(500);
+    sender.awaitMessage();
+    Assert.assertEquals("Message should match",message,sender.getMessage());
+    Assert.assertThat("WebSocket should be closed",sender.isConnected(),is(false));
+    Assert.assertThat("WebSocket close clode",sender.getCloseCode(),is(1000));
+    Assert.assertEquals("WebSocket close message",message,sender.getCloseMessage());
+  }
+  finally {
+    sender.close();
+  }
+}

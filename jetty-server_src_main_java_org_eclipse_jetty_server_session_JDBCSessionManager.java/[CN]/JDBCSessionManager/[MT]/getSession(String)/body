@@ -23,20 +23,22 @@ synchronized (this) {
       if (data != null) {
         if (!data.getLastNode().equals(getSessionIdManager().getWorkerName()) || session == null) {
           if (data._expiryTime <= 0 || data._expiryTime > now) {
-            LOG.debug("getSession(" + idInCluster + "): lastNode="+ data.getLastNode()+ " thisNode="+ getSessionIdManager().getWorkerName());
+            if (LOG.isDebugEnabled())             LOG.debug("getSession(" + idInCluster + "): lastNode="+ data.getLastNode()+ " thisNode="+ getSessionIdManager().getWorkerName());
             data.setLastNode(getSessionIdManager().getWorkerName());
             session=new Session(now,data);
             _sessions.put(idInCluster,session);
             session.didActivate();
             updateSessionNode(data);
           }
- else           if (LOG.isDebugEnabled())           LOG.debug("getSession(" + idInCluster + "): Session has expired");
+ else {
+            LOG.debug("getSession ({}): Session has expired",idInCluster);
+          }
         }
- else         if (LOG.isDebugEnabled())         LOG.debug("getSession(" + idInCluster + "): Session not stale "+ session._data);
+ else         LOG.debug("getSession({}): Session not stale {}",idInCluster,session._data);
       }
  else {
         session=null;
-        if (LOG.isDebugEnabled())         LOG.debug("getSession(" + idInCluster + "): No session in database matching id="+ idInCluster);
+        LOG.debug("getSession({}): No session in database matching id={}",idInCluster,idInCluster);
       }
       return session;
     }

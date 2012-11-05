@@ -3,7 +3,7 @@
   HttpServletResponse response=(HttpServletResponse)res;
   String credentials=request.getHeader(HttpHeaders.AUTHORIZATION);
   try {
-    if (!mandatory)     return _deferred;
+    if (!mandatory)     return new DeferredAuthentication(this);
     if (credentials != null) {
       int space=credentials.indexOf(' ');
       if (space > 0) {
@@ -24,7 +24,7 @@
         }
       }
     }
-    if (_deferred.isDeferred(response))     return Authentication.UNAUTHENTICATED;
+    if (DeferredAuthentication.isDeferred(response))     return Authentication.UNAUTHENTICATED;
     response.setHeader(HttpHeaders.WWW_AUTHENTICATE,"basic realm=\"" + _loginService.getName() + '"');
     response.sendError(HttpServletResponse.SC_UNAUTHORIZED);
     return Authentication.SEND_CONTINUE;
