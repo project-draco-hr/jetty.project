@@ -15,6 +15,8 @@
   }
   MultipartConfigElement config=new MultipartConfigElement(tempdir.getCanonicalPath(),_maxFileSize,_maxRequestSize,_fileOutputBuffer);
   MultiPartInputStream mpis=new MultiPartInputStream(in,content_type,config,tempdir);
+  mpis.setDeleteOnExit(_deleteFiles);
+  request.setAttribute(MULTIPART,mpis);
   try {
     Collection<Part> parts=mpis.getParts();
     if (parts != null) {
@@ -27,15 +29,6 @@
           if (mp.getContentDispositionFilename() != null) {
             params.add(mp.getName(),mp.getContentDispositionFilename());
             if (mp.getContentType() != null)             params.add(mp.getName() + CONTENT_TYPE_SUFFIX,mp.getContentType());
-          }
-          if (_deleteFiles) {
-            mp.getFile().deleteOnExit();
-            ArrayList files=(ArrayList)request.getAttribute(FILES);
-            if (files == null) {
-              files=new ArrayList();
-              request.setAttribute(FILES,files);
-            }
-            files.add(mp.getFile());
           }
         }
  else {

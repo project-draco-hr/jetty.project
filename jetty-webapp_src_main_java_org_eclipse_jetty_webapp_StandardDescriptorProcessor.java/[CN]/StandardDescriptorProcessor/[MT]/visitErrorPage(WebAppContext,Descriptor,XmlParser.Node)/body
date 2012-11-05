@@ -1,7 +1,10 @@
 {
   String error=node.getString("error-code",false,true);
   int code=0;
-  if (error == null || error.length() == 0)   error=node.getString("exception-type",false,true);
+  if (error == null || error.length() == 0) {
+    error=node.getString("exception-type",false,true);
+    if (error == null || error.length() == 0)     error=ErrorPageErrorHandler.GLOBAL_ERROR_PAGE;
+  }
  else   code=Integer.valueOf(error);
   String location=node.getString("location",false,true);
   ErrorPageErrorHandler handler=(ErrorPageErrorHandler)context.getErrorHandler();
@@ -19,9 +22,12 @@ case WebDefaults:
 case WebOverride:
 {
     if (!(descriptor instanceof FragmentDescriptor)) {
-      if (code > 0)       handler.addErrorPage(code,location);
- else       handler.addErrorPage(error,location);
-      context.getMetaData().setOrigin("error." + error,descriptor);
+      if (descriptor instanceof OverrideDescriptor || descriptor instanceof DefaultsDescriptor) {
+        if (code > 0)         handler.addErrorPage(code,location);
+ else         handler.addErrorPage(error,location);
+        context.getMetaData().setOrigin("error." + error,descriptor);
+      }
+ else       throw new IllegalStateException("Duplicate global error-page " + location);
     }
     break;
   }

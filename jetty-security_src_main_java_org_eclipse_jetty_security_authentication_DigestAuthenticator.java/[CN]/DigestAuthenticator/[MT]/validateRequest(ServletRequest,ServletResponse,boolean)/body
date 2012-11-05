@@ -1,5 +1,5 @@
 {
-  if (!mandatory)   return _deferred;
+  if (!mandatory)   return new DeferredAuthentication(this);
   HttpServletRequest request=(HttpServletRequest)req;
   HttpServletResponse response=(HttpServletResponse)res;
   String credentials=request.getHeader(HttpHeaders.AUTHORIZATION);
@@ -41,15 +41,14 @@ name=null;
 }
 int n=checkNonce(digest,(Request)request);
 if (n > 0) {
-UserIdentity user=_loginService.login(digest.username,digest);
+UserIdentity user=login(digest.username,digest,req);
 if (user != null) {
-renewSession(request,response);
 return new UserAuthentication(getAuthMethod(),user);
 }
 }
  else if (n == 0) stale=true;
 }
-if (!_deferred.isDeferred(response)) {
+if (!DeferredAuthentication.isDeferred(response)) {
 String domain=request.getContextPath();
 if (domain == null) domain="/";
 response.setHeader(HttpHeaders.WWW_AUTHENTICATE,"Digest realm=\"" + _loginService.getName() + "\", domain=\""+ domain+ "\", nonce=\""+ newNonce((Request)request)+ "\", algorithm=MD5, qop=\"auth\","+ " stale="+ stale);

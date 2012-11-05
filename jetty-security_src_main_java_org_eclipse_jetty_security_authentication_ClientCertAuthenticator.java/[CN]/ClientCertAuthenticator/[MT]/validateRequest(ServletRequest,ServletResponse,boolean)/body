@@ -1,5 +1,5 @@
 {
-  if (!mandatory)   return _deferred;
+  if (!mandatory)   return new DeferredAuthentication(this);
   HttpServletRequest request=(HttpServletRequest)req;
   HttpServletResponse response=(HttpServletResponse)res;
   X509Certificate[] certs=(X509Certificate[])request.getAttribute("javax.servlet.request.X509Certificate");
@@ -17,14 +17,13 @@
         if (principal == null)         principal=cert.getIssuerDN();
         final String username=principal == null ? "clientcert" : principal.getName();
         final char[] credential=B64Code.encode(cert.getSignature());
-        UserIdentity user=_loginService.login(username,credential);
+        UserIdentity user=login(username,credential,req);
         if (user != null) {
-          renewSession(request,response);
           return new UserAuthentication(getAuthMethod(),user);
         }
       }
     }
-    if (!_deferred.isDeferred(response)) {
+    if (!DeferredAuthentication.isDeferred(response)) {
       response.sendError(HttpServletResponse.SC_FORBIDDEN);
       return Authentication.SEND_FAILURE;
     }

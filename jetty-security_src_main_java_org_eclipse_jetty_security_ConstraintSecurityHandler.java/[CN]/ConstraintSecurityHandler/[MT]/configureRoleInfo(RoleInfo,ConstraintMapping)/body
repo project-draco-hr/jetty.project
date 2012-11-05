@@ -1,0 +1,26 @@
+{
+  Constraint constraint=mapping.getConstraint();
+  boolean forbidden=constraint.isForbidden();
+  ri.setForbidden(forbidden);
+  UserDataConstraint userDataConstraint=UserDataConstraint.get(mapping.getConstraint().getDataConstraint());
+  ri.setUserDataConstraint(userDataConstraint);
+  if (!ri.isForbidden()) {
+    boolean checked=mapping.getConstraint().getAuthenticate();
+    ri.setChecked(checked);
+    if (ri.isChecked()) {
+      if (mapping.getConstraint().isAnyRole()) {
+        if (_strict) {
+          for (          String role : _roles)           ri.addRole(role);
+        }
+ else         ri.setAnyRole(true);
+      }
+ else {
+        String[] newRoles=mapping.getConstraint().getRoles();
+        for (        String role : newRoles) {
+          if (_strict && !_roles.contains(role))           throw new IllegalArgumentException("Attempt to use undeclared role: " + role + ", known roles: "+ _roles);
+          ri.addRole(role);
+        }
+      }
+    }
+  }
+}

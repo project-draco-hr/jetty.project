@@ -6,6 +6,10 @@
   }
   RoleInfo allMethodsRoleInfo=mappings.get(null);
   if (allMethodsRoleInfo != null && allMethodsRoleInfo.isForbidden())   return;
+  if (mapping.getMethodOmissions() != null && mapping.getMethodOmissions().length > 0) {
+    processConstraintMappingWithMethodOmissions(mapping,mappings);
+    return;
+  }
   String httpMethod=mapping.getMethod();
   RoleInfo roleInfo=mappings.get(httpMethod);
   if (roleInfo == null) {
@@ -16,35 +20,14 @@
     }
   }
   if (roleInfo.isForbidden())   return;
-  Constraint constraint=mapping.getConstraint();
-  boolean forbidden=constraint.isForbidden();
-  roleInfo.setForbidden(forbidden);
-  if (forbidden) {
+  configureRoleInfo(roleInfo,mapping);
+  if (roleInfo.isForbidden()) {
     if (httpMethod == null) {
       mappings.clear();
       mappings.put(null,roleInfo);
     }
   }
  else {
-    UserDataConstraint userDataConstraint=UserDataConstraint.get(constraint.getDataConstraint());
-    roleInfo.setUserDataConstraint(userDataConstraint);
-    boolean checked=constraint.getAuthenticate();
-    roleInfo.setChecked(checked);
-    if (roleInfo.isChecked()) {
-      if (constraint.isAnyRole()) {
-        if (_strict) {
-          for (          String role : _roles)           roleInfo.addRole(role);
-        }
- else         roleInfo.setAnyRole(true);
-      }
- else {
-        String[] newRoles=constraint.getRoles();
-        for (        String role : newRoles) {
-          if (_strict && !_roles.contains(role))           throw new IllegalArgumentException("Attempt to use undeclared role: " + role + ", known roles: "+ _roles);
-          roleInfo.addRole(role);
-        }
-      }
-    }
     if (httpMethod == null) {
       for (      Map.Entry<String,RoleInfo> entry : mappings.entrySet()) {
         if (entry.getKey() != null) {
