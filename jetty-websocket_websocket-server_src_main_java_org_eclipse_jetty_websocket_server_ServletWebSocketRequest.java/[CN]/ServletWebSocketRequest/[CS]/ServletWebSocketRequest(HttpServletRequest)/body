@@ -1,6 +1,11 @@
 {
-  super(request);
+  super(request.getRequestURI());
+  cookieMap=new HashMap<String,String>();
+  for (  Cookie cookie : request.getCookies()) {
+    cookieMap.put(cookie.getName(),cookie.getValue());
+  }
   Enumeration<String> protocols=request.getHeaders("Sec-WebSocket-Protocol");
+  List<String> subProtocols=new ArrayList<>();
   String protocol=null;
   while ((protocol == null) && (protocols != null) && protocols.hasMoreElements()) {
     String candidate=protocols.nextElement();
@@ -8,6 +13,7 @@
       subProtocols.add(p);
     }
   }
+  setSubProtocols(subProtocols);
   extensions=new ArrayList<>();
   Enumeration<String> e=request.getHeaders("Sec-WebSocket-Extensions");
   while (e.hasMoreElements()) {
