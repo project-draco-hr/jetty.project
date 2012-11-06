@@ -1,0 +1,29 @@
+{
+  prepareProxy(new ProxyServlet());
+  final long timeout=1000;
+  prepareServer(new HttpServlet(){
+    @Override protected void doGet(    final HttpServletRequest request,    final HttpServletResponse response) throws ServletException, IOException {
+      if (!request.isAsyncStarted()) {
+        final AsyncContext asyncContext=request.startAsync();
+        asyncContext.setTimeout(timeout);
+        asyncContext.addListener(new AsyncListener(){
+          @Override public void onComplete(          AsyncEvent event) throws IOException {
+          }
+          @Override public void onTimeout(          AsyncEvent event) throws IOException {
+            if (request.getHeader("Via") != null)             response.addHeader(PROXIED_HEADER,"true");
+            asyncContext.complete();
+          }
+          @Override public void onError(          AsyncEvent event) throws IOException {
+          }
+          @Override public void onStartAsync(          AsyncEvent event) throws IOException {
+          }
+        }
+);
+      }
+    }
+  }
+);
+  Response response=client.newRequest("localhost",serverConnector.getLocalPort()).send().get(2 * timeout,TimeUnit.MILLISECONDS);
+  Assert.assertEquals(200,response.getStatus());
+  Assert.assertTrue(response.getHeaders().containsKey(PROXIED_HEADER));
+}

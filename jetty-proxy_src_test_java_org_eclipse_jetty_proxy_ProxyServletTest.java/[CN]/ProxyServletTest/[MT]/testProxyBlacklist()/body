@@ -1,0 +1,10 @@
+{
+  prepareProxy(new ProxyServlet());
+  prepareServer(new EmptyHttpServlet());
+  int port=serverConnector.getLocalPort();
+  proxyServlet.getBlacklistHosts().add("localhost:" + port);
+  ContentResponse response=client.newRequest("localhost",port).send().get(5,TimeUnit.SECONDS);
+  Assert.assertEquals(403,response.getStatus());
+  response=client.newRequest("127.0.0.1",port).send().get(5,TimeUnit.SECONDS);
+  Assert.assertEquals(200,response.getStatus());
+}

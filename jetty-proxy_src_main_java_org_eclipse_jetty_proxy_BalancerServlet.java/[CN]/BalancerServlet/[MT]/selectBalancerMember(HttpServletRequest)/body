@@ -1,13 +1,11 @@
 {
-  BalancerMember balancerMember=null;
   if (_stickySessions) {
     String name=getBalancerMemberNameFromSessionId(request);
     if (name != null) {
-      balancerMember=findBalancerMemberByName(name);
-      if (balancerMember != null) {
-        return balancerMember;
-      }
+      BalancerMember balancerMember=findBalancerMemberByName(name);
+      if (balancerMember != null)       return balancerMember;
     }
   }
-  return _roundRobinIterator.next();
+  int index=(int)(counter.getAndIncrement() % _balancerMembers.size());
+  return _balancerMembers.get(index);
 }

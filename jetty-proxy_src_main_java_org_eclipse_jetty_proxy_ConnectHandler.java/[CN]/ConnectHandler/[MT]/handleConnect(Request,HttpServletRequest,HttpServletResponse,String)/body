@@ -11,29 +11,32 @@
   if (!validateDestination(host)) {
     LOG.info("ProxyHandler: Forbidden destination " + host);
     response.setStatus(HttpServletResponse.SC_FORBIDDEN);
-    baseRequest.setHandled(true);
+    jettyRequest.setHandled(true);
     return;
   }
-  SocketChannel channel;
+  SocketChannel channel=SocketChannel.open();
+  channel.socket().setTcpNoDelay(true);
+  channel.configureBlocking(false);
+  channel.connect(new InetSocketAddress(host,port));
   try {
     channel=connectToServer(request,host,port);
   }
  catch (  SocketException se) {
     LOG.info("ConnectHandler: SocketException " + se.getMessage());
     response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-    baseRequest.setHandled(true);
+    jettyRequest.setHandled(true);
     return;
   }
 catch (  SocketTimeoutException ste) {
     LOG.info("ConnectHandler: SocketTimeoutException" + ste.getMessage());
     response.setStatus(HttpServletResponse.SC_GATEWAY_TIMEOUT);
-    baseRequest.setHandled(true);
+    jettyRequest.setHandled(true);
     return;
   }
 catch (  IOException ioe) {
     LOG.info("ConnectHandler: IOException" + ioe.getMessage());
     response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-    baseRequest.setHandled(true);
+    jettyRequest.setHandled(true);
     return;
   }
 }

@@ -1,0 +1,41 @@
+{
+  prepareProxy(new ProxyServlet());
+  final int length=6 * 1024;
+  Path targetTestsDir=MavenTestingUtils.getTargetTestingDir().toPath();
+  Files.createDirectories(targetTestsDir);
+  final Path temp=Files.createTempFile(targetTestsDir,"test_",null);
+  byte[] kb=new byte[1024];
+  Arrays.fill(kb,(byte)'X');
+  try (OutputStream output=Files.newOutputStream(temp,CREATE)){
+    for (int i=0; i < length; ++i)     output.write(kb);
+  }
+   prepareServer(new HttpServlet(){
+    @Override protected void doGet(    HttpServletRequest request,    HttpServletResponse response) throws ServletException, IOException {
+      try (InputStream input=Files.newInputStream(temp)){
+        IO.copy(input,response.getOutputStream());
+      }
+     }
+  }
+);
+  Request request=client.newRequest("localhost",serverConnector.getLocalPort()).path("/proxy/test");
+  final CountDownLatch latch=new CountDownLatch(1);
+  request.send(new BufferingResponseListener(2 * length * 1024){
+    @Override public void onContent(    Response response,    ByteBuffer content){
+      try {
+        TimeUnit.MILLISECONDS.sleep(5);
+        super.onContent(response,content);
+      }
+ catch (      InterruptedException x) {
+        response.abort(x);
+      }
+    }
+    @Override public void onComplete(    Result result){
+      Assert.assertFalse(result.isFailed());
+      Assert.assertEquals(200,result.getResponse().getStatus());
+      Assert.assertEquals(length * 1024,getContent().length);
+      latch.countDown();
+    }
+  }
+);
+  Assert.assertTrue(latch.await(30,TimeUnit.SECONDS));
+}
