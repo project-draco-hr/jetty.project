@@ -2,12 +2,12 @@
   if (!"websocket".equalsIgnoreCase(request.getHeader("Upgrade"))) {
     throw new IllegalStateException("Not a 'WebSocket: Upgrade' request");
   }
-  if (!"HTTP/1.1".equals(request.getProtocol())) {
+  if (!"HTTP/1.1".equals(request.getHttpVersion())) {
     throw new IllegalStateException("Not a 'HTTP/1.1' request");
   }
-  int version=request.getIntHeader("Sec-WebSocket-Version");
+  int version=request.getHeaderInt("Sec-WebSocket-Version");
   if (version < 0) {
-    version=request.getIntHeader("Sec-WebSocket-Draft");
+    version=request.getHeaderInt("Sec-WebSocket-Draft");
   }
   WebSocketHandshake handshaker=handshakes.get(version);
   if (handshaker == null) {
@@ -35,20 +35,6 @@
   OutgoingFrames outgoing=connection;
   if (extensions != null) {
     connection.configureFromExtensions(extensions);
-    Iterator<Extension> extIter;
-    extIter=extensions.iterator();
-    while (extIter.hasNext()) {
-      Extension ext=extIter.next();
-      ext.setNextOutgoingFrames(outgoing);
-      outgoing=ext;
-    }
-    Collections.reverse(extensions);
-    extIter=extensions.iterator();
-    while (extIter.hasNext()) {
-      Extension ext=extIter.next();
-      ext.setNextIncomingFrames(incoming);
-      incoming=ext;
-    }
   }
   session.setOutgoing(outgoing);
   connection.setIncoming(incoming);

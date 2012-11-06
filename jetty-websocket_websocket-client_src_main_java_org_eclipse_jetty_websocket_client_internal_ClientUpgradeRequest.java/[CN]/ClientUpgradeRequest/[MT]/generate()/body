@@ -1,0 +1,74 @@
+{
+  URI uri=getRequestURI();
+  StringBuilder request=new StringBuilder(512);
+  request.append("GET ");
+  if (StringUtil.isBlank(uri.getPath())) {
+    request.append("/");
+  }
+ else {
+    request.append(uri.getPath());
+  }
+  if (StringUtil.isNotBlank(uri.getRawQuery())) {
+    request.append("?").append(uri.getRawQuery());
+  }
+  request.append(" HTTP/1.1\r\n");
+  request.append("Host: ").append(uri.getHost());
+  if (uri.getPort() > 0) {
+    request.append(':').append(uri.getPort());
+  }
+  request.append("\r\n");
+  request.append("Upgrade: websocket\r\n");
+  request.append("Connection: Upgrade\r\n");
+  request.append("Sec-WebSocket-Key: ").append(key).append("\r\n");
+  request.append("Sec-WebSocket-Version: 13\r\n");
+  request.append("Pragma: no-cache\r\n");
+  request.append("Cache-Control: no-cache\r\n");
+  if (!getExtensions().isEmpty()) {
+    request.append("Sec-WebSocket-Extensions: ");
+    boolean needDelim=false;
+    for (    ExtensionConfig ext : getExtensions()) {
+      if (needDelim) {
+        request.append(", ");
+      }
+      request.append(ext.getParameterizedName());
+      needDelim=true;
+    }
+    request.append("\r\n");
+  }
+  if (!getSubProtocols().isEmpty()) {
+    request.append("Sec-WebSocket-Protocol: ");
+    boolean needDelim=false;
+    for (    String protocol : getSubProtocols()) {
+      if (needDelim) {
+        request.append(", ");
+      }
+      request.append(protocol);
+      needDelim=true;
+    }
+    request.append("\r\n");
+  }
+  List<HttpCookie> cookies=getCookies();
+  if ((cookies != null) && (cookies.size() > 0)) {
+    request.append("Cookie: ");
+    boolean needDelim=false;
+    for (    HttpCookie cookie : cookies) {
+      if (needDelim) {
+        request.append("; ");
+      }
+      request.append(cookie.toString());
+      needDelim=true;
+    }
+    request.append("\r\n");
+  }
+  for (  String key : getHeaders().keySet()) {
+    if (FORBIDDEN_HEADERS.contains(key.toLowerCase())) {
+      LOG.warn("Skipping forbidden header - {}",key);
+      continue;
+    }
+    request.append(key).append(": ");
+    request.append(getHeader(key));
+    request.append("\r\n");
+  }
+  request.append("\r\n");
+  return request.toString();
+}
