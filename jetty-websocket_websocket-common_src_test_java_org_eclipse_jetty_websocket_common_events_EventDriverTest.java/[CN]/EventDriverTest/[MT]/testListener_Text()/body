@@ -1,0 +1,13 @@
+{
+  ListenerBasicSocket socket=new ListenerBasicSocket();
+  EventDriver driver=wrap(socket);
+  LocalWebSocketSession conn=new LocalWebSocketSession(testname);
+  driver.setSession(conn);
+  driver.onConnect();
+  driver.incomingFrame(WebSocketFrame.text("Hello World"));
+  driver.incomingFrame(new CloseInfo(StatusCode.NORMAL).asFrame());
+  socket.capture.assertEventCount(3);
+  socket.capture.assertEventStartsWith(0,"onWebSocketConnect");
+  socket.capture.assertEventStartsWith(1,"onWebSocketText(\"Hello World\")");
+  socket.capture.assertEventStartsWith(2,"onWebSocketClose(1000,");
+}

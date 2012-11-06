@@ -1,0 +1,39 @@
+{
+  OutgoingFramesCapture capture=new OutgoingFramesCapture();
+  FragmentExtension ext=new FragmentExtension();
+  ext.setBufferPool(new MappedByteBufferPool());
+  ext.setPolicy(WebSocketPolicy.newServerPolicy());
+  ExtensionConfig config=RequestedExtensionConfig.parse("fragment");
+  ext.setConfig(config);
+  FrameHandler outgoingHandler=ext.createOutgoingFrameHandler(capture);
+  List<String> quote=new ArrayList<>();
+  quote.add("No amount of experimentation can ever prove me right;");
+  quote.add("a single experiment can prove me wrong.");
+  quote.add("-- Albert Einstein");
+  for (  String section : quote) {
+    WebSocketFrame frame=WebSocketFrame.text(section);
+    outgoingHandler.handleFrame(frame);
+  }
+  List<WebSocketFrame> expectedFrames=new ArrayList<>();
+  expectedFrames.add(new WebSocketFrame(OpCode.TEXT).setPayload("No amount of experimentation can ever prove me right;"));
+  expectedFrames.add(new WebSocketFrame(OpCode.TEXT).setPayload("a single experiment can prove me wrong."));
+  expectedFrames.add(new WebSocketFrame(OpCode.TEXT).setPayload("-- Albert Einstein"));
+  int len=expectedFrames.size();
+  capture.assertFrameCount(len);
+  String prefix;
+  LinkedList<WebSocketFrame> frames=capture.getFrames();
+  for (int i=0; i < len; i++) {
+    prefix="Frame[" + i + "]";
+    WebSocketFrame actualFrame=frames.get(i);
+    WebSocketFrame expectedFrame=expectedFrames.get(i);
+    Assert.assertThat(prefix + ".opcode",actualFrame.getOpCode(),is(expectedFrame.getOpCode()));
+    Assert.assertThat(prefix + ".fin",actualFrame.isFin(),is(expectedFrame.isFin()));
+    Assert.assertThat(prefix + ".rsv1",actualFrame.isRsv1(),is(expectedFrame.isRsv1()));
+    Assert.assertThat(prefix + ".rsv2",actualFrame.isRsv2(),is(expectedFrame.isRsv2()));
+    Assert.assertThat(prefix + ".rsv3",actualFrame.isRsv3(),is(expectedFrame.isRsv3()));
+    ByteBuffer expectedData=expectedFrame.getPayload().slice();
+    ByteBuffer actualData=actualFrame.getPayload().slice();
+    Assert.assertThat(prefix + ".payloadLength",actualData.remaining(),is(expectedData.remaining()));
+    ByteBufferAssert.assertEquals(prefix + ".payload",expectedData,actualData);
+  }
+}

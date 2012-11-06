@@ -1,0 +1,54 @@
+{
+  if (LOG.isDebugEnabled()) {
+    LOG.debug("{}.onFrame({})",websocket.getClass().getSimpleName(),frame);
+  }
+  onFrame(frame);
+  try {
+switch (frame.getOpCode()) {
+case OpCode.CLOSE:
+{
+        boolean validate=true;
+        CloseInfo close=new CloseInfo(frame,validate);
+        onClose(close);
+        session.close(close.getStatusCode(),close.getReason());
+        session.onCloseHandshake(true,close);
+        return;
+      }
+case OpCode.PING:
+{
+      WebSocketFrame pong=new WebSocketFrame(OpCode.PONG);
+      if (frame.getPayloadLength() > 0) {
+        ByteBuffer pongBuf=ByteBuffer.allocate(frame.getPayloadLength());
+        BufferUtil.clearToFill(pongBuf);
+        BufferUtil.put(frame.getPayload(),pongBuf);
+        BufferUtil.flipToFlush(pongBuf,0);
+        pong.setPayload(pongBuf);
+        if (LOG.isDebugEnabled()) {
+          LOG.debug("Pong with {}",BufferUtil.toDetailString(pongBuf));
+        }
+      }
+      session.outgoingFrame(pong);
+      break;
+    }
+case OpCode.BINARY:
+{
+    onBinaryFrame(frame.getPayload(),frame.isFin());
+    return;
+  }
+case OpCode.TEXT:
+{
+  onTextFrame(frame.getPayload(),frame.isFin());
+  return;
+}
+}
+}
+ catch (NotUtf8Exception e) {
+terminateConnection(StatusCode.BAD_PAYLOAD,e.getMessage());
+}
+catch (CloseException e) {
+terminateConnection(e.getStatusCode(),e.getMessage());
+}
+catch (Throwable t) {
+unhandled(t);
+}
+}
