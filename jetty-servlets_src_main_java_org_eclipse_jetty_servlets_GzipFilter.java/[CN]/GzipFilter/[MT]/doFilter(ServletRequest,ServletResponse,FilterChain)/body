@@ -14,6 +14,11 @@
       super.doFilter(request,response,chain);
       return;
     }
+    String etag=request.getHeader("If-None-Match");
+    if (etag != null) {
+      if (etag.endsWith(ETAG_GZIP))       request.setAttribute(ETAG,etag.substring(0,etag.length() - ETAG_GZIP.length()) + '"');
+ else       if (etag.endsWith(ETAG_DEFLATE))       request.setAttribute(ETAG,etag.substring(0,etag.length() - ETAG_DEFLATE.length()) + '"');
+    }
     CompressedResponseWrapper wrappedResponse=createWrappedResponse(request,response,compressionType);
     boolean exceptional=true;
     try {

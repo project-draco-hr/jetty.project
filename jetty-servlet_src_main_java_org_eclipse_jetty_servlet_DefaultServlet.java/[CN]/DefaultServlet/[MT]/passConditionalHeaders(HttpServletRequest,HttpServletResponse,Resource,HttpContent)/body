@@ -1,6 +1,54 @@
 {
   try {
     if (!request.getMethod().equals(HttpMethods.HEAD)) {
+      if (_etags) {
+        String ifm=request.getHeader(HttpHeaders.IF_MATCH);
+        if (ifm != null) {
+          boolean match=false;
+          if (content != null && content.getETag() != null) {
+            QuotedStringTokenizer quoted=new QuotedStringTokenizer(ifm,", ",false,true);
+            while (!match && quoted.hasMoreTokens()) {
+              String tag=quoted.nextToken();
+              if (content.getETag().toString().equals(tag))               match=true;
+            }
+          }
+          if (!match) {
+            Response r=Response.getResponse(response);
+            r.reset(true);
+            r.setStatus(HttpServletResponse.SC_PRECONDITION_FAILED);
+            return false;
+          }
+        }
+        String ifnm=request.getHeader(HttpHeaders.IF_NONE_MATCH);
+        if (ifnm != null && content != null && content.getETag() != null) {
+          if (content.getETag().toString().equals(request.getAttribute("o.e.j.s.GzipFilter.ETag"))) {
+            Response r=Response.getResponse(response);
+            r.reset(true);
+            r.setStatus(HttpServletResponse.SC_NOT_MODIFIED);
+            r.getHttpFields().put(HttpHeaders.ETAG_BUFFER,ifnm);
+            return false;
+          }
+          if (content.getETag().toString().equals(ifnm)) {
+            Response r=Response.getResponse(response);
+            r.reset(true);
+            r.setStatus(HttpServletResponse.SC_NOT_MODIFIED);
+            r.getHttpFields().put(HttpHeaders.ETAG_BUFFER,content.getETag());
+            return false;
+          }
+          QuotedStringTokenizer quoted=new QuotedStringTokenizer(ifnm,", ",false,true);
+          while (quoted.hasMoreTokens()) {
+            String tag=quoted.nextToken();
+            if (content.getETag().toString().equals(tag)) {
+              Response r=Response.getResponse(response);
+              r.reset(true);
+              r.setStatus(HttpServletResponse.SC_NOT_MODIFIED);
+              r.getHttpFields().put(HttpHeaders.ETAG_BUFFER,content.getETag());
+              return false;
+            }
+          }
+          return true;
+        }
+      }
       String ifms=request.getHeader(HttpHeaders.IF_MODIFIED_SINCE);
       if (ifms != null) {
         Response r=Response.getResponse(response);
