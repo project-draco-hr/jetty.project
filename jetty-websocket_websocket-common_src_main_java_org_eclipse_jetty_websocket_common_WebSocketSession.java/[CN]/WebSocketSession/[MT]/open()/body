@@ -2,31 +2,6 @@
   if (isOpen()) {
     throw new WebSocketException("Cannot Open WebSocketSession, Already open");
   }
-  LOG.debug("Extension Configs={}",extensionConfigs);
-  List<Extension> extensions=new ArrayList<>();
-  for (  ExtensionConfig config : extensionConfigs) {
-    Extension ext=extensionFactory.newInstance(config);
-    extensions.add(ext);
-    LOG.debug("Adding Extension: {}",ext);
-  }
-  if (extensions.size() > 0) {
-    Iterator<Extension> extIter;
-    extIter=extensions.iterator();
-    while (extIter.hasNext()) {
-      Extension ext=extIter.next();
-      ext.setNextOutgoingFrames(outgoingHandler);
-      outgoingHandler=ext;
-    }
-    Collections.reverse(extensions);
-    extIter=extensions.iterator();
-    while (extIter.hasNext()) {
-      Extension ext=extIter.next();
-      ext.setNextIncomingFrames(incomingHandler);
-      incomingHandler=ext;
-    }
-  }
-  addBean(incomingHandler);
-  addBean(outgoingHandler);
   remote=new WebSocketRemoteEndpoint(connection,outgoingHandler);
   this.active=true;
   websocket.setSession(this);

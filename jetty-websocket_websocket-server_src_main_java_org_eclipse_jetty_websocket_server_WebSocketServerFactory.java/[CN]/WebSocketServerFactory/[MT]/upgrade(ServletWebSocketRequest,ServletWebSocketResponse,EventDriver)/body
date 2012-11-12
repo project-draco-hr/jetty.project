@@ -16,6 +16,8 @@
     response.sendError(HttpStatus.BAD_REQUEST_400,"Unsupported websocket version specification");
     return false;
   }
+  ExtensionStack extensionStack=new ExtensionStack(getExtensionFactory());
+  extensionStack.negotiate(request.getExtensions());
   UpgradeContext context=getActiveUpgradeContext();
   LogicalConnection connection=context.getConnection();
   if (connection == null) {
@@ -23,20 +25,37 @@
     EndPoint endp=http.getEndPoint();
     Executor executor=http.getConnector().getExecutor();
     ByteBufferPool bufferPool=http.getConnector().getByteBufferPool();
-    connection=new WebSocketServerConnection(endp,executor,scheduler,driver.getPolicy(),bufferPool,this);
+    WebSocketServerConnection wsConnection=new WebSocketServerConnection(endp,executor,scheduler,driver.getPolicy(),bufferPool,this);
+    connection=wsConnection;
+    extensionStack.configure(wsConnection.getParser());
+    extensionStack.configure(wsConnection.getGenerator());
     LOG.debug("HttpConnection: {}",http);
     LOG.debug("AsyncWebSocketConnection: {}",connection);
   }
   WebSocketSession session=new WebSocketSession(request.getRequestURI(),driver,connection);
   session.setPolicy(getPolicy().clonePolicy());
   session.setNegotiatedSubprotocol(response.getAcceptedSubProtocol());
-  session.setNegotiatedExtensionConfigs(request.getExtensions());
-  session.setExtensionFactory(extensionFactory);
+  session.setNegotiatedExtensions(extensionStack.getNegotiatedExtensions());
   connection.setSession(session);
-  IncomingFrames incoming=session;
-  OutgoingFrames outgoing=connection;
-  session.setOutgoingHandler(outgoing);
-  connection.setNextIncomingFrames(incoming);
+  connection.setNextIncomingFrames(extensionStack);
+  extensionStack.setNextIncoming(session);
+  session.setOutgoingHandler(extensionStack);
+  extensionStack.setNextOutgoing(connection);
+  try {
+    session.start();
+  }
+ catch (  Exception e) {
+    throw new IOException("Unable to start Session",e);
+  }
+  try {
+    extensionStack.start();
+  }
+ catch (  Exception e) {
+    throw new IOException("Unable to start Extension Stack",e);
+  }
+  if (LOG.isDebugEnabled()) {
+    LOG.debug("{}",extensionStack.dump());
+  }
   request.setAttribute(HttpConnection.UPGRADE_CONNECTION_ATTRIBUTE,connection);
   LOG.debug("Handshake Response: {}",handshaker);
   handshaker.doHandshakeResponse(request,response);
