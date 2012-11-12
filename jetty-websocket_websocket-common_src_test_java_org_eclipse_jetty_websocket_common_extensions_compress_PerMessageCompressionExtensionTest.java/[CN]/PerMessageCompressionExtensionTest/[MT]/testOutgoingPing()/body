@@ -1,14 +1,14 @@
 {
-  PerMessageCompressionExtension ext=new PerMessageCompressionExtension();
+  MessageCompressionExtension ext=new MessageCompressionExtension();
   ext.setBufferPool(new MappedByteBufferPool());
   ext.setPolicy(WebSocketPolicy.newServerPolicy());
   ExtensionConfig config=ExtensionConfig.parse("permessage-compress");
   ext.setConfig(config);
   OutgoingFramesCapture capture=new OutgoingFramesCapture();
-  FrameHandler outgoingHandler=ext.createOutgoingFrameHandler(capture);
+  ext.setNextOutgoingFrames(capture);
   String payload="Are you there?";
-  WebSocketFrame ping=WebSocketFrame.ping().setPayload(payload);
-  outgoingHandler.handleFrame(ping);
+  Frame ping=WebSocketFrame.ping().setPayload(payload);
+  ext.outgoingFrame(ping);
   capture.assertFrameCount(1);
   capture.assertHasFrame(OpCode.PING,1);
   WebSocketFrame actual=capture.getFrames().getFirst();

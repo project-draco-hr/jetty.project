@@ -1,0 +1,23 @@
+{
+  if (frame.getType().isControl() || !frame.isRsv1()) {
+    nextIncomingFrame(frame);
+    return;
+  }
+  ByteBuffer data=frame.getPayload();
+  try {
+    method.decompress().input(data);
+    while (!method.decompress().isDone()) {
+      ByteBuffer uncompressed=method.decompress().process();
+      WebSocketFrame out=new WebSocketFrame(frame).setPayload(uncompressed);
+      if (!method.decompress().isDone()) {
+        out.setFin(false);
+      }
+      out.setRsv1(false);
+      nextIncomingFrame(out);
+    }
+    method.decompress().end();
+  }
+  finally {
+    getBufferPool().release(data);
+  }
+}

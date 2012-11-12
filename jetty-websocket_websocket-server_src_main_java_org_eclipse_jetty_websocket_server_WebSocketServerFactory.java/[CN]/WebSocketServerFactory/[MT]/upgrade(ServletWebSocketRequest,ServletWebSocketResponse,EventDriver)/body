@@ -17,7 +17,7 @@
     return false;
   }
   UpgradeContext context=getActiveUpgradeContext();
-  InternalConnection connection=context.getConnection();
+  LogicalConnection connection=context.getConnection();
   if (connection == null) {
     HttpConnection http=HttpConnection.getCurrentConnection();
     EndPoint endp=http.getEndPoint();
@@ -27,17 +27,16 @@
     LOG.debug("HttpConnection: {}",http);
     LOG.debug("AsyncWebSocketConnection: {}",connection);
   }
-  WebSocketSession session=new WebSocketSession(driver,connection,getPolicy(),response.getAcceptedSubProtocol());
+  WebSocketSession session=new WebSocketSession(request.getRequestURI(),driver,connection);
+  session.setPolicy(getPolicy().clonePolicy());
+  session.setNegotiatedSubprotocol(response.getAcceptedSubProtocol());
+  session.setNegotiatedExtensionConfigs(request.getExtensions());
+  session.setExtensionFactory(extensionFactory);
   connection.setSession(session);
-  List<Extension> extensions=initExtensions(request.getExtensions());
-  request.setValidExtensions(extensions);
   IncomingFrames incoming=session;
   OutgoingFrames outgoing=connection;
-  if (extensions != null) {
-    connection.configureFromExtensions(extensions);
-  }
-  session.setOutgoing(outgoing);
-  connection.setIncoming(incoming);
+  session.setOutgoingHandler(outgoing);
+  connection.setNextIncomingFrames(incoming);
   request.setAttribute(HttpConnection.UPGRADE_CONNECTION_ATTRIBUTE,connection);
   LOG.debug("Handshake Response: {}",handshaker);
   handshaker.doHandshakeResponse(request,response);

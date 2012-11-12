@@ -1,0 +1,27 @@
+{
+  if (LOG.isDebugEnabled()) {
+    LOG.debug("outgoingFrame({})",frame);
+  }
+  Future<SendResult> future=null;
+synchronized (queue) {
+    FrameBytes bytes=null;
+    if (frame.getType().isControl()) {
+      bytes=new ControlFrameBytes(this,frame);
+    }
+ else {
+      bytes=new DataFrameBytes(this,frame);
+    }
+    future=bytes;
+    scheduleTimeout(bytes);
+    if (isOpen()) {
+      if (frame.getType().getOpCode() == OpCode.PING) {
+        queue.prepend(bytes);
+      }
+ else {
+        queue.append(bytes);
+      }
+    }
+  }
+  flush();
+  return future;
+}

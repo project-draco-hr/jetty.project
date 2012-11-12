@@ -1,18 +1,18 @@
 {
   WebSocketPolicy policy=WebSocketPolicy.newServerPolicy();
-  PerMessageCompressionExtension ext=new PerMessageCompressionExtension();
+  MessageCompressionExtension ext=new MessageCompressionExtension();
   ext.setBufferPool(new MappedByteBufferPool());
   ext.setPolicy(policy);
   ExtensionConfig config=ExtensionConfig.parse("permessage-compress");
   ext.setConfig(config);
   IncomingFramesCapture capture=new IncomingFramesCapture();
-  FrameHandler incomingHandler=ext.createIncomingFrameHandler(capture);
+  ext.setNextIncomingFrames(capture);
   String hex=hexStr.replaceAll("\\s*0x","");
   byte net[]=TypeUtil.fromHexString(hex);
   WebSocketFrame frame=WebSocketFrame.text();
   frame.setRsv1(true);
   frame.setPayload(net);
-  incomingHandler.handleFrame(frame);
+  ext.incomingFrame(frame);
   capture.assertFrameCount(1);
   capture.assertHasFrame(OpCode.TEXT,1);
   WebSocketFrame actual=capture.getFrames().pop();
