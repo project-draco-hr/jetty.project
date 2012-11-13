@@ -1,0 +1,25 @@
+{
+  String hostPort="localhost:" + serverConnector.getLocalPort();
+  String request="" + "CONNECT " + hostPort + " HTTP/1.1\r\n"+ "Host: "+ hostPort+ "\r\n"+ "\r\n";
+  try (Socket socket=newSocket()){
+    OutputStream output=socket.getOutputStream();
+    BufferedReader input=new BufferedReader(new InputStreamReader(socket.getInputStream()));
+    output.write(request.getBytes("UTF-8"));
+    output.flush();
+    SimpleHttpResponse response=readResponse(input);
+    Assert.assertEquals("200",response.getCode());
+    Assert.assertFalse(input.ready());
+    try (SSLSocket sslSocket=wrapSocket(socket)){
+      output=sslSocket.getOutputStream();
+      input=new BufferedReader(new InputStreamReader(sslSocket.getInputStream()));
+      for (int i=0; i < 10; ++i) {
+        request="" + "POST /echo?param=" + i + " HTTP/1.1\r\n"+ "Host: "+ hostPort+ "\r\n"+ "Content-Length: 5\r\n"+ "\r\n"+ "HELLO";
+        output.write(request.getBytes("UTF-8"));
+        output.flush();
+        response=readResponse(input);
+        Assert.assertEquals("200",response.getCode());
+        Assert.assertEquals("POST /echo?param=" + i + "\r\nHELLO",response.getBody());
+      }
+    }
+   }
+ }

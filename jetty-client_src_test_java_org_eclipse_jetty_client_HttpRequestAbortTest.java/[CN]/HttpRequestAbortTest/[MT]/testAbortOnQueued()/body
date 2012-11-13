@@ -1,10 +1,11 @@
 {
   start(new EmptyServerHandler());
+  final Throwable cause=new Exception();
   final AtomicBoolean begin=new AtomicBoolean();
   try {
     client.newRequest("localhost",connector.getLocalPort()).scheme(scheme).listener(new Request.Listener.Empty(){
       @Override public void onQueued(      Request request){
-        request.abort(null);
+        request.abort(cause);
       }
       @Override public void onBegin(      Request request){
         begin.set(true);
@@ -14,7 +15,7 @@
     Assert.fail();
   }
  catch (  ExecutionException x) {
-    Assert.assertThat(x.getCause(),Matchers.instanceOf(HttpResponseException.class));
+    Assert.assertSame(cause,x.getCause());
     Assert.assertFalse(begin.get());
   }
 }

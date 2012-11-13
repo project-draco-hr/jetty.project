@@ -1,0 +1,51 @@
+{
+  final byte[] content={0,1,2,3,4,5,6,7,8,9,0xA,0xB,0xC,0xD,0xE,0xF};
+  prepareServer(new HttpServlet(){
+    @Override protected void doGet(    HttpServletRequest req,    HttpServletResponse resp) throws ServletException, IOException {
+      if (req.getHeader("Via") != null)       resp.addHeader(PROXIED_HEADER,"true");
+      resp.getOutputStream().write(content);
+    }
+  }
+);
+  final String cacheHeader="X-Cached";
+  ProxyServlet proxyServlet=new ProxyServlet(){
+    private Map<String,ContentResponse> cache=new HashMap<>();
+    private Map<String,ByteArrayOutputStream> temp=new HashMap<>();
+    @Override protected void service(    HttpServletRequest request,    HttpServletResponse response) throws ServletException, IOException {
+      ContentResponse cachedResponse=cache.get(request.getRequestURI());
+      if (cachedResponse != null) {
+        response.setStatus(cachedResponse.getStatus());
+        response.addHeader(cacheHeader,"true");
+        response.getOutputStream().write(cachedResponse.getContent());
+      }
+ else {
+        super.service(request,response);
+      }
+    }
+    @Override protected void onResponseContent(    HttpServletRequest request,    HttpServletResponse response,    Response proxyResponse,    byte[] buffer,    int offset,    int length) throws IOException {
+      ByteArrayOutputStream baos=temp.get(request.getRequestURI());
+      if (baos == null) {
+        baos=new ByteArrayOutputStream();
+        temp.put(request.getRequestURI(),baos);
+      }
+      baos.write(buffer,offset,length);
+      super.onResponseContent(request,response,proxyResponse,buffer,offset,length);
+    }
+    @Override protected void onResponseSuccess(    HttpServletRequest request,    HttpServletResponse response,    Response proxyResponse){
+      byte[] content=temp.remove(request.getRequestURI()).toByteArray();
+      ContentResponse cached=new HttpContentResponse(proxyResponse,content,null);
+      cache.put(request.getRequestURI(),cached);
+      super.onResponseSuccess(request,response,proxyResponse);
+    }
+  }
+;
+  prepareProxy(proxyServlet);
+  ContentResponse response=client.newRequest("localhost",serverConnector.getLocalPort()).send().get(5,TimeUnit.SECONDS);
+  Assert.assertEquals(200,response.getStatus());
+  Assert.assertTrue(response.getHeaders().containsKey(PROXIED_HEADER));
+  Assert.assertArrayEquals(content,response.getContent());
+  response=client.newRequest("localhost",serverConnector.getLocalPort()).send().get(5,TimeUnit.SECONDS);
+  Assert.assertEquals(200,response.getStatus());
+  Assert.assertTrue(response.getHeaders().containsKey(cacheHeader));
+  Assert.assertArrayEquals(content,response.getContent());
+}

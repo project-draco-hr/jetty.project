@@ -1,8 +1,10 @@
 {
-  LOG.debug("{} removed",connection);
-  connectionCount.decrementAndGet();
-  activeConnections.remove(connection);
-  idleConnections.remove(connection);
+  boolean removed=activeConnections.remove(connection);
+  removed|=idleConnections.remove(connection);
+  if (removed) {
+    LOG.debug("{} removed",connection);
+    connectionCount.decrementAndGet();
+  }
   if (!requests.isEmpty()) {
     connection=acquire();
     if (connection != null)     process(connection,false);
