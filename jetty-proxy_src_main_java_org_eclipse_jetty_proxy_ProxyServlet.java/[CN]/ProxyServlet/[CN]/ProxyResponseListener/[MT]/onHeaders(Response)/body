@@ -1,0 +1,17 @@
+{
+  onResponseHeaders(request,response,proxyResponse);
+  if (_log.isDebugEnabled()) {
+    StringBuilder builder=new StringBuilder("\r\n");
+    builder.append(request.getProtocol()).append(" ").append(response.getStatus()).append(" ").append(proxyResponse.getReason()).append("\r\n");
+    for (    String headerName : response.getHeaderNames()) {
+      builder.append(headerName).append(": ");
+      for (Iterator<String> headerValues=response.getHeaders(headerName).iterator(); headerValues.hasNext(); ) {
+        String headerValue=headerValues.next();
+        if (headerValue != null)         builder.append(headerValue);
+        if (headerValues.hasNext())         builder.append(",");
+      }
+      builder.append("\r\n");
+    }
+    _log.debug("{} proxying to downstream:{}{}{}{}{}",getRequestId(request),System.lineSeparator(),proxyResponse,System.lineSeparator(),proxyResponse.getHeaders().toString().trim(),System.lineSeparator(),builder);
+  }
+}

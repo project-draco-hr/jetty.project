@@ -11,23 +11,22 @@
     }
     if (connectionCount.compareAndSet(current,next)) {
       LOG.debug("Creating connection {}/{} for {}",next,maxConnections,this);
-      newConnection(new Callback<Connection>(){
+      CONNECTCallback connectCallback=new CONNECTCallback(new Callback<Connection>(){
         @Override public void completed(        Connection connection){
-          LOG.debug("Created connection {}/{} {} for {}",next,maxConnections,connection,HttpDestination.this);
           process(connection,true);
         }
-        @Override public void failed(        Connection connection,        final Throwable x){
-          LOG.debug("Connection failed {} for {}",x,HttpDestination.this);
-          connectionCount.decrementAndGet();
+        @Override public void failed(        final Connection connection,        final Throwable x){
           client.getExecutor().execute(new Runnable(){
             @Override public void run(){
               drain(x);
+              if (connection != null)               connection.close();
             }
           }
 );
         }
       }
 );
+      newConnection(new TCPCallback(next,maxConnections,connectCallback));
       return idleConnections.poll();
     }
   }

@@ -15,11 +15,12 @@
   Request request=client.newRequest("localhost",connector.getLocalPort()).scheme(scheme);
   Future<ContentResponse> future=request.send();
   TimeUnit.MILLISECONDS.sleep(delay);
-  request.abort(null);
+  Throwable cause=new Exception();
+  request.abort(cause);
   try {
     future.get(5,TimeUnit.SECONDS);
   }
  catch (  ExecutionException x) {
-    Assert.assertThat(x.getCause(),Matchers.instanceOf(HttpResponseException.class));
+    Assert.assertSame(cause,x.getCause());
   }
 }

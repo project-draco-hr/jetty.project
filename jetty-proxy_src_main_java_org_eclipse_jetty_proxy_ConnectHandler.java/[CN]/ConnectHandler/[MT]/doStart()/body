@@ -1,8 +1,16 @@
 {
-  super.doStart();
-  if (_threadPool == null) {
-    _threadPool=getServer().getThreadPool();
-    _privateThreadPool=false;
+  if (executor == null) {
+    setExecutor(getServer().getThreadPool());
   }
-  if (_threadPool instanceof LifeCycle && !((LifeCycle)_threadPool).isRunning())   ((LifeCycle)_threadPool).start();
+  if (scheduler == null) {
+    setScheduler(new TimerScheduler());
+    addBean(getScheduler());
+  }
+  if (bufferPool == null) {
+    setByteBufferPool(new MappedByteBufferPool());
+    addBean(getByteBufferPool());
+  }
+  addBean(selector=newSelectorManager());
+  selector.setConnectTimeout(getConnectTimeout());
+  super.doStart();
 }

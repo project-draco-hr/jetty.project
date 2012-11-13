@@ -1,0 +1,33 @@
+{
+  ServletConfig config=getServletConfig();
+  HttpClient client=newHttpClient();
+  client.setFollowRedirects(false);
+  String value=config.getInitParameter("maxThreads");
+  if (value == null)   value="256";
+  QueuedThreadPool executor=new QueuedThreadPool(Integer.parseInt(value));
+  String servletName=config.getServletName();
+  int dot=servletName.lastIndexOf('.');
+  if (dot >= 0)   servletName=servletName.substring(dot + 1);
+  executor.setName(servletName);
+  client.setExecutor(executor);
+  value=config.getInitParameter("maxConnections");
+  if (value == null)   value="32768";
+  client.setMaxConnectionsPerAddress(Integer.parseInt(value));
+  value=config.getInitParameter("idleTimeout");
+  if (value == null)   value="30000";
+  client.setIdleTimeout(Long.parseLong(value));
+  value=config.getInitParameter("timeout");
+  if (value == null)   value="60000";
+  _timeout=Long.parseLong(value);
+  value=config.getInitParameter("requestBufferSize");
+  if (value != null)   client.setRequestBufferSize(Integer.parseInt(value));
+  value=config.getInitParameter("responseBufferSize");
+  if (value != null)   client.setResponseBufferSize(Integer.parseInt(value));
+  try {
+    client.start();
+    return client;
+  }
+ catch (  Exception x) {
+    throw new ServletException(x);
+  }
+}

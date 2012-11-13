@@ -1,11 +1,12 @@
 {
   this.client=client;
   this.scheme=scheme;
-  this.host=host;
-  this.port=port;
+  this.address=new InetSocketAddress(host,port);
   this.requests=new ArrayBlockingQueue<>(client.getMaxQueueSizePerAddress());
   this.idleConnections=new ArrayBlockingQueue<>(client.getMaxConnectionsPerAddress());
   this.activeConnections=new ArrayBlockingQueue<>(client.getMaxConnectionsPerAddress());
   this.requestNotifier=new RequestNotifier(client);
   this.responseNotifier=new ResponseNotifier(client);
+  ProxyConfiguration proxyConfig=client.getProxyConfiguration();
+  proxyAddress=proxyConfig != null && proxyConfig.matches(host,port) ? new InetSocketAddress(proxyConfig.getHost(),proxyConfig.getPort()) : null;
 }
