@@ -1,0 +1,29 @@
+{
+  try {
+    String bs=getInitParameter("bufferSize");
+    WebSocketPolicy policy=new WebSocketPolicy(WebSocketBehavior.SERVER);
+    if (bs != null) {
+      policy.setBufferSize(Integer.parseInt(bs));
+    }
+    String max=getInitParameter("maxIdleTime");
+    if (max != null) {
+      policy.setIdleTimeout(Integer.parseInt(max));
+    }
+    max=getInitParameter("maxTextMessageSize");
+    if (max != null) {
+      policy.setMaxTextMessageSize(Integer.parseInt(max));
+    }
+    max=getInitParameter("maxBinaryMessageSize");
+    if (max != null) {
+      policy.setMaxBinaryMessageSize(Integer.parseInt(max));
+    }
+    ServiceLoader<WebSocketServletFactory> loader=ServiceLoader.load(WebSocketServletFactory.class);
+    WebSocketServletFactory baseFactory=loader.iterator().next();
+    factory=baseFactory.createFactory(policy);
+    configure(factory);
+    factory.init();
+  }
+ catch (  Exception x) {
+    throw new ServletException(x);
+  }
+}
