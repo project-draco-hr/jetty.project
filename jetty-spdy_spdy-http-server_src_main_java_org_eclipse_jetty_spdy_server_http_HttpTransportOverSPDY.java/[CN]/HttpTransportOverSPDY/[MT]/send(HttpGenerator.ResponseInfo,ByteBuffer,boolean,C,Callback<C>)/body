@@ -1,5 +1,5 @@
 {
-  boolean hasContent=!BufferUtil.isEmpty(content);
+  boolean hasContent=BufferUtil.hasContent(content);
   if (info != null) {
     short version=stream.getSession().getVersion();
     Fields headers=new Fields();
@@ -25,6 +25,14 @@
     boolean close=!hasContent && lastContent;
     reply(stream,new ReplyInfo(headers,close));
   }
-  if ((hasContent || lastContent) && !stream.isClosed())   stream.data(new ByteBufferDataInfo(content,lastContent),endPoint.getIdleTimeout(),TimeUnit.MILLISECONDS,context,callback);
+  if (stream.isClosed()) {
+    callback.failed(context,new EofException());
+  }
+ else   if (hasContent) {
+    stream.data(new ByteBufferDataInfo(content,lastContent),endPoint.getIdleTimeout(),TimeUnit.MILLISECONDS,context,callback);
+  }
+ else   if (lastContent) {
+    stream.data(new ByteBufferDataInfo(BufferUtil.EMPTY_BUFFER,lastContent),endPoint.getIdleTimeout(),TimeUnit.MILLISECONDS,context,callback);
+  }
  else   callback.completed(context);
 }
