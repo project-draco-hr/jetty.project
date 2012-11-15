@@ -25,14 +25,9 @@
     boolean close=!hasContent && lastContent;
     reply(stream,new ReplyInfo(headers,close));
   }
-  if (stream.isClosed()) {
-    callback.failed(context,new EofException());
-  }
- else   if (hasContent) {
+  if ((hasContent || lastContent) && !stream.isClosed()) {
+    if (content == null)     content=BufferUtil.EMPTY_BUFFER;
     stream.data(new ByteBufferDataInfo(content,lastContent),endPoint.getIdleTimeout(),TimeUnit.MILLISECONDS,context,callback);
-  }
- else   if (lastContent) {
-    stream.data(new ByteBufferDataInfo(BufferUtil.EMPTY_BUFFER,lastContent),endPoint.getIdleTimeout(),TimeUnit.MILLISECONDS,context,callback);
   }
  else   callback.completed(context);
 }
