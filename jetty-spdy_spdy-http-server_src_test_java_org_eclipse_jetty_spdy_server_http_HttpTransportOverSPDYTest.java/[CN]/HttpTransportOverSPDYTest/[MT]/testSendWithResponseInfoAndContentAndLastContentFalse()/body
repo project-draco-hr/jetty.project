@@ -1,0 +1,13 @@
+{
+  ByteBuffer content=createRandomByteBuffer();
+  boolean lastContent=false;
+  Object context=null;
+  httpTransportOverSPDY.send(responseInfo,content,lastContent,context,callback);
+  ArgumentCaptor<ReplyInfo> replyInfoCaptor=ArgumentCaptor.forClass(ReplyInfo.class);
+  verify(stream,times(1)).reply(replyInfoCaptor.capture());
+  assertThat("ReplyInfo close is false",replyInfoCaptor.getValue().isClose(),is(false));
+  ArgumentCaptor<ByteBufferDataInfo> dataInfoCaptor=ArgumentCaptor.forClass(ByteBufferDataInfo.class);
+  verify(stream,times(1)).data(dataInfoCaptor.capture(),anyLong(),any(TimeUnit.class),anyObject(),any(Callback.class));
+  assertThat("lastContent is false",dataInfoCaptor.getValue().isClose(),is(false));
+  assertThat("ByteBuffer length is 4096",dataInfoCaptor.getValue().length(),is(4096));
+}
