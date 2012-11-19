@@ -1,0 +1,18 @@
+{
+  LOG.info("Unpacking overlay: " + overlay);
+  resolveTempDirectory(context);
+  if (overlay.getResource() == null)   return null;
+  String name=overlay.getResource().getName();
+  if (name.endsWith("!/"))   name=name.substring(0,name.length() - 2);
+  int i=name.lastIndexOf('/');
+  if (i > 0)   name=name.substring(i + 1,name.length());
+  name=name.replace('.','_');
+  name=name + (++COUNTER);
+  File dir=new File(context.getTempDirectory(),name);
+  File unpackDir=dir;
+  if (overlay.getConfig() != null && overlay.getConfig().getTargetPath() != null)   unpackDir=new File(dir,overlay.getConfig().getTargetPath());
+  overlay.getResource().copyTo(unpackDir);
+  Resource unpackedOverlay=Resource.newResource(dir.getCanonicalPath());
+  LOG.info("Unpacked overlay: " + overlay + " to "+ unpackedOverlay);
+  return unpackedOverlay;
+}

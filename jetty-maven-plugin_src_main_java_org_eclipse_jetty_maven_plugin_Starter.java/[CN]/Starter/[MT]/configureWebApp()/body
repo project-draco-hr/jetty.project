@@ -7,19 +7,57 @@
   str=(String)props.getProperty("tmp.dir");
   if (str != null)   webApp.setTempDirectory(new File(str.trim()));
   str=(String)props.getProperty("base.dir");
-  if (str != null && !"".equals(str.trim()))   webApp.setWar(str);
-  str=(String)props.getProperty("res.dirs");
   if (str != null && !"".equals(str.trim())) {
-    ResourceCollection resources=new ResourceCollection(str);
-    webApp.setBaseResource(resources);
+    webApp.setWar(str);
+    webApp.setBaseResource(Resource.newResource(str));
   }
-  str=(String)props.getProperty("overlay.files");
-  if (str != null && !"".equals(str.trim())) {
-    List<Resource> overlays=new ArrayList<Resource>();
-    String[] names=str.split(",");
-    for (int j=0; names != null && j < names.length; j++)     overlays.add(Resource.newResource("jar:" + Resource.toURL(new File(names[j].trim())).toString() + "!/"));
-    webApp.setOverlays(overlays);
+  str=(String)props.getProperty("base.first");
+  if (str != null && !"".equals(str.trim()))   webApp.setBaseAppFirst(Boolean.getBoolean(str));
+  str=(String)props.getProperty("maven.war.includes");
+  List<String> defaultWarIncludes=fromCSV(str);
+  str=(String)props.getProperty("maven.war.excludes");
+  List<String> defaultWarExcludes=fromCSV(str);
+  List<Artifact> wars=new ArrayList<Artifact>();
+  TreeMap<String,OverlayConfig> orderedConfigs=new TreeMap<String,OverlayConfig>();
+  Enumeration<String> pnames=(Enumeration<String>)props.propertyNames();
+  while (pnames.hasMoreElements()) {
+    String n=pnames.nextElement();
+    if (n.startsWith("maven.war.artifact")) {
+      Artifact a=new Artifact((String)props.get(n));
+      a.resource=Resource.newResource("jar:" + Resource.toURL(new File(a.path)).toString() + "!/");
+      wars.add(a);
+    }
+ else     if (n.startsWith("maven.war.overlay")) {
+      OverlayConfig c=new OverlayConfig((String)props.get(n),defaultWarIncludes,defaultWarExcludes);
+      orderedConfigs.put(n,c);
+    }
   }
+  Set<Artifact> matchedWars=new HashSet<Artifact>();
+  List<Overlay> overlays=new ArrayList<Overlay>();
+  for (  OverlayConfig config : orderedConfigs.values()) {
+    if (config.isSkip())     continue;
+    if (config.isCurrentProject()) {
+      Overlay overlay=new Overlay(config,null);
+      overlays.add(overlay);
+      continue;
+    }
+    Artifact a=getArtifactForOverlayConfig(config,wars);
+    if (a != null) {
+      matchedWars.add(a);
+      SelectiveJarResource r=new SelectiveJarResource(new URL("jar:" + Resource.toURL(new File(a.path)).toString() + "!/"));
+      r.setIncludes(config.getIncludes());
+      r.setExcludes(config.getExcludes());
+      Overlay overlay=new Overlay(config,r);
+      overlays.add(overlay);
+    }
+  }
+  for (  Artifact a : wars) {
+    if (!matchedWars.contains(a)) {
+      Overlay overlay=new Overlay(null,a.resource);
+      overlays.add(overlay);
+    }
+  }
+  webApp.setOverlays(overlays);
   str=(String)props.getProperty("classes.dir");
   if (str != null && !"".equals(str.trim())) {
     webApp.setClasses(new File(str));

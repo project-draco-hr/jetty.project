@@ -2,40 +2,28 @@
   super.unpack(context);
   _originalResourceBase=context.getBaseResource();
   JettyWebAppContext jwac=(JettyWebAppContext)context;
-  if (jwac.getOverlays() != null && !jwac.getOverlays().isEmpty()) {
-    Resource[] origResources=null;
-    int origSize=0;
-    if (jwac.getBaseResource() != null) {
-      if (jwac.getBaseResource() instanceof ResourceCollection) {
-        origResources=((ResourceCollection)jwac.getBaseResource()).getResources();
-        origSize=origResources.length;
+  _unpackedOverlayResources=new ArrayList<Resource>();
+  if (!jwac.getOverlays().isEmpty()) {
+    List<Resource> resourceBaseCollection=new ArrayList<Resource>();
+    for (    Overlay o : jwac.getOverlays()) {
+      if (o.getConfig() != null && o.getConfig().isCurrentProject()) {
+        resourceBaseCollection.add(_originalResourceBase);
+        continue;
       }
- else {
-        origResources=new Resource[1];
-        origResources[0]=jwac.getBaseResource();
-        origSize=1;
-      }
+      Resource unpacked=unpackOverlay(jwac,o);
+      _unpackedOverlayResources.add(unpacked);
+      resourceBaseCollection.add(unpacked);
     }
-    int overlaySize=jwac.getOverlays().size();
-    Resource[] newResources=new Resource[origSize + overlaySize];
-    int offset=0;
-    if (origSize > 0) {
+    if (!resourceBaseCollection.contains(_originalResourceBase)) {
       if (jwac.getBaseAppFirst()) {
-        System.arraycopy(origResources,0,newResources,0,origSize);
-        offset=origSize;
+        LOG.info("Adding virtual project first in resource base list");
+        resourceBaseCollection.add(0,_originalResourceBase);
       }
  else {
-        System.arraycopy(origResources,0,newResources,overlaySize,origSize);
+        LOG.info("Adding virtual project last in resource base list");
+        resourceBaseCollection.add(_originalResourceBase);
       }
     }
-    _unpackedOverlays=new Resource[overlaySize];
-    List<Resource> overlays=jwac.getOverlays();
-    for (int idx=0; idx < overlaySize; idx++) {
-      LOG.info("Unpacking overlay: " + overlays.get(idx));
-      _unpackedOverlays[idx]=unpackOverlay(context,overlays.get(idx));
-      newResources[idx + offset]=_unpackedOverlays[idx];
-      LOG.info("Adding overlay: " + _unpackedOverlays[idx]);
-    }
-    jwac.setBaseResource(new ResourceCollection(newResources));
+    jwac.setBaseResource(new ResourceCollection(resourceBaseCollection.toArray(new Resource[resourceBaseCollection.size()])));
   }
 }
