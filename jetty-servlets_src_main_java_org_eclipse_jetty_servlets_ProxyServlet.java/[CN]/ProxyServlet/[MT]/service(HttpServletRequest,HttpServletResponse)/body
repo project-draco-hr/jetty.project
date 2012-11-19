@@ -1,0 +1,64 @@
+{
+  final int requestId=getRequestId(request);
+  URI rewrittenURI=rewriteURI(request);
+  if (_log.isDebugEnabled()) {
+    StringBuffer uri=request.getRequestURL();
+    if (request.getQueryString() != null)     uri.append("?").append(request.getQueryString());
+    _log.debug("{} rewriting: {} -> {}",requestId,uri,rewrittenURI);
+  }
+  if (rewrittenURI == null) {
+    response.sendError(HttpServletResponse.SC_FORBIDDEN);
+    return;
+  }
+  final Request proxyRequest=_client.newRequest(rewrittenURI).method(HttpMethod.fromString(request.getMethod())).version(HttpVersion.fromString(request.getProtocol()));
+  for (Enumeration<String> headerNames=request.getHeaderNames(); headerNames.hasMoreElements(); ) {
+    String headerName=headerNames.nextElement();
+    String lowerHeaderName=headerName.toLowerCase(Locale.ENGLISH);
+    if (HOP_HEADERS.contains(lowerHeaderName))     continue;
+    if (_hostHeader != null && lowerHeaderName.equals("host"))     continue;
+    for (Enumeration<String> headerValues=request.getHeaders(headerName); headerValues.hasMoreElements(); ) {
+      String headerValue=headerValues.nextElement();
+      if (headerValue != null)       proxyRequest.header(headerName,headerValue);
+    }
+  }
+  if (_hostHeader != null)   proxyRequest.header("Host",_hostHeader);
+  proxyRequest.header("Via","http/1.1 " + _viaHost);
+  proxyRequest.header("X-Forwarded-For",request.getRemoteAddr());
+  proxyRequest.header("X-Forwarded-Proto",request.getScheme());
+  proxyRequest.header("X-Forwarded-Host",request.getHeader("Host"));
+  proxyRequest.header("X-Forwarded-Server",request.getLocalName());
+  proxyRequest.content(new InputStreamContentProvider(request.getInputStream()){
+    @Override public long getLength(){
+      return request.getContentLength();
+    }
+    @Override protected ByteBuffer onRead(    byte[] buffer,    int offset,    int length){
+      _log.debug("{} proxying content to upstream: {} bytes",requestId,length);
+      return super.onRead(buffer,offset,length);
+    }
+  }
+);
+  final AsyncContext asyncContext=request.startAsync();
+  asyncContext.setTimeout(0);
+  request.setAttribute(ASYNC_CONTEXT,asyncContext);
+  customizeProxyRequest(proxyRequest,request);
+  if (_log.isDebugEnabled()) {
+    StringBuilder builder=new StringBuilder(request.getMethod());
+    builder.append(" ").append(request.getRequestURI());
+    String query=request.getQueryString();
+    if (query != null)     builder.append("?").append(query);
+    builder.append(" ").append(request.getProtocol()).append("\r\n");
+    for (Enumeration<String> headerNames=request.getHeaderNames(); headerNames.hasMoreElements(); ) {
+      String headerName=headerNames.nextElement();
+      builder.append(headerName).append(": ");
+      for (Enumeration<String> headerValues=request.getHeaders(headerName); headerValues.hasMoreElements(); ) {
+        String headerValue=headerValues.nextElement();
+        if (headerValue != null)         builder.append(headerValue);
+        if (headerValues.hasMoreElements())         builder.append(",");
+      }
+      builder.append("\r\n");
+    }
+    builder.append("\r\n");
+    _log.debug("{} proxying to upstream:{}{}{}{}",requestId,System.lineSeparator(),builder,proxyRequest,System.lineSeparator(),proxyRequest.getHeaders().toString().trim());
+  }
+  proxyRequest.send(new TimedResponseListener(getTimeout(),TimeUnit.MILLISECONDS,proxyRequest,new ProxyResponseListener(request,response)));
+}

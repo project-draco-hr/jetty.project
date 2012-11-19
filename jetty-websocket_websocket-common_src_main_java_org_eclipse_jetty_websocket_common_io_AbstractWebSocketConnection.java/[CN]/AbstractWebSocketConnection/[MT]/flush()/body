@@ -1,0 +1,27 @@
+{
+  FrameBytes frameBytes=null;
+  ByteBuffer buffer=null;
+synchronized (queue) {
+    LOG.debug(".flush() - flushing={} - queue.size = {}",flushing,queue.size());
+    if (flushing || queue.isEmpty()) {
+      return;
+    }
+    frameBytes=queue.pop();
+    if (!isOpen()) {
+      queue.clear();
+      return;
+    }
+    LOG.debug("Next FrameBytes: {}",frameBytes);
+    buffer=frameBytes.getByteBuffer();
+    if (buffer == null) {
+      return;
+    }
+    flushing=true;
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("Flushing {}, {} frame(s) in queue",frameBytes,queue.size());
+    }
+    if (connectionState != ConnectionState.CLOSED) {
+      write(buffer,frameBytes);
+    }
+  }
+}

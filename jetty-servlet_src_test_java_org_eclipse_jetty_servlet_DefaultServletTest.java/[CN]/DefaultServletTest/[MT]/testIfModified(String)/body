@@ -1,0 +1,29 @@
+{
+  testdir.ensureEmpty();
+  File resBase=testdir.getFile("docroot");
+  FS.ensureDirExists(resBase);
+  File file=new File(resBase,"file.txt");
+  String resBasePath=resBase.getAbsolutePath();
+  ServletHolder defholder=context.addServlet(DefaultServlet.class,"/");
+  defholder.setInitParameter("resourceBase",resBasePath);
+  defholder.setInitParameter("maxCacheSize","4096");
+  defholder.setInitParameter("maxCachedFileSize","25");
+  defholder.setInitParameter("maxCachedFiles","100");
+  String response=connector.getResponses("GET /context/file.txt HTTP/1.0\r\n\r\n");
+  assertResponseContains("404",response);
+  createFile(file,content);
+  response=connector.getResponses("GET /context/file.txt HTTP/1.1\r\nHost:test\r\nConnection:close\r\n\r\n");
+  assertResponseContains("200",response);
+  assertResponseContains("Last-Modified",response);
+  String last_modified=getHeaderValue("Last-Modified",response);
+  response=connector.getResponses("GET /context/file.txt HTTP/1.1\r\nHost:test\r\nConnection:close\r\nIf-Modified-Since: " + last_modified + "\r\n\r\n");
+  assertResponseContains("304",response);
+  response=connector.getResponses("GET /context/file.txt HTTP/1.1\r\nHost:test\r\nConnection:close\r\nIf-Modified-Since: " + HttpFields.formatDate(System.currentTimeMillis() - 10000) + "\r\n\r\n");
+  assertResponseContains("200",response);
+  response=connector.getResponses("GET /context/file.txt HTTP/1.1\r\nHost:test\r\nConnection:close\r\nIf-Modified-Since: " + HttpFields.formatDate(System.currentTimeMillis() + 10000) + "\r\n\r\n");
+  assertResponseContains("304",response);
+  response=connector.getResponses("GET /context/file.txt HTTP/1.1\r\nHost:test\r\nConnection:close\r\nIf-Unmodified-Since: " + HttpFields.formatDate(System.currentTimeMillis() + 10000) + "\r\n\r\n");
+  assertResponseContains("200",response);
+  response=connector.getResponses("GET /context/file.txt HTTP/1.1\r\nHost:test\r\nConnection:close\r\nIf-Unmodified-Since: " + HttpFields.formatDate(System.currentTimeMillis() - 10000) + "\r\n\r\n");
+  assertResponseContains("412",response);
+}

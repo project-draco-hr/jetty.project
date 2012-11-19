@@ -1,0 +1,21 @@
+{
+  String hostPort="localhost:" + serverConnector.getLocalPort();
+  String request="" + "CONNECT " + hostPort + " HTTP/1.1\r\n"+ "Host: "+ hostPort+ "\r\n"+ "\r\n";
+  try (Socket socket=newSocket()){
+    OutputStream output=socket.getOutputStream();
+    BufferedReader input=new BufferedReader(new InputStreamReader(socket.getInputStream()));
+    output.write(request.getBytes("UTF-8"));
+    output.flush();
+    SimpleHttpResponse response=readResponse(input);
+    Assert.assertEquals("200",response.getCode());
+    request="" + "GET /echo HTTP/1.1\r\n" + "Host: " + hostPort + "\r\n"+ "\r\n";
+    output.write(request.getBytes("UTF-8"));
+    output.flush();
+    response=readResponse(input);
+    Assert.assertEquals("200",response.getCode());
+    Assert.assertEquals("GET /echo",response.getBody());
+    disposeServer();
+    int read=input.read();
+    Assert.assertEquals(-1,read);
+  }
+ }

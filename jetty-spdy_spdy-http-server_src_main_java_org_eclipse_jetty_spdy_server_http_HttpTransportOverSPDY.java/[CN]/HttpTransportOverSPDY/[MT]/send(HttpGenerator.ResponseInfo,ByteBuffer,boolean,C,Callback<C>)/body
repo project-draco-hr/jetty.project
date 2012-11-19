@@ -1,5 +1,10 @@
 {
-  boolean hasContent=!BufferUtil.isEmpty(content);
+  if (LOG.isDebugEnabled())   LOG.debug("send  {} {} {} {} last={}%n",this,stream,info,BufferUtil.toDetailString(content),lastContent);
+  if (stream.isClosed() || stream.isReset()) {
+    callback.failed(context,new EofException("stream closed"));
+    return;
+  }
+  boolean hasContent=BufferUtil.hasContent(content);
   if (info != null) {
     short version=stream.getSession().getVersion();
     Fields headers=new Fields();
@@ -23,8 +28,16 @@
       }
     }
     boolean close=!hasContent && lastContent;
-    reply(stream,new ReplyInfo(headers,close));
+    ReplyInfo reply=new ReplyInfo(headers,close);
+    reply(stream,reply);
   }
-  if ((hasContent || lastContent) && !stream.isClosed())   stream.data(new ByteBufferDataInfo(content,lastContent),endPoint.getIdleTimeout(),TimeUnit.MILLISECONDS,context,callback);
+  if (hasContent) {
+    if (stream.isClosed() || stream.isReset())     callback.failed(context,new EofException("stream closed"));
+ else     stream.data(new ByteBufferDataInfo(content,lastContent),endPoint.getIdleTimeout(),TimeUnit.MILLISECONDS,context,callback);
+  }
+ else   if (lastContent) {
+    if (stream.isClosed() || stream.isReset())     callback.completed(context);
+ else     stream.data(new ByteBufferDataInfo(BufferUtil.EMPTY_BUFFER,lastContent),endPoint.getIdleTimeout(),TimeUnit.MILLISECONDS,context,callback);
+  }
  else   callback.completed(context);
 }

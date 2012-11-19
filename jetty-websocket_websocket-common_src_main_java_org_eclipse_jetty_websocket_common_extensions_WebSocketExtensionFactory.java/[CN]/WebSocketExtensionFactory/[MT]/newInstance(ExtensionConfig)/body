@@ -1,0 +1,26 @@
+{
+  if (config == null) {
+    return null;
+  }
+  String name=config.getName();
+  if (StringUtil.isBlank(name)) {
+    return null;
+  }
+  Class<? extends Extension> extClass=getExtension(name);
+  if (extClass == null) {
+    return null;
+  }
+  try {
+    Extension ext=extClass.newInstance();
+    if (ext instanceof AbstractExtension) {
+      AbstractExtension aext=(AbstractExtension)ext;
+      aext.setConfig(config);
+      aext.setPolicy(policy);
+      aext.setBufferPool(bufferPool);
+    }
+    return ext;
+  }
+ catch (  InstantiationException|IllegalAccessException e) {
+    throw new WebSocketException("Cannot instantiate extension: " + extClass,e);
+  }
+}

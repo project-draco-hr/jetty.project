@@ -6,10 +6,11 @@
     }
   }
 );
+  final Throwable cause=new Exception();
   client.getProtocolHandlers().clear();
   client.getProtocolHandlers().add(new RedirectProtocolHandler(client){
     @Override public void onComplete(    Result result){
-      if (!result.isFailed())       result.getRequest().abort(null);
+      if (!result.isFailed())       result.getRequest().abort(cause);
       super.onComplete(result);
     }
   }
@@ -19,6 +20,6 @@
     Assert.fail();
   }
  catch (  ExecutionException x) {
-    Assert.assertThat(x.getCause(),Matchers.instanceOf(HttpResponseException.class));
+    Assert.assertSame(cause,x.getCause());
   }
 }

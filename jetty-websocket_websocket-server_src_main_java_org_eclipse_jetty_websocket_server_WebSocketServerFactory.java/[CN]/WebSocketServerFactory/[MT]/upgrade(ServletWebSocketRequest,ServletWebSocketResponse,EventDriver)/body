@@ -2,12 +2,12 @@
   if (!"websocket".equalsIgnoreCase(request.getHeader("Upgrade"))) {
     throw new IllegalStateException("Not a 'WebSocket: Upgrade' request");
   }
-  if (!"HTTP/1.1".equals(request.getProtocol())) {
+  if (!"HTTP/1.1".equals(request.getHttpVersion())) {
     throw new IllegalStateException("Not a 'HTTP/1.1' request");
   }
-  int version=request.getIntHeader("Sec-WebSocket-Version");
+  int version=request.getHeaderInt("Sec-WebSocket-Version");
   if (version < 0) {
-    version=request.getIntHeader("Sec-WebSocket-Draft");
+    version=request.getHeaderInt("Sec-WebSocket-Draft");
   }
   WebSocketHandshake handshaker=handshakes.get(version);
   if (handshaker == null) {
@@ -16,39 +16,43 @@
     response.sendError(HttpStatus.BAD_REQUEST_400,"Unsupported websocket version specification");
     return false;
   }
-  HttpConnection http=HttpConnection.getCurrentConnection();
-  EndPoint endp=http.getEndPoint();
-  Executor executor=http.getConnector().getExecutor();
-  ByteBufferPool bufferPool=http.getConnector().getByteBufferPool();
-  WebSocketServerConnection connection=new WebSocketServerConnection(endp,executor,scheduler,driver.getPolicy(),bufferPool,this);
-  LOG.debug("HttpConnection: {}",http);
-  LOG.debug("AsyncWebSocketConnection: {}",connection);
-  WebSocketSession session=new WebSocketSession(driver,connection,getPolicy(),response.getAcceptedSubProtocol());
-  connection.setSession(session);
-  List<Extension> extensions=initExtensions(request.getExtensions());
-  request.setValidExtensions(extensions);
-  IncomingFrames incoming=session;
-  OutgoingFrames outgoing=connection;
-  if (extensions != null) {
-    connection.getParser().configureFromExtensions(extensions);
-    connection.getGenerator().configureFromExtensions(extensions);
-    Iterator<Extension> extIter;
-    extIter=extensions.iterator();
-    while (extIter.hasNext()) {
-      Extension ext=extIter.next();
-      ext.setNextOutgoingFrames(outgoing);
-      outgoing=ext;
-    }
-    Collections.reverse(extensions);
-    extIter=extensions.iterator();
-    while (extIter.hasNext()) {
-      Extension ext=extIter.next();
-      ext.setNextIncomingFrames(incoming);
-      incoming=ext;
-    }
+  ExtensionStack extensionStack=new ExtensionStack(getExtensionFactory());
+  extensionStack.negotiate(request.getExtensions());
+  UpgradeContext context=getActiveUpgradeContext();
+  LogicalConnection connection=context.getConnection();
+  if (connection == null) {
+    HttpConnection http=HttpConnection.getCurrentConnection();
+    EndPoint endp=http.getEndPoint();
+    Executor executor=http.getConnector().getExecutor();
+    ByteBufferPool bufferPool=http.getConnector().getByteBufferPool();
+    WebSocketServerConnection wsConnection=new WebSocketServerConnection(endp,executor,scheduler,driver.getPolicy(),bufferPool,this);
+    connection=wsConnection;
+    extensionStack.configure(wsConnection.getParser());
+    extensionStack.configure(wsConnection.getGenerator());
+    LOG.debug("HttpConnection: {}",http);
+    LOG.debug("AsyncWebSocketConnection: {}",connection);
   }
-  session.setOutgoing(outgoing);
-  connection.getParser().setIncomingFramesHandler(incoming);
+  WebSocketSession session=new WebSocketSession(request.getRequestURI(),driver,connection);
+  session.setPolicy(getPolicy().clonePolicy());
+  session.setNegotiatedSubprotocol(response.getAcceptedSubProtocol());
+  session.setNegotiatedExtensions(extensionStack.getNegotiatedExtensions());
+  connection.setSession(session);
+  connection.setNextIncomingFrames(extensionStack);
+  extensionStack.setNextIncoming(session);
+  session.setOutgoingHandler(extensionStack);
+  extensionStack.setNextOutgoing(connection);
+  try {
+    session.start();
+  }
+ catch (  Exception e) {
+    throw new IOException("Unable to start Session",e);
+  }
+  try {
+    extensionStack.start();
+  }
+ catch (  Exception e) {
+    throw new IOException("Unable to start Extension Stack",e);
+  }
   request.setAttribute(HttpConnection.UPGRADE_CONNECTION_ATTRIBUTE,connection);
   LOG.debug("Handshake Response: {}",handshaker);
   handshaker.doHandshakeResponse(request,response);

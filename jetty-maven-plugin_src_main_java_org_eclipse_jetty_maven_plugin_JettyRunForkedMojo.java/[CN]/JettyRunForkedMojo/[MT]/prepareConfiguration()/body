@@ -12,19 +12,7 @@
     }
     if (webAppSourceDirectory != null)     props.put("base.dir",webAppSourceDirectory.getAbsolutePath());
     StringBuilder builder=new StringBuilder();
-    if (baseAppFirst) {
-      add((webAppSourceDirectory == null ? null : webAppSourceDirectory.getAbsolutePath()),builder);
-      if (resourceBases != null) {
-        for (        File resDir : resourceBases)         add(resDir.getAbsolutePath(),builder);
-      }
-    }
- else {
-      if (resourceBases != null) {
-        for (        File resDir : resourceBases)         add(resDir.getAbsolutePath(),builder);
-      }
-      add((webAppSourceDirectory == null ? null : webAppSourceDirectory.getAbsolutePath()),builder);
-    }
-    props.put("res.dirs",builder.toString());
+    props.put("base.first",Boolean.toString(baseAppFirst));
     List<File> classDirs=getClassesDirs();
     StringBuffer strbuff=new StringBuffer();
     for (int i=0; i < classDirs.size(); i++) {
@@ -46,14 +34,23 @@
       if (i < deps.size() - 1)       strbuff.append(",");
     }
     props.put("lib.jars",strbuff.toString());
-    List<File> overlays=getOverlays();
-    strbuff.setLength(0);
-    for (int i=0; i < overlays.size(); i++) {
-      File f=overlays.get(i);
-      strbuff.append(f.getAbsolutePath());
-      if (i < overlays.size() - 1)       strbuff.append(",");
+    List<Artifact> warArtifacts=getWarArtifacts();
+    for (int i=0; i < warArtifacts.size(); i++) {
+      strbuff.setLength(0);
+      Artifact a=warArtifacts.get(i);
+      strbuff.append(a.getGroupId() + ",");
+      strbuff.append(a.getArtifactId() + ",");
+      strbuff.append(a.getFile().getAbsolutePath());
+      props.put("maven.war.artifact." + i,strbuff.toString());
     }
-    props.put("overlay.files",strbuff.toString());
+    WarPluginInfo warPlugin=new WarPluginInfo(project);
+    props.put("maven.war.includes",toCSV(warPlugin.getDependentMavenWarIncludes()));
+    props.put("maven.war.excludes",toCSV(warPlugin.getDependentMavenWarExcludes()));
+    List<OverlayConfig> configs=warPlugin.getMavenWarOverlayConfigs();
+    int i=0;
+    for (    OverlayConfig c : configs) {
+      props.put("maven.war.overlay." + (i++),c.toString());
+    }
     props.store(new BufferedOutputStream(new FileOutputStream(propsFile)),"properties for forked webapp");
     return propsFile;
   }

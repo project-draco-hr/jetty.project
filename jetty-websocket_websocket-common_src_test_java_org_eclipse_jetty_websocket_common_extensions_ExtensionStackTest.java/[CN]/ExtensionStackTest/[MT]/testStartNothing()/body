@@ -1,0 +1,18 @@
+{
+  ExtensionStack stack=createExtensionStack();
+  try {
+    List<ExtensionConfig> configs=new ArrayList<>();
+    stack.negotiate(configs);
+    DummyIncomingFrames session=new DummyIncomingFrames("Session");
+    DummyOutgoingFrames connection=new DummyOutgoingFrames("Connection");
+    stack.setNextOutgoing(connection);
+    stack.setNextIncoming(session);
+    stack.start();
+    LOG.debug("{}",stack.dump());
+    Assert.assertEquals("Incoming Handler",stack.getNextIncoming(),session);
+    Assert.assertEquals("Outgoing Handler",stack.getNextOutgoing(),connection);
+  }
+  finally {
+    stack.stop();
+  }
+}

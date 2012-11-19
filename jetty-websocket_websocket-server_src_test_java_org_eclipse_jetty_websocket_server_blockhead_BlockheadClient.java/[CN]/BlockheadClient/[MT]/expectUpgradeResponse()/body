@@ -6,27 +6,19 @@
   Assert.assertThat("Response Code",respHeader,startsWith("HTTP/1.1 101 Switching Protocols"));
   Assert.assertThat("Response Header Upgrade",respHeader,containsString("Upgrade: WebSocket\r\n"));
   Assert.assertThat("Response Header Connection",respHeader,containsString("Connection: Upgrade\r\n"));
-  List<Extension> extensions=getExtensions(respHeader);
-  incoming=this;
-  outgoing=this;
-  if (extensions != null) {
-    generator.configureFromExtensions(extensions);
-    parser.configureFromExtensions(extensions);
-    Iterator<Extension> extIter;
-    extIter=extensions.iterator();
-    while (extIter.hasNext()) {
-      Extension ext=extIter.next();
-      ext.setNextOutgoingFrames(outgoing);
-      outgoing=ext;
-    }
-    Collections.reverse(extensions);
-    extIter=extensions.iterator();
-    while (extIter.hasNext()) {
-      Extension ext=extIter.next();
-      ext.setNextIncomingFrames(incoming);
-      incoming=ext;
-    }
+  List<ExtensionConfig> configs=getExtensionConfigs(respHeader);
+  ExtensionStack extensionStack=new ExtensionStack(this.extensionFactory);
+  extensionStack.negotiate(configs);
+  extensionStack.setNextIncoming(this);
+  extensionStack.setNextOutgoing(this);
+  extensionStack.configure(parser);
+  extensionStack.configure(generator);
+  try {
+    extensionStack.start();
   }
-  parser.setIncomingFramesHandler(incoming);
+ catch (  Exception e) {
+    throw new IOException("Unable to start Extension Stack");
+  }
+  parser.setIncomingFramesHandler(extensionStack);
   return respHeader;
 }

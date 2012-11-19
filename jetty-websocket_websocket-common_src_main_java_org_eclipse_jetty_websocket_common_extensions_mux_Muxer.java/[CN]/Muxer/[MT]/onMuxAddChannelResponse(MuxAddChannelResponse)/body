@@ -1,0 +1,16 @@
+{
+  if (policy.getBehavior() == WebSocketBehavior.SERVER) {
+    throw new MuxPhysicalConnectionException(MuxDropChannel.Reason.UNKNOWN_MUX_CONTROL_BLOCK,"AddChannelResponse not allowed per spec");
+  }
+  if (response.getRsv() != 0) {
+    throw new MuxPhysicalConnectionException(MuxDropChannel.Reason.UNKNOWN_RESPONSE_ENCODING,"RSV Not allowed to be set");
+  }
+  long channelId=response.getChannelId();
+  MuxChannel channel=getChannel(channelId,false);
+  try {
+    channel.onOpen();
+  }
+ catch (  Throwable t) {
+    throw new MuxPhysicalConnectionException(MuxDropChannel.Reason.BAD_RESPONSE,"Unable to parse response",t);
+  }
+}

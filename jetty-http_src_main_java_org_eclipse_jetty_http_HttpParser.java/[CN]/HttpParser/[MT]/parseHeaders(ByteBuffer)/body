@@ -30,7 +30,7 @@ default :
           if (_header != null) {
 switch (_header) {
 case CONTENT_LENGTH:
-              if (_endOfContent != EndOfContent.CHUNKED_CONTENT && _responseStatus != 304 && _responseStatus != 204 && (_responseStatus < 100 || _responseStatus >= 200)) {
+              if (_endOfContent != EndOfContent.CHUNKED_CONTENT) {
                 try {
                   _contentLength=Long.parseLong(_valueString);
                 }
@@ -94,7 +94,8 @@ if (!_host && _version != HttpVersion.HTTP_1_0 && _requestHandler != null) {
 badMessage(buffer,HttpStatus.BAD_REQUEST_400,"No Host");
 return true;
 }
-if (_endOfContent == EndOfContent.UNKNOWN_CONTENT) {
+if (_responseHandler != null && (_responseStatus == 304 || _responseStatus == 204 || _responseStatus < 200)) _endOfContent=EndOfContent.NO_CONTENT;
+ else if (_endOfContent == EndOfContent.UNKNOWN_CONTENT) {
 if (_responseStatus == 0 || _responseStatus == 304 || _responseStatus == 204 || _responseStatus < 200) _endOfContent=EndOfContent.NO_CONTENT;
  else _endOfContent=EndOfContent.EOF_CONTENT;
 }

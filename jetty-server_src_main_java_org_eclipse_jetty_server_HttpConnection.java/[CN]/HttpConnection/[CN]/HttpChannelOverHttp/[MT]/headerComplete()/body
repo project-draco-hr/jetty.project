@@ -3,18 +3,28 @@
   HttpVersion version=getHttpVersion();
 switch (version) {
 case HTTP_0_9:
-    persistent=false;
-  break;
+{
+      persistent=false;
+      break;
+    }
 case HTTP_1_0:
-persistent=getRequest().getHttpFields().contains(HttpHeader.CONNECTION,HttpHeaderValue.KEEP_ALIVE.asString());
-if (persistent) getResponse().getHttpFields().add(HttpHeader.CONNECTION,HttpHeaderValue.KEEP_ALIVE);
-break;
+{
+    persistent=getRequest().getHttpFields().contains(HttpHeader.CONNECTION,HttpHeaderValue.KEEP_ALIVE.asString());
+    if (!persistent)     persistent=HttpMethod.CONNECT.is(getRequest().getMethod());
+    if (persistent)     getResponse().getHttpFields().add(HttpHeader.CONNECTION,HttpHeaderValue.KEEP_ALIVE);
+    break;
+  }
 case HTTP_1_1:
-persistent=!getRequest().getHttpFields().contains(HttpHeader.CONNECTION,HttpHeaderValue.CLOSE.asString());
-if (!persistent) getResponse().getHttpFields().add(HttpHeader.CONNECTION,HttpHeaderValue.CLOSE);
-break;
+{
+  persistent=!getRequest().getHttpFields().contains(HttpHeader.CONNECTION,HttpHeaderValue.CLOSE.asString());
+  if (!persistent)   persistent=HttpMethod.CONNECT.is(getRequest().getMethod());
+  if (!persistent)   getResponse().getHttpFields().add(HttpHeader.CONNECTION,HttpHeaderValue.CLOSE);
+  break;
+}
 default :
+{
 throw new IllegalStateException();
+}
 }
 if (!persistent) _generator.setPersistent(false);
 return super.headerComplete();

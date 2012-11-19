@@ -1,28 +1,37 @@
 {
   return new Iterator<ByteBuffer>(){
-    private final byte[] buffer=new byte[bufferSize];
-    public boolean eof;
+    private final byte[] bytes=new byte[bufferSize];
+    private Exception failure;
+    private ByteBuffer buffer;
     @Override public boolean hasNext(){
-      return !eof;
-    }
-    @Override public ByteBuffer next(){
       try {
-        int read=stream.read(buffer);
+        int read=stream.read(bytes);
         if (read > 0) {
-          return ByteBuffer.wrap(buffer,0,read);
+          buffer=onRead(bytes,0,read);
+          return true;
         }
  else         if (read < 0) {
-          if (eof)           throw new NoSuchElementException();
-          eof=true;
-          return BufferUtil.EMPTY_BUFFER;
+          return false;
         }
  else {
-          return BufferUtil.EMPTY_BUFFER;
+          buffer=BufferUtil.EMPTY_BUFFER;
+          return true;
         }
       }
- catch (      IOException x) {
-        throw (NoSuchElementException)new NoSuchElementException().initCause(x);
+ catch (      Exception x) {
+        if (failure == null) {
+          failure=x;
+          return true;
+        }
+        return false;
       }
+    }
+    @Override public ByteBuffer next(){
+      ByteBuffer result=buffer;
+      buffer=null;
+      if (failure != null)       throw (NoSuchElementException)new NoSuchElementException().initCause(failure);
+      if (result == null)       throw new NoSuchElementException();
+      return result;
     }
     @Override public void remove(){
       throw new UnsupportedOperationException();
