@@ -1,16 +1,12 @@
 {
-  startClient(_realm);
-  ContentExchange getExchange=new ContentExchange();
-  getExchange.setURL(getBaseUrl() + "input.txt");
-  getExchange.setMethod(HttpMethods.GET);
-  _client.send(getExchange);
-  int state=getExchange.waitForDone();
-  String content="";
-  int responseStatus=getExchange.getResponseStatus();
-  if (responseStatus == HttpStatus.OK_200) {
-    content=getExchange.getResponseContent();
+  try {
+    startClient();
+    Future<ContentResponse> future=_client.GET(getBaseUrl() + "input.txt");
+    ContentResponse response=future.get();
+    assertEquals(HttpServletResponse.SC_OK,response.getStatus());
+    assertEquals(_content,response.getContentAsString());
   }
-  stopClient();
-  assertEquals(HttpStatus.OK_200,responseStatus);
-  assertEquals(_content,content);
+  finally {
+    stopClient();
+  }
 }
