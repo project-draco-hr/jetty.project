@@ -1,37 +1,26 @@
 {
-  ByteArrayOutputStream reqStream=null;
   ByteArrayInputStream resStream=null;
-  Properties response=null;
+  Properties responseProperties=null;
+  ByteArrayOutputStream reqStream=new ByteArrayOutputStream();
+  requestProperties.storeToXML(reqStream,null);
   try {
-    ContentExchange reqEx=new ContentExchange();
-    reqEx.setURL(_url);
-    reqEx.setMethod(HttpMethods.POST);
-    reqEx.addRequestHeader("Connection","close");
-    reqStream=new ByteArrayOutputStream();
-    request.storeToXML(reqStream,null);
-    ByteArrayBuffer reqBuff=new ByteArrayBuffer(reqStream.toByteArray());
-    reqEx.setRequestContent(reqBuff);
-    _client.send(reqEx);
-    reqEx.waitForDone();
-    if (reqEx.getResponseStatus() == HttpStatus.OK_200) {
-      response=new Properties();
-      resStream=new ByteArrayInputStream(reqEx.getResponseContentBytes());
-      response.loadFromXML(resStream);
+    ByteBuffer byteBuffer=BufferUtil.toBuffer(reqStream.toByteArray());
+    ContentResponse response=_client.POST(_url).header("Connection","close").content(new ByteBufferContentProvider(byteBuffer)).send().get();
+    if (response.getStatus() == HttpStatus.OK_200) {
+      responseProperties=new Properties();
+      response.getContentAsString();
+      resStream=new ByteArrayInputStream(response.getContent());
+      responseProperties.loadFromXML(resStream);
     }
   }
   finally {
     try {
-      if (reqStream != null)       reqStream.close();
-    }
- catch (    IOException ex) {
-      LOG.ignore(ex);
-    }
-    try {
+      reqStream.close();
       if (resStream != null)       resStream.close();
     }
  catch (    IOException ex) {
       LOG.ignore(ex);
     }
   }
-  return response;
+  return responseProperties;
 }
