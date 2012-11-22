@@ -12,10 +12,10 @@
     if (connectionCount.compareAndSet(current,next)) {
       LOG.debug("Creating connection {}/{} for {}",next,maxConnections,this);
       CONNECTCallback connectCallback=new CONNECTCallback(new Callback<Connection>(){
-        @Override public void completed(        Connection connection){
+        @Override public void succeeded(){
           process(connection,true);
         }
-        @Override public void failed(        final Connection connection,        final Throwable x){
+        @Override public void failed(        final Throwable x){
           client.getExecutor().execute(new Runnable(){
             @Override public void run(){
               drain(x);
@@ -26,7 +26,7 @@
         }
       }
 );
-      newConnection(new TCPCallback(next,maxConnections,connectCallback));
+      newConnection(new TCPPromise(next,maxConnections,connectCallback));
       return idleConnections.poll();
     }
   }

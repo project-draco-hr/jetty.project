@@ -1,0 +1,16 @@
+{
+  if (LOG.isDebugEnabled()) {
+    LOG.debug("completed() - frame.remaining() = {}",frame.remaining());
+  }
+  connection.getBufferPool().release(buffer);
+  if (frame.remaining() > 0) {
+    LOG.debug("More to send");
+    connection.getQueue().prepend(this);
+    connection.complete(this);
+  }
+ else {
+    LOG.debug("Send complete");
+    super.succeeded();
+  }
+  connection.flush();
+}
