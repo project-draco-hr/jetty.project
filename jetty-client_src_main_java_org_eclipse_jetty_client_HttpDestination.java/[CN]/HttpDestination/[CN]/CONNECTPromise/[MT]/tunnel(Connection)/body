@@ -5,11 +5,17 @@
     @Override public void onComplete(    Result result){
       if (result.isFailed()) {
         failed(result.getFailure());
+        connection.close();
       }
  else {
         Response response=result.getResponse();
-        if (response.getStatus() == 200)         delegate.succeeded(connection);
- else         failed(new HttpResponseException("Received " + response + " for "+ result.getRequest(),response));
+        if (response.getStatus() == 200) {
+          delegate.succeeded(connection);
+        }
+ else {
+          failed(new HttpResponseException("Received " + response + " for "+ result.getRequest(),response));
+          connection.close();
+        }
       }
     }
   }
