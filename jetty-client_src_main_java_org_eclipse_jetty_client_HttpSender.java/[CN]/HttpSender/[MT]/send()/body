@@ -46,8 +46,8 @@ default :
     return;
 }
 StatefulExecutorCallback callback=new StatefulExecutorCallback(client.getExecutor()){
-  @Override protected void pendingCompleted(){
-    LOG.debug("Write completed for {}",request);
+  @Override protected void onSucceeded(){
+    LOG.debug("Write succeeded for {}",request);
     if (!commit(request))     return;
     if (expectedContent == null) {
       send();
@@ -66,7 +66,7 @@ if (expect100) {
   expectedContent=contentInfo;
 }
 write(callback,header,chunk,expect100 ? null : contentInfo.content);
-if (callback.isPending()) {
+if (callback.process()) {
   LOG.debug("Write pending for {}",request);
   return;
 }
