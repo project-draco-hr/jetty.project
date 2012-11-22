@@ -9,17 +9,24 @@
       HashedSession session=i.next();
       long idleTime=session.getMaxInactiveInterval() * 1000L;
       if (idleTime > 0 && session.getAccessed() + idleTime < now) {
-        session.timeout();
+        try {
+          session.timeout();
+        }
+ catch (        Exception e) {
+          __log.warn("Problem scavenging sessions",e);
+        }
       }
  else       if (_idleSavePeriodMs > 0 && session.getAccessed() + _idleSavePeriodMs < now) {
-        session.idle();
+        try {
+          session.idle();
+        }
+ catch (        Exception e) {
+          __log.warn("Problem idling session " + session.getId(),e);
+        }
       }
     }
   }
- catch (  Throwable t) {
-    LOG.warn("Problem scavenging sessions",t);
-  }
- finally {
+  finally {
     thread.setContextClassLoader(old_loader);
   }
 }
