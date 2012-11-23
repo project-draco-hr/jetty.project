@@ -11,7 +11,7 @@
     }
     if (connectionCount.compareAndSet(current,next)) {
       LOG.debug("Creating connection {}/{} for {}",next,maxConnections,this);
-      CONNECTPromise connectPromise=new CONNECTPromise(new Promise<Connection>(){
+      Promise<Connection> promise=new Promise<Connection>(){
         @Override public void succeeded(        Connection connection){
           process(connection,true);
         }
@@ -24,8 +24,19 @@
 );
         }
       }
+;
+      newConnection(new ProxyPromise<Connection>(promise){
+        @Override public void succeeded(        Connection connection){
+          LOG.debug("Created connection {}/{} {} for {}",next,maxConnections,connection,HttpDestination.this);
+          super.succeeded(connection);
+        }
+        @Override public void failed(        Throwable x){
+          LOG.debug("Connection failed {} for {}",x,HttpDestination.this);
+          connectionCount.decrementAndGet();
+          super.failed(x);
+        }
+      }
 );
-      newConnection(new TCPPromise(next,maxConnections,connectPromise));
       return idleConnections.poll();
     }
   }
