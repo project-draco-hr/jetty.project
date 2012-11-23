@@ -3,13 +3,15 @@
 synchronized (queue) {
     failure=this.failure;
     if (failure == null) {
-      int index=queue.size();
-      while (index > 0) {
-        FrameBytes element=queue.get(index - 1);
-        if (element.compareTo(frameBytes) >= 0)         break;
-        --index;
+      ListIterator<FrameBytes> iter=queue.listIterator(queue.size());
+      while (iter.hasPrevious()) {
+        FrameBytes element=iter.previous();
+        if (element.compareTo(frameBytes) >= 0) {
+          iter.next();
+          break;
+        }
       }
-      queue.add(index,frameBytes);
+      iter.add(frameBytes);
     }
   }
   if (failure != null)   frameBytes.fail(new SPDYException(failure));
