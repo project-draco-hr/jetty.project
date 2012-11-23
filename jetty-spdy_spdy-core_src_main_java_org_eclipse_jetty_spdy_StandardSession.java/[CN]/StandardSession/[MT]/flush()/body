@@ -4,14 +4,13 @@
 synchronized (queue) {
     if (flushing || queue.isEmpty())     return;
     Set<IStream> stalledStreams=null;
-    Iterator<FrameBytes> iter=queue.iterator();
-    while (iter.hasNext()) {
-      frameBytes=iter.next();
+    for (int i=0; i < queue.size(); ++i) {
+      frameBytes=queue.get(i);
       IStream stream=frameBytes.getStream();
       if (stream != null && stalledStreams != null && stalledStreams.contains(stream))       continue;
       buffer=frameBytes.getByteBuffer();
       if (buffer != null) {
-        iter.remove();
+        queue.remove(i);
         if (stream != null && stream.isReset()) {
           frameBytes.fail(new StreamException(stream.getId(),StreamStatus.INVALID_STREAM,"Stream: " + stream + " is reset!"));
           return;
