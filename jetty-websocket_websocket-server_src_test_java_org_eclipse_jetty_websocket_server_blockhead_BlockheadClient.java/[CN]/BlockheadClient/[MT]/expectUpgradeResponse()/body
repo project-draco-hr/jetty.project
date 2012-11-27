@@ -6,6 +6,13 @@
   Assert.assertThat("Response Code",respHeader,startsWith("HTTP/1.1 101 Switching Protocols"));
   Assert.assertThat("Response Header Upgrade",respHeader,containsString("Upgrade: WebSocket\r\n"));
   Assert.assertThat("Response Header Connection",respHeader,containsString("Connection: Upgrade\r\n"));
+  Pattern patAcceptHeader=Pattern.compile("Sec-WebSocket-Accept: (.*=)",Pattern.CASE_INSENSITIVE);
+  Matcher matAcceptHeader=patAcceptHeader.matcher(respHeader);
+  Assert.assertThat("Response Header Sec-WebSocket-Accept Exists?",matAcceptHeader.find(),is(true));
+  String reqKey=REQUEST_HASH_KEY;
+  String expectedHash=AcceptHash.hashKey(reqKey);
+  String acceptKey=matAcceptHeader.group(1);
+  Assert.assertThat("Valid Sec-WebSocket-Accept Hash?",acceptKey,is(expectedHash));
   List<ExtensionConfig> configs=getExtensionConfigs(respHeader);
   ExtensionStack extensionStack=new ExtensionStack(this.extensionFactory);
   extensionStack.negotiate(configs);
