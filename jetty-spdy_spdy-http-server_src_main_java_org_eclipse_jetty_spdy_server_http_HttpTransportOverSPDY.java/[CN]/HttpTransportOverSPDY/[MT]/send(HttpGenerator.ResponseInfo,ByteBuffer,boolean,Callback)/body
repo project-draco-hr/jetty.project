@@ -1,11 +1,15 @@
 {
-  if (LOG.isDebugEnabled())   LOG.debug("send  {} {} {} {} last={}%n",this,stream,info,BufferUtil.toDetailString(content),lastContent);
+  if (LOG.isDebugEnabled())   LOG.debug("send  {} {} {} {} last={}",this,stream,info,BufferUtil.toDetailString(content),lastContent);
   if (stream.isClosed() || stream.isReset()) {
     callback.failed(new EofException("stream closed"));
     return;
   }
   boolean hasContent=BufferUtil.hasContent(content);
   if (info != null) {
+    if (!committed.compareAndSet(false,true)) {
+      callback.failed(new StreamException(stream.getId(),StreamStatus.PROTOCOL_ERROR,"Stream already committed!"));
+      return;
+    }
     short version=stream.getSession().getVersion();
     Fields headers=new Fields();
     HttpVersion httpVersion=HttpVersion.HTTP_1_1;
