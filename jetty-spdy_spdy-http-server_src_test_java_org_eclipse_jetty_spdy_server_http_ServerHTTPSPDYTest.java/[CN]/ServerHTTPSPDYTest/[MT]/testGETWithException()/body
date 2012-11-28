@@ -1,11 +1,13 @@
 {
+  StdErrLog log=StdErrLog.getLogger(HttpChannel.class);
+  log.setHideStacks(true);
   Session session=startClient(version,startHTTPServer(version,new AbstractHandler(){
     @Override public void handle(    String target,    Request request,    HttpServletRequest httpRequest,    HttpServletResponse httpResponse) throws IOException, ServletException {
       throw new NullPointerException("thrown_explicitly_by_the_test");
     }
   }
 ),null);
-  Fields headers=createHeaders("GET");
+  Fields headers=createHeaders("GET","/foo");
   final CountDownLatch replyLatch=new CountDownLatch(1);
   final CountDownLatch latch=new CountDownLatch(1);
   session.syn(new SynInfo(headers,true),new StreamFrameListener.Adapter(){
@@ -24,4 +26,5 @@
 );
   Assert.assertTrue(replyLatch.await(5,TimeUnit.SECONDS));
   Assert.assertTrue(latch.await(5,TimeUnit.SECONDS));
+  log.setHideStacks(false);
 }
