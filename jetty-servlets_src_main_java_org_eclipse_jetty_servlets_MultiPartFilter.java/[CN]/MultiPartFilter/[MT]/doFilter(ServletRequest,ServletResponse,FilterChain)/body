@@ -4,7 +4,7 @@
     chain.doFilter(request,response);
     return;
   }
-  InputStream in=new BufferedInputStream(request.getInputStream());
+  InputStream in=new ReadLineInputStream(request.getInputStream());
   String content_type=srequest.getContentType();
   String contentTypeBoundary="";
   if (content_type.indexOf("boundary=") >= 0)   contentTypeBoundary=QuotedStringTokenizer.unquote(value(content_type.substring(content_type.indexOf("boundary="))).trim());
@@ -18,8 +18,7 @@
  else     params.add(entry.getKey(),value);
   }
   try {
-    byte[] bytes=TypeUtil.readLine(in);
-    String line=bytes == null ? null : new String(bytes,"UTF-8");
+    String line=((ReadLineInputStream)in).readLine();
     if (line == null || !line.equals(boundary)) {
       throw new IOException("Missing initial multi part boundary");
     }
@@ -29,10 +28,9 @@
     outer:     while (!lastPart && params.size() < _maxFormKeys) {
       String type_content=null;
       while (true) {
-        bytes=TypeUtil.readLine(in);
-        if (bytes == null)         break outer;
-        if (bytes.length == 0)         break;
-        line=new String(bytes,"UTF-8");
+        line=((ReadLineInputStream)in).readLine();
+        if (line == null)         break outer;
+        if ("".equals(line))         break;
         int c=line.indexOf(':',0);
         if (c > 0) {
           String key=line.substring(0,c).trim().toLowerCase(Locale.ENGLISH);
@@ -115,7 +113,12 @@
           while ((c=(state != -2) ? state : in.read()) != -1) {
             state=-2;
             if (c == 13 || c == 10) {
-              if (c == 13)               state=in.read();
+              if (c == 13) {
+                in.mark(1);
+                int tmp=in.read();
+                if (tmp != 10)                 in.reset();
+ else                 state=tmp;
+              }
               break;
             }
             if (b >= 0 && b < byteBoundary.length && c == byteBoundary[b])             b++;
@@ -151,7 +154,7 @@
         out.close();
       }
       if (file == null) {
-        bytes=((ByteArrayOutputStream)out).toByteArray();
+        byte[] bytes=((ByteArrayOutputStream)out).toByteArray();
         params.add(name,bytes);
         if (type_content != null)         params.add(name + CONTENT_TYPE_SUFFIX,type_content);
       }

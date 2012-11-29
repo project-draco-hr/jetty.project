@@ -1,0 +1,31 @@
+{
+  mark(buf.length);
+  while (true) {
+    int b=super.read();
+    if (b == -1) {
+      markpos=-1;
+      return null;
+    }
+    if (b == '\r') {
+      int p=pos;
+      if (_seenCRLF && pos < count) {
+        if (buf[pos] == '\n')         pos+=1;
+      }
+ else       _skipLF=true;
+      int m=markpos;
+      markpos=-1;
+      return new String(buf,m,p - m - 1,StringUtil.__UTF8_CHARSET);
+    }
+    if (b == '\n') {
+      if (_skipLF) {
+        _skipLF=false;
+        _seenCRLF=true;
+        markpos++;
+        continue;
+      }
+      int m=markpos;
+      markpos=-1;
+      return new String(buf,m,pos - m - 1,StringUtil.__UTF8_CHARSET);
+    }
+  }
+}
