@@ -15,8 +15,7 @@
   if (_contentType.indexOf("boundary=") >= 0)   contentTypeBoundary=QuotedStringTokenizer.unquote(value(_contentType.substring(_contentType.indexOf("boundary=")),true).trim());
   String boundary="--" + contentTypeBoundary;
   byte[] byteBoundary=(boundary + "--").getBytes(StringUtil.__ISO_8859_1);
-  byte[] bytes=TypeUtil.readLine(_in);
-  String line=bytes == null ? null : new String(bytes,"UTF-8");
+  String line=((ReadLineInputStream)_in).readLine();
   if (line == null || !line.equals(boundary)) {
     throw new IOException("Missing initial multi part boundary");
   }
@@ -27,12 +26,11 @@
   outer:   while (!lastPart) {
     MultiMap<String> headers=new MultiMap<String>();
     while (true) {
-      bytes=TypeUtil.readLine(_in);
-      if (bytes == null)       break outer;
-      if (bytes.length == 0)       break;
-      total+=bytes.length;
+      line=((ReadLineInputStream)_in).readLine();
+      if (line == null)       break outer;
+      if ("".equals(line))       break;
+      total+=line.length();
       if (_config.getMaxRequestSize() > 0 && total > _config.getMaxRequestSize())       throw new IllegalStateException("Request exceeds maxRequestSize (" + _config.getMaxRequestSize() + ")");
-      line=new String(bytes,"UTF-8");
       int c=line.indexOf(':',0);
       if (c > 0) {
         String key=line.substring(0,c).trim().toLowerCase(Locale.ENGLISH);
@@ -101,7 +99,12 @@
           if (_config.getMaxRequestSize() > 0 && total > _config.getMaxRequestSize())           throw new IllegalStateException("Request exceeds maxRequestSize (" + _config.getMaxRequestSize() + ")");
           state=-2;
           if (c == 13 || c == 10) {
-            if (c == 13)             state=_in.read();
+            if (c == 13) {
+              _in.mark(1);
+              int tmp=_in.read();
+              if (tmp != 10)               _in.reset();
+ else               state=tmp;
+            }
             break;
           }
           if (b >= 0 && b < byteBoundary.length && c == byteBoundary[b])           b++;
