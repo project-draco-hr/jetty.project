@@ -29,10 +29,18 @@
         }
       }
  else {
-        if (r.getClass().isAnnotationPresent(ManagedObject.class)) {
-          ObjectName mbean=_mbeanContainer.findMBean(r);
-          if (mbean == null)           return null;
-          r=mbean;
+        Class<?> clazz=r.getClass();
+        while (clazz != null) {
+          if (clazz.isAnnotationPresent(ManagedObject.class)) {
+            ObjectName mbean=_mbeanContainer.findMBean(r);
+            if (mbean != null) {
+              return mbean;
+            }
+ else {
+              return null;
+            }
+          }
+          clazz=clazz.getSuperclass();
         }
       }
     }
