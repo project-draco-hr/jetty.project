@@ -1,6 +1,6 @@
 {
   MultipartConfigElement config=new MultipartConfigElement(_dirname,1024,3072,50);
-  MultiPartInputStream mpis=new MultiPartInputStream(new ByteArrayInputStream(createMultipartRequestString(filename).getBytes()),_contentType,config,_tmpDir);
+  MultiPartInputStreamParser mpis=new MultiPartInputStreamParser(new ByteArrayInputStream(createMultipartRequestString(filename).getBytes()),_contentType,config,_tmpDir);
   mpis.setDeleteOnExit(true);
   Collection<Part> parts=mpis.getParts();
   assertThat(parts.size(),is(2));
@@ -12,9 +12,9 @@
   IO.copy(is,os);
   assertEquals("Joe Blow",new String(os.toByteArray()));
   assertEquals(8,field1.getSize());
-  assertNotNull(((MultiPartInputStream.MultiPart)field1).getBytes());
+  assertNotNull(((MultiPartInputStreamParser.MultiPart)field1).getBytes());
   field1.write("field1.txt");
-  assertNull(((MultiPartInputStream.MultiPart)field1).getBytes());
+  assertNull(((MultiPartInputStreamParser.MultiPart)field1).getBytes());
   File f=new File(_dirname + File.separator + "field1.txt");
   assertTrue(f.exists());
   field1.write("another_field1.txt");
@@ -32,9 +32,9 @@
   assertThat(stuff.getHeader("content-disposition"),is("form-data; name=\"stuff\"; filename=\"" + filename + "\""));
   assertThat(stuff.getHeaderNames().size(),is(2));
   assertThat(stuff.getSize(),is(51L));
-  File tmpfile=((MultiPartInputStream.MultiPart)stuff).getFile();
+  File tmpfile=((MultiPartInputStreamParser.MultiPart)stuff).getFile();
   assertThat(tmpfile,notNullValue());
-  assertThat(((MultiPartInputStream.MultiPart)stuff).getBytes(),nullValue());
+  assertThat(((MultiPartInputStreamParser.MultiPart)stuff).getBytes(),nullValue());
   assertThat(tmpfile.exists(),is(true));
   assertThat(tmpfile.getName(),is(not("stuff with space.txt")));
   stuff.write(filename);
