@@ -1,0 +1,18 @@
+{
+  _called.put("contextInitialized",new Throwable());
+  ServletRegistration.Dynamic rego=sce.getServletContext().addServlet("RegoTest",RegTest.class.getName());
+  rego.addMapping("/rego/*");
+  HttpConstraintElement constraintElement=new HttpConstraintElement(ServletSecurity.EmptyRoleSemantic.PERMIT,ServletSecurity.TransportGuarantee.NONE,new String[]{"admin"});
+  ServletSecurityElement securityElement=new ServletSecurityElement(constraintElement,null);
+  Set<String> unchanged=rego.setServletSecurity(securityElement);
+  ServletRegistration.Dynamic rego2=sce.getServletContext().addServlet("RegoTest2",RegTest.class.getName());
+  rego2.addMapping("/rego2/*");
+  securityElement=new ServletSecurityElement(constraintElement,null);
+  unchanged=rego2.setServletSecurity(securityElement);
+  FilterRegistration.Dynamic registration=sce.getServletContext().addFilter("TestFilter",TestFilter.class.getName());
+  if (registration != null) {
+    registration.setInitParameter("remote","false");
+    registration.setAsyncSupported(true);
+    registration.addMappingForUrlPatterns(EnumSet.of(DispatcherType.ERROR,DispatcherType.ASYNC,DispatcherType.FORWARD,DispatcherType.INCLUDE,DispatcherType.REQUEST),true,new String[]{"/*"});
+  }
+}

@@ -1,0 +1,25 @@
+{
+  HttpConnection httpConnection=connectContext.getHttpConnection();
+  ByteBuffer requestBuffer=httpConnection.getRequestBuffer();
+  ByteBuffer buffer=BufferUtil.EMPTY_BUFFER;
+  int remaining=requestBuffer.remaining();
+  if (remaining > 0) {
+    buffer=bufferPool.acquire(remaining,requestBuffer.isDirect());
+    BufferUtil.flipToFill(buffer);
+    buffer.put(requestBuffer);
+    buffer.flip();
+  }
+  ConcurrentMap<String,Object> context=connectContext.getContext();
+  HttpServletRequest request=connectContext.getRequest();
+  prepareContext(request,context);
+  EndPoint downstreamEndPoint=httpConnection.getEndPoint();
+  DownstreamConnection downstreamConnection=newDownstreamConnection(downstreamEndPoint,context,buffer);
+  downstreamConnection.setInputBufferSize(getBufferSize());
+  upstreamConnection.setConnection(downstreamConnection);
+  downstreamConnection.setConnection(upstreamConnection);
+  LOG.debug("Connection setup completed: {}<->{}",downstreamConnection,upstreamConnection);
+  HttpServletResponse response=connectContext.getResponse();
+  sendConnectResponse(request,response,HttpServletResponse.SC_OK);
+  upgradeConnection(request,response,downstreamConnection);
+  connectContext.getAsyncContext().complete();
+}

@@ -1,0 +1,34 @@
+{
+  try {
+    String bs=getInitParameter("bufferSize");
+    WebSocketPolicy policy=new WebSocketPolicy(WebSocketBehavior.SERVER);
+    if (bs != null) {
+      policy.setBufferSize(Integer.parseInt(bs));
+    }
+    String max=getInitParameter("maxIdleTime");
+    if (max != null) {
+      policy.setIdleTimeout(Integer.parseInt(max));
+    }
+    max=getInitParameter("maxTextMessageSize");
+    if (max != null) {
+      policy.setMaxTextMessageSize(Integer.parseInt(max));
+    }
+    max=getInitParameter("maxBinaryMessageSize");
+    if (max != null) {
+      policy.setMaxBinaryMessageSize(Integer.parseInt(max));
+    }
+    WebSocketServletFactory baseFactory;
+    Iterator<WebSocketServletFactory> factories=ServiceLoader.load(WebSocketServletFactory.class).iterator();
+    if (factories.hasNext())     baseFactory=factories.next();
+ else {
+      Class<WebSocketServletFactory> wssf=(Class<WebSocketServletFactory>)getServletContext().getClass().getClassLoader().loadClass("org.eclipse.jetty.websocket.server.WebSocketServerFactory");
+      baseFactory=wssf.newInstance();
+    }
+    factory=baseFactory.createFactory(policy);
+    configure(factory);
+    factory.init();
+  }
+ catch (  Exception x) {
+    throw new ServletException(x);
+  }
+}

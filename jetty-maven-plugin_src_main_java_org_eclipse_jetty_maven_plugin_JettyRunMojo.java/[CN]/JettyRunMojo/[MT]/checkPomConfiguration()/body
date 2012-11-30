@@ -1,11 +1,11 @@
 {
   try {
-    if ((getWebAppSourceDirectory() == null) || !getWebAppSourceDirectory().exists()) {
+    if ((webAppSourceDirectory == null) || !webAppSourceDirectory.exists()) {
       File defaultWebAppSrcDir=new File(project.getBasedir(),DEFAULT_WEBAPP_SRC);
-      getLog().info("webAppSourceDirectory" + (getWebAppSourceDirectory() == null ? " not set." : " does not exist.") + " Defaulting to "+ defaultWebAppSrcDir.getAbsolutePath());
+      getLog().info("webAppSourceDirectory" + (webAppSourceDirectory == null ? " not set." : " does not exist.") + " Defaulting to "+ defaultWebAppSrcDir.getAbsolutePath());
       webAppSourceDirectory=defaultWebAppSrcDir;
     }
- else     getLog().info("Webapp source directory = " + getWebAppSourceDirectory().getCanonicalPath());
+ else     getLog().info("Webapp source directory = " + webAppSourceDirectory.getCanonicalPath());
   }
  catch (  IOException e) {
     throw new MojoExecutionException("Webapp source directory does not exist",e);
@@ -17,20 +17,20 @@
     getLog().info("Reload Mechanic: " + reload);
   }
   try {
-    if (getClassesDirectory() != null) {
-      if (!getClassesDirectory().exists())       getLog().info("Classes directory " + getClassesDirectory().getCanonicalPath() + " does not exist");
- else       getLog().info("Classes = " + getClassesDirectory().getCanonicalPath());
+    if (classesDirectory != null) {
+      if (!classesDirectory.exists())       getLog().info("Classes directory " + classesDirectory.getCanonicalPath() + " does not exist");
+ else       getLog().info("Classes = " + classesDirectory.getCanonicalPath());
     }
  else     getLog().info("Classes directory not set");
   }
  catch (  IOException e) {
     throw new MojoExecutionException("Location of classesDirectory does not exist");
   }
-  setExtraScanTargets(new ArrayList<File>());
+  extraScanTargets=new ArrayList<File>();
   if (scanTargets != null) {
     for (int i=0; i < scanTargets.length; i++) {
       getLog().info("Added extra scan target:" + scanTargets[i]);
-      getExtraScanTargets().add(scanTargets[i]);
+      extraScanTargets.add(scanTargets[i]);
     }
   }
   if (scanTargetPatterns != null) {
@@ -53,9 +53,9 @@
         List<File> files=FileUtils.getFiles(scanTargetPatterns[i].getDirectory(),includes,excludes);
         itor=files.iterator();
         while (itor.hasNext())         getLog().info("Adding extra scan target from pattern: " + itor.next());
-        List<File> currentTargets=getExtraScanTargets();
+        List<File> currentTargets=extraScanTargets;
         if (currentTargets != null && !currentTargets.isEmpty())         currentTargets.addAll(files);
- else         setExtraScanTargets(files);
+ else         extraScanTargets=files;
       }
  catch (      IOException e) {
         throw new MojoExecutionException(e.getMessage());

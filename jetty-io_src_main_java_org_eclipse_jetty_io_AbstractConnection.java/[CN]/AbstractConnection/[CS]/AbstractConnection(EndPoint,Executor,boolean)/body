@@ -2,12 +2,12 @@
   if (executor == null)   throw new IllegalArgumentException("Executor must not be null!");
   _endPoint=endp;
   _executor=executor;
-  _readCallback=new ExecutorCallback<Void>(executor,0){
-    @Override public void completed(    Void context){
-      if (executeOnfillable)       super.completed(context);
- else       onCompleted(context);
+  _readCallback=new ExecutorCallback(executor,0){
+    @Override public void succeeded(){
+      if (executeOnfillable)       super.succeeded();
+ else       onCompleted();
     }
-    @Override protected void onCompleted(    Void context){
+    @Override protected void onCompleted(){
       if (_state.compareAndSet(State.INTERESTED,State.FILLING)) {
         try {
           onFillable();
@@ -23,7 +23,7 @@ case FILLING:
           break;
 case FILLING_INTERESTED:
         if (_state.compareAndSet(State.FILLING_INTERESTED,State.INTERESTED)) {
-          getEndPoint().fillInterested(null,_readCallback);
+          getEndPoint().fillInterested(_readCallback);
           break loop;
         }
       break;
@@ -33,7 +33,7 @@ case FILLING_INTERESTED:
 }
  else LOG.warn(new Throwable());
 }
-@Override protected void onFailed(Void context,Throwable x){
+@Override protected void onFailed(Throwable x){
 onFillInterestedFailed(x);
 }
 @Override public String toString(){

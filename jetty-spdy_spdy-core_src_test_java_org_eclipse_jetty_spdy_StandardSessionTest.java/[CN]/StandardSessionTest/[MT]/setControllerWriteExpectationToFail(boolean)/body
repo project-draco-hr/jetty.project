@@ -1,13 +1,12 @@
 {
-  when(controller.write(any(ByteBuffer.class),any(Callback.class),any(StandardSession.FrameBytes.class))).thenAnswer(new Answer<Integer>(){
-    public Integer answer(    InvocationOnMock invocation){
+  doAnswer(new Answer(){
+    public Object answer(    InvocationOnMock invocation){
       Object[] args=invocation.getArguments();
-      Callback<StandardSession.FrameBytes> callback=(Callback<FrameBytes>)args[1];
-      FrameBytes context=(FrameBytes)args[2];
-      if (fail)       callback.failed(context,new ClosedChannelException());
- else       callback.completed(context);
-      return 0;
+      Callback callback=(Callback)args[1];
+      if (fail)       callback.failed(new ClosedChannelException());
+ else       callback.succeeded();
+      return null;
     }
   }
-);
+).when(controller).write(any(ByteBuffer.class),any(Callback.class));
 }

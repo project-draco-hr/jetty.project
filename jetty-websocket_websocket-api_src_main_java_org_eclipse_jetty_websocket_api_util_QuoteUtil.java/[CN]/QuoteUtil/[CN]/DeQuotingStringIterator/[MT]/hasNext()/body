@@ -1,0 +1,83 @@
+{
+  if (hasToken) {
+    return true;
+  }
+  State state=State.START;
+  boolean escape=false;
+  int inputLen=input.length();
+  while (i < inputLen) {
+    char c=input.charAt(i++);
+switch (state) {
+case START:
+{
+        if (c == '\'') {
+          state=State.QUOTE_SINGLE;
+          appendToken(c);
+        }
+ else         if (c == '\"') {
+          state=State.QUOTE_DOUBLE;
+          appendToken(c);
+        }
+ else {
+          appendToken(c);
+          state=State.TOKEN;
+        }
+        break;
+      }
+case TOKEN:
+{
+      if (delims.indexOf(c) >= 0) {
+        debug("hasNext/t: %b [%s]%n",hasToken,token);
+        return hasToken;
+      }
+ else       if (c == '\'') {
+        state=State.QUOTE_SINGLE;
+      }
+ else       if (c == '\"') {
+        state=State.QUOTE_DOUBLE;
+      }
+      appendToken(c);
+      break;
+    }
+case QUOTE_SINGLE:
+{
+    if (escape) {
+      escape=false;
+      appendToken(c);
+    }
+ else     if (c == '\'') {
+      appendToken(c);
+      state=State.TOKEN;
+    }
+ else     if (c == '\\') {
+      escape=true;
+    }
+ else {
+      appendToken(c);
+    }
+    break;
+  }
+case QUOTE_DOUBLE:
+{
+  if (escape) {
+    escape=false;
+    appendToken(c);
+  }
+ else   if (c == '\"') {
+    appendToken(c);
+    state=State.TOKEN;
+  }
+ else   if (c == '\\') {
+    escape=true;
+  }
+ else {
+    appendToken(c);
+  }
+  break;
+}
+}
+debug("%s <%s> : [%s]%n",state,c,token);
+}
+debug("hasNext/e: %b [%s]%n",hasToken,token);
+return hasToken;
+}

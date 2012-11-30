@@ -1,0 +1,15 @@
+{
+  List<FrameBytes> frameBytesToFail=new ArrayList<>();
+  frameBytesToFail.add(this);
+synchronized (queue) {
+    failure=x;
+    if (LOG.isDebugEnabled()) {
+      String logMessage=String.format("Failed write of %s, failing all %d frame(s) in queue",this,queue.size());
+      LOG.debug(logMessage,x);
+    }
+    frameBytesToFail.addAll(queue);
+    queue.clear();
+    flushing=false;
+  }
+  for (  FrameBytes fb : frameBytesToFail)   fb.fail(x);
+}

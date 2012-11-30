@@ -1,5 +1,5 @@
 {
-  if (!OpCode.isDataFrame(frame.getOpCode())) {
+  if (frame.getType().isData()) {
     return;
   }
   ByteBuffer data=frame.getPayload();
@@ -8,17 +8,18 @@
   ByteBuffer buf2=data.slice();
   buf1.limit(half);
   buf2.position(half);
-  Callback<Void> nop=new FutureCallback<>();
   try {
-switch (frame.getOpCode()) {
-case OpCode.BINARY:
-      conn.write(null,nop,buf1);
-    conn.write(null,nop,buf2);
+switch (frame.getType()) {
+case BINARY:
+      conn.write(buf1);
+    conn.write(buf2);
   break;
-case OpCode.TEXT:
-conn.write(null,nop,BufferUtil.toUTF8String(buf1));
-conn.write(null,nop,BufferUtil.toUTF8String(buf2));
+case TEXT:
+conn.write(BufferUtil.toUTF8String(buf1));
+conn.write(BufferUtil.toUTF8String(buf2));
 break;
+default :
+throw new IOException("Unexpected frame type: " + frame.getType());
 }
 }
  catch (IOException e) {

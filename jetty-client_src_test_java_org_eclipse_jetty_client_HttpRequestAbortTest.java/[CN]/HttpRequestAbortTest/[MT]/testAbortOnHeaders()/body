@@ -1,10 +1,11 @@
 {
   start(new EmptyServerHandler());
+  final Throwable cause=new Exception();
   final CountDownLatch aborted=new CountDownLatch(1);
   try {
     ContentResponse response=client.newRequest("localhost",connector.getLocalPort()).scheme(scheme).onRequestHeaders(new Request.HeadersListener(){
       @Override public void onHeaders(      Request request){
-        if (request.abort(null))         aborted.countDown();
+        if (request.abort(cause))         aborted.countDown();
       }
     }
 ).send().get(5,TimeUnit.SECONDS);
@@ -12,7 +13,7 @@
     Assert.assertFalse(aborted.await(1,TimeUnit.SECONDS));
   }
  catch (  ExecutionException x) {
-    Assert.assertThat(x.getCause(),Matchers.instanceOf(HttpResponseException.class));
+    Assert.assertSame(cause,x.getCause());
     Assert.assertTrue(aborted.await(5,TimeUnit.SECONDS));
   }
 }

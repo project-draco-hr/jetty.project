@@ -8,14 +8,14 @@
   Thread.sleep(idleTimeout * 2);
   assertTrue(endp.isOpen());
   ByteBuffer buffer=BufferUtil.allocate(1024);
-  FutureCallback<Void> fcb=new FutureCallback<>();
-  endp.fillInterested(null,fcb);
+  FutureCallback fcb=new FutureCallback();
+  endp.fillInterested(fcb);
   assertTrue(fcb.isDone());
   assertEquals(null,fcb.get());
   assertEquals(4,endp.fill(buffer));
   assertEquals("test",BufferUtil.toString(buffer));
-  fcb=new FutureCallback<>();
-  endp.fillInterested(null,fcb);
+  fcb=new FutureCallback();
+  endp.fillInterested(fcb);
   long start=System.currentTimeMillis();
   try {
     fcb.get();
@@ -27,8 +27,8 @@
   assertThat(System.currentTimeMillis() - start,greaterThan(idleTimeout / 2));
   assertTrue(endp.isOpen());
   Thread.sleep(idleTimeout / 2);
-  fcb=new FutureCallback<>();
-  endp.write(null,fcb,BufferUtil.toBuffer("This is too long"));
+  fcb=new FutureCallback();
+  endp.write(fcb,BufferUtil.toBuffer("This is too long"));
   start=System.currentTimeMillis();
   try {
     fcb.get();

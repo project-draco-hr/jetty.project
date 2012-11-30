@@ -1,16 +1,19 @@
 {
+  String srvUrl="http://127.0.0.1:" + ((NetworkConnector)_server.getConnectors()[0]).getLocalPort() + "/test/";
   HttpClient client=new HttpClient();
-  client.setConnectorType(HttpClient.CONNECTOR_SELECT_CHANNEL);
-  client.setRealmResolver(new SimpleRealmResolver(new TestRealm()));
-  client.start();
-  String srvUrl="http://127.0.0.1:" + _server.getConnectors()[0].getLocalPort() + "/test/";
-  ContentExchange ex=new ContentExchange();
-  ex.setMethod(HttpMethods.POST);
-  ex.setURL(srvUrl);
-  ex.setRequestContent(new ByteArrayBuffer(__message,"UTF-8"));
-  _received=null;
-  client.send(ex);
-  ex.waitForDone();
-  Assert.assertEquals(__message,_received);
-  Assert.assertEquals(200,ex.getResponseStatus());
+  try {
+    AuthenticationStore authStore=client.getAuthenticationStore();
+    authStore.addAuthentication(new DigestAuthentication(srvUrl,"test","testuser","password"));
+    client.start();
+    Request request=client.newRequest(srvUrl);
+    request.method(HttpMethod.POST);
+    request.content(new BytesContentProvider(__message.getBytes("UTF8")));
+    _received=null;
+    ContentResponse response=request.send().get(5,TimeUnit.SECONDS);
+    Assert.assertEquals(__message,_received);
+    Assert.assertEquals(200,response.getStatus());
+  }
+  finally {
+    client.stop();
+  }
 }

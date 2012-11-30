@@ -12,6 +12,8 @@
       long lml=httpContent.getResource().lastModified();
       if (lml != -1)       response.getHttpFields().putDateField(HttpHeader.LAST_MODIFIED,lml);
     }
+    String etag=httpContent.getETag();
+    if (etag != null)     response.getHttpFields().put(HttpHeader.ETAG,etag);
     content=httpContent.getDirectBuffer();
     if (content == null)     content=httpContent.getIndirectBuffer();
     if (content == null)     content=httpContent.getReadableByteChannel();
@@ -24,6 +26,7 @@
   }
   if (content instanceof ByteBuffer) {
     _channel.write((ByteBuffer)content,true);
+    _closed=true;
   }
  else   if (content instanceof ReadableByteChannel) {
     ReadableByteChannel channel=(ReadableByteChannel)content;
@@ -56,7 +59,6 @@
         buffer.limit(len);
         _channel.write(buffer,false);
       }
-      _channel.write(BufferUtil.EMPTY_BUFFER,true);
     }
   finally {
       close();

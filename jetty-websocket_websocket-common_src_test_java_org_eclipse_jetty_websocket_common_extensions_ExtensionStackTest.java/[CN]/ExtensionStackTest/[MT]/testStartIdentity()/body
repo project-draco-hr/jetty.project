@@ -1,0 +1,20 @@
+{
+  ExtensionStack stack=createExtensionStack();
+  try {
+    List<ExtensionConfig> configs=new ArrayList<>();
+    configs.add(ExtensionConfig.parse("identity"));
+    stack.negotiate(configs);
+    DummyIncomingFrames session=new DummyIncomingFrames("Session");
+    DummyOutgoingFrames connection=new DummyOutgoingFrames("Connection");
+    stack.setNextOutgoing(connection);
+    stack.setNextIncoming(session);
+    stack.start();
+    LOG.debug("{}",stack.dump());
+    Extension actualIncomingExtension=assertIsExtension("Incoming",stack.getNextIncoming(),IdentityExtension.class);
+    Extension actualOutgoingExtension=assertIsExtension("Outgoing",stack.getNextOutgoing(),IdentityExtension.class);
+    Assert.assertEquals(actualIncomingExtension,actualOutgoingExtension);
+  }
+  finally {
+    stack.stop();
+  }
+}

@@ -14,10 +14,11 @@
   }
 );
   StdErrLog.getLogger(HttpChannel.class).setHideStacks(true);
+  final Throwable cause=new Exception();
   try {
     client.newRequest("localhost",connector.getLocalPort()).scheme(scheme).onRequestHeaders(new Request.HeadersListener(){
       @Override public void onHeaders(      Request request){
-        request.abort(null);
+        request.abort(cause);
       }
     }
 ).content(new ByteBufferContentProvider(ByteBuffer.wrap(new byte[]{0}),ByteBuffer.wrap(new byte[]{1})){
@@ -29,18 +30,11 @@
     Assert.fail();
   }
  catch (  ExecutionException x) {
-    Throwable cause=x.getCause();
-    if (cause instanceof EOFException) {
+    Throwable abort=x.getCause();
+    if (abort instanceof EOFException) {
+      System.err.println("C");
     }
- else     if (cause instanceof HttpRequestException) {
-      HttpRequestException xx=(HttpRequestException)cause;
-      Request request=xx.getRequest();
-      Assert.assertNotNull(request);
-    }
- else     if (cause instanceof HttpResponseException) {
-      HttpResponseException xx=(HttpResponseException)cause;
-      Response response=xx.getResponse();
-      Assert.assertNotNull(response);
+ else     if (abort == cause) {
     }
  else {
       throw x;
