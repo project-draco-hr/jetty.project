@@ -33,7 +33,8 @@ default :
 {
         if (_headerString != null || _valueString != null) {
           if (_header != null && handleKnownHeaders(buffer))           return true;
-          return_from_parse|=_handler.parsedHeader(_header,_headerString,_valueString);
+          return_from_parse|=_handler.parsedHeader(_field != null ? _field : new HttpField(_header,_headerString,_valueString));
+          _field=null;
         }
         _headerString=_valueString=null;
         _header=null;
@@ -72,16 +73,17 @@ break;
 }
  else {
 if (buffer.remaining() > 6 && buffer.hasArray()) {
-HttpField field=HttpField.CACHE.getBest(buffer.array(),buffer.arrayOffset() + buffer.position() - 1,buffer.remaining() + 1);
-if (field != null) {
-_header=field.getHeader();
-_headerString=field.getName();
-_valueString=field.getValue();
+_field=HttpField.CACHE.getBest(buffer.array(),buffer.arrayOffset() + buffer.position() - 1,buffer.remaining() + 1);
+if (_field != null) {
+_header=_field.getHeader();
+_headerString=_field.getName();
+_valueString=_field.getValue();
 if (_valueString == null) {
 setState(State.HEADER_VALUE);
 buffer.position(buffer.position() + _headerString.length() + 1);
 _string.setLength(0);
 _length=0;
+_field=null;
 }
  else {
 setState(State.HEADER_IN_VALUE);
@@ -235,6 +237,7 @@ _string.setLength(0);
 _string.append(_valueString);
 _length=_valueString.length();
 _valueString=null;
+_field=null;
 }
 _string.append((char)ch);
 setState(State.HEADER_VALUE);
@@ -245,6 +248,7 @@ _string.setLength(0);
 _string.append(_valueString);
 _length=_valueString.length();
 _valueString=null;
+_field=null;
 }
 _string.append((char)ch);
 _length++;
