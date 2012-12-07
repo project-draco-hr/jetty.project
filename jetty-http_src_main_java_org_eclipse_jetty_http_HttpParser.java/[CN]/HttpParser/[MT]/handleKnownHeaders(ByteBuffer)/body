@@ -1,0 +1,56 @@
+{
+switch (_header) {
+case CONTENT_LENGTH:
+    if (_endOfContent != EndOfContent.CHUNKED_CONTENT) {
+      try {
+        _contentLength=Long.parseLong(_valueString);
+      }
+ catch (      NumberFormatException e) {
+        LOG.ignore(e);
+        badMessage(buffer,HttpStatus.BAD_REQUEST_400,"Bad Content-Length");
+        return true;
+      }
+      if (_contentLength <= 0)       _endOfContent=EndOfContent.NO_CONTENT;
+ else       _endOfContent=EndOfContent.CONTENT_LENGTH;
+    }
+  break;
+case TRANSFER_ENCODING:
+if (_value == HttpHeaderValue.CHUNKED) _endOfContent=EndOfContent.CHUNKED_CONTENT;
+ else {
+  if (_valueString.endsWith(HttpHeaderValue.CHUNKED.toString()))   _endOfContent=EndOfContent.CHUNKED_CONTENT;
+ else   if (_valueString.indexOf(HttpHeaderValue.CHUNKED.toString()) >= 0) {
+    badMessage(buffer,HttpStatus.BAD_REQUEST_400,"Bad chunking");
+    return true;
+  }
+}
+break;
+case HOST:
+_host=true;
+String host=_valueString;
+int port=0;
+if (host == null || host.length() == 0) {
+badMessage(buffer,HttpStatus.BAD_REQUEST_400,"Bad Host header");
+return true;
+}
+loop: for (int i=host.length(); i-- > 0; ) {
+char c2=(char)(0xff & host.charAt(i));
+switch (c2) {
+case ']':
+break loop;
+case ':':
+try {
+port=StringUtil.toInt(host.substring(i + 1));
+}
+ catch (NumberFormatException e) {
+LOG.debug(e);
+badMessage(buffer,HttpStatus.BAD_REQUEST_400,"Bad Host header");
+return true;
+}
+host=host.substring(0,i);
+break loop;
+}
+}
+if (_requestHandler != null) _requestHandler.parsedHostHeader(host,port);
+}
+return false;
+}
