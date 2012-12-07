@@ -1,0 +1,21 @@
+{
+  if (LOG.isDebugEnabled()) {
+    LOG.debug("complete() - frame.remaining() = {}",frame.remaining());
+  }
+  if (buffer != null) {
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("Releasing Buffer: {}",BufferUtil.toDetailString(buffer));
+    }
+    getBufferPool().release(buffer);
+    buffer=null;
+  }
+  if (frame.remaining() > 0) {
+    LOG.debug("More to send");
+    queue.prepend(this);
+    flush();
+  }
+ else {
+    LOG.debug("Send complete");
+    super.complete();
+  }
+}

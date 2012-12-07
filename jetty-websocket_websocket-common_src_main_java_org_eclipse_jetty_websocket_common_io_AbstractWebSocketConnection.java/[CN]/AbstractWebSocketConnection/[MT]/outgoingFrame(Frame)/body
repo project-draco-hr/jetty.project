@@ -3,16 +3,15 @@
     LOG.debug("outgoingFrame({})",frame);
   }
   Future<WriteResult> future=null;
-synchronized (queue) {
+synchronized (this) {
     FrameBytes bytes=null;
     if (frame.getType().isControl()) {
-      bytes=new ControlFrameBytes(this,frame);
+      bytes=new ControlFrameBytes(frame);
     }
  else {
-      bytes=new DataFrameBytes(this,frame);
+      bytes=new DataFrameBytes(frame);
     }
     future=new WriteResultFuture(bytes);
-    scheduleTimeout(bytes);
     if (isOpen()) {
       if (frame.getType().getOpCode() == OpCode.PING) {
         queue.prepend(bytes);

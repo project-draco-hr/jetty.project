@@ -3,10 +3,17 @@
   if (LOG.isDebugEnabled()) {
     LOG.debug("writing out: {}",BufferUtil.toDetailString(buf));
   }
-  BufferUtil.writeTo(buf,out);
-  out.flush();
-  if (frame.getType().getOpCode() == OpCode.CLOSE) {
-    disconnect();
+  try {
+    BufferUtil.writeTo(buf,out);
+    LOG.debug("flushing output");
+    out.flush();
+    LOG.debug("output flush complete");
+    if (frame.getType().getOpCode() == OpCode.CLOSE) {
+      disconnect();
+    }
+    return WriteResultFinishedFuture.INSTANCE;
   }
-  return null;
+ catch (  Throwable t) {
+    return new WriteResultFailedFuture(t);
+  }
 }

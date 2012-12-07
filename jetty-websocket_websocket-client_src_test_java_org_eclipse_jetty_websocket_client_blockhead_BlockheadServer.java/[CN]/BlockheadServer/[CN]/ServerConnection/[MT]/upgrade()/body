@@ -21,26 +21,31 @@
       key=mat.group(1);
     }
   }
-  List<Extension> extensions=new ArrayList<>();
-  for (  ExtensionConfig config : extensionConfigs) {
-    Extension ext=extensionRegistry.newInstance(config);
-    extensions.add(ext);
+  ExtensionStack extensionStack=new ExtensionStack(extensionRegistry);
+  extensionStack.negotiate(extensionConfigs);
+  extensionStack.setNextIncoming(this);
+  extensionStack.setNextOutgoing(this);
+  extensionStack.configure(parser);
+  extensionStack.configure(generator);
+  try {
+    extensionStack.start();
   }
-  incoming=this;
-  outgoing=this;
-  parser.setIncomingFramesHandler(incoming);
+ catch (  Exception e) {
+    throw new IOException("Unable to start Extension Stack");
+  }
+  parser.setIncomingFramesHandler(extensionStack);
   StringBuilder resp=new StringBuilder();
   resp.append("HTTP/1.1 101 Upgrade\r\n");
   resp.append("Sec-WebSocket-Accept: ");
   resp.append(AcceptHash.hashKey(key)).append("\r\n");
-  if (!extensions.isEmpty()) {
+  if (!extensionStack.hasNegotiatedExtensions()) {
     resp.append("Sec-WebSocket-Extensions: ");
     boolean delim=false;
-    for (    Extension ext : extensions) {
+    for (    String ext : extensionStack.getNegotiatedExtensions()) {
       if (delim) {
         resp.append(", ");
       }
-      resp.append(ext.getConfig().getParameterizedName());
+      resp.append(ext);
       delim=true;
     }
     resp.append("\r\n");

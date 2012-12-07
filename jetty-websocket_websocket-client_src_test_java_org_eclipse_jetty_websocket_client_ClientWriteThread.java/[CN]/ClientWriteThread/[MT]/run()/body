@@ -1,18 +1,19 @@
 {
   final AtomicInteger m=new AtomicInteger();
   try {
+    LOG.debug("Writing {} messages to connection {}",messageCount);
+    LOG.debug("Artificial Slowness {} ms",slowness);
+    Future<WriteResult> lastMessage=null;
     while (m.get() < messageCount) {
-      conn.write(message);
-      if (exchanger != null) {
-        exchanger.exchange(message);
-      }
+      lastMessage=conn.write(message + "/" + m.get()+ "/");
       m.incrementAndGet();
       if (slowness > 0) {
         TimeUnit.MILLISECONDS.sleep(slowness);
       }
     }
+    lastMessage.get(2,TimeUnit.MINUTES);
   }
- catch (  InterruptedException|IOException e) {
+ catch (  InterruptedException|IOException|ExecutionException|TimeoutException e) {
     LOG.warn(e);
   }
 }
