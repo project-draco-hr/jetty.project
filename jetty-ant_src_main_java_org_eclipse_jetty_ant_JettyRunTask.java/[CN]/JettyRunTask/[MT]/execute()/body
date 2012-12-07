@@ -1,32 +1,24 @@
 {
   TaskLog.log("Configuring Jetty for project: " + getProject().getName());
-  WebApplicationProxyImpl.setBaseTempDirectory(tempDirectory);
   setSystemProperties();
-  List connectorsList=null;
-  if (connectors != null) {
-    connectorsList=connectors.getConnectors();
-  }
- else {
-    connectorsList=new Connectors(jettyPort,30000).getDefaultConnectors();
-  }
-  List loginServicesList=(loginServices != null ? loginServices.getLoginServices() : new ArrayList());
-  ServerProxy server=new ServerProxyImpl(connectorsList,loginServicesList,requestLog,jettyXml);
+  List<Connector> connectorsList=null;
+  if (connectors != null)   connectorsList=connectors.getConnectors();
+ else   connectorsList=new Connectors(jettyPort,30000).getDefaultConnectors();
+  List<LoginService> loginServicesList=(loginServices != null ? loginServices.getLoginServices() : new ArrayList<LoginService>());
+  ServerProxyImpl server=new ServerProxyImpl();
+  server.setConnectors(connectorsList);
+  server.setLoginServices(loginServicesList);
+  server.setRequestLog(requestLog);
+  server.setJettyXml(jettyXml);
+  server.setDaemon(daemon);
+  server.setStopPort(stopPort);
+  server.setStopKey(stopKey);
+  server.setContextHandlers(contextHandlers);
+  server.setTempDirectory(tempDirectory);
+  server.setScanIntervalSecs(scanIntervalSeconds);
   try {
-    Iterator iterator=webapps.iterator();
-    while (iterator.hasNext()) {
-      WebApp webAppConfiguration=(WebApp)iterator.next();
-      WebApplicationProxyImpl webApp=new WebApplicationProxyImpl(webAppConfiguration.getName());
-      webApp.setSourceDirectory(webAppConfiguration.getWarFile());
-      webApp.setContextPath(webAppConfiguration.getContextPath());
-      webApp.setWebXml(webAppConfiguration.getWebXmlFile());
-      webApp.setJettyEnvXml(webAppConfiguration.getJettyEnvXml());
-      webApp.setClassPathFiles(webAppConfiguration.getClassPathFiles());
-      webApp.setLibrariesConfiguration(webAppConfiguration.getLibrariesConfiguration());
-      webApp.setExtraScanTargetsConfiguration(webAppConfiguration.getScanTargetsConfiguration());
-      webApp.setContextHandlers(webAppConfiguration.getContextHandlers());
-      webApp.setAttributes(webAppConfiguration.getAttributes());
-      webApp.setWebDefaultXmlFile(webAppConfiguration.getWebDefaultXmlFile());
-      server.addWebApplication(webApp,webAppConfiguration.getScanIntervalSeconds());
+    for (    WebAppContext webapp : webapps) {
+      server.addWebApplication((AntWebAppContext)webapp);
     }
   }
  catch (  Exception e) {

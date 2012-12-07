@@ -1,0 +1,46 @@
+{
+  List<File> scanList=new ArrayList<File>();
+  if (getDescriptor() != null) {
+    try {
+      Resource r=Resource.newResource(getDescriptor());
+      scanList.add(r.getFile());
+    }
+ catch (    IOException e) {
+      throw new BuildException(e);
+    }
+  }
+  if (getJettyEnvXml() != null) {
+    try {
+      Resource r=Resource.newResource(getJettyEnvXml());
+      scanList.add(r.getFile());
+    }
+ catch (    IOException e) {
+      throw new BuildException("Problem configuring scanner for jetty-env.xml",e);
+    }
+  }
+  if (getDefaultsDescriptor() != null) {
+    try {
+      if (!AntWebAppContext.WEB_DEFAULTS_XML.equals(getDefaultsDescriptor())) {
+        Resource r=Resource.newResource(getDefaultsDescriptor());
+        scanList.add(r.getFile());
+      }
+    }
+ catch (    IOException e) {
+      throw new BuildException("Problem configuring scanner for webdefaults.xml",e);
+    }
+  }
+  if (getOverrideDescriptor() != null) {
+    try {
+      Resource r=Resource.newResource(getOverrideDescriptor());
+      scanList.add(r.getFile());
+    }
+ catch (    IOException e) {
+      throw new BuildException("Problem configuring scanner for webdefaults.xml",e);
+    }
+  }
+  List<File> cpFiles=getClassPathFiles();
+  if (cpFiles != null)   scanList.addAll(cpFiles);
+  @SuppressWarnings("unchecked") List<File> scanFiles=(List<File>)getScanTargetFiles();
+  if (scanFiles != null)   scanList.addAll(scanFiles);
+  return scanList;
+}

@@ -1,17 +1,20 @@
 {
+  if (configured)   return;
+  configured=true;
+  if (tempDirectory != null && !tempDirectory.exists())   tempDirectory.mkdirs();
   applyJettyXml();
-  Iterator<Connector> connectorIterator=connectors.iterator();
-  while (connectorIterator.hasNext()) {
-    Connector jettyConnector=(Connector)connectorIterator.next();
-    ServerConnector jc=new ServerConnector(server);
-    jc.setPort(jettyConnector.getPort());
-    jc.setIdleTimeout(jettyConnector.getMaxIdleTime());
-    server.addConnector(jc);
+  if (connectors != null) {
+    for (    Connector c : connectors) {
+      ServerConnector jc=new ServerConnector(server);
+      jc.setPort(c.getPort());
+      jc.setIdleTimeout(c.getMaxIdleTime());
+      server.addConnector(jc);
+    }
   }
-  Iterator servicesIterator=loginServices.iterator();
-  while (servicesIterator.hasNext()) {
-    LoginService service=(LoginService)servicesIterator.next();
-    server.addBean(service);
+  if (loginServices != null) {
+    for (    LoginService ls : loginServices) {
+      server.addBean(ls);
+    }
   }
   Resource.setDefaultUseCaches(false);
   configureHandlers();
