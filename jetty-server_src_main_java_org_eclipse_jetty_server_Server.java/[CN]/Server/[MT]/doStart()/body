@@ -20,5 +20,17 @@
     }
   }
   if (isDumpAfterStart())   dumpStdErr();
+  final HttpFields.DateGenerator date=new HttpFields.DateGenerator();
+  long now=System.currentTimeMillis();
+  long tick=1000 * ((now / 1000) + 1) - now;
+  _dateField=new HttpField.CachedHttpField(HttpHeader.DATE,date.formatDate(now));
+  DateCache.getTimer().scheduleAtFixedRate(new TimerTask(){
+    @Override public void run(){
+      long now=System.currentTimeMillis();
+      _dateField=new HttpField.CachedHttpField(HttpHeader.DATE,date.formatDate(now));
+      if (!isRunning())       this.cancel();
+    }
+  }
+,tick,1000);
   mex.ifExceptionThrow();
 }
