@@ -11,18 +11,16 @@ case OpCode.CLOSE:
         CloseInfo close=new CloseInfo(frame,validate);
         onClose(close);
         session.close(close.getStatusCode(),close.getReason());
-        session.getConnection().onCloseHandshake(true,close);
+        session.getConnection().getIOState().onCloseHandshake(true,close);
         return;
       }
 case OpCode.PING:
 {
-      ByteBuffer pongBuf=ByteBuffer.allocate(frame.getPayloadLength());
-      if (frame.getPayloadLength() > 0) {
-        BufferUtil.clearToFill(pongBuf);
-        BufferUtil.put(frame.getPayload(),pongBuf);
-        BufferUtil.flipToFlush(pongBuf,0);
+      byte pongBuf[]=new byte[0];
+      if (frame.hasPayload()) {
+        pongBuf=BufferUtil.toArray(frame.getPayload());
       }
-      session.getRemote().sendPong(pongBuf);
+      session.getRemote().sendPong(ByteBuffer.wrap(pongBuf));
       break;
     }
 case OpCode.BINARY:

@@ -4,25 +4,20 @@
     return;
   }
   ByteBuffer data=frame.getPayload();
-  try {
-    method.decompress().input(data);
-    while (!method.decompress().isDone()) {
-      ByteBuffer uncompressed=method.decompress().process();
-      if (uncompressed == null) {
-        continue;
-      }
-      WebSocketFrame out=new WebSocketFrame(frame).setPayload(uncompressed);
-      if (!method.decompress().isDone()) {
-        out.setFin(false);
-      }
-      out.setRsv1(false);
-      nextIncomingFrame(out);
+  method.decompress().input(data);
+  while (!method.decompress().isDone()) {
+    ByteBuffer uncompressed=method.decompress().process();
+    if (uncompressed == null) {
+      continue;
     }
-    if (frame.isFin()) {
-      method.decompress().end();
+    WebSocketFrame out=new WebSocketFrame(frame).setPayload(uncompressed);
+    if (!method.decompress().isDone()) {
+      out.setFin(false);
     }
+    out.setRsv1(false);
+    nextIncomingFrame(out);
   }
-  finally {
-    getBufferPool().release(data);
+  if (frame.isFin()) {
+    method.decompress().end();
   }
 }

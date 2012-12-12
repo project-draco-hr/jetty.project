@@ -10,6 +10,15 @@
   quote.add("No amount of experimentation can ever prove me right;");
   quote.add("a single experiment can prove me wrong.");
   quote.add("-- Albert Einstein");
+  List<ByteBuffer> expectedBuffers=new ArrayList<>();
+  CompressionMethod method=new DeflateCompressionMethod();
+  for (  String part : quote) {
+    Process process=method.compress();
+    process.begin();
+    process.input(BufferUtil.toBuffer(part,StringUtil.__UTF8_CHARSET));
+    expectedBuffers.add(process.process());
+    process.end();
+  }
   for (  String section : quote) {
     Frame frame=WebSocketFrame.text(section);
     ext.outgoingFrame(frame);
@@ -27,7 +36,9 @@
     Assert.assertThat(prefix + ".rsv1",actual.isRsv1(),is(true));
     Assert.assertThat(prefix + ".rsv2",actual.isRsv2(),is(false));
     Assert.assertThat(prefix + ".rsv3",actual.isRsv3(),is(false));
-    ByteBuffer expected=BufferUtil.toBuffer(quote.get(i),StringUtil.__UTF8_CHARSET);
+    ByteBuffer expected=expectedBuffers.get(i);
     ByteBuffer compressed=actual.getPayload().slice();
+    Assert.assertThat(prefix + ".payloadLength",compressed.remaining(),is(expected.remaining()));
+    ByteBufferAssert.assertEquals(prefix + ".payload",expected,compressed);
   }
 }
