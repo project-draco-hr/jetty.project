@@ -38,48 +38,65 @@ case NEED_CHUNK:
     }
 case FLUSH:
 {
-switch (state.get()) {
+    out:     while (true) {
+      State current=state.get();
+switch (current) {
+case BEGIN:
+{
+          if (!updateState(current,State.SEND))           continue;
+          requestNotifier.notifyHeaders(request);
+          break out;
+        }
 case SEND:
 case COMMIT:
-      break;
+{
+        break out;
+      }
+case FAILURE:
+{
+      return;
+    }
 default :
-    return;
+{
+    throw new IllegalStateException();
+  }
+}
 }
 StatefulExecutorCallback callback=new StatefulExecutorCallback(client.getExecutor()){
-  @Override protected void onSucceeded(){
-    LOG.debug("Write succeeded for {}",request);
-    if (!commit(request))     return;
-    if (expectedContent == null) {
-      send();
-    }
+@Override protected void onSucceeded(){
+LOG.debug("Write succeeded for {}",request);
+if (!commit(request)) return;
+if (expectedContent == null) {
+  send();
+}
  else {
-      LOG.debug("Expecting 100 Continue for {}",request);
-      expectedContent.ready();
-    }
-  }
-  @Override protected void onFailed(  Throwable x){
-    fail(x);
-  }
+  LOG.debug("Expecting 100 Continue for {}",request);
+  expectedContent.ready();
+}
+}
+@Override protected void onFailed(Throwable x){
+fail(x);
+}
 }
 ;
 if (expect100) {
-  expectedContent=contentInfo;
+expectedContent=contentInfo;
 }
 write(callback,header,chunk,expect100 ? null : contentInfo.content);
 if (callback.process()) {
-  LOG.debug("Write pending for {}",request);
-  return;
+LOG.debug("Write pending for {}",request);
+return;
 }
 if (callback.isSucceeded()) {
-  if (!commit(request))   return;
-  if (expect100) {
-    LOG.debug("Expecting 100 Continue for {}",request);
-    expectedContent.ready();
-    return;
-  }
+if (!commit(request)) return;
+if (expect100) {
+LOG.debug("Expecting 100 Continue for {}",request);
+expectedContent.ready();
+return;
+}
  else {
-    contentInfo=new ContentInfo(contentIterator);
-  }
+contentInfo=new ContentInfo(contentIterator);
+}
 }
 break;
 }

@@ -1,0 +1,19 @@
+{
+  start(new EmptyServerHandler());
+  final Throwable cause=new Exception();
+  final CountDownLatch aborted=new CountDownLatch(1);
+  try {
+    ContentResponse response=client.newRequest("localhost",connector.getLocalPort()).scheme(scheme).onRequestCommit(new Request.CommitListener(){
+      @Override public void onCommit(      Request request){
+        if (request.abort(cause))         aborted.countDown();
+      }
+    }
+).send().get(5,TimeUnit.SECONDS);
+    Assert.assertEquals(200,response.getStatus());
+    Assert.assertFalse(aborted.await(1,TimeUnit.SECONDS));
+  }
+ catch (  ExecutionException x) {
+    Assert.assertSame(cause,x.getCause());
+    Assert.assertTrue(aborted.await(5,TimeUnit.SECONDS));
+  }
+}
