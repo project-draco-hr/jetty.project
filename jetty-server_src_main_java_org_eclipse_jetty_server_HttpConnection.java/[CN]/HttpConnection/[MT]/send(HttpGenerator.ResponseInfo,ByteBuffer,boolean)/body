@@ -8,7 +8,17 @@
 switch (result) {
 case NEED_HEADER:
 {
-        header=_bufferPool.acquire(_config.getResponseHeaderSize(),false);
+        if (lastContent && content != null && BufferUtil.space(content) > _config.getResponseHeaderSize() && content.hasArray()) {
+          int p=content.position();
+          int l=content.limit();
+          content.position(l);
+          content.limit(l + _config.getResponseHeaderSize());
+          header=content.slice();
+          header.limit(0);
+          content.position(p);
+          content.limit(l);
+        }
+ else         header=_bufferPool.acquire(_config.getResponseHeaderSize(),false);
         continue;
       }
 case NEED_CHUNK:
@@ -43,7 +53,9 @@ case SHUTDOWN_OUT:
 }
 case DONE:
 {
-if (header != null) _bufferPool.release(header);
+if (header != null) {
+  if (!lastContent || content == null || content.array() != header.array())   _bufferPool.release(header);
+}
 if (chunk != null) _bufferPool.release(chunk);
 break out;
 }
