@@ -2,20 +2,25 @@
   if (updateState(State.RECEIVE,State.RECEIVE)) {
     HttpExchange exchange=connection.getExchange();
     if (exchange != null) {
-      exchange.getResponse().getHeaders().add(field);
-      HttpHeader fieldHeader=field.getHeader();
-      if (fieldHeader != null) {
+      HttpConversation conversation=exchange.getConversation();
+      HttpResponse response=exchange.getResponse();
+      boolean process=responseNotifier.notifyHeader(conversation.getResponseListeners(),response,field);
+      if (process) {
+        response.getHeaders().add(field);
+        HttpHeader fieldHeader=field.getHeader();
+        if (fieldHeader != null) {
 switch (fieldHeader) {
 case SET_COOKIE:
 case SET_COOKIE2:
 {
-            storeCookie(exchange.getRequest().getURI(),field);
-            break;
-          }
+              storeCookie(exchange.getRequest().getURI(),field);
+              break;
+            }
 default :
 {
-          break;
-        }
+            break;
+          }
+      }
     }
   }
 }
