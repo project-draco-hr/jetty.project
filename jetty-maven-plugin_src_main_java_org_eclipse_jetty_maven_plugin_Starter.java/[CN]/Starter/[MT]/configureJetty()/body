@@ -1,10 +1,13 @@
 {
   LOG.debug("Starting Jetty Server ...");
-  this.server=new JettyServer();
+  this.server=JettyServer.getInstance();
   applyJettyXml();
   Connector[] connectors=this.server.getConnectors();
   if (connectors == null || connectors.length == 0) {
-    connectors=new Connector[]{this.server.createDefaultConnector(System.getProperty(PORT_SYSPROPERTY,null))};
+    MavenServerConnector httpConnector=new MavenServerConnector();
+    String tmp=System.getProperty(PORT_SYSPROPERTY,MavenServerConnector.DEFAULT_PORT_STR);
+    httpConnector.setPort(Integer.parseInt(tmp.trim()));
+    connectors=new Connector[]{httpConnector};
     this.server.setConnectors(connectors);
   }
   HandlerCollection handlers=(HandlerCollection)server.getChildHandlerByClass(HandlerCollection.class);

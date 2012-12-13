@@ -2,16 +2,22 @@
   try {
     getLog().debug("Starting Jetty Server ...");
     printSystemProperties();
-    this.server=new JettyServer();
     applyJettyXml();
+    if (httpConnector != null) {
+      if (httpConnector.getPort() <= 0) {
+        String tmp=System.getProperty(PORT_SYSPROPERTY,MavenServerConnector.DEFAULT_PORT_STR);
+        httpConnector.setPort(Integer.parseInt(tmp.trim()));
+      }
+      this.server.addConnector(httpConnector);
+    }
     Connector[] connectors=this.server.getConnectors();
     if (connectors == null || connectors.length == 0) {
-      this.server.setConnectors(this.connectors);
-      connectors=this.server.getConnectors();
-      if (connectors == null || connectors.length == 0) {
-        this.connectors=new Connector[]{this.server.createDefaultConnector(System.getProperty(PORT_SYSPROPERTY,null))};
-        this.server.setConnectors(this.connectors);
+      if (httpConnector == null) {
+        httpConnector=new MavenServerConnector();
+        String tmp=System.getProperty(PORT_SYSPROPERTY,MavenServerConnector.DEFAULT_PORT_STR);
+        httpConnector.setPort(Integer.parseInt(tmp.trim()));
       }
+      this.server.setConnectors(new Connector[]{httpConnector});
     }
     if (this.requestLog != null)     this.server.setRequestLog(this.requestLog);
     this.server.configureHandlers();
