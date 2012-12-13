@@ -2,43 +2,6 @@
   if (executor == null)   throw new IllegalArgumentException("Executor must not be null!");
   _endPoint=endp;
   _executor=executor;
-  _readCallback=new ExecutorCallback(executor,0){
-    @Override public void succeeded(){
-      if (executeOnfillable)       super.succeeded();
- else       onCompleted();
-    }
-    @Override protected void onCompleted(){
-      if (_state.compareAndSet(State.INTERESTED,State.FILLING)) {
-        try {
-          onFillable();
-        }
-  finally {
-          loop:           while (true) {
-switch (_state.get()) {
-case IDLE:
-case INTERESTED:
-              throw new IllegalStateException();
-case FILLING:
-            if (_state.compareAndSet(State.FILLING,State.IDLE))             break loop;
-          break;
-case FILLING_INTERESTED:
-        if (_state.compareAndSet(State.FILLING_INTERESTED,State.INTERESTED)) {
-          getEndPoint().fillInterested(_readCallback);
-          break loop;
-        }
-      break;
-  }
-}
-}
-}
- else LOG.warn(new Throwable());
-}
-@Override protected void onFailed(Throwable x){
-onFillInterestedFailed(x);
-}
-@Override public String toString(){
-return String.format("AC.ExReadCB@%x",AbstractConnection.this.hashCode());
-}
-}
-;
+  _readCallback=new ReadCallback();
+  _executeOnfillable=executeOnfillable;
 }
