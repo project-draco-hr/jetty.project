@@ -1,11 +1,14 @@
 {
-  if (buffer == null) {
-    if (frame.hasPayload()) {
-      int len=frame.getPayload().remaining();
-      origPayload=getBufferPool().acquire(len,false);
-      BufferUtil.put(frame.getPayload(),origPayload);
+synchronized (queue) {
+    state.set(STARTED);
+    if (buffer == null) {
+      if (frame.hasPayload()) {
+        int len=frame.getPayload().remaining();
+        origPayload=getBufferPool().acquire(len,false);
+        BufferUtil.put(frame.getPayload(),origPayload);
+      }
+      buffer=getGenerator().generate(frame);
     }
-    buffer=getGenerator().generate(frame);
   }
   return buffer;
 }

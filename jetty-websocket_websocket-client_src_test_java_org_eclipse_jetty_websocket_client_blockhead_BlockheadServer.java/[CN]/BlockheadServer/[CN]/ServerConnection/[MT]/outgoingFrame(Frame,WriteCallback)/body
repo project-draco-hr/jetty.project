@@ -1,0 +1,21 @@
+{
+  ByteBuffer buf=generator.generate(frame);
+  if (LOG.isDebugEnabled()) {
+    LOG.debug("writing out: {}",BufferUtil.toDetailString(buf));
+  }
+  try {
+    BufferUtil.writeTo(buf,out);
+    out.flush();
+    if (callback != null) {
+      callback.writeSuccess();
+    }
+    if (frame.getType().getOpCode() == OpCode.CLOSE) {
+      disconnect();
+    }
+  }
+ catch (  Throwable t) {
+    if (callback != null) {
+      callback.writeFailed(t);
+    }
+  }
+}

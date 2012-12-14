@@ -1,11 +1,17 @@
 {
   try {
-    int windowSize=getInputBufferSize();
-    buffer=getGenerator().generate(windowSize,frame);
-    return buffer;
+synchronized (queue) {
+      state.set(STARTED);
+      int windowSize=getInputBufferSize();
+      buffer=getGenerator().generate(windowSize,frame);
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("getByteBuffer() - {}",BufferUtil.toDetailString(buffer));
+      }
+      return buffer;
+    }
   }
  catch (  Throwable x) {
-    fail(x);
+    failFrame(x);
     return null;
   }
 }

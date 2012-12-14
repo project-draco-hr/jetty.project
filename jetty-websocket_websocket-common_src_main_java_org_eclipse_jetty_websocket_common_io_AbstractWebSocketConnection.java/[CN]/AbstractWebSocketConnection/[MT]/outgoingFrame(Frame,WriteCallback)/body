@@ -1,0 +1,24 @@
+{
+  if (LOG.isDebugEnabled()) {
+    LOG.debug("outgoingFrame({}, callback)",frame);
+  }
+synchronized (queue) {
+    FrameBytes bytes=null;
+    Callback jettyCallback=WriteCallbackWrapper.wrap(callback);
+    if (frame.getType().isControl()) {
+      bytes=new ControlFrameBytes(frame,jettyCallback);
+    }
+ else {
+      bytes=new DataFrameBytes(frame,jettyCallback);
+    }
+    if (isOpen()) {
+      if (frame.getType().getOpCode() == OpCode.PING) {
+        queue.prepend(bytes);
+      }
+ else {
+        queue.append(bytes);
+      }
+    }
+  }
+  flush();
+}
