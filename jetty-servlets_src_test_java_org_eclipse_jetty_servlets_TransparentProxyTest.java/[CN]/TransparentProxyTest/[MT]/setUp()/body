@@ -1,0 +1,18 @@
+{
+  server=new Server();
+  SelectChannelConnector connector=new SelectChannelConnector();
+  connector.setPort(8080);
+  server.addConnector(connector);
+  ServletContextHandler handler=new ServletContextHandler(server,"/");
+  handler.addServlet(ServletA.class,"/a");
+  server.setHandler(handler);
+  server.start();
+  proxyServer=new Server();
+  SelectChannelConnector proxyConnector=new SelectChannelConnector();
+  proxyConnector.setPort(8081);
+  proxyServer.addConnector(proxyConnector);
+  ServletContextHandler proxyHandler=new ServletContextHandler(proxyServer,"/");
+  proxyHandler.addServlet(new ServletHolder(new ProxyServlet.Transparent("/","http","127.0.0.1",8080,"/")),"/");
+  proxyServer.setHandler(proxyHandler);
+  proxyServer.start();
+}
