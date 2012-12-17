@@ -27,14 +27,8 @@
         while (_parser.inContentState()) {
           if (!_parser.parseNext(_requestBuffer == null ? BufferUtil.EMPTY_BUFFER : _requestBuffer))           break;
         }
-        try {
-          setCurrentConnection(HttpConnection.this);
-          _channel.run();
-        }
-  finally {
-          setCurrentConnection(null);
-        }
-        return;
+        _channel.run();
+        if (_channel.getState().isSuspended() || getEndPoint().getConnection() != this)         return;
       }
     }
   }
