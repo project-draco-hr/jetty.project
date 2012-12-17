@@ -1,30 +1,24 @@
 {
-  Trie<V> t=this;
+  int t=0;
   int k;
   int limit=s.length();
   for (k=0; k < limit; k++) {
     char c=s.charAt(k);
     int index=c >= 0 && c < 0x7f ? __lookup[c] : -1;
     if (index >= 0) {
-      if (t._nextIndex[index] == null)       t._nextIndex[index]=new Trie<V>(c);
-      t=t._nextIndex[index];
+      int idx=t * ROW_SIZE + index;
+      t=_rowIndex[idx];
+      if (t == 0)       t=_rowIndex[idx]=++_rows;
     }
  else {
-      Trie<V> n=null;
-      for (int i=t._nextOther.size(); i-- > 0; ) {
-        n=t._nextOther.get(i);
-        if (n._c == c)         break;
-        n=null;
-      }
-      if (n == null) {
-        n=new Trie<V>(c);
-        t._nextOther.add(n);
-      }
-      t=n;
+      char[] big=_bigIndex[t];
+      if (big == null)       big=_bigIndex[t]=new char[256];
+      t=big[c];
+      if (t == 0)       t=big[c]=++_rows;
     }
   }
-  t._key=v == null ? null : s;
-  V old=t._value;
-  t._value=v;
+  _key[t]=v == null ? null : s;
+  V old=(V)_value[t];
+  _value[t]=v;
   return old;
 }

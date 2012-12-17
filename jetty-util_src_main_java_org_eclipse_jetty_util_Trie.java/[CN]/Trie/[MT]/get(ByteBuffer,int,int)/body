@@ -1,22 +1,19 @@
 {
-  Trie<V> t=this;
+  int t=0;
   for (int i=0; i < len; i++) {
     byte c=b.get(offset + i);
     int index=c >= 0 && c < 0x7f ? __lookup[c] : -1;
     if (index >= 0) {
-      if (t._nextIndex[index] == null)       return null;
-      t=t._nextIndex[index];
+      int idx=t * ROW_SIZE + index;
+      t=_rowIndex[idx];
+      if (t == 0)       return null;
     }
  else {
-      Trie<V> n=null;
-      for (int j=t._nextOther.size(); j-- > 0; ) {
-        n=t._nextOther.get(j);
-        if (n._c == c)         break;
-        n=null;
-      }
-      if (n == null)       return null;
-      t=n;
+      char[] big=_bigIndex[t];
+      if (big == null)       return null;
+      t=big[c];
+      if (t == 0)       return null;
     }
   }
-  return t._value;
+  return (V)_value[t];
 }
