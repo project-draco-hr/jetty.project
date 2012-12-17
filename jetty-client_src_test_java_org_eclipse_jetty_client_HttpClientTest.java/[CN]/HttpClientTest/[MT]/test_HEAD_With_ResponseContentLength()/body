@@ -1,0 +1,18 @@
+{
+  final int length=1024;
+  start(new AbstractHandler(){
+    @Override public void handle(    String target,    org.eclipse.jetty.server.Request baseRequest,    HttpServletRequest request,    HttpServletResponse response) throws IOException, ServletException {
+      baseRequest.setHandled(true);
+      response.getOutputStream().write(new byte[length]);
+    }
+  }
+);
+  ContentResponse response=client.newRequest("localhost",connector.getLocalPort()).scheme(scheme).method(HttpMethod.HEAD).send().get(5,TimeUnit.SECONDS);
+  Assert.assertNotNull(response);
+  Assert.assertEquals(200,response.getStatus());
+  Assert.assertEquals(0,response.getContent().length);
+  response=client.newRequest("localhost",connector.getLocalPort()).scheme(scheme).send().get(5,TimeUnit.SECONDS);
+  Assert.assertNotNull(response);
+  Assert.assertEquals(200,response.getStatus());
+  Assert.assertEquals(length,response.getContent().length);
+}
