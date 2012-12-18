@@ -13,8 +13,7 @@
     HttpClient client=new HttpClient();
     client.start();
     try {
-      Future<ContentResponse> future=client.GET("http://localhost:" + port + contextPath+ servletMapping+ "?action=create");
-      ContentResponse response=future.get();
+      ContentResponse response=client.GET("http://localhost:" + port + contextPath+ servletMapping+ "?action=create");
       assertEquals(HttpServletResponse.SC_OK,response.getStatus());
       String sessionCookie=response.getHeaders().getStringField("Set-Cookie");
       assertTrue(sessionCookie != null);
@@ -22,14 +21,12 @@
       assertTrue(testListener.isCreated());
       Request request=client.newRequest("http://localhost:" + port + contextPath+ servletMapping+ "?action=delete");
       request.header("Cookie",sessionCookie);
-      future=request.send();
-      response=future.get();
+      response=request.send();
       assertEquals(HttpServletResponse.SC_OK,response.getStatus());
       assertTrue(testListener.isDestroyed());
       request=client.newRequest("http://localhost:" + port + contextPath+ servletMapping+ "?action=check");
       request.header("Cookie",sessionCookie);
-      future=request.send();
-      response=future.get();
+      response=request.send();
       assertEquals(HttpServletResponse.SC_OK,response.getStatus());
     }
   finally {

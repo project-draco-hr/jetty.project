@@ -13,14 +13,14 @@
   BasicAuthentication authentication=new BasicAuthentication(uri,realm,"basic","basic");
   authenticationStore.addAuthentication(authentication);
   Request request=client.newRequest("localhost",connector.getLocalPort()).scheme(scheme).path("/secure");
-  ContentResponse response=request.send().get(5,TimeUnit.SECONDS);
+  ContentResponse response=request.timeout(5,TimeUnit.SECONDS).send();
   Assert.assertNotNull(response);
   Assert.assertEquals(200,response.getStatus());
   Assert.assertTrue(requests.get().await(5,TimeUnit.SECONDS));
   authenticationStore.removeAuthentication(authentication);
   requests.set(new CountDownLatch(1));
   request=client.newRequest("localhost",connector.getLocalPort()).scheme(scheme).path("/secure");
-  response=request.send().get(5,TimeUnit.SECONDS);
+  response=request.timeout(5,TimeUnit.SECONDS).send();
   Assert.assertNotNull(response);
   Assert.assertEquals(200,response.getStatus());
   Assert.assertTrue(requests.get().await(5,TimeUnit.SECONDS));
@@ -29,7 +29,7 @@
   authenticationStore.removeAuthenticationResult(result);
   requests.set(new CountDownLatch(1));
   request=client.newRequest("localhost",connector.getLocalPort()).scheme(scheme).path("/secure");
-  response=request.send().get(5,TimeUnit.SECONDS);
+  response=request.timeout(5,TimeUnit.SECONDS).send();
   Assert.assertNotNull(response);
   Assert.assertEquals(401,response.getStatus());
   Assert.assertTrue(requests.get().await(5,TimeUnit.SECONDS));

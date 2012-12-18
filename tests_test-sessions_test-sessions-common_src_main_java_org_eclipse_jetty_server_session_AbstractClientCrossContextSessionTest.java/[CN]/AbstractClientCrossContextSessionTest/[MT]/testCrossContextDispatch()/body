@@ -17,16 +17,14 @@
     HttpClient client=new HttpClient();
     client.start();
     try {
-      Future<ContentResponse> future=client.GET("http://localhost:" + port + contextA+ servletMapping);
-      ContentResponse response=future.get();
+      ContentResponse response=client.GET("http://localhost:" + port + contextA+ servletMapping);
       assertEquals(HttpServletResponse.SC_OK,response.getStatus());
       String sessionCookie=response.getHeaders().getStringField("Set-Cookie");
       assertTrue(sessionCookie != null);
       sessionCookie=sessionCookie.replaceFirst("(\\W)(P|p)ath=","$1\\$Path=");
       Request request=client.newRequest("http://localhost:" + port + contextB+ servletMapping);
       request.header("Cookie",sessionCookie);
-      future=request.send();
-      ContentResponse responseB=future.get();
+      ContentResponse responseB=request.send();
       assertEquals(HttpServletResponse.SC_OK,responseB.getStatus());
       assertEquals(servletA.sessionId,servletB.sessionId);
     }

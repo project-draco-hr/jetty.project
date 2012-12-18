@@ -21,8 +21,7 @@
       HttpClient client=new HttpClient();
       client.start();
       try {
-        Future<ContentResponse> future=client.GET("http://localhost:" + port1 + contextPath+ servletMapping+ "?action=init");
-        ContentResponse response1=future.get();
+        ContentResponse response1=client.GET("http://localhost:" + port1 + contextPath+ servletMapping+ "?action=init");
         assertEquals(HttpServletResponse.SC_OK,response1.getStatus());
         assertEquals("test",response1.getContentAsString());
         String sessionCookie=response1.getHeaders().getStringField("Set-Cookie");
@@ -32,8 +31,7 @@
         for (int i=0; i < maxInactivePeriod * (1000 / requestInterval); ++i) {
           Request request=client.newRequest("http://localhost:" + port2 + contextPath+ servletMapping);
           request.header("Cookie",sessionCookie);
-          future=request.send();
-          ContentResponse response2=future.get();
+          ContentResponse response2=request.send();
           assertEquals(HttpServletResponse.SC_OK,response2.getStatus());
           assertEquals("test",response2.getContentAsString());
           String setCookie=response2.getHeaders().getStringField("Set-Cookie");
@@ -41,7 +39,7 @@
           Thread.sleep(requestInterval);
         }
         Thread.sleep(scavengePeriod * 2500L);
-        assertTrue(listener1.destroyed == false);
+        assertFalse(listener1.destroyed);
       }
   finally {
         client.stop();
