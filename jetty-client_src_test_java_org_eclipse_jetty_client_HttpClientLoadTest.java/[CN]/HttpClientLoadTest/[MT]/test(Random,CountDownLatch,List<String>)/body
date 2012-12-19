@@ -1,7 +1,8 @@
 {
   int maxContentLength=64 * 1024;
   String host=random.nextBoolean() ? "localhost" : "127.0.0.1";
-  Request request=client.newRequest(host,connector.getLocalPort()).scheme(scheme);
+  URI uri=URI.create(scheme + "://" + host+ ":"+ connector.getLocalPort());
+  Request request=client.newRequest(uri);
   HttpMethod method=random.nextBoolean() ? HttpMethod.GET : HttpMethod.POST;
   request.method(method);
   boolean ssl="https".equalsIgnoreCase(scheme);
@@ -17,6 +18,7 @@ request.header("X-Upload",String.valueOf(contentLength));
 request.content(new BytesContentProvider(new byte[contentLength]));
 break;
 }
+final CountDownLatch requestLatch=new CountDownLatch(1);
 request.send(new Response.Listener.Empty(){
 private final AtomicInteger contentLength=new AtomicInteger();
 @Override public void onHeaders(Response response){
@@ -32,8 +34,10 @@ result.getFailure().printStackTrace();
 failures.add("Result failed " + result);
 }
 if (contentLength.get() != 0) failures.add("Content length mismatch " + contentLength);
+requestLatch.countDown();
 latch.countDown();
 }
 }
 );
+requestLatch.await(5,TimeUnit.SECONDS);
 }
