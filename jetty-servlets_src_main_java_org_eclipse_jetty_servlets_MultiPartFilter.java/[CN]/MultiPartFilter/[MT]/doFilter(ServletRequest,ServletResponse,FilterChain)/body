@@ -19,9 +19,8 @@
   }
   try {
     String line=((ReadLineInputStream)in).readLine();
-    if (line == null || !line.equals(boundary)) {
-      throw new IOException("Missing initial multi part boundary");
-    }
+    if (line == null || line.length() == 0)     throw new IOException("Missing content for multipart request");
+    if (!line.equals(boundary))     throw new IOException("Missing initial multi part boundary");
     boolean lastPart=false;
     String content_disposition=null;
     String content_transfer_encoding=null;
@@ -44,7 +43,8 @@
       if (content_disposition == null) {
         throw new IOException("Missing content-disposition");
       }
-      QuotedStringTokenizer tok=new QuotedStringTokenizer(content_disposition,";");
+      LOG.debug("Content-Disposition: {}",content_disposition);
+      QuotedStringTokenizer tok=new QuotedStringTokenizer(content_disposition,";",false,true);
       String name=null;
       String filename=null;
       while (tok.hasMoreTokens()) {
@@ -64,6 +64,7 @@
       File file=null;
       try {
         if (filename != null && filename.length() > 0) {
+          LOG.debug("filename = \"{}\"",filename);
           file=File.createTempFile("MultiPart","",tempdir);
           out=new FileOutputStream(file);
           if (_fileOutputBuffer > 0)           out=new BufferedOutputStream(out,_fileOutputBuffer);
