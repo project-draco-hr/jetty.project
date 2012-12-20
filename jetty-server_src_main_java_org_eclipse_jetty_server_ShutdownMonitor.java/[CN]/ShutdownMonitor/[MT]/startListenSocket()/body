@@ -1,0 +1,31 @@
+{
+  ServerSocket sock=null;
+  try {
+    if (this.port < 0) {
+      System.out.println("ShutdownMonitor not in use (port < 0): " + port);
+      sock=null;
+      return;
+    }
+    setDaemon(true);
+    setName("ShutdownMonitor");
+    sock=new ServerSocket(this.port,1,InetAddress.getByName("127.0.0.1"));
+    if (this.port == 0) {
+      this.port=sock.getLocalPort();
+      System.out.printf("STOP.PORT=%d%n",this.port);
+    }
+    if (this.key == null) {
+      this.key=Long.toString((long)(Long.MAX_VALUE * Math.random() + this.hashCode() + System.currentTimeMillis()),36);
+      System.out.printf("STOP.KEY=%s%n",this.key);
+    }
+  }
+ catch (  Exception e) {
+    debug(e);
+    System.err.println("Error binding monitor port " + this.port + ": "+ e.toString());
+  }
+ finally {
+    this.serverSocket=sock;
+    debug("STOP.PORT=%d",this.port);
+    debug("STOP.KEY=%s",this.key);
+    debug("%s",serverSocket);
+  }
+}
