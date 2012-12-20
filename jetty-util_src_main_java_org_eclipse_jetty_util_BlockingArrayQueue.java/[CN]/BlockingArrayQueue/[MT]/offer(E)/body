@@ -1,32 +1,36 @@
 {
-  if (e == null)   throw new NullPointerException();
-  boolean not_empty=false;
-  _tailLock.lock();
+  Objects.requireNonNull(e);
+  final Lock tailLock=_tailLock;
+  final Lock headLock=_headLock;
+  boolean notEmpty=false;
+  tailLock.lock();
   try {
-    if (_size.get() >= _limit)     return false;
-    if (_size.get() == _capacity) {
-      _headLock.lock();
+    int size=_size.get();
+    if (size >= _limit)     return false;
+    if (size == _capacity) {
+      headLock.lock();
       try {
         if (!grow())         return false;
       }
   finally {
-        _headLock.unlock();
+        headLock.unlock();
       }
     }
-    _elements[_tail]=e;
-    _tail=(_tail + 1) % _capacity;
-    not_empty=0 == _size.getAndIncrement();
+    int tail=_tail;
+    _elements[tail]=e;
+    _tail=(tail + 1) % _capacity;
+    notEmpty=_size.getAndIncrement() == 0;
   }
   finally {
-    _tailLock.unlock();
+    tailLock.unlock();
   }
-  if (not_empty) {
-    _headLock.lock();
+  if (notEmpty) {
+    headLock.lock();
     try {
       _notEmpty.signal();
     }
   finally {
-      _headLock.unlock();
+      headLock.unlock();
     }
   }
   return true;

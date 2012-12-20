@@ -1,19 +1,18 @@
 {
   final int THREADS=50;
   final int LOOPS=1000;
-  final BlockingArrayQueue<Integer> queue=new BlockingArrayQueue<Integer>(1 + THREADS * LOOPS);
-  final ConcurrentLinkedQueue<Integer> produced=new ConcurrentLinkedQueue<Integer>();
-  final ConcurrentLinkedQueue<Integer> consumed=new ConcurrentLinkedQueue<Integer>();
-  _running=true;
+  final BlockingArrayQueue<Integer> queue=new BlockingArrayQueue<>(1 + THREADS * LOOPS);
+  final ConcurrentLinkedQueue<Integer> produced=new ConcurrentLinkedQueue<>();
+  final ConcurrentLinkedQueue<Integer> consumed=new ConcurrentLinkedQueue<>();
+  final AtomicBoolean running=new AtomicBoolean(true);
   final CyclicBarrier barrier0=new CyclicBarrier(THREADS + 1);
   for (int i=0; i < THREADS; i++) {
-    final Integer id=new Integer(i);
     new Thread(){
       @Override public void run(){
         final Random random=new Random();
         setPriority(getPriority() - 1);
         try {
-          while (_running) {
+          while (running.get()) {
             int r=1 + random.nextInt(10);
             if (r % 2 == 0) {
               Integer msg=queue.poll();
@@ -46,13 +45,13 @@
   }
   final CyclicBarrier barrier1=new CyclicBarrier(THREADS + 1);
   for (int i=0; i < THREADS; i++) {
-    final Integer id=new Integer(i);
+    final int id=i;
     new Thread(){
       @Override public void run(){
         final Random random=new Random();
         try {
           for (int j=0; j < LOOPS; j++) {
-            Integer msg=new Integer(random.nextInt());
+            Integer msg=random.nextInt();
             produced.add(msg);
             if (!queue.offer(msg))             throw new Exception(id + " FULL! " + queue.size());
             Thread.sleep(1 + random.nextInt(10));
@@ -81,9 +80,9 @@
     Thread.sleep(500);
     size=queue.size();
   }
-  _running=false;
+  running.set(false);
   barrier0.await();
-  HashSet<Integer> prodSet=new HashSet<Integer>(produced);
-  HashSet<Integer> consSet=new HashSet<Integer>(consumed);
-  assertEquals(prodSet,consSet);
+  HashSet<Integer> prodSet=new HashSet<>(produced);
+  HashSet<Integer> consSet=new HashSet<>(consumed);
+  Assert.assertEquals(prodSet,consSet);
 }
