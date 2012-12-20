@@ -1,4 +1,5 @@
 {
+  boolean add_to_connection_trie=false;
 switch (_header) {
 case CONTENT_LENGTH:
     if (_endOfContent != EndOfContent.CHUNKED_CONTENT) {
@@ -25,6 +26,7 @@ if (_value == HttpHeaderValue.CHUNKED) _endOfContent=EndOfContent.CHUNKED_CONTEN
 }
 break;
 case HOST:
+add_to_connection_trie=_field == null;
 _host=true;
 String host=_valueString;
 int port=0;
@@ -51,6 +53,16 @@ break loop;
 }
 }
 if (_requestHandler != null) _requestHandler.parsedHostHeader(host,port);
+break;
+case USER_AGENT:
+case ACCEPT:
+case ACCEPT_LANGUAGE:
+case COOKIE:
+add_to_connection_trie=_field == null;
+}
+if (add_to_connection_trie) {
+_field=new HttpField.CachedHttpField(_header,_valueString);
+_connectionFields.put(_field);
 }
 return false;
 }
