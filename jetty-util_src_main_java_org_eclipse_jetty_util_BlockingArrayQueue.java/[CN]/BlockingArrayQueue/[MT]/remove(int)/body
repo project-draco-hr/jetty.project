@@ -7,27 +7,27 @@
     try {
       if (index < 0 || index >= _size.get())       throw new IndexOutOfBoundsException("!(" + 0 + "<"+ index+ "<="+ _size+ ")");
       int i=_head + index;
-      int capacity=_capacity;
+      int capacity=_elements.length;
       if (i >= capacity)       i-=capacity;
       E old=(E)_elements[i];
       int tail=_tail;
       if (i < tail) {
         System.arraycopy(_elements,i + 1,_elements,i,tail - i);
         --_tail;
-        _size.decrementAndGet();
       }
  else {
         System.arraycopy(_elements,i + 1,_elements,i,capacity - i - 1);
+        _elements[capacity - 1]=_elements[0];
         if (tail > 0) {
-          _elements[capacity]=_elements[0];
-          System.arraycopy(_elements,1,_elements,0,tail - 1);
+          System.arraycopy(_elements,1,_elements,0,tail);
           --_tail;
         }
  else {
           _tail=capacity - 1;
         }
-        _size.decrementAndGet();
+        _elements[_tail]=null;
       }
+      _size.decrementAndGet();
       return old;
     }
   finally {
