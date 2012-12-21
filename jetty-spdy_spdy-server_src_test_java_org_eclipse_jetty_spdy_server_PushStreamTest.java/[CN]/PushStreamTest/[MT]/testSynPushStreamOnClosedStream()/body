@@ -3,7 +3,7 @@
   Session clientSession=startClient(startServer(new ServerSessionFrameListener.Adapter(){
     @Override public StreamFrameListener onSyn(    Stream stream,    SynInfo synInfo){
       stream.reply(new ReplyInfo(true),new Callback.Adapter());
-      stream.syn(new SynInfo(1,TimeUnit.SECONDS,new Fields(),false,(byte)0),new Promise.Adapter<Stream>(){
+      stream.push(new PushInfo(1,TimeUnit.SECONDS,new Fields(),false),new Promise.Adapter<Stream>(){
         @Override public void failed(        Throwable x){
           pushStreamFailedLatch.countDown();
         }
@@ -14,5 +14,5 @@
   }
 ),new SessionFrameListener.Adapter());
   clientSession.syn(new SynInfo(new Fields(),true),null);
-  assertThat("pushStream syn has failed",pushStreamFailedLatch.await(5,TimeUnit.SECONDS),is(true));
+  assertThat("pushStream push has failed",pushStreamFailedLatch.await(5,TimeUnit.SECONDS),is(true));
 }
