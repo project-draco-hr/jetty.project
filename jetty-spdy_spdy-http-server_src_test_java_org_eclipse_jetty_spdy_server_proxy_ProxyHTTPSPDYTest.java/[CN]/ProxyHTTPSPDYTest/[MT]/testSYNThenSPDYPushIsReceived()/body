@@ -5,16 +5,16 @@
       Fields responseHeaders=new Fields();
       responseHeaders.put(HTTPSPDYHeader.VERSION.name(version),"HTTP/1.1");
       responseHeaders.put(HTTPSPDYHeader.STATUS.name(version),"200 OK");
-      stream.reply(new ReplyInfo(responseHeaders,false));
+      stream.reply(new ReplyInfo(responseHeaders,false),new Callback.Adapter());
       Fields pushHeaders=new Fields();
       pushHeaders.put(HTTPSPDYHeader.URI.name(version),"/push");
-      stream.syn(new SynInfo(pushHeaders,false),5,TimeUnit.SECONDS,new Promise.Adapter<Stream>(){
+      stream.syn(new SynInfo(5,TimeUnit.SECONDS,pushHeaders,false,(byte)0),new Promise.Adapter<Stream>(){
         @Override public void succeeded(        Stream pushStream){
-          pushStream.data(new BytesDataInfo(data,true));
+          pushStream.data(new BytesDataInfo(data,true),new Callback.Adapter());
         }
       }
 );
-      stream.data(new BytesDataInfo(data,true));
+      stream.data(new BytesDataInfo(data,true),new Callback.Adapter());
       return null;
     }
   }
@@ -53,5 +53,5 @@
   Assert.assertTrue(pushSynLatch.await(5,TimeUnit.SECONDS));
   Assert.assertTrue(pushDataLatch.await(5,TimeUnit.SECONDS));
   Assert.assertTrue(dataLatch.await(5,TimeUnit.SECONDS));
-  client.goAway().get(5,TimeUnit.SECONDS);
+  client.goAway(new GoAwayInfo(5,TimeUnit.SECONDS));
 }

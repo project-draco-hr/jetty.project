@@ -1,26 +1,26 @@
 {
   ServerSessionFrameListener serverSessionFrameListener=new ServerSessionFrameListener.Adapter(){
     @Override public StreamFrameListener onSyn(    Stream stream,    SynInfo synInfo){
-      stream.reply(new ReplyInfo(true));
-      stream.getSession().goAway();
+      stream.reply(new ReplyInfo(true),new Callback.Adapter());
+      stream.getSession().goAway(new GoAwayInfo(),new FutureCallback());
       return null;
     }
   }
 ;
-  final AtomicReference<GoAwayInfo> ref=new AtomicReference<>();
+  final AtomicReference<GoAwayReceivedInfo> ref=new AtomicReference<>();
   final CountDownLatch latch=new CountDownLatch(1);
   SessionFrameListener clientSessionFrameListener=new SessionFrameListener.Adapter(){
-    @Override public void onGoAway(    Session session,    GoAwayInfo goAwayInfo){
+    @Override public void onGoAway(    Session session,    GoAwayReceivedInfo goAwayInfo){
       ref.set(goAwayInfo);
       latch.countDown();
     }
   }
 ;
   Session session=startClient(startServer(serverSessionFrameListener),clientSessionFrameListener);
-  Stream stream1=session.syn(new SynInfo(true),null).get(5,TimeUnit.SECONDS);
+  Stream stream1=session.syn(new SynInfo(5,TimeUnit.SECONDS,new Fields(),true,(byte)0),null);
   Assert.assertTrue(latch.await(5,TimeUnit.SECONDS));
-  GoAwayInfo goAwayInfo=ref.get();
-  Assert.assertNotNull(goAwayInfo);
-  Assert.assertEquals(stream1.getId(),goAwayInfo.getLastStreamId());
-  Assert.assertSame(SessionStatus.OK,goAwayInfo.getSessionStatus());
+  GoAwayReceivedInfo goAwayReceivedInfo=ref.get();
+  Assert.assertNotNull(goAwayReceivedInfo);
+  Assert.assertEquals(stream1.getId(),goAwayReceivedInfo.getLastStreamId());
+  Assert.assertSame(SessionStatus.OK,goAwayReceivedInfo.getSessionStatus());
 }

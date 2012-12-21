@@ -2,7 +2,7 @@
   server=newServer();
   connector=newSPDYServerConnector(server,new ServerSessionFrameListener.Adapter(){
     @Override public StreamFrameListener onSyn(    Stream stream,    SynInfo synInfo){
-      stream.reply(new ReplyInfo(true));
+      stream.reply(new ReplyInfo(true),new Callback.Adapter());
       return null;
     }
   }
@@ -10,11 +10,11 @@
   connector.setIdleTimeout(idleTimeout);
   final CountDownLatch latch=new CountDownLatch(1);
   Session session=startClient(startServer(null),new SessionFrameListener.Adapter(){
-    @Override public void onGoAway(    Session session,    GoAwayInfo goAwayInfo){
+    @Override public void onGoAway(    Session session,    GoAwayReceivedInfo goAwayInfo){
       latch.countDown();
     }
   }
 );
-  session.syn(new SynInfo(true),null);
+  session.syn(new SynInfo(new Fields(),true),null);
   Assert.assertTrue(latch.await(2 * idleTimeout,TimeUnit.MILLISECONDS));
 }

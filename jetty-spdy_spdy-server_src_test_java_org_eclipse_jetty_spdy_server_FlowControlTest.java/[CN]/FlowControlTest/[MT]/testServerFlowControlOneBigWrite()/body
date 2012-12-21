@@ -7,8 +7,8 @@
       settingsLatch.countDown();
     }
     @Override public StreamFrameListener onSyn(    Stream stream,    SynInfo synInfo){
-      stream.reply(new ReplyInfo(false));
-      stream.data(new BytesDataInfo(new byte[length],true));
+      stream.reply(new ReplyInfo(false),new Callback.Adapter());
+      stream.data(new BytesDataInfo(new byte[length],true),new Callback.Adapter());
       return null;
     }
   }
@@ -18,7 +18,7 @@
   session.settings(new SettingsInfo(settings));
   Assert.assertTrue(settingsLatch.await(5,TimeUnit.SECONDS));
   final Exchanger<DataInfo> exchanger=new Exchanger<>();
-  session.syn(new SynInfo(true),new StreamFrameListener.Adapter(){
+  session.syn(new SynInfo(new Fields(),true),new StreamFrameListener.Adapter(){
     private AtomicInteger dataFrames=new AtomicInteger();
     @Override public void onData(    Stream stream,    DataInfo dataInfo){
       try {

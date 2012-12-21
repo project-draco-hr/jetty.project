@@ -5,7 +5,7 @@
   final CountDownLatch clientDataLatch=new CountDownLatch(1);
   ServerSessionFrameListener serverSessionFrameListener=new ServerSessionFrameListener.Adapter(){
     @Override public void onConnect(    Session session){
-      session.syn(new SynInfo(false),new StreamFrameListener.Adapter(){
+      session.syn(new SynInfo(new Fields(),false),new StreamFrameListener.Adapter(){
         @Override public void onReply(        Stream stream,        ReplyInfo replyInfo){
           replyLatch.countDown();
         }
@@ -15,9 +15,9 @@
           clientDataLatch.countDown();
         }
       }
-,0,TimeUnit.MILLISECONDS,new Promise.Adapter<Stream>(){
+,new Promise.Adapter<Stream>(){
         @Override public void succeeded(        Stream stream){
-          stream.data(new StringDataInfo(serverData,true));
+          stream.data(new StringDataInfo(serverData,true),new Callback.Adapter());
         }
       }
 );
@@ -29,8 +29,8 @@
   SessionFrameListener clientSessionFrameListener=new SessionFrameListener.Adapter(){
     @Override public StreamFrameListener onSyn(    Stream stream,    SynInfo synInfo){
       Assert.assertEquals(0,stream.getId() % 2);
-      stream.reply(new ReplyInfo(false));
-      stream.data(new StringDataInfo(clientData,true));
+      stream.reply(new ReplyInfo(false),new Callback.Adapter());
+      stream.data(new StringDataInfo(clientData,true),new Callback.Adapter());
       synLatch.countDown();
       return new StreamFrameListener.Adapter(){
         @Override public void onData(        Stream stream,        DataInfo dataInfo){

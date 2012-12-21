@@ -4,10 +4,10 @@
   Session session=startClient(startServer(new ServerSessionFrameListener.Adapter(){
     @Override public StreamFrameListener onSyn(    final Stream stream,    SynInfo synInfo){
       Assert.assertTrue(stream.isHalfClosed());
-      stream.reply(new ReplyInfo(false));
-      stream.data(new StringDataInfo(data1,false),5,TimeUnit.SECONDS,new Callback.Adapter(){
+      stream.reply(new ReplyInfo(false),new Callback.Adapter());
+      stream.data(new StringDataInfo(5,TimeUnit.SECONDS,data1,false),new Callback.Adapter(){
         @Override public void succeeded(){
-          stream.data(new StringDataInfo(data2,true));
+          stream.data(new StringDataInfo(data2,true),new Adapter());
         }
       }
 );
@@ -18,7 +18,7 @@
   final CountDownLatch replyLatch=new CountDownLatch(1);
   final CountDownLatch dataLatch1=new CountDownLatch(1);
   final CountDownLatch dataLatch2=new CountDownLatch(1);
-  session.syn(new SynInfo(true),new StreamFrameListener.Adapter(){
+  session.syn(new SynInfo(new Fields(),true),new StreamFrameListener.Adapter(){
     private AtomicInteger dataCount=new AtomicInteger();
     @Override public void onReply(    Stream stream,    ReplyInfo replyInfo){
       Assert.assertFalse(replyInfo.isClose());

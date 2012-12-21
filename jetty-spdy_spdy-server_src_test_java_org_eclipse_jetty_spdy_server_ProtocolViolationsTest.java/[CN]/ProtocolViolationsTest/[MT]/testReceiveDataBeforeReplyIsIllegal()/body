@@ -2,7 +2,7 @@
   ServerSocketChannel server=ServerSocketChannel.open();
   server.bind(new InetSocketAddress("localhost",0));
   Session session=startClient(new InetSocketAddress("localhost",server.socket().getLocalPort()),null);
-  session.syn(new SynInfo(true),null);
+  session.syn(new SynInfo(new Fields(),true),null);
   SocketChannel channel=server.accept();
   ByteBuffer readBuffer=ByteBuffer.allocate(1024);
   channel.read(readBuffer);
@@ -18,6 +18,6 @@
   readBuffer.flip();
   Assert.assertEquals(ControlFrameType.RST_STREAM.getCode(),readBuffer.getShort(2));
   Assert.assertEquals(streamId,readBuffer.getInt(8));
-  session.goAway().get(5,TimeUnit.SECONDS);
+  session.goAway(new GoAwayInfo(5,TimeUnit.SECONDS));
   server.close();
 }

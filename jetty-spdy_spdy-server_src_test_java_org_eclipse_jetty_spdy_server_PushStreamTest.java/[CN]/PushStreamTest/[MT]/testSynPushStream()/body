@@ -3,8 +3,8 @@
   final CountDownLatch pushStreamLatch=new CountDownLatch(1);
   Session clientSession=startClient(startServer(new ServerSessionFrameListener.Adapter(){
     @Override public StreamFrameListener onSyn(    Stream stream,    SynInfo synInfo){
-      stream.reply(new ReplyInfo(false));
-      stream.syn(new SynInfo(true));
+      stream.reply(new ReplyInfo(false),new Callback.Adapter());
+      stream.syn(new SynInfo(new Fields(),true),new Promise.Adapter<Stream>());
       return null;
     }
   }
@@ -15,7 +15,7 @@
       assertThat("stream is closed",stream.isClosed(),is(true));
       assertThat("stream has associated stream",stream.getAssociatedStream(),notNullValue());
       try {
-        stream.reply(new ReplyInfo(false));
+        stream.reply(new ReplyInfo(false),new Callback.Adapter());
         fail("Cannot reply to push streams");
       }
  catch (      IllegalStateException x) {
@@ -26,7 +26,7 @@
     }
   }
 );
-  Stream stream=clientSession.syn(new SynInfo(true),null).get();
+  Stream stream=clientSession.syn(new SynInfo(new Fields(),true),null);
   assertThat("onSyn has been called",pushStreamLatch.await(5,TimeUnit.SECONDS),is(true));
   Stream pushStream=pushStreamRef.get();
   assertThat("main stream and associated stream are the same",stream,sameInstance(pushStream.getAssociatedStream()));

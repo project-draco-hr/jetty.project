@@ -4,7 +4,7 @@
   final CountDownLatch exceptionWhenSendingData=new CountDownLatch(1);
   Session clientSession=startClient(startServer(new ServerSessionFrameListener.Adapter(){
     @Override public StreamFrameListener onSyn(    Stream stream,    SynInfo synInfo){
-      stream.reply(new ReplyInfo(true));
+      stream.reply(new ReplyInfo(true),new Callback.Adapter());
       try {
         replyReceivedLatch.await(5,TimeUnit.SECONDS);
       }
@@ -12,7 +12,7 @@
         e.printStackTrace();
       }
       try {
-        stream.data(new StringDataInfo("data send after half closed",false));
+        stream.data(new StringDataInfo("data send after half closed",false),new Callback.Adapter());
       }
  catch (      RuntimeException e) {
         exceptionWhenSendingData.countDown();
@@ -21,7 +21,7 @@
     }
   }
 ),null);
-  Stream stream=clientSession.syn(new SynInfo(false),new StreamFrameListener.Adapter(){
+  Stream stream=clientSession.syn(new SynInfo(new Fields(),false),new StreamFrameListener.Adapter(){
     @Override public void onReply(    Stream stream,    ReplyInfo replyInfo){
       replyReceivedLatch.countDown();
     }
@@ -29,7 +29,7 @@
       clientReceivedDataLatch.countDown();
     }
   }
-).get();
+);
   assertThat("reply has been received by client",replyReceivedLatch.await(5,TimeUnit.SECONDS),is(true));
   assertThat("stream is half closed from server",stream.isHalfClosed(),is(true));
   assertThat("client has not received any data sent after stream was half closed by server",clientReceivedDataLatch.await(1,TimeUnit.SECONDS),is(false));

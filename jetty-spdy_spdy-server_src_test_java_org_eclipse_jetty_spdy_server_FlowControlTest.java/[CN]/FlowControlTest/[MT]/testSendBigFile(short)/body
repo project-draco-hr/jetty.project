@@ -4,13 +4,13 @@
   final CountDownLatch allDataReceivedLatch=new CountDownLatch(1);
   Session session=startClient(version,startServer(version,new ServerSessionFrameListener.Adapter(){
     @Override public StreamFrameListener onSyn(    Stream stream,    SynInfo synInfo){
-      stream.reply(new ReplyInfo(false));
-      stream.data(bigByteBufferDataInfo);
+      stream.reply(new ReplyInfo(false),new Callback.Adapter());
+      stream.data(bigByteBufferDataInfo,new Callback.Adapter());
       return null;
     }
   }
 ),new SessionFrameListener.Adapter());
-  session.syn(new SynInfo(false),new StreamFrameListener.Adapter(){
+  session.syn(new SynInfo(new Fields(),false),new StreamFrameListener.Adapter(){
     private int dataBytesReceived;
     @Override public void onData(    Stream stream,    DataInfo dataInfo){
       dataBytesReceived=dataBytesReceived + dataInfo.length();

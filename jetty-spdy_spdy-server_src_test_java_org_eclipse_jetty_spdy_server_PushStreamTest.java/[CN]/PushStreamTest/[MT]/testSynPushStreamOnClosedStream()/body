@@ -2,8 +2,8 @@
   final CountDownLatch pushStreamFailedLatch=new CountDownLatch(1);
   Session clientSession=startClient(startServer(new ServerSessionFrameListener.Adapter(){
     @Override public StreamFrameListener onSyn(    Stream stream,    SynInfo synInfo){
-      stream.reply(new ReplyInfo(true));
-      stream.syn(new SynInfo(false),1,TimeUnit.SECONDS,new Promise.Adapter<Stream>(){
+      stream.reply(new ReplyInfo(true),new Callback.Adapter());
+      stream.syn(new SynInfo(1,TimeUnit.SECONDS,new Fields(),false,(byte)0),new Promise.Adapter<Stream>(){
         @Override public void failed(        Throwable x){
           pushStreamFailedLatch.countDown();
         }
@@ -13,6 +13,6 @@
     }
   }
 ),new SessionFrameListener.Adapter());
-  clientSession.syn(new SynInfo(true),null);
+  clientSession.syn(new SynInfo(new Fields(),true),null);
   assertThat("pushStream syn has failed",pushStreamFailedLatch.await(5,TimeUnit.SECONDS),is(true));
 }
