@@ -5,7 +5,7 @@
   final CountDownLatch settingsLatch=new CountDownLatch(1);
   Session session=startClient(SPDY.V3,startServer(SPDY.V3,new ServerSessionFrameListener.Adapter(){
     @Override public StreamFrameListener onSyn(    Stream stream,    SynInfo synInfo){
-      stream.reply(new ReplyInfo(true));
+      stream.reply(new ReplyInfo(true),new Callback.Adapter());
       return new StreamFrameListener.Adapter(){
         private final AtomicInteger dataFrames=new AtomicInteger();
         @Override public void onData(        Stream stream,        DataInfo dataInfo){
@@ -14,7 +14,7 @@
             dataInfoRef.set(dataInfo);
             Settings settings=new Settings();
             settings.put(new Settings.Setting(Settings.ID.INITIAL_WINDOW_SIZE,size));
-            stream.getSession().settings(new SettingsInfo(settings));
+            stream.getSession().settings(new SettingsInfo(settings),new FutureCallback());
           }
  else           if (dataFrameCount > 1) {
             dataInfo.consume(dataInfo.length());
@@ -31,10 +31,10 @@
     }
   }
 );
-  Stream stream=session.syn(new SynInfo(false),null).get(5,TimeUnit.SECONDS);
+  Stream stream=session.syn(new SynInfo(5,TimeUnit.SECONDS,new Fields(),false,(byte)0),null);
   stream.data(new BytesDataInfo(new byte[size * 2],false));
   settingsLatch.await(5,TimeUnit.SECONDS);
-  stream.data(new BytesDataInfo(new byte[size * 2],true));
+  stream.data(new BytesDataInfo(new byte[size * 2],true),new Callback.Adapter());
   Assert.assertFalse(dataLatch.await(1,TimeUnit.SECONDS));
   DataInfo dataInfo=dataInfoRef.get();
   dataInfo.consume(dataInfo.length());

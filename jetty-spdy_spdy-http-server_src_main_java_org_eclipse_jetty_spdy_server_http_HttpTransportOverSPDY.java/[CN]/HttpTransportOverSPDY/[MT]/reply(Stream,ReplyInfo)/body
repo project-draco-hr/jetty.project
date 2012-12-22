@@ -1,5 +1,5 @@
 {
-  if (!stream.isUnidirectional())   stream.reply(replyInfo);
+  if (!stream.isUnidirectional())   stream.reply(replyInfo,new Callback.Adapter());
   Fields responseHeaders=replyInfo.getHeaders();
   short version=stream.getSession().getVersion();
   if (responseHeaders.get(HTTPSPDYHeader.STATUS.name(version)).value().startsWith("200") && !stream.isClosed()) {
@@ -10,7 +10,7 @@
     for (    String pushResource : pushResources) {
       Fields pushHeaders=createPushHeaders(scheme,host,pushResource);
       final Fields pushRequestHeaders=createRequestHeaders(scheme,host,uri,pushResource);
-      stream.syn(new SynInfo(pushHeaders,false),0,TimeUnit.MILLISECONDS,new Promise.Adapter<Stream>(){
+      stream.push(new PushInfo(0,TimeUnit.MILLISECONDS,pushHeaders,false),new Promise.Adapter<Stream>(){
         @Override public void succeeded(        Stream pushStream){
           HttpChannelOverSPDY pushChannel=newHttpChannelOverSPDY(pushStream,pushRequestHeaders);
           pushChannel.requestStart(pushRequestHeaders,true);

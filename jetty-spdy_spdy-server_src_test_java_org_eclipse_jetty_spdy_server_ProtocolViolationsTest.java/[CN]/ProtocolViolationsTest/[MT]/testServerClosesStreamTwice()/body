@@ -3,7 +3,7 @@
   server.bind(new InetSocketAddress("localhost",0));
   Session session=startClient(new InetSocketAddress("localhost",server.socket().getLocalPort()),null);
   final CountDownLatch dataLatch=new CountDownLatch(2);
-  session.syn(new SynInfo(false),new StreamFrameListener.Adapter(){
+  session.syn(new SynInfo(new Fields(),false),new StreamFrameListener.Adapter(){
     @Override public void onData(    Stream stream,    DataInfo dataInfo){
       dataLatch.countDown();
     }
@@ -26,6 +26,6 @@
   channel.write(writeBuffer);
   assertThat("data is fully written",writeBuffer.hasRemaining(),is(false));
   Assert.assertFalse(dataLatch.await(1,TimeUnit.SECONDS));
-  session.goAway().get(5,TimeUnit.SECONDS);
+  session.goAway(new GoAwayInfo(5,TimeUnit.SECONDS));
   server.close();
 }

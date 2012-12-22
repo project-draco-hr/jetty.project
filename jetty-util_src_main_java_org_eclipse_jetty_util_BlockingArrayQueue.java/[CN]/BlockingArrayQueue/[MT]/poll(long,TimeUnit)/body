@@ -1,7 +1,8 @@
 {
-  E e=null;
   long nanos=unit.toNanos(time);
-  _headLock.lockInterruptibly();
+  E e=null;
+  final Lock headLock=_headLock;
+  headLock.lockInterruptibly();
   try {
     try {
       while (_size.get() == 0) {
@@ -9,17 +10,18 @@
         nanos=_notEmpty.awaitNanos(nanos);
       }
     }
- catch (    InterruptedException ie) {
+ catch (    InterruptedException x) {
       _notEmpty.signal();
-      throw ie;
+      throw x;
     }
-    e=(E)_elements[_head];
-    _elements[_head]=null;
-    _head=(_head + 1) % _capacity;
+    int head=_head;
+    e=(E)_elements[head];
+    _elements[head]=null;
+    _head=(head + 1) % _elements.length;
     if (_size.decrementAndGet() > 0)     _notEmpty.signal();
   }
   finally {
-    _headLock.unlock();
+    headLock.unlock();
   }
   return e;
 }

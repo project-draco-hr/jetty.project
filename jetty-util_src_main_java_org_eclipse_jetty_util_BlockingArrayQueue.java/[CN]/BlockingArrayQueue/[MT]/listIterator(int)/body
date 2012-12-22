@@ -1,0 +1,28 @@
+{
+  final Lock tailLock=_tailLock;
+  tailLock.lock();
+  try {
+    final Lock headLock=_headLock;
+    headLock.lock();
+    try {
+      Object[] elements=new Object[size()];
+      if (size() > 0) {
+        if (_head < _tail) {
+          System.arraycopy(_elements,_head,elements,0,_tail - _head);
+        }
+ else {
+          int chunk=_elements.length - _head;
+          System.arraycopy(_elements,_head,elements,0,chunk);
+          System.arraycopy(_elements,0,elements,chunk,_tail);
+        }
+      }
+      return new Itr(elements,index);
+    }
+  finally {
+      headLock.unlock();
+    }
+  }
+  finally {
+    tailLock.unlock();
+  }
+}

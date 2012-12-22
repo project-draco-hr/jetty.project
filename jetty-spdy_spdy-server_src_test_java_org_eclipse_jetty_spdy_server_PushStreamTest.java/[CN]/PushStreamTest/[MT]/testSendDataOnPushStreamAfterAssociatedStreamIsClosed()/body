@@ -8,7 +8,7 @@
   final CountDownLatch exceptionCountDownLatch=new CountDownLatch(1);
   Session clientSession=startClient(startServer(new ServerSessionFrameListener.Adapter(){
     @Override public StreamFrameListener onSyn(    Stream stream,    SynInfo synInfo){
-      stream.reply(new ReplyInfo(false));
+      stream.reply(new ReplyInfo(false),new Callback.Adapter());
       try {
         replyBarrier.await(5,TimeUnit.SECONDS);
         return new StreamFrameListener.Adapter(){
@@ -20,7 +20,7 @@
               }
               streamDataSent.countDown();
               if (pushStreamDataReceived.getCount() == 2) {
-                Stream pushStream=stream.syn(new SynInfo(false)).get();
+                Stream pushStream=stream.push(new PushInfo(new Fields(),false));
                 streamExchanger.exchange(pushStream,5,TimeUnit.SECONDS);
               }
             }
@@ -50,7 +50,7 @@
     }
   }
 );
-  Stream stream=clientSession.syn(new SynInfo(false),new StreamFrameListener.Adapter(){
+  Stream stream=clientSession.syn(new SynInfo(new Fields(),false),new StreamFrameListener.Adapter(){
     @Override public void onReply(    Stream stream,    ReplyInfo replyInfo){
       try {
         replyBarrier.await(5,TimeUnit.SECONDS);
@@ -68,7 +68,7 @@
       }
     }
   }
-).get();
+);
   replyBarrier.await(5,TimeUnit.SECONDS);
   stream.data(new StringDataInfo("client data",false));
   Stream pushStream=streamExchanger.exchange(null,5,TimeUnit.SECONDS);
@@ -80,5 +80,5 @@
   pushStream.data(new StringDataInfo("second push data frame while associated stream has been closed already",false));
   assertThat("2 pushStream data frames have been received.",pushStreamDataReceived.await(5,TimeUnit.SECONDS),is(true));
   assertThat("2 data frames have been sent",streamDataSent.await(5,TimeUnit.SECONDS),is(true));
-  assertThatNoExceptionOccured(exceptionCountDownLatch);
+  assertThatNoExceptionOccurred(exceptionCountDownLatch);
 }

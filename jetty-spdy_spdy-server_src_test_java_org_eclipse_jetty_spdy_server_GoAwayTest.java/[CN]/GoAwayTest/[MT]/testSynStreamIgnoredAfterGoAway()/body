@@ -5,8 +5,8 @@
     @Override public StreamFrameListener onSyn(    Stream stream,    SynInfo synInfo){
       int synCount=syns.incrementAndGet();
       if (synCount == 1) {
-        stream.reply(new ReplyInfo(true));
-        stream.getSession().goAway();
+        stream.reply(new ReplyInfo(true),new Callback.Adapter());
+        stream.getSession().goAway(new GoAwayInfo(),new FutureCallback());
       }
  else {
         latch.countDown();
@@ -16,12 +16,12 @@
   }
 ;
   SessionFrameListener clientSessionFrameListener=new SessionFrameListener.Adapter(){
-    @Override public void onGoAway(    Session session,    GoAwayInfo goAwayInfo){
-      session.syn(new SynInfo(true),null);
+    @Override public void onGoAway(    Session session,    GoAwayReceivedInfo goAwayInfo){
+      session.syn(new SynInfo(new Fields(),true),null,new FuturePromise<Stream>());
     }
   }
 ;
   Session session=startClient(startServer(serverSessionFrameListener),clientSessionFrameListener);
-  session.syn(new SynInfo(true),null);
+  session.syn(new SynInfo(new Fields(),true),null);
   Assert.assertFalse(latch.await(1,TimeUnit.SECONDS));
 }

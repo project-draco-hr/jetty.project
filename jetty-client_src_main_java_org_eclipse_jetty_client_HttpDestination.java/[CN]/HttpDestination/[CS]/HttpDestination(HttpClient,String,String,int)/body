@@ -3,9 +3,13 @@
   this.scheme=scheme;
   this.host=host;
   this.address=new InetSocketAddress(host,port);
-  this.requests=new ArrayBlockingQueue<>(client.getMaxRequestsQueuedPerDestination());
-  this.idleConnections=new ArrayBlockingQueue<>(client.getMaxConnectionsPerDestination());
-  this.activeConnections=new ArrayBlockingQueue<>(client.getMaxConnectionsPerDestination());
+  int maxRequestsQueued=client.getMaxRequestsQueuedPerDestination();
+  int capacity=Math.min(32,maxRequestsQueued);
+  this.requests=new BlockingArrayQueue<>(capacity,capacity,maxRequestsQueued);
+  int maxConnections=client.getMaxConnectionsPerDestination();
+  capacity=Math.min(8,maxConnections);
+  this.idleConnections=new BlockingArrayQueue<>(capacity,capacity,maxConnections);
+  this.activeConnections=new BlockingArrayQueue<>(capacity,capacity,maxConnections);
   this.requestNotifier=new RequestNotifier(client);
   this.responseNotifier=new ResponseNotifier(client);
   ProxyConfiguration proxyConfig=client.getProxyConfiguration();

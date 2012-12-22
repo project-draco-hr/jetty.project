@@ -1,34 +1,40 @@
 {
-  _tailLock.lock();
+  final Lock tailLock=_tailLock;
+  tailLock.lock();
   try {
-    _headLock.lock();
+    final Lock headLock=_headLock;
+    headLock.lock();
     try {
       if (index < 0 || index >= _size.get())       throw new IndexOutOfBoundsException("!(" + 0 + "<"+ index+ "<="+ _size+ ")");
       int i=_head + index;
-      if (i >= _capacity)       i-=_capacity;
-      @SuppressWarnings("unchecked") E old=(E)_elements[i];
-      if (i < _tail) {
-        System.arraycopy(_elements,i + 1,_elements,i,_tail - i);
-        _tail--;
-        _size.decrementAndGet();
+      int capacity=_elements.length;
+      if (i >= capacity)       i-=capacity;
+      E old=(E)_elements[i];
+      int tail=_tail;
+      if (i < tail) {
+        System.arraycopy(_elements,i + 1,_elements,i,tail - i);
+        --_tail;
       }
  else {
-        System.arraycopy(_elements,i + 1,_elements,i,_capacity - i - 1);
-        if (_tail > 0) {
-          _elements[_capacity]=_elements[0];
-          System.arraycopy(_elements,1,_elements,0,_tail - 1);
-          _tail--;
+        System.arraycopy(_elements,i + 1,_elements,i,capacity - i - 1);
+        _elements[capacity - 1]=_elements[0];
+        if (tail > 0) {
+          System.arraycopy(_elements,1,_elements,0,tail);
+          --_tail;
         }
- else         _tail=_capacity - 1;
-        _size.decrementAndGet();
+ else {
+          _tail=capacity - 1;
+        }
+        _elements[_tail]=null;
       }
+      _size.decrementAndGet();
       return old;
     }
   finally {
-      _headLock.unlock();
+      headLock.unlock();
     }
   }
   finally {
-    _tailLock.unlock();
+    tailLock.unlock();
   }
 }

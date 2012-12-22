@@ -8,10 +8,10 @@
   Session clientSession=startClient(startServer(new ServerSessionFrameListener.Adapter(){
     @Override public StreamFrameListener onSyn(    Stream stream,    SynInfo synInfo){
       try {
-        Stream pushStream=stream.syn(new SynInfo(false)).get();
+        Stream pushStream=stream.push(new PushInfo(new Fields(),false));
         stream.reply(new ReplyInfo(true));
         streamClosedLatch.await(5,TimeUnit.SECONDS);
-        pushStream.data(new BytesDataInfo(transferBytes,true));
+        pushStream.data(new BytesDataInfo(transferBytes,true),new Callback.Adapter());
         return null;
       }
  catch (      Exception e) {
@@ -42,17 +42,17 @@
     }
   }
 );
-  Stream stream=clientSession.syn(new SynInfo(true),new StreamFrameListener.Adapter(){
+  Stream stream=clientSession.syn(new SynInfo(new Fields(),true),new StreamFrameListener.Adapter(){
     @Override public void onReply(    Stream stream,    ReplyInfo replyInfo){
       streamClosedLatch.countDown();
       super.onReply(stream,replyInfo);
     }
   }
-).get();
+);
   ByteBuffer receivedBytes=exchanger.exchange(null,5,TimeUnit.SECONDS);
   assertThat("received byte array is the same as transferred byte array",Arrays.equals(transferBytes,receivedBytes.array()),is(true));
   assertThat("onReply has been called to close the stream",streamClosedLatch.await(5,TimeUnit.SECONDS),is(true));
   assertThat("stream is closed",stream.isClosed(),is(true));
   assertThat("all data has been received",allDataReceived.await(20,TimeUnit.SECONDS),is(true));
-  assertThatNoExceptionOccured(exceptionCountDownLatch);
+  assertThatNoExceptionOccurred(exceptionCountDownLatch);
 }

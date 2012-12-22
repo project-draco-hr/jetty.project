@@ -16,7 +16,7 @@
   Fields headers=createHeaders("POST",path);
   headers.put("content-type","application/x-www-form-urlencoded");
   final CountDownLatch replyLatch=new CountDownLatch(1);
-  Stream stream=session.syn(new SynInfo(headers,false),new StreamFrameListener.Adapter(){
+  Stream stream=session.syn(new SynInfo(5,TimeUnit.SECONDS,headers,false,(byte)0),new StreamFrameListener.Adapter(){
     @Override public void onReply(    Stream stream,    ReplyInfo replyInfo){
       Assert.assertTrue(replyInfo.isClose());
       Fields replyHeaders=replyInfo.getHeaders();
@@ -24,7 +24,7 @@
       replyLatch.countDown();
     }
   }
-).get(5,TimeUnit.SECONDS);
+);
   stream.data(new StringDataInfo(data1,false));
   Thread.sleep(1000);
   stream.data(new StringDataInfo(data2,true));

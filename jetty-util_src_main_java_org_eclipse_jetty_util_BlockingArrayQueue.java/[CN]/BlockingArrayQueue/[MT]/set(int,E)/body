@@ -1,21 +1,24 @@
 {
-  if (e == null)   throw new NullPointerException();
-  _tailLock.lock();
+  Objects.requireNonNull(e);
+  final Lock tailLock=_tailLock;
+  tailLock.lock();
   try {
-    _headLock.lock();
+    final Lock headLock=_headLock;
+    headLock.lock();
     try {
       if (index < 0 || index >= _size.get())       throw new IndexOutOfBoundsException("!(" + 0 + "<"+ index+ "<="+ _size+ ")");
       int i=_head + index;
-      if (i >= _capacity)       i-=_capacity;
-      @SuppressWarnings("unchecked") E old=(E)_elements[i];
+      int capacity=_elements.length;
+      if (i >= capacity)       i-=capacity;
+      E old=(E)_elements[i];
       _elements[i]=e;
       return old;
     }
   finally {
-      _headLock.unlock();
+      headLock.unlock();
     }
   }
   finally {
-    _tailLock.unlock();
+    tailLock.unlock();
   }
 }
