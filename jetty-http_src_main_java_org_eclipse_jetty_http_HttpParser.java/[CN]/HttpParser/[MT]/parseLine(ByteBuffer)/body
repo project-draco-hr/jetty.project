@@ -56,9 +56,31 @@ if (_responseHandler != null) {
   _responseStatus=ch - '0';
 }
  else {
+  _uri.clear();
   setState(State.URI);
-  _utf8.reset();
-  _utf8.append(ch);
+  if (buffer.hasArray()) {
+    byte[] array=buffer.array();
+    int p=buffer.arrayOffset() + buffer.position();
+    int l=buffer.arrayOffset() + buffer.limit();
+    int i=p;
+    while (i < l && array[i] > HttpTokens.SPACE)     i++;
+    int len=i - p;
+    _headerBytes+=len;
+    if (_maxHeaderBytes > 0 && ++_headerBytes > _maxHeaderBytes) {
+      LOG.warn("URI is too large >" + _maxHeaderBytes);
+      badMessage(buffer,HttpStatus.REQUEST_URI_TOO_LONG_414,null);
+      return true;
+    }
+    if (_uri.remaining() < len) {
+      ByteBuffer uri=ByteBuffer.allocate(_uri.capacity() + 2 * len);
+      _uri.flip();
+      uri.put(_uri);
+      _uri=uri;
+    }
+    _uri.put(array,p - 1,len + 1);
+    buffer.position(i - buffer.arrayOffset());
+  }
+ else   _uri.put(ch);
 }
 }
  else if (ch < HttpTokens.SPACE) {
@@ -84,20 +106,25 @@ throw new IllegalStateException();
 break;
 case URI:
 if (ch == HttpTokens.SPACE) {
-_uri=_utf8.toString();
-_utf8.reset();
 setState(State.SPACE2);
 }
  else if (ch < HttpTokens.SPACE && ch >= 0) {
-_uri=_utf8.toString();
-_utf8.reset();
+_uri.flip();
 return_from_parse|=_requestHandler.startRequest(_method,_methodString,_uri,null);
 setState(State.END);
 BufferUtil.clear(buffer);
 return_from_parse|=_handler.headerComplete();
 return_from_parse|=_handler.messageComplete();
 }
- else _utf8.append(ch);
+ else {
+if (!_uri.hasRemaining()) {
+ByteBuffer uri=ByteBuffer.allocate(_uri.capacity() * 2);
+_uri.flip();
+uri.put(_uri);
+_uri=uri;
+}
+_uri.put(ch);
+}
 break;
 case SPACE2:
 if (ch > HttpTokens.SPACE || ch < 0) {
@@ -116,6 +143,7 @@ _string.setLength(0);
 buffer.position(buffer.position() + _version.asString().length() - 1);
 _eol=buffer.get();
 setState(State.HEADER);
+_uri.flip();
 return_from_parse|=_requestHandler.startRequest(_method,_methodString,_uri,_version);
 }
 }
@@ -128,6 +156,7 @@ _eol=ch;
 setState(State.HEADER);
 }
  else {
+_uri.flip();
 return_from_parse|=_requestHandler.startRequest(_method,_methodString,_uri,null);
 setState(State.END);
 BufferUtil.clear(buffer);
@@ -146,6 +175,7 @@ return true;
 }
 _eol=ch;
 setState(State.HEADER);
+_uri.flip();
 return_from_parse|=_requestHandler.startRequest(_method,_methodString,_uri,_version);
 continue;
 }

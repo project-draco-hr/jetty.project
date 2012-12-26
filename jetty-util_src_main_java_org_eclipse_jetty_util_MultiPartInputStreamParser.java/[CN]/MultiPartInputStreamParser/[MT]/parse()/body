@@ -12,12 +12,22 @@
   }
   if (!_tmpDir.exists())   _tmpDir.mkdirs();
   String contentTypeBoundary="";
-  if (_contentType.indexOf("boundary=") >= 0)   contentTypeBoundary=QuotedStringTokenizer.unquote(value(_contentType.substring(_contentType.indexOf("boundary=")),true).trim());
+  if (_contentType.indexOf("boundary=") >= 0)   contentTypeBoundary=QuotedStringTokenizer.unquote(value(_contentType.substring(_contentType.indexOf("boundary="))).trim());
   String boundary="--" + contentTypeBoundary;
   byte[] byteBoundary=(boundary + "--").getBytes(StringUtil.__ISO_8859_1);
   String line=((ReadLineInputStream)_in).readLine();
   if (line == null || line.length() == 0)   throw new IOException("Missing content for multipart request");
-  if (!line.equals(boundary))   throw new IOException("Missing initial multi part boundary");
+  boolean badFormatLogged=false;
+  line=line.trim();
+  while (line != null && !line.equals(boundary)) {
+    if (!badFormatLogged) {
+      LOG.warn("Badly formatted multipart request");
+      badFormatLogged=true;
+    }
+    line=((ReadLineInputStream)_in).readLine();
+    line=(line == null ? line : line.trim());
+  }
+  if (line == null || line.length() == 0)   throw new IOException("Missing initial multi part boundary");
   boolean lastPart=false;
   String contentDisposition=null;
   String contentType=null;
@@ -44,15 +54,15 @@
     if (contentDisposition == null) {
       throw new IOException("Missing content-disposition");
     }
-    QuotedStringTokenizer tok=new QuotedStringTokenizer(contentDisposition,";");
+    QuotedStringTokenizer tok=new QuotedStringTokenizer(contentDisposition,";",false,true);
     String name=null;
     String filename=null;
     while (tok.hasMoreTokens()) {
       String t=tok.nextToken().trim();
       String tl=t.toLowerCase(Locale.ENGLISH);
       if (t.startsWith("form-data"))       form_data=true;
- else       if (tl.startsWith("name="))       name=value(t,true);
- else       if (tl.startsWith("filename="))       filename=value(t,false);
+ else       if (tl.startsWith("name="))       name=value(t);
+ else       if (tl.startsWith("filename="))       filename=filenameValue(t);
     }
     if (!form_data) {
       continue;

@@ -1,0 +1,133 @@
+{
+  if (charset == null || StringUtil.__UTF8_CHARSET.equals(charset)) {
+    Utf8StringBuffer buffer=null;
+    for (int i=0; i < length; i++) {
+      char c=encoded.charAt(offset + i);
+      if (c < 0 || c > 0xff) {
+        if (buffer == null) {
+          buffer=new Utf8StringBuffer(length);
+          buffer.getStringBuffer().append(encoded,offset,offset + i + 1);
+        }
+ else         buffer.getStringBuffer().append(c);
+      }
+ else       if (c == '+') {
+        if (buffer == null) {
+          buffer=new Utf8StringBuffer(length);
+          buffer.getStringBuffer().append(encoded,offset,offset + i);
+        }
+        buffer.getStringBuffer().append(' ');
+      }
+ else       if (c == '%') {
+        if (buffer == null) {
+          buffer=new Utf8StringBuffer(length);
+          buffer.getStringBuffer().append(encoded,offset,offset + i);
+        }
+        if ((i + 2) < length) {
+          try {
+            if ('u' == encoded.charAt(offset + i + 1)) {
+              if ((i + 5) < length) {
+                int o=offset + i + 2;
+                i+=5;
+                String unicode=new String(Character.toChars(TypeUtil.parseInt(encoded,o,4,16)));
+                buffer.getStringBuffer().append(unicode);
+              }
+ else               i=length;
+            }
+ else {
+              int o=offset + i + 1;
+              i+=2;
+              byte b=(byte)TypeUtil.parseInt(encoded,o,2,16);
+              buffer.append(b);
+            }
+          }
+ catch (          NumberFormatException nfe) {
+            buffer.getStringBuffer().append(Utf8Appendable.REPLACEMENT);
+          }
+        }
+ else         i=length;
+      }
+ else       if (buffer != null)       buffer.getStringBuffer().append(c);
+    }
+    if (buffer == null) {
+      if (offset == 0 && encoded.length() == length)       return encoded;
+      return encoded.substring(offset,offset + length);
+    }
+    return buffer.toString();
+  }
+ else {
+    StringBuffer buffer=null;
+    for (int i=0; i < length; i++) {
+      char c=encoded.charAt(offset + i);
+      if (c < 0 || c > 0xff) {
+        if (buffer == null) {
+          buffer=new StringBuffer(length);
+          buffer.append(encoded,offset,offset + i + 1);
+        }
+ else         buffer.append(c);
+      }
+ else       if (c == '+') {
+        if (buffer == null) {
+          buffer=new StringBuffer(length);
+          buffer.append(encoded,offset,offset + i);
+        }
+        buffer.append(' ');
+      }
+ else       if (c == '%') {
+        if (buffer == null) {
+          buffer=new StringBuffer(length);
+          buffer.append(encoded,offset,offset + i);
+        }
+        byte[] ba=new byte[length];
+        int n=0;
+        while (c >= 0 && c <= 0xff) {
+          if (c == '%') {
+            if (i + 2 < length) {
+              try {
+                if ('u' == encoded.charAt(offset + i + 1)) {
+                  int o=offset + i + 2;
+                  i+=6;
+                  String unicode=new String(Character.toChars(TypeUtil.parseInt(encoded,o,4,16)));
+                  byte[] reencoded=unicode.getBytes(charset);
+                  System.arraycopy(reencoded,0,ba,n,reencoded.length);
+                  n+=reencoded.length;
+                }
+ else {
+                  int o=offset + i + 1;
+                  i+=3;
+                  ba[n]=(byte)TypeUtil.parseInt(encoded,o,2,16);
+                  n++;
+                }
+              }
+ catch (              NumberFormatException nfe) {
+                LOG.ignore(nfe);
+                ba[n++]=(byte)'?';
+              }
+            }
+ else {
+              ba[n++]=(byte)'%';
+              i++;
+            }
+          }
+ else           if (c == '+') {
+            ba[n++]=(byte)' ';
+            i++;
+          }
+ else {
+            ba[n++]=(byte)c;
+            i++;
+          }
+          if (i >= length)           break;
+          c=encoded.charAt(offset + i);
+        }
+        i--;
+        buffer.append(new String(ba,0,n,charset));
+      }
+ else       if (buffer != null)       buffer.append(c);
+    }
+    if (buffer == null) {
+      if (offset == 0 && encoded.length() == length)       return encoded;
+      return encoded.substring(offset,offset + length);
+    }
+    return buffer.toString();
+  }
+}
