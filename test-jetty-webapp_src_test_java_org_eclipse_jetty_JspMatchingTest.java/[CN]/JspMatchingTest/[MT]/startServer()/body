@@ -1,0 +1,25 @@
+{
+  server=new Server();
+  SelectChannelConnector connector=new SelectChannelConnector();
+  connector.setPort(0);
+  server.addConnector(connector);
+  HashLoginService login=new HashLoginService();
+  login.setName("Test Realm");
+  File realmFile=MavenTestingUtils.getTestResourceFile("realm.properties");
+  login.setConfig(realmFile.getAbsolutePath());
+  server.addBean(login);
+  HandlerList handlers=new HandlerList();
+  ContextHandlerCollection contexts=new ContextHandlerCollection();
+  WebAppContext context=new WebAppContext();
+  File webappBase=MavenTestingUtils.getProjectDir("src/main/webapp");
+  Resource resBase=Resource.newResource(webappBase);
+  context.setBaseResource(resBase);
+  File aliasedWebDefault=MavenTestingUtils.getTestResourceFile("webdefault-with-aliases.xml");
+  context.setDefaultsDescriptor(aliasedWebDefault.getAbsolutePath());
+  context.setContextPath("/");
+  server.setHandler(handlers);
+  handlers.addHandler(contexts);
+  contexts.addHandler(context);
+  server.start();
+  serverURI=new URI("http://localhost:" + connector.getLocalPort() + "/");
+}
