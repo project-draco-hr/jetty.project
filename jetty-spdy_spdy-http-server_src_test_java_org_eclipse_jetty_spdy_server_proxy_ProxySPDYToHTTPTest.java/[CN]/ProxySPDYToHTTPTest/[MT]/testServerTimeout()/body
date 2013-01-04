@@ -1,0 +1,30 @@
+{
+  final int timeout=1000;
+  final String header="foo";
+  InetSocketAddress proxyAddress=startProxy(startServer(new DefaultHandler(){
+    @Override public void handle(    String target,    Request baseRequest,    HttpServletRequest request,    HttpServletResponse response) throws IOException, ServletException {
+      try {
+        Thread.sleep(2 * timeout);
+      }
+ catch (      InterruptedException e) {
+        e.printStackTrace();
+      }
+    }
+  }
+),30000,timeout);
+  Session client=factory.newSPDYClient(version).connect(proxyAddress,null).get(5,TimeUnit.SECONDS);
+  final CountDownLatch replyLatch=new CountDownLatch(1);
+  Fields headers=SPDYTestUtils.createHeaders(proxyAddress.getPort(),version,"POST","/");
+  headers.put(header,"bar");
+  headers.put("connection","close");
+  client.syn(new SynInfo(headers,true),new StreamFrameListener.Adapter(){
+    @Override public void onReply(    Stream stream,    ReplyInfo replyInfo){
+      Fields headers=replyInfo.getHeaders();
+      assertThat("status is 504",headers.get(HTTPSPDYHeader.STATUS.name(version)).value(),is("504"));
+      replyLatch.countDown();
+    }
+  }
+);
+  assertThat("reply has been received",replyLatch.await(5,TimeUnit.SECONDS),is(true));
+  client.goAway(new GoAwayInfo(5,TimeUnit.SECONDS));
+}

@@ -1,0 +1,20 @@
+{
+  short version=clientStream.getSession().getVersion();
+  String method=clientSynInfo.getHeaders().get(HTTPSPDYHeader.METHOD.name(version)).value();
+  String path=clientSynInfo.getHeaders().get(HTTPSPDYHeader.URI.name(version)).value();
+  Fields headers=new Fields(clientSynInfo.getHeaders(),false);
+  removeHopHeaders(headers);
+  addRequestProxyHeaders(clientStream,headers);
+  customizeRequestHeaders(clientStream,headers);
+  String host=proxyServerInfo.getHost();
+  int port=proxyServerInfo.getAddress().getPort();
+  LOG.debug("Sending HTTP request to: {}",host + ":" + port);
+  Request request=httpClient.newRequest(host,port).path(path).method(HttpMethod.fromString(method));
+  addNonSpdyHeadersToRequest(version,headers,request);
+  if (!clientSynInfo.isClose()) {
+    clientStream.setAttribute(CLIENT_REQUEST_ATTRIBUTE,request);
+    request.content(new DeferredContentProvider());
+  }
+  sendRequest(clientStream,request);
+  return this;
+}

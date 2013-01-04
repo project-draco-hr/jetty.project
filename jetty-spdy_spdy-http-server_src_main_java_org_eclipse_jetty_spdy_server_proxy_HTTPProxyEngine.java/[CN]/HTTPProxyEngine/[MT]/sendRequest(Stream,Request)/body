@@ -1,0 +1,62 @@
+{
+  request.send(new Response.Listener.Empty(){
+    @Override public void onHeaders(    final Response response){
+      LOG.debug("onHeaders called with response: {}. Sending replyInfo to client.",response);
+      Fields responseHeaders=createResponseHeaders(clientStream,response);
+      ReplyInfo replyInfo=new ReplyInfo(responseHeaders,false);
+      clientStream.reply(replyInfo,new Callback.Adapter(){
+        @Override public void failed(        Throwable x){
+          LOG.debug("failed: ",x);
+          response.abort(x);
+        }
+      }
+);
+      committed=true;
+    }
+    @Override public void onContent(    final Response response,    ByteBuffer content){
+      LOG.debug("onContent called with response: {} and content: {}. Sending response content to client.",response,content);
+      final ByteBuffer contentCopy=httpClient.getByteBufferPool().acquire(content.remaining(),true);
+      BufferUtil.flipPutFlip(content,contentCopy);
+      ByteBufferDataInfo dataInfo=new ByteBufferDataInfo(contentCopy,false);
+      clientStream.data(dataInfo,new Callback(){
+        @Override public void failed(        Throwable x){
+          LOG.debug("failed: ",x);
+          releaseBuffer();
+          response.abort(x);
+        }
+        @Override public void succeeded(){
+          releaseBuffer();
+        }
+        private void releaseBuffer(){
+          httpClient.getByteBufferPool().release(contentCopy);
+        }
+      }
+);
+    }
+    @Override public void onSuccess(    Response response){
+      LOG.debug("onSuccess called. Closing client stream.");
+      clientStream.data(new ByteBufferDataInfo(BufferUtil.EMPTY_BUFFER,true),LOGGING_CALLBACK);
+    }
+    @Override public void onFailure(    Response response,    Throwable failure){
+      LOG.debug("onFailure called: {}",failure);
+      if (committed) {
+        LOG.debug("clientStream already committed. Resetting stream.");
+        try {
+          clientStream.getSession().rst(new RstInfo(clientStream.getId(),StreamStatus.INTERNAL_ERROR));
+        }
+ catch (        InterruptedException|ExecutionException|TimeoutException e) {
+          LOG.debug(e);
+        }
+      }
+ else {
+        if (clientStream.isClosed())         return;
+        Fields responseHeaders=createResponseHeaders(clientStream,response);
+        if (failure instanceof TimeoutException)         responseHeaders.add(HTTPSPDYHeader.STATUS.name(clientStream.getSession().getVersion()),String.valueOf(HttpStatus.GATEWAY_TIMEOUT_504));
+ else         responseHeaders.add(HTTPSPDYHeader.STATUS.name(clientStream.getSession().getVersion()),String.valueOf(HttpStatus.BAD_GATEWAY_502));
+        ReplyInfo replyInfo=new ReplyInfo(responseHeaders,true);
+        clientStream.reply(replyInfo,LOGGING_CALLBACK);
+      }
+    }
+  }
+);
+}

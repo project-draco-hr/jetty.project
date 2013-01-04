@@ -1,0 +1,30 @@
+{
+  final byte[] data="0123456789ABCDEF".getBytes("UTF-8");
+  final String header="foo";
+  InetSocketAddress proxyAddress=startProxy(startServer(new TestServerHandler(header,data)),30000,30000);
+  Session client=factory.newSPDYClient(version).connect(proxyAddress,null).get(5,TimeUnit.SECONDS);
+  final CountDownLatch replyLatch=new CountDownLatch(1);
+  final CountDownLatch dataLatch=new CountDownLatch(1);
+  Fields headers=SPDYTestUtils.createHeaders(proxyAddress.getPort(),version,"GET","/");
+  headers.put(header,"bar");
+  headers.put("connection","close");
+  client.syn(new SynInfo(headers,true),new StreamFrameListener.Adapter(){
+    private final ByteArrayOutputStream result=new ByteArrayOutputStream();
+    @Override public void onReply(    Stream stream,    ReplyInfo replyInfo){
+      Fields headers=replyInfo.getHeaders();
+      assertThat("custom header exists in response",headers.get(header),is(notNullValue()));
+      replyLatch.countDown();
+    }
+    @Override public void onData(    Stream stream,    DataInfo dataInfo){
+      result.write(dataInfo.asBytes(true),0,dataInfo.length());
+      if (dataInfo.isClose()) {
+        assertThat("received data matches send data",result.toByteArray(),is(data));
+        dataLatch.countDown();
+      }
+    }
+  }
+);
+  assertThat("reply has been received",replyLatch.await(5,TimeUnit.SECONDS),is(true));
+  assertThat("data has been received",dataLatch.await(5,TimeUnit.SECONDS),is(true));
+  client.goAway(new GoAwayInfo(5,TimeUnit.SECONDS));
+}
