@@ -12,11 +12,13 @@
   context.setContextPath("/");
   File webappBase=MavenTestingUtils.getTestResourceDir("docroots/jsp");
   context.setResourceBase(webappBase.getAbsolutePath());
-  context.setClassLoader(Thread.currentThread().getContextClassLoader());
+  URLClassLoader contextLoader=new URLClassLoader(new URL[]{},Server.class.getClassLoader());
+  context.setClassLoader(contextLoader);
   ServletHolder defaultServHolder=context.addServlet(DefaultServlet.class,"/");
   defaultServHolder.setInitParameter("aliases","true");
   ServletHolder jsp=context.addServlet(JspServlet.class,"*.jsp");
-  jsp.setInitParameter("classpath",context.getClassPath());
+  context.setAttribute("org.apache.catalina.jsp_classpath",context.getClassPath());
+  jsp.setInitParameter("com.sun.appserv.jsp.classpath",Loader.getClassPath(Server.class.getClassLoader()));
   server.setHandler(context);
   server.start();
   serverURI=new URI("http://localhost:" + connector.getLocalPort() + "/");
