@@ -5,9 +5,14 @@
     path=URIUtil.canonicalPath(path);
     Resource resource=_baseResource.addPath(path);
     if (!_aliases && resource.getAlias() != null) {
-      if (resource.exists())       LOG.warn("Aliased resource: " + resource + "~="+ resource.getAlias());
- else       if (path.endsWith("/") && resource.getAlias().toString().endsWith(path))       return resource;
- else       if (LOG.isDebugEnabled())       LOG.debug("Aliased resource: " + resource + "~="+ resource.getAlias());
+      if (LOG.isDebugEnabled())       LOG.debug("Aliased resource: " + resource + "~="+ resource.getAlias());
+      for (Iterator<AliasCheck> i=_aliasChecks.iterator(); i.hasNext(); ) {
+        AliasCheck check=i.next();
+        if (check.check(path,resource)) {
+          if (LOG.isDebugEnabled())           LOG.debug("Aliased resource: " + resource + " approved by "+ check);
+          return resource;
+        }
+      }
       return null;
     }
     return resource;
