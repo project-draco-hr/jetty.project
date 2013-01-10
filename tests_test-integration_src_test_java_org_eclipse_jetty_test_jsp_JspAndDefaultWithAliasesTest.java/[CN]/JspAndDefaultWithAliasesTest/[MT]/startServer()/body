@@ -1,0 +1,23 @@
+{
+  server=new Server();
+  SelectChannelConnector connector=new SelectChannelConnector();
+  connector.setPort(0);
+  server.addConnector(connector);
+  HashLoginService login=new HashLoginService();
+  login.setName("Test Realm");
+  File realmFile=MavenTestingUtils.getTestResourceFile("realm.properties");
+  login.setConfig(realmFile.getAbsolutePath());
+  server.addBean(login);
+  ServletContextHandler context=new ServletContextHandler(ServletContextHandler.SESSIONS);
+  context.setContextPath("/");
+  File webappBase=MavenTestingUtils.getTestResourceDir("docroots/jsp");
+  context.setResourceBase(webappBase.getAbsolutePath());
+  context.setClassLoader(Thread.currentThread().getContextClassLoader());
+  ServletHolder defaultServHolder=context.addServlet(DefaultServlet.class,"/");
+  defaultServHolder.setInitParameter("aliases","true");
+  ServletHolder jsp=context.addServlet(JspServlet.class,"*.jsp");
+  jsp.setInitParameter("classpath",context.getClassPath());
+  server.setHandler(context);
+  server.start();
+  serverURI=new URI("http://localhost:" + connector.getLocalPort() + "/");
+}
