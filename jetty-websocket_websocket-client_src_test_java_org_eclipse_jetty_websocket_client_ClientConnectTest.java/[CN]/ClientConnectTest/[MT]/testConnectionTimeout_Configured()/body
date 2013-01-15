@@ -1,0 +1,17 @@
+{
+  TrackingSocket wsocket=new TrackingSocket();
+  int timeout=500;
+  ClientUpgradeRequest request=new ClientUpgradeRequest();
+  request.setConnectTimeout(timeout);
+  URI wsUri=server.getWsUri();
+  Future<Session> future=client.connect(wsocket,wsUri,request);
+  ServerConnection ssocket=server.accept();
+  Assert.assertNotNull(ssocket);
+  try {
+    future.get(timeout * 3,TimeUnit.MILLISECONDS);
+    Assert.fail("Expected ExecutionException -> UpgradeException");
+  }
+ catch (  ExecutionException e) {
+    FutureCallback.rethrow(e);
+  }
+}
