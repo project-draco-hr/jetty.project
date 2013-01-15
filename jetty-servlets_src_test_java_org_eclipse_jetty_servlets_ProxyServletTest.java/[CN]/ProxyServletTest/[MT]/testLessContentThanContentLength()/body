@@ -1,0 +1,33 @@
+{
+  init(new HttpServlet(){
+    @Override protected void doGet(    HttpServletRequest req,    HttpServletResponse resp) throws ServletException, IOException {
+      byte[] message="tooshort".getBytes("ascii");
+      resp.setContentType("text/plain;charset=ascii");
+      resp.setHeader("Content-Length",Long.toString(message.length + 1));
+      resp.getOutputStream().write(message);
+    }
+  }
+);
+  final AtomicBoolean excepted=new AtomicBoolean(false);
+  ContentExchange exchange=new ContentExchange(true){
+    @Override protected void onResponseContent(    Buffer content) throws IOException {
+      try {
+        TimeUnit.MILLISECONDS.sleep(10);
+        super.onResponseContent(content);
+      }
+ catch (      InterruptedException x) {
+        throw (IOException)new IOException().initCause(x);
+      }
+    }
+    @Override protected void onException(    Throwable x){
+      excepted.set(true);
+      super.onException(x);
+    }
+  }
+;
+  String url="http://localhost:" + _connector.getLocalPort() + "/proxy/test";
+  exchange.setURL(url);
+  _client.send(exchange);
+  exchange.waitForDone();
+  assertThat(excepted.get(),equalTo(true));
+}
