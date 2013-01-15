@@ -1,0 +1,15 @@
+{
+  SocketChannel channel=SocketChannel.open();
+  if (bindAddress != null) {
+    channel.bind(bindAddress);
+  }
+  URI wsUri=getRequest().getRequestURI();
+  channel.socket().setTcpNoDelay(true);
+  channel.configureBlocking(false);
+  InetSocketAddress address=toSocketAddress(wsUri);
+  LOG.debug("Connect to {}",address);
+  channel.connect(address);
+  getSelector().connect(channel,this);
+  int connectTimeout=getRequest().getConnectTimeout();
+  return getDriver().awaitActiveSession(connectTimeout,TimeUnit.MILLISECONDS);
+}

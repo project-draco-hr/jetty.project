@@ -1,15 +1,15 @@
 {
   EndPoint endp=getEndPoint();
   Executor executor=getExecutor();
-  WebSocketClientConnection connection=new WebSocketClientConnection(endp,executor,client);
-  EventDriver websocket=client.getWebSocket();
-  WebSocketPolicy policy=client.getPolicy();
+  WebSocketClientConnection connection=new WebSocketClientConnection(endp,executor,connectPromise);
+  EventDriver websocket=connectPromise.getDriver();
+  WebSocketPolicy policy=connectPromise.getClient().getPolicy();
   String acceptedSubProtocol=response.getAcceptedSubProtocol();
   WebSocketSession session=new WebSocketSession(request.getRequestURI(),websocket,connection);
   session.setPolicy(policy);
   session.setNegotiatedSubprotocol(acceptedSubProtocol);
   connection.setSession(session);
-  List<Extension> extensions=client.getFactory().initExtensions(response.getExtensions());
+  List<Extension> extensions=connectPromise.getClient().initExtensions(response.getExtensions());
   IncomingFrames incoming=session;
   if (extensions != null) {
     connection.getParser().configureFromExtensions(extensions);

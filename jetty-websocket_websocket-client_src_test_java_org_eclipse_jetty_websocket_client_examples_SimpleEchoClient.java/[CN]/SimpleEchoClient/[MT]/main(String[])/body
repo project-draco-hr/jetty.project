@@ -3,15 +3,15 @@
   if (args.length > 0) {
     destUri=args[0];
   }
-  WebSocketClientFactory factory=new WebSocketClientFactory();
+  WebSocketClient client=new WebSocketClient();
   SimpleEchoSocket socket=new SimpleEchoSocket();
   try {
-    factory.start();
-    WebSocketClient client=factory.newWebSocketClient(socket);
+    client.start();
     URI echoUri=new URI(destUri);
+    ClientUpgradeRequest request=new ClientUpgradeRequest();
+    request.addExtensions("x-webkit-deflate-frame");
+    client.connect(socket,echoUri,request);
     System.out.printf("Connecting to : %s%n",echoUri);
-    client.getUpgradeRequest().addExtensions("x-webkit-deflate-frame");
-    client.connect(echoUri);
     socket.awaitClose(5,TimeUnit.SECONDS);
   }
  catch (  Throwable t) {
@@ -19,7 +19,7 @@
   }
  finally {
     try {
-      factory.stop();
+      client.stop();
     }
  catch (    Exception e) {
       e.printStackTrace();
