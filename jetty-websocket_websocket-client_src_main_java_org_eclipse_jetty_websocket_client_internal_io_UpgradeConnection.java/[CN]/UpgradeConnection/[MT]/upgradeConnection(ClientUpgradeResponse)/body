@@ -4,18 +4,18 @@
   WebSocketClientConnection connection=new WebSocketClientConnection(endp,executor,connectPromise);
   EventDriver websocket=connectPromise.getDriver();
   WebSocketPolicy policy=connectPromise.getClient().getPolicy();
-  String acceptedSubProtocol=response.getAcceptedSubProtocol();
   WebSocketSession session=new WebSocketSession(request.getRequestURI(),websocket,connection);
   session.setPolicy(policy);
-  session.setNegotiatedSubprotocol(acceptedSubProtocol);
+  session.setUpgradeResponse(response);
   connection.setSession(session);
-  List<Extension> extensions=connectPromise.getClient().initExtensions(response.getExtensions());
-  IncomingFrames incoming=session;
-  if (extensions != null) {
-    connection.getParser().configureFromExtensions(extensions);
-    connection.getGenerator().configureFromExtensions(extensions);
-  }
-  connection.getParser().setIncomingFramesHandler(incoming);
+  ExtensionStack extensionStack=new ExtensionStack(connectPromise.getClient().getExtensionFactory());
+  extensionStack.negotiate(response.getExtensions());
+  extensionStack.configure(connection.getParser());
+  extensionStack.configure(connection.getGenerator());
+  connection.setNextIncomingFrames(extensionStack);
+  extensionStack.setNextIncoming(session);
+  session.setOutgoingHandler(extensionStack);
+  extensionStack.setNextOutgoing(connection);
   endp.setConnection(connection);
   connection.onOpen();
 }
