@@ -4,8 +4,8 @@
   final CountDownLatch latch=new CountDownLatch(1);
   Destination destination=client.getDestination(scheme,"localhost",connector.getLocalPort());
   try (Connection connection=destination.newConnection().get(5,TimeUnit.SECONDS)){
-    Request request=client.newRequest("localhost",connector.getLocalPort()).scheme(scheme);
-    connection.send(request,new TimedResponseListener(timeout,TimeUnit.MILLISECONDS,request){
+    Request request=client.newRequest("localhost",connector.getLocalPort()).scheme(scheme).timeout(timeout,TimeUnit.MILLISECONDS);
+    connection.send(request,new Response.CompleteListener(){
       @Override public void onComplete(      Result result){
         Assert.assertTrue(result.isFailed());
         latch.countDown();
