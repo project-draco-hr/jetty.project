@@ -1,0 +1,22 @@
+{
+  if (sslContextFactory != null) {
+    sslContextFactory.setKeyStorePath("src/test/resources/keystore");
+    sslContextFactory.setKeyStorePassword("abcdef");
+  }
+  if (server == null)   server=new Server();
+  connector=new ServerConnector(server,sslContextFactory);
+  server.addConnector(connector);
+  server.setHandler(new DefaultHandler(){
+    @Override public void handle(    String target,    Request baseRequest,    HttpServletRequest request,    HttpServletResponse response) throws IOException, ServletException {
+      baseRequest.setHandled(true);
+      response.getWriter().write("foobar");
+    }
+  }
+);
+  server.start();
+  QueuedThreadPool executor=new QueuedThreadPool();
+  executor.setName(executor.getName() + "-client");
+  client=new HttpClient(sslContextFactory);
+  client.setExecutor(executor);
+  client.start();
+}
