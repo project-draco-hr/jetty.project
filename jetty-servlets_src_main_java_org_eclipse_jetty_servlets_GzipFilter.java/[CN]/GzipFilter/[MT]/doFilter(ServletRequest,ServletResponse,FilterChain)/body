@@ -1,6 +1,13 @@
 {
   HttpServletRequest request=(HttpServletRequest)req;
   HttpServletResponse response=(HttpServletResponse)res;
+  if (_mimeTypes != null && _mimeTypes.size() > 0) {
+    String mimeType=_context.getMimeType(request.getRequestURI());
+    if (mimeType != null && !_mimeTypes.contains(mimeType)) {
+      super.doFilter(request,response,chain);
+      return;
+    }
+  }
   response.setHeader("Vary","Accept-Encoding");
   String compressionType=selectCompression(request.getHeader("accept-encoding"));
   if (compressionType != null && !response.containsHeader("Content-Encoding") && !HttpMethod.HEAD.is(request.getMethod())) {

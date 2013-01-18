@@ -46,21 +46,21 @@
       PluginLog.getLog().info("Forked execution exit: " + exitcode);
     }
  else {
+      forkedProcess.getErrorStream().close();
       try {
         LineNumberReader reader=new LineNumberReader(new InputStreamReader(forkedProcess.getInputStream()));
-        String line=null;
-        int attempts=10;
-        do {
+        String line="";
+        int attempts=maxStartupLines;
+        while (attempts > 0 && line != null) {
           --attempts;
           line=reader.readLine();
           if (line != null && line.startsWith(token))           break;
         }
- while (line != null && attempts > 0);
         reader.close();
         if (line != null && line.trim().equals(token))         PluginLog.getLog().info("Forked process started.");
  else {
-          String err=(line == null ? "" : line.substring(token.length()));
-          PluginLog.getLog().info("Forked process startup errors " + (!"".equals(err) ? ":" + err : ""));
+          String err=(line == null ? "" : (line.startsWith(token) ? line.substring(token.length()) : line));
+          PluginLog.getLog().info("Forked process startup errors" + (!"".equals(err) ? ", received: " + err : ""));
         }
       }
  catch (      Exception e) {

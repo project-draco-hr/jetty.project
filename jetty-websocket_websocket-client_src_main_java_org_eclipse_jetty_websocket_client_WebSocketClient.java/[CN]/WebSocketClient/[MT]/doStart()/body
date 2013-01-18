@@ -1,0 +1,28 @@
+{
+  LOG.debug("Starting {}",this);
+  if (sslContextFactory != null) {
+    addBean(sslContextFactory);
+  }
+  String name=WebSocketClient.class.getSimpleName() + "@" + hashCode();
+  if (executor == null) {
+    QueuedThreadPool threadPool=new QueuedThreadPool();
+    threadPool.setName(name);
+    executor=threadPool;
+  }
+  addBean(executor);
+  if (bufferPool == null) {
+    bufferPool=new MappedByteBufferPool();
+  }
+  addBean(bufferPool);
+  if (scheduler == null) {
+    scheduler=new ScheduledExecutorScheduler(name + "-scheduler",false);
+  }
+  addBean(scheduler);
+  if (cookieStore == null) {
+    cookieStore=new EmptyCookieStore();
+  }
+  this.connectionManager=new ConnectionManager(this);
+  addBean(this.connectionManager);
+  super.doStart();
+  LOG.info("Started {}",this);
+}

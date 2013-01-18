@@ -1,3 +1,10 @@
 {
-  send(request,Collections.<Response.ResponseListener>singletonList(listener));
+  ArrayList<Response.ResponseListener> listeners=new ArrayList<>(2);
+  if (request.getTimeout() > 0) {
+    TimeoutCompleteListener timeoutListener=new TimeoutCompleteListener(request);
+    timeoutListener.schedule(client.getScheduler());
+    listeners.add(timeoutListener);
+  }
+  if (listener != null)   listeners.add(listener);
+  send(request,listeners);
 }

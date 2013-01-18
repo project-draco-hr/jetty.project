@@ -20,28 +20,22 @@
   }
   String pathInContext=URIUtil.addPaths(servletPath,pathInfo);
   boolean endsWithSlash=(pathInfo == null ? request.getServletPath() : pathInfo).endsWith(URIUtil.SLASH);
-  String pathInContextGz=null;
-  boolean gzip=false;
-  if (!included.booleanValue() && _gzip && reqRanges == null && !endsWithSlash) {
-    response.setHeader(HttpHeader.VARY.asString(),HttpHeader.ACCEPT_ENCODING.asString());
-    String accept=request.getHeader(HttpHeader.ACCEPT_ENCODING.asString());
-    if (accept != null && accept.indexOf("gzip") >= 0)     gzip=true;
-  }
   Resource resource=null;
   HttpContent content=null;
   try {
-    if (gzip) {
+    String pathInContextGz=null;
+    boolean gzip=false;
+    if (!included.booleanValue() && _gzip && reqRanges == null && !endsWithSlash) {
       pathInContextGz=pathInContext + ".gz";
-      if (_cache == null) {
-        resource=getResource(pathInContextGz);
-      }
+      if (_cache == null)       resource=getResource(pathInContextGz);
  else {
         content=_cache.lookup(pathInContextGz);
         resource=(content == null) ? null : content.getResource();
       }
-      if (resource == null || !resource.exists() || resource.isDirectory()) {
-        gzip=false;
-        pathInContextGz=null;
+      if (resource != null && resource.exists() && !resource.isDirectory()) {
+        response.setHeader(HttpHeader.VARY.asString(),HttpHeader.ACCEPT_ENCODING.asString());
+        String accept=request.getHeader(HttpHeader.ACCEPT_ENCODING.asString());
+        if (accept != null && accept.indexOf("gzip") >= 0)         gzip=true;
       }
     }
     if (!gzip) {
@@ -57,7 +51,7 @@
       response.sendError(HttpServletResponse.SC_NOT_FOUND);
     }
  else     if (!resource.isDirectory()) {
-      if (endsWithSlash && _contextHandler.isAliases() && pathInContext.length() > 1) {
+      if (endsWithSlash && pathInContext.length() > 1) {
         String q=request.getQueryString();
         pathInContext=pathInContext.substring(0,pathInContext.length() - 1);
         if (q != null && q.length() != 0)         pathInContext+="?" + q;
