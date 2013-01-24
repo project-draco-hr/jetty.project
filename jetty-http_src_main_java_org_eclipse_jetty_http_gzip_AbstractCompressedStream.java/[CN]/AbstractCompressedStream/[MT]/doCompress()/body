@@ -1,16 +1,22 @@
 {
   if (_compressedOutputStream == null) {
     if (_response.isCommitted())     throw new IllegalStateException();
-    setHeader("Content-Encoding",_encoding);
-    if (_response.containsHeader("Content-Encoding")) {
-      _out=_compressedOutputStream=createStream();
-      if (_bOut != null) {
-        _out.write(_bOut.getBuf(),0,_bOut.getCount());
-        _bOut=null;
+    if (_encoding != null) {
+      setHeader("Content-Encoding",_encoding);
+      if (_response.containsHeader("Content-Encoding")) {
+        setHeader("Vary",_vary);
+        _out=_compressedOutputStream=createStream();
+        if (_out != null) {
+          if (_bOut != null) {
+            _out.write(_bOut.getBuf(),0,_bOut.getCount());
+            _bOut=null;
+          }
+          String etag=_wrapper.getETag();
+          if (etag != null)           setHeader("ETag",etag.substring(0,etag.length() - 1) + '-' + _encoding+ '"');
+          return;
+        }
       }
-      String etag=_wrapper.getETag();
-      if (etag != null)       setHeader("ETag",etag.substring(0,etag.length() - 1) + '-' + _encoding+ '"');
     }
- else     doNotCompress();
+    doNotCompress(true);
   }
 }
