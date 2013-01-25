@@ -1,0 +1,30 @@
+{
+  final HttpClient client=new HttpClient();
+  client.setMaxConnectionsPerAddress(4);
+  client.setConnectorType(HttpClient.CONNECTOR_SOCKET);
+  client.setTimeout(TimeUnit.SECONDS.toMillis(86400));
+  client.setIdleTimeout(500);
+  client.start();
+  final CountDownLatch counter=new CountDownLatch(_repetitions);
+  Thread runner=new Thread(){
+    public void run(){
+      try {
+        for (int i=0; i < _repetitions; i++) {
+          ContentExchange exchange=new ContentExchange();
+          exchange.setURL("http://www.google.com/?i=" + i);
+          client.send(exchange);
+          exchange.waitForDone();
+          counter.countDown();
+          System.err.println(counter.getCount());
+          Thread.sleep(1000);
+        }
+      }
+ catch (      Exception e) {
+        Assert.fail(e.getMessage());
+      }
+    }
+  }
+;
+  runner.start();
+  if (!counter.await(80,TimeUnit.SECONDS))   Assert.fail("Test did not complete in time");
+}
