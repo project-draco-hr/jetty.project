@@ -2,7 +2,8 @@
   final int requestCount=32;
   final CountDownLatch latch=new CountDownLatch(requestCount);
   configureServer(new HelloWorldHandler());
-  Socket client=newSocket(HOST,_connector.getLocalPort());
+  URI uri=_server.getURI();
+  Socket client=newSocket(uri.getHost(),uri.getPort());
   try {
     OutputStream os=client.getOutputStream();
     ResponseReader reader=new ResponseReader(client){
@@ -27,7 +28,7 @@
         if (latch.getCount() == requestCount)         Thread.sleep(1);
         _connector.close();
       }
-      String request="GET /data?writes=1&block=16&id=" + pipeline + " HTTP/1.1\r\n"+ "host: "+ HOST+ ":"+ _connector.getLocalPort()+ "\r\n"+ "user-agent: testharness/1.0 (blah foo/bar)\r\n"+ "accept-encoding: nothing\r\n"+ "cookie: aaa=1234567890\r\n"+ "\r\n";
+      String request="GET /data?writes=1&block=16&id=" + pipeline + " HTTP/1.1\r\n"+ "host: "+ uri.getHost()+ ":"+ uri.getPort()+ "\r\n"+ "user-agent: testharness/1.0 (blah foo/bar)\r\n"+ "accept-encoding: nothing\r\n"+ "cookie: aaa=1234567890\r\n"+ "\r\n";
       os.write(request.getBytes());
       os.flush();
       Thread.sleep(25);

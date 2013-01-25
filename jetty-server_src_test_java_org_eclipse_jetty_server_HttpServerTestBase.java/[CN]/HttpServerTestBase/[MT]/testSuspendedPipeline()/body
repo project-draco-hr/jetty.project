@@ -4,14 +4,14 @@
   suspend.setResumeAfter(1000);
   configureServer(suspend);
   long start=System.currentTimeMillis();
-  Socket client=newSocket(HOST,_connector.getLocalPort());
+  Socket client=newSocket(_serverURI.getHost(),_serverURI.getPort());
   client.setSoTimeout(5000);
   try {
     OutputStream os=client.getOutputStream();
-    os.write(("GET / HTTP/1.1\r\n" + "host: " + HOST + ":"+ _connector.getLocalPort()+ "\r\n"+ "\r\n").getBytes());
+    os.write(("GET / HTTP/1.1\r\n" + "host: " + _serverURI.getHost() + ":"+ _serverURI.getPort()+ "\r\n"+ "\r\n").getBytes());
     os.flush();
     Thread.sleep(200);
-    os.write(("GET / HTTP/1.1\r\n" + "host: " + HOST + ":"+ _connector.getLocalPort()+ "\r\n"+ "connection: close\r\n"+ "\r\n").getBytes());
+    os.write(("GET / HTTP/1.1\r\n" + "host: " + _serverURI.getHost() + ":"+ _serverURI.getPort()+ "\r\n"+ "connection: close\r\n"+ "\r\n").getBytes());
     os.flush();
     String response=readResponse(client);
     assertThat(response,JUnitMatchers.containsString("RESUMEDHTTP/1.1 200 OK"));
