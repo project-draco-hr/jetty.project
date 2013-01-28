@@ -6,26 +6,26 @@
     headLock.lock();
     try {
       if (index < 0 || index >= _size.get())       throw new IndexOutOfBoundsException("!(" + 0 + "<"+ index+ "<="+ _size+ ")");
-      int i=_head + index;
+      int i=_indexes[HEAD_OFFSET] + index;
       int capacity=_elements.length;
       if (i >= capacity)       i-=capacity;
       E old=(E)_elements[i];
-      int tail=_tail;
+      int tail=_indexes[TAIL_OFFSET];
       if (i < tail) {
         System.arraycopy(_elements,i + 1,_elements,i,tail - i);
-        --_tail;
+        --_indexes[TAIL_OFFSET];
       }
  else {
         System.arraycopy(_elements,i + 1,_elements,i,capacity - i - 1);
         _elements[capacity - 1]=_elements[0];
         if (tail > 0) {
           System.arraycopy(_elements,1,_elements,0,tail);
-          --_tail;
+          --_indexes[TAIL_OFFSET];
         }
  else {
-          _tail=capacity - 1;
+          _indexes[TAIL_OFFSET]=capacity - 1;
         }
-        _elements[_tail]=null;
+        _elements[_indexes[TAIL_OFFSET]]=null;
       }
       _size.decrementAndGet();
       return old;
