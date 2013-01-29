@@ -1,4 +1,11 @@
 {
+  if (response.getStatusCode() != SWITCHING_PROTOCOLS) {
+    throw new UpgradeException("Didn't switch protocols");
+  }
+  String connection=response.getHeader("Connection");
+  if (!"upgrade".equalsIgnoreCase(connection)) {
+    throw new UpgradeException("Connection is " + connection + " (expected upgrade)");
+  }
   String reqKey=request.getKey();
   String expectedHash=AcceptHash.hashKey(reqKey);
   response.validateWebSocketHash(expectedHash);

@@ -1,0 +1,15 @@
+{
+  TrackingSocket wsocket=new TrackingSocket();
+  URI wsUri=server.getWsUri();
+  Future<Session> future=client.connect(wsocket,wsUri);
+  ServerConnection connection=server.accept();
+  connection.readRequest();
+  connection.respond("HTTP/1.1 200 OK\r\n\r\n");
+  try {
+    future.get(500,TimeUnit.MILLISECONDS);
+    Assert.fail("Expected ExecutionException -> UpgradeException");
+  }
+ catch (  ExecutionException e) {
+    FutureCallback.rethrow(e);
+  }
+}

@@ -1,26 +1,10 @@
 {
-  List<ExtensionConfig> extensionConfigs=new ArrayList<>();
-  Pattern patExts=Pattern.compile("^Sec-WebSocket-Extensions: (.*)$",Pattern.CASE_INSENSITIVE);
-  Pattern patKey=Pattern.compile("^Sec-WebSocket-Key: (.*)$",Pattern.CASE_INSENSITIVE);
-  Matcher mat;
-  String key="not sent";
-  BufferedReader in=new BufferedReader(new InputStreamReader(getInputStream()));
-  for (String line=in.readLine(); line != null; line=in.readLine()) {
-    if (line.length() == 0) {
-      break;
-    }
-    mat=patExts.matcher(line);
-    if (mat.matches()) {
-      String econf=mat.group(1);
-      ExtensionConfig config=ExtensionConfig.parse(econf);
-      extensionConfigs.add(config);
-      continue;
-    }
-    mat=patKey.matcher(line);
-    if (mat.matches()) {
-      key=mat.group(1);
-    }
-  }
+  List<String> requestLines=readRequestLines();
+  List<ExtensionConfig> extensionConfigs=parseExtensions(requestLines);
+  String key=parseWebSocketKey(requestLines);
+  LOG.debug("Client Request Extensions: {}",extensionConfigs);
+  LOG.debug("Client Request Key: {}",key);
+  Assert.assertThat("Request: Sec-WebSocket-Key",key,notNullValue());
   ExtensionStack extensionStack=new ExtensionStack(extensionRegistry);
   extensionStack.negotiate(extensionConfigs);
   extensionStack.setNextIncoming(this);
@@ -36,6 +20,7 @@
   parser.setIncomingFramesHandler(extensionStack);
   StringBuilder resp=new StringBuilder();
   resp.append("HTTP/1.1 101 Upgrade\r\n");
+  resp.append("Connection: upgrade\r\n");
   resp.append("Sec-WebSocket-Accept: ");
   resp.append(AcceptHash.hashKey(key)).append("\r\n");
   if (!extensionStack.hasNegotiatedExtensions()) {
@@ -59,5 +44,6 @@
     }
   }
   resp.append("\r\n");
+  LOG.debug("Response: {}",resp.toString());
   write(resp.toString().getBytes());
 }
