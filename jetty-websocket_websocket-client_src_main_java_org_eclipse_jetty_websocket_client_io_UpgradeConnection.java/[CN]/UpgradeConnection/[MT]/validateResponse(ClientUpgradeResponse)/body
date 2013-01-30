@@ -1,14 +1,19 @@
 {
   if (response.getStatusCode() != SWITCHING_PROTOCOLS) {
-    throw new UpgradeException("Didn't switch protocols");
+    throw new UpgradeException(request.getRequestURI(),response.getStatusCode(),"Didn't switch protocols");
   }
   String connection=response.getHeader("Connection");
   if (!"upgrade".equalsIgnoreCase(connection)) {
-    throw new UpgradeException("Connection is " + connection + " (expected upgrade)");
+    throw new UpgradeException(request.getRequestURI(),response.getStatusCode(),"Connection is " + connection + " (expected upgrade)");
   }
   String reqKey=request.getKey();
   String expectedHash=AcceptHash.hashKey(reqKey);
-  response.validateWebSocketHash(expectedHash);
+  String respHash=response.getHeader("Sec-WebSocket-Accept");
+  response.setSuccess(true);
+  if (expectedHash.equalsIgnoreCase(respHash) == false) {
+    response.setSuccess(false);
+    throw new UpgradeException(request.getRequestURI(),response.getStatusCode(),"Invalid Sec-WebSocket-Accept hash");
+  }
   List<ExtensionConfig> extensions=new ArrayList<>();
   List<String> extValues=response.getHeaders("Sec-WebSocket-Extensions");
   if (extValues != null) {
