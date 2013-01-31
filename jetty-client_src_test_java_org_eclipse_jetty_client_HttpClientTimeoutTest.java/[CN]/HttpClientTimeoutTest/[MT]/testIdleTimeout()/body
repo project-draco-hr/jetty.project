@@ -1,0 +1,28 @@
+{
+  long timeout=1000;
+  start(new TimeoutHandler(2 * timeout));
+  client.stop();
+  final AtomicBoolean sslIdle=new AtomicBoolean();
+  client=new HttpClient(sslContextFactory){
+    @Override protected SslConnection newSslConnection(    HttpClient httpClient,    EndPoint endPoint,    SSLEngine engine){
+      return new SslConnection(httpClient.getByteBufferPool(),httpClient.getExecutor(),endPoint,engine){
+        @Override protected boolean onReadTimeout(){
+          sslIdle.set(true);
+          return super.onReadTimeout();
+        }
+      }
+;
+    }
+  }
+;
+  client.setIdleTimeout(timeout);
+  client.start();
+  try {
+    client.newRequest("localhost",connector.getLocalPort()).scheme(scheme).send();
+    Assert.fail();
+  }
+ catch (  Exception x) {
+    Assert.assertFalse(sslIdle.get());
+    Assert.assertThat(x.getCause(),Matchers.instanceOf(TimeoutException.class));
+  }
+}

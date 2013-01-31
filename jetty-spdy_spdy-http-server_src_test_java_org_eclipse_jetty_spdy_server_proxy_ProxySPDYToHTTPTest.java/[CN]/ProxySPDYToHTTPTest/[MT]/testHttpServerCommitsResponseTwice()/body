@@ -1,0 +1,34 @@
+{
+  final long timeout=1000;
+  InetSocketAddress proxyAddress=startProxy(startServer(new DefaultHandler(){
+    @Override public void handle(    String target,    Request baseRequest,    HttpServletRequest request,    HttpServletResponse response) throws IOException, ServletException {
+      response.addHeader("some response","header");
+      response.flushBuffer();
+      try {
+        Thread.sleep(timeout * 2);
+      }
+ catch (      InterruptedException e) {
+        e.printStackTrace();
+      }
+    }
+  }
+),30000,timeout);
+  final CountDownLatch replyLatch=new CountDownLatch(1);
+  final CountDownLatch resetLatch=new CountDownLatch(1);
+  Session client=factory.newSPDYClient(version).connect(proxyAddress,new ServerSessionFrameListener.Adapter(){
+    @Override public void onRst(    Session session,    RstInfo rstInfo){
+      resetLatch.countDown();
+    }
+  }
+).get(5,TimeUnit.SECONDS);
+  Fields headers=SPDYTestUtils.createHeaders("localhost",proxyAddress.getPort(),version,"GET","/");
+  headers.put("connection","close");
+  client.syn(new SynInfo(headers,true),new StreamFrameListener.Adapter(){
+    @Override public void onReply(    Stream stream,    ReplyInfo replyInfo){
+      replyLatch.countDown();
+    }
+  }
+);
+  assertThat("reply has been received",replyLatch.await(5,TimeUnit.SECONDS),is(true));
+  assertThat("stream is reset",resetLatch.await(5,TimeUnit.SECONDS),is(true));
+}

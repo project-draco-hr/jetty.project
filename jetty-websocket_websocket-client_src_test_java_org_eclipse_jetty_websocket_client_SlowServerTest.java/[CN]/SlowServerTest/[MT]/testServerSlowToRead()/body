@@ -14,7 +14,7 @@
   reader.setExpectedMessageCount(messageCount);
   reader.setSlowness(100);
   reader.start();
-  ClientWriteThread writer=new ClientWriteThread(tsocket.getConnection());
+  ClientWriteThread writer=new ClientWriteThread(tsocket.getSession());
   writer.setMessageCount(messageCount);
   writer.setMessage("Hello");
   writer.setSlowness(-1);
@@ -22,7 +22,7 @@
   writer.join();
   reader.waitForExpectedMessageCount(10,TimeUnit.SECONDS);
   Assert.assertThat("Frame Receive Count",reader.getFrameCount(),is(messageCount));
-  tsocket.getConnection().close(StatusCode.NORMAL,"Done");
+  tsocket.getSession().close(StatusCode.NORMAL,"Done");
   Assert.assertTrue("Client Socket Closed",tsocket.closeLatch.await(10,TimeUnit.SECONDS));
   tsocket.assertCloseCode(StatusCode.NORMAL);
   reader.cancel();

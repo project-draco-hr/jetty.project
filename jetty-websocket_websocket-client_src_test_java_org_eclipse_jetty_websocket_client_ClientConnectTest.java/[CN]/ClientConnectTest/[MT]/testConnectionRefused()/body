@@ -1,12 +1,17 @@
 {
   TrackingSocket wsocket=new TrackingSocket();
   URI wsUri=new URI("ws://127.0.0.1:1");
-  Future<Session> future=client.connect(wsocket,wsUri);
   try {
+    Future<Session> future=client.connect(wsocket,wsUri);
     future.get(1000,TimeUnit.MILLISECONDS);
     Assert.fail("Expected ExecutionException -> ConnectException");
   }
- catch (  ExecutionException e) {
-    FutureCallback.rethrow(e);
+ catch (  ConnectException e) {
+    Throwable t=wsocket.errorQueue.remove();
+    Assert.assertThat("Error Queue[0]",t,instanceOf(ConnectException.class));
+    wsocket.assertNotOpened();
+  }
+catch (  ExecutionException e) {
+    assertExpectedError(e,wsocket,ConnectException.class);
   }
 }

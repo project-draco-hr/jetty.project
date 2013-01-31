@@ -1,11 +1,11 @@
 {
-  logger.debug("C -> P {} on {}",clientSynInfo,clientStream);
+  LOG.debug("C -> P {} on {}",clientSynInfo,clientStream);
   final Session clientSession=clientStream.getSession();
   short clientVersion=clientSession.getVersion();
   Fields headers=new Fields(clientSynInfo.getHeaders(),false);
   Fields.Field hostHeader=headers.get(HTTPSPDYHeader.HOST.name(clientVersion));
   if (hostHeader == null) {
-    logger.debug("No host header found: " + headers);
+    LOG.debug("No host header found: " + headers);
     rst(clientStream);
     return null;
   }
@@ -14,16 +14,17 @@
   if (colon >= 0)   host=host.substring(0,colon);
   ProxyServerInfo proxyServerInfo=getProxyServerInfo(host);
   if (proxyServerInfo == null) {
-    logger.debug("No matching ProxyServerInfo found for: " + host);
+    LOG.debug("No matching ProxyServerInfo found for: " + host);
     rst(clientStream);
     return null;
   }
   String protocol=proxyServerInfo.getProtocol();
   ProxyEngine proxyEngine=proxyEngines.get(protocol);
   if (proxyEngine == null) {
-    logger.debug("No matching ProxyEngine found for: " + protocol);
+    LOG.debug("No matching ProxyEngine found for: " + protocol);
     rst(clientStream);
     return null;
   }
+  LOG.debug("Forwarding request: {} -> {}",clientSynInfo,proxyServerInfo);
   return proxyEngine.proxy(clientStream,clientSynInfo,proxyServerInfo);
 }

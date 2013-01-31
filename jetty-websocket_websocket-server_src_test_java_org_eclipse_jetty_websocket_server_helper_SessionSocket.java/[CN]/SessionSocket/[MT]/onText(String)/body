@@ -1,0 +1,39 @@
+{
+  LOG.debug("onText({})",message);
+  if (message == null) {
+    return;
+  }
+  try {
+    if (message.startsWith("getParameterMap")) {
+      Map<String,String[]> parameterMap=session.getUpgradeRequest().getParameterMap();
+      int idx=message.indexOf('|');
+      String key=message.substring(idx + 1);
+      String values[]=parameterMap.get(key);
+      if (values == null) {
+        session.getRemote().sendStringByFuture("<null>");
+        return;
+      }
+      StringBuilder valueStr=new StringBuilder();
+      valueStr.append('[');
+      boolean delim=false;
+      for (      String value : values) {
+        if (delim) {
+          valueStr.append(", ");
+        }
+        valueStr.append(value);
+        delim=true;
+      }
+      valueStr.append(']');
+      session.getRemote().sendStringByFuture(valueStr.toString());
+      return;
+    }
+    if ("harsh-disconnect".equals(message)) {
+      session.disconnect();
+      return;
+    }
+    this.session.getRemote().sendStringByFuture(message);
+  }
+ catch (  Throwable t) {
+    LOG.warn(t);
+  }
+}

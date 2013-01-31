@@ -1,0 +1,18 @@
+{
+  TrackingSocket wsocket=new TrackingSocket();
+  URI wsUri=server.getWsUri();
+  Future<Session> future=client.connect(wsocket,wsUri);
+  ServerConnection connection=server.accept();
+  connection.readRequest();
+  connection.respond("HTTP/1.1 200 OK\r\n\r\n");
+  try {
+    future.get(500,TimeUnit.MILLISECONDS);
+    Assert.fail("Expected ExecutionException -> UpgradeException");
+  }
+ catch (  ExecutionException e) {
+    UpgradeException ue=assertExpectedError(e,wsocket,UpgradeException.class);
+    Assert.assertThat("UpgradeException.requestURI",ue.getRequestURI(),notNullValue());
+    Assert.assertThat("UpgradeException.requestURI",ue.getRequestURI().toASCIIString(),is(wsUri.toASCIIString()));
+    Assert.assertThat("UpgradeException.responseStatusCode",ue.getResponseStatusCode(),is(200));
+  }
+}

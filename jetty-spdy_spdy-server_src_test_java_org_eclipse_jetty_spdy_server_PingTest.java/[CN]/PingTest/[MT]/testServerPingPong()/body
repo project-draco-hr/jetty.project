@@ -1,22 +1,30 @@
 {
-  final CountDownLatch pingLatch=new CountDownLatch(1);
+  final CountDownLatch pingReceived=new CountDownLatch(1);
   ServerSessionFrameListener serverSessionFrameListener=new ServerSessionFrameListener.Adapter(){
-    public volatile int pingId;
+    private final CountDownLatch pingSent=new CountDownLatch(1);
+    private int pingId;
     @Override public void onConnect(    Session session){
       session.ping(new PingInfo(),new Promise.Adapter<PingResultInfo>(){
         @Override public void succeeded(        PingResultInfo pingInfo){
           pingId=pingInfo.getPingId();
+          pingSent.countDown();
         }
       }
 );
     }
     @Override public void onPing(    Session session,    PingResultInfo pingInfo){
-      Assert.assertEquals(0,pingInfo.getPingId() % 2);
-      Assert.assertEquals(pingId,pingInfo.getPingId());
-      pingLatch.countDown();
+      try {
+        Assert.assertTrue(pingSent.await(5,TimeUnit.SECONDS));
+        Assert.assertEquals(0,pingInfo.getPingId() % 2);
+        Assert.assertEquals(pingId,pingInfo.getPingId());
+        pingReceived.countDown();
+      }
+ catch (      InterruptedException x) {
+        Assert.fail();
+      }
     }
   }
 ;
   startClient(startServer(serverSessionFrameListener),null);
-  Assert.assertTrue(pingLatch.await(5,TimeUnit.SECONDS));
+  Assert.assertTrue(pingReceived.await(5,TimeUnit.SECONDS));
 }

@@ -1,5 +1,6 @@
 {
   Socket client=newClient();
+  InputStream clientInputStream=client.getInputStream();
   OutputStream clientOutputStream=client.getOutputStream();
   client.setSoTimeout(5000);
   SocketChannel server=_connector.accept();
@@ -7,7 +8,7 @@
   _manager.accept(server);
   clientOutputStream.write("HelloWorld".getBytes("UTF-8"));
   for (  char c : "HelloWorld".toCharArray()) {
-    int b=client.getInputStream().read();
+    int b=clientInputStream.read();
     assertTrue(b > 0);
     assertEquals(c,(char)b);
   }
@@ -18,16 +19,18 @@
   clientOutputStream.write("12345678".getBytes("UTF-8"));
   clientOutputStream.flush();
   long start=System.currentTimeMillis();
-  int b=client.getInputStream().read();
+  int b=clientInputStream.read();
   assertEquals('E',b);
   long idle=System.currentTimeMillis() - start;
   assertTrue(idle > idleTimeout / 2);
   assertTrue(idle < idleTimeout * 2);
   for (  char c : "E: 12345678".toCharArray()) {
-    b=client.getInputStream().read();
+    b=clientInputStream.read();
     assertTrue(b > 0);
     assertEquals(c,(char)b);
   }
+  b=clientInputStream.read();
+  assertEquals(-1,b);
   if (_lastEndPoint.isOpen())   Thread.sleep(idleTimeout * 2);
   assertFalse(_lastEndPoint.isOpen());
 }
