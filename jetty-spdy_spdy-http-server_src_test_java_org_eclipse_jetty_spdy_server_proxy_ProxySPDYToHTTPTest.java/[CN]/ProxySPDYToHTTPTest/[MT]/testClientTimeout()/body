@@ -1,0 +1,14 @@
+{
+  long timeout=1000;
+  InetSocketAddress proxyAddress=startProxy(startServer(new TestServerHandler(null,null)),timeout,30000);
+  final CountDownLatch goAwayLatch=new CountDownLatch(1);
+  Session client=factory.newSPDYClient(version).connect(proxyAddress,new SessionFrameListener.Adapter(){
+    @Override public void onGoAway(    Session session,    GoAwayReceivedInfo goAwayReceivedInfo){
+      goAwayLatch.countDown();
+    }
+  }
+).get(5,TimeUnit.SECONDS);
+  Fields headers=SPDYTestUtils.createHeaders("localhost",proxyAddress.getPort(),version,"POST","/");
+  client.syn(new SynInfo(headers,false),null);
+  assertThat("goAway has been received by proxy",goAwayLatch.await(2 * timeout,TimeUnit.MILLISECONDS),is(true));
+}

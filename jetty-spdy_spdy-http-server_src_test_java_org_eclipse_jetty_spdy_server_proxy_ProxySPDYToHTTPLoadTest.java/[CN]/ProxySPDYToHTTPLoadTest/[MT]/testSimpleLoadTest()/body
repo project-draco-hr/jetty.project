@@ -1,0 +1,19 @@
+{
+  String server1String="server1";
+  String server2String="server2";
+  InetSocketAddress server1=startServer(new TestServerHandler(server1String,null));
+  InetSocketAddress server2=startServer(new TestServerHandler(server2String,null));
+  final InetSocketAddress proxyAddress=startProxy(server1,server2,30000,30000);
+  final int requestsPerClient=50;
+  ExecutorService executorService=Executors.newFixedThreadPool(3);
+  Runnable client1=createClientRunnable(proxyAddress,requestsPerClient,server1String,"localhost");
+  Runnable client2=createClientRunnable(proxyAddress,requestsPerClient,server2String,"127.0.0.1");
+  Runnable client3=createClientRunnable(proxyAddress,requestsPerClient,server2String,"127.0.0.2");
+  List<Future> futures=new ArrayList<>();
+  futures.add(executorService.submit(client1));
+  futures.add(executorService.submit(client2));
+  futures.add(executorService.submit(client3));
+  for (  Future future : futures) {
+    future.get(60,TimeUnit.SECONDS);
+  }
+}

@@ -1,0 +1,18 @@
+{
+  proxy=new Server();
+  ProxyEngineSelector proxyEngineSelector=new ProxyEngineSelector();
+  HttpClient httpClient=new HttpClient();
+  httpClient.start();
+  httpClient.setIdleTimeout(proxyEngineTimeout);
+  HTTPProxyEngine httpProxyEngine=new HTTPProxyEngine(httpClient);
+  proxyEngineSelector.putProxyEngine("http/1.1",httpProxyEngine);
+  proxyEngineSelector.putProxyServerInfo("localhost",new ProxyEngineSelector.ProxyServerInfo("http/1.1",server1.getHostName(),server1.getPort()));
+  proxyEngineSelector.putProxyServerInfo("127.0.0.1",new ProxyEngineSelector.ProxyServerInfo("http/1.1",server2.getHostName(),server2.getPort()));
+  proxyEngineSelector.putProxyServerInfo("127.0.0.2",new ProxyEngineSelector.ProxyServerInfo("http/1.1",server2.getHostName(),server2.getPort()));
+  proxyConnector=new HTTPSPDYProxyServerConnector(proxy,sslContextFactory,proxyEngineSelector);
+  proxyConnector.setPort(0);
+  proxyConnector.setIdleTimeout(proxyConnectorTimeout);
+  proxy.addConnector(proxyConnector);
+  proxy.start();
+  return new InetSocketAddress("localhost",proxyConnector.getLocalPort());
+}
