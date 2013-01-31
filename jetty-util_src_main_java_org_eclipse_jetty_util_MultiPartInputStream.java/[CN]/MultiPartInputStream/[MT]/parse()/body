@@ -11,13 +11,23 @@
  else     _tmpDir=new File(_contextTmpDir,_config.getLocation());
   }
   if (!_tmpDir.exists())   _tmpDir.mkdirs();
-  String boundary="--" + QuotedStringTokenizer.unquote(value(_contentType.substring(_contentType.indexOf("boundary=")),true).trim());
+  String contentTypeBoundary="";
+  if (_contentType.indexOf("boundary=") >= 0)   contentTypeBoundary=QuotedStringTokenizer.unquote(value(_contentType.substring(_contentType.indexOf("boundary=")),true).trim());
+  String boundary="--" + contentTypeBoundary;
   byte[] byteBoundary=(boundary + "--").getBytes(StringUtil.__ISO_8859_1);
-  byte[] bytes=TypeUtil.readLine(_in);
-  String line=bytes == null ? null : new String(bytes,"UTF-8");
-  if (line == null || !line.equals(boundary)) {
-    throw new IOException("Missing initial multi part boundary");
+  String line=((ReadLineInputStream)_in).readLine();
+  if (line == null)   throw new IOException("Missing content for multipart request");
+  boolean badFormatLogged=false;
+  line=line.trim();
+  while (line != null && !line.equals(boundary)) {
+    if (!badFormatLogged) {
+      LOG.warn("Badly formatted multipart request");
+      badFormatLogged=true;
+    }
+    line=((ReadLineInputStream)_in).readLine();
+    line=(line == null ? line : line.trim());
   }
+  if (line == null)   throw new IOException("Missing initial multi part boundary");
   boolean lastPart=false;
   String contentDisposition=null;
   String contentType=null;
@@ -25,12 +35,11 @@
   outer:   while (!lastPart) {
     MultiMap<String> headers=new MultiMap<String>();
     while (true) {
-      bytes=TypeUtil.readLine(_in);
-      if (bytes == null)       break outer;
-      if (bytes.length == 0)       break;
-      total+=bytes.length;
+      line=((ReadLineInputStream)_in).readLine();
+      if (line == null)       break outer;
+      if ("".equals(line))       break;
+      total+=line.length();
       if (_config.getMaxRequestSize() > 0 && total > _config.getMaxRequestSize())       throw new IllegalStateException("Request exceeds maxRequestSize (" + _config.getMaxRequestSize() + ")");
-      line=new String(bytes,"UTF-8");
       int c=line.indexOf(':',0);
       if (c > 0) {
         String key=line.substring(0,c).trim().toLowerCase(Locale.ENGLISH);
@@ -45,7 +54,7 @@
     if (contentDisposition == null) {
       throw new IOException("Missing content-disposition");
     }
-    QuotedStringTokenizer tok=new QuotedStringTokenizer(contentDisposition,";");
+    QuotedStringTokenizer tok=new QuotedStringTokenizer(contentDisposition,";",false,true);
     String name=null;
     String filename=null;
     while (tok.hasMoreTokens()) {
@@ -53,7 +62,7 @@
       String tl=t.toLowerCase(Locale.ENGLISH);
       if (t.startsWith("form-data"))       form_data=true;
  else       if (tl.startsWith("name="))       name=value(t,true);
- else       if (tl.startsWith("filename="))       filename=value(t,false);
+ else       if (tl.startsWith("filename="))       filename=filenameValue(t);
     }
     if (!form_data) {
       continue;
@@ -99,7 +108,12 @@
           if (_config.getMaxRequestSize() > 0 && total > _config.getMaxRequestSize())           throw new IllegalStateException("Request exceeds maxRequestSize (" + _config.getMaxRequestSize() + ")");
           state=-2;
           if (c == 13 || c == 10) {
-            if (c == 13)             state=_in.read();
+            if (c == 13) {
+              _in.mark(1);
+              int tmp=_in.read();
+              if (tmp != 10)               _in.reset();
+ else               state=tmp;
+            }
             break;
           }
           if (b >= 0 && b < byteBoundary.length && c == byteBoundary[b])           b++;

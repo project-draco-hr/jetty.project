@@ -1,14 +1,18 @@
 {
   if (_closed)   return;
-  if (_request.getAttribute("javax.servlet.include.request_uri") != null)   flush();
+  if (_wrapper.getRequest().getAttribute("javax.servlet.include.request_uri") != null)   flush();
  else {
     if (_bOut != null) {
-      if (_contentLength < 0)       _contentLength=_bOut.getCount();
-      if (_contentLength < _minCompressSize)       doNotCompress();
+      long length=_wrapper.getContentLength();
+      if (length < 0) {
+        length=_bOut.getCount();
+        _wrapper.setContentLength(length);
+      }
+      if (length < _wrapper.getMinCompressSize())       doNotCompress(false);
  else       doCompress();
     }
  else     if (_out == null) {
-      doNotCompress();
+      doNotCompress(false);
     }
     if (_compressedOutputStream != null)     _compressedOutputStream.close();
  else     _out.close();
