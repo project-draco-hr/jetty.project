@@ -9,12 +9,25 @@
   String host=proxyServerInfo.getHost();
   int port=proxyServerInfo.getAddress().getPort();
   LOG.debug("Sending HTTP request to: {}",host + ":" + port);
-  Request request=httpClient.newRequest(host,port).path(path).method(HttpMethod.fromString(method));
+  final Request request=httpClient.newRequest(host,port).path(path).method(HttpMethod.fromString(method));
   addNonSpdyHeadersToRequest(version,headers,request);
   if (!clientSynInfo.isClose()) {
-    clientStream.setAttribute(CLIENT_REQUEST_ATTRIBUTE,request);
     request.content(new DeferredContentProvider());
   }
   sendRequest(clientStream,request);
-  return this;
+  return new StreamFrameListener.Adapter(){
+    @Override public void onReply(    Stream stream,    ReplyInfo replyInfo){
+      throw new UnsupportedOperationException("Not Yet Implemented");
+    }
+    @Override public void onHeaders(    Stream stream,    HeadersInfo headersInfo){
+      throw new UnsupportedOperationException("Not Yet Implemented");
+    }
+    @Override public void onData(    Stream clientStream,    final DataInfo clientDataInfo){
+      LOG.debug("received clientDataInfo: {} for stream: {}",clientDataInfo,clientStream);
+      DeferredContentProvider contentProvider=(DeferredContentProvider)request.getContent();
+      contentProvider.offer(clientDataInfo.asByteBuffer(true));
+      if (clientDataInfo.isClose())       contentProvider.close();
+    }
+  }
+;
 }

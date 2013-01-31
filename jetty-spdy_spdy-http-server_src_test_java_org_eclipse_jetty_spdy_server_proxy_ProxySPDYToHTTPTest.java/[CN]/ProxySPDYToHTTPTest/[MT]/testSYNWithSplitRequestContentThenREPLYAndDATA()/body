@@ -6,7 +6,7 @@
   Session client=factory.newSPDYClient(version).connect(proxyAddress,null).get(5,TimeUnit.SECONDS);
   final CountDownLatch replyLatch=new CountDownLatch(1);
   final CountDownLatch dataLatch=new CountDownLatch(1);
-  Fields headers=SPDYTestUtils.createHeaders(proxyAddress.getPort(),version,"POST","/");
+  Fields headers=SPDYTestUtils.createHeaders("localhost",proxyAddress.getPort(),version,"POST","/");
   headers.put(header,"bar");
   headers.put("connection","close");
   Stream stream=client.syn(new SynInfo(headers,false),new StreamFrameListener.Adapter(){
@@ -19,16 +19,13 @@
     @Override public void onData(    Stream stream,    DataInfo dataInfo){
       result.write(dataInfo.asBytes(true),0,dataInfo.length());
       if (dataInfo.isClose()) {
-        System.out.println("client received DATA: " + result);
         assertThat("received data matches send data",result.toString(),is(data + data2));
         dataLatch.countDown();
       }
     }
   }
 );
-  System.out.println("DATA1 sent!!!!!!!!");
   stream.data(new StringDataInfo(data,false),new Callback.Adapter());
-  System.out.println("DATA2 sent!!!!!!!!");
   stream.data(new StringDataInfo(data2,true),new Callback.Adapter());
   assertThat("reply has been received",replyLatch.await(5,TimeUnit.SECONDS),is(true));
   assertThat("data has been received",dataLatch.await(5,TimeUnit.SECONDS),is(true));

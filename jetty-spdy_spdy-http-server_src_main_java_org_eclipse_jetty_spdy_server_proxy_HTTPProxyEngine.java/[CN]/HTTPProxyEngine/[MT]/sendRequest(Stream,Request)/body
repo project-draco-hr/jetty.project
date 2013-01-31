@@ -1,5 +1,6 @@
 {
   request.send(new Response.Listener.Empty(){
+    private volatile boolean committed;
     @Override public void onHeaders(    final Response response){
       LOG.debug("onHeaders called with response: {}. Sending replyInfo to client.",response);
       Fields responseHeaders=createResponseHeaders(clientStream,response);
@@ -9,9 +10,11 @@
           LOG.debug("failed: ",x);
           response.abort(x);
         }
+        @Override public void succeeded(){
+          committed=true;
+        }
       }
 );
-      committed=true;
     }
     @Override public void onContent(    final Response response,    ByteBuffer content){
       LOG.debug("onContent called with response: {} and content: {}. Sending response content to client.",response,content);
@@ -38,7 +41,7 @@
       clientStream.data(new ByteBufferDataInfo(BufferUtil.EMPTY_BUFFER,true),LOGGING_CALLBACK);
     }
     @Override public void onFailure(    Response response,    Throwable failure){
-      LOG.debug("onFailure called: {}",failure);
+      LOG.debug("onFailure called: ",failure);
       if (committed) {
         LOG.debug("clientStream already committed. Resetting stream.");
         try {
