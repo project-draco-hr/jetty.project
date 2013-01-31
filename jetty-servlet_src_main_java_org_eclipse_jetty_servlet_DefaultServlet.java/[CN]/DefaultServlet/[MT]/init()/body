@@ -17,7 +17,7 @@
   if (getInitParameter("aliases") != null)   _contextHandler.setAliases(getInitBoolean("aliases",false));
   boolean aliases=_contextHandler.isAliases();
   if (!aliases && !FileResource.getCheckAliases())   throw new IllegalStateException("Alias checking disabled");
-  if (aliases)   _servletContext.log("Aliases are enabled");
+  if (aliases)   _servletContext.log("Aliases are enabled! Security constraints may be bypassed!!!");
   _useFileMappedBuffer=getInitBoolean("useFileMappedBuffer",_useFileMappedBuffer);
   _relativeResourceBase=getInitParameter("relativeResourceBase");
   String rb=getInitParameter("resourceBase");
@@ -60,9 +60,10 @@
     _cache=(ResourceCache)_servletContext.getAttribute(resourceCache);
     LOG.debug("Cache {}={}",resourceCache,_cache);
   }
+  _etags=getInitBoolean("etags",_etags);
   try {
     if (_cache == null && max_cached_files > 0) {
-      _cache=new ResourceCache(null,this,_mimeTypes,_useFileMappedBuffer);
+      _cache=new ResourceCache(null,this,_mimeTypes,_useFileMappedBuffer,_etags);
       if (max_cache_size > 0)       _cache.setMaxCacheSize(max_cache_size);
       if (max_cached_file_size >= -1)       _cache.setMaxCachedFileSize(max_cached_file_size);
       if (max_cached_files >= -1)       _cache.setMaxCachedFiles(max_cached_files);

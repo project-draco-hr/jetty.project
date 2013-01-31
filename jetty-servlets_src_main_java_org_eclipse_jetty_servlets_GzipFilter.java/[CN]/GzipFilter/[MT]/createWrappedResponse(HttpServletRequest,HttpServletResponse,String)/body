@@ -1,9 +1,22 @@
 {
   CompressedResponseWrapper wrappedResponse=null;
-  if (compressionType.equals(GZIP)) {
+  if (compressionType == null) {
     wrappedResponse=new CompressedResponseWrapper(request,response){
-      @Override protected AbstractCompressedStream newCompressedStream(      HttpServletRequest request,      HttpServletResponse response,      long contentLength,      int bufferSize,      int minCompressSize) throws IOException {
-        return new AbstractCompressedStream(compressionType,request,response,contentLength,bufferSize,minCompressSize){
+      @Override protected AbstractCompressedStream newCompressedStream(      HttpServletRequest request,      HttpServletResponse response) throws IOException {
+        return new AbstractCompressedStream(null,request,this,_vary){
+          @Override protected DeflaterOutputStream createStream() throws IOException {
+            return null;
+          }
+        }
+;
+      }
+    }
+;
+  }
+ else   if (compressionType.equals(GZIP)) {
+    wrappedResponse=new CompressedResponseWrapper(request,response){
+      @Override protected AbstractCompressedStream newCompressedStream(      HttpServletRequest request,      HttpServletResponse response) throws IOException {
+        return new AbstractCompressedStream(compressionType,request,this,_vary){
           @Override protected DeflaterOutputStream createStream() throws IOException {
             return new GZIPOutputStream(_response.getOutputStream(),_bufferSize);
           }
@@ -15,8 +28,8 @@
   }
  else   if (compressionType.equals(DEFLATE)) {
     wrappedResponse=new CompressedResponseWrapper(request,response){
-      @Override protected AbstractCompressedStream newCompressedStream(      HttpServletRequest request,      HttpServletResponse response,      long contentLength,      int bufferSize,      int minCompressSize) throws IOException {
-        return new AbstractCompressedStream(compressionType,request,response,contentLength,bufferSize,minCompressSize){
+      @Override protected AbstractCompressedStream newCompressedStream(      HttpServletRequest request,      HttpServletResponse response) throws IOException {
+        return new AbstractCompressedStream(compressionType,request,this,_vary){
           @Override protected DeflaterOutputStream createStream() throws IOException {
             return new DeflaterOutputStream(_response.getOutputStream(),new Deflater(_deflateCompressionLevel,_deflateNoWrap));
           }

@@ -1,38 +1,41 @@
 {
   HttpServletRequest request=(HttpServletRequest)req;
   HttpServletResponse response=(HttpServletResponse)res;
-  response.setHeader("Vary","Accept-Encoding");
-  String compressionType=selectCompression(request.getHeader("accept-encoding"));
-  if (compressionType != null && !response.containsHeader("Content-Encoding") && !HttpMethods.HEAD.equalsIgnoreCase(request.getMethod())) {
-    String ua=getUserAgent(request);
-    if (isExcludedAgent(ua)) {
+  String requestURI=request.getRequestURI();
+  if (!HttpMethods.GET.equalsIgnoreCase(request.getMethod()) || isExcludedPath(requestURI)) {
+    super.doFilter(request,response,chain);
+    return;
+  }
+  if (_mimeTypes != null && _mimeTypes.size() > 0) {
+    String mimeType=_context.getMimeType(request.getRequestURI());
+    if (mimeType != null && !_mimeTypes.contains(mimeType)) {
       super.doFilter(request,response,chain);
       return;
-    }
-    String requestURI=request.getRequestURI();
-    if (isExcludedPath(requestURI)) {
-      super.doFilter(request,response,chain);
-      return;
-    }
-    CompressedResponseWrapper wrappedResponse=createWrappedResponse(request,response,compressionType);
-    boolean exceptional=true;
-    try {
-      super.doFilter(request,wrappedResponse,chain);
-      exceptional=false;
-    }
-  finally {
-      Continuation continuation=ContinuationSupport.getContinuation(request);
-      if (continuation.isSuspended() && continuation.isResponseWrapped()) {
-        continuation.addContinuationListener(new ContinuationListenerWaitingForWrappedResponseToFinish(wrappedResponse));
-      }
- else       if (exceptional && !response.isCommitted()) {
-        wrappedResponse.resetBuffer();
-        wrappedResponse.noCompression();
-      }
- else       wrappedResponse.finish();
     }
   }
- else {
-    super.doFilter(request,response,chain);
+  String ua=getUserAgent(request);
+  boolean ua_excluded=ua != null && isExcludedAgent(ua);
+  String compressionType=ua_excluded ? null : selectCompression(request.getHeader("accept-encoding"));
+  String etag=request.getHeader("If-None-Match");
+  if (etag != null) {
+    int dd=etag.indexOf("--");
+    if (dd > 0)     request.setAttribute(ETAG,etag.substring(0,dd) + (etag.endsWith("\"") ? "\"" : ""));
+  }
+  CompressedResponseWrapper wrappedResponse=createWrappedResponse(request,response,compressionType);
+  boolean exceptional=true;
+  try {
+    super.doFilter(request,wrappedResponse,chain);
+    exceptional=false;
+  }
+  finally {
+    Continuation continuation=ContinuationSupport.getContinuation(request);
+    if (continuation.isSuspended() && continuation.isResponseWrapped()) {
+      continuation.addContinuationListener(new ContinuationListenerWaitingForWrappedResponseToFinish(wrappedResponse));
+    }
+ else     if (exceptional && !response.isCommitted()) {
+      wrappedResponse.resetBuffer();
+      wrappedResponse.noCompression();
+    }
+ else     wrappedResponse.finish();
   }
 }
