@@ -31,7 +31,10 @@
                 String unicode=new String(Character.toChars(TypeUtil.parseInt(encoded,o,4,16)));
                 buffer.getStringBuffer().append(unicode);
               }
- else               i=length;
+ else {
+                i=length;
+                buffer.getStringBuffer().append(Utf8Appendable.REPLACEMENT);
+              }
             }
  else {
               int o=offset + i + 1;
@@ -40,11 +43,19 @@
               buffer.append(b);
             }
           }
- catch (          NumberFormatException nfe) {
+ catch (          NotUtf8Exception e) {
+            LOG.warn(e.toString());
+            LOG.debug(e);
+          }
+catch (          NumberFormatException nfe) {
+            LOG.debug(nfe);
             buffer.getStringBuffer().append(Utf8Appendable.REPLACEMENT);
           }
         }
- else         i=length;
+ else {
+          buffer.getStringBuffer().append(Utf8Appendable.REPLACEMENT);
+          i=length;
+        }
       }
  else       if (buffer != null)       buffer.getStringBuffer().append(c);
     }
@@ -52,7 +63,7 @@
       if (offset == 0 && encoded.length() == length)       return encoded;
       return encoded.substring(offset,offset + length);
     }
-    return buffer.toString();
+    return buffer.toReplacedString();
   }
  else {
     StringBuffer buffer=null;
@@ -84,12 +95,18 @@
             if (i + 2 < length) {
               try {
                 if ('u' == encoded.charAt(offset + i + 1)) {
-                  int o=offset + i + 2;
-                  i+=6;
-                  String unicode=new String(Character.toChars(TypeUtil.parseInt(encoded,o,4,16)));
-                  byte[] reencoded=unicode.getBytes(charset);
-                  System.arraycopy(reencoded,0,ba,n,reencoded.length);
-                  n+=reencoded.length;
+                  if (i + 6 < length) {
+                    int o=offset + i + 2;
+                    i+=6;
+                    String unicode=new String(Character.toChars(TypeUtil.parseInt(encoded,o,4,16)));
+                    byte[] reencoded=unicode.getBytes(charset);
+                    System.arraycopy(reencoded,0,ba,n,reencoded.length);
+                    n+=reencoded.length;
+                  }
+ else {
+                    ba[n++]=(byte)'?';
+                    i=length;
+                  }
                 }
  else {
                   int o=offset + i + 1;
@@ -104,8 +121,8 @@
               }
             }
  else {
-              ba[n++]=(byte)'%';
-              i++;
+              ba[n++]=(byte)'?';
+              i=length;
             }
           }
  else           if (c == '+') {
