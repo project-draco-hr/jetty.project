@@ -36,8 +36,16 @@ if (i + 2 < end) {
 if ('u' == raw[i + 1]) {
 i++;
 if (i + 4 < end) buffer.getStringBuilder().append(Character.toChars((convertHexDigit(raw[++i]) << 12) + (convertHexDigit(raw[++i]) << 8) + (convertHexDigit(raw[++i]) << 4)+ convertHexDigit(raw[++i])));
+ else {
+buffer.getStringBuilder().append(Utf8Appendable.REPLACEMENT);
+i=end;
+}
 }
  else buffer.append((byte)((convertHexDigit(raw[++i]) << 4) + convertHexDigit(raw[++i])));
+}
+ else {
+buffer.getStringBuilder().append(Utf8Appendable.REPLACEMENT);
+i=end;
 }
 break;
 default :
@@ -51,12 +59,12 @@ LOG.debug(e);
 }
 }
 if (key != null) {
-value=buffer.length() == 0 ? "" : buffer.toString();
+value=buffer.length() == 0 ? "" : buffer.toReplacedString();
 buffer.reset();
 map.add(key,value);
 }
  else if (buffer.length() > 0) {
-map.add(buffer.toString(),"");
+map.add(buffer.toReplacedString(),"");
 }
 }
 }
