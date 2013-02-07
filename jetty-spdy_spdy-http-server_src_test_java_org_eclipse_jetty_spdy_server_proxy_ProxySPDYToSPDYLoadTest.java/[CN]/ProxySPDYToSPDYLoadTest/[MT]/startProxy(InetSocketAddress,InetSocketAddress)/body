@@ -1,0 +1,14 @@
+{
+  proxy=new Server();
+  ProxyEngineSelector proxyEngineSelector=new ProxyEngineSelector();
+  SPDYProxyEngine spdyProxyEngine=new SPDYProxyEngine(factory);
+  proxyEngineSelector.putProxyEngine("spdy/" + version,spdyProxyEngine);
+  proxyEngineSelector.putProxyServerInfo("localhost",new ProxyEngineSelector.ProxyServerInfo("spdy/" + version,"localhost",server1.getPort()));
+  proxyEngineSelector.putProxyServerInfo("127.0.0.1",new ProxyEngineSelector.ProxyServerInfo("spdy/" + version,"127.0.0.1",server2.getPort()));
+  proxyEngineSelector.putProxyServerInfo("127.0.0.2",new ProxyEngineSelector.ProxyServerInfo("spdy/" + version,"127.0.0.1",server2.getPort()));
+  proxyConnector=new HTTPSPDYProxyServerConnector(proxy,sslContextFactory,proxyEngineSelector);
+  proxyConnector.setPort(0);
+  proxy.addConnector(proxyConnector);
+  proxy.start();
+  return new InetSocketAddress("localhost",proxyConnector.getLocalPort());
+}
