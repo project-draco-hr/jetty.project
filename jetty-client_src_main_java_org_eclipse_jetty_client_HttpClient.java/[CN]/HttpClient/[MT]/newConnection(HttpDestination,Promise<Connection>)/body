@@ -1,17 +1,26 @@
 {
-  SocketChannel channel=null;
-  try {
-    channel=SocketChannel.open();
-    SocketAddress bindAddress=getBindAddress();
-    if (bindAddress != null)     channel.bind(bindAddress);
-    configure(channel);
-    channel.configureBlocking(false);
-    channel.connect(destination.getConnectAddress());
-    Future<Connection> result=new ConnectionCallback(destination,promise);
-    selectorManager.connect(channel,result);
+  Destination.Address address=destination.getConnectAddress();
+  resolver.resolve(address.getHost(),address.getPort(),new Promise<SocketAddress>(){
+    @Override public void succeeded(    SocketAddress socketAddress){
+      SocketChannel channel=null;
+      try {
+        channel=SocketChannel.open();
+        SocketAddress bindAddress=getBindAddress();
+        if (bindAddress != null)         channel.bind(bindAddress);
+        configure(channel);
+        channel.configureBlocking(false);
+        channel.connect(socketAddress);
+        Future<Connection> futureConnection=new ConnectionCallback(destination,promise);
+        selectorManager.connect(channel,futureConnection);
+      }
+ catch (      Throwable x) {
+        if (channel != null)         close(channel);
+        promise.failed(x);
+      }
+    }
+    @Override public void failed(    Throwable x){
+      promise.failed(x);
+    }
   }
- catch (  Exception x) {
-    if (channel != null)     close(channel);
-    promise.failed(x);
-  }
+);
 }

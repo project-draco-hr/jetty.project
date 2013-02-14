@@ -1,7 +1,9 @@
 {
   start(new EmptyServerHandler());
   Destination destination=client.getDestination(scheme,"localhost",connector.getLocalPort());
-  Connection connection=destination.newConnection().get(5,TimeUnit.SECONDS);
+  FuturePromise<Connection> futureConnection=new FuturePromise<>();
+  destination.newConnection(futureConnection);
+  Connection connection=futureConnection.get(5,TimeUnit.SECONDS);
   Request request=client.newRequest(destination.getHost(),destination.getPort()).scheme(scheme);
   FutureResponseListener listener=new FutureResponseListener(request);
   connection.send(request,listener);
