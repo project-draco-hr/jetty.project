@@ -1,0 +1,79 @@
+{
+  ContextHandler ch=new ContextHandler();
+  URLClassLoader chLoader=new URLClassLoader(new URL[0],Thread.currentThread().getContextClassLoader());
+  ch.setClassLoader(chLoader);
+  ContextHandler ch2=new ContextHandler();
+  URLClassLoader ch2Loader=new URLClassLoader(new URL[0],Thread.currentThread().getContextClassLoader());
+  ch2.setClassLoader(ch2Loader);
+  try {
+    ch.setContextPath("/ch");
+    ch.addEventListener(new ServletContextListener(){
+      private Context comp;
+      private Object testObj=new Object();
+      public void contextInitialized(      ServletContextEvent sce){
+        try {
+          InitialContext initCtx=new InitialContext();
+          Context java=(Context)initCtx.lookup("java:");
+          assertNotNull(java);
+          comp=(Context)initCtx.lookup("java:comp");
+          assertNotNull(comp);
+          Context env=((Context)comp).createSubcontext("env");
+          assertNotNull(env);
+          env.bind("ch",testObj);
+        }
+ catch (        Exception e) {
+          throw new IllegalStateException(e);
+        }
+      }
+      public void contextDestroyed(      ServletContextEvent sce){
+        try {
+          assertNotNull(comp);
+          assertEquals(testObj,comp.lookup("env/ch"));
+          comp.destroySubcontext("env");
+        }
+ catch (        Exception e) {
+          throw new IllegalStateException(e);
+        }
+      }
+    }
+);
+    ch.start();
+    ch2.setContextPath("/ch2");
+    ch2.addEventListener(new ServletContextListener(){
+      private Context comp;
+      private Object testObj=new Object();
+      public void contextInitialized(      ServletContextEvent sce){
+        try {
+          InitialContext initCtx=new InitialContext();
+          comp=(Context)initCtx.lookup("java:comp");
+          assertNotNull(comp);
+          Context env=((Context)comp).createSubcontext("env");
+          try {
+            env.lookup("ch");
+            fail("java:comp/env visible from another context!");
+          }
+ catch (          NameNotFoundException e) {
+          }
+        }
+ catch (        Exception e) {
+          throw new IllegalStateException(e);
+        }
+      }
+      public void contextDestroyed(      ServletContextEvent sce){
+        try {
+          assertNotNull(comp);
+          comp.destroySubcontext("env");
+        }
+ catch (        Exception e) {
+          throw new IllegalStateException(e);
+        }
+      }
+    }
+);
+    ch2.start();
+  }
+  finally {
+    ch.stop();
+    ch2.stop();
+  }
+}

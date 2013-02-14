@@ -4,22 +4,31 @@
     if (__log.isDebugEnabled())     __log.debug("Using the Context that is bound on the thread");
     return ctx;
   }
-  ClassLoader loader=null;
-  loader=Thread.currentThread().getContextClassLoader();
-  if (__log.isDebugEnabled() && loader != null)   __log.debug("Using thread context classloader");
-  if (loader == null && ContextHandler.getCurrentContext() != null) {
+  ClassLoader tccl=Thread.currentThread().getContextClassLoader();
+  ClassLoader loader=tccl;
+  if (loader != null) {
+    if (__log.isDebugEnabled() && loader != null)     __log.debug("Trying thread context classloader");
+    while (ctx == null && loader != null) {
+      ctx=getContextForClassLoader(loader);
+      if (ctx == null && loader != null)       loader=loader.getParent();
+    }
+    if (ctx == null) {
+      ctx=newNamingContext(obj,tccl,env,name,nameCtx);
+      __contextMap.put(tccl,ctx);
+      if (__log.isDebugEnabled())       __log.debug("Made context " + name.get(0) + " for classloader: "+ tccl);
+    }
+    return ctx;
+  }
+  if (ContextHandler.getCurrentContext() != null) {
+    if (__log.isDebugEnabled() && loader != null)     __log.debug("Trying classloader of current org.eclipse.jetty.server.handler.ContextHandler");
     loader=ContextHandler.getCurrentContext().getContextHandler().getClassLoader();
-    if (__log.isDebugEnabled() && loader != null)     __log.debug("Using classloader of current org.eclipse.jetty.server.handler.ContextHandler");
+    ctx=(Context)__contextMap.get(loader);
+    if (ctx == null && loader != null) {
+      ctx=newNamingContext(obj,loader,env,name,nameCtx);
+      __contextMap.put(loader,ctx);
+      if (__log.isDebugEnabled())       __log.debug("Made context " + name.get(0) + " for classloader: "+ loader);
+    }
+    return ctx;
   }
-  ctx=(Context)__contextMap.get(loader);
-  if (ctx == null) {
-    Reference ref=(Reference)obj;
-    StringRefAddr parserAddr=(StringRefAddr)ref.get("parser");
-    String parserClassName=(parserAddr == null ? null : (String)parserAddr.getContent());
-    NameParser parser=(NameParser)(parserClassName == null ? null : loader.loadClass(parserClassName).newInstance());
-    ctx=new NamingContext(env,name.get(0),(NamingContext)nameCtx,parser);
-    if (__log.isDebugEnabled())     __log.debug("Made context " + name.get(0) + " for classloader: "+ loader);
-    __contextMap.put(loader,ctx);
-  }
-  return ctx;
+  return null;
 }
