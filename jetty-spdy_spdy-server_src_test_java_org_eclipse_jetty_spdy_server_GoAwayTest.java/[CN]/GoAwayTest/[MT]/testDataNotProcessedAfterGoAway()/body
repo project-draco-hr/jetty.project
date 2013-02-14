@@ -22,10 +22,10 @@
     }
   }
 ;
-  final AtomicReference<GoAwayReceivedInfo> goAwayRef=new AtomicReference<>();
+  final AtomicReference<GoAwayResultInfo> goAwayRef=new AtomicReference<>();
   final CountDownLatch goAwayLatch=new CountDownLatch(1);
   SessionFrameListener clientSessionFrameListener=new SessionFrameListener.Adapter(){
-    @Override public void onGoAway(    Session session,    GoAwayReceivedInfo goAwayInfo){
+    @Override public void onGoAway(    Session session,    GoAwayResultInfo goAwayInfo){
       goAwayRef.set(goAwayInfo);
       goAwayLatch.countDown();
     }
@@ -50,7 +50,7 @@
     Assert.assertThat(x.getCause(),CoreMatchers.instanceOf(EofException.class));
   }
   Assert.assertTrue(goAwayLatch.await(5,TimeUnit.SECONDS));
-  GoAwayReceivedInfo goAway=goAwayRef.get();
+  GoAwayResultInfo goAway=goAwayRef.get();
   Assert.assertNotNull(goAway);
   Assert.assertEquals(stream2.getId(),goAway.getLastStreamId());
 }
