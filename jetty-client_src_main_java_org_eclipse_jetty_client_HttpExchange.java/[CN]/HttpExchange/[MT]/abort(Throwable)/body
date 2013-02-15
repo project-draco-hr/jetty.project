@@ -1,6 +1,14 @@
 {
-  LOG.debug("Aborting {} reason {}",this,cause);
-  boolean aborted=connection.abort(this,cause);
-  LOG.debug("Aborted {}: {}",this,aborted);
-  return aborted;
+  if (destination.remove(this)) {
+    destination.abort(this,cause);
+    LOG.debug("Aborted while queued {}: {}",this,cause);
+    return true;
+  }
+ else {
+    HttpConnection connection=this.connection;
+    if (connection == null)     return false;
+    boolean aborted=connection.abort(cause);
+    LOG.debug("Aborted while active ({}) {}: {}",aborted,this,cause);
+    return aborted;
+  }
 }
