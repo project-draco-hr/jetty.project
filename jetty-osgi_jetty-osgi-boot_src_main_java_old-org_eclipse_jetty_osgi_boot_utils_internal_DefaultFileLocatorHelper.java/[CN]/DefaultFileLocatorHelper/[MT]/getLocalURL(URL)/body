@@ -1,0 +1,20 @@
+{
+  if ("bundleresource".equals(url.getProtocol()) || "bundleentry".equals(url.getProtocol())) {
+    try {
+      URLConnection conn=url.openConnection();
+      conn.setDefaultUseCaches(Resource.getDefaultUseCaches());
+      if (BUNDLE_URL_CONNECTION_getLocalURL == null && conn.getClass().getName().equals("org.eclipse.osgi.framework.internal.core.BundleURLConnection")) {
+        BUNDLE_URL_CONNECTION_getLocalURL=conn.getClass().getMethod("getLocalURL",null);
+        BUNDLE_URL_CONNECTION_getLocalURL.setAccessible(true);
+      }
+      if (BUNDLE_URL_CONNECTION_getLocalURL != null) {
+        return (URL)BUNDLE_URL_CONNECTION_getLocalURL.invoke(conn,null);
+      }
+    }
+ catch (    Throwable t) {
+      System.err.println("Unable to locate the OSGi url: '" + url + "'.");
+      t.printStackTrace();
+    }
+  }
+  return url;
+}

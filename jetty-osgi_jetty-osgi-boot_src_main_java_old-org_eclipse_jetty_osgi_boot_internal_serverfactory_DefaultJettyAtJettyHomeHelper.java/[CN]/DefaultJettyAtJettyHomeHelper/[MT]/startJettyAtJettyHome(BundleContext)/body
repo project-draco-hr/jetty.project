@@ -1,0 +1,48 @@
+{
+  String jettyHomeSysProp=System.getProperty(SYS_PROP_JETTY_HOME);
+  String jettyHomeBundleSysProp=System.getProperty(SYS_PROP_JETTY_HOME_BUNDLE);
+  File jettyHome=null;
+  Bundle jettyHomeBundle=null;
+  if (jettyHomeSysProp != null) {
+    jettyHomeSysProp=resolvePropertyValue(jettyHomeSysProp);
+    if (jettyHomeSysProp.startsWith("\"") && jettyHomeSysProp.endsWith("\"") || (jettyHomeSysProp.startsWith("'") && jettyHomeSysProp.endsWith("'"))) {
+      jettyHomeSysProp=jettyHomeSysProp.substring(1,jettyHomeSysProp.length() - 1);
+    }
+    if (jettyHomeBundleSysProp != null) {
+      LOG.warn("Both jetty.home and jetty.home.bundle property defined: jetty.home.bundle ignored.");
+    }
+    jettyHome=new File(jettyHomeSysProp);
+    if (!jettyHome.exists() || !jettyHome.isDirectory()) {
+      LOG.warn("Unable to locate the jetty.home folder " + jettyHomeSysProp);
+      return;
+    }
+  }
+ else   if (jettyHomeBundleSysProp != null) {
+    jettyHomeBundleSysProp=resolvePropertyValue(jettyHomeBundleSysProp);
+    for (    Bundle b : bundleContext.getBundles()) {
+      if (b.getSymbolicName().equals(jettyHomeBundleSysProp)) {
+        jettyHomeBundle=b;
+        break;
+      }
+    }
+    if (jettyHomeBundle == null) {
+      LOG.warn("Unable to find the jetty.home.bundle named " + jettyHomeSysProp);
+      return;
+    }
+  }
+  if (jettyHome == null && jettyHomeBundle == null) {
+    LOG.warn("No default jetty created.");
+    return;
+  }
+  Server server=new Server();
+  Dictionary<String,String> properties=new Hashtable<String,String>();
+  properties.put(OSGiServerConstants.MANAGED_JETTY_SERVER_NAME,OSGiServerConstants.MANAGED_JETTY_SERVER_DEFAULT_NAME);
+  String configURLs=jettyHome != null ? getJettyConfigurationURLs(jettyHome) : getJettyConfigurationURLs(jettyHomeBundle);
+  properties.put(OSGiServerConstants.MANAGED_JETTY_XML_CONFIG_URLS,configURLs);
+  LOG.info("Configuring the default jetty server with " + configURLs);
+  setProperty(properties,SYS_PROP_JETTY_HOME,System.getProperty(SYS_PROP_JETTY_HOME));
+  setProperty(properties,SYS_PROP_JETTY_HOST,System.getProperty(SYS_PROP_JETTY_HOST));
+  setProperty(properties,SYS_PROP_JETTY_PORT,System.getProperty(SYS_PROP_JETTY_PORT));
+  setProperty(properties,SYS_PROP_JETTY_PORT_SSL,System.getProperty(SYS_PROP_JETTY_PORT_SSL));
+  bundleContext.registerService(Server.class.getName(),server,properties);
+}

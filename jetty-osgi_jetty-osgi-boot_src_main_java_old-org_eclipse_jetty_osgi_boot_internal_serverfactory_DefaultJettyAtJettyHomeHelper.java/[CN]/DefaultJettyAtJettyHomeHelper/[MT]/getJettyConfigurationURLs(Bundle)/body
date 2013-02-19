@@ -1,0 +1,28 @@
+{
+  String files=System.getProperty(SYS_PROP_JETTY_ETC_FILES,DEFAULT_JETTY_ETC_FILES);
+  StringTokenizer tokenizer=new StringTokenizer(files,";,",false);
+  StringBuilder res=new StringBuilder();
+  while (tokenizer.hasMoreTokens()) {
+    String etcFile=tokenizer.nextToken().trim();
+    if (etcFile.startsWith("/") || etcFile.indexOf(":") != -1) {
+      appendToCommaSeparatedList(res,etcFile);
+    }
+ else {
+      Enumeration<URL> enUrls=BundleFileLocatorHelper.DEFAULT.findEntries(configurationBundle,etcFile);
+      if ((enUrls == null || !enUrls.hasMoreElements())) {
+        String tmp=DEFAULT_JETTYHOME + "/etc/" + etcFile;
+        enUrls=BundleFileLocatorHelper.DEFAULT.findEntries(configurationBundle,tmp);
+        LOG.info("Configuring jetty with the default embedded configuration:" + "bundle: " + configurationBundle.getSymbolicName() + " config: "+ tmp);
+      }
+      if (enUrls == null || !enUrls.hasMoreElements()) {
+        LOG.warn("Unable to locate a jetty configuration file for " + etcFile);
+      }
+      if (enUrls != null) {
+        while (enUrls.hasMoreElements()) {
+          appendToCommaSeparatedList(res,enUrls.nextElement().toString());
+        }
+      }
+    }
+  }
+  return res.toString();
+}
