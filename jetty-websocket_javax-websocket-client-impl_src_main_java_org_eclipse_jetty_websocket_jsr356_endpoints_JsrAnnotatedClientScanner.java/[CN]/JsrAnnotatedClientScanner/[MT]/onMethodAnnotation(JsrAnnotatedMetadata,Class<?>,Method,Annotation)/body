@@ -26,45 +26,6 @@
   }
   if (isAnnotation(annotation,WebSocketMessage.class)) {
     assertIsPublicNonStatic(method);
-    JsrMessageCallableMethod callable=new JsrMessageCallableMethod(pojo,method);
-    callable.setReturnType(method.getReturnType(),encoders);
-    JsrMethodParameters params=new JsrMethodParameters(method);
-    for (    Param param : params) {
-      String varname=getPathMappingParameterVariable(param.type);
-      if (varname != null) {
-        param.setPathParamVariable(varname);
-      }
-    }
-    Class<?> formatParams[]=null;
-    if ((formatParams=params.containsAny(validTextFormatParams)) != null) {
-      params.setValid(formatParams);
-    }
-    if ((formatParams=params.containsAny(validBinaryFormatParams)) != null) {
-      params.setValid(formatParams);
-    }
-    if ((formatParams=params.containsAny(validPongFormatParams)) != null) {
-      params.setValid(formatParams);
-    }
-    for (    Class<?>[] paramSet : validMessageParams) {
-      if (params.containsParameterSet(paramSet)) {
-        params.setValid(paramSet);
-      }
-    }
-    for (    Param param : params) {
-      if (param.isValid() == false) {
-        StringBuilder err=new StringBuilder();
-        err.append("Encountered invalid/unhandled parameter <");
-        err.append(param.type.getName());
-        err.append("> (position ").append(param.index).append(") in method <");
-        err.append(method.getName());
-        err.append("> of object <");
-        err.append(pojo.getName());
-        err.append("> that doesn't fit the requirements for the @");
-        err.append(WebSocketMessage.class.getSimpleName());
-        err.append(" annotation");
-        throw new InvalidSignatureException(err.toString());
-      }
-    }
     return;
   }
 }

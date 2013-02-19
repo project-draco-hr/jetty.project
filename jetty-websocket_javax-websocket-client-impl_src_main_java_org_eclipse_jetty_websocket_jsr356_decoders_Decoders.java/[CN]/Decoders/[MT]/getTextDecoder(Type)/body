@@ -1,0 +1,23 @@
+{
+  for (  Class<? extends Decoder> decoderClass : decoders) {
+    if (!DeploymentTypeUtils.isAssignable(decoderClass,Decoder.Text.class)) {
+      continue;
+    }
+    Type textType=DeploymentTypeUtils.getGenericType(decoderClass,Decoder.Text.class);
+    if (DeploymentTypeUtils.isAssignable(type,textType)) {
+      return instantiate(decoderClass);
+    }
+  }
+  Class<? extends Decoder> decoderClass=null;
+  if (type instanceof Class<?>) {
+    Class<?> typeClass=(Class<?>)type;
+    if (typeClass.isPrimitive()) {
+      typeClass=DeploymentTypeUtils.getPrimitiveClass(typeClass);
+    }
+    decoderClass=DEFAULTS.get(typeClass);
+    if (decoderClass != null) {
+      return instantiate(decoderClass);
+    }
+  }
+  throw new DeploymentException("Unable to find appropriate Decoder for type: " + type);
+}
