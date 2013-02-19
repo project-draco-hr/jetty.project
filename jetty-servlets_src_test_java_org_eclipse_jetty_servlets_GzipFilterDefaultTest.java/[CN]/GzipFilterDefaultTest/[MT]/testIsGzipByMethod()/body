@@ -1,0 +1,17 @@
+{
+  GzipTester tester=new GzipTester(testingdir,compressionType);
+  int filesize=CompressedResponseWrapper.DEFAULT_BUFFER_SIZE * 2;
+  tester.prepareServerFile("file.txt",filesize);
+  FilterHolder holder=tester.setContentServlet(GetServlet.class);
+  holder.setInitParameter("mimeTypes","text/plain");
+  holder.setInitParameter("methods","POST,WIBBLE");
+  try {
+    tester.start();
+    tester.assertIsResponseGzipCompressed("POST","file.txt");
+    tester.assertIsResponseGzipCompressed("WIBBLE","file.txt");
+    tester.assertIsResponseNotGzipCompressed("GET","file.txt",filesize,200);
+  }
+  finally {
+    tester.stop();
+  }
+}

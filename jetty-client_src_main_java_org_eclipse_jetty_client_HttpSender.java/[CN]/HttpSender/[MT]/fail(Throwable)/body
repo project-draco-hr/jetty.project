@@ -10,8 +10,9 @@
     if (updateState(current,State.FAILURE))     break;
   }
   exchange.terminateRequest();
+  HttpDestination destination=connection.getDestination();
   Request request=exchange.getRequest();
-  requestNotifier.notifyFailure(request,failure);
+  destination.getRequestNotifier().notifyFailure(request,failure);
   LOG.debug("Failed {} {}",request,failure);
   Result result=completion.getReference();
   boolean notCommitted=isBeforeCommit(current);
@@ -23,7 +24,7 @@
   if (result != null) {
     connection.complete(exchange,false);
     HttpConversation conversation=exchange.getConversation();
-    responseNotifier.notifyComplete(conversation.getResponseListeners(),result);
+    destination.getResponseNotifier().notifyComplete(conversation.getResponseListeners(),result);
   }
   return true;
 }
