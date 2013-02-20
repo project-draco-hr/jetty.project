@@ -1,22 +1,15 @@
 {
-  final AtomicReference<IOException> failure=new AtomicReference<>();
-  start(new AbstractHandler(){
+  start(new EmptyServerHandler(){
     @Override public void handle(    String target,    org.eclipse.jetty.server.Request baseRequest,    HttpServletRequest request,    HttpServletResponse response) throws IOException, ServletException {
-      try {
-        baseRequest.setHandled(true);
-        IO.copy(request.getInputStream(),response.getOutputStream());
-      }
- catch (      IOException x) {
-        failure.set(x);
-        throw x;
-      }
+      super.handle(target,baseRequest,request,response);
+      IO.copy(request.getInputStream(),response.getOutputStream());
     }
   }
 );
   final Throwable cause=new Exception();
   try {
-    client.newRequest("localhost",connector.getLocalPort()).scheme(scheme).onRequestCommit(new Request.CommitListener(){
-      @Override public void onCommit(      Request request){
+    client.newRequest("localhost",connector.getLocalPort()).scheme(scheme).onRequestContent(new Request.ContentListener(){
+      @Override public void onContent(      Request request,      ByteBuffer content){
         request.abort(cause);
       }
     }
