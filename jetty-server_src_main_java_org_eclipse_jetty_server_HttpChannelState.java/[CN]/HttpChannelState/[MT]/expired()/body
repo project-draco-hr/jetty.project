@@ -7,27 +7,32 @@ case ASYNCWAIT:
       aListeners=_asyncListeners;
     break;
 default :
-  aListeners=null;
-return;
+  return;
 }
 _expired=true;
 }
 if (aListeners != null) {
 for (AsyncListener listener : aListeners) {
 try {
-listener.onTimeout(_event);
+  listener.onTimeout(_event);
 }
  catch (Exception e) {
-LOG.warn(e);
+  LOG.warn(e);
 }
 }
 }
+boolean complete;
 synchronized (this) {
 switch (_state) {
 case ASYNCSTARTED:
 case ASYNCWAIT:
-complete();
+complete=true;
+break;
+default :
+complete=false;
+break;
 }
 }
+if (complete) complete();
 scheduleDispatch();
 }

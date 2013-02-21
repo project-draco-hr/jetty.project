@@ -1,7 +1,7 @@
 {
   final HttpConnection httpConnection=(HttpConnection)connection;
-  RequestContext requestContext=requests.poll();
-  if (requestContext == null) {
+  final HttpExchange exchange=exchanges.poll();
+  if (exchange == null) {
     LOG.debug("{} idle",httpConnection);
     if (!idleConnections.offer(httpConnection)) {
       LOG.debug("{} idle overflow");
@@ -14,12 +14,11 @@
     }
   }
  else {
-    final Request request=requestContext.request;
-    final List<Response.ResponseListener> listeners=requestContext.listeners;
+    final Request request=exchange.getRequest();
     Throwable cause=request.getAbortCause();
     if (cause != null) {
-      abort(request,listeners,cause);
-      LOG.debug("Aborted {} before processing",request);
+      abort(exchange,cause);
+      LOG.debug("Aborted before processing {}: {}",exchange,cause);
     }
  else {
       LOG.debug("{} active",httpConnection);
@@ -29,13 +28,13 @@
       if (dispatch) {
         client.getExecutor().execute(new Runnable(){
           @Override public void run(){
-            httpConnection.send(request,listeners);
+            httpConnection.send(exchange);
           }
         }
 );
       }
  else {
-        httpConnection.send(request,listeners);
+        httpConnection.send(exchange);
       }
     }
   }

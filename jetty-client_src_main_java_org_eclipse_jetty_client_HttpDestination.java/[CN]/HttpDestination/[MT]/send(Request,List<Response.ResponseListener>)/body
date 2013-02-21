@@ -3,10 +3,11 @@
   if (!getHost().equals(request.getHost()))   throw new IllegalArgumentException("Invalid request host " + request.getHost() + " for destination "+ this);
   int port=request.getPort();
   if (port >= 0 && getPort() != port)   throw new IllegalArgumentException("Invalid request port " + port + " for destination "+ this);
-  RequestContext requestContext=new RequestContext(request,listeners);
+  HttpConversation conversation=client.getConversation(request.getConversationID(),true);
+  HttpExchange exchange=new HttpExchange(conversation,this,request,listeners);
   if (client.isRunning()) {
-    if (requests.offer(requestContext)) {
-      if (!client.isRunning() && requests.remove(requestContext)) {
+    if (exchanges.offer(exchange)) {
+      if (!client.isRunning() && exchanges.remove(exchange)) {
         throw new RejectedExecutionException(client + " is stopping");
       }
  else {

@@ -4,7 +4,9 @@
     client.GET(uri);
     fail("sending request to client should have failed with an Exception!");
   }
- catch (  ExecutionException e) {
-    assertThat("We got a SSLHandshakeException as localhost doesn't match the hostname of the certificate",e.getCause().getCause(),instanceOf(SSLHandshakeException.class));
+ catch (  ExecutionException x) {
+    Throwable cause=x.getCause().getCause();
+    if (cause instanceof SSLHandshakeException)     assertThat(cause.getCause().getCause(),instanceOf(CertificateException.class));
+ else     assertThat(cause,instanceOf(ClosedChannelException.class));
   }
 }

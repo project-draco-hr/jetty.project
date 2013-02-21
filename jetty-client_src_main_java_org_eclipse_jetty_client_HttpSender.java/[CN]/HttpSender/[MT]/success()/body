@@ -6,14 +6,15 @@
   generator.reset();
   if (!updateState(State.COMMIT,State.IDLE))   throw new IllegalStateException();
   exchange.terminateRequest();
+  HttpDestination destination=connection.getDestination();
   Request request=exchange.getRequest();
-  requestNotifier.notifySuccess(request);
+  destination.getRequestNotifier().notifySuccess(request);
   LOG.debug("Sent {}",request);
   Result result=completion.getReference();
   if (result != null) {
     connection.complete(exchange,!result.isFailed());
     HttpConversation conversation=exchange.getConversation();
-    responseNotifier.notifyComplete(conversation.getResponseListeners(),result);
+    destination.getResponseNotifier().notifyComplete(conversation.getResponseListeners(),result);
   }
   return true;
 }
