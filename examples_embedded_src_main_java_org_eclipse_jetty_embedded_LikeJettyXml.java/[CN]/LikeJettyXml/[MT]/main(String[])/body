@@ -7,6 +7,7 @@
   server.manage(threadPool);
   server.setDumpAfterStart(false);
   server.setDumpBeforeStop(false);
+  server.addBean(new TimerScheduler());
   MBeanContainer mbContainer=new MBeanContainer(ManagementFactory.getPlatformMBeanServer());
   server.addBean(mbContainer);
   HttpConnectionFactory http=new HttpConnectionFactory();
@@ -51,6 +52,11 @@
   requestLog.setExtended(false);
   requestLogHandler.setRequestLog(requestLog);
   server.setStopAtShutdown(true);
+  LowResourceMonitor lowResourcesMonitor=new LowResourceMonitor(server);
+  lowResourcesMonitor.setLowResourcesIdleTimeout(1000);
+  lowResourcesMonitor.setMaxConnections(2);
+  lowResourcesMonitor.setPeriod(1200);
+  server.addBean(lowResourcesMonitor);
   server.start();
   server.join();
 }

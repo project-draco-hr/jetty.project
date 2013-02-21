@@ -1,0 +1,32 @@
+{
+  LOG.debug("S -> P pushed {} on {}",pushInfo,stream);
+  Fields headers=new Fields(pushInfo.getHeaders(),false);
+  addResponseProxyHeaders(stream,headers);
+  customizeResponseHeaders(stream,headers);
+  Stream clientStream=(Stream)stream.getAssociatedStream().getAttribute(CLIENT_STREAM_ATTRIBUTE);
+  convert(stream.getSession().getVersion(),clientStream.getSession().getVersion(),headers);
+  StreamHandler handler=new StreamHandler(clientStream,pushInfo);
+  stream.setAttribute(STREAM_HANDLER_ATTRIBUTE,handler);
+  clientStream.push(new PushInfo(getTimeout(),TimeUnit.MILLISECONDS,headers,pushInfo.isClose()),handler);
+  return new Adapter(){
+    @Override public void onReply(    Stream stream,    ReplyInfo replyInfo){
+      throw new UnsupportedOperationException();
+    }
+    @Override public void onHeaders(    Stream stream,    HeadersInfo headersInfo){
+      throw new UnsupportedOperationException();
+    }
+    @Override public void onData(    Stream serverStream,    final DataInfo serverDataInfo){
+      LOG.debug("S -> P pushed {} on {}",serverDataInfo,serverStream);
+      ByteBufferDataInfo clientDataInfo=new ByteBufferDataInfo(serverDataInfo.asByteBuffer(false),serverDataInfo.isClose()){
+        @Override public void consume(        int delta){
+          super.consume(delta);
+          serverDataInfo.consume(delta);
+        }
+      }
+;
+      StreamHandler handler=(StreamHandler)serverStream.getAttribute(STREAM_HANDLER_ATTRIBUTE);
+      handler.data(clientDataInfo);
+    }
+  }
+;
+}
