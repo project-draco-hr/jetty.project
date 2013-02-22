@@ -68,9 +68,19 @@
   String reply=new String(appIn.array(),appIn.arrayOffset(),appIn.remaining());
   appIn.clear();
   Assert.assertEquals("HelloWorld",reply);
-  SelectorManager.LOG.info("javax.net.ssl.SSLException: Inbound closed... is expected soon");
-  if (debug)   System.err.println("\nSudden Death");
+  if (debug)   System.err.println("Shutting down output");
   client.socket().shutdownOutput();
   filled=client.read(sslIn);
+  if (debug)   System.err.println("in=" + filled);
+  sslIn.flip();
+  try {
+    engine.unwrap(sslIn,appIn);
+    Assert.fail();
+  }
+ catch (  SSLException x) {
+  }
+  sslIn.clear();
+  filled=client.read(sslIn);
   Assert.assertEquals(-1,filled);
+  Assert.assertFalse(server.isOpen());
 }
