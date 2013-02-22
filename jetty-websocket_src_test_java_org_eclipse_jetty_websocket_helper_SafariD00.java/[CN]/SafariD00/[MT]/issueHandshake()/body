@@ -19,13 +19,24 @@
   out.flush();
   socket.setSoTimeout(10000);
   InputStreamReader reader=new InputStreamReader(in);
+  StringBuilder respHeaders=new StringBuilder();
   LOG.debug("Reading http headers");
   int crlfs=0;
   while (true) {
     int read=in.read();
+    respHeaders.append((char)read);
     if (read == '\r' || read == '\n')     ++crlfs;
  else     crlfs=0;
     if (crlfs == 4)     break;
+  }
+  if (respHeaders.toString().startsWith("HTTP/1.1 101 ") == false) {
+    String respLine=respHeaders.toString();
+    int idx=respLine.indexOf('\r');
+    if (idx > 0) {
+      respLine=respLine.substring(0,idx);
+    }
+    LOG.debug("Response Headers: {}",respHeaders.toString());
+    throw new IllegalStateException(respLine);
   }
   byte hixieHandshakeExpected[]=TypeUtil.fromHexString("c7438d956cf611a6af70603e6fa54809");
   byte hixieHandshake[]=new byte[hixieHandshakeExpected.length];
