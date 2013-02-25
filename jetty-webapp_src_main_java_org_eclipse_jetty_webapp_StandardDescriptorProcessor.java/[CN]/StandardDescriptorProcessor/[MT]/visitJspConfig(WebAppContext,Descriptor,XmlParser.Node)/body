@@ -43,17 +43,15 @@
     if (LOG.isDebugEnabled())     LOG.debug(config.toString());
   }
   if (paths.size() > 0) {
-    String jspName="jsp";
-    Map.Entry entry=context.getServletHandler().getHolderEntry("test.jsp");
-    if (entry != null) {
-      ServletHolder holder=(ServletHolder)entry.getValue();
-      jspName=holder.getName();
+    ServletHandler handler=context.getServletHandler();
+    ServletHolder jsp_pg_servlet=handler.getServlet(JspPropertyGroupServlet.NAME);
+    if (jsp_pg_servlet == null) {
+      jsp_pg_servlet=new ServletHolder(JspPropertyGroupServlet.NAME,new JspPropertyGroupServlet(context,handler));
+      handler.addServlet(jsp_pg_servlet);
     }
-    if (jspName != null) {
-      ServletMapping mapping=new ServletMapping();
-      mapping.setServletName(jspName);
-      mapping.setPathSpecs(paths.toArray(new String[paths.size()]));
-      context.getServletHandler().addServletMapping(mapping);
-    }
+    ServletMapping mapping=new ServletMapping();
+    mapping.setServletName(JspPropertyGroupServlet.NAME);
+    mapping.setPathSpecs(paths.toArray(new String[paths.size()]));
+    context.getServletHandler().addServletMapping(mapping);
   }
 }
