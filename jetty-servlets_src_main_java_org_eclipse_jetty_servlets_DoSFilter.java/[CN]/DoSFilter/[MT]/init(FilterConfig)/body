@@ -1,2 +1,87 @@
 {
+  _context=filterConfig.getServletContext();
+  _queue=new Queue[getMaxPriority() + 1];
+  _listeners=new ContinuationListener[getMaxPriority() + 1];
+  for (int p=0; p < _queue.length; p++) {
+    _queue[p]=new ConcurrentLinkedQueue<>();
+    final int priority=p;
+    _listeners[p]=new ContinuationListener(){
+      public void onComplete(      Continuation continuation){
+      }
+      public void onTimeout(      Continuation continuation){
+        _queue[priority].remove(continuation);
+      }
+    }
+;
+  }
+  _rateTrackers.clear();
+  int maxRequests=__DEFAULT_MAX_REQUESTS_PER_SEC;
+  String parameter=filterConfig.getInitParameter(MAX_REQUESTS_PER_S_INIT_PARAM);
+  if (parameter != null)   maxRequests=Integer.parseInt(parameter);
+  setMaxRequestsPerSec(maxRequests);
+  long delay=__DEFAULT_DELAY_MS;
+  parameter=filterConfig.getInitParameter(DELAY_MS_INIT_PARAM);
+  if (parameter != null)   delay=Long.parseLong(parameter);
+  setDelayMs(delay);
+  int throttledRequests=__DEFAULT_THROTTLE;
+  parameter=filterConfig.getInitParameter(THROTTLED_REQUESTS_INIT_PARAM);
+  if (parameter != null)   throttledRequests=Integer.parseInt(parameter);
+  setThrottledRequests(throttledRequests);
+  long maxWait=__DEFAULT_MAX_WAIT_MS;
+  parameter=filterConfig.getInitParameter(MAX_WAIT_INIT_PARAM);
+  if (parameter != null)   maxWait=Long.parseLong(parameter);
+  setMaxWaitMs(maxWait);
+  long throttle=__DEFAULT_THROTTLE_MS;
+  parameter=filterConfig.getInitParameter(THROTTLE_MS_INIT_PARAM);
+  if (parameter != null)   throttle=Long.parseLong(parameter);
+  setThrottleMs(throttle);
+  long maxRequestMs=__DEFAULT_MAX_REQUEST_MS_INIT_PARAM;
+  parameter=filterConfig.getInitParameter(MAX_REQUEST_MS_INIT_PARAM);
+  if (parameter != null)   maxRequestMs=Long.parseLong(parameter);
+  setMaxRequestMs(maxRequestMs);
+  long maxIdleTrackerMs=__DEFAULT_MAX_IDLE_TRACKER_MS_INIT_PARAM;
+  parameter=filterConfig.getInitParameter(MAX_IDLE_TRACKER_MS_INIT_PARAM);
+  if (parameter != null)   maxIdleTrackerMs=Long.parseLong(parameter);
+  setMaxIdleTrackerMs(maxIdleTrackerMs);
+  String whiteList="";
+  parameter=filterConfig.getInitParameter(IP_WHITELIST_INIT_PARAM);
+  if (parameter != null)   whiteList=parameter;
+  setWhitelist(whiteList);
+  parameter=filterConfig.getInitParameter(INSERT_HEADERS_INIT_PARAM);
+  setInsertHeaders(parameter == null || Boolean.parseBoolean(parameter));
+  parameter=filterConfig.getInitParameter(TRACK_SESSIONS_INIT_PARAM);
+  setTrackSessions(parameter == null || Boolean.parseBoolean(parameter));
+  parameter=filterConfig.getInitParameter(REMOTE_PORT_INIT_PARAM);
+  setRemotePort(parameter != null && Boolean.parseBoolean(parameter));
+  parameter=filterConfig.getInitParameter(ENABLED_INIT_PARAM);
+  setEnabled(parameter == null || Boolean.parseBoolean(parameter));
+  _requestTimeoutQ.setNow();
+  _requestTimeoutQ.setDuration(_maxRequestMs);
+  _trackerTimeoutQ.setNow();
+  _trackerTimeoutQ.setDuration(_maxIdleTrackerMs);
+  _running=true;
+  _timerThread=(new Thread(){
+    public void run(){
+      try {
+        while (_running) {
+          long now=_requestTimeoutQ.setNow();
+          _requestTimeoutQ.tick();
+          _trackerTimeoutQ.setNow(now);
+          _trackerTimeoutQ.tick();
+          try {
+            Thread.sleep(100);
+          }
+ catch (          InterruptedException e) {
+            LOG.ignore(e);
+          }
+        }
+      }
+  finally {
+        LOG.debug("DoSFilter timer exited");
+      }
+    }
+  }
+);
+  _timerThread.start();
+  if (_context != null && Boolean.parseBoolean(filterConfig.getInitParameter(MANAGED_ATTR_INIT_PARAM)))   _context.setAttribute(filterConfig.getFilterName(),this);
 }
