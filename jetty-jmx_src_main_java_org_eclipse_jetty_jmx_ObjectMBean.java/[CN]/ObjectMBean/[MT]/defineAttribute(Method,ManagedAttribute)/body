@@ -10,17 +10,16 @@
   boolean readonly=attributeAnnotation.readonly();
   boolean onMBean=attributeAnnotation.proxied();
   boolean convert=false;
-  Class<?> returnType=method.getReturnType();
-  if (returnType.isArray()) {
-    returnType=returnType.getComponentType();
+  Class<?> return_type=method.getReturnType();
+  Class<?> component_type=return_type;
+  while (component_type.isArray()) {
+    component_type=component_type.getComponentType();
   }
-  convert=isAnnotationPresent(returnType,ManagedObject.class);
+  convert=isAnnotationPresent(component_type,ManagedObject.class);
   String uName=name.substring(0,1).toUpperCase(Locale.ENGLISH) + name.substring(1);
   Class<?> oClass=onMBean ? this.getClass() : _managed.getClass();
   LOG.debug("defineAttribute {} {}:{}:{}:{}",name,onMBean,readonly,oClass,description);
-  Class<?> type=null;
   Method setter=null;
-  type=returnType;
   if (!readonly) {
     String declaredSetter=attributeAnnotation.setter();
     LOG.debug("DeclaredSetter: {}",declaredSetter);
@@ -34,7 +33,7 @@
             continue;
           }
           setter=methods[m];
-          if (!type.equals(methods[m].getParameterTypes()[0])) {
+          if (!component_type.equals(methods[m].getParameterTypes()[0])) {
             LOG.warn("Type conflict for mbean attr {} in {}",name,oClass);
             continue;
           }
@@ -47,7 +46,7 @@
           continue;
         }
         setter=methods[m];
-        if (!type.equals(methods[m].getParameterTypes()[0])) {
+        if (!return_type.equals(methods[m].getParameterTypes()[0])) {
           LOG.warn("Type conflict for mbean attr {} in {}",name,oClass);
           continue;
         }
@@ -55,15 +54,15 @@
     }
   }
   if (convert) {
-    if (type == null) {
+    if (component_type == null) {
       LOG.warn("No mbean type for {} on {}",name,_managed.getClass());
       return null;
     }
-    if (type.isPrimitive() && !type.isArray()) {
+    if (component_type.isPrimitive() && !component_type.isArray()) {
       LOG.warn("Cannot convert mbean primative {}",name);
       return null;
     }
-    LOG.debug("passed convert checks {} for type {}",name,type);
+    LOG.debug("passed convert checks {} for type {}",name,component_type);
   }
   try {
     _getters.put(name,method);
@@ -71,7 +70,7 @@
     MBeanAttributeInfo info=null;
     if (convert) {
       _convert.add(name);
-      if (type.isArray()) {
+      if (component_type.isArray()) {
         info=new MBeanAttributeInfo(name,OBJECT_NAME_ARRAY_CLASS,description,true,setter != null,method.getName().startsWith("is"));
       }
  else {
