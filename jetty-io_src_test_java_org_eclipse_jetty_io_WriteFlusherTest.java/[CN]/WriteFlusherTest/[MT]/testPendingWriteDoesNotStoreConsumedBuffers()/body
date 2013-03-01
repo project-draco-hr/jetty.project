@@ -1,0 +1,18 @@
+{
+  int toWrite=_endp.getOutput().capacity();
+  byte[] chunk1=new byte[toWrite / 2];
+  Arrays.fill(chunk1,(byte)1);
+  ByteBuffer buffer1=ByteBuffer.wrap(chunk1);
+  byte[] chunk2=new byte[toWrite];
+  Arrays.fill(chunk1,(byte)2);
+  ByteBuffer buffer2=ByteBuffer.wrap(chunk2);
+  _flusher.write(new Callback.Adapter(),buffer1,buffer2);
+  assertTrue(_flushIncomplete.get());
+  assertFalse(buffer1.hasRemaining());
+  buffer1.clear();
+  Arrays.fill(chunk1,(byte)3);
+  int remaining1=buffer1.remaining();
+  _endp.takeOutput();
+  _flusher.completeWrite();
+  assertEquals(remaining1,buffer1.remaining());
+}
