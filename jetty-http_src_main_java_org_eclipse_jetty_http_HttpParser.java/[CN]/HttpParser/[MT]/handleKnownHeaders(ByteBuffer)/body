@@ -26,7 +26,7 @@ if (_value == HttpHeaderValue.CHUNKED) _endOfContent=EndOfContent.CHUNKED_CONTEN
 }
 break;
 case HOST:
-add_to_connection_trie=_field == null;
+add_to_connection_trie=_connectionFields != null && _field == null;
 _host=true;
 String host=_valueString;
 int port=0;
@@ -54,6 +54,9 @@ break loop;
 }
 if (_requestHandler != null) _requestHandler.parsedHostHeader(host,port);
 break;
+case CONNECTION:
+if (_valueString != null && _valueString.indexOf("close") >= 0) _connectionFields=null;
+break;
 case AUTHORIZATION:
 case ACCEPT:
 case ACCEPT_CHARSET:
@@ -62,7 +65,7 @@ case ACCEPT_LANGUAGE:
 case COOKIE:
 case CACHE_CONTROL:
 case USER_AGENT:
-add_to_connection_trie=_field == null;
+add_to_connection_trie=_connectionFields != null && _field == null;
 }
 if (add_to_connection_trie && !_connectionFields.isFull() && _header != null && _valueString != null) {
 _field=new HttpField.CachedHttpField(_header,_valueString);
