@@ -13,6 +13,16 @@ synchronized (this) {
     while (id == null || id.length() == 0 || idInUse(id)) {
       long r0=_weakRandom ? (hashCode() ^ Runtime.getRuntime().freeMemory() ^ _random.nextInt()^ (((long)request.hashCode()) << 32)) : _random.nextLong();
       if (r0 < 0)       r0=-r0;
+      if (_reseed > 0 && (r0 % _reseed) == 1L) {
+        LOG.debug("Reseeding {}",this);
+        if (_random instanceof SecureRandom) {
+          SecureRandom secure=(SecureRandom)_random;
+          secure.setSeed(secure.generateSeed(8));
+        }
+ else {
+          _random.setSeed(_random.nextLong() ^ System.currentTimeMillis() ^ request.hashCode()^ Runtime.getRuntime().freeMemory());
+        }
+      }
       long r1=_weakRandom ? (hashCode() ^ Runtime.getRuntime().freeMemory() ^ _random.nextInt()^ (((long)request.hashCode()) << 32)) : _random.nextLong();
       if (r1 < 0)       r1=-r1;
       id=Long.toString(r0,36) + Long.toString(r1,36);
