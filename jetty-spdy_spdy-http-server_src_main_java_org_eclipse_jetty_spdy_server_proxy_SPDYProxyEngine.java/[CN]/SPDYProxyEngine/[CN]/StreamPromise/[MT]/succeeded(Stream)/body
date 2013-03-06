@@ -1,0 +1,23 @@
+{
+  LOG.debug("P -> S {} from {} to {}",info,senderStream,stream);
+  stream.setAttribute(CLIENT_STREAM_ATTRIBUTE,senderStream);
+  DataInfoCallback dataInfoCallback;
+synchronized (queue) {
+    this.receiverStream=stream;
+    dataInfoCallback=queue.peek();
+    if (dataInfoCallback != null) {
+      if (dataInfoCallback.flushing) {
+        LOG.debug("SYN completed, flushing {}, queue size {}",dataInfoCallback.dataInfo,queue.size());
+        dataInfoCallback=null;
+      }
+ else {
+        dataInfoCallback.flushing=true;
+        LOG.debug("SYN completed, queue size {}",queue.size());
+      }
+    }
+ else {
+      LOG.debug("SYN completed, queue empty");
+    }
+  }
+  if (dataInfoCallback != null)   flush(stream,dataInfoCallback);
+}

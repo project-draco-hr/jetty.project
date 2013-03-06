@@ -71,7 +71,7 @@ if (_responseHandler != null) {
       badMessage(buffer,HttpStatus.REQUEST_URI_TOO_LONG_414,null);
       return true;
     }
-    if (_uri.remaining() < len) {
+    if (_uri.remaining() <= len) {
       ByteBuffer uri=ByteBuffer.allocate(_uri.capacity() + 2 * len);
       _uri.flip();
       uri.put(_uri);
@@ -172,6 +172,10 @@ _version=HttpVersion.CACHE.get(version);
 if (_version == null) {
 badMessage(buffer,HttpStatus.BAD_REQUEST_400,"Unknown Version");
 return true;
+}
+if (_version.getVersion() >= HttpVersion.HTTP_1_1.getVersion()) {
+int header_cache=_handler.getHeaderCacheSize();
+if (header_cache > 0) _connectionFields=new ArrayTernaryTrie<>(header_cache);
 }
 _eol=ch;
 setState(State.HEADER);

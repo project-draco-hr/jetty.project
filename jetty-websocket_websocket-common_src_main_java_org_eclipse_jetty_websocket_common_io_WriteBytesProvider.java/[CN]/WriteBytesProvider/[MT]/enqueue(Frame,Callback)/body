@@ -3,14 +3,15 @@
   LOG.debug("enqueue({}, {})",frame,callback);
 synchronized (this) {
     if (closed.get()) {
-      LOG.debug("Write is closed: {}",frame,callback);
+      LOG.debug("Write is closed: {} {}",frame,callback);
       if (callback != null) {
         callback.failed(new IOException("Write is closed"));
       }
       return;
     }
-    if (isFailed()) {
-      notifyFailure(callback);
+    if (failure != null) {
+      LOG.debug("Write is in failure: {} {}",frame,callback);
+      notifySafeFailure(callback,failure);
       return;
     }
     FrameEntry entry=new FrameEntry(frame,callback);
