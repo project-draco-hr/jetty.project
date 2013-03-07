@@ -8,6 +8,7 @@
       Thread.currentThread().setName(threadName + " - " + _uri);
     }
     final Server server=_server;
+    boolean was_continuation=_request._async.isContinuation();
     boolean handling=_request._async.handling() && server != null && server.isRunning();
     while (handling) {
       _request.setHandled(false);
@@ -39,7 +40,13 @@
           server.handle(this);
         }
  else {
-          _request.setDispatcherType(DispatcherType.ASYNC);
+          if (_request._async.isExpired() && !was_continuation) {
+            _response.setStatus(500,"Async Timeout");
+            _request.setAttribute(Dispatcher.ERROR_STATUS_CODE,new Integer(500));
+            _request.setAttribute(Dispatcher.ERROR_MESSAGE,"Async Timeout");
+            _request.setDispatcherType(DispatcherType.ERROR);
+          }
+ else           _request.setDispatcherType(DispatcherType.ASYNC);
           server.handleAsync(this);
         }
       }
@@ -73,6 +80,7 @@ catch (      Throwable e) {
         _generator.sendError(info == null ? 400 : 500,null,null,true);
       }
  finally {
+        was_continuation=_request._async.isContinuation();
         handling=!_request._async.unhandle() && server.isRunning() && _server != null;
       }
     }
