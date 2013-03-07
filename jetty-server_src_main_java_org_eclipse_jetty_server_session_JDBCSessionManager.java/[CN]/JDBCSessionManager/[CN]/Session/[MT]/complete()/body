@@ -1,19 +1,21 @@
 {
-  super.complete();
-  try {
-    if (_dirty) {
-      willPassivate();
-      updateSession(_data);
-      didActivate();
+synchronized (this) {
+    super.complete();
+    try {
+      if (_dirty) {
+        willPassivate();
+        updateSession(this);
+        didActivate();
+      }
+ else       if ((getAccessed() - _lastSaved) >= (getSaveInterval() * 1000L)) {
+        updateSessionAccessTime(this);
+      }
     }
- else     if ((_data._accessed - _data._lastSaved) >= (getSaveInterval() * 1000L)) {
-      updateSessionAccessTime(_data);
+ catch (    Exception e) {
+      LOG.warn("Problem persisting changed session data id=" + getId(),e);
     }
-  }
- catch (  Exception e) {
-    LOG.warn("Problem persisting changed session data id=" + getId(),e);
-  }
  finally {
-    _dirty=false;
+      _dirty=false;
+    }
   }
 }
