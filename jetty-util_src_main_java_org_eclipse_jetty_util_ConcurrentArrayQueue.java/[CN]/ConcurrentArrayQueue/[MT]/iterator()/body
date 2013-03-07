@@ -1,0 +1,41 @@
+{
+  final List<Object[]> blocks=new ArrayList<>();
+  Block<T> currentHeadBlock=getHeadBlock();
+  while (currentHeadBlock != null) {
+    Object[] elements=currentHeadBlock.arrayCopy();
+    blocks.add(elements);
+    currentHeadBlock=currentHeadBlock.next();
+  }
+  return new Iterator<T>(){
+    private int blockIndex;
+    private int index;
+    @Override public boolean hasNext(){
+      while (true) {
+        if (blockIndex == blocks.size())         return false;
+        Object element=blocks.get(blockIndex)[index];
+        if (element == null)         return false;
+        if (element != REMOVED_ELEMENT)         return true;
+        advance();
+      }
+    }
+    @Override public T next(){
+      while (true) {
+        if (blockIndex == blocks.size())         throw new NoSuchElementException();
+        Object element=blocks.get(blockIndex)[index];
+        if (element == null)         throw new NoSuchElementException();
+        advance();
+        if (element != REMOVED_ELEMENT)         return (T)element;
+      }
+    }
+    private void advance(){
+      if (++index == getBlockSize()) {
+        index=0;
+        ++blockIndex;
+      }
+    }
+    @Override public void remove(){
+      throw new UnsupportedOperationException();
+    }
+  }
+;
+}

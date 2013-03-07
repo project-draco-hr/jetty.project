@@ -1,0 +1,39 @@
+{
+  item=Objects.requireNonNull(item);
+  final Block<T> initialTailBlock=getTailBlock();
+  Block<T> currentTailBlock=initialTailBlock;
+  int tail=currentTailBlock.tail();
+  while (true) {
+    if (tail == getBlockSize()) {
+      Block<T> nextTailBlock=currentTailBlock.next();
+      if (nextTailBlock == null) {
+        nextTailBlock=newBlock();
+        if (currentTailBlock.link(nextTailBlock)) {
+          currentTailBlock=nextTailBlock;
+        }
+ else {
+          currentTailBlock=currentTailBlock.next();
+        }
+      }
+ else {
+        currentTailBlock=nextTailBlock;
+      }
+      tail=currentTailBlock.tail();
+    }
+ else {
+      if (currentTailBlock.peek(tail) == null) {
+        if (currentTailBlock.store(tail,item)) {
+          break;
+        }
+ else {
+          ++tail;
+        }
+      }
+ else {
+        ++tail;
+      }
+    }
+  }
+  updateTailBlock(initialTailBlock,currentTailBlock);
+  return true;
+}
