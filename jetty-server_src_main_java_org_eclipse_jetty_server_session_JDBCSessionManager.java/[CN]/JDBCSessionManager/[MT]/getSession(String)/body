@@ -2,12 +2,12 @@
   Session session=null;
   Session memSession=(Session)_sessions.get(idInCluster);
 synchronized (this) {
+    long now=System.currentTimeMillis();
+    if (LOG.isDebugEnabled()) {
+      if (memSession == null)       LOG.debug("getSession(" + idInCluster + "): not in session map,"+ " now="+ now+ " lastSaved="+ (memSession == null ? 0 : memSession._lastSaved)+ " interval="+ (_saveIntervalSec * 1000L));
+ else       LOG.debug("getSession(" + idInCluster + "): in session map, "+ " now="+ now+ " lastSaved="+ (memSession == null ? 0 : memSession._lastSaved)+ " interval="+ (_saveIntervalSec * 1000L)+ " lastNode="+ memSession._lastNode+ " thisNode="+ getSessionIdManager().getWorkerName()+ " difference="+ (now - memSession._lastSaved));
+    }
     try {
-      long now=System.currentTimeMillis();
-      if (LOG.isDebugEnabled()) {
-        if (memSession == null)         LOG.debug("getSession(" + idInCluster + "): not in session map,"+ " now="+ now+ " lastSaved="+ (memSession == null ? 0 : memSession._lastSaved)+ " interval="+ (_saveIntervalSec * 1000L));
- else         LOG.debug("getSession(" + idInCluster + "): in session map, "+ " now="+ now+ " lastSaved="+ (memSession == null ? 0 : memSession._lastSaved)+ " interval="+ (_saveIntervalSec * 1000L)+ " lastNode="+ memSession._lastNode+ " thisNode="+ getSessionIdManager().getWorkerName()+ " difference="+ (now - memSession._lastSaved));
-      }
       if (memSession == null) {
         LOG.debug("getSession(" + idInCluster + "): no session in session map. Reloading session data from db.");
         session=loadSession(idInCluster,canonicalize(_context.getContextPath()),getVirtualHost(_context));
@@ -20,30 +20,36 @@ synchronized (this) {
         LOG.debug("getSession(" + idInCluster + "): session in session map");
         session=memSession;
       }
-      if (session != null) {
-        if (!session.getLastNode().equals(getSessionIdManager().getWorkerName()) || memSession == null) {
-          if (session._expiryTime <= 0 || session._expiryTime > now) {
-            if (LOG.isDebugEnabled())             LOG.debug("getSession(" + idInCluster + "): lastNode="+ session.getLastNode()+ " thisNode="+ getSessionIdManager().getWorkerName());
-            session.setLastNode(getSessionIdManager().getWorkerName());
-            _sessions.put(idInCluster,session);
-            session.didActivate();
-            updateSessionNode(session);
-          }
- else {
-            LOG.debug("getSession ({}): Session has expired",idInCluster);
-            session=null;
-          }
-        }
- else         LOG.debug("getSession({}): Session not stale {}",idInCluster,session);
-      }
- else {
-        LOG.debug("getSession({}): No session in database matching id={}",idInCluster,idInCluster);
-      }
-      return session;
     }
  catch (    Exception e) {
-      LOG.warn("Unable to get session",e);
+      LOG.warn("Unable to load session " + idInCluster,e);
       return null;
     }
+    if (session != null) {
+      if (!session.getLastNode().equals(getSessionIdManager().getWorkerName()) || memSession == null) {
+        if (session._expiryTime <= 0 || session._expiryTime > now) {
+          if (LOG.isDebugEnabled())           LOG.debug("getSession(" + idInCluster + "): lastNode="+ session.getLastNode()+ " thisNode="+ getSessionIdManager().getWorkerName());
+          session.setLastNode(getSessionIdManager().getWorkerName());
+          _sessions.put(idInCluster,session);
+          try {
+            updateSessionNode(session);
+            session.didActivate();
+          }
+ catch (          Exception e) {
+            LOG.warn("Unable to update freshly loaded session " + idInCluster,e);
+            return null;
+          }
+        }
+ else {
+          LOG.debug("getSession ({}): Session has expired",idInCluster);
+          session=null;
+        }
+      }
+ else       LOG.debug("getSession({}): Session not stale {}",idInCluster,session);
+    }
+ else {
+      LOG.debug("getSession({}): No session in database matching id={}",idInCluster,idInCluster);
+    }
+    return session;
   }
 }
