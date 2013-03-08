@@ -4,35 +4,33 @@ synchronized (this) {
 switch (_state) {
 case ASYNCSTARTED:
 case ASYNCWAIT:
-      aListeners=_asyncListeners;
-    break;
+      _expired=true;
+    aListeners=_asyncListeners;
+  break;
 default :
-  return;
+return;
 }
-_expired=true;
 }
 if (aListeners != null) {
 for (AsyncListener listener : aListeners) {
 try {
-  listener.onTimeout(_event);
+listener.onTimeout(_event);
 }
  catch (Exception e) {
-  LOG.warn(e);
+LOG.warn(e);
 }
 }
 }
-boolean complete;
 synchronized (this) {
 switch (_state) {
 case ASYNCSTARTED:
 case ASYNCWAIT:
-complete=true;
+_state=State.REDISPATCH;
 break;
 default :
-complete=false;
+_expired=false;
 break;
 }
 }
-if (complete) complete();
 scheduleDispatch();
 }
