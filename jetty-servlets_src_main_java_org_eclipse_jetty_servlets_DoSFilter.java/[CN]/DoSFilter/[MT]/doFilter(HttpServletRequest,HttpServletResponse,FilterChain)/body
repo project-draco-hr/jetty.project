@@ -12,23 +12,25 @@
       doFilterChain(filterChain,request,response);
       return;
     }
-    LOG.warn("DOS ALERT: ip=" + request.getRemoteAddr() + ",session="+ request.getRequestedSessionId()+ ",user="+ request.getUserPrincipal());
     long delayMs=getDelayMs();
     boolean insertHeaders=isInsertHeaders();
 switch ((int)delayMs) {
 case -1:
 {
+        LOG.warn("DOS ALERT: Request rejected ip=" + request.getRemoteAddr() + ",session="+ request.getRequestedSessionId()+ ",user="+ request.getUserPrincipal());
         if (insertHeaders)         response.addHeader("DoSFilter","unavailable");
         response.sendError(HttpServletResponse.SC_SERVICE_UNAVAILABLE);
         return;
       }
 case 0:
 {
+      LOG.warn("DOS ALERT: Request throttled ip=" + request.getRemoteAddr() + ",session="+ request.getRequestedSessionId()+ ",user="+ request.getUserPrincipal());
       request.setAttribute(__TRACKER,tracker);
       break;
     }
 default :
 {
+    LOG.warn("DOS ALERT: Request delayed=" + delayMs + "ms ip="+ request.getRemoteAddr()+ ",session="+ request.getRequestedSessionId()+ ",user="+ request.getUserPrincipal());
     if (insertHeaders)     response.addHeader("DoSFilter","delayed");
     Continuation continuation=ContinuationSupport.getContinuation(request);
     request.setAttribute(__TRACKER,tracker);
