@@ -1,0 +1,33 @@
+{
+  AbstractTestServer server=new JdbcTestServer(0,inactive,scavenge);
+  ServletContextHandler ctxA=server.addContext("/mod");
+  ctxA.addServlet(TestModServlet.class,"/test");
+  server.start();
+  int port=server.getPort();
+  try {
+    HttpClient client=new HttpClient();
+    client.start();
+    try {
+      ContentResponse response=client.GET("http://localhost:" + port + "/mod/test?action=create");
+      assertEquals(HttpServletResponse.SC_OK,response.getStatus());
+      String sessionCookie=response.getHeaders().getStringField("Set-Cookie");
+      assertTrue(sessionCookie != null);
+      sessionCookie=sessionCookie.replaceFirst("(\\W)(P|p)ath=","$1\\$Path=");
+      Request request=client.newRequest("http://localhost:" + port + "/mod/test?action=change&val="+ newMaxInactive);
+      request.header("Cookie",sessionCookie);
+      response=request.send();
+      assertEquals(HttpServletResponse.SC_OK,response.getStatus());
+      Thread.currentThread().sleep(10 * 1000L);
+      request=client.newRequest("http://localhost:" + port + "/mod/test?action=test");
+      request.header("Cookie",sessionCookie);
+      response=request.send();
+      assertEquals(HttpServletResponse.SC_OK,response.getStatus());
+    }
+  finally {
+      client.stop();
+    }
+  }
+  finally {
+    server.stop();
+  }
+}
