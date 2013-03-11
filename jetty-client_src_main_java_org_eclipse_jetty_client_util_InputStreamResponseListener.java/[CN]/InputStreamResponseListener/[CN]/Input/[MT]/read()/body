@@ -7,20 +7,23 @@
  else     if (bytes == FAILURE) {
       throw failure();
     }
- else     if (bytes == CLOSE) {
+ else     if (bytes == CLOSED) {
       if (index < 0)       return -1;
       throw new AsynchronousCloseException();
     }
  else     if (bytes != null) {
-      if (index < bytes.length)       return bytes[index++];
-      length.addAndGet(-index);
-      bytes=null;
-      index=0;
+      int result=bytes[index] & 0xFF;
+      if (++index == bytes.length) {
+        length.addAndGet(-index);
+        bytes=null;
+        index=0;
+        signal();
+      }
+      return result;
     }
  else {
       bytes=take();
       LOG.debug("Dequeued {}/{} bytes",bytes,bytes.length);
-      signal();
     }
   }
 }

@@ -1,9 +1,8 @@
 {
   super(JDBCSessionManager.this,request);
-  _data=new SessionData(getClusterId(),getAttributeMap());
-  if (_dftMaxIdleSecs > 0)   _data.setMaxIdleMs(_dftMaxIdleSecs * 1000L);
-  _data.setCanonicalContext(canonicalize(_context.getContextPath()));
-  _data.setVirtualHost(getVirtualHost(_context));
   int maxInterval=getMaxInactiveInterval();
-  _data.setExpiryTime(maxInterval <= 0 ? 0 : (System.currentTimeMillis() + maxInterval * 1000L));
+  _expiryTime=(maxInterval <= 0 ? 0 : (System.currentTimeMillis() + maxInterval * 1000L));
+  _virtualHost=JDBCSessionManager.getVirtualHost(_context);
+  _canonicalContext=canonicalize(_context.getContextPath());
+  _lastNode=getSessionIdManager().getWorkerName();
 }

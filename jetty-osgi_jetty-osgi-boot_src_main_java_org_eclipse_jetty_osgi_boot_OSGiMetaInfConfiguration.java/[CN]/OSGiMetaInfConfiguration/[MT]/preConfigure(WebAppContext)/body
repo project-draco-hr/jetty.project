@@ -1,0 +1,48 @@
+{
+  List<Resource> frags=(List<Resource>)context.getAttribute(METAINF_FRAGMENTS);
+  List<Resource> resfrags=(List<Resource>)context.getAttribute(METAINF_RESOURCES);
+  List<Resource> tldfrags=(List<Resource>)context.getAttribute(METAINF_TLDS);
+  Bundle[] fragments=PackageAdminServiceTracker.INSTANCE.getFragmentsAndRequiredBundles((Bundle)context.getAttribute(OSGiWebappConstants.JETTY_OSGI_BUNDLE));
+  for (  Bundle frag : fragments) {
+    URL webFrag=frag.getEntry("/META-INF/web-fragment.xml");
+    Enumeration<URL> resEnum=frag.findEntries("/META-INF/resources","*",true);
+    Enumeration<URL> tldEnum=frag.findEntries("/META-INF","*.tld",false);
+    if (webFrag != null || (resEnum != null && resEnum.hasMoreElements()) || (tldEnum != null && tldEnum.hasMoreElements())) {
+      try {
+        if (webFrag != null) {
+          if (frags == null) {
+            frags=new ArrayList<Resource>();
+            context.setAttribute(METAINF_FRAGMENTS,frags);
+          }
+          frags.add(Resource.newResource(BundleFileLocatorHelperFactory.getFactory().getHelper().getBundleInstallLocation(frag).toURI()));
+        }
+        if (resEnum != null && resEnum.hasMoreElements()) {
+          URL resourcesEntry=frag.getEntry("/META-INF/resources/");
+          if (resourcesEntry == null) {
+          }
+ else {
+            if (resfrags == null) {
+              resfrags=new ArrayList<Resource>();
+              context.setAttribute(METAINF_RESOURCES,resfrags);
+            }
+            resfrags.add(Resource.newResource(BundleFileLocatorHelperFactory.getFactory().getHelper().getLocalURL(resourcesEntry)));
+          }
+        }
+        if (tldEnum != null && tldEnum.hasMoreElements()) {
+          if (tldfrags == null) {
+            tldfrags=new ArrayList<Resource>();
+            context.setAttribute(METAINF_TLDS,tldfrags);
+          }
+          while (tldEnum.hasMoreElements()) {
+            URL tldUrl=tldEnum.nextElement();
+            tldfrags.add(Resource.newResource(BundleFileLocatorHelperFactory.getFactory().getHelper().getLocalURL(tldUrl)));
+          }
+        }
+      }
+ catch (      Exception e) {
+        LOG.warn("Unable to locate the bundle " + frag.getBundleId(),e);
+      }
+    }
+  }
+  super.preConfigure(context);
+}

@@ -1,9 +1,12 @@
 {
-  final AtomicReference<SessionData> _reference=new AtomicReference<SessionData>();
+  final AtomicReference<Session> _reference=new AtomicReference<Session>();
   final AtomicReference<Exception> _exception=new AtomicReference<Exception>();
   Runnable load=new Runnable(){
+    /** 
+ * @see java.lang.Runnable#run()
+ */
     @SuppressWarnings("unchecked") public void run(){
-      SessionData data=null;
+      Session session=null;
       Connection connection=null;
       PreparedStatement statement=null;
       try {
@@ -11,25 +14,26 @@
         statement=_jdbcSessionIdMgr._dbAdaptor.getLoadStatement(connection,id,canonicalContextPath,vhost);
         ResultSet result=statement.executeQuery();
         if (result.next()) {
-          data=new SessionData(id);
-          data.setRowId(result.getString(_jdbcSessionIdMgr._sessionTableRowId));
-          data.setCookieSet(result.getLong("cookieTime"));
-          data.setLastAccessed(result.getLong("lastAccessTime"));
-          data.setAccessed(result.getLong("accessTime"));
-          data.setCreated(result.getLong("createTime"));
-          data.setLastNode(result.getString("lastNode"));
-          data.setLastSaved(result.getLong("lastSavedTime"));
-          data.setExpiryTime(result.getLong("expiryTime"));
-          data.setCanonicalContext(result.getString("contextPath"));
-          data.setVirtualHost(result.getString("virtualHost"));
+          long maxInterval=result.getLong("maxInterval");
+          if (maxInterval == JDBCSessionIdManager.MAX_INTERVAL_NOT_SET) {
+            maxInterval=getMaxInactiveInterval();
+          }
+          session=new Session(id,result.getString(_jdbcSessionIdMgr._sessionTableRowId),result.getLong("createTime"),result.getLong("accessTime"),maxInterval);
+          session.setCookieSet(result.getLong("cookieTime"));
+          session.setLastAccessedTime(result.getLong("lastAccessTime"));
+          session.setLastNode(result.getString("lastNode"));
+          session.setLastSaved(result.getLong("lastSavedTime"));
+          session.setExpiryTime(result.getLong("expiryTime"));
+          session.setCanonicalContext(result.getString("contextPath"));
+          session.setVirtualHost(result.getString("virtualHost"));
           InputStream is=((JDBCSessionIdManager)getSessionIdManager())._dbAdaptor.getBlobInputStream(result,"map");
           ClassLoadingObjectInputStream ois=new ClassLoadingObjectInputStream(is);
           Object o=ois.readObject();
-          data.setAttributeMap((Map<String,Object>)o);
+          session.addAttributes((Map<String,Object>)o);
           ois.close();
-          if (LOG.isDebugEnabled())           LOG.debug("LOADED session " + data);
+          if (LOG.isDebugEnabled())           LOG.debug("LOADED session " + session);
         }
-        _reference.set(data);
+        _reference.set(session);
       }
  catch (      Exception e) {
         _exception.set(e);
@@ -49,6 +53,9 @@
 ;
   if (_context == null)   load.run();
  else   _context.getContextHandler().handle(load);
-  if (_exception.get() != null)   throw _exception.get();
+  if (_exception.get() != null) {
+    _jdbcSessionIdMgr.removeSession(id);
+    throw _exception.get();
+  }
   return _reference.get();
 }

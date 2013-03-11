@@ -1,20 +1,22 @@
 {
+  Callback successCallback=null;
 synchronized (this) {
     generator.getBufferPool().release(buffer);
     if (active == null) {
       return;
     }
     if (active.frame.remaining() <= 0) {
-      if (active.callback != null) {
-        try {
-          active.callback.succeeded();
-        }
- catch (        Throwable t) {
-          LOG.warn("Callback failure",t);
-        }
-      }
+      successCallback=active.callback;
       active=null;
     }
     flushCallback.succeeded();
+  }
+  if (successCallback != null) {
+    try {
+      successCallback.succeeded();
+    }
+ catch (    Throwable t) {
+      LOG.warn("Callback failure",t);
+    }
   }
 }

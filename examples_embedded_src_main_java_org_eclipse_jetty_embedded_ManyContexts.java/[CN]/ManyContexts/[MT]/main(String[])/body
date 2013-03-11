@@ -1,25 +1,18 @@
 {
-  Server server=new Server();
-  ServerConnector connector=new ServerConnector(server);
-  connector.setPort(8080);
-  server.setConnectors(new Connector[]{connector});
-  ContextHandler context0=new ContextHandler();
-  context0.setContextPath("/");
-  Handler handler0=new HelloHandler("Root Context",BODY);
-  context0.setHandler(handler0);
-  ContextHandler context1=new ContextHandler();
-  context1.setContextPath("/context");
-  Handler handler1=new HelloHandler("A Context",BODY);
-  context1.setHandler(handler1);
-  ContextHandler context2=new ContextHandler();
-  context2.setContextPath("/context");
-  context2.setVirtualHosts(new String[]{"127.0.0.2"});
-  Handler handler2=new HelloHandler("A Virtual Context",BODY);
-  context2.setHandler(handler2);
+  Server server=new Server(8080);
+  ContextHandler context=new ContextHandler("/");
+  context.setContextPath("/");
+  context.setHandler(new HelloHandler("Root Hello"));
+  ContextHandler contextFR=new ContextHandler("/fr");
+  contextFR.setHandler(new HelloHandler("Bonjoir"));
+  ContextHandler contextIT=new ContextHandler("/it");
+  contextIT.setHandler(new HelloHandler("Bongiorno"));
+  ContextHandler contextV=new ContextHandler("/");
+  contextV.setVirtualHosts(new String[]{"127.0.0.2"});
+  contextV.setHandler(new HelloHandler("Virtual Hello"));
   ContextHandlerCollection contexts=new ContextHandlerCollection();
-  contexts.setHandlers(new Handler[]{context0,context1,context2});
+  contexts.setHandlers(new Handler[]{context,contextFR,contextIT,contextV});
   server.setHandler(contexts);
   server.start();
-  System.err.println(server.dump());
   server.join();
 }

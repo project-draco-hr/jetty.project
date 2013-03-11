@@ -1,34 +1,74 @@
 {
-  try {
-    if (Felix_BundleImpl_m_modules_field == null) {
-      Felix_BundleImpl_m_modules_field=bundle.getClass().getClassLoader().loadClass("org.apache.felix.framework.BundleImpl").getDeclaredField("m_modules");
+  initFelix403(bundle);
+  if (isFelix403.booleanValue()) {
+    try {
+      Object wiring=Felix_adapt_method.invoke(bundle,new Object[]{Felix_bundleWiringClazz});
+      ClassLoader cl=(ClassLoader)Felix_bundle_wiring_getClassLoader_method.invoke(wiring);
+      return cl;
+    }
+ catch (    Exception e) {
+      LOG.warn(e);
+      return null;
+    }
+  }
+  if (Felix_BundleImpl_m_modules_field == null) {
+    try {
+      Class bundleImplClazz=bundle.getClass().getClassLoader().loadClass("org.apache.felix.framework.BundleImpl");
+      Felix_BundleImpl_m_modules_field=bundleImplClazz.getDeclaredField("m_modules");
       Felix_BundleImpl_m_modules_field.setAccessible(true);
     }
-    Object currentModuleImpl;
-    try {
-      Object[] moduleArray=(Object[])Felix_BundleImpl_m_modules_field.get(bundle);
-      currentModuleImpl=moduleArray[moduleArray.length - 1];
+ catch (    ClassNotFoundException e) {
+      LOG.warn(e);
     }
- catch (    Throwable t2) {
-      @SuppressWarnings("unchecked") List<Object> moduleArray=(List<Object>)Felix_BundleImpl_m_modules_field.get(bundle);
+catch (    NoSuchFieldException e) {
+      LOG.warn(e);
+    }
+  }
+  Object currentModuleImpl;
+  try {
+    Object[] moduleArray=(Object[])Felix_BundleImpl_m_modules_field.get(bundle);
+    currentModuleImpl=moduleArray[moduleArray.length - 1];
+  }
+ catch (  Throwable t2) {
+    try {
+      List<Object> moduleArray=(List<Object>)Felix_BundleImpl_m_modules_field.get(bundle);
       currentModuleImpl=moduleArray.get(moduleArray.size() - 1);
     }
-    if (Felix_ModuleImpl_m_classLoader_field == null && currentModuleImpl != null) {
+ catch (    Exception e) {
+      LOG.warn(e);
+      return null;
+    }
+  }
+  if (Felix_ModuleImpl_m_classLoader_field == null && currentModuleImpl != null) {
+    try {
       Felix_ModuleImpl_m_classLoader_field=bundle.getClass().getClassLoader().loadClass("org.apache.felix.framework.ModuleImpl").getDeclaredField("m_classLoader");
       Felix_ModuleImpl_m_classLoader_field.setAccessible(true);
     }
-    ClassLoader cl=(ClassLoader)Felix_ModuleImpl_m_classLoader_field.get(currentModuleImpl);
-    if (cl == null) {
-      bundle.loadClass("java.lang.Object");
-      cl=(ClassLoader)Felix_ModuleImpl_m_classLoader_field.get(currentModuleImpl);
-      return cl;
+ catch (    ClassNotFoundException e) {
+      LOG.warn(e);
+      return null;
     }
- else {
-      return cl;
+catch (    NoSuchFieldException e) {
+      LOG.warn(e);
+      return null;
     }
   }
- catch (  Throwable t) {
-    t.printStackTrace();
+  ClassLoader cl=null;
+  try {
+    cl=(ClassLoader)Felix_ModuleImpl_m_classLoader_field.get(currentModuleImpl);
+    if (cl != null)     return cl;
   }
-  return null;
+ catch (  Exception e) {
+    LOG.warn(e);
+    return null;
+  }
+  try {
+    bundle.loadClass("java.lang.Object");
+    cl=(ClassLoader)Felix_ModuleImpl_m_classLoader_field.get(currentModuleImpl);
+    return cl;
+  }
+ catch (  Exception e) {
+    LOG.warn(e);
+    return null;
+  }
 }
