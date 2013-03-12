@@ -5,6 +5,7 @@
   if (draft < 0) {
     draft=request.getIntHeader("Sec-WebSocket-Draft");
   }
+  int requestedVersion=draft;
   AbstractHttpConnection http=AbstractHttpConnection.getCurrentConnection();
   if (http instanceof BlockingHttpConnection)   throw new IllegalStateException("Websockets not supported on blocking connectors");
   ConnectedEndPoint endp=(ConnectedEndPoint)http.getEndPoint();
@@ -50,13 +51,23 @@ break;
 }
 default :
 {
-LOG.warn("Unsupported Websocket version: " + draft);
 String versions="13";
 if (_minVersion <= 8) versions+=", 8";
 if (_minVersion <= 6) versions+=", 6";
 if (_minVersion <= 0) versions+=", 0";
 response.setHeader("Sec-WebSocket-Version",versions);
-throw new HttpException(400,"Unsupported websocket version specification: " + draft);
+StringBuilder err=new StringBuilder();
+err.append("Unsupported websocket client version specification ");
+if (requestedVersion >= 0) {
+err.append("[").append(requestedVersion).append("]");
+}
+ else {
+err.append("<Unspecified, likely a pre-draft version of websocket>");
+}
+err.append(", configured minVersion [").append(_minVersion).append("]");
+err.append(", reported supported versions [").append(versions).append("]");
+LOG.warn(err.toString());
+throw new HttpException(400,"Unsupported websocket version specification");
 }
 }
 addConnection(connection);

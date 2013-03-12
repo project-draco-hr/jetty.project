@@ -7,20 +7,18 @@ case ServiceEvent.UNREGISTERING:
       BundleContext context=FrameworkUtil.getBundle(JettyBootstrapActivator.class).getBundleContext();
       ContextHandler contextHandler=(ContextHandler)context.getService(sr);
       String watermark=(String)sr.getProperty(OSGiWebappConstants.WATERMARK);
-      if (watermark != null && !"".equals(watermark)) {
-        String serverName=(String)sr.getProperty(OSGiServerConstants.MANAGED_JETTY_SERVER_NAME);
-        Map<ServiceReference,ServiceProvider> candidates=getDeployers(serverName);
-        if (candidates != null) {
-          boolean removed=false;
-          Iterator<Entry<ServiceReference,ServiceProvider>> itor=candidates.entrySet().iterator();
-          while (!removed && itor.hasNext()) {
-            Entry<ServiceReference,ServiceProvider> e=itor.next();
-            try {
-              removed=e.getValue().serviceRemoved(sr,contextHandler);
-            }
- catch (            Exception x) {
-              LOG.warn("Error undeploying service representing jetty context ",x);
-            }
+      String serverName=(String)sr.getProperty(OSGiServerConstants.MANAGED_JETTY_SERVER_NAME);
+      Map<ServiceReference,ServiceProvider> candidates=getDeployers(serverName);
+      if (candidates != null) {
+        boolean removed=false;
+        Iterator<Entry<ServiceReference,ServiceProvider>> itor=candidates.entrySet().iterator();
+        while (!removed && itor.hasNext()) {
+          Entry<ServiceReference,ServiceProvider> e=itor.next();
+          try {
+            removed=e.getValue().serviceRemoved(sr,contextHandler);
+          }
+ catch (          Exception x) {
+            LOG.warn("Error undeploying service representing jetty context ",x);
           }
         }
       }
