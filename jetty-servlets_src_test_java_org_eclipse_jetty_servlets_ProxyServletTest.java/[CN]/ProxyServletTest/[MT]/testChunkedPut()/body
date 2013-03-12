@@ -1,0 +1,16 @@
+{
+  init(new HttpServlet(){
+    @Override protected void doPut(    HttpServletRequest req,    HttpServletResponse resp) throws ServletException, IOException {
+      resp.setContentType("text/plain");
+      String message=IO.toString(req.getInputStream());
+      resp.getOutputStream().print(message);
+    }
+  }
+);
+  Socket client=new Socket("localhost",_connector.getLocalPort());
+  client.setSoTimeout(1000000);
+  client.getOutputStream().write(("PUT /proxy/test HTTP/1.1\r\n" + "Host: localhost:" + _connector.getLocalPort() + "\r\n"+ "Transfer-Encoding: chunked\r\n"+ "Connection: close\r\n"+ "\r\n"+ "A\r\n"+ "0123456789\r\n"+ "9\r\n"+ "ABCDEFGHI\r\n"+ "8\r\n"+ "JKLMNOPQ\r\n"+ "7\r\n"+ "RSTUVWX\r\n"+ "2\r\n"+ "YZ\r\n"+ "0\r\n").getBytes(StringUtil.__ISO_8859_1));
+  String response=IO.toString(client.getInputStream());
+  Assert.assertTrue(response.contains("200 OK"));
+  Assert.assertTrue(response.contains("0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"));
+}

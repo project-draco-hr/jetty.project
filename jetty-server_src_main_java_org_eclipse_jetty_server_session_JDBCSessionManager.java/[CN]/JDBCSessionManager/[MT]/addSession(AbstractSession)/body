@@ -4,9 +4,11 @@ synchronized (this) {
     _sessions.put(session.getClusterId(),session);
   }
   try {
-    session.willPassivate();
-    storeSession(((JDBCSessionManager.Session)session)._data);
-    session.didActivate();
+synchronized (session) {
+      session.willPassivate();
+      storeSession(((JDBCSessionManager.Session)session));
+      session.didActivate();
+    }
   }
  catch (  Exception e) {
     LOG.warn("Unable to store new session id=" + session.getId(),e);

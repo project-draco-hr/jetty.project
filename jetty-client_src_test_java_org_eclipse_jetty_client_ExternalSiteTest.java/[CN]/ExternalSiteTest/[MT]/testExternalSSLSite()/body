@@ -1,0 +1,22 @@
+{
+  HttpClient client=new HttpClient(new SslContextFactory());
+  client.start();
+  String host="api-3t.paypal.com";
+  int port=443;
+  try {
+    new Socket(host,port).close();
+  }
+ catch (  IOException x) {
+    Assume.assumeNoException(x);
+  }
+  ContentExchange exchange=new ContentExchange(true);
+  exchange.setScheme(HttpSchemes.HTTPS_BUFFER);
+  exchange.setAddress(new Address(host,port));
+  exchange.setRequestURI("/nvp");
+  client.send(exchange);
+  int done=exchange.waitForDone();
+  Assert.assertEquals(HttpExchange.STATUS_COMPLETED,done);
+  Assert.assertEquals(HttpStatus.OK_200,exchange.getResponseStatus());
+  Assert.assertNotNull(exchange.getResponseContentBytes());
+  client.stop();
+}
