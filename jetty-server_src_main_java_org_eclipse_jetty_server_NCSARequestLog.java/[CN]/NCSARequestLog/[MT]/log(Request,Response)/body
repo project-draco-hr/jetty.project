@@ -2,7 +2,8 @@
   try {
     if (_ignorePathMap != null && _ignorePathMap.getMatch(request.getRequestURI()) != null)     return;
     if (_fileOut == null)     return;
-    StringBuilder buf=new StringBuilder(256);
+    StringBuilder buf=_buffers.get();
+    buf.setLength(0);
     if (_logServer) {
       buf.append(request.getServerName());
       buf.append(' ');
@@ -78,11 +79,7 @@
     }
     buf.append(StringUtil.__LINE_SEPARATOR);
     String log=buf.toString();
-synchronized (this) {
-      if (_writer == null)       return;
-      _writer.write(log);
-      _writer.flush();
-    }
+    write(log);
   }
  catch (  IOException e) {
     LOG.warn(e);
