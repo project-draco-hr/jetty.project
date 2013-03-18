@@ -1,0 +1,19 @@
+{
+  item=Objects.requireNonNull(item);
+  long nanos=unit.toNanos(timeout);
+  while (true) {
+    final Lock lock=_lock;
+    lock.lockInterruptibly();
+    try {
+      if (size() == _capacity) {
+        if (nanos <= 0)         return false;
+        nanos=_producer.awaitNanos(nanos);
+      }
+    }
+  finally {
+      lock.unlock();
+    }
+    if (offer(item))     break;
+  }
+  return true;
+}

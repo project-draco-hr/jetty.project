@@ -1,4 +1,5 @@
 {
+  boolean flush=false;
 synchronized (DecryptedEndPoint.this) {
     if (DEBUG)     LOG.debug("onIncompleteFlush {}",getEndPoint());
     if (BufferUtil.hasContent(_encryptedOutput)) {
@@ -9,7 +10,12 @@ synchronized (DecryptedEndPoint.this) {
       _flushRequiresFillToProgress=true;
       SslConnection.this.fillInterested();
     }
- else     if (isOutputShutdown()) {
+ else {
+      flush=true;
+    }
+  }
+  if (flush) {
+    if (isOutputShutdown()) {
       getWriteFlusher().onClose();
     }
  else {
