@@ -1,16 +1,22 @@
 {
   TrackingSocket wsocket=new TrackingSocket();
-  WebSocketClient client=factory.newWebSocketClient(wsocket);
   URI wsUri=server.getWsUri();
-  Future<ClientUpgradeResponse> future=client.connect(wsUri);
+  client.setMaxIdleTimeout(1000);
+  Future<Session> future=client.connect(wsocket,wsUri);
   ServerConnection ssocket=server.accept();
   ssocket.upgrade();
-  future.get(500,TimeUnit.MILLISECONDS);
-  wsocket.waitForConnected(500,TimeUnit.MILLISECONDS);
-  long start=System.currentTimeMillis();
-  wsocket.waitForClose(10,TimeUnit.SECONDS);
-  long end=System.currentTimeMillis();
-  long dur=(end - start);
-  Assert.assertThat("Idle Timeout",dur,lessThanOrEqualTo(5000L));
-  wsocket.assertCloseCode(StatusCode.NORMAL);
+  try {
+    ssocket.startEcho();
+    future.get(500,TimeUnit.MILLISECONDS);
+    wsocket.waitForConnected(500,TimeUnit.MILLISECONDS);
+    long start=System.currentTimeMillis();
+    wsocket.waitForClose(10,TimeUnit.SECONDS);
+    long end=System.currentTimeMillis();
+    long dur=(end - start);
+    Assert.assertThat("Idle Timeout",dur,lessThanOrEqualTo(5000L));
+    wsocket.assertCloseCode(StatusCode.NORMAL);
+  }
+  finally {
+    ssocket.stopEcho();
+  }
 }

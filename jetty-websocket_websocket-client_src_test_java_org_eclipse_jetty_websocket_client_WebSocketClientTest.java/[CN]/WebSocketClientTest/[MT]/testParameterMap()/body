@@ -1,0 +1,25 @@
+{
+  WebSocketClient fact=new WebSocketClient();
+  fact.start();
+  try {
+    TrackingSocket wsocket=new TrackingSocket();
+    URI wsUri=server.getWsUri().resolve("/test?snack=cashews&amount=handful&brand=off");
+    Future<Session> future=client.connect(wsocket,wsUri);
+    ServerConnection ssocket=server.accept();
+    ssocket.upgrade();
+    future.get(500,TimeUnit.MILLISECONDS);
+    Assert.assertTrue(wsocket.openLatch.await(1,TimeUnit.SECONDS));
+    Session session=wsocket.getSession();
+    UpgradeRequest req=session.getUpgradeRequest();
+    Assert.assertThat("Upgrade Request",req,notNullValue());
+    Map<String,String[]> parameterMap=req.getParameterMap();
+    Assert.assertThat("Parameter Map",parameterMap,notNullValue());
+    Assert.assertThat("Parameter[snack]",parameterMap.get("snack"),is(new String[]{"cashews"}));
+    Assert.assertThat("Parameter[amount]",parameterMap.get("amount"),is(new String[]{"handful"}));
+    Assert.assertThat("Parameter[brand]",parameterMap.get("brand"),is(new String[]{"off"}));
+    Assert.assertThat("Parameter[cost]",parameterMap.get("cost"),nullValue());
+  }
+  finally {
+    fact.stop();
+  }
+}

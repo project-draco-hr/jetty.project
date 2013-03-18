@@ -1,0 +1,34 @@
+{
+  final AtomicReference<IOException> failure=new AtomicReference<>();
+  start(new AbstractHandler(){
+    @Override public void handle(    String target,    org.eclipse.jetty.server.Request baseRequest,    HttpServletRequest request,    HttpServletResponse response) throws IOException, ServletException {
+      try {
+        baseRequest.setHandled(true);
+        IO.copy(request.getInputStream(),response.getOutputStream());
+      }
+ catch (      IOException x) {
+        failure.set(x);
+        throw x;
+      }
+    }
+  }
+);
+  final Throwable cause=new Exception();
+  try {
+    client.newRequest("localhost",connector.getLocalPort()).scheme(scheme).onRequestCommit(new Request.CommitListener(){
+      @Override public void onCommit(      Request request){
+        request.abort(cause);
+      }
+    }
+).content(new ByteBufferContentProvider(ByteBuffer.wrap(new byte[]{0}),ByteBuffer.wrap(new byte[]{1})){
+      @Override public long getLength(){
+        return -1;
+      }
+    }
+).timeout(5,TimeUnit.SECONDS).send();
+    Assert.fail();
+  }
+ catch (  ExecutionException x) {
+    Assert.assertSame(cause,x.getCause());
+  }
+}

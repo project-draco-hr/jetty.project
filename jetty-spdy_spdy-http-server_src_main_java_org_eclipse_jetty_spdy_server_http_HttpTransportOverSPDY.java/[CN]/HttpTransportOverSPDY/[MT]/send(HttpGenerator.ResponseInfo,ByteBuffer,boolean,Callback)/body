@@ -3,13 +3,14 @@
   if (stream.isClosed() || stream.isReset()) {
     EofException exception=new EofException("stream closed");
     callback.failed(exception);
-    LOG.warn("Committed response twice.",exception);
     return;
   }
   boolean hasContent=BufferUtil.hasContent(content);
   if (info != null) {
     if (!committed.compareAndSet(false,true)) {
-      callback.failed(new StreamException(stream.getId(),StreamStatus.PROTOCOL_ERROR,"Stream already committed!"));
+      StreamException exception=new StreamException(stream.getId(),StreamStatus.PROTOCOL_ERROR,"Stream already committed!");
+      callback.failed(exception);
+      LOG.warn("Committed response twice.",exception);
       return;
     }
     short version=stream.getSession().getVersion();
@@ -26,7 +27,7 @@
     HttpFields fields=info.getHttpFields();
     if (fields != null) {
       for (int i=0; i < fields.size(); ++i) {
-        HttpFields.Field field=fields.getField(i);
+        HttpField field=fields.getField(i);
         String name=field.getName();
         String value=field.getValue();
         headers.put(name,value);
@@ -39,11 +40,11 @@
   }
   if (hasContent) {
     if (stream.isClosed() || stream.isReset())     callback.failed(new EofException("stream closed"));
- else     stream.data(new ByteBufferDataInfo(content,lastContent),endPoint.getIdleTimeout(),TimeUnit.MILLISECONDS,callback);
+ else     stream.data(new ByteBufferDataInfo(endPoint.getIdleTimeout(),TimeUnit.MILLISECONDS,content,lastContent),callback);
   }
  else   if (lastContent) {
     if (stream.isClosed() || stream.isReset())     callback.succeeded();
- else     stream.data(new ByteBufferDataInfo(BufferUtil.EMPTY_BUFFER,lastContent),endPoint.getIdleTimeout(),TimeUnit.MILLISECONDS,callback);
+ else     stream.data(new ByteBufferDataInfo(endPoint.getIdleTimeout(),TimeUnit.MILLISECONDS,BufferUtil.EMPTY_BUFFER,lastContent),callback);
   }
  else   callback.succeeded();
 }

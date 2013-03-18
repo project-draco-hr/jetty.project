@@ -1,0 +1,49 @@
+{
+  start(new AbstractHandler(){
+    @Override public void handle(    String target,    org.eclipse.jetty.server.Request baseRequest,    HttpServletRequest request,    HttpServletResponse response) throws IOException, ServletException {
+      baseRequest.setHandled(true);
+      IO.copy(request.getInputStream(),response.getOutputStream());
+    }
+  }
+);
+  final CountDownLatch latch=new CountDownLatch(1);
+  final byte[] data=new byte[512];
+  final AtomicReference<DeferredContentProvider> contentRef=new AtomicReference<>();
+  final DeferredContentProvider content=new DeferredContentProvider(){
+    @Override public Iterator<ByteBuffer> iterator(){
+      return new Iterator<ByteBuffer>(){
+        private final byte[][] iteratorData=new byte[3][];
+        private final AtomicInteger index=new AtomicInteger();
+{
+          iteratorData[0]=null;
+          iteratorData[1]=null;
+          iteratorData[2]=data;
+        }
+        @Override public boolean hasNext(){
+          return index.get() < iteratorData.length;
+        }
+        @Override public ByteBuffer next(){
+          byte[] chunk=iteratorData[index.getAndIncrement()];
+          ByteBuffer result=chunk == null ? null : ByteBuffer.wrap(chunk);
+          if (index.get() == 2) {
+            contentRef.get().offer(result == null ? BufferUtil.EMPTY_BUFFER : result);
+            contentRef.get().close();
+          }
+          return result;
+        }
+        @Override public void remove(){
+        }
+      }
+;
+    }
+  }
+;
+  contentRef.set(content);
+  client.newRequest("localhost",connector.getLocalPort()).scheme(scheme).content(content).send(new BufferingResponseListener(){
+    @Override public void onComplete(    Result result){
+      if (result.isSucceeded() && result.getResponse().getStatus() == 200 && Arrays.equals(data,getContent()))       latch.countDown();
+    }
+  }
+);
+  Assert.assertTrue(latch.await(5,TimeUnit.SECONDS));
+}

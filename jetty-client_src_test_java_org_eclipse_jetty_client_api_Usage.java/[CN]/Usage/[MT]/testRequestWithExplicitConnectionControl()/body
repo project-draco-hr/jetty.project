@@ -1,9 +1,11 @@
 {
   HttpClient client=new HttpClient();
   client.start();
-  try (Connection connection=client.getDestination("http","localhost",8080).newConnection().get(5,TimeUnit.SECONDS)){
+  FuturePromise<Connection> futureConnection=new FuturePromise<>();
+  client.getDestination("http","localhost",8080).newConnection(futureConnection);
+  try (Connection connection=futureConnection.get(5,TimeUnit.SECONDS)){
     Request request=client.newRequest("localhost",8080);
-    BlockingResponseListener listener=new BlockingResponseListener(request);
+    FutureResponseListener listener=new FutureResponseListener(request);
     connection.send(request,listener);
     Response response=listener.get(5,TimeUnit.SECONDS);
     Assert.assertNotNull(response);

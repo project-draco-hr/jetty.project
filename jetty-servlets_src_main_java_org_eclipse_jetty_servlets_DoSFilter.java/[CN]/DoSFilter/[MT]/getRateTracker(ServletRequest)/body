@@ -1,6 +1,5 @@
 {
-  HttpServletRequest srequest=(HttpServletRequest)request;
-  HttpSession session=srequest.getSession(false);
+  HttpSession session=((HttpServletRequest)request).getSession(false);
   String loadId=extractUserId(request);
   final int type;
   if (loadId != null) {
@@ -18,21 +17,16 @@
   }
   RateTracker tracker=_rateTrackers.get(loadId);
   if (tracker == null) {
-    RateTracker t;
-    if (_whitelist.contains(request.getRemoteAddr())) {
-      t=new FixedRateTracker(loadId,type,_maxRequestsPerSec);
-    }
- else {
-      t=new RateTracker(loadId,type,_maxRequestsPerSec);
-    }
-    tracker=_rateTrackers.putIfAbsent(loadId,t);
-    if (tracker == null)     tracker=t;
+    boolean allowed=checkWhitelist(_whitelist,request.getRemoteAddr());
+    tracker=allowed ? new FixedRateTracker(loadId,type,_maxRequestsPerSec) : new RateTracker(loadId,type,_maxRequestsPerSec);
+    RateTracker existing=_rateTrackers.putIfAbsent(loadId,tracker);
+    if (existing != null)     tracker=existing;
     if (type == USER_IP) {
-synchronized (_trackerTimeoutQ) {
-        _trackerTimeoutQ.schedule(tracker);
-      }
+      _trackerTimeoutQ.schedule(tracker);
     }
- else     if (session != null)     session.setAttribute(__TRACKER,tracker);
+ else     if (session != null) {
+      session.setAttribute(__TRACKER,tracker);
+    }
   }
   return tracker;
 }

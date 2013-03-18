@@ -9,11 +9,12 @@
 ;
   client.getRequestListeners().add(requestListener);
   Request request=client.newRequest("localhost",connector.getLocalPort()).scheme(scheme).path("/secure");
-  ContentResponse response=request.send().get(5,TimeUnit.SECONDS);
+  ContentResponse response=request.timeout(5,TimeUnit.SECONDS).send();
   Assert.assertNotNull(response);
   Assert.assertEquals(401,response.getStatus());
   Assert.assertTrue(requests.get().await(5,TimeUnit.SECONDS));
   client.getRequestListeners().remove(requestListener);
+  Assert.assertNull(client.getConversation(request.getConversationID(),false));
   authenticationStore.addAuthentication(authentication);
   requests.set(new CountDownLatch(2));
   requestListener=new Request.Listener.Empty(){
@@ -23,7 +24,8 @@
   }
 ;
   client.getRequestListeners().add(requestListener);
-  response=request.send().get(5,TimeUnit.SECONDS);
+  request=client.newRequest("localhost",connector.getLocalPort()).scheme(scheme).path("/secure");
+  response=request.timeout(5,TimeUnit.SECONDS).send();
   Assert.assertNotNull(response);
   Assert.assertEquals(200,response.getStatus());
   Assert.assertTrue(requests.get().await(5,TimeUnit.SECONDS));
@@ -36,8 +38,8 @@
   }
 ;
   client.getRequestListeners().add(requestListener);
-  request.header(HttpHeader.AUTHORIZATION.asString(),null);
-  response=request.send().get(5,TimeUnit.SECONDS);
+  request=client.newRequest("localhost",connector.getLocalPort()).scheme(scheme).path("/secure");
+  response=request.timeout(5,TimeUnit.SECONDS).send();
   Assert.assertNotNull(response);
   Assert.assertEquals(200,response.getStatus());
   Assert.assertTrue(requests.get().await(5,TimeUnit.SECONDS));

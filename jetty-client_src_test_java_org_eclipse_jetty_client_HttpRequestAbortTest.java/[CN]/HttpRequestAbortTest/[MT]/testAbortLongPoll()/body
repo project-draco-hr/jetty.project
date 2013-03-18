@@ -12,13 +12,22 @@
     }
   }
 );
-  Request request=client.newRequest("localhost",connector.getLocalPort()).scheme(scheme);
-  Future<ContentResponse> future=request.send();
-  TimeUnit.MILLISECONDS.sleep(delay);
-  Throwable cause=new Exception();
-  request.abort(cause);
+  final Request request=client.newRequest("localhost",connector.getLocalPort()).timeout(3 * delay,TimeUnit.MILLISECONDS).scheme(scheme);
+  final Throwable cause=new Exception();
+  new Thread(){
+    @Override public void run(){
+      try {
+        TimeUnit.MILLISECONDS.sleep(delay);
+        request.abort(cause);
+      }
+ catch (      InterruptedException x) {
+        throw new RuntimeException(x);
+      }
+    }
+  }
+.start();
   try {
-    future.get(5,TimeUnit.SECONDS);
+    request.send();
   }
  catch (  ExecutionException x) {
     Assert.assertSame(cause,x.getCause());

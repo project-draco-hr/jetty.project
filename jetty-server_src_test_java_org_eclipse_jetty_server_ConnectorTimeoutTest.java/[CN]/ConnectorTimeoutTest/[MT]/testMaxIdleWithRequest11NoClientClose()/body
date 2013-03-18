@@ -12,14 +12,14 @@
     }
   }
 );
-  Socket client=newSocket(HOST,_connector.getLocalPort());
+  Socket client=newSocket(_serverURI.getHost(),_serverURI.getPort());
   client.setSoTimeout(10000);
   assertFalse(client.isClosed());
   OutputStream os=client.getOutputStream();
   InputStream is=client.getInputStream();
   String content="Wibble";
   byte[] contentB=content.getBytes("utf-8");
-  os.write(("POST /echo HTTP/1.1\r\n" + "host: " + HOST + ":"+ _connector.getLocalPort()+ "\r\n"+ "content-type: text/plain; charset=utf-8\r\n"+ "content-length: "+ contentB.length+ "\r\n"+ "connection: close\r\n"+ "\r\n").getBytes("utf-8"));
+  os.write(("POST /echo HTTP/1.1\r\n" + "host: " + _serverURI.getHost() + ":"+ _serverURI.getPort()+ "\r\n"+ "content-type: text/plain; charset=utf-8\r\n"+ "content-length: "+ contentB.length+ "\r\n"+ "connection: close\r\n"+ "\r\n").getBytes("utf-8"));
   os.write(contentB);
   os.flush();
   EndPoint endPoint=exchanger.exchange(null,10,TimeUnit.SECONDS);
@@ -28,7 +28,7 @@
   TimeUnit.MILLISECONDS.sleep(3 * MAX_IDLE_TIME);
   try {
     for (int i=0; i < 1000; i++) {
-      os.write(("GET / HTTP/1.0\r\n" + "host: " + HOST + ":"+ _connector.getLocalPort()+ "\r\n"+ "connection: keep-alive\r\n"+ "\r\n").getBytes("utf-8"));
+      os.write(("GET / HTTP/1.0\r\n" + "host: " + _serverURI.getHost() + ":"+ _serverURI.getPort()+ "\r\n"+ "connection: keep-alive\r\n"+ "\r\n").getBytes("utf-8"));
       os.flush();
     }
     Assert.fail("half close should have timed out");

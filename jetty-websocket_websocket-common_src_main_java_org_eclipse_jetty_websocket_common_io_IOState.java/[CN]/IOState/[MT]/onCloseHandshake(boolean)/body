@@ -1,0 +1,25 @@
+{
+  boolean in=inputClosed.get();
+  boolean out=outputClosed.get();
+  if (incoming) {
+    in=true;
+    this.inputClosed.set(true);
+    if (!localCloseInitiated.get()) {
+      remoteCloseInitiated.set(true);
+    }
+  }
+ else {
+    out=true;
+    this.outputClosed.set(true);
+    if (!remoteCloseInitiated.get()) {
+      localCloseInitiated.set(true);
+    }
+  }
+  LOG.debug("onCloseHandshake({}), input={}, output={}",incoming,in,out);
+  if (in && out) {
+    LOG.debug("Close Handshake satisfied, disconnecting");
+    cleanClose.set(true);
+    return true;
+  }
+  return false;
+}

@@ -1,17 +1,29 @@
 {
   try {
     getLog().debug("Starting Jetty Server ...");
+    if (stopPort > 0 && stopKey != null) {
+      ShutdownMonitor monitor=ShutdownMonitor.getInstance();
+      monitor.setPort(stopPort);
+      monitor.setKey(stopKey);
+      monitor.setExitVm(!daemon);
+    }
     printSystemProperties();
-    this.server=new JettyServer();
     applyJettyXml();
+    if (httpConnector != null) {
+      if (httpConnector.getPort() <= 0) {
+        String tmp=System.getProperty(PORT_SYSPROPERTY,MavenServerConnector.DEFAULT_PORT_STR);
+        httpConnector.setPort(Integer.parseInt(tmp.trim()));
+      }
+      this.server.addConnector(httpConnector);
+    }
     Connector[] connectors=this.server.getConnectors();
     if (connectors == null || connectors.length == 0) {
-      this.server.setConnectors(this.connectors);
-      connectors=this.server.getConnectors();
-      if (connectors == null || connectors.length == 0) {
-        this.connectors=new Connector[]{this.server.createDefaultConnector(System.getProperty(PORT_SYSPROPERTY,null))};
-        this.server.setConnectors(this.connectors);
+      if (httpConnector == null) {
+        httpConnector=new MavenServerConnector();
+        String tmp=System.getProperty(PORT_SYSPROPERTY,MavenServerConnector.DEFAULT_PORT_STR);
+        httpConnector.setPort(Integer.parseInt(tmp.trim()));
       }
+      this.server.setConnectors(new Connector[]{httpConnector});
     }
     if (this.requestLog != null)     this.server.setRequestLog(this.requestLog);
     this.server.configureHandlers();
@@ -24,10 +36,6 @@
     finishConfigurationBeforeStart();
     this.server.start();
     getLog().info("Started Jetty Server");
-    if (stopPort > 0 && stopKey != null) {
-      Monitor monitor=new Monitor(stopPort,stopKey,new Server[]{server},!daemon);
-      monitor.start();
-    }
     configureScanner();
     startScanner();
     startConsoleScanner();

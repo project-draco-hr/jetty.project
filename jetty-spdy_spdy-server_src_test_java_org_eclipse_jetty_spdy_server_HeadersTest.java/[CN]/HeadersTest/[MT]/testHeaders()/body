@@ -1,11 +1,11 @@
 {
   ServerSessionFrameListener serverSessionFrameListener=new ServerSessionFrameListener.Adapter(){
     @Override public StreamFrameListener onSyn(    Stream stream,    SynInfo synInfo){
-      stream.reply(new ReplyInfo(false));
+      stream.reply(new ReplyInfo(false),new Callback.Adapter());
       return new StreamFrameListener.Adapter(){
         @Override public void onHeaders(        Stream stream,        HeadersInfo headersInfo){
           Assert.assertTrue(stream.isHalfClosed());
-          stream.headers(new HeadersInfo(new Fields(),true));
+          stream.headers(new HeadersInfo(new Fields(),true),new Callback.Adapter());
           Assert.assertTrue(stream.isClosed());
         }
       }
@@ -15,12 +15,12 @@
 ;
   Session session=startClient(startServer(serverSessionFrameListener),null);
   final CountDownLatch latch=new CountDownLatch(1);
-  session.syn(new SynInfo(false),new StreamFrameListener.Adapter(){
+  session.syn(new SynInfo(new Fields(),false),new StreamFrameListener.Adapter(){
     @Override public void onReply(    Stream stream,    ReplyInfo replyInfo){
       Fields headers=new Fields();
       headers.put("foo","bar");
       headers.put("baz","woo");
-      stream.headers(new HeadersInfo(headers,true));
+      stream.headers(new HeadersInfo(headers,true),new Callback.Adapter());
       Assert.assertTrue(stream.isHalfClosed());
     }
     @Override public void onHeaders(    Stream stream,    HeadersInfo headersInfo){

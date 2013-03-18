@@ -6,10 +6,10 @@
     @Override public void onConnect(    Session session){
       Settings settings=new Settings();
       settings.put(new Settings.Setting(Settings.ID.INITIAL_WINDOW_SIZE,windowSize));
-      session.settings(new SettingsInfo(settings));
+      session.settings(new SettingsInfo(settings),new FutureCallback());
     }
     @Override public StreamFrameListener onSyn(    Stream stream,    SynInfo synInfo){
-      stream.reply(new ReplyInfo(false));
+      stream.reply(new ReplyInfo(false),new Callback.Adapter());
       return new StreamFrameListener.Adapter(){
         private AtomicInteger dataFrames=new AtomicInteger();
         @Override public void onData(        Stream stream,        DataInfo dataInfo){
@@ -49,9 +49,9 @@
   }
 );
   Assert.assertTrue(settingsLatch.await(5,TimeUnit.SECONDS));
-  Stream stream=session.syn(new SynInfo(false),null).get(5,TimeUnit.SECONDS);
+  Stream stream=session.syn(new SynInfo(5,TimeUnit.SECONDS,new Fields(),false,(byte)0),null);
   final int length=5 * windowSize;
-  stream.data(new BytesDataInfo(new byte[length],true));
+  stream.data(new BytesDataInfo(new byte[length],true),new Callback.Adapter());
   DataInfo dataInfo=exchanger.exchange(null,5,TimeUnit.SECONDS);
   checkThatWeAreFlowControlStalled(exchanger);
   Assert.assertEquals(windowSize,dataInfo.available());

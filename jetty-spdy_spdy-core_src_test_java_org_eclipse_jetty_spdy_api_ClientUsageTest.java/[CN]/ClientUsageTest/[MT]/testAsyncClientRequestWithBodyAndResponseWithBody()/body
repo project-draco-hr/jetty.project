@@ -1,2 +1,29 @@
 {
+  Session session=new StandardSession(SPDY.V2,null,null,null,null,null,null,1,null,null,null);
+  session.syn(new SynInfo(new Fields(),false),new StreamFrameListener.Adapter(){
+    @Override public void onReply(    Stream stream,    ReplyInfo replyInfo){
+      Fields headers=replyInfo.getHeaders();
+      int contentLength=headers.get("content-length").valueAsInt();
+      stream.setAttribute("content-length",contentLength);
+      if (!replyInfo.isClose())       stream.setAttribute("builder",new StringBuilder());
+      try {
+        stream.getSession().syn(new SynInfo(new Fields(),true),this);
+      }
+ catch (      ExecutionException|InterruptedException|TimeoutException e) {
+        throw new IllegalStateException(e);
+      }
+    }
+    @Override public void onData(    Stream stream,    DataInfo dataInfo){
+      StringBuilder builder=(StringBuilder)stream.getAttribute("builder");
+      builder.append(dataInfo.asString("UTF-8",true));
+    }
+  }
+,new Promise.Adapter<Stream>(){
+    @Override public void succeeded(    Stream stream){
+      stream.data(new BytesDataInfo("wee".getBytes(Charset.forName("UTF-8")),false),new Callback.Adapter());
+      stream.data(new StringDataInfo("foo",false),new Callback.Adapter());
+      stream.data(new ByteBufferDataInfo(Charset.forName("UTF-8").encode("bar"),true),new Callback.Adapter());
+    }
+  }
+);
 }

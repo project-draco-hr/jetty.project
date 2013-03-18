@@ -1,0 +1,35 @@
+{
+  StringBuilder sb=new StringBuilder();
+  sb.append(_statsHandler.toStatsHTML());
+  sb.append("<h2>Connections:</h2>\n");
+  for (  Connector connector : _connectors) {
+    sb.append("<h3>").append(connector.getClass().getName()).append("@").append(connector.hashCode()).append("</h3>");
+    sb.append("Protocols:");
+    for (    String protocol : connector.getProtocols())     sb.append(protocol).append("&nbsp;");
+    sb.append("    <br />\n");
+    ConnectorStatistics connectorStats=null;
+    if (connector instanceof AbstractConnector)     connectorStats=((AbstractConnector)connector).getBean(ConnectorStatistics.class);
+    if (connectorStats != null) {
+      sb.append("Statistics gathering started ").append(connectorStats.getStartedMillis()).append("ms ago").append("<br />\n");
+      sb.append("Total connections: ").append(connectorStats.getConnections()).append("<br />\n");
+      sb.append("Current connections open: ").append(connectorStats.getConnectionsOpen()).append("<br />\n");
+      ;
+      sb.append("Max concurrent connections open: ").append(connectorStats.getConnectionsOpenMax()).append("<br />\n");
+      sb.append("Total connections duration: ").append(connectorStats.getConnectionsDurationTotal()).append("<br />\n");
+      sb.append("Mean connection duration: ").append(connectorStats.getConnectionsDurationMean()).append("<br />\n");
+      sb.append("Max connection duration: ").append(connectorStats.getConnectionsDurationMax()).append("<br />\n");
+      sb.append("Connection duration standard deviation: ").append(connectorStats.getConnectionsDurationStdDev()).append("<br />\n");
+      sb.append("Total messages in: ").append(connectorStats.getMessagesIn()).append("<br />\n");
+      sb.append("Total messages out: ").append(connectorStats.getMessagesOut()).append("<br />\n");
+    }
+ else {
+      sb.append("Statistics gathering off.\n");
+    }
+  }
+  sb.append("<h2>Memory:</h2>\n");
+  sb.append("Heap memory usage: ").append(_memoryBean.getHeapMemoryUsage().getUsed()).append(" bytes").append("<br />\n");
+  sb.append("Non-heap memory usage: ").append(_memoryBean.getNonHeapMemoryUsage().getUsed()).append(" bytes").append("<br />\n");
+  response.setContentType("text/html");
+  PrintWriter pout=response.getWriter();
+  pout.write(sb.toString());
+}

@@ -1,4 +1,10 @@
 {
-  LOG.debug("Read Timeout. disconnecting connection");
-  return true;
+  LOG.info("Read Timeout");
+  IOState state=getIOState();
+  if ((state.getState() == ConnectionState.CLOSING) || (state.getState() == ConnectionState.CLOSED)) {
+    return true;
+  }
+  session.close(StatusCode.NORMAL,"Idle Timeout");
+  writeBytes.close();
+  return false;
 }

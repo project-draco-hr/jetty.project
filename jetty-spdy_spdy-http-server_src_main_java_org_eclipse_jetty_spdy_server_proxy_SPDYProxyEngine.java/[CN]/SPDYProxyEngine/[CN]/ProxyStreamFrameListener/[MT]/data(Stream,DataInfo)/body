@@ -1,12 +1,18 @@
 {
-  clientStream.data(dataInfo,getTimeout(),TimeUnit.MILLISECONDS,new Callback(){
+  final ByteBufferDataInfo clientDataInfo=new ByteBufferDataInfo(serverDataInfo.asByteBuffer(false),serverDataInfo.isClose()){
+    @Override public void consume(    int delta){
+      super.consume(delta);
+      serverDataInfo.consume(delta);
+    }
+  }
+;
+  receiverStream.data(clientDataInfo,new Callback(){
     @Override public void succeeded(){
-      dataInfo.consume(dataInfo.length());
-      logger.debug("P -> C {} from {} to {}",dataInfo,stream,clientStream);
+      LOG.debug("P -> C {} from {} to {}",clientDataInfo,stream,receiverStream);
     }
     @Override public void failed(    Throwable x){
-      logger.debug(x);
-      rst(clientStream);
+      LOG.debug(x);
+      rst(receiverStream);
     }
   }
 );

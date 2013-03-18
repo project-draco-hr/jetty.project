@@ -4,22 +4,21 @@
     String servletMapping="/server";
     AbstractTestServer server1=createServer(0);
     server1.addContext(contextPath).addServlet(TestServlet.class,servletMapping);
-    server1.start();
-    int port1=server1.getPort();
     try {
+      server1.start();
+      int port1=server1.getPort();
       AbstractTestServer server2=createServer(0);
       server2.addContext(contextPath).addServlet(TestServlet.class,servletMapping);
-      server2.start();
-      int port2=server2.getPort();
       try {
+        server2.start();
+        int port2=server2.getPort();
         HttpClient client=new HttpClient();
         client.start();
         try {
           String[] urls=new String[2];
           urls[0]="http://localhost:" + port1 + contextPath+ servletMapping;
           urls[1]="http://localhost:" + port2 + contextPath+ servletMapping;
-          Future<ContentResponse> future=client.GET(urls[0] + "?action=init");
-          ContentResponse response1=future.get();
+          ContentResponse response1=client.GET(urls[0] + "?action=init");
           assertEquals(HttpServletResponse.SC_OK,response1.getStatus());
           String sessionCookie=response1.getHeaders().getStringField("Set-Cookie");
           assertTrue(sessionCookie != null);
@@ -44,8 +43,7 @@
           executor.shutdownNow();
           Request request=client.newRequest(urls[0] + "?action=result");
           request.header("Cookie",sessionCookie);
-          future=request.send();
-          ContentResponse response2=future.get();
+          ContentResponse response2=request.send();
           assertEquals(HttpServletResponse.SC_OK,response2.getStatus());
           String response=response2.getContentAsString();
           System.out.println("get = " + response);

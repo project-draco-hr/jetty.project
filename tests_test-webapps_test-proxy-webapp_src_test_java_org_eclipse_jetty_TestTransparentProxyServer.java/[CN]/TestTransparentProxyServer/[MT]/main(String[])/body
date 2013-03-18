@@ -5,7 +5,6 @@
   threadPool.setMaxThreads(100);
   Server server=new Server(threadPool);
   server.manage(threadPool);
-  server.setSendDateHeader(true);
   MBeanContainer mbContainer=new MBeanContainer(ManagementFactory.getPlatformMBeanServer());
   server.addBean(mbContainer);
   server.addBean(Log.getLog());
@@ -13,6 +12,8 @@
   config.setSecurePort(8443);
   config.addCustomizer(new ForwardedRequestCustomizer());
   config.addCustomizer(new SecureRequestCustomizer());
+  config.setSendDateHeader(true);
+  config.setSendServerVersion(true);
   HttpConnectionFactory http=new HttpConnectionFactory(config);
   ServerConnector httpConnector=new ServerConnector(server,http);
   httpConnector.setPort(8080);
@@ -48,7 +49,6 @@
   webapp.setResourceBase("src/main/webapp");
   contexts.addHandler(webapp);
   server.setStopAtShutdown(true);
-  server.setSendServerVersion(true);
   server.start();
   server.join();
 }

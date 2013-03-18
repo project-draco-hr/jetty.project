@@ -5,26 +5,23 @@
   AbstractTestServer server=createServer(0,1,scavengePeriod);
   ServletContextHandler context=server.addContext(contextPath);
   context.addServlet(TestServlet.class,servletMapping);
-  server.start();
-  int port=server.getPort();
   try {
+    server.start();
+    int port=server.getPort();
     HttpClient client=new HttpClient();
     client.start();
     try {
-      Future<ContentResponse> future=client.GET("http://localhost:" + port + contextPath+ servletMapping+ "?action=create");
-      ContentResponse response=future.get();
+      ContentResponse response=client.GET("http://localhost:" + port + contextPath+ servletMapping+ "?action=create");
       assertEquals(HttpServletResponse.SC_OK,response.getStatus());
       String sessionCookie=response.getHeaders().getStringField("Set-Cookie");
       assertTrue(sessionCookie != null);
       Request request=client.newRequest("http://localhost:" + port + contextPath+ servletMapping+ "?action=check-cookie");
       request.header("Cookie",sessionCookie);
-      future=request.send();
-      response=future.get();
+      response=request.send();
       assertEquals(HttpServletResponse.SC_OK,response.getStatus());
       request=client.newRequest("http://localhost:" + port + contextPath+ servletMapping+ "?action=null-cookie");
       request.header("Cookie",sessionCookie);
-      future=request.send();
-      response=future.get();
+      response=request.send();
       assertEquals(HttpServletResponse.SC_OK,response.getStatus());
     }
   finally {

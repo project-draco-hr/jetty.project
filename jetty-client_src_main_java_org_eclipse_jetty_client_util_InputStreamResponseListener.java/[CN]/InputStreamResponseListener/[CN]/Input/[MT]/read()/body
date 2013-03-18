@@ -1,18 +1,29 @@
 {
   while (true) {
-    if (bytes != null) {
-      if (index < bytes.length)       return bytes[index++];
-      length.addAndGet(-index);
-      bytes=null;
-      index=0;
+    if (bytes == EOF) {
+      index=-1;
+      return -1;
     }
-    bytes=take();
-    LOG.debug("Dequeued {}/{} bytes",bytes,bytes.length);
-    if (bytes == EOF)     return -1;
-    if (bytes == FAILURE) {
-      if (failure instanceof IOException)       throw (IOException)failure;
- else       throw new IOException(failure);
+ else     if (bytes == FAILURE) {
+      throw failure();
     }
-    signal();
+ else     if (bytes == CLOSED) {
+      if (index < 0)       return -1;
+      throw new AsynchronousCloseException();
+    }
+ else     if (bytes != null) {
+      int result=bytes[index] & 0xFF;
+      if (++index == bytes.length) {
+        length.addAndGet(-index);
+        bytes=null;
+        index=0;
+        signal();
+      }
+      return result;
+    }
+ else {
+      bytes=take();
+      LOG.debug("Dequeued {}/{} bytes",bytes,bytes.length);
+    }
   }
 }

@@ -1,0 +1,24 @@
+{
+  final StandardSession testLocalSession=new StandardSession(VERSION,bufferPool,threadPool,scheduler,new ControllerMock(),null,null,1,null,generator,new FlowControlStrategy.None());
+  HashSet<Future> tasks=new HashSet<>();
+  int numberOfTasksToRun=128;
+  for (int i=0; i < numberOfTasksToRun; i++) {
+    tasks.add(threadPool.submit(new Runnable(){
+      @Override public void run(){
+        synStream(priority0);
+        synStream(priority1);
+        synStream(priority2);
+      }
+      private void synStream(      byte priority){
+        SynInfo synInfo=new SynInfo(headers,false,priority);
+        testLocalSession.syn(synInfo,new StreamFrameListener.Adapter(),new FuturePromise<Stream>());
+      }
+    }
+));
+  }
+  for (  Future task : tasks) {
+    task.get();
+  }
+  threadPool.shutdown();
+  threadPool.awaitTermination(60,TimeUnit.SECONDS);
+}

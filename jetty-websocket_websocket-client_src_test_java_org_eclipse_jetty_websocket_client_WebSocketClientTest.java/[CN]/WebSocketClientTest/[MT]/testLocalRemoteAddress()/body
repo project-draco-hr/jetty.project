@@ -1,17 +1,16 @@
 {
-  WebSocketClientFactory fact=new WebSocketClientFactory();
+  WebSocketClient fact=new WebSocketClient();
   fact.start();
   try {
     TrackingSocket wsocket=new TrackingSocket();
-    WebSocketClient client=fact.newWebSocketClient(wsocket);
     URI wsUri=server.getWsUri();
-    Future<ClientUpgradeResponse> future=client.connect(wsUri);
+    Future<Session> future=client.connect(wsocket,wsUri);
     ServerConnection ssocket=server.accept();
     ssocket.upgrade();
     future.get(500,TimeUnit.MILLISECONDS);
     Assert.assertTrue(wsocket.openLatch.await(1,TimeUnit.SECONDS));
-    InetSocketAddress local=wsocket.getConnection().getLocalAddress();
-    InetSocketAddress remote=wsocket.getConnection().getRemoteAddress();
+    InetSocketAddress local=wsocket.getSession().getLocalAddress();
+    InetSocketAddress remote=wsocket.getSession().getRemoteAddress();
     Assert.assertThat("Local Socket Address",local,notNullValue());
     Assert.assertThat("Remote Socket Address",remote,notNullValue());
     Assert.assertThat("Local Socket Address / Host",local.getAddress().getHostAddress(),notNullValue());

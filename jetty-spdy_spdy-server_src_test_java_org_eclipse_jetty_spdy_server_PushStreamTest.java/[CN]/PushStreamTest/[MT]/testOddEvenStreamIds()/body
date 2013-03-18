@@ -2,21 +2,14 @@
   final CountDownLatch pushStreamIdIsEvenLatch=new CountDownLatch(3);
   Session clientSession=startClient(startServer(new ServerSessionFrameListener.Adapter(){
     @Override public StreamFrameListener onSyn(    Stream stream,    SynInfo synInfo){
-      stream.syn(new SynInfo(false));
+      stream.push(new PushInfo(new Fields(),false),new Promise.Adapter<Stream>());
       return null;
     }
   }
-),new SessionFrameListener.Adapter(){
-    @Override public StreamFrameListener onSyn(    Stream stream,    SynInfo synInfo){
-      assertStreamIdIsEven(stream);
-      pushStreamIdIsEvenLatch.countDown();
-      return super.onSyn(stream,synInfo);
-    }
-  }
-);
-  Stream stream=clientSession.syn(new SynInfo(false),null).get();
-  Stream stream2=clientSession.syn(new SynInfo(false),null).get();
-  Stream stream3=clientSession.syn(new SynInfo(false),null).get();
+),null);
+  Stream stream=clientSession.syn(new SynInfo(new Fields(),false),new VerifyPushStreamIdIsEvenStreamFrameListener(pushStreamIdIsEvenLatch));
+  Stream stream2=clientSession.syn(new SynInfo(new Fields(),false),new VerifyPushStreamIdIsEvenStreamFrameListener(pushStreamIdIsEvenLatch));
+  Stream stream3=clientSession.syn(new SynInfo(new Fields(),false),new VerifyPushStreamIdIsEvenStreamFrameListener(pushStreamIdIsEvenLatch));
   assertStreamIdIsOdd(stream);
   assertStreamIdIsOdd(stream2);
   assertStreamIdIsOdd(stream3);

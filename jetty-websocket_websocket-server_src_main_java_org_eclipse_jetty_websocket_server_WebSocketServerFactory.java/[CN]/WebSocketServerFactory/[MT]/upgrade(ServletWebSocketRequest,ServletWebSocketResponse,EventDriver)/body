@@ -34,8 +34,9 @@
   }
   WebSocketSession session=new WebSocketSession(request.getRequestURI(),driver,connection);
   session.setPolicy(getPolicy().clonePolicy());
-  session.setNegotiatedSubprotocol(response.getAcceptedSubProtocol());
-  session.setNegotiatedExtensions(extensionStack.getNegotiatedExtensions());
+  session.setUpgradeRequest(request);
+  response.setExtensions(extensionStack.getNegotiatedExtensions());
+  session.setUpgradeResponse(response);
   connection.setSession(session);
   connection.setNextIncomingFrames(extensionStack);
   extensionStack.setNextIncoming(session);
@@ -53,7 +54,7 @@
  catch (  Exception e) {
     throw new IOException("Unable to start Extension Stack",e);
   }
-  request.setAttribute(HttpConnection.UPGRADE_CONNECTION_ATTRIBUTE,connection);
+  request.setServletAttribute(HttpConnection.UPGRADE_CONNECTION_ATTRIBUTE,connection);
   LOG.debug("Handshake Response: {}",handshaker);
   handshaker.doHandshakeResponse(request,response);
   LOG.debug("Websocket upgrade {} {} {} {}",request.getRequestURI(),version,response.getAcceptedSubProtocol(),connection);

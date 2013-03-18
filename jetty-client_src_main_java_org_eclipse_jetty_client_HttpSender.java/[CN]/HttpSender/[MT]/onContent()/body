@@ -1,0 +1,33 @@
+{
+  while (true) {
+    SendState current=sendState.get();
+switch (current) {
+case IDLE:
+{
+        if (updateSendState(current,SendState.EXECUTE)) {
+          LOG.debug("Deferred content available, sending");
+          send();
+          return;
+        }
+        break;
+      }
+case EXECUTE:
+{
+      if (updateSendState(current,SendState.SCHEDULE)) {
+        LOG.debug("Deferred content available, scheduling");
+        return;
+      }
+      break;
+    }
+case SCHEDULE:
+{
+    LOG.debug("Deferred content available, queueing");
+    return;
+  }
+default :
+{
+  throw new IllegalStateException();
+}
+}
+}
+}

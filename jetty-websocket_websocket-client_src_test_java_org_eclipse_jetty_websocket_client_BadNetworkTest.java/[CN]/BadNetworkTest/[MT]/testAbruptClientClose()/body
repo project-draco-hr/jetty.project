@@ -1,16 +1,13 @@
 {
   TrackingSocket wsocket=new TrackingSocket();
-  WebSocketClient client=factory.newWebSocketClient(wsocket);
   URI wsUri=server.getWsUri();
-  Future<ClientUpgradeResponse> future=client.connect(wsUri);
+  Future<Session> future=client.connect(wsocket,wsUri);
   ServerConnection ssocket=server.accept();
   ssocket.upgrade();
   future.get(500,TimeUnit.MILLISECONDS);
   wsocket.waitForConnected(500,TimeUnit.MILLISECONDS);
-  WebSocketConnection conn=wsocket.getConnection();
-  Assert.assertThat("Connection",conn,instanceOf(AbstractWebSocketConnection.class));
-  AbstractWebSocketConnection awsc=(AbstractWebSocketConnection)conn;
-  awsc.disconnect(false);
+  Session session=wsocket.getSession();
+  session.disconnect();
   wsocket.waitForClose(10,TimeUnit.SECONDS);
   wsocket.assertCloseCode(StatusCode.NO_CLOSE);
 }

@@ -1,0 +1,21 @@
+{
+  EndPoint endp=getEndPoint();
+  Executor executor=getExecutor();
+  WebSocketClientConnection connection=new WebSocketClientConnection(endp,executor,connectPromise);
+  EventDriver websocket=connectPromise.getDriver();
+  WebSocketPolicy policy=connectPromise.getClient().getPolicy();
+  WebSocketSession session=new WebSocketSession(request.getRequestURI(),websocket,connection);
+  session.setPolicy(policy);
+  session.setUpgradeResponse(response);
+  connection.setSession(session);
+  ExtensionStack extensionStack=new ExtensionStack(connectPromise.getClient().getExtensionFactory());
+  extensionStack.negotiate(response.getExtensions());
+  extensionStack.configure(connection.getParser());
+  extensionStack.configure(connection.getGenerator());
+  connection.setNextIncomingFrames(extensionStack);
+  extensionStack.setNextIncoming(session);
+  session.setOutgoingHandler(extensionStack);
+  extensionStack.setNextOutgoing(connection);
+  endp.setConnection(connection);
+  connection.onOpen();
+}

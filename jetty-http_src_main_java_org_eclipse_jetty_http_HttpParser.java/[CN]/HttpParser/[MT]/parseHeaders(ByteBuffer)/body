@@ -19,95 +19,53 @@ case HttpTokens.COLON:
 case HttpTokens.SPACE:
 case HttpTokens.TAB:
 {
-          _length=-1;
           _string.setLength(0);
+          if (_valueString != null) {
+            _string.append(_valueString);
+            _string.append(' ');
+          }
+          _length=_string.length();
+          _valueString=null;
           setState(State.HEADER_VALUE);
           break;
         }
 default :
 {
         if (_headerString != null || _valueString != null) {
-          if (_header != null) {
-switch (_header) {
-case CONTENT_LENGTH:
-              if (_endOfContent != EndOfContent.CHUNKED_CONTENT) {
-                try {
-                  _contentLength=Long.parseLong(_valueString);
-                }
- catch (                NumberFormatException e) {
-                  LOG.ignore(e);
-                  badMessage(buffer,HttpStatus.BAD_REQUEST_400,"Bad Content-Length");
-                  return true;
-                }
-                if (_contentLength <= 0)                 _endOfContent=EndOfContent.NO_CONTENT;
- else                 _endOfContent=EndOfContent.CONTENT_LENGTH;
-              }
-            break;
-case TRANSFER_ENCODING:
-          if (_value == HttpHeaderValue.CHUNKED)           _endOfContent=EndOfContent.CHUNKED_CONTENT;
- else {
-            if (_valueString.endsWith(HttpHeaderValue.CHUNKED.toString()))             _endOfContent=EndOfContent.CHUNKED_CONTENT;
- else             if (_valueString.indexOf(HttpHeaderValue.CHUNKED.toString()) >= 0) {
-              badMessage(buffer,HttpStatus.BAD_REQUEST_400,"Bad chunking");
-              return true;
-            }
+          if (_header != null && handleKnownHeaders(buffer)) {
+            _headerString=_valueString=null;
+            _header=null;
+            _value=null;
+            _field=null;
+            return true;
           }
-        break;
-case HOST:
-      _host=true;
-    String host=_valueString;
-  int port=0;
-if (host == null || host.length() == 0) {
-  badMessage(buffer,HttpStatus.BAD_REQUEST_400,"Bad Host header");
-  return true;
-}
-loop: for (int i=host.length(); i-- > 0; ) {
-char c2=(char)(0xff & host.charAt(i));
-switch (c2) {
-case ']':
-  break loop;
-case ':':
-try {
-  port=StringUtil.toInt(host.substring(i + 1));
-}
- catch (NumberFormatException e) {
-  LOG.debug(e);
-  badMessage(buffer,HttpStatus.BAD_REQUEST_400,"Bad Host header");
-  return true;
-}
-host=host.substring(0,i);
-break loop;
-}
-}
-if (_requestHandler != null) _requestHandler.parsedHostHeader(host,port);
-}
-}
-return_from_parse|=_handler.parsedHeader(_header,_headerString,_valueString);
-}
-_headerString=_valueString=null;
-_header=null;
-_value=null;
-if (ch == HttpTokens.CARRIAGE_RETURN || ch == HttpTokens.LINE_FEED) {
-consumeCRLF(ch,buffer);
-_contentPosition=0;
-if (!_host && _version != HttpVersion.HTTP_1_0 && _requestHandler != null) {
-badMessage(buffer,HttpStatus.BAD_REQUEST_400,"No Host");
-return true;
-}
-if (_responseHandler != null && (_responseStatus == 304 || _responseStatus == 204 || _responseStatus < 200)) _endOfContent=EndOfContent.NO_CONTENT;
- else if (_endOfContent == EndOfContent.UNKNOWN_CONTENT) {
-if (_responseStatus == 0 || _responseStatus == 304 || _responseStatus == 204 || _responseStatus < 200) _endOfContent=EndOfContent.NO_CONTENT;
- else _endOfContent=EndOfContent.EOF_CONTENT;
-}
+          return_from_parse|=_handler.parsedHeader(_field != null ? _field : new HttpField(_header,_headerString,_valueString));
+        }
+        _headerString=_valueString=null;
+        _header=null;
+        _value=null;
+        _field=null;
+        if (ch == HttpTokens.CARRIAGE_RETURN || ch == HttpTokens.LINE_FEED) {
+          consumeCRLF(ch,buffer);
+          _contentPosition=0;
+          if (!_host && _version != HttpVersion.HTTP_1_0 && _requestHandler != null) {
+            badMessage(buffer,HttpStatus.BAD_REQUEST_400,"No Host");
+            return true;
+          }
+          if (_responseHandler != null && (_responseStatus == 304 || _responseStatus == 204 || _responseStatus < 200))           _endOfContent=EndOfContent.NO_CONTENT;
+ else           if (_endOfContent == EndOfContent.UNKNOWN_CONTENT) {
+            if (_responseStatus == 0 || _responseStatus == 304 || _responseStatus == 204 || _responseStatus < 200)             _endOfContent=EndOfContent.NO_CONTENT;
+ else             _endOfContent=EndOfContent.EOF_CONTENT;
+          }
 switch (_endOfContent) {
 case EOF_CONTENT:
-setState(State.EOF_CONTENT);
-return_from_parse|=_handler.headerComplete();
-break;
+            setState(State.EOF_CONTENT);
+          return_from_parse|=_handler.headerComplete();
+        break;
 case CHUNKED_CONTENT:
-setState(State.CHUNKED_CONTENT);
-return_from_parse|=_handler.headerComplete();
-break;
+      setState(State.CHUNKED_CONTENT);
+    return_from_parse|=_handler.headerComplete();
+  break;
 case NO_CONTENT:
 return_from_parse|=_handler.headerComplete();
 setState(State.END);
@@ -120,12 +78,32 @@ break;
 }
 }
  else {
-if (buffer.remaining() > 6 && buffer.hasArray()) {
-_header=HttpHeader.lookAheadGet(buffer.array(),buffer.arrayOffset() + buffer.position() - 1,buffer.arrayOffset() + buffer.limit());
+if (buffer.remaining() > 6) {
+_field=_connectionFields == null ? null : _connectionFields.getBest(buffer,-1,buffer.remaining());
+if (_field == null) _field=HttpField.CACHE.getBest(buffer,-1,buffer.remaining());
+if (_field != null) {
+_header=_field.getHeader();
+_headerString=_field.getName();
+_valueString=_field.getValue();
+if (_valueString == null) {
+setState(State.HEADER_VALUE);
+buffer.position(buffer.position() + _headerString.length() + 1);
+_string.setLength(0);
+_length=0;
+_field=null;
+}
+ else {
+setState(State.HEADER_IN_VALUE);
+buffer.position(buffer.position() + _headerString.length() + _valueString.length()+ 1);
+}
+break;
+}
+_header=HttpHeader.CACHE.getBest(buffer,-1,buffer.remaining());
 if (_header != null) {
 _headerString=_header.asString();
-buffer.position(buffer.position() + _headerString.length());
-setState(buffer.get(buffer.position() - 1) == ':' ? State.HEADER_VALUE : State.HEADER_NAME);
+_string.setLength(0);
+setState(State.HEADER_IN_NAME);
+buffer.position(buffer.position() + _headerString.length() - 1);
 break;
 }
 }
@@ -142,8 +120,10 @@ switch (ch) {
 case HttpTokens.CARRIAGE_RETURN:
 case HttpTokens.LINE_FEED:
 consumeCRLF(ch,buffer);
+if (_headerString == null) {
 _headerString=takeLengthString();
 _header=HttpHeader.CACHE.get(_headerString);
+}
 setState(State.HEADER);
 break;
 case HttpTokens.COLON:
@@ -159,14 +139,6 @@ _string.append((char)ch);
 break;
 default :
 {
-if (_header != null) {
-_string.setLength(0);
-_string.append(_header.asString());
-_string.append(' ');
-_length=_string.length();
-_header=null;
-_headerString=null;
-}
 _string.append((char)ch);
 _length=_string.length();
 setState(State.HEADER_IN_NAME);
@@ -193,10 +165,24 @@ setState(State.HEADER_VALUE);
 break;
 case HttpTokens.SPACE:
 case HttpTokens.TAB:
+if (_header != null) {
+_string.setLength(0);
+_string.append(_header.asString());
+_length=_string.length();
+_header=null;
+_headerString=null;
+}
 setState(State.HEADER_NAME);
 _string.append((char)ch);
 break;
 default :
+if (_header != null) {
+_string.setLength(0);
+_string.append(_header.asString());
+_length=_string.length();
+_header=null;
+_headerString=null;
+}
 _string.append((char)ch);
 _length++;
 }
@@ -239,11 +225,7 @@ case HttpTokens.CARRIAGE_RETURN:
 case HttpTokens.LINE_FEED:
 consumeCRLF(ch,buffer);
 if (_length > 0) {
-if (_valueString != null) {
-_value=null;
-_valueString+=" " + takeString();
-}
- else if (HttpHeaderValue.hasKnownValues(_header)) {
+if (HttpHeaderValue.hasKnownValues(_header)) {
 _valueString=takeString();
 _value=HttpHeaderValue.CACHE.get(_valueString);
 }
@@ -257,10 +239,24 @@ setState(State.HEADER);
 break;
 case HttpTokens.SPACE:
 case HttpTokens.TAB:
+if (_valueString != null) {
+_string.setLength(0);
+_string.append(_valueString);
+_length=_valueString.length();
+_valueString=null;
+_field=null;
+}
 _string.append((char)ch);
 setState(State.HEADER_VALUE);
 break;
 default :
+if (_valueString != null) {
+_string.setLength(0);
+_string.append(_valueString);
+_length=_valueString.length();
+_valueString=null;
+_field=null;
+}
 _string.append((char)ch);
 _length++;
 }

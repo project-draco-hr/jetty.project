@@ -1,13 +1,16 @@
 {
   TrackingSocket wsocket=new TrackingSocket();
-  WebSocketClient client=factory.newWebSocketClient(wsocket);
   URI wsUri=server.getWsUri();
-  Future<ClientUpgradeResponse> future=client.connect(wsUri);
+  Future<Session> future=client.connect(wsocket,wsUri);
   try {
     future.get(500,TimeUnit.MILLISECONDS);
     Assert.fail("Should have Timed Out");
   }
- catch (  TimeoutException e) {
+ catch (  ExecutionException e) {
+    assertExpectedError(e,wsocket,UpgradeException.class);
+    wsocket.assertNotOpened();
+  }
+catch (  TimeoutException e) {
     wsocket.assertNotOpened();
   }
 }

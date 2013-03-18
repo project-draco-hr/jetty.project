@@ -6,7 +6,7 @@
     }
   }
 );
-  String uri=scheme + "://localhost:" + connector.getLocalPort();
+  URI uri=URI.create(scheme + "://localhost:" + connector.getLocalPort());
   client.getAuthenticationStore().addAuthentication(new BasicAuthentication(uri,realm,"basic","basic"));
   final CountDownLatch requests=new CountDownLatch(3);
   Request.Listener.Empty requestListener=new Request.Listener.Empty(){
@@ -16,7 +16,7 @@
   }
 ;
   client.getRequestListeners().add(requestListener);
-  ContentResponse response=client.newRequest("localhost",connector.getLocalPort()).scheme(scheme).path("/redirect").send().get(5,TimeUnit.SECONDS);
+  ContentResponse response=client.newRequest("localhost",connector.getLocalPort()).scheme(scheme).path("/redirect").timeout(5,TimeUnit.SECONDS).send();
   Assert.assertNotNull(response);
   Assert.assertEquals(200,response.getStatus());
   Assert.assertTrue(requests.await(5,TimeUnit.SECONDS));

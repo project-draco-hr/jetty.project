@@ -1,15 +1,5 @@
 {
-  if (!updateState(State.IDLE,State.SEND))   throw new IllegalStateException();
-  HttpConversation conversation=exchange.getConversation();
-  HttpExchange initialExchange=conversation.getExchanges().peekFirst();
-  if (initialExchange == exchange) {
-    conversation.setResponseListeners(exchange.getResponseListeners());
-  }
- else {
-    List<Response.ResponseListener> listeners=new ArrayList<>(exchange.getResponseListeners());
-    listeners.addAll(initialExchange.getResponseListeners());
-    conversation.setResponseListeners(listeners);
-  }
+  if (!updateState(State.IDLE,State.BEGIN))   throw new IllegalStateException();
   Request request=exchange.getRequest();
   Throwable cause=request.getAbortCause();
   if (cause != null) {
@@ -17,9 +7,13 @@
   }
  else {
     LOG.debug("Sending {}",request);
-    requestNotifier.notifyBegin(request);
+    RequestNotifier notifier=connection.getDestination().getRequestNotifier();
+    notifier.notifyBegin(request);
     ContentProvider content=request.getContent();
     this.contentIterator=content == null ? Collections.<ByteBuffer>emptyIterator() : content.iterator();
+    boolean updated=updateSendState(SendState.IDLE,SendState.EXECUTE);
+    assert updated;
+    if (content instanceof AsyncContentProvider)     ((AsyncContentProvider)content).setListener(this);
     send();
   }
 }

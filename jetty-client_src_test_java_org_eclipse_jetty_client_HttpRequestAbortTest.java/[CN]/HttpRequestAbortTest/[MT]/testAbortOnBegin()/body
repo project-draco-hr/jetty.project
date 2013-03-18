@@ -2,22 +2,22 @@
   start(new EmptyServerHandler());
   final Throwable cause=new Exception();
   final CountDownLatch aborted=new CountDownLatch(1);
-  final CountDownLatch headers=new CountDownLatch(1);
+  final CountDownLatch committed=new CountDownLatch(1);
   try {
     client.newRequest("localhost",connector.getLocalPort()).scheme(scheme).listener(new Request.Listener.Empty(){
       @Override public void onBegin(      Request request){
         if (request.abort(cause))         aborted.countDown();
       }
-      @Override public void onHeaders(      Request request){
-        headers.countDown();
+      @Override public void onCommit(      Request request){
+        committed.countDown();
       }
     }
-).send().get(5,TimeUnit.SECONDS);
+).timeout(5,TimeUnit.SECONDS).send();
     Assert.fail();
   }
  catch (  ExecutionException x) {
     Assert.assertSame(cause,x.getCause());
     Assert.assertTrue(aborted.await(5,TimeUnit.SECONDS));
-    Assert.assertFalse(headers.await(1,TimeUnit.SECONDS));
+    Assert.assertFalse(committed.await(1,TimeUnit.SECONDS));
   }
 }

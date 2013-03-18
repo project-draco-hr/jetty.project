@@ -1,0 +1,48 @@
+{
+  if (serverSocket == null) {
+    return;
+  }
+  while (serverSocket != null) {
+    Socket socket=null;
+    try {
+      socket=serverSocket.accept();
+      LineNumberReader lin=new LineNumberReader(new InputStreamReader(socket.getInputStream()));
+      String key=lin.readLine();
+      if (!this.key.equals(key)) {
+        System.err.println("Ignoring command with incorrect key");
+        continue;
+      }
+      OutputStream out=socket.getOutputStream();
+      String cmd=lin.readLine();
+      debug("command=%s",cmd);
+      if ("stop".equals(cmd)) {
+        debug("Issuing graceful shutdown..");
+        ShutdownThread.getInstance().run();
+        debug("Informing client that we are stopped.");
+        out.write("Stopped\r\n".getBytes(StringUtil.__UTF8));
+        out.flush();
+        debug("Shutting down monitor");
+        close(socket);
+        socket=null;
+        close(serverSocket);
+        serverSocket=null;
+        if (exitVm) {
+          debug("Killing JVM");
+          System.exit(0);
+        }
+      }
+ else       if ("status".equals(cmd)) {
+        out.write("OK\r\n".getBytes(StringUtil.__UTF8));
+        out.flush();
+      }
+    }
+ catch (    Exception e) {
+      debug(e);
+      System.err.println(e.toString());
+    }
+ finally {
+      close(socket);
+      socket=null;
+    }
+  }
+}

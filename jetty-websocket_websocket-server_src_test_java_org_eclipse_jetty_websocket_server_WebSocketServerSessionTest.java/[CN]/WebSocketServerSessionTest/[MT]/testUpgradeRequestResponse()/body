@@ -1,0 +1,25 @@
+{
+  URI uri=server.getServerUri().resolve("/test?snack=cashews&amount=handful&brand=off");
+  BlockheadClient client=new BlockheadClient(uri);
+  try {
+    client.connect();
+    client.sendStandardRequest();
+    client.expectUpgradeResponse();
+    client.write(WebSocketFrame.text("getParameterMap|snack"));
+    client.write(WebSocketFrame.text("getParameterMap|amount"));
+    client.write(WebSocketFrame.text("getParameterMap|brand"));
+    client.write(WebSocketFrame.text("getParameterMap|cost"));
+    IncomingFramesCapture capture=client.readFrames(4,TimeUnit.MILLISECONDS,500);
+    WebSocketFrame tf=capture.getFrames().pop();
+    Assert.assertThat("Parameter Map[snack]",tf.getPayloadAsUTF8(),is("[cashews]"));
+    tf=capture.getFrames().pop();
+    Assert.assertThat("Parameter Map[amount]",tf.getPayloadAsUTF8(),is("[handful]"));
+    tf=capture.getFrames().pop();
+    Assert.assertThat("Parameter Map[brand]",tf.getPayloadAsUTF8(),is("[off]"));
+    tf=capture.getFrames().pop();
+    Assert.assertThat("Parameter Map[cost]",tf.getPayloadAsUTF8(),is("<null>"));
+  }
+  finally {
+    client.close();
+  }
+}

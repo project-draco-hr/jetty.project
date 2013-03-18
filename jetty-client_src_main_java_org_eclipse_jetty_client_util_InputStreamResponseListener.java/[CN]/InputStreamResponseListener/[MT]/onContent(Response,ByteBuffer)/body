@@ -1,14 +1,15 @@
 {
+  if (closed)   return;
   int remaining=content.remaining();
   byte[] bytes=new byte[remaining];
   content.get(bytes);
-  LOG.debug("Queued {}/{} bytes",bytes,bytes.length);
+  LOG.debug("Queuing {}/{} bytes",bytes,bytes.length);
   queue.offer(bytes);
   long newLength=length.addAndGet(remaining);
-  while (newLength >= capacity) {
-    LOG.debug("Queued bytes limit {}/{} exceeded, waiting",newLength,capacity);
+  while (newLength >= maxBufferSize) {
+    LOG.debug("Queued bytes limit {}/{} exceeded, waiting",newLength,maxBufferSize);
     if (!await())     break;
     newLength=length.get();
-    LOG.debug("Queued bytes limit {}/{} exceeded, woken up",newLength,capacity);
+    LOG.debug("Queued bytes limit {}/{} exceeded, woken up",newLength,maxBufferSize);
   }
 }

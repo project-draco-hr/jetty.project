@@ -1,10 +1,10 @@
 {
   long timeout=1000;
   start(new TimeoutHandler(3 * timeout));
-  client.setMaxConnectionsPerAddress(1);
+  client.setMaxConnectionsPerDestination(1);
   final CountDownLatch firstLatch=new CountDownLatch(1);
-  Request request=client.newRequest("localhost",connector.getLocalPort()).scheme(scheme);
-  request.send(new TimedResponseListener(4 * timeout,TimeUnit.MILLISECONDS,request){
+  Request request=client.newRequest("localhost",connector.getLocalPort()).scheme(scheme).timeout(4 * timeout,TimeUnit.MILLISECONDS);
+  request.send(new Response.CompleteListener(){
     @Override public void onComplete(    Result result){
       Assert.assertFalse(result.isFailed());
       firstLatch.countDown();
@@ -12,8 +12,8 @@
   }
 );
   final CountDownLatch secondLatch=new CountDownLatch(1);
-  request=client.newRequest("localhost",connector.getLocalPort()).scheme(scheme);
-  request.send(new TimedResponseListener(timeout,TimeUnit.MILLISECONDS,request){
+  request=client.newRequest("localhost",connector.getLocalPort()).scheme(scheme).timeout(timeout,TimeUnit.MILLISECONDS);
+  request.send(new Response.CompleteListener(){
     @Override public void onComplete(    Result result){
       Assert.assertTrue(result.isFailed());
       secondLatch.countDown();

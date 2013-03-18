@@ -21,17 +21,40 @@ case "info":
         }
         break;
       }
-case "time":
+case "many":
 {
-      Calendar now=Calendar.getInstance();
-      DateFormat sdf=SimpleDateFormat.getDateTimeInstance(SimpleDateFormat.FULL,SimpleDateFormat.FULL);
-      writeMessage("Server time: %s",sdf.format(now.getTime()));
+      String parts[]=val.split(",");
+      int size=Integer.parseInt(parts[0]);
+      int count=Integer.parseInt(parts[1]);
+      writeManyAsync(size,count);
       break;
     }
+case "manythreads":
+{
+    String parts[]=val.split(",");
+    int threadCount=Integer.parseInt(parts[0]);
+    int size=Integer.parseInt(parts[1]);
+    int count=Integer.parseInt(parts[2]);
+    Thread threads[]=new Thread[threadCount];
+    for (int n=0; n < threadCount; n++) {
+      threads[n]=new Thread(new WriteMany(remote,size,count),"WriteMany[" + n + "]");
+    }
+    for (    Thread thread : threads) {
+      thread.start();
+    }
+    break;
+  }
+case "time":
+{
+  Calendar now=Calendar.getInstance();
+  DateFormat sdf=SimpleDateFormat.getDateTimeInstance(SimpleDateFormat.FULL,SimpleDateFormat.FULL);
+  writeMessage("Server time: %s",sdf.format(now.getTime()));
+  break;
+}
 default :
 {
-    writeMessage("key[%s] val[%s]",key,val);
-  }
+writeMessage("key[%s] val[%s]",key,val);
+}
 }
 }
  else {

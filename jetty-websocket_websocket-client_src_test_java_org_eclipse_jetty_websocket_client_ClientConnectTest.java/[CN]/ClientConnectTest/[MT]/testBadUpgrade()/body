@@ -1,8 +1,7 @@
 {
   TrackingSocket wsocket=new TrackingSocket();
-  WebSocketClient client=factory.newWebSocketClient(wsocket);
   URI wsUri=server.getWsUri();
-  Future<ClientUpgradeResponse> future=client.connect(wsUri);
+  Future<Session> future=client.connect(wsocket,wsUri);
   ServerConnection connection=server.accept();
   connection.readRequest();
   connection.respond("HTTP/1.1 101 Upgrade\r\n" + "Sec-WebSocket-Accept: rubbish\r\n" + "\r\n");
@@ -11,6 +10,9 @@
     Assert.fail("Expected ExecutionException -> UpgradeException");
   }
  catch (  ExecutionException e) {
-    FutureCallback.rethrow(e);
+    UpgradeException ue=assertExpectedError(e,wsocket,UpgradeException.class);
+    Assert.assertThat("UpgradeException.requestURI",ue.getRequestURI(),notNullValue());
+    Assert.assertThat("UpgradeException.requestURI",ue.getRequestURI().toASCIIString(),is(wsUri.toASCIIString()));
+    Assert.assertThat("UpgradeException.responseStatusCode",ue.getResponseStatusCode(),is(101));
   }
 }

@@ -4,20 +4,19 @@
   int inactivePeriod=5;
   AbstractTestServer server1=createServer(0,inactivePeriod,-1);
   server1.addContext(contextPath).addServlet(TestServlet.class,servletMapping);
-  server1.start();
-  int port1=server1.getPort();
   try {
+    server1.start();
+    int port1=server1.getPort();
     int scavengePeriod=2;
     AbstractTestServer server2=createServer(0,inactivePeriod,scavengePeriod);
     server2.addContext(contextPath).addServlet(TestServlet.class,servletMapping);
-    server2.start();
-    int port2=server2.getPort();
     try {
+      server2.start();
+      int port2=server2.getPort();
       HttpClient client=new HttpClient();
       client.start();
       try {
-        Future<ContentResponse> future=client.GET("http://localhost:" + port1 + contextPath+ servletMapping+ "?action=init");
-        ContentResponse response1=future.get();
+        ContentResponse response1=client.GET("http://localhost:" + port1 + contextPath+ servletMapping+ "?action=init");
         assertEquals(HttpServletResponse.SC_OK,response1.getStatus());
         String sessionCookie=response1.getHeaders().getStringField("Set-Cookie");
         assertTrue(sessionCookie != null);
@@ -25,8 +24,7 @@
         Thread.sleep(TimeUnit.SECONDS.toMillis(inactivePeriod + 2L * scavengePeriod));
         Request request=client.newRequest("http://localhost:" + port2 + contextPath+ servletMapping+ "?action=check");
         request.header("Cookie",sessionCookie);
-        future=request.send();
-        ContentResponse response2=future.get();
+        ContentResponse response2=request.send();
         assertEquals(HttpServletResponse.SC_OK,response2.getStatus());
       }
   finally {

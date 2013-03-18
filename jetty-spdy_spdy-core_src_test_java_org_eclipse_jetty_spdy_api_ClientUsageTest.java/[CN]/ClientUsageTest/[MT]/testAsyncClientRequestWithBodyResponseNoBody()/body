@@ -1,15 +1,20 @@
 {
-  Session session=new StandardSession(SPDY.V2,null,null,null,null,null,1,null,null,null);
+  Session session=new StandardSession(SPDY.V2,null,null,null,null,null,null,1,null,null,null);
   final String context="context";
-  session.syn(new SynInfo(false),new StreamFrameListener.Adapter(){
+  session.syn(new SynInfo(new Fields(),false),new StreamFrameListener.Adapter(){
     @Override public void onReply(    Stream stream,    ReplyInfo replyInfo){
       replyInfo.getHeaders().get("host");
-      stream.getSession().syn(new SynInfo(true),this);
+      try {
+        stream.getSession().syn(new SynInfo(new Fields(),true),this);
+      }
+ catch (      ExecutionException|InterruptedException|TimeoutException e) {
+        throw new IllegalStateException(e);
+      }
     }
   }
-,0,TimeUnit.MILLISECONDS,new Promise.Adapter<Stream>(){
+,new Promise.Adapter<Stream>(){
     @Override public void succeeded(    Stream stream){
-      stream.data(new StringDataInfo(context,true));
+      stream.data(new StringDataInfo(context,true),new Callback.Adapter());
     }
   }
 );

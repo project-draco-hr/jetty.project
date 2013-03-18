@@ -1,0 +1,87 @@
+{
+  if (!isEnabled()) {
+    filterChain.doFilter(request,response);
+    return;
+  }
+  final long now=_requestTimeoutQ.getNow();
+  RateTracker tracker=(RateTracker)request.getAttribute(__TRACKER);
+  if (tracker == null) {
+    tracker=getRateTracker(request);
+    final boolean overRateLimit=tracker.isRateExceeded(now);
+    if (!overRateLimit) {
+      doFilterChain(filterChain,request,response);
+      return;
+    }
+    long delayMs=getDelayMs();
+    boolean insertHeaders=isInsertHeaders();
+switch ((int)delayMs) {
+case -1:
+{
+        LOG.warn("DOS ALERT: Request rejected ip=" + request.getRemoteAddr() + ",session="+ request.getRequestedSessionId()+ ",user="+ request.getUserPrincipal());
+        if (insertHeaders)         response.addHeader("DoSFilter","unavailable");
+        response.sendError(HttpServletResponse.SC_SERVICE_UNAVAILABLE);
+        return;
+      }
+case 0:
+{
+      LOG.warn("DOS ALERT: Request throttled ip=" + request.getRemoteAddr() + ",session="+ request.getRequestedSessionId()+ ",user="+ request.getUserPrincipal());
+      request.setAttribute(__TRACKER,tracker);
+      break;
+    }
+default :
+{
+    LOG.warn("DOS ALERT: Request delayed=" + delayMs + "ms ip="+ request.getRemoteAddr()+ ",session="+ request.getRequestedSessionId()+ ",user="+ request.getUserPrincipal());
+    if (insertHeaders)     response.addHeader("DoSFilter","delayed");
+    Continuation continuation=ContinuationSupport.getContinuation(request);
+    request.setAttribute(__TRACKER,tracker);
+    if (delayMs > 0)     continuation.setTimeout(delayMs);
+    continuation.suspend();
+    return;
+  }
+}
+}
+boolean accepted=false;
+try {
+accepted=_passes.tryAcquire(getMaxWaitMs(),TimeUnit.MILLISECONDS);
+if (!accepted) {
+final Continuation continuation=ContinuationSupport.getContinuation(request);
+Boolean throttled=(Boolean)request.getAttribute(__THROTTLED);
+long throttleMs=getThrottleMs();
+if (throttled != Boolean.TRUE && throttleMs > 0) {
+  int priority=getPriority(request,tracker);
+  request.setAttribute(__THROTTLED,Boolean.TRUE);
+  if (isInsertHeaders())   response.addHeader("DoSFilter","throttled");
+  if (throttleMs > 0)   continuation.setTimeout(throttleMs);
+  continuation.suspend();
+  continuation.addContinuationListener(_listeners[priority]);
+  _queue[priority].add(continuation);
+  return;
+}
+ else if (request.getAttribute("javax.servlet.resumed") == Boolean.TRUE) {
+  _passes.acquire();
+  accepted=true;
+}
+}
+if (accepted) doFilterChain(filterChain,request,response);
+ else {
+if (isInsertHeaders()) response.addHeader("DoSFilter","unavailable");
+response.sendError(HttpServletResponse.SC_SERVICE_UNAVAILABLE);
+}
+}
+ catch (InterruptedException e) {
+_context.log("DoS",e);
+response.sendError(HttpServletResponse.SC_SERVICE_UNAVAILABLE);
+}
+ finally {
+if (accepted) {
+for (int p=_queue.length; p-- > 0; ) {
+  Continuation continuation=_queue[p].poll();
+  if (continuation != null && continuation.isSuspended()) {
+    continuation.resume();
+    break;
+  }
+}
+_passes.release();
+}
+}
+}

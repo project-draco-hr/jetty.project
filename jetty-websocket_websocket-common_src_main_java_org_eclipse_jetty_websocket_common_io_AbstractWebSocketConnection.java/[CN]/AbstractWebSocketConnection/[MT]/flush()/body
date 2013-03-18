@@ -1,27 +1,24 @@
 {
-  FrameBytes frameBytes=null;
   ByteBuffer buffer=null;
-synchronized (queue) {
-    LOG.debug(".flush() - flushing={} - queue.size = {}",flushing,queue.size());
-    if (flushing || queue.isEmpty()) {
+synchronized (writeBytes) {
+    if (flushing) {
       return;
     }
-    frameBytes=queue.pop();
+    if (LOG.isDebugEnabled()) {
+      LOG.debug(".flush() - flushing={} - writeBytes={}",flushing,writeBytes);
+    }
     if (!isOpen()) {
-      queue.clear();
+      writeBytes.failAll(new WebSocketException("Connection closed"));
       return;
     }
-    LOG.debug("Next FrameBytes: {}",frameBytes);
-    buffer=frameBytes.getByteBuffer();
+    buffer=writeBytes.getByteBuffer();
     if (buffer == null) {
       return;
     }
     flushing=true;
     if (LOG.isDebugEnabled()) {
-      LOG.debug("Flushing {}, {} frame(s) in queue",frameBytes,queue.size());
-    }
-    if (connectionState != ConnectionState.CLOSED) {
-      write(buffer,frameBytes);
+      LOG.debug("Flushing {} - {}",BufferUtil.toDetailString(buffer),writeBytes);
     }
   }
+  write(buffer);
 }

@@ -4,13 +4,12 @@ synchronized (this) {
 switch (_state) {
 case ASYNCSTARTED:
 case ASYNCWAIT:
-      aListeners=_asyncListeners;
-    break;
+      _expired=true;
+    aListeners=_asyncListeners;
+  break;
 default :
-  aListeners=null;
 return;
 }
-_expired=true;
 }
 if (aListeners != null) {
 for (AsyncListener listener : aListeners) {
@@ -26,7 +25,11 @@ synchronized (this) {
 switch (_state) {
 case ASYNCSTARTED:
 case ASYNCWAIT:
-complete();
+_state=State.REDISPATCH;
+break;
+default :
+_expired=false;
+break;
 }
 }
 scheduleDispatch();

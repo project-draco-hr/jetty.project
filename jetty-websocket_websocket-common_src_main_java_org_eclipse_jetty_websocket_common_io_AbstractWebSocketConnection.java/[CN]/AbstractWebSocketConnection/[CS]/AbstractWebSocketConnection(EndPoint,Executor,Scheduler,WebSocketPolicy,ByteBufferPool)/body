@@ -1,14 +1,14 @@
 {
-  super(endp,executor);
+  super(endp,executor,EXECUTE_ONFILLABLE);
   this.policy=policy;
   this.bufferPool=bufferPool;
   this.generator=new Generator(policy,bufferPool);
-  this.parser=new Parser(policy);
+  this.parser=new Parser(policy,bufferPool);
   this.scheduler=scheduler;
   this.extensions=new ArrayList<>();
-  this.queue=new FrameQueue();
   this.suspendToken=new AtomicBoolean(false);
-  this.connectionState=ConnectionState.CONNECTING;
-  this.inputClosed=new AtomicBoolean(false);
-  this.outputClosed=new AtomicBoolean(false);
+  this.ioState=new IOState();
+  this.ioState.setState(ConnectionState.CONNECTING);
+  this.writeBytes=new WriteBytesProvider(generator,new FlushCallback());
+  this.setInputBufferSize(policy.getInputBufferSize());
 }

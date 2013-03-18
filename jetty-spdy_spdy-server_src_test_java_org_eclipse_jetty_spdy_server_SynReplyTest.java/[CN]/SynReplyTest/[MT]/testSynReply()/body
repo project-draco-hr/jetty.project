@@ -9,7 +9,7 @@
     }
     @Override public StreamFrameListener onSyn(    Stream stream,    SynInfo synInfo){
       Assert.assertTrue(stream.isHalfClosed());
-      stream.reply(new ReplyInfo(new Fields(),true));
+      stream.reply(new ReplyInfo(new Fields(),true),new Callback.Adapter());
       synLatch.countDown();
       return null;
     }
@@ -31,13 +31,13 @@
   }
 );
   final CountDownLatch replyLatch=new CountDownLatch(1);
-  Stream stream=session.syn(new SynInfo(new Fields(),true),new StreamFrameListener.Adapter(){
+  Stream stream=session.syn(new SynInfo(5,TimeUnit.SECONDS,new Fields(),true,(byte)0),new StreamFrameListener.Adapter(){
     @Override public void onReply(    Stream stream,    ReplyInfo replyInfo){
       Assert.assertTrue(stream.isClosed());
       replyLatch.countDown();
     }
   }
-).get(5,TimeUnit.SECONDS);
+);
   Assert.assertTrue(synLatch.await(5,TimeUnit.SECONDS));
   Assert.assertTrue(streamCreatedLatch.await(5,TimeUnit.SECONDS));
   Assert.assertTrue(replyLatch.await(5,TimeUnit.SECONDS));

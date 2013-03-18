@@ -20,10 +20,10 @@
     }
   }
 ),null);
-  Fields headers=createHeaders("POST",path);
+  Fields headers=SPDYTestUtils.createHeaders("localhost",connector.getPort(),version,"POST",path);
   headers.put("content-type","application/x-www-form-urlencoded");
   final CountDownLatch replyLatch=new CountDownLatch(1);
-  Stream stream=session.syn(new SynInfo(headers,false),new StreamFrameListener.Adapter(){
+  Stream stream=session.syn(new SynInfo(5,TimeUnit.SECONDS,headers,false,(byte)0),new StreamFrameListener.Adapter(){
     @Override public void onReply(    Stream stream,    ReplyInfo replyInfo){
       Assert.assertTrue(replyInfo.isClose());
       Fields replyHeaders=replyInfo.getHeaders();
@@ -31,7 +31,7 @@
       replyLatch.countDown();
     }
   }
-).get(5,TimeUnit.SECONDS);
+);
   stream.data(new StringDataInfo(data,true));
   Assert.assertTrue(handlerLatch.await(5,TimeUnit.SECONDS));
   Assert.assertTrue(replyLatch.await(5,TimeUnit.SECONDS));

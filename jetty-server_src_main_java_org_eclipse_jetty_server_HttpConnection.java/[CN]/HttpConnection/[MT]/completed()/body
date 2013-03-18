@@ -12,30 +12,28 @@
     }
   }
   reset();
-  if (_parser.isStart()) {
-    if (_requestBuffer == null) {
-      fillInterested();
-    }
- else     if (getConnector().isStarted()) {
-      LOG.debug("{} pipelined",this);
-      try {
-        getExecutor().execute(this);
+  if (getCurrentConnection() == null) {
+    if (_parser.isStart()) {
+      if (_requestBuffer == null) {
+        fillInterested();
       }
- catch (      RejectedExecutionException e) {
-        if (getConnector().isStarted())         LOG.warn(e);
- else         LOG.ignore(e);
+ else       if (getConnector().isStarted()) {
+        LOG.debug("{} pipelined",this);
+        try {
+          getExecutor().execute(this);
+        }
+ catch (        RejectedExecutionException e) {
+          if (getConnector().isStarted())           LOG.warn(e);
+ else           LOG.ignore(e);
+          getEndPoint().close();
+        }
+      }
+ else {
         getEndPoint().close();
       }
     }
- else {
-      getEndPoint().close();
+    if (getEndPoint().isOpen() && getEndPoint().isOutputShutdown()) {
+      fillInterested();
     }
-  }
-  if (_parser.isClosed() && !getEndPoint().isOutputShutdown()) {
-    LOG.warn("Endpoint output not shutdown when seeking EOF");
-    getEndPoint().shutdownOutput();
-  }
-  if (getEndPoint().isOpen() && getEndPoint().isOutputShutdown()) {
-    fillInterested();
   }
 }

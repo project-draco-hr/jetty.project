@@ -1,0 +1,45 @@
+{
+  String reasons=null;
+  String cause="";
+  int connections=0;
+  for (  Connector connector : getMonitoredOrServerConnectors()) {
+    connections+=connector.getConnectedEndPoints().size();
+    Executor executor=connector.getExecutor();
+    if (executor instanceof ThreadPool) {
+      ThreadPool threadpool=(ThreadPool)executor;
+      if (_monitorThreads && threadpool.isLowOnThreads()) {
+        reasons=low(reasons,"Low on threads: " + threadpool);
+        cause+="T";
+      }
+    }
+  }
+  if (_maxConnections > 0 && connections > _maxConnections) {
+    reasons=low(reasons,"Max Connections exceeded: " + connections + ">"+ _maxConnections);
+    cause+="C";
+  }
+  long memory=Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory();
+  if (_maxMemory > 0 && memory > _maxMemory) {
+    reasons=low(reasons,"Max memory exceeded: " + memory + ">"+ _maxMemory);
+    cause+="M";
+  }
+  if (reasons != null) {
+    if (!cause.equals(_cause)) {
+      LOG.warn("Low Resources: {}",reasons);
+      _cause=cause;
+    }
+    if (_low.compareAndSet(false,true)) {
+      _reasons=reasons;
+      _lowStarted=System.currentTimeMillis();
+      setLowResources();
+    }
+    if (_maxLowResourcesTime > 0 && (System.currentTimeMillis() - _lowStarted) > _maxLowResourcesTime)     setLowResources();
+  }
+ else {
+    if (_low.compareAndSet(true,false)) {
+      LOG.info("Low Resources cleared");
+      _reasons=null;
+      _lowStarted=0;
+      clearLowResources();
+    }
+  }
+}

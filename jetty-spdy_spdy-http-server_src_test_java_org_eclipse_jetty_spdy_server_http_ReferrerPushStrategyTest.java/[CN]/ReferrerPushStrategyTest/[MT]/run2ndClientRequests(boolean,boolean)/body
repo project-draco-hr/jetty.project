@@ -2,12 +2,18 @@
   final CountDownLatch mainStreamLatch=new CountDownLatch(2);
   final CountDownLatch pushDataLatch=new CountDownLatch(1);
   final CountDownLatch pushSynHeadersValid=new CountDownLatch(1);
-  Session session2=startClient(version,serverAddress,new SessionFrameListener.Adapter(){
-    @Override public StreamFrameListener onSyn(    Stream stream,    SynInfo synInfo){
-      if (validateHeaders)       validateHeaders(synInfo.getHeaders(),pushSynHeadersValid);
+  final CountDownLatch pushResponseHeaders=new CountDownLatch(1);
+  Session session2=startClient(version,serverAddress,null);
+  session2.syn(new SynInfo(mainRequestHeaders,true),new StreamFrameListener.Adapter(){
+    @Override public StreamFrameListener onPush(    Stream stream,    PushInfo pushInfo){
+      if (validateHeaders)       validateHeaders(pushInfo.getHeaders(),pushSynHeadersValid);
       assertThat("Stream is unidirectional",stream.isUnidirectional(),is(true));
-      assertThat("URI header ends with css",synInfo.getHeaders().get(HTTPSPDYHeader.URI.name(version)).value().endsWith("" + ".css"),is(true));
+      assertThat("URI header ends with css",pushInfo.getHeaders().get(HTTPSPDYHeader.URI.name(version)).value().endsWith("" + ".css"),is(true));
       return new StreamFrameListener.Adapter(){
+        @Override public void onHeaders(        Stream stream,        HeadersInfo headersInfo){
+          Fields headers=headersInfo.getHeaders();
+          if (validateHeader(headers,HTTPSPDYHeader.STATUS.name(version),"200 OK") && validateHeader(headers,HTTPSPDYHeader.VERSION.name(version),"HTTP/1.1") && validateHeader(headers,"content-encoding","gzip"))           pushResponseHeaders.countDown();
+        }
         @Override public void onData(        Stream stream,        DataInfo dataInfo){
           dataInfo.consume(dataInfo.length());
           if (dataInfo.isClose())           pushDataLatch.countDown();
@@ -15,9 +21,6 @@
       }
 ;
     }
-  }
-);
-  session2.syn(new SynInfo(mainRequestHeaders,true),new StreamFrameListener.Adapter(){
     @Override public void onReply(    Stream stream,    ReplyInfo replyInfo){
       assertThat("replyInfo.isClose() is false",replyInfo.isClose(),is(false));
       mainStreamLatch.countDown();
@@ -31,5 +34,5 @@
   assertThat("Main request reply and/or data received",mainStreamLatch.await(5,TimeUnit.SECONDS),is(true));
   if (expectPushResource)   assertThat("Pushed data received",pushDataLatch.await(5,TimeUnit.SECONDS),is(true));
  else   assertThat("No push data is received",pushDataLatch.await(1,TimeUnit.SECONDS),is(false));
-  if (validateHeaders)   assertThat("Push syn headers valid",pushSynHeadersValid.await(5,TimeUnit.SECONDS),is(true));
+  if (validateHeaders)   assertThat("Push push headers valid",pushSynHeadersValid.await(5,TimeUnit.SECONDS),is(true));
 }

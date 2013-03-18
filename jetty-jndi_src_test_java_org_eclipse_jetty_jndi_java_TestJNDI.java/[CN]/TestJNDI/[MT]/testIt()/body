@@ -5,58 +5,9 @@
   ClassLoader childLoader2=new URLClassLoader(new URL[0],currentLoader);
   try {
     currentThread.setContextClassLoader(childLoader1);
-    InitialContext initCtxA=new InitialContext();
-    initCtxA.bind("blah","123");
-    assertEquals("123",initCtxA.lookup("blah"));
-    initCtxA.destroySubcontext("blah");
-    try {
-      initCtxA.lookup("blah");
-      fail("context blah was not destroyed");
-    }
- catch (    NameNotFoundException e) {
-    }
     InitialContext initCtx=new InitialContext();
     Context sub0=(Context)initCtx.lookup("java:");
-    if (LOG.isDebugEnabled())     LOG.debug("------ Looked up java: --------------");
-    Name n=sub0.getNameParser("").parse("/red/green/");
-    if (LOG.isDebugEnabled())     LOG.debug("get(0)=" + n.get(0));
-    if (LOG.isDebugEnabled())     LOG.debug("getPrefix(1)=" + n.getPrefix(1));
-    n=n.getSuffix(1);
-    if (LOG.isDebugEnabled())     LOG.debug("getSuffix(1)=" + n);
-    if (LOG.isDebugEnabled())     LOG.debug("get(0)=" + n.get(0));
-    if (LOG.isDebugEnabled())     LOG.debug("getPrefix(1)=" + n.getPrefix(1));
-    n=n.getSuffix(1);
-    if (LOG.isDebugEnabled())     LOG.debug("getSuffix(1)=" + n);
-    if (LOG.isDebugEnabled())     LOG.debug("get(0)=" + n.get(0));
-    if (LOG.isDebugEnabled())     LOG.debug("getPrefix(1)=" + n.getPrefix(1));
-    n=n.getSuffix(1);
-    if (LOG.isDebugEnabled())     LOG.debug("getSuffix(1)=" + n);
-    n=sub0.getNameParser("").parse("pink/purple/");
-    if (LOG.isDebugEnabled())     LOG.debug("get(0)=" + n.get(0));
-    if (LOG.isDebugEnabled())     LOG.debug("getPrefix(1)=" + n.getPrefix(1));
-    n=n.getSuffix(1);
-    if (LOG.isDebugEnabled())     LOG.debug("getSuffix(1)=" + n);
-    if (LOG.isDebugEnabled())     LOG.debug("get(0)=" + n.get(0));
-    if (LOG.isDebugEnabled())     LOG.debug("getPrefix(1)=" + n.getPrefix(1));
-    NamingContext ncontext=(NamingContext)sub0;
-    Name nn=ncontext.toCanonicalName(ncontext.getNameParser("").parse("/yellow/blue/"));
-    LOG.debug(nn.toString());
-    assertEquals(2,nn.size());
-    nn=ncontext.toCanonicalName(ncontext.getNameParser("").parse("/yellow/blue"));
-    LOG.debug(nn.toString());
-    assertEquals(2,nn.size());
-    nn=ncontext.toCanonicalName(ncontext.getNameParser("").parse("/"));
-    if (LOG.isDebugEnabled())     LOG.debug("/ parses as: " + nn + " with size="+ nn.size());
-    LOG.debug(nn.toString());
-    assertEquals(1,nn.size());
-    nn=ncontext.toCanonicalName(ncontext.getNameParser("").parse(""));
-    LOG.debug(nn.toString());
-    assertEquals(0,nn.size());
-    Context fee=ncontext.createSubcontext("fee");
-    fee.bind("fi","88");
-    assertEquals("88",initCtxA.lookup("java:/fee/fi"));
-    assertEquals("88",initCtxA.lookup("java:/fee/fi/"));
-    assertTrue(initCtxA.lookup("java:/fee/") instanceof javax.naming.Context);
+    assertNotNull(sub0);
     try {
       Context sub1=sub0.createSubcontext("comp");
       fail("Comp should already be bound");
@@ -64,7 +15,9 @@
  catch (    NameAlreadyBoundException e) {
     }
     Context sub1=(Context)initCtx.lookup("java:comp");
+    assertNotNull(sub1);
     Context sub2=sub1.createSubcontext("env");
+    assertNotNull(sub2);
     initCtx.bind("java:comp/env/rubbish","abc");
     assertEquals("abc",initCtx.lookup("java:comp/env/rubbish"));
     LinkRef link=new LinkRef("java:comp/env/rubbish");
@@ -132,5 +85,6 @@
     comp.destroySubcontext("env");
     comp.unbind("crud");
     comp.unbind("crud2");
+    currentThread.setContextClassLoader(currentLoader);
   }
 }

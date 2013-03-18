@@ -3,30 +3,43 @@
     Request request=result.getRequest();
     Response response=result.getResponse();
     String location=response.getHeaders().get("location");
-    int status=response.getStatus();
+    if (location != null) {
+      URI newURI=sanitize(location);
+      LOG.debug("Redirecting to {} (Location: {})",newURI,location);
+      if (newURI != null) {
+        if (!newURI.isAbsolute())         newURI=request.getURI().resolve(newURI);
+        int status=response.getStatus();
 switch (status) {
 case 301:
 {
-        if (request.getMethod() == HttpMethod.GET || request.getMethod() == HttpMethod.HEAD)         redirect(result,request.getMethod(),location);
- else         fail(result,new HttpResponseException("HTTP protocol violation: received 301 for non GET or HEAD request",response));
-        break;
-      }
+            if (request.getMethod() == HttpMethod.GET || request.getMethod() == HttpMethod.HEAD)             redirect(result,request.getMethod(),newURI);
+ else             fail(result,new HttpResponseException("HTTP protocol violation: received 301 for non GET or HEAD request",response));
+            break;
+          }
 case 302:
 case 303:
 {
-      redirect(result,HttpMethod.GET,location);
-      break;
-    }
+          redirect(result,HttpMethod.GET,newURI);
+          break;
+        }
 case 307:
 {
-    redirect(result,request.getMethod(),location);
-    break;
-  }
+        redirect(result,request.getMethod(),newURI);
+        break;
+      }
 default :
 {
-  fail(result,new HttpResponseException("Unhandled HTTP status code " + status,response));
-  break;
+      fail(result,new HttpResponseException("Unhandled HTTP status code " + status,response));
+      break;
+    }
 }
+}
+ else {
+fail(result,new HttpResponseException("Malformed Location header " + location,response));
+}
+}
+ else {
+fail(result,new HttpResponseException("Missing Location header " + location,response));
 }
 }
  else {

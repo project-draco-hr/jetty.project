@@ -6,7 +6,7 @@
   Scheduler scheduler=new TimerScheduler();
   scheduler.start();
   Generator generator=new Generator(bufferPool,new StandardCompressionFactory.StandardCompressor());
-  Session session=new StandardSession(SPDY.V2,bufferPool,threadPool,scheduler,new TestController(),null,1,null,generator,new FlowControlStrategy.None()){
+  Session session=new StandardSession(SPDY.V2,bufferPool,threadPool,scheduler,new TestController(),null,null,1,null,generator,new FlowControlStrategy.None()){
     @Override protected void write(    ByteBuffer buffer,    Callback callback){
       try {
         if (buffer.get(0) == 0)         unit.sleep(2 * timeout);
@@ -18,9 +18,9 @@
     }
   }
 ;
-  Stream stream=session.syn(new SynInfo(false),null).get(5,TimeUnit.SECONDS);
+  Stream stream=session.syn(new SynInfo(5,TimeUnit.SECONDS,new Fields(),false,(byte)0),null);
   final CountDownLatch failedLatch=new CountDownLatch(1);
-  stream.data(new StringDataInfo("data",true),timeout,unit,new Callback.Adapter(){
+  stream.data(new StringDataInfo(timeout,unit,"data",true),new Callback.Adapter(){
     @Override public void failed(    Throwable x){
       failedLatch.countDown();
     }

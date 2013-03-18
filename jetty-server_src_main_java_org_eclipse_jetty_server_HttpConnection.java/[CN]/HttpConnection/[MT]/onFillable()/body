@@ -5,7 +5,7 @@
     while (true) {
       boolean call_channel=_parser.parseNext(_requestBuffer == null ? BufferUtil.EMPTY_BUFFER : _requestBuffer);
       if (!call_channel && BufferUtil.isEmpty(_requestBuffer)) {
-        if (_requestBuffer == null)         _requestBuffer=_bufferPool.acquire(getInputBufferSize(),false);
+        if (_requestBuffer == null)         _requestBuffer=_bufferPool.acquire(getInputBufferSize(),REQUEST_BUFFER_DIRECT);
         int filled=getEndPoint().fill(_requestBuffer);
         if (filled == 0)         filled=getEndPoint().fill(_requestBuffer);
         LOG.debug("{} filled {}",this,filled);
@@ -27,8 +27,8 @@
         while (_parser.inContentState()) {
           if (!_parser.parseNext(_requestBuffer == null ? BufferUtil.EMPTY_BUFFER : _requestBuffer))           break;
         }
-        getExecutor().execute(_channelRunner);
-        return;
+        _channel.run();
+        if (_channel.getState().isSuspended() || getEndPoint().getConnection() != this)         return;
       }
     }
   }

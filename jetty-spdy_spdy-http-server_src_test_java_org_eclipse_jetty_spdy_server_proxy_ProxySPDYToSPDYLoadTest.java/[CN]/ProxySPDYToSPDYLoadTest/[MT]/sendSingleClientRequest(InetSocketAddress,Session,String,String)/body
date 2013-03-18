@@ -1,0 +1,27 @@
+{
+  final String uuid=UUID.randomUUID().toString();
+  final CountDownLatch replyLatch=new CountDownLatch(1);
+  final CountDownLatch dataLatch=new CountDownLatch(1);
+  Fields headers=SPDYTestUtils.createHeaders(serverHost,proxyAddress.getPort(),version,"POST","/");
+  headers.add(UUID_HEADER_NAME,uuid);
+  Stream stream=client.syn(new SynInfo(headers,false),new StreamFrameListener.Adapter(){
+    private final ByteArrayOutputStream result=new ByteArrayOutputStream();
+    @Override public void onReply(    Stream stream,    ReplyInfo replyInfo){
+      Fields headers=replyInfo.getHeaders();
+      assertThat("uuid matches expected uuid",headers.get(UUID_HEADER_NAME).value(),is(uuid));
+      assertThat("response comes from the given server",headers.get(SERVER_ID_HEADER).value(),is(serverIdentificationString));
+      replyLatch.countDown();
+    }
+    @Override public void onData(    Stream stream,    DataInfo dataInfo){
+      result.write(dataInfo.asBytes(true),0,dataInfo.length());
+      if (dataInfo.isClose()) {
+        assertThat("received data matches send data",uuid,is(result.toString()));
+        dataLatch.countDown();
+      }
+    }
+  }
+);
+  stream.data(new StringDataInfo(uuid,true),new Callback.Adapter());
+  assertThat("reply has been received",replyLatch.await(5,TimeUnit.SECONDS),is(true));
+  assertThat("data has been received",dataLatch.await(5,TimeUnit.SECONDS),is(true));
+}

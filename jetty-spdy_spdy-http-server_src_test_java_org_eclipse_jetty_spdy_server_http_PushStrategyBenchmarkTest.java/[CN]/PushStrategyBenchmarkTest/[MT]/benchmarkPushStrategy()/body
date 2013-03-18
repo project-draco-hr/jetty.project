@@ -3,7 +3,7 @@
   ConnectionFactory factory=new HttpConnectionFactory(new HttpConfiguration());
   connector.setDefaultProtocol(factory.getProtocol());
   HttpClient httpClient=new HttpClient();
-  httpClient.setMaxConnectionsPerAddress(6);
+  httpClient.setMaxConnectionsPerDestination(6);
   httpClient.start();
   benchmarkHTTP(httpClient);
   httpClient.stop();
@@ -12,11 +12,11 @@
   connector.setDefaultProtocol(factory.getProtocol());
   Session session=startClient(version,address,new ClientSessionFrameListener());
   benchmarkSPDY(pushStrategy,session);
-  session.goAway().get(5,TimeUnit.SECONDS);
+  session.goAway(new GoAwayInfo(5,TimeUnit.SECONDS));
   pushStrategy=new ReferrerPushStrategy();
   factory=new HTTPSPDYServerConnectionFactory(version,new HttpConfiguration(),pushStrategy);
   connector.setDefaultProtocol(factory.getProtocol());
   session=startClient(version,address,new ClientSessionFrameListener());
   benchmarkSPDY(pushStrategy,session);
-  session.goAway().get(5,TimeUnit.SECONDS);
+  session.goAway(new GoAwayInfo(5,TimeUnit.SECONDS));
 }

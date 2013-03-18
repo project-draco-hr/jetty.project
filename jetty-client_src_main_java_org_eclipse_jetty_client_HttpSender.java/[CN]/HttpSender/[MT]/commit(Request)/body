@@ -2,15 +2,19 @@
   while (true) {
     State current=state.get();
 switch (current) {
-case SEND:
+case HEADERS:
       if (!updateState(current,State.COMMIT))       continue;
     LOG.debug("Committed {}",request);
-  requestNotifier.notifyHeaders(request);
+  RequestNotifier notifier=connection.getDestination().getRequestNotifier();
+notifier.notifyCommit(request);
 return true;
 case COMMIT:
-return updateState(current,State.COMMIT);
-default :
+if (!updateState(current,State.COMMIT)) continue;
+return true;
+case FAILURE:
 return false;
+default :
+throw new IllegalStateException();
 }
 }
 }

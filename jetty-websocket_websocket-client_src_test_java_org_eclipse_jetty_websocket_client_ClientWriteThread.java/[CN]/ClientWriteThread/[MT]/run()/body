@@ -1,18 +1,20 @@
 {
   final AtomicInteger m=new AtomicInteger();
   try {
+    LOG.debug("Writing {} messages to connection {}",messageCount);
+    LOG.debug("Artificial Slowness {} ms",slowness);
+    Future<Void> lastMessage=null;
+    RemoteEndpoint remote=session.getRemote();
     while (m.get() < messageCount) {
-      conn.write(message);
-      if (exchanger != null) {
-        exchanger.exchange(message);
-      }
+      lastMessage=remote.sendStringByFuture(message + "/" + m.get()+ "/");
       m.incrementAndGet();
       if (slowness > 0) {
         TimeUnit.MILLISECONDS.sleep(slowness);
       }
     }
+    lastMessage.get(2,TimeUnit.MINUTES);
   }
- catch (  InterruptedException|IOException e) {
+ catch (  InterruptedException|ExecutionException|TimeoutException e) {
     LOG.warn(e);
   }
 }
