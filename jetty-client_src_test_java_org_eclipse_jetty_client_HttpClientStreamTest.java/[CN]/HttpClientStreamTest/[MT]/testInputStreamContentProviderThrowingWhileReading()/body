@@ -1,0 +1,17 @@
+{
+  start(new AbstractHandler(){
+    @Override public void handle(    String target,    org.eclipse.jetty.server.Request baseRequest,    HttpServletRequest request,    HttpServletResponse response) throws IOException, ServletException {
+      baseRequest.setHandled(true);
+      IO.copy(request.getInputStream(),response.getOutputStream());
+    }
+  }
+);
+  final byte[] data=new byte[]{0,1,2,3};
+  client.newRequest("localhost",connector.getLocalPort()).scheme(scheme).content(new InputStreamContentProvider(new InputStream(){
+    private int index=0;
+    @Override public int read() throws IOException {
+      return data[index++];
+    }
+  }
+)).timeout(5,TimeUnit.SECONDS).send();
+}
