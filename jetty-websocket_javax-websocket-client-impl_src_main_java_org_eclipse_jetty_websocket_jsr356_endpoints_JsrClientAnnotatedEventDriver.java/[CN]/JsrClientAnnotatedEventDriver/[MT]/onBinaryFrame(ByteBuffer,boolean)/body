@@ -1,0 +1,33 @@
+{
+  boolean handled=false;
+  if (events.onBinary != null) {
+    handled=true;
+    if (events.onBinary.isPartialMessageSupported()) {
+      try {
+        events.onBinary.call(websocket,buffer,fin);
+      }
+ catch (      DecodeException e) {
+        onFatalError(e);
+      }
+      return;
+    }
+ else {
+      if (activeMessage == null) {
+        activeMessage=new SimpleBinaryMessage(this);
+      }
+    }
+  }
+  if (events.onBinaryStream != null) {
+    handled=true;
+    if (activeMessage == null) {
+      activeMessage=new MessageInputStream(this);
+    }
+  }
+  if (handled && (activeMessage != null)) {
+    activeMessage.appendMessage(buffer);
+    if (fin) {
+      activeMessage.messageComplete();
+      activeMessage=null;
+    }
+  }
+}

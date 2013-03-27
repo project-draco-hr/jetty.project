@@ -1,0 +1,20 @@
+{
+  Object endpoint=websocket;
+  ClientEndpointConfig config=null;
+  if (websocket instanceof ConfiguredEndpoint) {
+    ConfiguredEndpoint ce=(ConfiguredEndpoint)websocket;
+    endpoint=ce.getEndpoint();
+    config=(ClientEndpointConfig)ce.getConfig();
+  }
+  Class<?> endpointClass=endpoint.getClass();
+  JsrClientMetadata metadata=cache.get(endpointClass);
+  if (metadata == null) {
+    metadata=new JsrClientMetadata(endpointClass);
+    AnnotatedEndpointScanner scanner=new AnnotatedEndpointScanner(metadata);
+    scanner.scan();
+    cache.put(endpointClass,metadata);
+  }
+  if (config != null) {
+  }
+  return new JsrClientAnnotatedEventDriver(container,policy,endpoint,metadata);
+}

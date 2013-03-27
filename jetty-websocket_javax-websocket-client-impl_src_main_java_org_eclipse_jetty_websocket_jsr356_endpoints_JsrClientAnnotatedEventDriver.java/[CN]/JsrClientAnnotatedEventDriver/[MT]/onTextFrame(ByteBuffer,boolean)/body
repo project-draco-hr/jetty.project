@@ -1,0 +1,34 @@
+{
+  boolean handled=false;
+  if (events.onText != null) {
+    handled=true;
+    if (events.onText.isPartialMessageSupported()) {
+      try {
+        String text=BufferUtil.toUTF8String(buffer);
+        events.onText.call(websocket,text,fin);
+      }
+ catch (      DecodeException e) {
+        onFatalError(e);
+      }
+      return;
+    }
+ else {
+      if (activeMessage == null) {
+        activeMessage=new SimpleTextMessage(this);
+      }
+    }
+  }
+  if (events.onTextStream != null) {
+    handled=true;
+    if (activeMessage == null) {
+      activeMessage=new MessageReader(this);
+    }
+  }
+  if (handled && (activeMessage != null)) {
+    activeMessage.appendMessage(buffer);
+    if (fin) {
+      activeMessage.messageComplete();
+      activeMessage=null;
+    }
+  }
+}
