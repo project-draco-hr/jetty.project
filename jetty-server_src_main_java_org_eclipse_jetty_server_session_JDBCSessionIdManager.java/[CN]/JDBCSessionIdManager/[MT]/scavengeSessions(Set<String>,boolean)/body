@@ -1,0 +1,26 @@
+{
+  Set<String> remainingIds=new HashSet<String>(expiredSessionIds);
+  Handler[] contexts=_server.getChildHandlersByClass(ContextHandler.class);
+  for (int i=0; contexts != null && i < contexts.length; i++) {
+    SessionHandler sessionHandler=(SessionHandler)((ContextHandler)contexts[i]).getChildHandlerByClass(SessionHandler.class);
+    if (sessionHandler != null) {
+      SessionManager manager=sessionHandler.getSessionManager();
+      if (manager != null && manager instanceof JDBCSessionManager) {
+        Set<String> successfullyExpiredIds=((JDBCSessionManager)manager).expire(expiredSessionIds);
+        if (successfullyExpiredIds != null)         remainingIds.removeAll(successfullyExpiredIds);
+      }
+    }
+  }
+  if (!remainingIds.isEmpty() && forceDelete) {
+    LOG.info("Forcibly deleting unrecoverable expired sessions {}",remainingIds);
+    try {
+synchronized (_sessionIds) {
+        _sessionIds.removeAll(remainingIds);
+      }
+      cleanExpiredSessionIds(remainingIds);
+    }
+ catch (    Exception e) {
+      LOG.warn("Error removing expired session ids",e);
+    }
+  }
+}
