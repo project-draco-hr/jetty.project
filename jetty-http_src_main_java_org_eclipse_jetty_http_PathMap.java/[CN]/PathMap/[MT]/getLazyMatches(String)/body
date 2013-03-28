@@ -1,19 +1,24 @@
 {
-  MappedEntry entry;
+  MappedEntry<O> entry;
   Object entries=null;
   if (path == null)   return LazyList.getList(entries);
-  int l=path.length();
-  entry=_exactMap.get(path,0,l);
+  entry=_exactMap.get(path);
   if (entry != null)   entries=LazyList.add(entries,entry);
-  int i=l - 1;
-  while ((i=path.lastIndexOf('/',i - 1)) >= 0) {
-    entry=_prefixMap.get(path,0,i);
-    if (entry != null)     entries=LazyList.add(entries,entry);
+  int l=path.length();
+  int i=l;
+  final Trie<PathMap.MappedEntry<O>> prefix_map=_prefixMap;
+  while (i >= 0) {
+    entry=prefix_map.getBest(path,0,i);
+    if (entry == null)     break;
+    String key=entry.getKey();
+    if (key.length() - 2 >= path.length() || path.charAt(key.length() - 2) == '/')     entries=LazyList.add(entries,entry);
+    i=key.length() - 3;
   }
   if (_prefixDefault != null)   entries=LazyList.add(entries,_prefixDefault);
   i=0;
+  final Trie<PathMap.MappedEntry<O>> suffix_map=_suffixMap;
   while ((i=path.indexOf('.',i + 1)) > 0) {
-    entry=_suffixMap.get(path,i + 1,l - i - 1);
+    entry=suffix_map.get(path,i + 1,l - i - 1);
     if (entry != null)     entries=LazyList.add(entries,entry);
   }
   if (_default != null) {

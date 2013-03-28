@@ -1,22 +1,11 @@
 {
   if (uris == null)   return;
-  JarScanner scanner=new JarScanner(){
-    @Override public void processEntry(    URI jarUri,    JarEntry entry){
-      try {
-        String name=entry.getName();
-        if (name.toLowerCase(Locale.ENGLISH).endsWith(".class")) {
-          String shortName=name.replace('/','.').substring(0,name.length() - 6);
-          if ((resolver == null) || (!resolver.isExcluded(shortName) && (!isParsed(shortName) || resolver.shouldOverride(shortName)))) {
-            Resource clazz=Resource.newResource("jar:" + jarUri + "!/"+ name);
-            scanClass(clazz.getInputStream());
-          }
-        }
-      }
- catch (      Exception e) {
-        LOG.warn("Problem processing jar entry " + entry,e);
-      }
+  for (  URI uri : uris) {
+    try {
+      parse(uri,resolver);
+    }
+ catch (    Exception e) {
+      LOG.warn("Problem parsing classes from {}",uri);
     }
   }
-;
-  scanner.scan(null,uris,true);
 }
