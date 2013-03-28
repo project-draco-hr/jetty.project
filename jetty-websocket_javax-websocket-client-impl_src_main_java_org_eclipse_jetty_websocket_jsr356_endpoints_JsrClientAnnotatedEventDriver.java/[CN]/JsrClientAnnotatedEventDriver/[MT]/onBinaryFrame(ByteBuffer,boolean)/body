@@ -1,10 +1,16 @@
 {
+  if (LOG.isDebugEnabled()) {
+    LOG.debug("onBinaryFrame({}, {})",BufferUtil.toDetailString(buffer),fin);
+    LOG.debug("events.onBinary={}",events.hasBinary());
+    LOG.debug("events.onBinaryStream={}",events.hasBinaryStream());
+  }
   boolean handled=false;
-  if (events.onBinary != null) {
+  if (events.hasBinary()) {
     handled=true;
-    if (events.onBinary.isPartialMessageSupported()) {
+    if (events.isBinaryPartialSupported()) {
+      LOG.debug("Partial Binary Message: fin={}",fin);
       try {
-        events.onBinary.call(websocket,buffer,fin);
+        events.callBinary(websocket,buffer,fin);
       }
  catch (      DecodeException e) {
         onFatalError(e);
@@ -13,19 +19,24 @@
     }
  else {
       if (activeMessage == null) {
+        LOG.debug("Whole Binary Message");
         activeMessage=new SimpleBinaryMessage(this);
       }
     }
   }
-  if (events.onBinaryStream != null) {
+  if (events.hasBinaryStream()) {
     handled=true;
     if (activeMessage == null) {
+      LOG.debug("Binary Message InputStream");
       activeMessage=new MessageInputStream(this);
     }
   }
+  LOG.debug("handled = {}",handled);
   if (handled && (activeMessage != null)) {
+    LOG.debug("Appending Binary Message");
     activeMessage.appendMessage(buffer);
     if (fin) {
+      LOG.debug("Binary Message Complete");
       activeMessage.messageComplete();
       activeMessage=null;
     }

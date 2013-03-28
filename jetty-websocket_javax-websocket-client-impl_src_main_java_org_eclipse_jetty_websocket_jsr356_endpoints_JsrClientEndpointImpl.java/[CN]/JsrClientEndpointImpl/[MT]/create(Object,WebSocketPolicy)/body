@@ -7,14 +7,13 @@
     config=(ClientEndpointConfig)ce.getConfig();
   }
   Class<?> endpointClass=endpoint.getClass();
-  JsrClientMetadata metadata=cache.get(endpointClass);
-  if (metadata == null) {
-    metadata=new JsrClientMetadata(endpointClass);
-    AnnotatedEndpointScanner scanner=new AnnotatedEndpointScanner(metadata);
+  JsrClientMetadata basemetadata=cache.get(endpointClass);
+  if (basemetadata == null) {
+    basemetadata=new JsrClientMetadata(endpointClass);
+    AnnotatedEndpointScanner scanner=new AnnotatedEndpointScanner(basemetadata);
     scanner.scan();
-    cache.put(endpointClass,metadata);
+    cache.put(endpointClass,basemetadata);
   }
-  if (config != null) {
-  }
-  return new JsrClientAnnotatedEventDriver(container,policy,endpoint,metadata);
+  JsrEvents events=new JsrEvents(basemetadata);
+  return new JsrClientAnnotatedEventDriver(container,policy,endpoint,events);
 }

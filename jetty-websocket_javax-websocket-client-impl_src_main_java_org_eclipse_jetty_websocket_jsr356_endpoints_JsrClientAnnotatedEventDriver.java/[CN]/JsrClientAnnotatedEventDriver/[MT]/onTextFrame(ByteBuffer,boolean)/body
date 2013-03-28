@@ -1,11 +1,17 @@
 {
+  if (LOG.isDebugEnabled()) {
+    LOG.debug("onTextFrame({}, {})",BufferUtil.toDetailString(buffer),fin);
+    LOG.debug("events.hasText={}",events.hasText());
+    LOG.debug("events.hasTextStream={}",events.hasTextStream());
+  }
   boolean handled=false;
-  if (events.onText != null) {
+  if (events.hasText()) {
     handled=true;
-    if (events.onText.isPartialMessageSupported()) {
+    if (events.isTextPartialSupported()) {
+      LOG.debug("Partial Text Message: fin={}",fin);
       try {
         String text=BufferUtil.toUTF8String(buffer);
-        events.onText.call(websocket,text,fin);
+        events.callText(websocket,text,fin);
       }
  catch (      DecodeException e) {
         onFatalError(e);
@@ -14,19 +20,24 @@
     }
  else {
       if (activeMessage == null) {
+        LOG.debug("Whole Text Message");
         activeMessage=new SimpleTextMessage(this);
       }
     }
   }
-  if (events.onTextStream != null) {
+  if (events.hasTextStream()) {
     handled=true;
     if (activeMessage == null) {
+      LOG.debug("Text Message Writer");
       activeMessage=new MessageReader(this);
     }
   }
+  LOG.debug("handled = {}",handled);
   if (handled && (activeMessage != null)) {
+    LOG.debug("Appending Text Message");
     activeMessage.appendMessage(buffer);
     if (fin) {
+      LOG.debug("Text Message Complete");
       activeMessage.messageComplete();
       activeMessage=null;
     }
