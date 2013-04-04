@@ -1,12 +1,15 @@
 {
 synchronized (this) {
-    if (!_dispatched) {
-      _dispatched=true;
-      boolean dispatched=_manager.dispatch(_handler);
-      if (!dispatched) {
-        _dispatched=false;
-        LOG.warn("Dispatched Failed! " + this + " to "+ _manager);
-        updateKey();
+    if (_state <= STATE_UNDISPATCHED) {
+      if (_onIdle)       _state=STATE_NEEDS_DISPATCH;
+ else {
+        _state=STATE_DISPATCHED;
+        boolean dispatched=_manager.dispatch(_handler);
+        if (!dispatched) {
+          _state=STATE_UNDISPATCHED;
+          LOG.warn("Dispatched Failed! " + this + " to "+ _manager);
+          updateKey();
+        }
       }
     }
   }
