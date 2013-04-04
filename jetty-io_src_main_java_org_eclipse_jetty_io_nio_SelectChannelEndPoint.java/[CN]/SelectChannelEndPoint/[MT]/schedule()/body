@@ -11,7 +11,7 @@ synchronized (this) {
       if (_writeBlocked && _key.isWritable())       _writeBlocked=false;
       this.notifyAll();
       _key.interestOps(0);
-      if (!_dispatched)       updateKey();
+      if (_state < STATE_DISPATCHED)       updateKey();
       return;
     }
     if ((_key.readyOps() & SelectionKey.OP_WRITE) == SelectionKey.OP_WRITE && (_key.interestOps() & SelectionKey.OP_WRITE) == SelectionKey.OP_WRITE) {
@@ -19,10 +19,10 @@ synchronized (this) {
       _key.interestOps(_interestOps);
       _writable=true;
     }
-    if (_dispatched)     _key.interestOps(0);
+    if (_state >= STATE_DISPATCHED)     _key.interestOps(0);
  else {
       dispatch();
-      if (_dispatched && !_selectSet.getManager().isDeferringInterestedOps0()) {
+      if (_state >= STATE_DISPATCHED && !_selectSet.getManager().isDeferringInterestedOps0()) {
         _key.interestOps(0);
       }
     }
