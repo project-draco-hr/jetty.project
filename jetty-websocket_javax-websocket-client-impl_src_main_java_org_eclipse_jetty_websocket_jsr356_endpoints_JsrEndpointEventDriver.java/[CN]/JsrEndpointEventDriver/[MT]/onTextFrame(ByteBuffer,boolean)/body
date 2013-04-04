@@ -1,2 +1,19 @@
 {
+  if (activeMessage == null) {
+    MessageHandlerWrapper wrapper=jsrsession.getMessageHandlerWrapper(MessageType.TEXT);
+    if (wrapper.wantsPartialMessages()) {
+      activeMessage=new TextPartialMessage(wrapper);
+    }
+ else     if (wrapper.wantsStreams()) {
+      activeMessage=new TextStreamMessage(this,wrapper);
+    }
+ else {
+      activeMessage=new TextWholeMessage(this,wrapper);
+    }
+  }
+  activeMessage.appendMessage(buffer,fin);
+  if (fin) {
+    activeMessage.messageComplete();
+    activeMessage=null;
+  }
 }

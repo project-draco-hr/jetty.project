@@ -1,2 +1,19 @@
 {
+  if (activeMessage == null) {
+    MessageHandlerWrapper wrapper=jsrsession.getMessageHandlerWrapper(MessageType.BINARY);
+    if (wrapper.wantsPartialMessages()) {
+      activeMessage=new BinaryPartialMessage(wrapper);
+    }
+ else     if (wrapper.wantsStreams()) {
+      activeMessage=new BinaryStreamMessage(this,wrapper);
+    }
+ else {
+      activeMessage=new BinaryWholeMessage(this,wrapper);
+    }
+  }
+  activeMessage.appendMessage(buffer,fin);
+  if (fin) {
+    activeMessage.messageComplete();
+    activeMessage=null;
+  }
 }

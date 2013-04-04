@@ -1,0 +1,18 @@
+{
+  Objects.requireNonNull(type,"Type cannot be null");
+  DecoderWrapper wrapper=decoderMap.get(type);
+  if (wrapper == null) {
+    Class<? extends Decoder> defaultDecoder=DefaultsDecoderFactory.INSTANCE.getDecoder(type);
+    wrapper=addAllMetadata(defaultDecoder);
+  }
+  if (wrapper != null) {
+    return wrapper;
+  }
+  for (  Entry<Class<?>,DecoderWrapper> entry : decoderMap.entrySet()) {
+    Class<?> key=entry.getKey();
+    if (key.isAssignableFrom(type)) {
+      return entry.getValue();
+    }
+  }
+  throw new InvalidSignatureException("Unable to find appropriate Decoder for type: " + type);
+}
