@@ -1,11 +1,10 @@
 {
   threadPool=Executors.newCachedThreadPool();
   server=new Server();
-  File keyStore=MavenTestingUtils.getTestResourceFile("keystore");
-  SslContextFactory sslContextFactory=new SslContextFactory();
+  File keyStore=MavenTestingUtils.getTestResourceFile("keystore.jks");
+  sslContextFactory=new SslContextFactory();
   sslContextFactory.setKeyStorePath(keyStore.getAbsolutePath());
   sslContextFactory.setKeyStorePassword("storepwd");
-  sslContextFactory.setKeyManagerPassword("keypwd");
   HttpConnectionFactory httpFactory=new HttpConnectionFactory(){
     @Override public Connection newConnection(    Connector connector,    EndPoint endPoint){
       return configure(new HttpConnection(getHttpConfiguration(),connector,endPoint){
@@ -81,7 +80,7 @@
   }
 );
   server.start();
-  serverPort=connector.getLocalPort();
+  int serverPort=connector.getLocalPort();
   sslContext=sslContextFactory.getSslContext();
   proxy=new SimpleProxy(threadPool,"localhost",serverPort);
   proxy.start();

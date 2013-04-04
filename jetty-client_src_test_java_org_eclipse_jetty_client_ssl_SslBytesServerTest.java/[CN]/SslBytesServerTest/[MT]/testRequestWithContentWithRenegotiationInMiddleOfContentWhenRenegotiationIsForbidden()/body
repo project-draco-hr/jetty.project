@@ -1,0 +1,57 @@
+{
+  assumeJavaVersionSupportsTLSRenegotiations();
+  sslContextFactory.setRenegotiationAllowed(false);
+  final SSLSocket client=newClient();
+  final OutputStream clientOutput=client.getOutputStream();
+  SimpleProxy.AutomaticFlow automaticProxyFlow=proxy.startAutomaticFlow();
+  client.startHandshake();
+  Assert.assertTrue(automaticProxyFlow.stop(5,TimeUnit.SECONDS));
+  byte[] data1=new byte[1024];
+  Arrays.fill(data1,(byte)'X');
+  String content1=new String(data1,"UTF-8");
+  byte[] data2=new byte[1024];
+  Arrays.fill(data2,(byte)'Y');
+  final String content2=new String(data2,"UTF-8");
+  automaticProxyFlow=proxy.startAutomaticFlow();
+  clientOutput.write(("" + "POST / HTTP/1.1\r\n" + "Host: localhost\r\n"+ "Content-Type: text/plain\r\n"+ "Content-Length: " + (content1.length() + content2.length()) + "\r\n"+ "\r\n"+ content1).getBytes("UTF-8"));
+  clientOutput.flush();
+  Assert.assertTrue(automaticProxyFlow.stop(5,TimeUnit.SECONDS));
+  threadPool.submit(new Callable<Object>(){
+    @Override public Object call() throws Exception {
+      client.startHandshake();
+      return null;
+    }
+  }
+);
+  TLSRecord record=proxy.readFromClient();
+  Assert.assertEquals(TLSRecord.Type.HANDSHAKE,record.getType());
+  proxy.flushToServer(record);
+  record=proxy.readFromServer();
+  Assert.assertEquals(TLSRecord.Type.ALERT,record.getType());
+  proxy.flushToClient(record);
+  record=proxy.readFromServer();
+  Assert.assertNull(record);
+  threadPool.submit(new Callable<Object>(){
+    @Override public Object call() throws Exception {
+      clientOutput.write(content2.getBytes("UTF-8"));
+      clientOutput.flush();
+      return null;
+    }
+  }
+);
+  record=proxy.readFromClient();
+  proxy.flushToServer(record);
+  try {
+    record=proxy.readFromClient();
+    Assert.assertNotNull(record);
+    proxy.flushToServer(record);
+    Assert.fail();
+  }
+ catch (  IOException expected) {
+  }
+  TimeUnit.MILLISECONDS.sleep(500);
+  Assert.assertThat(sslFills.get(),Matchers.lessThan(50));
+  Assert.assertThat(sslFlushes.get(),Matchers.lessThan(20));
+  Assert.assertThat(httpParses.get(),Matchers.lessThan(50));
+  client.close();
+}
