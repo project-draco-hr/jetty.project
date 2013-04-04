@@ -1,0 +1,39 @@
+{
+  if (isStopping() || isStopped())   return null;
+  Thread thread=Thread.currentThread();
+  ClassLoader old_loader=thread.getContextClassLoader();
+  Set<String> successfullyExpiredIds=new HashSet<String>();
+  try {
+    Iterator<?> itor=sessionIds.iterator();
+    while (itor.hasNext()) {
+      String sessionId=(String)itor.next();
+      if (LOG.isDebugEnabled())       LOG.debug("Expiring session id " + sessionId);
+      Session session=(Session)_sessions.get(sessionId);
+      if (session == null) {
+        if (LOG.isDebugEnabled())         LOG.debug("Force loading session id " + sessionId);
+        session=loadSession(sessionId,canonicalize(_context.getContextPath()),getVirtualHost(_context));
+        if (session != null) {
+synchronized (this) {
+            _sessions.put(session.getClusterId(),session);
+          }
+        }
+ else {
+          if (LOG.isDebugEnabled())           LOG.debug("Unrecognized session id=" + sessionId);
+          continue;
+        }
+      }
+      if (session != null) {
+        session.timeout();
+        successfullyExpiredIds.add(session.getClusterId());
+      }
+    }
+    return successfullyExpiredIds;
+  }
+ catch (  Throwable t) {
+    LOG.warn("Problem expiring sessions",t);
+    return successfullyExpiredIds;
+  }
+ finally {
+    thread.setContextClassLoader(old_loader);
+  }
+}

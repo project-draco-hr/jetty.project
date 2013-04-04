@@ -17,11 +17,12 @@
  else       if (spec.endsWith("/*")) {
         String mapped=spec.substring(0,spec.length() - 2);
         entry.setMapped(mapped);
-        _prefixMap.put(mapped,entry);
-        _exactMap.put(mapped,entry);
-        _exactMap.put(spec.substring(0,spec.length() - 1),entry);
+        while (!_prefixMap.put(mapped,entry))         _prefixMap=new ArrayTernaryTrie<>((ArrayTernaryTrie<MappedEntry<O>>)_prefixMap,1.5);
       }
- else       if (spec.startsWith("*."))       _suffixMap.put(spec.substring(2),entry);
+ else       if (spec.startsWith("*.")) {
+        String suffix=spec.substring(2);
+        while (!_suffixMap.put(suffix,entry))         _suffixMap=new ArrayTernaryTrie<>((ArrayTernaryTrie<MappedEntry<O>>)_suffixMap,1.5);
+      }
  else       if (spec.equals(URIUtil.SLASH)) {
         if (_nodefault)         _exactMap.put(spec,entry);
  else {
