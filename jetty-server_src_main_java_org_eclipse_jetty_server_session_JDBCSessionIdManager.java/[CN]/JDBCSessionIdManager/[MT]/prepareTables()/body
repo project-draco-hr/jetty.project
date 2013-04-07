@@ -1,8 +1,7 @@
 {
   _createSessionIdTable="create table " + _sessionIdTable + " (id varchar(120), primary key(id))";
-  _selectBoundedExpiredSessions="select * from " + _sessionTable + " where expiryTime >= ? and expiryTime <= ?";
+  _selectBoundedExpiredSessions="select * from " + _sessionTable + " where lastNode = ? and expiryTime >= ? and expiryTime <= ?";
   _selectExpiredSessions="select * from " + _sessionTable + " where expiryTime >0 and expiryTime <= ?";
-  _deleteOldExpiredSessions="delete from " + _sessionTable + " where expiryTime >0 and expiryTime <= ?";
   _insertId="insert into " + _sessionIdTable + " (id)  values (?)";
   _deleteId="delete from " + _sessionIdTable + " where id = ?";
   _queryId="select * from " + _sessionIdTable + " where id = ?";
@@ -23,8 +22,28 @@
     if (!result.next()) {
       String blobType=_dbAdaptor.getBlobType();
       String longType=_dbAdaptor.getLongType();
-      _createSessionTable="create table " + _sessionTable + " ("+ _sessionTableRowId+ " varchar(120), sessionId varchar(120), "+ " contextPath varchar(60), virtualHost varchar(60), lastNode varchar(60), accessTime "+ longType+ ", "+ " lastAccessTime "+ longType+ ", createTime "+ longType+ ", cookieTime "+ longType+ ", "+ " lastSavedTime "+ longType+ ", expiryTime "+ longType+ ", map "+ blobType+ ", primary key("+ _sessionTableRowId+ "))";
+      _createSessionTable="create table " + _sessionTable + " ("+ _sessionTableRowId+ " varchar(120), sessionId varchar(120), "+ " contextPath varchar(60), virtualHost varchar(60), lastNode varchar(60), accessTime "+ longType+ ", "+ " lastAccessTime "+ longType+ ", createTime "+ longType+ ", cookieTime "+ longType+ ", "+ " lastSavedTime "+ longType+ ", expiryTime "+ longType+ ", maxInterval "+ longType+ ", map "+ blobType+ ", primary key("+ _sessionTableRowId+ "))";
       connection.createStatement().executeUpdate(_createSessionTable);
+    }
+ else {
+      ResultSet colResult=null;
+      try {
+        colResult=metaData.getColumns(null,null,_dbAdaptor.convertIdentifier(_sessionTable),_dbAdaptor.convertIdentifier("maxInterval"));
+      }
+ catch (      SQLException s) {
+        LOG.warn("Problem checking if " + _sessionTable + " table contains maxInterval column. Ensure table contains column definition: \"maxInterval long not null default -999\"");
+        throw s;
+      }
+      if (!colResult.next()) {
+        try {
+          String longType=_dbAdaptor.getLongType();
+          connection.createStatement().executeUpdate("alter table " + _sessionTable + " add maxInterval "+ longType+ " not null default "+ MAX_INTERVAL_NOT_SET);
+        }
+ catch (        SQLException s) {
+          LOG.warn("Problem adding maxInterval column. Ensure table contains column definition: \"maxInterval long not null default -999\"");
+          throw s;
+        }
+      }
     }
     String index1="idx_" + _sessionTable + "_expiry";
     String index2="idx_" + _sessionTable + "_session";
@@ -41,11 +60,11 @@
       if (!index1Exists)       statement.executeUpdate("create index " + index1 + " on "+ _sessionTable+ " (expiryTime)");
       if (!index2Exists)       statement.executeUpdate("create index " + index2 + " on "+ _sessionTable+ " (sessionId, contextPath)");
     }
-    _insertSession="insert into " + _sessionTable + " ("+ _sessionTableRowId+ ", sessionId, contextPath, virtualHost, lastNode, accessTime, lastAccessTime, createTime, cookieTime, lastSavedTime, expiryTime, map) "+ " values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+    _insertSession="insert into " + _sessionTable + " ("+ _sessionTableRowId+ ", sessionId, contextPath, virtualHost, lastNode, accessTime, lastAccessTime, createTime, cookieTime, lastSavedTime, expiryTime, maxInterval, map) "+ " values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
     _deleteSession="delete from " + _sessionTable + " where "+ _sessionTableRowId+ " = ?";
-    _updateSession="update " + _sessionTable + " set sessionId = ?, lastNode = ?, accessTime = ?, lastAccessTime = ?, lastSavedTime = ?, expiryTime = ?, map = ? where "+ _sessionTableRowId+ " = ?";
+    _updateSession="update " + _sessionTable + " set sessionId = ?, lastNode = ?, accessTime = ?, lastAccessTime = ?, lastSavedTime = ?, expiryTime = ?, maxInterval = ?, map = ? where "+ _sessionTableRowId+ " = ?";
     _updateSessionNode="update " + _sessionTable + " set lastNode = ? where "+ _sessionTableRowId+ " = ?";
-    _updateSessionAccessTime="update " + _sessionTable + " set lastNode = ?, accessTime = ?, lastAccessTime = ?, lastSavedTime = ?, expiryTime = ? where "+ _sessionTableRowId+ " = ?";
+    _updateSessionAccessTime="update " + _sessionTable + " set lastNode = ?, accessTime = ?, lastAccessTime = ?, lastSavedTime = ?, expiryTime = ?, maxInterval = ? where "+ _sessionTableRowId+ " = ?";
   }
   finally {
     if (connection != null)     connection.close();

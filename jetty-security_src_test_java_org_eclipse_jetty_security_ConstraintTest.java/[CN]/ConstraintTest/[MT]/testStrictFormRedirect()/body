@@ -6,9 +6,9 @@
   assertThat(response,startsWith("HTTP/1.1 200 OK"));
   response=_connector.getResponses("GET /ctx/forbid/info HTTP/1.0\r\n\r\n");
   assertThat(response,startsWith("HTTP/1.1 403 Forbidden"));
-  response=_connector.getResponses("GET /ctx/auth/info HTTP/1.0\r\n\r\n");
+  response=_connector.getResponses("GET /ctx/auth/info HTTP/1.0\r\nHost:wibble.com:8888\r\n\r\n");
   assertThat(response,containsString(" 302 Found"));
-  assertThat(response,containsString("/ctx/testLoginPage"));
+  assertThat(response,containsString("http://wibble.com:8888/ctx/testLoginPage"));
   String session=response.substring(response.indexOf("JSESSIONID=") + 11,response.indexOf(";Path=/ctx"));
   response=_connector.getResponses("POST /ctx/j_security_check HTTP/1.0\r\n" + "Cookie: JSESSIONID=" + session + "\r\n"+ "Content-Type: application/x-www-form-urlencoded\r\n"+ "Content-Length: 31\r\n"+ "\r\n"+ "j_username=user&j_password=wrong\r\n");
   assertThat(response,containsString("Location"));

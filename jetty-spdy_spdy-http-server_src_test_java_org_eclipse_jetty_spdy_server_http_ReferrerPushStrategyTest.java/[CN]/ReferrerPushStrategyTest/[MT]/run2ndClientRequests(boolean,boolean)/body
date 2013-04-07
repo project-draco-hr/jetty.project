@@ -2,6 +2,7 @@
   final CountDownLatch mainStreamLatch=new CountDownLatch(2);
   final CountDownLatch pushDataLatch=new CountDownLatch(1);
   final CountDownLatch pushSynHeadersValid=new CountDownLatch(1);
+  final CountDownLatch pushResponseHeaders=new CountDownLatch(1);
   Session session2=startClient(version,serverAddress,null);
   session2.syn(new SynInfo(mainRequestHeaders,true),new StreamFrameListener.Adapter(){
     @Override public StreamFrameListener onPush(    Stream stream,    PushInfo pushInfo){
@@ -9,6 +10,10 @@
       assertThat("Stream is unidirectional",stream.isUnidirectional(),is(true));
       assertThat("URI header ends with css",pushInfo.getHeaders().get(HTTPSPDYHeader.URI.name(version)).value().endsWith("" + ".css"),is(true));
       return new StreamFrameListener.Adapter(){
+        @Override public void onHeaders(        Stream stream,        HeadersInfo headersInfo){
+          Fields headers=headersInfo.getHeaders();
+          if (validateHeader(headers,HTTPSPDYHeader.STATUS.name(version),"200 OK") && validateHeader(headers,HTTPSPDYHeader.VERSION.name(version),"HTTP/1.1") && validateHeader(headers,"content-encoding","gzip"))           pushResponseHeaders.countDown();
+        }
         @Override public void onData(        Stream stream,        DataInfo dataInfo){
           dataInfo.consume(dataInfo.length());
           if (dataInfo.isClose())           pushDataLatch.countDown();

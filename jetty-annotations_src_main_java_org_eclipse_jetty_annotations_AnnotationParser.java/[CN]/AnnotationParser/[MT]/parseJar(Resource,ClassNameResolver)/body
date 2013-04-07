@@ -1,0 +1,39 @@
+{
+  if (jarResource == null)   return;
+  URI uri=jarResource.getURI();
+  if (jarResource.toString().endsWith(".jar")) {
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("Scanning jar {}",jarResource);
+    }
+    ;
+    InputStream in=jarResource.getInputStream();
+    if (in == null)     return;
+    JarInputStream jar_in=new JarInputStream(in);
+    try {
+      JarEntry entry=jar_in.getNextJarEntry();
+      while (entry != null) {
+        try {
+          String name=entry.getName();
+          if (name.toLowerCase(Locale.ENGLISH).endsWith(".class")) {
+            String shortName=name.replace('/','.').substring(0,name.length() - 6);
+            if ((resolver == null) || (!resolver.isExcluded(shortName) && (!isParsed(shortName) || resolver.shouldOverride(shortName)))) {
+              Resource clazz=Resource.newResource("jar:" + uri + "!/"+ name);
+              if (LOG.isDebugEnabled()) {
+                LOG.debug("Scanning class from jar {}",clazz);
+              }
+              ;
+              scanClass(clazz.getInputStream());
+            }
+          }
+        }
+ catch (        Exception e) {
+          LOG.warn("Problem processing jar entry " + entry,e);
+        }
+        entry=jar_in.getNextJarEntry();
+      }
+    }
+  finally {
+      jar_in.close();
+    }
+  }
+}

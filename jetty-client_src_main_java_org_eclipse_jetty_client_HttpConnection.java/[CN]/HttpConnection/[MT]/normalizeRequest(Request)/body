@@ -29,48 +29,42 @@
       }
       if (fieldIterator.hasNext())       params.append("&");
     }
-    if (method == HttpMethod.POST && request.getContent() != null)     method=HttpMethod.GET;
-switch (method) {
-case GET:
-{
-        path+="?";
-        path+=params.toString();
-        request.path(path);
-        break;
-      }
-case POST:
-{
+    if (method == HttpMethod.POST && request.getContent() == null) {
       request.header(HttpHeader.CONTENT_TYPE,MimeTypes.Type.FORM_ENCODED.asString());
       request.content(new StringContentProvider(params.toString()));
-      break;
     }
-}
-}
-if (version.getVersion() > 10) {
-if (!headers.containsKey(HttpHeader.HOST.asString())) headers.put(getDestination().getHostField());
-}
-if (content != null) {
-long contentLength=content.getLength();
-if (contentLength >= 0) {
-  if (!headers.containsKey(HttpHeader.CONTENT_LENGTH.asString()))   headers.put(HttpHeader.CONTENT_LENGTH,String.valueOf(contentLength));
-}
  else {
-  if (!headers.containsKey(HttpHeader.TRANSFER_ENCODING.asString()))   headers.put(CHUNKED_FIELD);
-}
-}
-List<HttpCookie> cookies=client.getCookieStore().get(request.getURI());
-StringBuilder cookieString=null;
-for (int i=0; i < cookies.size(); ++i) {
-if (cookieString == null) cookieString=new StringBuilder();
-if (i > 0) cookieString.append("; ");
-HttpCookie cookie=cookies.get(i);
-cookieString.append(cookie.getName()).append("=").append(cookie.getValue());
-}
-if (cookieString != null) request.header(HttpHeader.COOKIE.asString(),cookieString.toString());
-Authentication.Result authnResult=client.getAuthenticationStore().findAuthenticationResult(request.getURI());
-if (authnResult != null) authnResult.apply(request);
-if (!headers.containsKey(HttpHeader.ACCEPT_ENCODING.asString())) {
-HttpField acceptEncodingField=client.getAcceptEncodingField();
-if (acceptEncodingField != null) headers.put(acceptEncodingField);
-}
+      path+="?";
+      path+=params.toString();
+      request.path(path);
+    }
+  }
+  if (version.getVersion() > 10) {
+    if (!headers.containsKey(HttpHeader.HOST.asString()))     headers.put(getDestination().getHostField());
+  }
+  if (content != null) {
+    long contentLength=content.getLength();
+    if (contentLength >= 0) {
+      if (!headers.containsKey(HttpHeader.CONTENT_LENGTH.asString()))       headers.put(HttpHeader.CONTENT_LENGTH,String.valueOf(contentLength));
+    }
+ else {
+      if (!headers.containsKey(HttpHeader.TRANSFER_ENCODING.asString()))       headers.put(CHUNKED_FIELD);
+    }
+  }
+  List<HttpCookie> cookies=client.getCookieStore().get(request.getURI());
+  StringBuilder cookieString=null;
+  for (int i=0; i < cookies.size(); ++i) {
+    if (cookieString == null)     cookieString=new StringBuilder();
+    if (i > 0)     cookieString.append("; ");
+    HttpCookie cookie=cookies.get(i);
+    cookieString.append(cookie.getName()).append("=").append(cookie.getValue());
+  }
+  if (cookieString != null)   request.header(HttpHeader.COOKIE.asString(),cookieString.toString());
+  URI authenticationURI=destination.isProxied() ? destination.getProxyURI() : request.getURI();
+  Authentication.Result authnResult=client.getAuthenticationStore().findAuthenticationResult(authenticationURI);
+  if (authnResult != null)   authnResult.apply(request);
+  if (!headers.containsKey(HttpHeader.ACCEPT_ENCODING.asString())) {
+    HttpField acceptEncodingField=client.getAcceptEncodingField();
+    if (acceptEncodingField != null)     headers.put(acceptEncodingField);
+  }
 }

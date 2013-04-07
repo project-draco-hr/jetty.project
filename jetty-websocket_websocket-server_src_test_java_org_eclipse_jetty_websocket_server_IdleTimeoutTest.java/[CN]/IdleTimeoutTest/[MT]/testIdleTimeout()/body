@@ -1,0 +1,20 @@
+{
+  BlockheadClient client=new BlockheadClient(server.getServerUri());
+  client.setProtocols("onConnect");
+  client.setTimeout(TimeUnit.MILLISECONDS,1500);
+  try {
+    client.connect();
+    client.sendStandardRequest();
+    client.expectUpgradeResponse();
+    client.sleep(TimeUnit.MILLISECONDS,1000);
+    client.write(WebSocketFrame.text("Hello"));
+    client.readFrames(2,TimeUnit.MILLISECONDS,1500);
+    Assert.fail("Should have resulted in IOException");
+  }
+ catch (  IOException e) {
+    Assert.assertThat("IOException",e.getMessage(),anyOf(containsString("closed"),containsString("disconnected")));
+  }
+ finally {
+    client.close();
+  }
+}

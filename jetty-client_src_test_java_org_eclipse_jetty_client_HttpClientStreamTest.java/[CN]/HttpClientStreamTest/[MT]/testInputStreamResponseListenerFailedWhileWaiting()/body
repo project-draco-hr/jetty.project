@@ -1,0 +1,41 @@
+{
+  final byte[] chunk1=new byte[]{0,1};
+  final byte[] chunk2=new byte[]{2,3};
+  final CountDownLatch closeLatch=new CountDownLatch(1);
+  start(new AbstractHandler(){
+    @Override public void handle(    String target,    org.eclipse.jetty.server.Request baseRequest,    HttpServletRequest request,    HttpServletResponse response) throws IOException, ServletException {
+      baseRequest.setHandled(true);
+      response.setContentLength(chunk1.length + chunk2.length);
+      ServletOutputStream output=response.getOutputStream();
+      output.write(chunk1);
+      output.flush();
+      try {
+        closeLatch.await(5,TimeUnit.SECONDS);
+        output.write(chunk2);
+        output.flush();
+      }
+ catch (      InterruptedException x) {
+        throw new InterruptedIOException();
+      }
+    }
+  }
+);
+  final CountDownLatch waitLatch=new CountDownLatch(1);
+  final CountDownLatch waitedLatch=new CountDownLatch(1);
+  InputStreamResponseListener listener=new InputStreamResponseListener(1){
+    @Override protected boolean await(){
+      waitLatch.countDown();
+      boolean result=super.await();
+      waitedLatch.countDown();
+      return result;
+    }
+  }
+;
+  client.newRequest("localhost",connector.getLocalPort()).scheme(scheme).send(listener);
+  Response response=listener.get(5,TimeUnit.SECONDS);
+  Assert.assertEquals(200,response.getStatus());
+  Assert.assertTrue(waitLatch.await(5,TimeUnit.SECONDS));
+  response.abort(new Exception());
+  closeLatch.countDown();
+  Assert.assertTrue(waitedLatch.await(5,TimeUnit.SECONDS));
+}
