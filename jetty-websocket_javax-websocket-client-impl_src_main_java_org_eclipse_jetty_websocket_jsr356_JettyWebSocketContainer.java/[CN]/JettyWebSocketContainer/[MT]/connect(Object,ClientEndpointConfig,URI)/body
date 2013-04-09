@@ -1,5 +1,9 @@
 {
-  ConfiguredEndpoint endpoint=new ConfiguredEndpoint(websocket,config);
+  ClientEndpointConfig cec=config;
+  if (cec == null) {
+    cec=ClientEndpointConfig.Builder.create().build();
+  }
+  ConfiguredEndpoint endpoint=new ConfiguredEndpoint(websocket,cec);
   ClientUpgradeRequest req=new ClientUpgradeRequest();
   if (config != null) {
     for (    Extension ext : config.getExtensions()) {
@@ -11,8 +15,7 @@
   }
   Future<org.eclipse.jetty.websocket.api.Session> futSess=client.connect(endpoint,path,req);
   try {
-    WebSocketSession sess=(WebSocketSession)futSess.get();
-    return new JsrSession(this,sess,getNextId());
+    return (JsrSession)futSess.get();
   }
  catch (  InterruptedException|ExecutionException e) {
     throw new IOException("Connect failure",e);
