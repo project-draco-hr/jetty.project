@@ -1,2 +1,119 @@
 {
+  super();
+  Objects.requireNonNull(pathParamSpec,"Path Param Spec cannot be null");
+  if ("".equals(pathParamSpec) || "/".equals(pathParamSpec)) {
+    super.pathSpec="/";
+    super.pattern=Pattern.compile("^/$");
+    super.pathDepth=1;
+    this.specLength=1;
+    this.variables=new String[0];
+    this.group=PathSpecGroup.EXACT;
+    return;
+  }
+  if (pathParamSpec.charAt(0) != '/') {
+    StringBuilder err=new StringBuilder();
+    err.append("Syntax Error: path spec \"");
+    err.append(pathParamSpec);
+    err.append("\" must start with '/'");
+    throw new IllegalArgumentException(err.toString());
+  }
+  for (  String forbidden : FORBIDDEN_SEGMENTS) {
+    if (pathParamSpec.contains(forbidden)) {
+      StringBuilder err=new StringBuilder();
+      err.append("Syntax Error: segment ");
+      err.append(forbidden);
+      err.append(" is forbidden in path spec: ");
+      err.append(pathParamSpec);
+      throw new IllegalArgumentException(err.toString());
+    }
+  }
+  this.pathSpec=pathParamSpec;
+  StringBuilder regex=new StringBuilder();
+  regex.append('^');
+  boolean wantDelim=false;
+  boolean isLastSegmentVariable=false;
+  List<String> varNames=new ArrayList<>();
+  String segments[]=pathParamSpec.split("/");
+  this.pathDepth=segments.length - 1;
+  for (  String segment : segments) {
+    Matcher mat=VARIABLE_PATTERN.matcher(segment);
+    if (mat.matches()) {
+      String variable=mat.group(1);
+      if (varNames.contains(variable)) {
+        StringBuilder err=new StringBuilder();
+        err.append("Syntax Error: variable ");
+        err.append(variable);
+        err.append(" is duplicated in path spec: ");
+        err.append(pathParamSpec);
+        throw new IllegalArgumentException(err.toString());
+      }
+ else       if (VALID_VARIABLE_NAME.matcher(variable).matches()) {
+        varNames.add(variable);
+        if (wantDelim) {
+          regex.append('/');
+        }
+        regex.append("([^/]+)");
+        wantDelim=true;
+        isLastSegmentVariable=true;
+      }
+ else {
+        StringBuilder err=new StringBuilder();
+        err.append("Syntax Error: variable {");
+        err.append(variable);
+        err.append("} an invalid variable name: ");
+        err.append(pathParamSpec);
+        throw new IllegalArgumentException(err.toString());
+      }
+    }
+ else     if (mat.find(0)) {
+      StringBuilder err=new StringBuilder();
+      err.append("Syntax Error: variable ");
+      err.append(mat.group());
+      err.append(" must exist as entire path segment: ");
+      err.append(pathParamSpec);
+      throw new IllegalArgumentException(err.toString());
+    }
+ else     if ((segment.indexOf('{') >= 0) || (segment.indexOf('}') >= 0)) {
+      StringBuilder err=new StringBuilder();
+      err.append("Syntax Error: invalid path segment /");
+      err.append(segment);
+      err.append("/ variable declaration incomplete: ");
+      err.append(pathParamSpec);
+      throw new IllegalArgumentException(err.toString());
+    }
+ else     if (segment.indexOf('*') >= 0) {
+      StringBuilder err=new StringBuilder();
+      err.append("Syntax Error: path segment /");
+      err.append(segment);
+      err.append("/ contains a wildcard symbol: ");
+      err.append(pathParamSpec);
+      throw new IllegalArgumentException(err.toString());
+    }
+ else {
+      if (wantDelim) {
+        regex.append('/');
+      }
+      regex.append(segment);
+      wantDelim=true;
+      isLastSegmentVariable=false;
+    }
+  }
+  regex.append('$');
+  this.pattern=Pattern.compile(regex.toString());
+  int varcount=varNames.size();
+  this.variables=varNames.toArray(new String[varcount]);
+  if (varcount > 1) {
+    this.group=PathSpecGroup.MIDDLE_GLOB;
+  }
+  if (varcount == 1) {
+    if (isLastSegmentVariable) {
+      this.group=PathSpecGroup.PREFIX_GLOB;
+    }
+ else {
+      this.group=PathSpecGroup.MIDDLE_GLOB;
+    }
+  }
+ else {
+    this.group=PathSpecGroup.EXACT;
+  }
 }
