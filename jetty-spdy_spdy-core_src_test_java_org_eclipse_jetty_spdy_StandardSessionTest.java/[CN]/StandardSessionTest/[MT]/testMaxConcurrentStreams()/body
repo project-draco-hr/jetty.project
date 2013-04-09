@@ -1,0 +1,15 @@
+{
+  final CountDownLatch failedBecauseMaxConcurrentStreamsExceeded=new CountDownLatch(1);
+  Settings settings=new Settings();
+  settings.put(new Settings.Setting(Settings.ID.MAX_CONCURRENT_STREAMS,0));
+  SettingsFrame settingsFrame=new SettingsFrame(VERSION,(byte)0,settings);
+  session.onControlFrame(settingsFrame);
+  PushSynInfo pushSynInfo=new PushSynInfo(1,new PushInfo(new Fields(),false));
+  session.syn(pushSynInfo,null,new Promise.Adapter<Stream>(){
+    @Override public void failed(    Throwable x){
+      failedBecauseMaxConcurrentStreamsExceeded.countDown();
+    }
+  }
+);
+  assertThat("Opening push stream failed because maxConcurrentStream is exceeded",failedBecauseMaxConcurrentStreamsExceeded.await(5,TimeUnit.SECONDS),is(true));
+}

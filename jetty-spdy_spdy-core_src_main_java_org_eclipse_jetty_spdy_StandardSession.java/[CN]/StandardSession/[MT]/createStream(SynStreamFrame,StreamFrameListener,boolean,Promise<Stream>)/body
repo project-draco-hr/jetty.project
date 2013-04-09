@@ -9,8 +9,24 @@
     if (!stream.isClosed())     stream.getAssociatedStream().associate(stream);
   }
   int streamId=stream.getId();
+  if (local) {
+    while (true) {
+      int oldStreamCountValue=localStreamCount.get();
+      int maxConcurrentStreams=maxConcurrentLocalStreams;
+      if (maxConcurrentStreams > -1 && oldStreamCountValue >= maxConcurrentStreams) {
+        String msg=String.format("Max concurrent local streams (%d) exceeded.",maxConcurrentStreams);
+        LOG.debug(msg);
+        promise.failed(new SPDYException(msg));
+        return null;
+      }
+      if (localStreamCount.compareAndSet(oldStreamCountValue,oldStreamCountValue + 1))       break;
+    }
+  }
   if (streams.putIfAbsent(streamId,stream) != null) {
-    if (local)     throw new IllegalStateException("Duplicate stream id " + streamId);
+    if (local) {
+      localStreamCount.decrementAndGet();
+      throw new IllegalStateException("Duplicate stream id " + streamId);
+    }
     RstInfo rstInfo=new RstInfo(streamId,StreamStatus.PROTOCOL_ERROR);
     LOG.debug("Duplicate stream, {}",rstInfo);
     try {
@@ -23,7 +39,7 @@
   }
  else {
     LOG.debug("Created {}",stream);
-    if (local)     notifyStreamCreated(stream);
+    notifyStreamCreated(stream);
     return stream;
   }
 }
