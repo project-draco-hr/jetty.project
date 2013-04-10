@@ -3,7 +3,13 @@
   assertEquals("Spec.pathSpec","/a/{foo}",spec.getPathSpec());
   assertEquals("Spec.pattern","^/a/([^/]+)$",spec.getPattern().pattern());
   assertEquals("Spec.pathDepth",2,spec.getPathDepth());
-  assertEquals("Spec.variableCount",1,spec.getVariableCount());
-  assertEquals("Spec.variable.length",1,spec.getVariables().length);
-  assertEquals("Spec.variable[0]","foo",spec.getVariables()[0]);
+  assertEquals("Spec.group",PathSpecGroup.PREFIX_GLOB,spec.group);
+  assertDetectedVars(spec,"foo");
+  assertMatches(spec,"/a/b");
+  assertNotMatches(spec,"/a/");
+  assertNotMatches(spec,"/a");
+  Map<String,String> mapped=spec.getPathParams("/a/b");
+  assertThat("Spec.pathParams",mapped,notNullValue());
+  assertThat("Spec.pathParams.size",mapped.size(),is(1));
+  assertEquals("Spec.pathParams[foo]","b",mapped.get("foo"));
 }
