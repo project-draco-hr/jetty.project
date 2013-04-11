@@ -1,14 +1,16 @@
 {
-  Object[] deployers=_serviceTracker.getServices();
   boolean undeployed=false;
-  if (deployers != null) {
-    int i=0;
-    while (!undeployed && i < deployers.length) {
+  String serverName=(String)bundle.getHeaders().get(OSGiServerConstants.MANAGED_JETTY_SERVER_NAME);
+  Map<ServiceReference,BundleProvider> candidates=getDeployers(serverName);
+  if (candidates != null) {
+    Iterator<Entry<ServiceReference,BundleProvider>> itor=candidates.entrySet().iterator();
+    while (!undeployed && itor.hasNext()) {
+      Entry<ServiceReference,BundleProvider> e=itor.next();
       try {
-        undeployed=((BundleProvider)deployers[i++]).bundleRemoved(bundle);
+        undeployed=e.getValue().bundleRemoved(bundle);
       }
  catch (      Exception x) {
-        LOG.warn("Error undeploying bundle for jetty context",x);
+        LOG.warn("Error undeploying Bundle representing jetty deployable ",x);
       }
     }
   }

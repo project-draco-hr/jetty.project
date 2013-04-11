@@ -6,8 +6,10 @@
   context.addServiceListener(_jettyServerServiceTracker,"(objectclass=" + Server.class.getName() + ")");
   _jettyContextHandlerTracker=new JettyContextHandlerServiceTracker();
   context.addServiceListener(_jettyContextHandlerTracker,"(objectclass=" + ContextHandler.class.getName() + ")");
-  DefaultJettyAtJettyHomeHelper.startJettyAtJettyHome(context);
-  WebBundleTrackerCustomizer customizer=new WebBundleTrackerCustomizer();
-  _webBundleTracker=new BundleTracker(context,Bundle.ACTIVE | Bundle.STOPPING,customizer);
-  customizer.setAndOpenWebBundleTracker(_webBundleTracker);
+  Server defaultServer=DefaultJettyAtJettyHomeHelper.startJettyAtJettyHome(context);
+  WebBundleTrackerCustomizer bundleTrackerCustomizer=new WebBundleTrackerCustomizer();
+  bundleTrackerCustomizer.setWaitForDefaultServer(defaultServer != null);
+  _webBundleTracker=new BundleTracker(context,Bundle.ACTIVE | Bundle.STOPPING,bundleTrackerCustomizer);
+  bundleTrackerCustomizer.setBundleTracker(_webBundleTracker);
+  bundleTrackerCustomizer.open();
 }

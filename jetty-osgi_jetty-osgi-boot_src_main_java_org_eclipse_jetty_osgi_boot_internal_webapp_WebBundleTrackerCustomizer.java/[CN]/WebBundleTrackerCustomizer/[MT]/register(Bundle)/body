@@ -1,18 +1,18 @@
 {
   if (bundle == null)   return false;
   boolean deployed=false;
-  Object[] deployers=_serviceTracker.getServices();
-  if (deployers != null) {
-    int i=0;
-    while (!deployed && i < deployers.length) {
-      BundleProvider p=(BundleProvider)deployers[i];
+  String serverName=(String)bundle.getHeaders().get(OSGiServerConstants.MANAGED_JETTY_SERVER_NAME);
+  Map<ServiceReference,BundleProvider> candidates=getDeployers(serverName);
+  if (candidates != null) {
+    Iterator<Entry<ServiceReference,BundleProvider>> itor=candidates.entrySet().iterator();
+    while (!deployed && itor.hasNext()) {
+      Entry<ServiceReference,BundleProvider> e=itor.next();
       try {
-        deployed=p.bundleAdded(bundle);
+        deployed=e.getValue().bundleAdded(bundle);
       }
  catch (      Exception x) {
         LOG.warn("Error deploying bundle for jetty context",x);
       }
-      i++;
     }
   }
   return deployed;

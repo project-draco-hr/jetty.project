@@ -1,0 +1,22 @@
+{
+  if (_waitForDefaultServer && !_defaultServerReady) {
+    String filter="(&(objectclass=" + BundleProvider.class.getName() + ")"+ "("+ OSGiServerConstants.MANAGED_JETTY_SERVER_NAME+ "="+ OSGiServerConstants.MANAGED_JETTY_SERVER_DEFAULT_NAME+ "))";
+    ServiceTracker defaultServerTracker=new ServiceTracker(_bundle.getBundleContext(),FrameworkUtil.createFilter(filter),null){
+      public Object addingService(      ServiceReference reference){
+        try {
+          Object object=super.addingService(reference);
+          LOG.debug("Default Jetty Server registered {}",reference);
+          _defaultServerReady=true;
+          openBundleTracker();
+          return object;
+        }
+ catch (        Exception e) {
+          throw new IllegalStateException(e);
+        }
+      }
+    }
+;
+    defaultServerTracker.open();
+  }
+ else   openBundleTracker();
+}
