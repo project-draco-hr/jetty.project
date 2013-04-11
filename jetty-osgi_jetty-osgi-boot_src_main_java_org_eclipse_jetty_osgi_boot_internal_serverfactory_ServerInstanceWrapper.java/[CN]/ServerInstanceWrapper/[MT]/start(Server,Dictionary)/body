@@ -10,8 +10,17 @@
     Thread.currentThread().setContextClassLoader(libExtClassLoader);
     configure(server,props);
     init();
-    URL[] jarsWithTlds=getJarsWithTlds();
-    _commonParentClassLoaderForWebapps=jarsWithTlds == null ? libExtClassLoader : new TldLocatableURLClassloader(libExtClassLoader,jarsWithTlds);
+    if (!__containerTldBundleDiscoverers.isEmpty()) {
+      Set<URL> urls=new HashSet<URL>();
+      for (      TldBundleDiscoverer d : __containerTldBundleDiscoverers) {
+        URL[] list=d.getUrlsForBundlesWithTlds(_deploymentManager,BundleFileLocatorHelperFactory.getFactory().getHelper());
+        if (list != null) {
+          for (          URL u : list)           urls.add(u);
+        }
+      }
+      _commonParentClassLoaderForWebapps=new FakeURLClassLoader(libExtClassLoader,urls.toArray(new URL[urls.size()]));
+    }
+ else     _commonParentClassLoaderForWebapps=libExtClassLoader;
     if (LOG.isDebugEnabled())     LOG.debug("common classloader = " + _commonParentClassLoaderForWebapps);
     server.start();
   }
