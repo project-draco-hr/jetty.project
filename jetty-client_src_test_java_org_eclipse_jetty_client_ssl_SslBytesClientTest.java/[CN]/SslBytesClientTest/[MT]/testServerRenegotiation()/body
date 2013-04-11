@@ -1,0 +1,76 @@
+{
+  Request request=client.newRequest("localhost",proxy.getPort());
+  FutureResponseListener listener=new FutureResponseListener(request);
+  request.scheme(HttpScheme.HTTPS.asString()).send(listener);
+  Assert.assertTrue(proxy.awaitClient(5,TimeUnit.SECONDS));
+  final SSLSocket server=(SSLSocket)acceptor.accept();
+  server.setUseClientMode(false);
+  Future<Object> handshake=threadPool.submit(new Callable<Object>(){
+    public Object call() throws Exception {
+      server.startHandshake();
+      return null;
+    }
+  }
+);
+  SimpleProxy.AutomaticFlow automaticProxyFlow=proxy.startAutomaticFlow();
+  Assert.assertNull(handshake.get(5,TimeUnit.SECONDS));
+  InputStream serverInput=server.getInputStream();
+  BufferedReader reader=new BufferedReader(new InputStreamReader(serverInput,"UTF-8"));
+  String line=reader.readLine();
+  Assert.assertTrue(line.startsWith("GET"));
+  while (line.length() > 0)   line=reader.readLine();
+  OutputStream serverOutput=server.getOutputStream();
+  byte[] data1=new byte[1024];
+  Arrays.fill(data1,(byte)'X');
+  String content1=new String(data1,"UTF-8");
+  byte[] data2=new byte[1024];
+  Arrays.fill(data2,(byte)'Y');
+  final String content2=new String(data2,"UTF-8");
+  serverOutput.write(("HTTP/1.1 200 OK\r\n" + "Content-Type: text/plain\r\n" + "Content-Length: " + (content1.length() + content2.length()) + "\r\n"+ "\r\n"+ content1).getBytes("UTF-8"));
+  serverOutput.flush();
+  Assert.assertTrue(automaticProxyFlow.stop(5,TimeUnit.SECONDS));
+  Future<Object> renegotiation=threadPool.submit(new Callable<Object>(){
+    public Object call() throws Exception {
+      server.startHandshake();
+      return null;
+    }
+  }
+);
+  TLSRecord record=proxy.readFromServer();
+  Assert.assertEquals(TLSRecord.Type.HANDSHAKE,record.getType());
+  proxy.flushToClient(record);
+  record=proxy.readFromClient();
+  Assert.assertEquals(TLSRecord.Type.HANDSHAKE,record.getType());
+  proxy.flushToServer(record);
+  server.setSoTimeout(100);
+  try {
+    serverInput.read();
+    Assert.fail();
+  }
+ catch (  SocketTimeoutException x) {
+  }
+  record=proxy.readFromServer();
+  Assert.assertEquals(TLSRecord.Type.HANDSHAKE,record.getType());
+  proxy.flushToClient(record);
+  record=proxy.readFromServer();
+  Assert.assertEquals(TLSRecord.Type.CHANGE_CIPHER_SPEC,record.getType());
+  proxy.flushToClient(record);
+  record=proxy.readFromServer();
+  Assert.assertEquals(TLSRecord.Type.HANDSHAKE,record.getType());
+  proxy.flushToClient(record);
+  record=proxy.readFromClient();
+  Assert.assertEquals(TLSRecord.Type.CHANGE_CIPHER_SPEC,record.getType());
+  proxy.flushToServer(record);
+  record=proxy.readFromClient();
+  Assert.assertEquals(TLSRecord.Type.HANDSHAKE,record.getType());
+  proxy.flushToServer(record);
+  Assert.assertNull(renegotiation.get(5,TimeUnit.SECONDS));
+  automaticProxyFlow=proxy.startAutomaticFlow();
+  serverOutput.write(data2);
+  serverOutput.flush();
+  Assert.assertTrue(automaticProxyFlow.stop(5,TimeUnit.SECONDS));
+  ContentResponse response=listener.get(5,TimeUnit.SECONDS);
+  Assert.assertEquals(HttpStatus.OK_200,response.getStatus());
+  Assert.assertEquals(data1.length + data2.length,response.getContent().length);
+  server.close();
+}

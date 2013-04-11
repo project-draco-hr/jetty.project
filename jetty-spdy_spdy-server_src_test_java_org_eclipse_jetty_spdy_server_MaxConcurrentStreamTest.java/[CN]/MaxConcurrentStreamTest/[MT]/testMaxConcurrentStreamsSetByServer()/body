@@ -1,0 +1,50 @@
+{
+  final CountDownLatch settingsReceivedLatch=new CountDownLatch(1);
+  final CountDownLatch dataReceivedLatch=new CountDownLatch(1);
+  Session session=startClient(startServer(new ServerSessionFrameListener.Adapter(){
+    @Override public void onConnect(    Session session){
+      Settings settings=new Settings();
+      settings.put(new Settings.Setting(Settings.ID.MAX_CONCURRENT_STREAMS,1));
+      try {
+        session.settings(new SettingsInfo(settings));
+      }
+ catch (      ExecutionException|InterruptedException|TimeoutException e) {
+        e.printStackTrace();
+      }
+    }
+    @Override public StreamFrameListener onSyn(    Stream stream,    SynInfo synInfo){
+      try {
+        stream.reply(new ReplyInfo(true));
+      }
+ catch (      ExecutionException|InterruptedException|TimeoutException e) {
+        e.printStackTrace();
+      }
+      return new StreamFrameListener.Adapter(){
+        @Override public void onData(        Stream stream,        DataInfo dataInfo){
+          dataReceivedLatch.countDown();
+        }
+      }
+;
+    }
+  }
+),new SessionFrameListener.Adapter(){
+    @Override public void onSettings(    Session session,    SettingsInfo settingsInfo){
+      settingsReceivedLatch.countDown();
+    }
+  }
+);
+  assertThat("Settings frame received",settingsReceivedLatch.await(5,TimeUnit.SECONDS),is(true));
+  SynInfo synInfo=new SynInfo(new Fields(),false);
+  Stream stream=session.syn(synInfo,null);
+  boolean failed=false;
+  try {
+    session.syn(synInfo,null);
+  }
+ catch (  ExecutionException|InterruptedException|TimeoutException e) {
+    failed=true;
+  }
+  assertThat("Opening second stream failed",failed,is(true));
+  stream.data(new ByteBufferDataInfo(BufferUtil.EMPTY_BUFFER,true));
+  assertThat("Data has been received on first stream.",dataReceivedLatch.await(5,TimeUnit.SECONDS),is(true));
+  session.syn(synInfo,null);
+}

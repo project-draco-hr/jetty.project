@@ -16,11 +16,14 @@
       SSLEngineResult unwrapResult=_sslEngine.unwrap(_encryptedInput,app_in);
       BufferUtil.flipToFlush(app_in,pos);
       if (DEBUG)       LOG.debug("{} unwrap {}",SslConnection.this,unwrapResult);
-switch (unwrapResult.getStatus()) {
+      Status unwrapResultStatus=unwrapResult.getStatus();
+      HandshakeStatus unwrapHandshakeStatus=unwrapResult.getHandshakeStatus();
+      HandshakeStatus handshakeStatus=_sslEngine.getHandshakeStatus();
+switch (unwrapResultStatus) {
 case BUFFER_OVERFLOW:
         throw new IllegalStateException();
 case CLOSED:
-switch (_sslEngine.getHandshakeStatus()) {
+switch (handshakeStatus) {
 case NOT_HANDSHAKING:
         return -1;
 case NEED_TASK:
@@ -31,12 +34,21 @@ case NEED_WRAP:
 }
 throw new IllegalStateException();
 default :
-if (unwrapResult.getStatus() == Status.BUFFER_UNDERFLOW) _underFlown=true;
+if (unwrapHandshakeStatus == HandshakeStatus.FINISHED && !_handshaken) {
+_handshaken=true;
+if (DEBUG) LOG.debug("{} handshake completed client-side",SslConnection.this);
+}
+if (_handshaken && handshakeStatus != HandshakeStatus.NOT_HANDSHAKING && !isRenegotiationAllowed()) {
+if (DEBUG) LOG.debug("{} renegotiation denied",SslConnection.this);
+closeInbound();
+return -1;
+}
+if (unwrapResultStatus == Status.BUFFER_UNDERFLOW) _underFlown=true;
 if (unwrapResult.bytesProduced() > 0) {
 if (app_in == buffer) return unwrapResult.bytesProduced();
 return BufferUtil.flipPutFlip(_decryptedInput,buffer);
 }
-switch (_sslEngine.getHandshakeStatus()) {
+switch (handshakeStatus) {
 case NOT_HANDSHAKING:
 if (net_filled < 0) {
 closeInbound();

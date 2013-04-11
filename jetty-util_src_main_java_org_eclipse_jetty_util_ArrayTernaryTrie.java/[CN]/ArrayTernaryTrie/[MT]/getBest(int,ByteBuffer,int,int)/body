@@ -1,0 +1,25 @@
+{
+  int node=0;
+  int o=offset + b.position();
+  for (int i=0; t != 0 && i < len; i++) {
+    byte c=(byte)(b.get(o + i) & 0x7f);
+    if (isCaseInsensitive())     c=(byte)StringUtil.lowercases[c];
+    while (t != 0) {
+      int row=ROW_SIZE * t;
+      char n=_tree[row];
+      int diff=n - c;
+      if (diff == 0) {
+        node=t;
+        t=_tree[row + EQ];
+        if (_key[node] != null) {
+          V best=getBest(t,b,offset + i + 1,len - i - 1);
+          if (best != null)           return best;
+          return (V)_value[node];
+        }
+        break;
+      }
+      t=_tree[row + ((diff < 0) ? LO : HI)];
+    }
+  }
+  return null;
+}

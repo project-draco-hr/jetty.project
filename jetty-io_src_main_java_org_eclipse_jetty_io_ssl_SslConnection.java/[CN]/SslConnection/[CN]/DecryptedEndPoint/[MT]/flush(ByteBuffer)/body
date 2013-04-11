@@ -14,27 +14,38 @@
       if (DEBUG)       LOG.debug("{} wrap {}",SslConnection.this,wrapResult);
       BufferUtil.flipToFlush(_encryptedOutput,pos);
       if (wrapResult.bytesConsumed() > 0)       consumed+=wrapResult.bytesConsumed();
-      boolean all_consumed=true;
+      boolean allConsumed=true;
       for (      ByteBuffer b : appOuts) {
         if (BufferUtil.isEmpty(b))         BufferUtil.clear(b);
- else         all_consumed=false;
+ else         allConsumed=false;
       }
-switch (wrapResult.getStatus()) {
+      Status wrapResultStatus=wrapResult.getStatus();
+switch (wrapResultStatus) {
 case CLOSED:
         if (BufferUtil.hasContent(_encryptedOutput)) {
           _cannotAcceptMoreAppDataToFlush=true;
           getEndPoint().flush(_encryptedOutput);
           if (BufferUtil.hasContent(_encryptedOutput))           return false;
         }
-      return all_consumed;
+      return allConsumed;
 case BUFFER_UNDERFLOW:
     throw new IllegalStateException();
 default :
-  if (DEBUG)   LOG.debug("{} {} {}",this,wrapResult.getStatus(),BufferUtil.toDetailString(_encryptedOutput));
+  if (DEBUG)   LOG.debug("{} {} {}",this,wrapResultStatus,BufferUtil.toDetailString(_encryptedOutput));
+if (wrapResult.getHandshakeStatus() == HandshakeStatus.FINISHED && !_handshaken) {
+  _handshaken=true;
+  if (DEBUG)   LOG.debug("{} handshake completed server-side",SslConnection.this);
+}
+HandshakeStatus handshakeStatus=_sslEngine.getHandshakeStatus();
+if (_handshaken && handshakeStatus != HandshakeStatus.NOT_HANDSHAKING && !isRenegotiationAllowed()) {
+if (DEBUG) LOG.debug("{} renegotiation denied",SslConnection.this);
+shutdownOutput();
+return allConsumed;
+}
 if (BufferUtil.hasContent(_encryptedOutput)) getEndPoint().flush(_encryptedOutput);
-switch (_sslEngine.getHandshakeStatus()) {
+switch (handshakeStatus) {
 case NOT_HANDSHAKING:
-return all_consumed && BufferUtil.isEmpty(_encryptedOutput);
+return allConsumed && BufferUtil.isEmpty(_encryptedOutput);
 case NEED_TASK:
 _sslEngine.getDelegatedTask().run();
 continue;
@@ -44,9 +55,9 @@ case NEED_UNWRAP:
 if (appOuts[0] != __FILL_CALLED_FLUSH && !getFillInterest().isInterested()) {
 _flushRequiresFillToProgress=true;
 fill(__FLUSH_CALLED_FILL);
-if (_sslEngine.getHandshakeStatus() == HandshakeStatus.NEED_WRAP) continue;
+if (handshakeStatus == HandshakeStatus.NEED_WRAP) continue;
 }
-return all_consumed && BufferUtil.isEmpty(_encryptedOutput);
+return allConsumed && BufferUtil.isEmpty(_encryptedOutput);
 case FINISHED:
 throw new IllegalStateException();
 }
