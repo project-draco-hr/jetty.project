@@ -25,16 +25,18 @@ case CLOSED:
         if (BufferUtil.hasContent(_encryptedOutput)) {
           _cannotAcceptMoreAppDataToFlush=true;
           getEndPoint().flush(_encryptedOutput);
+          getEndPoint().shutdownOutput();
           if (BufferUtil.hasContent(_encryptedOutput))           return false;
         }
-      return allConsumed;
+      getEndPoint().shutdownOutput();
+    return allConsumed;
 case BUFFER_UNDERFLOW:
-    throw new IllegalStateException();
+  throw new IllegalStateException();
 default :
-  if (DEBUG)   LOG.debug("{} {} {}",this,wrapResultStatus,BufferUtil.toDetailString(_encryptedOutput));
+if (DEBUG) LOG.debug("{} {} {}",this,wrapResultStatus,BufferUtil.toDetailString(_encryptedOutput));
 if (wrapResult.getHandshakeStatus() == HandshakeStatus.FINISHED && !_handshaken) {
-  _handshaken=true;
-  if (DEBUG)   LOG.debug("{} handshake completed server-side",SslConnection.this);
+_handshaken=true;
+if (DEBUG) LOG.debug("{} handshake completed server-side",SslConnection.this);
 }
 HandshakeStatus handshakeStatus=_sslEngine.getHandshakeStatus();
 if (_handshaken && handshakeStatus != HandshakeStatus.NOT_HANDSHAKING && !isRenegotiationAllowed()) {
