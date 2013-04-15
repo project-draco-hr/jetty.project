@@ -28,9 +28,8 @@
     exceptional=false;
   }
   finally {
-    Continuation continuation=ContinuationSupport.getContinuation(request);
-    if (continuation.isSuspended() && continuation.isResponseWrapped()) {
-      continuation.addContinuationListener(new ContinuationListenerWaitingForWrappedResponseToFinish(wrappedResponse));
+    if (request.isAsyncStarted()) {
+      request.getAsyncContext().addListener(new FinishOnCompleteListener(wrappedResponse));
     }
  else     if (exceptional && !response.isCommitted()) {
       wrappedResponse.resetBuffer();

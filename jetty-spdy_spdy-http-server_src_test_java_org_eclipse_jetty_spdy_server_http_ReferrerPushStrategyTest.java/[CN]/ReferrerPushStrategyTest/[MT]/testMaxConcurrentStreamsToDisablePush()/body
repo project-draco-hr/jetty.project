@@ -1,0 +1,12 @@
+{
+  final CountDownLatch pushReceivedLatch=new CountDownLatch(1);
+  Session session=sendMainRequestAndCSSRequest(new SessionFrameListener.Adapter(){
+    @Override public StreamFrameListener onSyn(    Stream stream,    SynInfo synInfo){
+      pushReceivedLatch.countDown();
+      return null;
+    }
+  }
+);
+  sendRequest(session,mainRequestHeaders,null,null);
+  assertThat(pushReceivedLatch.await(1,TimeUnit.SECONDS),is(false));
+}

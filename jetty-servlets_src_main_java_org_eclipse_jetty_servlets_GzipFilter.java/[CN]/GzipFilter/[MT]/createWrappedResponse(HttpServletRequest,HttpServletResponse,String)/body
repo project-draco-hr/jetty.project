@@ -1,47 +1,38 @@
 {
   CompressedResponseWrapper wrappedResponse=null;
-  if (compressionType == null) {
-    wrappedResponse=new CompressedResponseWrapper(request,response){
-      @Override protected AbstractCompressedStream newCompressedStream(      HttpServletRequest request,      HttpServletResponse response) throws IOException {
-        return new AbstractCompressedStream(null,request,this,_vary){
-          @Override protected DeflaterOutputStream createStream() throws IOException {
+  wrappedResponse=new CompressedResponseWrapper(request,response){
+    @Override protected AbstractCompressedStream newCompressedStream(    HttpServletRequest request,    HttpServletResponse response) throws IOException {
+      return new AbstractCompressedStream(compressionType,request,this,_vary){
+        private Deflater _allocatedDeflater;
+        @Override protected DeflaterOutputStream createStream() throws IOException {
+          if (compressionType == null) {
             return null;
           }
-        }
-;
-      }
-    }
-;
-  }
- else   if (compressionType.equals(GZIP)) {
-    wrappedResponse=new CompressedResponseWrapper(request,response){
-      @Override protected AbstractCompressedStream newCompressedStream(      HttpServletRequest request,      HttpServletResponse response) throws IOException {
-        return new AbstractCompressedStream(compressionType,request,this,_vary){
-          @Override protected DeflaterOutputStream createStream() throws IOException {
-            return new GZIPOutputStream(_response.getOutputStream(),_bufferSize);
-          }
-        }
-;
-      }
-    }
-;
-  }
- else   if (compressionType.equals(DEFLATE)) {
-    wrappedResponse=new CompressedResponseWrapper(request,response){
-      @Override protected AbstractCompressedStream newCompressedStream(      HttpServletRequest request,      HttpServletResponse response) throws IOException {
-        return new AbstractCompressedStream(compressionType,request,this,_vary){
-          @Override protected DeflaterOutputStream createStream() throws IOException {
-            return new DeflaterOutputStream(_response.getOutputStream(),new Deflater(_deflateCompressionLevel,_deflateNoWrap));
-          }
-        }
-;
-      }
-    }
-;
-  }
+          _allocatedDeflater=_deflater.get();
+          if (_allocatedDeflater == null)           _allocatedDeflater=new Deflater(_deflateCompressionLevel,_deflateNoWrap);
  else {
-    throw new IllegalStateException(compressionType + " not supported");
+            _deflater.remove();
+            _allocatedDeflater.reset();
+          }
+switch (compressionType) {
+case GZIP:
+            return new GzipOutputStream(_response.getOutputStream(),_allocatedDeflater,_bufferSize);
+case DEFLATE:
+          return new DeflaterOutputStream(_response.getOutputStream(),_allocatedDeflater,_bufferSize);
+      }
+      throw new IllegalStateException(compressionType + " not supported");
+    }
+    @Override public void finish() throws IOException {
+      super.finish();
+      if (_allocatedDeflater != null && _deflater.get() == null) {
+        _deflater.set(_allocatedDeflater);
+      }
+    }
   }
-  configureWrappedResponse(wrappedResponse);
-  return wrappedResponse;
+;
+}
+}
+;
+configureWrappedResponse(wrappedResponse);
+return wrappedResponse;
 }

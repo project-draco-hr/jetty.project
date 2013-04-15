@@ -14,7 +14,7 @@
     jettyHome=new File(jettyHomeSysProp);
     if (!jettyHome.exists() || !jettyHome.isDirectory()) {
       LOG.warn("Unable to locate the jetty.home folder " + jettyHomeSysProp);
-      return;
+      return null;
     }
   }
  else   if (jettyHomeBundleSysProp != null) {
@@ -27,12 +27,12 @@
     }
     if (jettyHomeBundle == null) {
       LOG.warn("Unable to find the jetty.home.bundle named " + jettyHomeSysProp);
-      return;
+      return null;
     }
   }
   if (jettyHome == null && jettyHomeBundle == null) {
     LOG.warn("No default jetty created.");
-    return;
+    return null;
   }
   Server server=new Server();
   Dictionary<String,String> properties=new Hashtable<String,String>();
@@ -45,4 +45,5 @@
   setProperty(properties,OSGiServerConstants.JETTY_PORT,System.getProperty(OSGiServerConstants.JETTY_PORT));
   setProperty(properties,OSGiServerConstants.JETTY_PORT_SSL,System.getProperty(OSGiServerConstants.JETTY_PORT_SSL));
   bundleContext.registerService(Server.class.getName(),server,properties);
+  return server;
 }
