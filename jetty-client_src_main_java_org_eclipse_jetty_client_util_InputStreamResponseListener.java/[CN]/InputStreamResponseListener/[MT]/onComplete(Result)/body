@@ -1,4 +1,15 @@
 {
   this.result=result;
+  if (result.isSucceeded()) {
+    LOG.debug("Queuing end of content {}{}",EOF,"");
+    queue.offer(EOF);
+  }
+ else {
+    LOG.debug("Queuing failure {} {}",FAILURE,failure);
+    queue.offer(FAILURE);
+    this.failure=result.getFailure();
+    responseLatch.countDown();
+  }
   resultLatch.countDown();
+  signal();
 }
