@@ -1,0 +1,23 @@
+{
+  this(copy.endpointClass,copy.path);
+  this.decoders.addAll(copy.decoders);
+  this.encoders.addAll(copy.encoders);
+  this.subprotocols.addAll(copy.subprotocols);
+  this.extensions.addAll(copy.extensions);
+  this.userProperties.putAll(copy.userProperties);
+  if (copy.configurator instanceof BaseConfigurator) {
+    this.configurator=BaseConfigurator.INSTANCE;
+  }
+ else {
+    Class<? extends Configurator> configuratorClass=copy.configurator.getClass();
+    try {
+      this.configurator=configuratorClass.newInstance();
+    }
+ catch (    InstantiationException|IllegalAccessException e) {
+      StringBuilder err=new StringBuilder();
+      err.append("Unable to instantiate ServerEndpointConfig.Configurator of ");
+      err.append(configuratorClass);
+      throw new DeploymentException(err.toString(),e);
+    }
+  }
+}

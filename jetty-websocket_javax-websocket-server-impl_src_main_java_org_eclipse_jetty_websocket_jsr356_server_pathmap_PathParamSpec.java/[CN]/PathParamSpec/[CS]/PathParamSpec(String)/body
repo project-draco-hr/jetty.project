@@ -30,12 +30,10 @@
   this.pathSpec=pathParamSpec;
   StringBuilder regex=new StringBuilder();
   regex.append('^');
-  boolean wantDelim=false;
-  boolean isLastSegmentVariable=false;
   List<String> varNames=new ArrayList<>();
-  String segments[]=pathParamSpec.split("/");
+  String segments[]=pathParamSpec.substring(1).split("/");
   char segmentSignature[]=new char[segments.length];
-  this.pathDepth=segments.length - 1;
+  this.pathDepth=segments.length;
   for (int i=0; i < segments.length; i++) {
     String segment=segments[i];
     Matcher mat=VARIABLE_PATTERN.matcher(segment);
@@ -52,12 +50,7 @@
  else       if (VALID_VARIABLE_NAME.matcher(variable).matches()) {
         segmentSignature[i]='v';
         varNames.add(variable);
-        if (wantDelim) {
-          regex.append('/');
-        }
-        regex.append("([^/]+)");
-        wantDelim=true;
-        isLastSegmentVariable=true;
+        regex.append("/([^/]+)");
       }
  else {
         StringBuilder err=new StringBuilder();
@@ -94,12 +87,7 @@
     }
  else {
       segmentSignature[i]='e';
-      if (wantDelim) {
-        regex.append('/');
-      }
-      regex.append(segment);
-      wantDelim=true;
-      isLastSegmentVariable=false;
+      regex.append('/').append(segment);
     }
   }
   regex.append('$');

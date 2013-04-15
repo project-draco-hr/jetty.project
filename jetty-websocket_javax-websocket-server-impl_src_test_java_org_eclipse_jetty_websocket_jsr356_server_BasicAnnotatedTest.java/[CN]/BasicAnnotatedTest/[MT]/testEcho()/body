@@ -1,0 +1,30 @@
+{
+  WSServer wsb=new WSServer(testdir,"app");
+  wsb.createWebInf();
+  wsb.copyEndpoint(BasicEchoSocket.class);
+  try {
+    wsb.start();
+    URI uri=wsb.getServerBaseURI();
+    WebAppContext webapp=wsb.createWebAppContext();
+    AnnotationConfiguration annocfg=new AnnotationConfiguration();
+    annocfg.addDiscoverableAnnotationHandler(new ServerEndpointAnnotationHandler(webapp));
+    webapp.setConfigurations(new Configuration[]{annocfg,new WebXmlConfiguration(),new WebInfConfiguration(),new PlusConfiguration(),new MetaInfConfiguration(),new FragmentConfiguration(),new EnvConfiguration()});
+    wsb.deployWebapp(webapp);
+    WebSocketClient client=new WebSocketClient();
+    try {
+      client.start();
+      JettyEchoSocket clientEcho=new JettyEchoSocket();
+      Future<Session> foo=client.connect(clientEcho,uri.resolve("/echo"));
+      foo.get(1,TimeUnit.SECONDS);
+      clientEcho.sendMessage("Hello World");
+      Queue<String> msgs=clientEcho.awaitMessages(1);
+      Assert.assertEquals("Expected message","Hello World",msgs.poll());
+    }
+  finally {
+      client.stop();
+    }
+  }
+  finally {
+    wsb.stop();
+  }
+}

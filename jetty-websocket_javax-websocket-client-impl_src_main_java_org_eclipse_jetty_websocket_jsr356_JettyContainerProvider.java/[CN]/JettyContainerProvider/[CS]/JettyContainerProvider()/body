@@ -1,3 +1,33 @@
 {
-  websocketContainer=new JettyWebSocketContainer();
+  LinkedList<ContainerService> services=new LinkedList<ContainerService>();
+  for (  ContainerService impl : ServiceLoader.load(ContainerService.class)) {
+    if (impl instanceof ClientContainer) {
+      services.addLast(impl);
+    }
+ else {
+      services.addFirst(impl);
+    }
+  }
+  if (services.size() <= 0) {
+    LOG.warn("Found no {} in classloader",ContainerService.class.getName());
+    websocketContainer=null;
+    return;
+  }
+  if (LOG.isDebugEnabled()) {
+    StringBuilder str=new StringBuilder();
+    int len=services.size();
+    str.append("Found ").append(len).append(" websocket container");
+    if (len > 1) {
+      str.append('s');
+    }
+    for (int i=0; i < len; i++) {
+      ContainerService service=services.get(i);
+      str.append("\n [").append(i).append("] ").append(service.getClass().getName());
+    }
+    LOG.debug(str.toString());
+  }
+  ContainerService chosen=services.getFirst();
+  LOG.debug("Using WebSocketContainer: {}",chosen.getClass().getName());
+  chosen.start();
+  websocketContainer=chosen;
 }
