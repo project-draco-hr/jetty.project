@@ -1,0 +1,47 @@
+{
+  super.pathSpec=regex;
+  boolean inGrouping=false;
+  this.pathDepth=0;
+  this.specLength=pathSpec.length();
+  StringBuilder signature=new StringBuilder();
+  for (  char c : pathSpec.toCharArray()) {
+switch (c) {
+case '[':
+      inGrouping=true;
+    break;
+case ']':
+  inGrouping=false;
+signature.append('g');
+break;
+case '*':
+signature.append('g');
+break;
+case '/':
+if (!inGrouping) {
+this.pathDepth++;
+}
+break;
+default :
+if (!inGrouping) {
+if (Character.isLetterOrDigit(c)) {
+signature.append('l');
+}
+}
+break;
+}
+}
+this.pattern=Pattern.compile(pathSpec);
+String sig=signature.toString();
+if (Pattern.matches("^l*$",sig)) {
+this.group=PathSpecGroup.EXACT;
+}
+ else if (Pattern.matches("^l*g+",sig)) {
+this.group=PathSpecGroup.PREFIX_GLOB;
+}
+ else if (Pattern.matches("^g+l+$",sig)) {
+this.group=PathSpecGroup.SUFFIX_GLOB;
+}
+ else {
+this.group=PathSpecGroup.MIDDLE_GLOB;
+}
+}
