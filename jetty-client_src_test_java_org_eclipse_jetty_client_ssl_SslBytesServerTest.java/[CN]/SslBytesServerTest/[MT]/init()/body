@@ -17,6 +17,11 @@
           }
 ;
         }
+        @Override protected boolean onReadTimeout(){
+          final Runnable idleHook=SslBytesServerTest.this.idleHook;
+          if (idleHook != null)           idleHook.run();
+          return super.onReadTimeout();
+        }
       }
 ,connector,endPoint);
     }
@@ -84,5 +89,5 @@
   sslContext=sslContextFactory.getSslContext();
   proxy=new SimpleProxy(threadPool,"localhost",serverPort);
   proxy.start();
-  logger.debug(":{} <==> :{}",proxy.getPort(),serverPort);
+  logger.info("proxy:{} <==> server:{}",proxy.getPort(),serverPort);
 }

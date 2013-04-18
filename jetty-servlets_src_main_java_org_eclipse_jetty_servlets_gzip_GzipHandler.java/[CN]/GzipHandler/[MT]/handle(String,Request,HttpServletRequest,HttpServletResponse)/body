@@ -16,18 +16,21 @@
         exceptional=false;
       }
   finally {
-        Continuation continuation=ContinuationSupport.getContinuation(request);
-        if (continuation.isSuspended() && continuation.isResponseWrapped()) {
-          continuation.addContinuationListener(new ContinuationListener(){
-            public void onComplete(            Continuation continuation){
+        if (request.isAsyncStarted()) {
+          request.getAsyncContext().addListener(new AsyncListener(){
+            @Override public void onTimeout(            AsyncEvent event) throws IOException {
+            }
+            @Override public void onStartAsync(            AsyncEvent event) throws IOException {
+            }
+            @Override public void onError(            AsyncEvent event) throws IOException {
+            }
+            @Override public void onComplete(            AsyncEvent event) throws IOException {
               try {
                 wrappedResponse.finish();
               }
  catch (              IOException e) {
                 LOG.warn(e);
               }
-            }
-            public void onTimeout(            Continuation continuation){
             }
           }
 );

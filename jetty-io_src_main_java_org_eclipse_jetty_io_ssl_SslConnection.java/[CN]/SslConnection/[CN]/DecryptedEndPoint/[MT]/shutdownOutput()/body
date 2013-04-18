@@ -1,10 +1,18 @@
 {
-  _sslEngine.closeOutbound();
-  try {
-    flush(BufferUtil.EMPTY_BUFFER);
-  }
- catch (  IOException e) {
-    LOG.ignore(e);
+  boolean ishut=isInputShutdown();
+  if (DEBUG)   LOG.debug("{} shutdownOutput: oshut={}, ishut={}",SslConnection.this,isOutputShutdown(),ishut);
+  if (ishut) {
     getEndPoint().close();
+  }
+ else {
+    try {
+      _sslEngine.closeOutbound();
+      flush(BufferUtil.EMPTY_BUFFER);
+      SslConnection.this.fillInterested();
+    }
+ catch (    Exception e) {
+      LOG.ignore(e);
+      getEndPoint().close();
+    }
   }
 }
