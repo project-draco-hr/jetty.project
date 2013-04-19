@@ -6,9 +6,21 @@
   if (!roleInfo.isChecked()) {
     return true;
   }
-  if (roleInfo.isAnyRole() && request.getAuthType() != null)   return true;
+  if (roleInfo.isAnyAuth() && request.getUserPrincipal() != null) {
+    return true;
+  }
+  boolean isUserInRole=false;
   for (  String role : roleInfo.getRoles()) {
-    if (userIdentity.isUserInRole(role,null))     return true;
+    if (userIdentity.isUserInRole(role,null)) {
+      isUserInRole=true;
+      break;
+    }
+  }
+  if (roleInfo.isAnyRole() && request.getUserPrincipal() != null && isUserInRole) {
+    return true;
+  }
+  if (isUserInRole) {
+    return true;
   }
   return false;
 }
