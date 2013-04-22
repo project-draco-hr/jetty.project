@@ -1,5 +1,27 @@
 {
-  _event._dispatchContext=context;
-  _event._pathInContext=path;
-  dispatch();
+  boolean dispatch;
+synchronized (this) {
+switch (_state) {
+case ASYNCSTARTED:
+      _state=State.REDISPATCHING;
+    _event.setDispatchTarget(context,path);
+  _dispatched=true;
+return;
+case ASYNCWAIT:
+dispatch=!_expired;
+_state=State.REDISPATCH;
+_event.setDispatchTarget(context,path);
+_dispatched=true;
+break;
+case REDISPATCH:
+_event.setDispatchTarget(context,path);
+return;
+default :
+throw new IllegalStateException(this.getStatusString());
+}
+}
+if (dispatch) {
+cancelTimeout();
+scheduleDispatch();
+}
 }

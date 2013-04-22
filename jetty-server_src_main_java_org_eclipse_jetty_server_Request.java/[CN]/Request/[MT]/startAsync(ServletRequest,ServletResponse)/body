@@ -1,6 +1,9 @@
 {
   if (!_asyncSupported)   throw new IllegalStateException("!asyncSupported");
   HttpChannelState state=getHttpChannelState();
-  state.startAsync(_context,servletRequest,servletResponse);
-  return state;
+  if (_async == null)   _async=new AsyncContextState(state);
+  AsyncContextEvent event=new AsyncContextEvent(_context,_async,state,this,servletRequest,servletResponse);
+  event.setDispatchTarget(getServletContext(),URIUtil.addPaths(getServletPath(),getPathInfo()));
+  state.startAsync(event);
+  return _async;
 }
