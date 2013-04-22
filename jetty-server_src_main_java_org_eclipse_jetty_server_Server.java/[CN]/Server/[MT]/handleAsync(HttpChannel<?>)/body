@@ -1,10 +1,10 @@
 {
-  final HttpChannelState async=connection.getRequest().getHttpChannelState();
-  final HttpChannelState.AsyncEventState state=async.getAsyncEventState();
+  final HttpChannelState state=connection.getRequest().getHttpChannelState();
+  final AsyncContextEvent event=state.getAsyncContextEvent();
   final Request baseRequest=connection.getRequest();
-  final String path=state.getPath();
+  final String path=event.getPath();
   if (path != null) {
-    ServletContext context=state.getServletContext();
+    ServletContext context=event.getServletContext();
     HttpURI uri=new HttpURI(context == null ? path : URIUtil.addPaths(context.getContextPath(),path));
     baseRequest.setUri(uri);
     baseRequest.setRequestURI(null);
@@ -12,8 +12,8 @@
     if (uri.getQuery() != null)     baseRequest.mergeQueryString(uri.getQuery());
   }
   final String target=baseRequest.getPathInfo();
-  final HttpServletRequest request=(HttpServletRequest)async.getRequest();
-  final HttpServletResponse response=(HttpServletResponse)async.getResponse();
+  final HttpServletRequest request=(HttpServletRequest)event.getSuppliedRequest();
+  final HttpServletResponse response=(HttpServletResponse)event.getSuppliedResponse();
   if (LOG.isDebugEnabled()) {
     LOG.debug(request.getDispatcherType() + " " + target+ " on "+ connection);
     handle(target,baseRequest,request,response);
