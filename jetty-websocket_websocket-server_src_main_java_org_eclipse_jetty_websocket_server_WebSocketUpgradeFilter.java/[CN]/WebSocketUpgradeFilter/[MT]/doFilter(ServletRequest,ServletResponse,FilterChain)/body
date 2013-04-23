@@ -1,0 +1,29 @@
+{
+  if (factory == null) {
+    LOG.debug("WebSocketUpgradeFilter is not operational - no WebSocketServletFactory configured");
+    chain.doFilter(request,response);
+    return;
+  }
+  if ((request instanceof HttpServletRequest) && (request instanceof HttpServletResponse)) {
+    HttpServletRequest httpreq=(HttpServletRequest)request;
+    HttpServletResponse httpresp=(HttpServletResponse)response;
+    String target=httpreq.getPathInfo();
+    if (factory.isUpgradeRequest(httpreq,httpresp)) {
+      MappedResource<WebSocketCreator> resource=pathmap.getMatch(target);
+      if (resource == null) {
+        httpresp.sendError(HttpServletResponse.SC_NOT_FOUND,"No websocket endpoint matching path: " + target);
+        return;
+      }
+      WebSocketCreator creator=resource.getResource();
+      httpreq.setAttribute(PathSpec.class.getName(),resource);
+      if (factory.acceptWebSocket(creator,httpreq,httpresp)) {
+        return;
+      }
+      if (response.isCommitted()) {
+        return;
+      }
+    }
+  }
+  chain.doFilter(request,response);
+  return;
+}

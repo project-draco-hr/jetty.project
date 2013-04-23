@@ -1,14 +1,25 @@
 {
+  if (!"GET".equalsIgnoreCase(request.getMethod())) {
+    return false;
+  }
+  String connection=request.getHeader("connection");
+  if (connection == null) {
+    return false;
+  }
+  if (!"upgrade".equalsIgnoreCase(connection)) {
+    LOG.debug("Not a 'Connection: Upgrade' (was [Connection: " + connection + "])");
+    return false;
+  }
   String upgrade=request.getHeader("Upgrade");
   if (upgrade == null) {
     return false;
   }
   if (!"websocket".equalsIgnoreCase(upgrade)) {
-    LOG.warn("Not a 'Upgrade: WebSocket' (was [Upgrade: " + upgrade + "])");
+    LOG.debug("Not a 'Upgrade: WebSocket' (was [Upgrade: " + upgrade + "])");
     return false;
   }
   if (!"HTTP/1.1".equals(request.getProtocol())) {
-    LOG.warn("Not a 'HTTP/1.1' request (was [" + request.getProtocol() + "])");
+    LOG.debug("Not a 'HTTP/1.1' request (was [" + request.getProtocol() + "])");
     return false;
   }
   return true;

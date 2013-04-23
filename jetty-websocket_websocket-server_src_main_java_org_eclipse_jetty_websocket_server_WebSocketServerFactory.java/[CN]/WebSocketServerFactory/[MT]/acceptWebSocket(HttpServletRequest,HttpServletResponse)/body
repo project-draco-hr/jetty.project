@@ -1,22 +1,3 @@
 {
-  ServletWebSocketRequest sockreq=new ServletWebSocketRequest(request);
-  ServletWebSocketResponse sockresp=new ServletWebSocketResponse(response);
-  WebSocketCreator creator=getCreator();
-  UpgradeContext context=getActiveUpgradeContext();
-  if (context == null) {
-    context=new UpgradeContext();
-    setActiveUpgradeContext(context);
-  }
-  context.setRequest(sockreq);
-  context.setResponse(sockresp);
-  Object websocketPojo=creator.createWebSocket(sockreq,sockresp);
-  if (sockresp.isCommitted()) {
-    return false;
-  }
-  if (websocketPojo == null) {
-    response.sendError(HttpServletResponse.SC_SERVICE_UNAVAILABLE);
-    return false;
-  }
-  EventDriver driver=eventDriverFactory.wrap(websocketPojo);
-  return upgrade(sockreq,sockresp,driver);
+  return acceptWebSocket(getCreator(),request,response);
 }

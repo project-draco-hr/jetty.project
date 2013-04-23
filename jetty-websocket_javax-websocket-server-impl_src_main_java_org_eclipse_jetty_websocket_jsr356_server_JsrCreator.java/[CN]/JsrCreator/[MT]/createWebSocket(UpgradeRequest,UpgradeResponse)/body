@@ -1,0 +1,28 @@
+{
+  JsrHandshakeRequest hsreq=new JsrHandshakeRequest(req);
+  JsrHandshakeResponse hsresp=new JsrHandshakeResponse(resp);
+  ServerEndpointConfig.Configurator configurator=config.getConfigurator();
+  configurator.modifyHandshake(config,hsreq,hsresp);
+  if (!configurator.checkOrigin(req.getOrigin())) {
+    try {
+      resp.sendForbidden("Origin mismatch");
+    }
+ catch (    IOException e) {
+      LOG.debug("Unable to send error response",e);
+    }
+    return null;
+  }
+  List<String> supported=config.getSubprotocols();
+  List<String> requested=req.getSubProtocols();
+  String subprotocol=configurator.getNegotiatedSubprotocol(supported,requested);
+  if (subprotocol != null) {
+    resp.setAcceptedSubProtocol(subprotocol);
+  }
+  try {
+    return config.getEndpointClass().newInstance();
+  }
+ catch (  InstantiationException|IllegalAccessException e) {
+    LOG.debug("Unable to create websocket: " + config.getEndpointClass().getName(),e);
+    return null;
+  }
+}
