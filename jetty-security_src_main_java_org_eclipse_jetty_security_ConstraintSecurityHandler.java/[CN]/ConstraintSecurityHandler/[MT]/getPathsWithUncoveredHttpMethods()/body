@@ -1,0 +1,21 @@
+{
+  if (_denyUncoveredMethods)   return Collections.emptySet();
+  Set<String> uncoveredPaths=new HashSet<String>();
+  for (  String path : _constraintMap.keySet()) {
+    Map<String,RoleInfo> methodMappings=_constraintMap.get(path);
+    if (methodMappings.get(ALL_METHODS) != null)     continue;
+    boolean hasOmissions=omissionsExist(path,methodMappings);
+    for (    String method : methodMappings.keySet()) {
+      if (method.endsWith(OMISSION_SUFFIX)) {
+        Set<String> omittedMethods=getOmittedMethods(method);
+        for (        String m : omittedMethods) {
+          if (!methodMappings.containsKey(m))           uncoveredPaths.add(path);
+        }
+      }
+ else {
+        if (!hasOmissions)         uncoveredPaths.add(path);
+      }
+    }
+  }
+  return uncoveredPaths;
+}
