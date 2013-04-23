@@ -1,12 +1,19 @@
 {
   final CountDownLatch pushReceivedLatch=new CountDownLatch(1);
-  Session session=sendMainRequestAndCSSRequest(new SessionFrameListener.Adapter(){
-    @Override public StreamFrameListener onSyn(    Stream stream,    SynInfo synInfo){
+  Session pushCacheBuildSession=startClient(version,serverAddress,null);
+  pushCacheBuildSession.syn(new SynInfo(mainRequestHeaders,true),new StreamFrameListener.Adapter());
+  pushCacheBuildSession.syn(new SynInfo(associatedCSSRequestHeaders,true),new StreamFrameListener.Adapter());
+  Session session=startClient(version,serverAddress,null);
+  Settings settings=new Settings();
+  settings.put(new Settings.Setting(Settings.ID.MAX_CONCURRENT_STREAMS,0));
+  SettingsInfo settingsInfo=new SettingsInfo(settings);
+  session.settings(settingsInfo);
+  session.syn(new SynInfo(mainRequestHeaders,true),new StreamFrameListener.Adapter(){
+    @Override public StreamFrameListener onPush(    Stream stream,    PushInfo pushInfo){
       pushReceivedLatch.countDown();
-      return null;
+      return super.onPush(stream,pushInfo);
     }
   }
 );
-  sendRequest(session,mainRequestHeaders,null,null);
-  assertThat(pushReceivedLatch.await(1,TimeUnit.SECONDS),is(false));
+  assertThat("No push stream is received",pushReceivedLatch.await(1,TimeUnit.SECONDS),is(false));
 }
