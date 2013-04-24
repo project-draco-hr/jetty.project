@@ -4,16 +4,20 @@
     chain.doFilter(request,response);
     return;
   }
-  if ((request instanceof HttpServletRequest) && (request instanceof HttpServletResponse)) {
+  LOG.debug("doFilter({})",request);
+  if ((request instanceof HttpServletRequest) && (response instanceof HttpServletResponse)) {
     HttpServletRequest httpreq=(HttpServletRequest)request;
     HttpServletResponse httpresp=(HttpServletResponse)response;
-    String target=httpreq.getPathInfo();
+    String target=httpreq.getServletPath();
+    LOG.debug("target = [{}]",target);
     if (factory.isUpgradeRequest(httpreq,httpresp)) {
       MappedResource<WebSocketCreator> resource=pathmap.getMatch(target);
       if (resource == null) {
+        LOG.debug("WebSocket Upgrade on {} has no associated endpoint",target);
         httpresp.sendError(HttpServletResponse.SC_NOT_FOUND,"No websocket endpoint matching path: " + target);
         return;
       }
+      LOG.debug("WebSocket Upgrade detected on {} for endpoint {}",target,resource);
       WebSocketCreator creator=resource.getResource();
       httpreq.setAttribute(PathSpec.class.getName(),resource);
       if (factory.acceptWebSocket(creator,httpreq,httpresp)) {

@@ -1,4 +1,16 @@
 {
   this.jsrsession=(JsrSession)session;
+  try {
+    ContainerService container=(ContainerService)jsrsession.getContainer();
+    Decoders decoders=new Decoders(container.getDecoderMetadataFactory(),endpointconfig);
+    jsrsession.setDecodersFacade(decoders);
+    MessageHandlerMetadataFactory metadataFactory=new MessageHandlerMetadataFactory(decoders);
+    MessageHandlers messageHandlers=new MessageHandlers(metadataFactory);
+    jsrsession.setMessageHandlerFacade(messageHandlers);
+  }
+ catch (  DeploymentException e) {
+    throw new WebSocketException(e);
+  }
   super.openSession(session);
+  jsrsession.getDecodersFacade().init(endpointconfig);
 }
