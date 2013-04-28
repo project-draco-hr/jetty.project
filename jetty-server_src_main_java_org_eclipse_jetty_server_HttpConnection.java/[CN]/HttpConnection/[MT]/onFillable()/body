@@ -4,7 +4,14 @@
   try {
     while (true) {
       boolean call_channel=_parser.parseNext(_requestBuffer == null ? BufferUtil.EMPTY_BUFFER : _requestBuffer);
-      if (!call_channel && BufferUtil.isEmpty(_requestBuffer)) {
+      if (call_channel) {
+        while (_parser.inContentState()) {
+          if (!_parser.parseNext(_requestBuffer == null ? BufferUtil.EMPTY_BUFFER : _requestBuffer))           break;
+        }
+        _channel.run();
+        if (_channel.getState().isSuspended() || getEndPoint().getConnection() != this)         return;
+      }
+ else       if (BufferUtil.isEmpty(_requestBuffer)) {
         if (_requestBuffer == null)         _requestBuffer=_bufferPool.acquire(getInputBufferSize(),REQUEST_BUFFER_DIRECT);
         int filled=getEndPoint().fill(_requestBuffer);
         if (filled == 0)         filled=getEndPoint().fill(_requestBuffer);
@@ -21,15 +28,13 @@
           releaseRequestBuffer();
           return;
         }
-        call_channel=_parser.parseNext(_requestBuffer);
       }
-      if (call_channel) {
-        while (_parser.inContentState()) {
-          if (!_parser.parseNext(_requestBuffer == null ? BufferUtil.EMPTY_BUFFER : _requestBuffer))           break;
-        }
-        _channel.run();
-        if (_channel.getState().isSuspended() || getEndPoint().getConnection() != this)         return;
+ else {
+        LOG.warn("Unexpected state: " + this + " "+ _channel+ " "+ _channel.getRequest());
+        getEndPoint().close();
+        return;
       }
+      System.err.println(_channel.getRequest());
     }
   }
  catch (  EofException e) {
