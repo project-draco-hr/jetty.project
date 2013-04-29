@@ -1,0 +1,43 @@
+{
+  LOG.debug("block {}",this);
+  final Callback blocked=new Callback(){
+    @Override public void succeeded(){
+      unblock();
+      callback.succeeded();
+    }
+    @Override public void failed(    Throwable x){
+      unblock();
+      callback.failed(x);
+    }
+  }
+;
+  loop:   while (true) {
+switch (_state.get()) {
+case IDLE:
+      if (_state.compareAndSet(State.IDLE,State.BLOCKED)) {
+        getEndPoint().fillInterested(blocked);
+        break loop;
+      }
+    break;
+case FILLING:
+  if (_state.compareAndSet(State.FILLING,State.FILLING_BLOCKED)) {
+    getEndPoint().fillInterested(blocked);
+    break loop;
+  }
+break;
+case FILLING_INTERESTED:
+if (_state.compareAndSet(State.FILLING_INTERESTED,State.FILLING_BLOCKED_INTERESTED)) {
+getEndPoint().fillInterested(blocked);
+break loop;
+}
+break;
+case BLOCKED:
+case BLOCKED_INTERESTED:
+case FILLING_BLOCKED:
+case FILLING_BLOCKED_INTERESTED:
+throw new IllegalStateException("Already Blocked");
+case INTERESTED:
+throw new IllegalStateException();
+}
+}
+}
