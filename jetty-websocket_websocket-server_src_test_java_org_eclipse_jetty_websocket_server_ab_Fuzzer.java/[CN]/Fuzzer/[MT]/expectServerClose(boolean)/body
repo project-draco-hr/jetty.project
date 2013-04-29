@@ -1,9 +1,11 @@
 {
   try {
-    @SuppressWarnings("unused") int val=client.read();
-    Assert.fail("Server has not closed socket");
+    ByteBuffer buf=ByteBuffer.wrap(new byte[]{0x00});
+    BufferUtil.flipToFill(buf);
+    int len=client.read(buf);
+    Assert.assertThat("Server has not closed socket",len,lessThanOrEqualTo(0));
   }
- catch (  SocketException e) {
+ catch (  IOException e) {
   }
   IOState ios=client.getIOState();
   if (wasClean) {

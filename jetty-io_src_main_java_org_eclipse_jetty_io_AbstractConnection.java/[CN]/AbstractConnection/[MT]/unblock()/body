@@ -1,0 +1,27 @@
+{
+  LOG.debug("unblock {}",this);
+  loop:   while (true) {
+switch (_state.get()) {
+case FILLING_BLOCKED:
+      if (_state.compareAndSet(State.FILLING_BLOCKED,State.FILLING))       break loop;
+    break;
+case FILLING_BLOCKED_INTERESTED:
+  if (_state.compareAndSet(State.FILLING_BLOCKED_INTERESTED,State.FILLING_INTERESTED))   break loop;
+break;
+case BLOCKED_INTERESTED:
+if (_state.compareAndSet(State.BLOCKED_INTERESTED,State.INTERESTED)) {
+getEndPoint().fillInterested(_readCallback);
+break loop;
+}
+break;
+case BLOCKED:
+if (_state.compareAndSet(State.BLOCKED,State.IDLE)) break loop;
+break;
+case FILLING:
+case IDLE:
+case FILLING_INTERESTED:
+case INTERESTED:
+break loop;
+}
+}
+}
