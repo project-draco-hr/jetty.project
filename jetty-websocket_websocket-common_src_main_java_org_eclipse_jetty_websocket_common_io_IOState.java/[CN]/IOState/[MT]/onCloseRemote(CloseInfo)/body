@@ -1,0 +1,28 @@
+{
+  ConnectionState event=null;
+synchronized (this.state) {
+    if (this.state == ConnectionState.CLOSED) {
+      return;
+    }
+    closeInfo.compareAndSet(null,close);
+    boolean in=inputAvailable.get();
+    boolean out=outputAvailable.get();
+    closeHandshakeSource.compareAndSet(CloseHandshakeSource.NONE,CloseHandshakeSource.REMOTE);
+    in=false;
+    inputAvailable.set(false);
+    LOG.debug("onCloseRemote(), input={}, output={}",in,out);
+    if (!in && !out) {
+      LOG.debug("Close Handshake satisfied, disconnecting");
+      cleanClose.set(true);
+      this.state=ConnectionState.CLOSED;
+      event=this.state;
+    }
+ else     if (this.state == ConnectionState.OPEN) {
+      this.state=ConnectionState.CLOSING;
+      event=this.state;
+    }
+  }
+  if (event != null) {
+    notifyStateListeners(event);
+  }
+}
