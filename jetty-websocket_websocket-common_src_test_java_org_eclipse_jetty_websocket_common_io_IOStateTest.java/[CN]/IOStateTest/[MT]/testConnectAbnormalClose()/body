@@ -1,0 +1,20 @@
+{
+  IOState state=new IOState();
+  StateTracker tracker=new StateTracker();
+  state.addListener(tracker);
+  assertState(state,ConnectionState.CONNECTING);
+  state.onConnected();
+  assertInputAvailable(state,false);
+  assertOutputAvailable(state,true);
+  state.onOpened();
+  assertInputAvailable(state,true);
+  assertOutputAvailable(state,true);
+  state.onAbnormalClose(new CloseInfo(StatusCode.NO_CLOSE,"Oops"));
+  assertInputAvailable(state,false);
+  assertOutputAvailable(state,false);
+  tracker.assertTransitions(ConnectionState.CONNECTED,ConnectionState.OPEN,ConnectionState.CLOSED);
+  assertState(state,ConnectionState.CLOSED);
+  assertCleanClose(state,false);
+  assertLocalInitiated(state,false);
+  assertRemoteInitiated(state,false);
+}

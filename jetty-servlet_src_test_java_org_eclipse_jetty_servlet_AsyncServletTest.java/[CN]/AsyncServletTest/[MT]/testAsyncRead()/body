@@ -1,0 +1,17 @@
+{
+  String header="GET /ctx/path/info?suspend=2000&resume=1500 HTTP/1.1\r\n" + "Host: localhost\r\n" + "Content-Length: 10\r\n"+ "\r\n";
+  String body="12345678\r\n";
+  String close="GET /ctx/path/info HTTP/1.1\r\n" + "Host: localhost\r\n" + "Connection: close\r\n"+ "\r\n";
+  try (Socket socket=new Socket("localhost",_port)){
+    socket.setSoTimeout(10000);
+    socket.getOutputStream().write(header.getBytes("ISO-8859-1"));
+    Thread.sleep(500);
+    socket.getOutputStream().write(body.getBytes("ISO-8859-1"),0,2);
+    Thread.sleep(500);
+    socket.getOutputStream().write(body.getBytes("ISO-8859-1"),2,8);
+    socket.getOutputStream().write(close.getBytes("ISO-8859-1"));
+    String response=IO.toString(socket.getInputStream());
+    assertEquals("HTTP/1.1 200 OK",response.substring(0,15));
+    assertContains("history: REQUEST\r\n" + "history: initial\r\n" + "history: suspend\r\n"+ "history: async-read=10\r\n"+ "history: resume\r\n"+ "history: ASYNC\r\n"+ "history: !initial\r\n"+ "history: onComplete\r\n",response);
+  }
+ }

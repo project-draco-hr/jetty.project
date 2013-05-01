@@ -1,19 +1,18 @@
 {
-  String respHeader=readResponseHeader();
+  HttpResponse response=readResponseHeader();
   if (LOG.isDebugEnabled()) {
-    LOG.debug("Response Header: {}{}",'\n',respHeader);
+    LOG.debug("Response Header: {}{}",'\n',response);
   }
-  Assert.assertThat("Response Code",respHeader,startsWith("HTTP/1.1 101 Switching Protocols"));
-  Assert.assertThat("Response Header Upgrade",respHeader,containsString("Upgrade: WebSocket\r\n"));
-  Assert.assertThat("Response Header Connection",respHeader,containsString("Connection: Upgrade\r\n"));
-  Pattern patAcceptHeader=Pattern.compile("Sec-WebSocket-Accept: (.*=)",Pattern.CASE_INSENSITIVE);
-  Matcher matAcceptHeader=patAcceptHeader.matcher(respHeader);
-  Assert.assertThat("Response Header Sec-WebSocket-Accept Exists?",matAcceptHeader.find(),is(true));
+  Assert.assertThat("Response Status Code",response.getStatusCode(),is(101));
+  Assert.assertThat("Response Status Reason",response.getStatusReason(),is("Switching Protocols"));
+  Assert.assertThat("Response Header[Upgrade]",response.getHeader("Upgrade"),is("WebSocket"));
+  Assert.assertThat("Response Header[Connection]",response.getHeader("Connection"),is("Upgrade"));
+  String acceptKey=response.getHeader("Sec-WebSocket-Accept");
+  Assert.assertThat("Response Header[Sec-WebSocket-Accept Exists]",acceptKey,notNullValue());
   String reqKey=REQUEST_HASH_KEY;
   String expectedHash=AcceptHash.hashKey(reqKey);
-  String acceptKey=matAcceptHeader.group(1);
   Assert.assertThat("Valid Sec-WebSocket-Accept Hash?",acceptKey,is(expectedHash));
-  List<ExtensionConfig> configs=getExtensionConfigs(respHeader);
+  List<ExtensionConfig> configs=getExtensionConfigs(response);
   extensionStack=new ExtensionStack(this.extensionFactory);
   extensionStack.negotiate(configs);
   extensionStack.setNextIncoming(this);
@@ -27,8 +26,8 @@
     throw new IOException("Unable to start Extension Stack");
   }
   parser.setIncomingFramesHandler(extensionStack);
-  ioState.setState(ConnectionState.OPEN);
+  ioState.onOpened();
   LOG.debug("outgoing = {}",outgoing);
   LOG.debug("incoming = {}",extensionStack);
-  return respHeader;
+  return response;
 }

@@ -17,7 +17,7 @@
   if (request.getParameter("complete") != null)   complete_after=Integer.parseInt(request.getParameter("complete"));
   if (request.getParameter("complete2") != null)   complete2_after=Integer.parseInt(request.getParameter("complete2"));
   if (request.getDispatcherType() == DispatcherType.REQUEST) {
-    ((HttpServletResponse)response).addHeader("history","initial");
+    response.addHeader("history","initial");
     if (read_before > 0) {
       byte[] buf=new byte[read_before];
       request.getInputStream().read(buf);
@@ -27,11 +27,28 @@
       int b=in.read();
       while (b != -1)       b=in.read();
     }
+ else     if (request.getContentLength() > 0) {
+      new Thread(){
+        @Override public void run(){
+          int c=0;
+          try {
+            InputStream in=request.getInputStream();
+            int b=0;
+            while (b != -1)             if ((b=in.read()) >= 0)             c++;
+            response.addHeader("history","async-read=" + c);
+          }
+ catch (          Exception e) {
+            e.printStackTrace();
+          }
+        }
+      }
+.start();
+    }
     if (suspend_for >= 0) {
       final AsyncContext async=request.startAsync();
       if (suspend_for > 0)       async.setTimeout(suspend_for);
       async.addListener(__listener);
-      ((HttpServletResponse)response).addHeader("history","suspend");
+      response.addHeader("history","suspend");
       if (complete_after > 0) {
         TimerTask complete=new TimerTask(){
           @Override public void run(){
@@ -90,7 +107,7 @@ synchronized (_timer) {
     }
   }
  else {
-    ((HttpServletResponse)response).addHeader("history","!initial");
+    response.addHeader("history","!initial");
     if (suspend2_for >= 0 && request.getAttribute("2nd") == null) {
       final AsyncContext async=request.startAsync();
       async.addListener(__listener);
@@ -98,7 +115,7 @@ synchronized (_timer) {
       if (suspend2_for > 0) {
         async.setTimeout(suspend2_for);
       }
-      ((HttpServletResponse)response).addHeader("history","suspend");
+      response.addHeader("history","suspend");
       if (complete2_after > 0) {
         TimerTask complete=new TimerTask(){
           @Override public void run(){
@@ -127,7 +144,7 @@ synchronized (_timer) {
  else       if (resume2_after > 0) {
         TimerTask resume=new TimerTask(){
           @Override public void run(){
-            ((HttpServletResponse)response).addHeader("history","resume");
+            response.addHeader("history","resume");
             async.dispatch();
           }
         }
@@ -137,7 +154,7 @@ synchronized (_timer) {
         }
       }
  else       if (resume2_after == 0) {
-        ((HttpServletResponse)response).addHeader("history","dispatch");
+        response.addHeader("history","dispatch");
         async.dispatch();
       }
     }

@@ -2,30 +2,44 @@
   if (_serverName != null)   return _serverName;
   if (_uri == null)   throw new IllegalStateException("No uri");
   _serverName=_uri.getHost();
-  _port=_uri.getPort();
-  if (_serverName != null)   return _serverName;
+  if (_serverName != null) {
+    _port=_uri.getPort();
+    return _serverName;
+  }
   String hostPort=_fields.getStringField(HttpHeader.HOST);
+  _port=0;
   if (hostPort != null) {
-    loop:     for (int i=hostPort.length(); i-- > 0; ) {
-      char ch=(char)(0xff & hostPort.charAt(i));
-switch (ch) {
+    int len=hostPort.length();
+    loop:     for (int i=len; i-- > 0; ) {
+      char c2=(char)(0xff & hostPort.charAt(i));
+switch (c2) {
 case ']':
         break loop;
 case ':':
-      _serverName=hostPort.substring(0,i);
-    try {
-      _port=StringUtil.toInt(hostPort.substring(i + 1));
-    }
- catch (    NumberFormatException e) {
-      LOG.warn(e);
-    }
+      try {
+        len=i;
+        _port=StringUtil.toInt(hostPort.substring(i + 1));
+      }
+ catch (      NumberFormatException e) {
+        LOG.warn(e);
+        _serverName=hostPort;
+        _port=0;
+        return _serverName;
+      }
+    break loop;
+}
+}
+if (hostPort.charAt(0) == '[') {
+if (hostPort.charAt(len - 1) != ']') {
+  LOG.warn("Bad IPv6 " + hostPort);
+  _serverName=hostPort;
+  _port=0;
   return _serverName;
 }
+_serverName=hostPort.substring(1,len - 1);
 }
-if (_serverName == null || _port < 0) {
-_serverName=hostPort;
-_port=0;
-}
+ else if (len == hostPort.length()) _serverName=hostPort;
+ else _serverName=hostPort.substring(0,len);
 return _serverName;
 }
 if (_channel != null) {

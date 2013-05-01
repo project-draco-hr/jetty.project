@@ -8,19 +8,28 @@
 switch (_state.get()) {
 case IDLE:
 case INTERESTED:
-          throw new IllegalStateException();
+case BLOCKED:
+case BLOCKED_INTERESTED:
+          LOG.warn(new IllegalStateException());
+        return;
 case FILLING:
-        if (_state.compareAndSet(State.FILLING,State.IDLE))         break loop;
-      break;
+      if (_state.compareAndSet(State.FILLING,State.IDLE))       break loop;
+    break;
+case FILLING_BLOCKED:
+  if (_state.compareAndSet(State.FILLING_BLOCKED,State.BLOCKED))   break loop;
+break;
+case FILLING_BLOCKED_INTERESTED:
+if (_state.compareAndSet(State.FILLING_BLOCKED_INTERESTED,State.BLOCKED_INTERESTED)) break loop;
+break;
 case FILLING_INTERESTED:
-    if (_state.compareAndSet(State.FILLING_INTERESTED,State.INTERESTED)) {
-      getEndPoint().fillInterested(_readCallback);
-      break loop;
-    }
-  break;
+if (_state.compareAndSet(State.FILLING_INTERESTED,State.INTERESTED)) {
+getEndPoint().fillInterested(_readCallback);
+break loop;
+}
+break;
 }
 }
 }
 }
- else LOG.warn(new Throwable());
+ else LOG.warn(new IllegalStateException());
 }
