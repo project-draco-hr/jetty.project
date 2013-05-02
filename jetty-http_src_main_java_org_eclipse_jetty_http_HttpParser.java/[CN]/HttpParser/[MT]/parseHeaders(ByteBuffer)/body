@@ -74,21 +74,19 @@ break;
 }
 }
  else {
-if (buffer.remaining() > 6) {
+if (buffer.hasRemaining()) {
 HttpField field=_connectionFields == null ? null : _connectionFields.getBest(buffer,-1,buffer.remaining());
 if (field == null) field=HttpField.CACHE.getBest(buffer,-1,buffer.remaining());
 if (field != null) {
 String n=field.getName();
 String v=field.getValue();
 if (v == null) {
-int pos=buffer.position() + n.length() + 1;
-byte b=buffer.get(pos);
 _header=field.getHeader();
 _headerString=n;
 setState(State.HEADER_VALUE);
 _string.setLength(0);
 _length=0;
-buffer.position(pos);
+buffer.position(buffer.position() + n.length() + 1);
 break;
 }
  else {
@@ -131,7 +129,6 @@ case HttpTokens.COLON:
 if (_headerString == null) {
 _headerString=takeLengthString();
 _header=HttpHeader.CACHE.get(_headerString);
-if (_header != null) System.err.println(_header);
 }
 setState(State.HEADER_VALUE);
 break;
