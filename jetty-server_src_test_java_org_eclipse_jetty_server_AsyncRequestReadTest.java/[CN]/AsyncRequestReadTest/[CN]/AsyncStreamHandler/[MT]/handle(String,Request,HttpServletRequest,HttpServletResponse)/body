@@ -5,8 +5,7 @@
   new Thread(){
     @Override public void run(){
       long total=0;
-      try {
-        InputStream in=request.getInputStream();
+      try (InputStream in=request.getInputStream()){
         byte[] b=new byte[4 * 4096];
         int read;
         while ((read=in.read(b)) >= 0)         total+=read;
@@ -18,12 +17,7 @@
  finally {
         httpResponse.setStatus(200);
         async.complete();
-        try {
-          __total.exchange(total);
-        }
- catch (        InterruptedException e) {
-          e.printStackTrace();
-        }
+        __total.offer(total);
       }
     }
   }
