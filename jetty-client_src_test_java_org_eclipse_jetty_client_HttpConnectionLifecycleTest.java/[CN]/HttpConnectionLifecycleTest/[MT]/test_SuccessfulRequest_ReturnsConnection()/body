@@ -8,7 +8,9 @@
   final BlockingQueue<Connection> activeConnections=destination.getActiveConnections();
   Assert.assertEquals(0,activeConnections.size());
   final CountDownLatch headersLatch=new CountDownLatch(1);
+  final CountDownLatch testLatch=new CountDownLatch(1);
   final CountDownLatch successLatch=new CountDownLatch(3);
+  final AtomicBoolean failed=new AtomicBoolean(false);
   client.newRequest(host,port).scheme(scheme).onRequestSuccess(new Request.SuccessListener(){
     @Override public void onSuccess(    Request request){
       successLatch.countDown();
@@ -16,9 +18,13 @@
   }
 ).onResponseHeaders(new Response.HeadersListener(){
     @Override public void onHeaders(    Response response){
-      Assert.assertEquals(0,idleConnections.size());
-      Assert.assertEquals(1,activeConnections.size());
       headersLatch.countDown();
+      try {
+        testLatch.await();
+      }
+ catch (      InterruptedException e) {
+        e.printStackTrace();
+      }
     }
   }
 ).send(new Response.Listener.Empty(){
@@ -26,13 +32,17 @@
       successLatch.countDown();
     }
     @Override public void onComplete(    Result result){
-      Assert.assertFalse(result.isFailed());
+      failed.set(result.isFailed());
       successLatch.countDown();
     }
   }
 );
   Assert.assertTrue(headersLatch.await(5,TimeUnit.SECONDS));
+  Assert.assertEquals(0,idleConnections.size());
+  Assert.assertEquals(1,activeConnections.size());
+  testLatch.countDown();
   Assert.assertTrue(successLatch.await(5,TimeUnit.SECONDS));
   Assert.assertEquals(1,idleConnections.size());
   Assert.assertEquals(0,activeConnections.size());
+  Assert.assertFalse(failed.get());
 }
