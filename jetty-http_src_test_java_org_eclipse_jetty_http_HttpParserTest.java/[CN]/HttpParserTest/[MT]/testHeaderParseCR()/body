@@ -1,0 +1,24 @@
+{
+  StringEndPoint io=new StringEndPoint();
+  io.setInput("GET / HTTP/1.0\015" + "Host: localhost\015" + "Header1: value1\015"+ "\015");
+  ByteArrayBuffer buffer=new ByteArrayBuffer(4096);
+  SimpleBuffers buffers=new SimpleBuffers(buffer,null);
+  Handler handler=new Handler();
+  HttpParser parser=new HttpParser(buffers,io,handler);
+  try {
+    parser.parse();
+    Assert.fail();
+  }
+ catch (  HttpException e) {
+    assertEquals(400,e._status);
+  }
+  io.setInput("GET / HTTP/1.0\r\n" + "Host: localhost\r\r\n" + "Header1: value1\r\n"+ "\r\n");
+  parser=new HttpParser(buffers,io,handler);
+  try {
+    parser.parse();
+    Assert.fail();
+  }
+ catch (  HttpException e) {
+    assertEquals(400,e._status);
+  }
+}
