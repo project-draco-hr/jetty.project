@@ -14,11 +14,10 @@
   final BlockingQueue<Connection> activeConnections=destination.getActiveConnections();
   Assert.assertEquals(0,activeConnections.size());
   final CountDownLatch latch=new CountDownLatch(1);
+  final AtomicBoolean failed=new AtomicBoolean(false);
   client.newRequest(host,port).scheme(scheme).send(new Response.Listener.Empty(){
     @Override public void onComplete(    Result result){
-      Assert.assertFalse(result.isFailed());
-      Assert.assertEquals(0,idleConnections.size());
-      Assert.assertEquals(0,activeConnections.size());
+      failed.set(result.isFailed());
       latch.countDown();
     }
   }
@@ -26,4 +25,5 @@
   Assert.assertTrue(latch.await(5,TimeUnit.SECONDS));
   Assert.assertEquals(0,idleConnections.size());
   Assert.assertEquals(0,activeConnections.size());
+  Assert.assertFalse(failed.get());
 }
