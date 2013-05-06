@@ -1,0 +1,34 @@
+{
+  final CountDownLatch allExpectedPushesReceivedLatch=new CountDownLatch(4);
+  Session pushCacheBuildSession=startClient(version,serverAddress,null);
+  sendRequest(pushCacheBuildSession,mainRequestHeaders,null,null);
+  sendRequest(pushCacheBuildSession,associatedCSSRequestHeaders,null,null);
+  sendRequest(pushCacheBuildSession,associatedJSRequestHeaders,null,null);
+  sendRequest(pushCacheBuildSession,createHeaders("/image1.jpg",mainResource),null,null);
+  sendRequest(pushCacheBuildSession,createHeaders("/image2.jpg",mainResource),null,null);
+  Session session=startClient(version,serverAddress,null);
+  session.syn(new SynInfo(mainRequestHeaders,true),new StreamFrameListener.Adapter(){
+    @Override public StreamFrameListener onPush(    Stream stream,    PushInfo pushInfo){
+      LOG.info("onPush: stream: {}, pushInfo: {}",stream,pushInfo);
+      String uriHeader=pushInfo.getHeaders().get(HTTPSPDYHeader.URI.name(version)).value();
+switch ((int)allExpectedPushesReceivedLatch.getCount()) {
+case 4:
+        assertThat("1st pushed resource is the css",uriHeader.endsWith("css"),is(true));
+      break;
+case 3:
+    assertThat("2nd pushed resource is the js",uriHeader.endsWith("js"),is(true));
+  break;
+case 2:
+assertThat("3rd pushed resource is image1",uriHeader.endsWith("image1.jpg"),is(true));
+break;
+case 1:
+assertThat("4th pushed resource is image2",uriHeader.endsWith("image2.jpg"),is(true));
+break;
+}
+allExpectedPushesReceivedLatch.countDown();
+return super.onPush(stream,pushInfo);
+}
+}
+);
+assertThat("All expected push resources have been received",allExpectedPushesReceivedLatch.await(5,TimeUnit.SECONDS),is(true));
+}

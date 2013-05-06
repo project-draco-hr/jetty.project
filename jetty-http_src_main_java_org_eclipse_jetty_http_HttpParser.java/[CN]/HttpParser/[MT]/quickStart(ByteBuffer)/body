@@ -6,7 +6,7 @@
         _methodString=_method.asString();
         buffer.position(buffer.position() + _methodString.length() + 1);
         setState(State.SPACE1);
-        return;
+        return false;
       }
     }
  else     if (_responseHandler != null) {
@@ -14,20 +14,17 @@
       if (_version != null) {
         buffer.position(buffer.position() + _version.asString().length() + 1);
         setState(State.SPACE1);
-        return;
+        return false;
       }
     }
-    byte ch=buffer.get();
-    if (_eol == HttpTokens.CARRIAGE_RETURN && ch == HttpTokens.LINE_FEED) {
-      _eol=HttpTokens.LINE_FEED;
-      continue;
-    }
-    _eol=0;
-    if (ch > HttpTokens.SPACE || ch < 0) {
+    byte ch=next(buffer);
+    if (ch > HttpTokens.SPACE) {
       _string.setLength(0);
       _string.append((char)ch);
       setState(_requestHandler != null ? State.METHOD : State.RESPONSE_VERSION);
-      return;
+      return false;
     }
+    if (ch == -1)     return true;
   }
+  return false;
 }

@@ -1,0 +1,15 @@
+{
+  final CountDownLatch pushReceivedLatch=new CountDownLatch(2);
+  sendMainRequestAndCSSRequest(null);
+  sendMainRequestAndCSSRequest(null);
+  Session session=startClient(version,serverAddress,null);
+  session.syn(new SynInfo(mainRequestHeaders,true),new StreamFrameListener.Adapter(){
+    @Override public StreamFrameListener onPush(    Stream stream,    PushInfo pushInfo){
+      pushReceivedLatch.countDown();
+      LOG.info("Push received: {}",pushInfo);
+      return null;
+    }
+  }
+);
+  assertThat("style.css has been pushed only once",pushReceivedLatch.await(1,TimeUnit.SECONDS),is(false));
+}

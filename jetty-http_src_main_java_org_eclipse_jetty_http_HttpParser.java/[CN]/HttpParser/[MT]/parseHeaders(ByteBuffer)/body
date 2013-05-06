@@ -1,17 +1,14 @@
 {
   boolean return_from_parse=false;
   while (_state.ordinal() < State.END.ordinal() && buffer.hasRemaining() && !return_from_parse) {
-    byte ch=buffer.get();
+    byte ch=next(buffer);
+    if (ch == -1)     return true;
+    if (ch == 0)     continue;
     if (_maxHeaderBytes > 0 && ++_headerBytes > _maxHeaderBytes) {
       LOG.warn("Header is too large >" + _maxHeaderBytes);
       badMessage(buffer,HttpStatus.REQUEST_ENTITY_TOO_LARGE_413,null);
       return true;
     }
-    if (_eol == HttpTokens.CARRIAGE_RETURN && ch == HttpTokens.LINE_FEED) {
-      _eol=HttpTokens.LINE_FEED;
-      continue;
-    }
-    _eol=0;
 switch (_state) {
 case HEADER:
 switch (ch) {
@@ -45,8 +42,7 @@ default :
         _header=null;
         _value=null;
         _field=null;
-        if (ch == HttpTokens.CARRIAGE_RETURN || ch == HttpTokens.LINE_FEED) {
-          consumeCRLF(ch,buffer);
+        if (ch == HttpTokens.LINE_FEED) {
           _contentPosition=0;
           if (!_host && _version != HttpVersion.HTTP_1_0 && _requestHandler != null) {
             badMessage(buffer,HttpStatus.BAD_REQUEST_400,"No Host");
@@ -78,33 +74,38 @@ break;
 }
 }
  else {
-if (buffer.remaining() > 6) {
-_field=_connectionFields == null ? null : _connectionFields.getBest(buffer,-1,buffer.remaining());
-if (_field == null) _field=HttpField.CACHE.getBest(buffer,-1,buffer.remaining());
-if (_field != null) {
-_header=_field.getHeader();
-_headerString=_field.getName();
-_valueString=_field.getValue();
-if (_valueString == null) {
+if (buffer.hasRemaining()) {
+HttpField field=_connectionFields == null ? null : _connectionFields.getBest(buffer,-1,buffer.remaining());
+if (field == null) field=HttpField.CACHE.getBest(buffer,-1,buffer.remaining());
+if (field != null) {
+String n=field.getName();
+String v=field.getValue();
+if (v == null) {
+_header=field.getHeader();
+_headerString=n;
 setState(State.HEADER_VALUE);
-buffer.position(buffer.position() + _headerString.length() + 1);
 _string.setLength(0);
 _length=0;
-_field=null;
+buffer.position(buffer.position() + n.length() + 1);
+break;
 }
  else {
+int pos=buffer.position() + n.length() + v.length()+ 1;
+byte b=buffer.get(pos);
+if (b == HttpTokens.CARRIAGE_RETURN || b == HttpTokens.LINE_FEED) {
+_field=field;
+_header=_field.getHeader();
+_headerString=n;
+_valueString=v;
 setState(State.HEADER_IN_VALUE);
-buffer.position(buffer.position() + _headerString.length() + _valueString.length()+ 1);
+if (b == HttpTokens.CARRIAGE_RETURN) {
+_cr=true;
+buffer.position(pos + 1);
 }
+ else buffer.position(pos);
 break;
 }
-_header=HttpHeader.CACHE.getBest(buffer,-1,buffer.remaining());
-if (_header != null) {
-_headerString=_header.asString();
-_string.setLength(0);
-setState(State.HEADER_IN_NAME);
-buffer.position(buffer.position() + _headerString.length() - 1);
-break;
+}
 }
 }
 setState(State.HEADER_NAME);
@@ -117,9 +118,7 @@ _length=1;
 break;
 case HEADER_NAME:
 switch (ch) {
-case HttpTokens.CARRIAGE_RETURN:
 case HttpTokens.LINE_FEED:
-consumeCRLF(ch,buffer);
 if (_headerString == null) {
 _headerString=takeLengthString();
 _header=HttpHeader.CACHE.get(_headerString);
@@ -147,9 +146,7 @@ setState(State.HEADER_IN_NAME);
 break;
 case HEADER_IN_NAME:
 switch (ch) {
-case HttpTokens.CARRIAGE_RETURN:
 case HttpTokens.LINE_FEED:
-consumeCRLF(ch,buffer);
 _headerString=takeString();
 _length=-1;
 _header=HttpHeader.CACHE.get(_headerString);
@@ -189,9 +186,7 @@ _length++;
 break;
 case HEADER_VALUE:
 switch (ch) {
-case HttpTokens.CARRIAGE_RETURN:
 case HttpTokens.LINE_FEED:
-consumeCRLF(ch,buffer);
 if (_length > 0) {
 if (_valueString != null) {
 _value=null;
@@ -221,9 +216,7 @@ setState(State.HEADER_IN_VALUE);
 break;
 case HEADER_IN_VALUE:
 switch (ch) {
-case HttpTokens.CARRIAGE_RETURN:
 case HttpTokens.LINE_FEED:
-consumeCRLF(ch,buffer);
 if (_length > 0) {
 if (HttpHeaderValue.hasKnownValues(_header)) {
 _valueString=takeString();

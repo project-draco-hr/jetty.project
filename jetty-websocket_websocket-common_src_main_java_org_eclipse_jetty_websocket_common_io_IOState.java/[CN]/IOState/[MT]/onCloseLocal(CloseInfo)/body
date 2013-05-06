@@ -1,0 +1,45 @@
+{
+  ConnectionState event=null;
+  ConnectionState initialState=this.state;
+  if (initialState == ConnectionState.CLOSED) {
+    return;
+  }
+  if (initialState == ConnectionState.CONNECTED) {
+    LOG.debug("FastClose in CONNECTED detected");
+    onOpened();
+  }
+synchronized (this.state) {
+    closeInfo.compareAndSet(null,close);
+    boolean in=inputAvailable.get();
+    boolean out=outputAvailable.get();
+    closeHandshakeSource.compareAndSet(CloseHandshakeSource.NONE,CloseHandshakeSource.LOCAL);
+    out=false;
+    outputAvailable.set(false);
+    LOG.debug("onCloseLocal(), input={}, output={}",in,out);
+    if (!in && !out) {
+      LOG.debug("Close Handshake satisfied, disconnecting");
+      cleanClose.set(true);
+      this.state=ConnectionState.CLOSED;
+      event=this.state;
+    }
+ else     if (this.state == ConnectionState.OPEN) {
+      this.state=ConnectionState.CLOSING;
+      event=this.state;
+    }
+  }
+  if (event != null) {
+    notifyStateListeners(event);
+    if (close.getStatusCode() == StatusCode.SHUTDOWN) {
+synchronized (this.state) {
+        this.state=ConnectionState.CLOSED;
+        cleanClose.set(false);
+        outputAvailable.set(false);
+        inputAvailable.set(false);
+        this.closeHandshakeSource.set(CloseHandshakeSource.ABNORMAL);
+        event=this.state;
+      }
+      notifyStateListeners(event);
+      return;
+    }
+  }
+}

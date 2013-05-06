@@ -9,11 +9,8 @@
  else   retry=true;
   String ex=null;
   try {
-    long now=System.currentTimeMillis();
-    final String d=_date.format(now);
-    final int ms=(int)(now % 1000);
-    if (retry)     _print.println(d + (ms > 99 ? "." : (ms > 9 ? ".0" : ".00")) + ms+ ":"+ name+ " RETRY");
- else     _print.println(d + (ms > 99 ? "." : (ms > 9 ? ".0" : ".00")) + ms+ ":"+ name+ " "+ baseRequest.getRemoteAddr()+ " "+ request.getMethod()+ " "+ baseRequest.getHeader("Cookie")+ "; "+ baseRequest.getHeader("User-Agent"));
+    if (retry)     print(name,"RESUME");
+ else     print(name,"REQUEST " + baseRequest.getRemoteAddr() + " "+ request.getMethod()+ " "+ baseRequest.getHeader("Cookie")+ "; "+ baseRequest.getHeader("User-Agent"));
     thread.setName(name);
     getHandler().handle(target,baseRequest,request,response);
   }
@@ -35,14 +32,11 @@ catch (  Error e) {
   }
  finally {
     thread.setName(old_name);
-    long now=System.currentTimeMillis();
-    final String d=_date.format(now);
-    final int ms=(int)(now % 1000);
     suspend=baseRequest.getHttpChannelState().isSuspended();
     if (suspend) {
       request.setAttribute("org.eclipse.jetty.thread.name",name);
-      _print.println(d + (ms > 99 ? "." : (ms > 9 ? ".0" : ".00")) + ms+ ":"+ name+ " SUSPEND");
+      print(name,"SUSPEND");
     }
- else     _print.println(d + (ms > 99 ? "." : (ms > 9 ? ".0" : ".00")) + ms+ ":"+ name+ " "+ base_response.getStatus()+ (ex == null ? "" : ("/" + ex))+ " "+ base_response.getContentType());
+ else     print(name,"RESPONSE " + base_response.getStatus() + (ex == null ? "" : ("/" + ex))+ " "+ base_response.getContentType());
   }
 }

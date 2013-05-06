@@ -1,0 +1,17 @@
+{
+  ConnectionState event=null;
+synchronized (this.state) {
+    if (this.state == ConnectionState.CLOSED) {
+      return;
+    }
+    CloseInfo close=new CloseInfo(StatusCode.NO_CLOSE,"Read EOF");
+    this.cleanClose.set(false);
+    this.state=ConnectionState.CLOSED;
+    this.closeInfo.compareAndSet(null,close);
+    this.inputAvailable.set(false);
+    this.outputAvailable.set(false);
+    this.closeHandshakeSource.set(CloseHandshakeSource.ABNORMAL);
+    event=this.state;
+  }
+  notifyStateListeners(event);
+}

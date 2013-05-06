@@ -1,4 +1,6 @@
 {
+  final long dispatchTime=10;
+  final long requestTime=50;
   final AtomicReference<AsyncContext> asyncHolder=new AtomicReference<>();
   final CyclicBarrier barrier[]={new CyclicBarrier(2),new CyclicBarrier(2),new CyclicBarrier(2)};
   _statsHandler.setHandler(new AbstractHandler(){
@@ -6,23 +8,17 @@
       request.setHandled(true);
       try {
         barrier[0].await();
-        Thread.sleep(10);
-        if (asyncHolder.get() == null) {
-          asyncHolder.set(request.startAsync());
-        }
+        Thread.sleep(dispatchTime);
+        if (asyncHolder.get() == null)         asyncHolder.set(request.startAsync());
       }
  catch (      Exception x) {
-        Thread.currentThread().interrupt();
-        throw (IOException)new IOException().initCause(x);
+        throw new ServletException(x);
       }
  finally {
         try {
           barrier[1].await();
         }
- catch (        Exception x) {
-          x.printStackTrace();
-          Thread.currentThread().interrupt();
-          fail();
+ catch (        Exception ignored) {
         }
       }
     }
@@ -40,16 +36,14 @@
   barrier[1].await();
   assertTrue(_latchHandler.await());
   assertNotNull(asyncHolder.get());
-  assertTrue(asyncHolder.get() != null);
   assertEquals(1,_statsHandler.getRequests());
   assertEquals(1,_statsHandler.getRequestsActive());
   assertEquals(1,_statsHandler.getDispatched());
   assertEquals(0,_statsHandler.getDispatchedActive());
-  Thread.sleep(10);
   _latchHandler.reset();
   barrier[0].reset();
   barrier[1].reset();
-  Thread.sleep(50);
+  Thread.sleep(requestTime);
   asyncHolder.get().addListener(new AsyncListener(){
     @Override public void onTimeout(    AsyncEvent event) throws IOException {
     }
@@ -61,7 +55,7 @@
       try {
         barrier[2].await();
       }
- catch (      Exception e) {
+ catch (      Exception ignored) {
       }
     }
   }
@@ -84,10 +78,10 @@
   assertEquals(1,_statsHandler.getAsyncDispatches());
   assertEquals(0,_statsHandler.getExpires());
   assertEquals(1,_statsHandler.getResponses2xx());
-  assertThat(_statsHandler.getRequestTimeTotal(),greaterThanOrEqualTo(50L));
+  assertThat(_statsHandler.getRequestTimeTotal(),greaterThanOrEqualTo(requestTime * 3 / 4));
   assertEquals(_statsHandler.getRequestTimeTotal(),_statsHandler.getRequestTimeMax());
   assertEquals(_statsHandler.getRequestTimeTotal(),_statsHandler.getRequestTimeMean(),0.01);
-  assertTrue(_statsHandler.getDispatchedTimeTotal() >= 20);
-  assertTrue(_statsHandler.getDispatchedTimeMean() + 10 <= _statsHandler.getDispatchedTimeTotal());
-  assertTrue(_statsHandler.getDispatchedTimeMax() + 10 <= _statsHandler.getDispatchedTimeTotal());
+  assertThat(_statsHandler.getDispatchedTimeTotal(),greaterThanOrEqualTo(dispatchTime * 2 * 3 / 4));
+  assertTrue(_statsHandler.getDispatchedTimeMean() + dispatchTime <= _statsHandler.getDispatchedTimeTotal());
+  assertTrue(_statsHandler.getDispatchedTimeMax() + dispatchTime <= _statsHandler.getDispatchedTimeTotal());
 }

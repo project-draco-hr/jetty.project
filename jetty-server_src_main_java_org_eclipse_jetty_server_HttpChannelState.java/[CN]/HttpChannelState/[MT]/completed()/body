@@ -1,11 +1,14 @@
 {
   final List<AsyncListener> aListeners;
+  final AsyncContextEvent event;
 synchronized (this) {
 switch (_state) {
 case COMPLETING:
       _state=State.COMPLETED;
     aListeners=_asyncListeners;
-  break;
+  event=_event;
+_event=null;
+break;
 default :
 throw new IllegalStateException(this.getStatusString());
 }
@@ -13,16 +16,17 @@ throw new IllegalStateException(this.getStatusString());
 if (aListeners != null) {
 for (AsyncListener listener : aListeners) {
 try {
-if (_event != null && _event._cause != null) {
-  _event.getSuppliedRequest().setAttribute(RequestDispatcher.ERROR_EXCEPTION,_event._cause);
-  _event.getSuppliedRequest().setAttribute(RequestDispatcher.ERROR_MESSAGE,_event._cause.getMessage());
-  listener.onError(_event);
+if (event != null && event.getThrowable() != null) {
+event.getSuppliedRequest().setAttribute(RequestDispatcher.ERROR_EXCEPTION,event.getThrowable());
+event.getSuppliedRequest().setAttribute(RequestDispatcher.ERROR_MESSAGE,event.getThrowable().getMessage());
+listener.onError(event);
 }
- else listener.onComplete(_event);
+ else listener.onComplete(event);
 }
  catch (Exception e) {
 LOG.warn(e);
 }
 }
 }
+if (event != null) event.completed();
 }

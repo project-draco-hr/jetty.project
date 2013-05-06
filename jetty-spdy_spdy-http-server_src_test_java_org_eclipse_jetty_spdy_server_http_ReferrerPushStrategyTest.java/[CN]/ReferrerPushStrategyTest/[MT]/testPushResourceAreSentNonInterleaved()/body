@@ -1,0 +1,63 @@
+{
+  final CountDownLatch allExpectedPushesReceivedLatch=new CountDownLatch(4);
+  final CountDownLatch allPushDataReceivedLatch=new CountDownLatch(4);
+  final CopyOnWriteArrayList<Integer> dataReceivedOrder=new CopyOnWriteArrayList<>();
+  InetSocketAddress bigResponseServerAddress=startHTTPServer(version,new AbstractHandler(){
+    @Override public void handle(    String target,    Request baseRequest,    HttpServletRequest request,    HttpServletResponse response) throws IOException, ServletException {
+      byte[] bytes=new byte[32768];
+      new Random().nextBytes(bytes);
+      ServletOutputStream outputStream=response.getOutputStream();
+      outputStream.write(bytes);
+      baseRequest.setHandled(true);
+    }
+  }
+);
+  Session pushCacheBuildSession=startClient(version,bigResponseServerAddress,null);
+  Fields mainResourceHeaders=createHeadersWithoutReferrer(mainResource);
+  sendRequest(pushCacheBuildSession,mainResourceHeaders,null,null);
+  sendRequest(pushCacheBuildSession,createHeaders("/style.css",mainResource),null,null);
+  sendRequest(pushCacheBuildSession,createHeaders("/javascript.js",mainResource),null,null);
+  sendRequest(pushCacheBuildSession,createHeaders("/image1.jpg",mainResource),null,null);
+  sendRequest(pushCacheBuildSession,createHeaders("/image2.jpg",mainResource),null,null);
+  Session session=startClient(version,bigResponseServerAddress,null);
+  session.syn(new SynInfo(mainResourceHeaders,true),new StreamFrameListener.Adapter(){
+    AtomicInteger currentStreamId=new AtomicInteger(2);
+    @Override public StreamFrameListener onPush(    Stream stream,    PushInfo pushInfo){
+      LOG.info("Received push for stream: {} {}",stream.getId(),pushInfo);
+      String uriHeader=pushInfo.getHeaders().get(HTTPSPDYHeader.URI.name(version)).value();
+switch ((int)allExpectedPushesReceivedLatch.getCount()) {
+case 4:
+        assertThat("1st pushed resource is the css",uriHeader.endsWith("css"),is(true));
+      break;
+case 3:
+    assertThat("2nd pushed resource is the js",uriHeader.endsWith("js"),is(true));
+  break;
+case 2:
+assertThat("3rd pushed resource is image1",uriHeader.endsWith("image1.jpg"),is(true));
+break;
+case 1:
+assertThat("4th pushed resource is image2",uriHeader.endsWith("image2.jpg"),is(true));
+break;
+}
+allExpectedPushesReceivedLatch.countDown();
+return new Adapter(){
+@Override public void onData(Stream stream,DataInfo dataInfo){
+if (stream.getId() != currentStreamId.get()) throw new IllegalStateException("Streams interleaved. Expected StreamId: " + currentStreamId + " but was: "+ stream.getId());
+dataInfo.consume(dataInfo.available());
+if (dataInfo.isClose()) {
+currentStreamId.compareAndSet(currentStreamId.get(),currentStreamId.get() + 2);
+dataReceivedOrder.add(stream.getId());
+allPushDataReceivedLatch.countDown();
+}
+LOG.info(stream.getId() + ":" + dataInfo);
+}
+}
+;
+}
+}
+);
+assertThat("All push resources received",allExpectedPushesReceivedLatch.await(5,TimeUnit.SECONDS),is(true));
+assertThat("All pushData received",allPushDataReceivedLatch.await(5,TimeUnit.SECONDS),is(true));
+assertThat("The data for different push streams has not been interleaved",dataReceivedOrder.toString(),equalTo("[2, 4, 6, 8]"));
+LOG.info(dataReceivedOrder.toString());
+}

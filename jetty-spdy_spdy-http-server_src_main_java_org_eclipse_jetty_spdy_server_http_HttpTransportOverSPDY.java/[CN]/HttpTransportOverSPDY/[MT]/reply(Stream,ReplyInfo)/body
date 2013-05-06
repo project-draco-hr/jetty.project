@@ -4,20 +4,10 @@
   Fields responseHeaders=replyInfo.getHeaders();
   short version=stream.getSession().getVersion();
   if (responseHeaders.get(HTTPSPDYHeader.STATUS.name(version)).value().startsWith("200") && !stream.isClosed()) {
-    Fields.Field scheme=requestHeaders.get(HTTPSPDYHeader.SCHEME.name(version));
-    Fields.Field host=requestHeaders.get(HTTPSPDYHeader.HOST.name(version));
-    Fields.Field uri=requestHeaders.get(HTTPSPDYHeader.URI.name(version));
     Set<String> pushResources=pushStrategy.apply(stream,requestHeaders,responseHeaders);
-    for (    String pushResource : pushResources) {
-      Fields pushHeaders=createPushHeaders(scheme,host,pushResource);
-      final Fields pushRequestHeaders=createRequestHeaders(scheme,host,uri,pushResource);
-      stream.push(new PushInfo(0,TimeUnit.MILLISECONDS,pushHeaders,false),new Promise.Adapter<Stream>(){
-        @Override public void succeeded(        Stream pushStream){
-          HttpChannelOverSPDY pushChannel=newHttpChannelOverSPDY(pushStream,pushRequestHeaders);
-          pushChannel.requestStart(pushRequestHeaders,true);
-        }
-      }
-);
+    if (pushResources.size() > 0) {
+      PushResourceCoordinator pushResourceCoordinator=new PushResourceCoordinator(pushResources);
+      pushResourceCoordinator.coordinate();
     }
   }
 }

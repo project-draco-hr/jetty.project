@@ -1,16 +1,3 @@
 {
-  long msDur=TimeUnit.MILLISECONDS.convert(timeoutDuration,timeoutUnit);
-  long now=System.currentTimeMillis();
-  long expireOn=now + msDur;
-  LOG.debug("Await Message.. Now: {} - expireOn: {} ({} ms)",now,expireOn,msDur);
-  while (messageQueue.size() < expectedMessageCount) {
-    try {
-      TimeUnit.MILLISECONDS.sleep(20);
-    }
- catch (    InterruptedException gnore) {
-    }
-    if (!LOG.isDebugEnabled() && (System.currentTimeMillis() > expireOn)) {
-      throw new TimeoutException(String.format("Timeout reading all %d expected messages. (managed to only read %d messages)",expectedMessageCount,messageQueue.size()));
-    }
-  }
+  messageQueue.awaitEventCount(expectedMessageCount,timeoutDuration,timeoutUnit);
 }
