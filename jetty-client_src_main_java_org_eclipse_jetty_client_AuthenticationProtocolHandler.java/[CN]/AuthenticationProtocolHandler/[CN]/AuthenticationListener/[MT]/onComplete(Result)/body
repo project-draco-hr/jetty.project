@@ -7,6 +7,12 @@
     forwardFailureComplete(request,result.getRequestFailure(),response,result.getResponseFailure());
     return;
   }
+  HttpConversation conversation=client.getConversation(request.getConversationID(),false);
+  if (conversation.getAttribute(AUTHENTICATION_ATTRIBUTE) != null) {
+    LOG.debug("Bad credentials for {}",request);
+    forwardSuccessComplete(request,response);
+    return;
+  }
   HttpHeader header=getAuthenticateHeader();
   List<Authentication.HeaderInfo> headerInfos=parseAuthenticateHeader(response,header);
   if (headerInfos.isEmpty()) {
@@ -29,13 +35,13 @@
     forwardSuccessComplete(request,response);
     return;
   }
-  HttpConversation conversation=client.getConversation(request.getConversationID(),false);
   final Authentication.Result authnResult=authentication.authenticate(request,response,headerInfo,conversation);
   LOG.debug("Authentication result {}",authnResult);
   if (authnResult == null) {
     forwardSuccessComplete(request,response);
     return;
   }
+  conversation.setAttribute(AUTHENTICATION_ATTRIBUTE,true);
   Request newRequest=client.copyRequest(request,request.getURI());
   authnResult.apply(newRequest);
   newRequest.onResponseSuccess(new Response.SuccessListener(){

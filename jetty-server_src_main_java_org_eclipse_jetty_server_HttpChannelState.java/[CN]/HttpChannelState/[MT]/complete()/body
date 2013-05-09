@@ -1,5 +1,5 @@
 {
-  boolean dispatch;
+  boolean handle;
 synchronized (this) {
 switch (_state) {
 case DISPATCHED:
@@ -11,14 +11,16 @@ case ASYNCSTARTED:
   return;
 case ASYNCWAIT:
 _state=State.COMPLETECALLED;
-dispatch=!_expired;
+handle=!_expired;
 break;
 default :
 throw new IllegalStateException(this.getStatusString());
 }
 }
-if (dispatch) {
+if (handle) {
 cancelTimeout();
-scheduleDispatch();
+ContextHandler handler=getContextHandler();
+if (handler != null) handler.handle(_channel);
+ else _channel.handle();
 }
 }

@@ -1,4 +1,6 @@
 {
+  final long dispatchTime=10;
+  final long timeout=100;
   final AtomicReference<AsyncContext> asyncHolder=new AtomicReference<>();
   final CyclicBarrier barrier[]={new CyclicBarrier(2),new CyclicBarrier(2),new CyclicBarrier(2)};
   _statsHandler.setHandler(new AbstractHandler(){
@@ -6,25 +8,21 @@
       request.setHandled(true);
       try {
         barrier[0].await();
-        Thread.sleep(10);
+        Thread.sleep(dispatchTime);
         if (asyncHolder.get() == null) {
           AsyncContext async=request.startAsync();
-          async.setTimeout(100);
           asyncHolder.set(async);
+          async.setTimeout(timeout);
         }
       }
  catch (      Exception x) {
-        Thread.currentThread().interrupt();
-        throw (IOException)new IOException().initCause(x);
+        throw new ServletException(x);
       }
  finally {
         try {
           barrier[1].await();
         }
- catch (        Exception x) {
-          x.printStackTrace();
-          Thread.currentThread().interrupt();
-          fail();
+ catch (        Exception ignored) {
         }
       }
     }
@@ -54,7 +52,7 @@
       try {
         barrier[2].await();
       }
- catch (      Exception e) {
+ catch (      Exception ignored) {
       }
     }
   }
@@ -72,8 +70,8 @@
   assertEquals(0,_statsHandler.getAsyncDispatches());
   assertEquals(1,_statsHandler.getExpires());
   assertEquals(1,_statsHandler.getResponses2xx());
-  assertTrue(_statsHandler.getRequestTimeTotal() >= 30);
+  assertTrue(_statsHandler.getRequestTimeTotal() >= (timeout + dispatchTime) * 3 / 4);
   assertEquals(_statsHandler.getRequestTimeTotal(),_statsHandler.getRequestTimeMax());
   assertEquals(_statsHandler.getRequestTimeTotal(),_statsHandler.getRequestTimeMean(),0.01);
-  assertThat(_statsHandler.getDispatchedTimeTotal(),greaterThanOrEqualTo(10L));
+  assertThat(_statsHandler.getDispatchedTimeTotal(),greaterThanOrEqualTo(dispatchTime * 3 / 4));
 }

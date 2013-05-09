@@ -1,12 +1,13 @@
 {
-  short version=stream.getSession().getVersion();
+  final short version=stream.getSession().getVersion();
   Fields.Field scheme=requestHeaders.get(HTTPSPDYHeader.SCHEME.name(version));
   Fields.Field host=requestHeaders.get(HTTPSPDYHeader.HOST.name(version));
   Fields.Field uri=requestHeaders.get(HTTPSPDYHeader.URI.name(version));
-  Fields pushHeaders=createPushHeaders(scheme,host,pushResource);
+  final Fields pushHeaders=createPushHeaders(scheme,host,pushResource);
   final Fields pushRequestHeaders=createRequestHeaders(scheme,host,uri,pushResource);
-  stream.push(new PushInfo(0,TimeUnit.MILLISECONDS,pushHeaders,false),new Promise.Adapter<Stream>(){
+  stream.push(new PushInfo(pushHeaders,false),new Promise.Adapter<Stream>(){
     @Override public void succeeded(    Stream pushStream){
+      LOG.debug("Headers pushed for {} on {}",pushHeaders.get(HTTPSPDYHeader.URI.name(version)),pushStream);
       queue.offer(new PushResource(pushStream,pushRequestHeaders));
       sendNextResourceData();
     }

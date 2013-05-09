@@ -14,7 +14,7 @@
     }
     String etag=httpContent.getETag();
     if (etag != null)     response.getHttpFields().put(HttpHeader.ETAG,etag);
-    content=httpContent.getDirectBuffer();
+    content=_channel.useDirectBuffers() ? httpContent.getDirectBuffer() : null;
     if (content == null)     content=httpContent.getIndirectBuffer();
     if (content == null)     content=httpContent.getReadableByteChannel();
     if (content == null)     content=httpContent.getInputStream();
@@ -29,9 +29,8 @@
     _closed=true;
   }
  else   if (content instanceof ReadableByteChannel) {
-    ReadableByteChannel channel=(ReadableByteChannel)content;
-    ByteBuffer buffer=_channel.getByteBufferPool().acquire(getBufferSize(),CHANNEL_BUFFER_DIRECT);
-    try {
+    ByteBuffer buffer=_channel.getByteBufferPool().acquire(getBufferSize(),_channel.useDirectBuffers());
+    try (ReadableByteChannel channel=(ReadableByteChannel)content){
       while (channel.isOpen()) {
         int pos=BufferUtil.flipToFill(buffer);
         int len=channel.read(buffer);
@@ -46,12 +45,11 @@
     }
   }
  else   if (content instanceof InputStream) {
-    InputStream in=(InputStream)content;
-    ByteBuffer buffer=_channel.getByteBufferPool().acquire(getBufferSize(),STREAM_BUFFER_DIRECT);
+    ByteBuffer buffer=_channel.getByteBufferPool().acquire(getBufferSize(),false);
     byte[] array=buffer.array();
     int offset=buffer.arrayOffset();
     int size=array.length - offset;
-    try {
+    try (InputStream in=(InputStream)content){
       while (true) {
         int len=in.read(array,offset,size);
         if (len < 0)         break;
