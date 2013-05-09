@@ -9,6 +9,8 @@
   if (tmp != null)   _deflateCompressionLevel=Integer.parseInt(tmp);
   tmp=filterConfig.getInitParameter("deflateNoWrap");
   if (tmp != null)   _deflateNoWrap=Boolean.parseBoolean(tmp);
+  tmp=filterConfig.getInitParameter("checkGzExists");
+  if (tmp != null)   _checkGzExists=Boolean.parseBoolean(tmp);
   tmp=filterConfig.getInitParameter("methods");
   if (tmp != null) {
     StringTokenizer tok=new StringTokenizer(tmp,",",false);
@@ -16,8 +18,23 @@
   }
  else   _methods.add(HttpMethod.GET.asString());
   tmp=filterConfig.getInitParameter("mimeTypes");
-  if (tmp != null) {
-    _mimeTypes=new HashSet<String>();
+  if (tmp == null) {
+    _excludeMimeTypes=true;
+    tmp=filterConfig.getInitParameter("excludedMimeTypes");
+    if (tmp == null) {
+      for (      String type : MimeTypes.getKnownMimeTypes()) {
+        if (type.startsWith("image/") || type.startsWith("audio/") || type.startsWith("video/"))         _mimeTypes.add(type);
+        _mimeTypes.add("application/compress");
+        _mimeTypes.add("application/zip");
+        _mimeTypes.add("application/gzip");
+      }
+    }
+ else {
+      StringTokenizer tok=new StringTokenizer(tmp,",",false);
+      while (tok.hasMoreTokens())       _mimeTypes.add(tok.nextToken());
+    }
+  }
+ else {
     StringTokenizer tok=new StringTokenizer(tmp,",",false);
     while (tok.hasMoreTokens())     _mimeTypes.add(tok.nextToken());
   }

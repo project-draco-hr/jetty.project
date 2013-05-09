@@ -1,5 +1,9 @@
 {
-  super.setHeader(name,value);
-  HttpServletResponse response=(HttpServletResponse)getResponse();
-  if (!response.containsHeader(name))   response.setHeader("org.eclipse.jetty.server.include." + name,value);
+  if (getRequest().getDispatcherType() == DispatcherType.INCLUDE) {
+    if (!"etag".equalsIgnoreCase(name) && !name.startsWith("content-")) {
+      HttpServletResponse response=(HttpServletResponse)getResponse();
+      response.setHeader("org.eclipse.jetty.server.include." + name,value);
+    }
+  }
+ else   super.setHeader(name,value);
 }

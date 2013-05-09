@@ -6,11 +6,21 @@
     super.doFilter(request,response,chain);
     return;
   }
-  if (_mimeTypes != null && _mimeTypes.size() > 0) {
+  if (_mimeTypes.size() > 0) {
     String mimeType=_context.getMimeType(request.getRequestURI());
-    if (mimeType != null && !_mimeTypes.contains(mimeType)) {
+    if (mimeType != null && _mimeTypes.contains(mimeType) == _excludeMimeTypes) {
       super.doFilter(request,response,chain);
       return;
+    }
+  }
+  if (_checkGzExists && request.getServletContext() != null) {
+    String path=request.getServletContext().getRealPath(URIUtil.addPaths(request.getServletPath(),request.getPathInfo()));
+    if (path != null) {
+      File gz=new File(path + ".gz");
+      if (gz.exists()) {
+        super.doFilter(request,response,chain);
+        return;
+      }
     }
   }
   String ua=getUserAgent(request);
