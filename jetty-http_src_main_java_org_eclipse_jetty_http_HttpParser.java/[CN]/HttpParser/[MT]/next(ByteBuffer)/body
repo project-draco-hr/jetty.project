@@ -1,32 +1,24 @@
 {
   byte ch=buffer.get();
   if (ch >= HttpTokens.SPACE || ch < 0) {
-    if (_cr) {
-      badMessage(buffer,400,"Bad EOL");
-      return -1;
-    }
+    if (_cr)     throw new BadMessage("Bad EOL");
     return ch;
   }
   if (_cr) {
     _cr=false;
     if (ch == HttpTokens.LINE_FEED)     return ch;
-    badMessage(buffer,400,"Bad EOL");
-    return -1;
+    throw new BadMessage("Bad EOL");
   }
   if (ch == HttpTokens.CARRIAGE_RETURN) {
     if (buffer.hasRemaining()) {
       if (_maxHeaderBytes > 0 && _state.ordinal() < State.END.ordinal())       _headerBytes++;
       ch=buffer.get();
       if (ch == HttpTokens.LINE_FEED)       return ch;
-      badMessage(buffer,HttpStatus.BAD_REQUEST_400,null);
-      return -1;
+      throw new BadMessage();
     }
     _cr=true;
     return 0;
   }
-  if (ch != HttpTokens.LINE_FEED && ch != HttpTokens.TAB) {
-    badMessage(buffer,HttpStatus.BAD_REQUEST_400,null);
-    return -1;
-  }
+  if (ch != HttpTokens.LINE_FEED && ch != HttpTokens.TAB)   throw new BadMessage();
   return ch;
 }

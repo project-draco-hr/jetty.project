@@ -130,7 +130,15 @@ break;
 }
 return false;
 }
- catch (Exception e) {
+ catch (BadMessage e) {
+BufferUtil.clear(buffer);
+LOG.warn("badMessage: " + e._code + (e._message != null ? " " + e._message : "")+ " for "+ _handler);
+LOG.debug(e);
+setState(State.CLOSED);
+_handler.badMessage(e._code,e._message);
+return true;
+}
+catch (Exception e) {
 BufferUtil.clear(buffer);
 if (isClosed()) {
 LOG.debug(e);
@@ -139,7 +147,6 @@ throw new IllegalStateException(e);
 }
 LOG.warn("badMessage: " + e.toString() + " for "+ _handler);
 LOG.debug(e);
-badMessage(buffer,HttpStatus.BAD_REQUEST_400,null);
 return true;
 }
 }
