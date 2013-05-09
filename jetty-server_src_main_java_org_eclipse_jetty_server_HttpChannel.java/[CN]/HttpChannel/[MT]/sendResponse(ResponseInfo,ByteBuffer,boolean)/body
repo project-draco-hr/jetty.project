@@ -1,6 +1,7 @@
 {
-  boolean committed=_committed.compareAndSet(false,true);
-  if (committed) {
+  boolean committing=_committed.compareAndSet(false,true);
+  if (committing) {
+    if (info == null)     info=_response.newResponseInfo();
     try {
       _transport.send(info,content,complete);
       if (info.getStatus() < 200)       _committed.set(false);
@@ -21,5 +22,8 @@ catch (    Exception e) {
       if (complete)       _response.getHttpOutput().closed();
     }
   }
-  return committed;
+ else   if (info == null) {
+    _transport.send(null,content,complete);
+  }
+  return committing;
 }
