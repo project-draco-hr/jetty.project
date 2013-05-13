@@ -1,8 +1,20 @@
 {
+  File dir=MavenTestingUtils.getTargetFile("test-classes/simple");
+  File huge=new File(dir,"huge.txt");
+  File big=new File(dir,"big.txt");
+  FileOutputStream out=new FileOutputStream(huge);
+  for (int i=0; i < 100; i++) {
+    FileInputStream in=new FileInputStream(big);
+    IO.copy(in,out);
+  }
+  huge.deleteOnExit();
   _server=new Server();
-  _connector=new ServerConnector(_server);
+  _config=new HttpConfiguration();
+  _config.setOutputBufferSize(2048);
+  _connector=new ServerConnector(_server,new HttpConnectionFactory(_config));
   _server.setConnectors(new Connector[]{_connector});
   _resourceHandler=new ResourceHandler();
+  _resourceHandler.setResourceBase(MavenTestingUtils.getTargetFile("test-classes/simple").getAbsolutePath());
   _contextHandler=new ContextHandler("/resource");
   _contextHandler.setHandler(_resourceHandler);
   _server.setHandler(_contextHandler);

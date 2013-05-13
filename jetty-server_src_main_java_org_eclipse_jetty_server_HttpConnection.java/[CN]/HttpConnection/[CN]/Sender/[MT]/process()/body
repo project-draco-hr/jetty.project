@@ -1,0 +1,72 @@
+{
+  ByteBuffer header=null;
+  ByteBuffer chunk=null;
+  while (true) {
+    HttpGenerator.Result result=_generator.generateResponse(_info,header,chunk,_content,_lastContent);
+    if (LOG.isDebugEnabled())     LOG.debug("{} generate: {} ({},{},{})@{}",this,result,BufferUtil.toSummaryString(header),BufferUtil.toSummaryString(_content),_lastContent,_generator.getState());
+switch (result) {
+case NEED_HEADER:
+{
+        if (_lastContent && _content != null && BufferUtil.space(_content) > _config.getResponseHeaderSize() && _content.hasArray()) {
+          int p=_content.position();
+          int l=_content.limit();
+          _content.position(l);
+          _content.limit(l + _config.getResponseHeaderSize());
+          header=_content.slice();
+          header.limit(0);
+          _content.position(p);
+          _content.limit(l);
+        }
+ else         header=_bufferPool.acquire(_config.getResponseHeaderSize(),HEADER_BUFFER_DIRECT);
+        continue;
+      }
+case NEED_CHUNK:
+{
+      chunk=_chunk;
+      if (chunk == null)       chunk=_chunk=_bufferPool.acquire(HttpGenerator.CHUNK_SIZE,CHUNK_BUFFER_DIRECT);
+      continue;
+    }
+case FLUSH:
+{
+    if (_channel.getRequest().isHead()) {
+      BufferUtil.clear(chunk);
+      BufferUtil.clear(_content);
+    }
+    if (BufferUtil.hasContent(header)) {
+      if (BufferUtil.hasContent(_content))       getEndPoint().write(this,header,_content);
+ else       getEndPoint().write(this,header);
+    }
+ else     if (BufferUtil.hasContent(chunk)) {
+      if (BufferUtil.hasContent(_content))       getEndPoint().write(this,chunk,_content);
+ else       getEndPoint().write(this,chunk);
+    }
+ else     if (BufferUtil.hasContent(_content)) {
+      getEndPoint().write(this,_content);
+    }
+ else     continue;
+    return false;
+  }
+case SHUTDOWN_OUT:
+{
+  getEndPoint().shutdownOutput();
+  continue;
+}
+case DONE:
+{
+if (header != null) {
+  if (!_lastContent || _content == null || !_content.hasArray() || !header.hasArray() || _content.array() != header.array())   _bufferPool.release(header);
+}
+if (chunk != null) _bufferPool.release(chunk);
+return true;
+}
+case CONTINUE:
+{
+break;
+}
+default :
+{
+throw new IllegalStateException("generateResponse=" + result);
+}
+}
+}
+}
