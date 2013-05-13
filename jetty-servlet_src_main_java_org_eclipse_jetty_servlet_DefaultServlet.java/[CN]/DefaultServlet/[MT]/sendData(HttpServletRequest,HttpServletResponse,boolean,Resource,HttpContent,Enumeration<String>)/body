@@ -14,22 +14,34 @@
     if (include) {
       resource.writeTo(out,0,content_length);
     }
+ else     if (content == null || written || !(out instanceof HttpOutput)) {
+      writeHeaders(response,content,written ? -1 : content_length);
+      ByteBuffer buffer=(content == null) ? null : content.getIndirectBuffer();
+      if (buffer != null)       BufferUtil.writeTo(buffer,out);
+ else       resource.writeTo(out,0,content_length);
+    }
  else {
-      if (content != null && !written && out instanceof HttpOutput) {
-        if (response instanceof Response) {
-          writeOptionHeaders(((Response)response).getHttpFields());
-          ((HttpOutput)out).sendContent(content);
+      if (response instanceof Response) {
+        Response r=(Response)response;
+        writeOptionHeaders(r.getHttpFields());
+        r.setHeaders(content);
+      }
+ else       writeHeaders(response,content,content_length);
+      if (request.isAsyncSupported()) {
+        final AsyncContext context=request.startAsync();
+        ((HttpOutput)out).sendContent(content,new Callback(){
+          @Override public void succeeded(){
+            context.complete();
+          }
+          @Override public void failed(          Throwable x){
+            LOG.debug(x);
+            context.complete();
+          }
         }
- else {
-          writeHeaders(response,content,content_length);
-          ((HttpOutput)out).sendContent(content.getResource());
-        }
+);
       }
  else {
-        writeHeaders(response,content,written ? -1 : content_length);
-        ByteBuffer buffer=(content == null) ? null : content.getIndirectBuffer();
-        if (buffer != null)         BufferUtil.writeTo(buffer,out);
- else         resource.writeTo(out,0,content_length);
+        ((HttpOutput)out).sendContent(content);
       }
     }
   }
