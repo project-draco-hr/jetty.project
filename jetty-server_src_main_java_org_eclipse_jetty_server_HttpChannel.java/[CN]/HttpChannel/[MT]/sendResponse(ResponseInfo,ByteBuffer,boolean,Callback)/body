@@ -3,39 +3,11 @@
   if (committing) {
     if (info == null)     info=_response.newResponseInfo();
     final int status=info.getStatus();
-    final Callback committed=new Callback(){
-      @Override public void succeeded(){
-        if (status < 200 && status >= 100)         _committed.set(false);
-        callback.succeeded();
-      }
-      @Override public void failed(      final Throwable x){
-        if (x instanceof EofException) {
-          LOG.debug(x);
-          _response.getHttpOutput().closed();
-          callback.failed(x);
-        }
- else {
-          LOG.warn(x);
-          _transport.send(HttpGenerator.RESPONSE_500_INFO,null,true,new Callback(){
-            @Override public void succeeded(){
-              _response.getHttpOutput().closed();
-              callback.failed(x);
-            }
-            @Override public void failed(            Throwable th){
-              LOG.ignore(th);
-              _response.getHttpOutput().closed();
-              callback.failed(x);
-            }
-          }
-);
-        }
-      }
-    }
-;
+    final Callback committed=(status < 200 && status >= 100) ? new Commit100Callback(callback) : new CommitCallback(callback);
     _transport.send(info,content,complete,committed);
   }
  else   if (info == null) {
-    _transport.send(null,content,complete,callback);
+    _transport.send(content,complete,callback);
   }
  else {
     callback.failed(new IllegalStateException("committed"));
