@@ -9,7 +9,6 @@
   Assert.assertEquals(0,activeConnections.size());
   final CountDownLatch beginLatch=new CountDownLatch(1);
   final CountDownLatch failureLatch=new CountDownLatch(2);
-  final AtomicBoolean failed=new AtomicBoolean(false);
   client.newRequest(host,port).scheme(scheme).listener(new Request.Listener.Empty(){
     @Override public void onBegin(    Request request){
       activeConnections.peek().close();
@@ -21,7 +20,9 @@
   }
 ).send(new Response.Listener.Empty(){
     @Override public void onComplete(    Result result){
-      failed.set(result.isFailed());
+      Assert.assertTrue(result.isFailed());
+      Assert.assertEquals(0,idleConnections.size());
+      Assert.assertEquals(0,activeConnections.size());
       failureLatch.countDown();
     }
   }
@@ -30,5 +31,4 @@
   Assert.assertTrue(failureLatch.await(5,TimeUnit.SECONDS));
   Assert.assertEquals(0,idleConnections.size());
   Assert.assertEquals(0,activeConnections.size());
-  Assert.assertTrue(failed.get());
 }
