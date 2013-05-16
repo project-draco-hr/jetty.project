@@ -1,22 +1,30 @@
 {
   DataInputStream in=new DataInputStream(is);
-  String clusterId=in.readUTF();
-  in.readUTF();
-  long created=in.readLong();
-  long accessed=in.readLong();
-  int requests=in.readInt();
-  if (session == null)   session=(HashedSession)newSession(created,accessed,clusterId);
-  session.setRequests(requests);
-  int size=in.readInt();
-  if (size > 0) {
-    ClassLoadingObjectInputStream ois=new ClassLoadingObjectInputStream(in);
-    for (int i=0; i < size; i++) {
-      String key=ois.readUTF();
-      Object value=ois.readObject();
-      session.setAttribute(key,value);
+  try {
+    String clusterId=in.readUTF();
+    in.readUTF();
+    long created=in.readLong();
+    long accessed=in.readLong();
+    int requests=in.readInt();
+    if (session == null)     session=(HashedSession)newSession(created,accessed,clusterId);
+    session.setRequests(requests);
+    int size=in.readInt();
+    if (size > 0) {
+      ClassLoadingObjectInputStream ois=new ClassLoadingObjectInputStream(in);
+      try {
+        for (int i=0; i < size; i++) {
+          String key=ois.readUTF();
+          Object value=ois.readObject();
+          session.setAttribute(key,value);
+        }
+      }
+  finally {
+        IO.close(ois);
+      }
     }
-    ois.close();
+    return session;
   }
- else   in.close();
-  return session;
+  finally {
+    IO.close(in);
+  }
 }
