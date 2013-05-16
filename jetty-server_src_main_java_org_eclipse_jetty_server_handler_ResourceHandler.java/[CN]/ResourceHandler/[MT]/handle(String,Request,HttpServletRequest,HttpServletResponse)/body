@@ -64,20 +64,40 @@
  catch (  IllegalStateException e) {
     out=new WriterOutputStream(response.getWriter());
   }
-  if (last_modified > 0)   response.setDateHeader(HttpHeader.LAST_MODIFIED.asString(),last_modified);
-  if (out instanceof HttpOutput && request.isAsyncSupported()) {
-    final AsyncContext async=request.startAsync();
-    ((HttpOutput)out).sendContent(resource.getReadableByteChannel(),new Callback(){
-      @Override public void succeeded(){
-        async.complete();
+  if (!(out instanceof HttpOutput))   resource.writeTo(out,0,resource.length());
+ else {
+    int min_async_size=_minAsyncContentLength == 0 ? response.getBufferSize() : _minAsyncContentLength;
+    if (request.isAsyncSupported() && min_async_size > 0 && resource.length() >= min_async_size) {
+      final AsyncContext async=request.startAsync();
+      Callback callback=new Callback(){
+        @Override public void succeeded(){
+          async.complete();
+        }
+        @Override public void failed(        Throwable x){
+          async.complete();
+        }
       }
-      @Override public void failed(      Throwable x){
-        async.complete();
+;
+      if (_minMemoryMappedContentLength > 0 && resource.length() > _minMemoryMappedContentLength && resource instanceof FileResource) {
+        ByteBuffer buffer=BufferUtil.toBuffer(resource.getFile());
+        ((HttpOutput)out).sendContent(buffer,callback);
+      }
+ else {
+        ReadableByteChannel channel=resource.getReadableByteChannel();
+        if (channel != null)         ((HttpOutput)out).sendContent(channel,callback);
+ else         ((HttpOutput)out).sendContent(resource.getInputStream(),callback);
       }
     }
-);
-  }
  else {
-    resource.writeTo(out,0,resource.length());
+      if (_minMemoryMappedContentLength > 0 && resource.length() > _minMemoryMappedContentLength && resource instanceof FileResource) {
+        ByteBuffer buffer=BufferUtil.toBuffer(resource.getFile());
+        ((HttpOutput)out).sendContent(buffer);
+      }
+ else {
+        ReadableByteChannel channel=resource.getReadableByteChannel();
+        if (channel != null)         ((HttpOutput)out).sendContent(channel);
+ else         ((HttpOutput)out).sendContent(resource.getInputStream());
+      }
+    }
   }
 }
