@@ -2,26 +2,32 @@
   if (isClosed())   throw new EOFException("Closed");
   if (_aggregate == null) {
     int size=getBufferSize();
-    if (len > size / 2) {
-      _channel.write(ByteBuffer.wrap(b,off,len),false);
+    if (len <= size / 2) {
+      _aggregate=_channel.getByteBufferPool().acquire(size,false);
+      BufferUtil.append(_aggregate,b,off,len);
       _written+=len;
+      closeIfAllContentWritten();
       return;
     }
-    _aggregate=_channel.getByteBufferPool().acquire(size,false);
   }
-  int space=BufferUtil.space(_aggregate);
-  if (len > space) {
-    if (BufferUtil.hasContent(_aggregate)) {
-      _channel.write(_aggregate,false);
-      space=BufferUtil.space(_aggregate);
+ else {
+    int filled=BufferUtil.fill(_aggregate,b,off,len);
+    _written+=filled;
+    if (closeIfAllContentWritten() || filled == len && !BufferUtil.isFull(_aggregate))     return;
+    off+=filled;
+    len-=filled;
+  }
+  if (BufferUtil.hasContent(_aggregate)) {
+    _channel.write(_aggregate,false);
+    if (len < _aggregate.capacity() / 2) {
+      BufferUtil.append(_aggregate,b,off,len);
+      _written+=len;
+      closeIfAllContentWritten();
+      return;
     }
   }
-  if (len > space) {
-    _channel.write(ByteBuffer.wrap(b,off,len),false);
-    _written+=len;
-    return;
-  }
-  BufferUtil.append(_aggregate,b,off,len);
   _written+=len;
-  if (!closeIfAllContentWritten() && BufferUtil.isFull(_aggregate))   _channel.write(_aggregate,false);
+  boolean complete=_channel.getResponse().isAllContentWritten(_written);
+  _channel.write(ByteBuffer.wrap(b,off,len),complete);
+  if (complete)   _channel.getResponse().closeOutput();
 }
