@@ -1,42 +1,29 @@
 {
-  try {
-    while (true) {
-      boolean event=_parser.parseNext(_requestBuffer == null ? BufferUtil.EMPTY_BUFFER : _requestBuffer);
-      while (event && BufferUtil.hasContent(_requestBuffer) && _parser.inContentState())       _parser.parseNext(_requestBuffer);
-      if (event)       return;
-      if (BufferUtil.isEmpty(_requestBuffer)) {
-        if (getEndPoint().isInputShutdown()) {
-          _parser.shutdownInput();
-          shutdown();
-          return;
-        }
-        block(_readBlocker);
-        LOG.debug("{} block readable on {}",this,_readBlocker);
-        _readBlocker.block();
-        if (_requestBuffer == null) {
-          long content_length=_channel.getRequest().getContentLength();
-          int size=getInputBufferSize();
-          if (size < content_length)           size=size * 4;
-          _requestBuffer=_bufferPool.acquire(size,REQUEST_BUFFER_DIRECT);
-        }
-        int filled=getEndPoint().fill(_requestBuffer);
-        LOG.debug("{} block filled {}",this,filled);
-        if (filled < 0) {
-          _parser.shutdownInput();
-          return;
-        }
+  while (true) {
+    boolean event=_parser.parseNext(_requestBuffer == null ? BufferUtil.EMPTY_BUFFER : _requestBuffer);
+    while (event && BufferUtil.hasContent(_requestBuffer) && _parser.inContentState())     _parser.parseNext(_requestBuffer);
+    if (event)     return;
+    if (BufferUtil.isEmpty(_requestBuffer)) {
+      if (getEndPoint().isInputShutdown()) {
+        _parser.shutdownInput();
+        shutdown();
+        return;
+      }
+      block(_readBlocker);
+      LOG.debug("{} block readable on {}",this,_readBlocker);
+      _readBlocker.block();
+      if (_requestBuffer == null) {
+        long content_length=_channel.getRequest().getContentLength();
+        int size=getInputBufferSize();
+        if (size < content_length)         size=size * 4;
+        _requestBuffer=_bufferPool.acquire(size,REQUEST_BUFFER_DIRECT);
+      }
+      int filled=getEndPoint().fill(_requestBuffer);
+      LOG.debug("{} block filled {}",this,filled);
+      if (filled < 0) {
+        _parser.shutdownInput();
+        return;
       }
     }
-  }
- catch (  TimeoutException e) {
-    throw new EofException(e);
-  }
-catch (  final InterruptedException x) {
-    throw new InterruptedIOException(getEndPoint().toString()){
-{
-        initCause(x);
-      }
-    }
-;
   }
 }

@@ -1,0 +1,45 @@
+{
+  final int SMALL=response.getBufferSize();
+  final int MEDIUM=8 * SMALL;
+  final File file=new File(_dir,request.getPathInfo());
+  if (!file.exists())   return;
+  baseRequest.setHandled(true);
+  if (file.isDirectory()) {
+    if (!request.getPathInfo().endsWith(URIUtil.SLASH)) {
+      response.sendRedirect(response.encodeRedirectURL(URIUtil.addPaths(request.getRequestURI(),URIUtil.SLASH)));
+      return;
+    }
+    String listing=Resource.newResource(file).getListHTML(request.getRequestURI(),request.getPathInfo().lastIndexOf("/") > 0);
+    response.setContentType("text/html; charset=UTF-8");
+    response.getWriter().println(listing);
+    return;
+  }
+  response.setDateHeader("Last-Modified",file.lastModified());
+  response.setDateHeader("Content-Length",file.length());
+  response.setContentType(_mimeTypes.getMimeByExtension(file.getName()));
+  if (file.length() < SMALL) {
+    ((HttpOutput)response.getOutputStream()).sendContent(FileChannel.open(file.toPath(),StandardOpenOption.READ));
+    return;
+  }
+  final AsyncContext async=request.startAsync();
+  Callback completionCB=new Callback(){
+    @Override public void succeeded(){
+      async.complete();
+    }
+    @Override public void failed(    Throwable x){
+      x.printStackTrace();
+      async.complete();
+    }
+  }
+;
+  if (file.length() < MEDIUM) {
+    ((HttpOutput)response.getOutputStream()).sendContent(FileChannel.open(file.toPath(),StandardOpenOption.READ),completionCB);
+    return;
+  }
+  ByteBuffer buffer;
+  try (RandomAccessFile raf=new RandomAccessFile(file,"r")){
+    buffer=raf.getChannel().map(MapMode.READ_ONLY,0,raf.length());
+  }
+   buffer=buffer.asReadOnlyBuffer();
+  ((HttpOutput)response.getOutputStream()).sendContent(buffer,completionCB);
+}
