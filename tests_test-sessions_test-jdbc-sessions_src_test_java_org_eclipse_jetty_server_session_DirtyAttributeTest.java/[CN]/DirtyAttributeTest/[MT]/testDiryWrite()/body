@@ -1,0 +1,50 @@
+{
+  AbstractTestServer server=new JdbcTestServer(0,INACTIVE,SCAVENGE);
+  ServletContextHandler ctxA=server.addContext("/mod");
+  ctxA.addServlet(TestDirtyServlet.class,"/test");
+  server.start();
+  int port=server.getPort();
+  try {
+    HttpClient client=new HttpClient();
+    client.start();
+    try {
+      ContentResponse response=client.GET("http://localhost:" + port + "/mod/test?action=create");
+      assertEquals(HttpServletResponse.SC_OK,response.getStatus());
+      String sessionCookie=response.getHeaders().getStringField("Set-Cookie");
+      assertTrue(sessionCookie != null);
+      sessionCookie=sessionCookie.replaceFirst("(\\W)(P|p)ath=","$1\\$Path=");
+      Request request=client.newRequest("http://localhost:" + port + "/mod/test?action=setA");
+      request.header("Cookie",sessionCookie);
+      response=request.send();
+      assertEquals(HttpServletResponse.SC_OK,response.getStatus());
+      A_VALUE.assertPassivatesEquals(1);
+      A_VALUE.assertActivatesEquals(1);
+      A_VALUE.assertBindsEquals(1);
+      A_VALUE.assertUnbindsEquals(0);
+      request=client.newRequest("http://localhost:" + port + "/mod/test?action=setA");
+      request.header("Cookie",sessionCookie);
+      response=request.send();
+      assertEquals(HttpServletResponse.SC_OK,response.getStatus());
+      A_VALUE.assertPassivatesEquals(1);
+      A_VALUE.assertActivatesEquals(1);
+      A_VALUE.assertBindsEquals(1);
+      A_VALUE.assertUnbindsEquals(0);
+      request=client.newRequest("http://localhost:" + port + "/mod/test?action=setB");
+      request.header("Cookie",sessionCookie);
+      response=request.send();
+      assertEquals(HttpServletResponse.SC_OK,response.getStatus());
+      B_VALUE.assertPassivatesEquals(1);
+      B_VALUE.assertActivatesEquals(1);
+      B_VALUE.assertBindsEquals(1);
+      B_VALUE.assertUnbindsEquals(0);
+      A_VALUE.assertBindsEquals(1);
+      A_VALUE.assertUnbindsEquals(1);
+    }
+  finally {
+      client.stop();
+    }
+  }
+  finally {
+    server.stop();
+  }
+}
