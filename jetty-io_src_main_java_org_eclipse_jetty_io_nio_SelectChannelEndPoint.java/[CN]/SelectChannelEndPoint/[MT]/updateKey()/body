@@ -3,8 +3,8 @@
 synchronized (this) {
     int current_ops=-1;
     if (getChannel().isOpen()) {
-      boolean read_interest=_readBlocked || (!_dispatched && !_connection.isSuspended());
-      boolean write_interest=_writeBlocked || (!_dispatched && !_writable);
+      boolean read_interest=_readBlocked || (_state < STATE_DISPATCHED && !_connection.isSuspended());
+      boolean write_interest=_writeBlocked || (_state < STATE_DISPATCHED && !_writable);
       _interestOps=((!_socket.isInputShutdown() && read_interest) ? SelectionKey.OP_READ : 0) | ((!_socket.isOutputShutdown() && write_interest) ? SelectionKey.OP_WRITE : 0);
       try {
         current_ops=((_key != null && _key.isValid()) ? _key.interestOps() : -1);

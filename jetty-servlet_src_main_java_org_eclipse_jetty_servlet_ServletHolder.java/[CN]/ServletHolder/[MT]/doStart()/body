@@ -6,14 +6,22 @@
   }
  catch (  UnavailableException ue) {
     makeUnavailable(ue);
-    throw ue;
+    if (_servletHandler.isStartWithUnavailable()) {
+      LOG.ignore(ue);
+      return;
+    }
+ else     throw ue;
   }
   try {
     checkServletType();
   }
  catch (  UnavailableException ue) {
     makeUnavailable(ue);
-    if (!_servletHandler.isStartWithUnavailable())     throw ue;
+    if (_servletHandler.isStartWithUnavailable()) {
+      LOG.ignore(ue);
+      return;
+    }
+ else     throw ue;
   }
   _identityService=_servletHandler.getIdentityService();
   if (_identityService != null && _runAsRole != null)   _runAsToken=_identityService.newRunAsToken(_runAsRole);

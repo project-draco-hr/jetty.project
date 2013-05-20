@@ -1,3 +1,14 @@
 {
-  _connection.onIdleExpired(idleForMs);
+  try {
+synchronized (this) {
+      _onIdle=true;
+    }
+    if (_maxIdleTime > 0 && (System.currentTimeMillis() - _idleTimestamp) > _maxIdleTime)     _connection.onIdleExpired(idleForMs);
+  }
+  finally {
+synchronized (this) {
+      _onIdle=false;
+      if (_state == STATE_NEEDS_DISPATCH)       dispatch();
+    }
+  }
 }
