@@ -5,6 +5,7 @@
   }
   ConfiguredEndpoint endpoint=new ConfiguredEndpoint(websocket,cec);
   ClientUpgradeRequest req=new ClientUpgradeRequest();
+  UpgradeListener upgradeListener=null;
   if (cec != null) {
     for (    Extension ext : cec.getExtensions()) {
       req.addExtensions(new JsrExtensionConfig(ext));
@@ -12,8 +13,11 @@
     if (cec.getPreferredSubprotocols().size() > 0) {
       req.setSubProtocols(config.getPreferredSubprotocols());
     }
+    if (cec.getConfigurator() != null) {
+      upgradeListener=new JsrUpgradeListener(cec.getConfigurator());
+    }
   }
-  Future<org.eclipse.jetty.websocket.api.Session> futSess=client.connect(endpoint,path,req);
+  Future<org.eclipse.jetty.websocket.api.Session> futSess=client.connect(endpoint,path,req,upgradeListener);
   try {
     return (JsrSession)futSess.get();
   }
