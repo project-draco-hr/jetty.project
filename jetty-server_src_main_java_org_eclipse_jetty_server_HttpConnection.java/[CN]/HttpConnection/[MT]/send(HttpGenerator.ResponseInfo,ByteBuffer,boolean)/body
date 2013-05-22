@@ -1,20 +1,16 @@
 {
   try {
-    if (info != null && _channel.isExpecting100Continue())     _generator.setPersistent(false);
-    Sender sender=new Sender(content,lastContent,_writeBlocker);
-    sender.process(info);
+    if (info == null)     new ContentCallback(content,lastContent,_writeBlocker).iterate();
+ else {
+      if (_channel.isExpecting100Continue())       _generator.setPersistent(false);
+      new CommitCallback(info,content,lastContent,_writeBlocker).iterate();
+    }
     _writeBlocker.block();
   }
- catch (  InterruptedException x) {
-    x.printStackTrace();
-    throw (IOException)new InterruptedIOException().initCause(x);
-  }
-catch (  TimeoutException e) {
-    e.printStackTrace();
-    throw new IOException(e);
-  }
-catch (  ClosedChannelException e) {
-    e.printStackTrace();
+ catch (  ClosedChannelException e) {
     throw new EofException(e);
+  }
+catch (  IOException e) {
+    throw e;
   }
 }
