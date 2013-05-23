@@ -1,0 +1,28 @@
+{
+  BufferUtil.flipToFlush(buffer,0);
+  LOG.debug("flush({}): {}",fin,BufferUtil.toDetailString(buffer));
+  frame.setPayload(buffer);
+  frame.setFin(fin);
+  blocker=new FutureWriteCallback();
+  outgoing.outgoingFrame(frame,blocker);
+  try {
+    blocker.get();
+    frameCount++;
+    frame.setOpCode(OpCode.CONTINUATION);
+  }
+ catch (  ExecutionException e) {
+    Throwable cause=e.getCause();
+    if (cause != null) {
+      if (cause instanceof IOException) {
+        throw (IOException)cause;
+      }
+ else {
+        throw new IOException(cause);
+      }
+    }
+    throw new IOException("Failed to flush",e);
+  }
+catch (  InterruptedException e) {
+    throw new IOException("Failed to flush",e);
+  }
+}
