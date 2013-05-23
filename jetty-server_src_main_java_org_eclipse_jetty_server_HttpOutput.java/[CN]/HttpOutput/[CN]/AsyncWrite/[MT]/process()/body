@@ -1,0 +1,37 @@
+{
+  if (BufferUtil.hasContent(_aggregate)) {
+    _channel.write(_aggregate,_complete && _len == 0,this);
+    return;
+  }
+  if (!_complete && _len < BufferUtil.space(_aggregate) && _len < _aggregate.capacity() / 4)   BufferUtil.append(_aggregate,_b,_off,_len);
+ else   if (_len > 0 && !_flushed) {
+    _channel.write(ByteBuffer.wrap(_b,_off,_len),_complete,this);
+    return;
+  }
+  try {
+    if (_complete) {
+      closed();
+      _channel.getResponse().closeOutput();
+    }
+    while (true) {
+switch (_state.get()) {
+case PENDING:
+        if (!_state.compareAndSet(State.PENDING,State.ASYNC))         continue;
+      return;
+case UNREADY:
+    if (!_state.compareAndSet(State.UNREADY,State.READY))     continue;
+  _channel.getState().asyncIO();
+return;
+case CLOSED:
+throw new EofException("Closed");
+default :
+throw new IllegalStateException();
+}
+}
+}
+ catch (Exception e) {
+_onError=e;
+_channel.getState().asyncIO();
+close();
+}
+}

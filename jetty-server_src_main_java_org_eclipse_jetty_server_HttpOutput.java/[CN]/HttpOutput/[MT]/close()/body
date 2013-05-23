@@ -1,13 +1,18 @@
 {
-  if (!isClosed()) {
-    try {
-      if (BufferUtil.hasContent(_aggregate))       _channel.write(_aggregate,!_channel.getResponse().isIncluding());
- else       _channel.write(BufferUtil.EMPTY_BUFFER,!_channel.getResponse().isIncluding());
+  State state=_state.get();
+  while (state != State.CLOSED) {
+    if (_state.compareAndSet(state,State.CLOSED)) {
+      try {
+        if (BufferUtil.hasContent(_aggregate))         _channel.write(_aggregate,!_channel.getResponse().isIncluding());
+ else         _channel.write(BufferUtil.EMPTY_BUFFER,!_channel.getResponse().isIncluding());
+      }
+ catch (      IOException e) {
+        _channel.getEndPoint().shutdownOutput();
+        LOG.ignore(e);
+      }
+      releaseBuffer();
+      return;
     }
- catch (    IOException e) {
-      _channel.getEndPoint().shutdownOutput();
-      LOG.ignore(e);
-    }
+    state=_state.get();
   }
-  closed();
 }
