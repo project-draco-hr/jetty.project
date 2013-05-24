@@ -1,19 +1,11 @@
 {
+  List<URL> configURLs=new ArrayList<URL>();
   String jettyetc=System.getProperty(JETTY_ETC_FILES,DEFAULT_JETTY_ETC_FILES);
   StringTokenizer tokenizer=new StringTokenizer(jettyetc,";,",false);
-  StringBuilder res=new StringBuilder();
   while (tokenizer.hasMoreTokens()) {
     String next=tokenizer.nextToken().trim();
-    if (!next.startsWith("/") && next.indexOf(':') == -1) {
-      try {
-        next=new File(jettyhome,next).toURI().toURL().toString();
-      }
- catch (      MalformedURLException e) {
-        LOG.warn(e);
-        continue;
-      }
-    }
-    appendToCommaSeparatedList(res,next);
+    if (!next.startsWith("/") && (next.indexOf(':') == -1))     configURLs.add(new File(jettyhome,next).toURI().toURL());
+ else     configURLs.add(new URL(next));
   }
-  return res.toString();
+  return configURLs;
 }
