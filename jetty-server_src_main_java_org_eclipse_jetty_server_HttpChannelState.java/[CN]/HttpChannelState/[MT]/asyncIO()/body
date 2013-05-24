@@ -1,2 +1,27 @@
 {
+  boolean handle=false;
+synchronized (this) {
+switch (_state) {
+case IDLE:
+      throw new IllegalStateException();
+case ASYNCWAIT:
+    _asyncIO=true;
+  handle=true;
+break;
+case ASYNCSTARTED:
+case REDISPATCHING:
+case REDISPATCHED:
+case REDISPATCH:
+case COMPLETECALLED:
+case COMPLETED:
+case COMPLETING:
+case DISPATCHED:
+_asyncIO=true;
+}
+}
+if (handle) {
+ContextHandler handler=getContextHandler();
+if (handler != null) handler.handle(_channel);
+ else _channel.handle();
+}
 }

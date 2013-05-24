@@ -2,6 +2,7 @@
   _written+=len;
   boolean complete=_channel.getResponse().isAllContentWritten(_written);
   while (true) {
+    System.err.println("write " + _state);
 switch (_state.get()) {
 case OPEN:
       break;
@@ -15,12 +16,14 @@ if (_aggregate == null) _aggregate=_channel.getByteBufferPool().acquire(capacity
 int filled=BufferUtil.fill(_aggregate,b,off,len);
 if (!complete && filled == len && !BufferUtil.isFull(_aggregate)) {
   if (!_state.compareAndSet(State.PENDING,State.ASYNC))   throw new IllegalStateException();
+  System.err.println("async complete ASYNC");
   return;
 }
 off+=filled;
 len-=filled;
 }
 new AsyncWrite(b,off,len,complete).process();
+System.err.println("async scheduled " + _state);
 return;
 case PENDING:
 case UNREADY:

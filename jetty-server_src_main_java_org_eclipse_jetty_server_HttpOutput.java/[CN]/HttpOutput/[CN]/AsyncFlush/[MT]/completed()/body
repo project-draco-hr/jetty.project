@@ -1,0 +1,29 @@
+{
+  try {
+    loop:     while (true) {
+      State last=_state.get();
+switch (last) {
+case PENDING:
+        if (!_state.compareAndSet(State.PENDING,State.ASYNC))         continue;
+      System.err.println("AsyncFlush#completed " + last + " -> "+ _state);
+    break;
+case UNREADY:
+  if (!_state.compareAndSet(State.UNREADY,State.READY))   continue;
+System.err.println("AsyncFlush#completed " + last + " -> "+ _state);
+_channel.getState().asyncIO();
+break;
+case CLOSED:
+_onError=new EofException("Closed");
+break;
+default :
+throw new IllegalStateException();
+}
+break loop;
+}
+}
+ catch (Exception e) {
+e.printStackTrace();
+_onError=e;
+_channel.getState().asyncIO();
+}
+}

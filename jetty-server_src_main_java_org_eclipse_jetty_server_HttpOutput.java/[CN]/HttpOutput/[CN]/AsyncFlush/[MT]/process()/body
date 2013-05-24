@@ -1,29 +1,14 @@
 {
+  System.err.println("AsyncFlush#process " + _state);
   if (BufferUtil.hasContent(_aggregate)) {
     _flushed=true;
     _channel.write(_aggregate,false,this);
-    return;
+    return false;
   }
-  if (!_flushed)   _channel.write(BufferUtil.EMPTY_BUFFER,false,this);
-  try {
-    while (true) {
-switch (_state.get()) {
-case PENDING:
-        if (!_state.compareAndSet(State.PENDING,State.ASYNC))         continue;
-      return;
-case UNREADY:
-    if (!_state.compareAndSet(State.UNREADY,State.READY))     continue;
-  _channel.getState().asyncIO();
-return;
-case CLOSED:
-throw new EofException("Closed");
-default :
-throw new IllegalStateException();
-}
-}
-}
- catch (Exception e) {
-_onError=e;
-_channel.getState().asyncIO();
-}
+  if (!_flushed) {
+    _flushed=true;
+    _channel.write(BufferUtil.EMPTY_BUFFER,false,this);
+    return false;
+  }
+  return true;
 }

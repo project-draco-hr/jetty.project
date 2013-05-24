@@ -1,0 +1,41 @@
+{
+  StringBuilder request=new StringBuilder(512);
+  request.append("GET /ctx/path/info");
+  char s='?';
+  for (  int w : writes) {
+    request.append(s).append("w=").append(w);
+    s='&';
+  }
+  request.append(" HTTP/1.1\r\n").append("Host: localhost\r\n").append("Connection: close\r\n").append("\r\n");
+  int port=_port;
+  List<String> list=new ArrayList<>();
+  try (Socket socket=new Socket("localhost",port)){
+    socket.setSoTimeout(1000000);
+    socket.setReceiveBufferSize(2048);
+    socket.getOutputStream().write(request.toString().getBytes("ISO-8859-1"));
+    BufferedReader in=new BufferedReader(new InputStreamReader(socket.getInputStream()),102400);
+    String line=in.readLine();
+    System.err.println("line: " + line);
+    Assert.assertThat(line,Matchers.startsWith("HTTP/1.1 200 OK"));
+    while (line != null) {
+      line=in.readLine();
+      System.err.println("line: " + line);
+      if (line.length() == 0)       break;
+    }
+    while (true) {
+      line=in.readLine();
+      if (line == null)       break;
+      System.err.println("line:  " + line.length() + "\t"+ (line.length() > 40 ? (line.substring(0,40) + "...") : line));
+      list.add(line);
+    }
+  }
+   int w=0;
+  for (  String line : list) {
+    if ("-".equals(line))     continue;
+    assertEquals(writes[w],line.length());
+    assertEquals(line.charAt(0),'0' + (w % 10));
+    w++;
+    if (w < writes.length && writes[w] <= 0)     w++;
+  }
+  return list;
+}
