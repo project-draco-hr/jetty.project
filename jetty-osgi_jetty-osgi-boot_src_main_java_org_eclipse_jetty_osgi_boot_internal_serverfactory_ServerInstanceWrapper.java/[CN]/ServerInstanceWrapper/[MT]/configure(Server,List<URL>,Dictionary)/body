@@ -1,21 +1,23 @@
 {
-  String jettyConfigurationUrls=(String)props.get(OSGiServerConstants.MANAGED_JETTY_XML_CONFIG_URLS);
-  List<URL> jettyConfigurations=jettyConfigurationUrls != null ? extractResources(jettyConfigurationUrls) : null;
   if (jettyConfigurations == null || jettyConfigurations.isEmpty()) {
-    return;
+    return server;
   }
   Map<String,Object> id_map=new HashMap<String,Object>();
-  id_map.put("Server",server);
-  id_map.put((String)props.get(OSGiServerConstants.MANAGED_JETTY_SERVER_NAME),server);
+  if (server != null) {
+    id_map.put("Server",server);
+    id_map.put((String)props.get(OSGiServerConstants.MANAGED_JETTY_SERVER_NAME),server);
+  }
   Map<String,String> properties=new HashMap<String,String>();
-  Enumeration<Object> en=props.keys();
-  while (en.hasMoreElements()) {
-    Object key=en.nextElement();
-    Object value=props.get(key);
-    String keyStr=String.valueOf(key);
-    String valStr=String.valueOf(value);
-    properties.put(keyStr,valStr);
-    server.setAttribute(keyStr,valStr);
+  if (props != null) {
+    Enumeration<Object> en=props.keys();
+    while (en.hasMoreElements()) {
+      Object key=en.nextElement();
+      Object value=props.get(key);
+      String keyStr=String.valueOf(key);
+      String valStr=String.valueOf(value);
+      properties.put(keyStr,valStr);
+      if (server != null)       server.setAttribute(keyStr,valStr);
+    }
   }
   for (  URL jettyConfiguration : jettyConfigurations) {
     InputStream is=null;
@@ -23,23 +25,20 @@
       Resource r=Resource.newResource(jettyConfiguration);
       if (!r.exists()) {
         LOG.warn("File does not exist " + r);
-        continue;
+        throw new IllegalStateException("No such jetty server config file: " + r);
       }
       is=r.getInputStream();
       XmlConfiguration config=new XmlConfiguration(is);
       config.getIdMap().putAll(id_map);
+      config.getProperties().putAll(properties);
       String urlPath=jettyConfiguration.toString();
       int lastSlash=urlPath.lastIndexOf('/');
       if (lastSlash > 4) {
         urlPath=urlPath.substring(0,lastSlash);
-        Map<String,String> properties2=new HashMap<String,String>(properties);
-        properties2.put(PROPERTY_THIS_JETTY_XML_FOLDER_URL,urlPath);
-        config.getProperties().putAll(properties2);
+        config.getProperties().put(PROPERTY_THIS_JETTY_XML_FOLDER_URL,urlPath);
       }
- else {
-        config.getProperties().putAll(properties);
-      }
-      config.configure();
+      Object o=config.configure();
+      if (server == null)       server=(Server)o;
       id_map=config.getIdMap();
     }
  catch (    SAXParseException saxparse) {
@@ -50,4 +49,5 @@
       IO.close(is);
     }
   }
+  return server;
 }
