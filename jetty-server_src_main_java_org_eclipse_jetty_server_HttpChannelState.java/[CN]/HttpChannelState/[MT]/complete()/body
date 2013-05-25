@@ -1,26 +1,14 @@
 {
   boolean handle;
 synchronized (this) {
-switch (_state) {
-case DISPATCHED:
-case REDISPATCHED:
-      throw new IllegalStateException(this.getStatusString());
-case IDLE:
-case ASYNCSTARTED:
-    _state=State.COMPLETECALLED;
-  return;
-case ASYNCWAIT:
-_state=State.COMPLETECALLED;
-handle=!_expired;
-break;
-default :
-throw new IllegalStateException(this.getStatusString());
-}
-}
-if (handle) {
-cancelTimeout();
-ContextHandler handler=getContextHandler();
-if (handler != null) handler.handle(_channel);
- else _channel.handle();
-}
+    if (_async != Async.STARTED && _async != Async.EXPIRING)     throw new IllegalStateException(this.getStatusString());
+    _async=Async.COMPLETE;
+    handle=_state == State.ASYNCWAIT;
+  }
+  cancelTimeout();
+  if (handle) {
+    ContextHandler handler=getContextHandler();
+    if (handler != null)     handler.handle(_channel);
+ else     _channel.handle();
+  }
 }

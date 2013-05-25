@@ -1,17 +1,13 @@
 {
-  System.err.println("AsyncWrite#process " + _state);
   if (BufferUtil.hasContent(_aggregate)) {
-    System.err.println("write aggregate " + BufferUtil.toDetailString(_aggregate));
     _channel.write(_aggregate,_complete && _len == 0,this);
     return false;
   }
   if (!_complete && _len < BufferUtil.space(_aggregate) && _len < _aggregate.capacity() / 4) {
-    System.err.println("append aggregate");
     BufferUtil.append(_aggregate,_b,_off,_len);
   }
  else   if (_len > 0 && !_flushed) {
     ByteBuffer buffer=ByteBuffer.wrap(_b,_off,_len);
-    System.err.println("write buffer " + _complete + " "+ BufferUtil.toDetailString(buffer));
     _flushed=true;
     _channel.write(buffer,_complete,this);
     return false;

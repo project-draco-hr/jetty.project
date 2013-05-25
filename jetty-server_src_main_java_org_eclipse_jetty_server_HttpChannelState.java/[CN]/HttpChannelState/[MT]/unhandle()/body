@@ -1,31 +1,40 @@
 {
 synchronized (this) {
-    if (_asyncIO) {
-      _asyncIO=false;
-      return Action.IO_CALLBACK;
-    }
 switch (_state) {
-case REDISPATCHED:
 case DISPATCHED:
-      _state=State.COMPLETING;
-    return Action.COMPLETE;
-case IDLE:
-  throw new IllegalStateException(this.getStatusString());
-case ASYNCSTARTED:
-_initial=false;
-_state=State.ASYNCWAIT;
+case ASYNCIO:
+      break;
+default :
+    throw new IllegalStateException(this.getStatusString());
+}
+if (_asyncIO) {
+  _asyncIO=false;
+  _state=State.ASYNCIO;
+  return Action.IO_CALLBACK;
+}
+if (_async != null) {
+  _initial=false;
+switch (_async) {
+case COMPLETE:
+    _state=State.COMPLETING;
+  _async=null;
+return Action.COMPLETE;
+case DISPATCH:
+_state=State.DISPATCHED;
+_async=null;
+return Action.ASYNC_DISPATCH;
+case EXPIRED:
+_state=State.DISPATCHED;
+_async=null;
+return Action.ASYNC_EXPIRED;
+case EXPIRING:
+case STARTED:
 scheduleTimeout();
+_state=State.ASYNCWAIT;
 return Action.WAIT;
-case REDISPATCHING:
-_initial=false;
-_state=State.REDISPATCHED;
-return _expired ? Action.ASYNC_EXPIRED : Action.ASYNC_DISPATCH;
-case COMPLETECALLED:
-_initial=false;
+}
+}
 _state=State.COMPLETING;
 return Action.COMPLETE;
-default :
-throw new IllegalStateException(this.getStatusString());
-}
 }
 }

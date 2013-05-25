@@ -1,30 +1,21 @@
 {
 synchronized (this) {
-switch (_state) {
-case DISPATCHED:
-case REDISPATCHED:
-      _expired=false;
-    _responseWrapped=event.getSuppliedResponse() != _channel.getResponse();
-  _responseWrapped=false;
-_event=event;
-_state=State.ASYNCSTARTED;
-List<AsyncListener> listeners=_lastAsyncListeners;
-_lastAsyncListeners=_asyncListeners;
-if (listeners != null) listeners.clear();
-_asyncListeners=listeners;
-break;
-default :
-throw new IllegalStateException(this.getStatusString());
-}
-}
-if (_lastAsyncListeners != null) {
-for (AsyncListener listener : _lastAsyncListeners) {
-try {
-listener.onStartAsync(_event);
-}
- catch (Exception e) {
-LOG.warn(e);
-}
-}
-}
+    if (_state != State.DISPATCHED || _async != null)     throw new IllegalStateException(this.getStatusString());
+    _async=Async.STARTED;
+    _event=event;
+    List<AsyncListener> listeners=_lastAsyncListeners;
+    _lastAsyncListeners=_asyncListeners;
+    if (listeners != null)     listeners.clear();
+    _asyncListeners=listeners;
+  }
+  if (_lastAsyncListeners != null) {
+    for (    AsyncListener listener : _lastAsyncListeners) {
+      try {
+        listener.onStartAsync(_event);
+      }
+ catch (      Exception e) {
+        LOG.warn(e);
+      }
+    }
+  }
 }
