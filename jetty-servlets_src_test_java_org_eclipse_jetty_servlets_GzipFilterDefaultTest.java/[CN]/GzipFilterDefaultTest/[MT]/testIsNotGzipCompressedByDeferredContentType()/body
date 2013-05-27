@@ -1,0 +1,15 @@
+{
+  GzipTester tester=new GzipTester(testingdir,compressionType);
+  int filesize=CompressedResponseWrapper.DEFAULT_BUFFER_SIZE * 4;
+  tester.prepareServerFile("file.mp3.deferred",filesize);
+  FilterHolder holder=tester.setContentServlet(GetServlet.class);
+  holder.setInitParameter("mimeTypes","text/plain");
+  try {
+    tester.start();
+    HttpTester http=tester.assertIsResponseNotGzipCompressed("GET","file.mp3.deferred",filesize,HttpStatus.OK_200);
+    Assert.assertNull(http.getHeader("Vary"));
+  }
+  finally {
+    tester.stop();
+  }
+}
