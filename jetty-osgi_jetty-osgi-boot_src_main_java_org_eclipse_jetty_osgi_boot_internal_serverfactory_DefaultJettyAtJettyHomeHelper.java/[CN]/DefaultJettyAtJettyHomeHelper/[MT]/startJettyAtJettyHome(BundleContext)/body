@@ -1,17 +1,19 @@
 {
   String jettyHomeSysProp=System.getProperty(OSGiServerConstants.JETTY_HOME);
   String jettyHomeBundleSysProp=System.getProperty(OSGiServerConstants.JETTY_HOME_BUNDLE);
-  File jettyHome=null;
+  File jettyHomeDir=null;
   Bundle jettyHomeBundle=null;
+  Dictionary<String,String> properties=new Hashtable<String,String>();
   if (jettyHomeSysProp != null) {
     jettyHomeSysProp=Util.resolvePropertyValue(jettyHomeSysProp);
     if (jettyHomeSysProp.startsWith("\"") && jettyHomeSysProp.endsWith("\"") || (jettyHomeSysProp.startsWith("'") && jettyHomeSysProp.endsWith("'")))     jettyHomeSysProp=jettyHomeSysProp.substring(1,jettyHomeSysProp.length() - 1);
     if (jettyHomeBundleSysProp != null)     LOG.warn("Both jetty.home and jetty.home.bundle property defined: jetty.home.bundle ignored.");
-    jettyHome=new File(jettyHomeSysProp);
-    if (!jettyHome.exists() || !jettyHome.isDirectory()) {
+    jettyHomeDir=new File(jettyHomeSysProp);
+    if (!jettyHomeDir.exists() || !jettyHomeDir.isDirectory()) {
       LOG.warn("Unable to locate the jetty.home folder " + jettyHomeSysProp);
       return null;
     }
+    Util.setProperty(properties,OSGiServerConstants.JETTY_HOME,jettyHomeDir.getAbsolutePath());
   }
  else   if (jettyHomeBundleSysProp != null) {
     jettyHomeBundleSysProp=Util.resolvePropertyValue(jettyHomeBundleSysProp);
@@ -26,18 +28,17 @@
       return null;
     }
   }
-  if (jettyHome == null && jettyHomeBundle == null) {
+  if (jettyHomeDir == null && jettyHomeBundle == null) {
     LOG.warn("No default jetty created.");
     return null;
   }
-  List<URL> configURLs=jettyHome != null ? getJettyConfigurationURLs(jettyHome) : getJettyConfigurationURLs(jettyHomeBundle);
+  List<URL> configURLs=jettyHomeDir != null ? getJettyConfigurationURLs(jettyHomeDir) : getJettyConfigurationURLs(jettyHomeBundle,properties);
   LOG.info("Configuring the default jetty server with {}",configURLs);
+  LOG.info("JETTY.HOME=" + properties.get(OSGiServerConstants.JETTY_HOME));
   ClassLoader contextCl=Thread.currentThread().getContextClassLoader();
   try {
     Thread.currentThread().setContextClassLoader(JettyBootstrapActivator.class.getClassLoader());
-    Dictionary<String,String> properties=new Hashtable<String,String>();
     properties.put(OSGiServerConstants.MANAGED_JETTY_SERVER_NAME,OSGiServerConstants.MANAGED_JETTY_SERVER_DEFAULT_NAME);
-    Util.setProperty(properties,OSGiServerConstants.JETTY_HOME,System.getProperty(OSGiServerConstants.JETTY_HOME));
     Util.setProperty(properties,OSGiServerConstants.JETTY_HOST,System.getProperty(OSGiServerConstants.JETTY_HOST));
     Util.setProperty(properties,OSGiServerConstants.JETTY_PORT,System.getProperty(OSGiServerConstants.JETTY_PORT));
     Util.setProperty(properties,OSGiServerConstants.JETTY_PORT_SSL,System.getProperty(OSGiServerConstants.JETTY_PORT_SSL));
