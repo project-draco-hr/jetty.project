@@ -5,10 +5,12 @@
     ClassLoader libExtClassLoader=null;
     String sharedURLs=(String)props.get(OSGiServerConstants.MANAGED_JETTY_SHARED_LIB_FOLDER_URLS);
     List<File> shared=sharedURLs != null ? extractFiles(sharedURLs) : null;
-    libExtClassLoader=LibExtClassLoaderHelper.createLibExtClassLoader(shared,null,server,JettyBootstrapActivator.class.getClassLoader());
+    libExtClassLoader=LibExtClassLoaderHelper.createLibExtClassLoader(shared,null,JettyBootstrapActivator.class.getClassLoader());
     if (LOG.isDebugEnabled())     LOG.debug("LibExtClassLoader = " + libExtClassLoader);
     Thread.currentThread().setContextClassLoader(libExtClassLoader);
-    configure(server,props);
+    String jettyConfigurationUrls=(String)props.get(OSGiServerConstants.MANAGED_JETTY_XML_CONFIG_URLS);
+    List<URL> jettyConfigurations=jettyConfigurationUrls != null ? Util.fileNamesAsURLs(jettyConfigurationUrls,Util.DEFAULT_DELIMS) : null;
+    _server=configure(server,jettyConfigurations,props);
     init();
     if (!__containerTldBundleDiscoverers.isEmpty()) {
       Set<URL> urls=new HashSet<URL>();
