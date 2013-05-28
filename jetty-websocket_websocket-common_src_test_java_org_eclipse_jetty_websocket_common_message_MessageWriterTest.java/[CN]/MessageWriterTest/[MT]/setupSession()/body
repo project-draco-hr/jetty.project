@@ -1,0 +1,13 @@
+{
+  policy=WebSocketPolicy.newServerPolicy();
+  policy.setInputBufferSize(1024);
+  policy.setMaxTextMessageBufferSize(1024);
+  EventDriverFactory factory=new EventDriverFactory(policy);
+  EventDriver driver=factory.wrap(new TrackingSocket("local"));
+  socket=new TrackingSocket("remote");
+  OutgoingFrames socketPipe=FramePipes.to(factory.wrap(socket));
+  session=new LocalWebSocketSession(testname,driver);
+  session.setPolicy(policy);
+  session.setOutgoingHandler(socketPipe);
+  session.open();
+}
