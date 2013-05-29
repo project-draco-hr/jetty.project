@@ -1,14 +1,20 @@
 {
   if (_closed)   throw new IOException("CLOSED");
   if (_out == null) {
-    long length=_wrapper.getContentLength();
-    if (_response.isCommitted() || (length >= 0 && length < _wrapper.getMinCompressSize()))     doNotCompress(false);
- else     if (lengthToWrite > _wrapper.getMinCompressSize())     doCompress();
- else     _out=_bOut=new ByteArrayOutputStream2(_wrapper.getBufferSize());
+    if (lengthToWrite > _wrapper.getBufferSize()) {
+      long length=_wrapper.getContentLength();
+      if (length >= 0 && length < _wrapper.getMinCompressSize())       doNotCompress(false);
+ else       doCompress();
+    }
+ else {
+      _out=_bOut=new ByteArrayOutputStream2(_wrapper.getBufferSize());
+    }
   }
  else   if (_bOut != null) {
-    long length=_wrapper.getContentLength();
-    if (_response.isCommitted() || (length >= 0 && length < _wrapper.getMinCompressSize()))     doNotCompress(false);
- else     if (lengthToWrite >= (_bOut.getBuf().length - _bOut.getCount()))     doCompress();
+    if (lengthToWrite >= (_bOut.getBuf().length - _bOut.getCount())) {
+      long length=_wrapper.getContentLength();
+      if (length >= 0 && length < _wrapper.getMinCompressSize())       doNotCompress(false);
+ else       doCompress();
+    }
   }
 }
