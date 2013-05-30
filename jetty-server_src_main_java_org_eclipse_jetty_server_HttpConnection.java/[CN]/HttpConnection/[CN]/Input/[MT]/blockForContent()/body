@@ -1,8 +1,8 @@
 {
-  while (true) {
+  while (!_parser.isComplete()) {
     boolean event=_parser.parseNext(_requestBuffer == null ? BufferUtil.EMPTY_BUFFER : _requestBuffer);
-    while (event && BufferUtil.hasContent(_requestBuffer) && _parser.inContentState())     _parser.parseNext(_requestBuffer);
-    if (event)     return;
+    while (!event && BufferUtil.hasContent(_requestBuffer) && _parser.inContentState())     event=_parser.parseNext(_requestBuffer);
+    if (_parser.isComplete() || available() > 0)     return;
     if (BufferUtil.isEmpty(_requestBuffer)) {
       if (getEndPoint().isInputShutdown()) {
         _parser.shutdownInput();
