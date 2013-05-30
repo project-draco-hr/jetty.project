@@ -1,7 +1,24 @@
 {
-  if (LOG.isDebugEnabled()) {
-    LOG.debug("sendPartialBytes({}, {})",BufferUtil.toDetailString(fragment),isLast);
+  if (msgLock.tryLock()) {
+    try {
+      if (msgType.get() == TEXT) {
+        throw new IllegalStateException("Prior TEXT message pending, cannot start new BINARY message yet.");
+      }
+      msgType.set(BINARY);
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("sendPartialBytes({}, {})",BufferUtil.toDetailString(fragment),isLast);
+      }
+      WebSocketFrame frame=WebSocketFrame.binary().setPayload(fragment).setFin(isLast);
+      blockingWrite(frame);
+    }
+  finally {
+      if (isLast) {
+        msgType.set(NONE);
+      }
+      msgLock.unlock();
+    }
   }
-  WebSocketFrame frame=WebSocketFrame.binary().setPayload(fragment).setFin(isLast);
-  blockingWrite(frame);
+ else {
+    throw new IllegalStateException(PRIORMSG_ERROR);
+  }
 }

@@ -1,7 +1,19 @@
 {
-  if (LOG.isDebugEnabled()) {
-    LOG.debug("sendPing with {}",BufferUtil.toDetailString(applicationData));
+  if (msgLock.tryLock()) {
+    try {
+      msgType.set(CONTROL);
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("sendPing with {}",BufferUtil.toDetailString(applicationData));
+      }
+      WebSocketFrame frame=WebSocketFrame.ping().setPayload(applicationData);
+      blockingWrite(frame);
+    }
+  finally {
+      msgType.set(NONE);
+      msgLock.unlock();
+    }
   }
-  WebSocketFrame frame=WebSocketFrame.ping().setPayload(applicationData);
-  blockingWrite(frame);
+ else {
+    throw new IllegalStateException(PRIORMSG_ERROR);
+  }
 }

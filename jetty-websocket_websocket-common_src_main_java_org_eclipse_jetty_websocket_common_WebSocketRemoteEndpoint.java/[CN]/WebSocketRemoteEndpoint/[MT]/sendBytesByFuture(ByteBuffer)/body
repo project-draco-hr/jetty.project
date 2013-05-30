@@ -1,7 +1,19 @@
 {
-  if (LOG.isDebugEnabled()) {
-    LOG.debug("sendBytesByFuture with {}",BufferUtil.toDetailString(data));
+  if (msgLock.tryLock()) {
+    try {
+      msgType.set(BINARY);
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("sendBytesByFuture with {}",BufferUtil.toDetailString(data));
+      }
+      WebSocketFrame frame=WebSocketFrame.binary().setPayload(data);
+      return sendAsyncFrame(frame);
+    }
+  finally {
+      msgType.set(NONE);
+      msgLock.unlock();
+    }
   }
-  WebSocketFrame frame=WebSocketFrame.binary().setPayload(data);
-  return sendAsyncFrame(frame);
+ else {
+    throw new IllegalStateException(PRIORMSG_ERROR);
+  }
 }

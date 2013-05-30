@@ -1,8 +1,20 @@
 {
-  connection.getIOState().assertOutputOpen();
-  if (LOG.isDebugEnabled()) {
-    LOG.debug("sendBytes with {}",BufferUtil.toDetailString(data));
+  if (msgLock.tryLock()) {
+    try {
+      msgType.set(BINARY);
+      connection.getIOState().assertOutputOpen();
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("sendBytes with {}",BufferUtil.toDetailString(data));
+      }
+      WebSocketFrame frame=WebSocketFrame.binary().setPayload(data);
+      blockingWrite(frame);
+    }
+  finally {
+      msgType.set(NONE);
+      msgLock.unlock();
+    }
   }
-  WebSocketFrame frame=WebSocketFrame.binary().setPayload(data);
-  blockingWrite(frame);
+ else {
+    throw new IllegalStateException(PRIORMSG_ERROR);
+  }
 }
