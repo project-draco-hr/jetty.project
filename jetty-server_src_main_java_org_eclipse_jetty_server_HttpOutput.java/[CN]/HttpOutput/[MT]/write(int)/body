@@ -6,12 +6,13 @@ switch (_state.get()) {
 case OPEN:
       if (_aggregate == null)       _aggregate=_channel.getByteBufferPool().acquire(getBufferSize(),false);
     BufferUtil.append(_aggregate,(byte)b);
-  if (complete || BufferUtil.isFull(_aggregate)) {
-    BlockingCallback callback=_channel.getWriteBlockingCallback();
-    _channel.write(_aggregate,complete,callback);
-    callback.block();
-    if (complete)     closed();
-  }
+  boolean complete=_channel.getResponse().isAllContentWritten(_written);
+if (complete || BufferUtil.isFull(_aggregate)) {
+  BlockingCallback callback=_channel.getWriteBlockingCallback();
+  _channel.write(_aggregate,complete,callback);
+  callback.block();
+  if (complete)   closed();
+}
 break;
 case ASYNC:
 throw new IllegalStateException("isReady() not called");
