@@ -1,0 +1,15 @@
+{
+  GzipTester tester=new GzipTester(testingdir,compressionType);
+  int filesize=CompressedResponseWrapper.DEFAULT_BUFFER_SIZE * 4;
+  tester.prepareServerFile("file.txt",filesize);
+  FilterHolder holder=tester.setContentServlet(org.eclipse.jetty.servlet.DefaultServlet.class);
+  holder.setInitParameter("mimeTypes","text/plain");
+  holder.setInitParameter("etags","true");
+  try {
+    tester.start();
+    HttpTester http=tester.assertIsResponseNotModified("GET","file.txt",System.currentTimeMillis() + 4000);
+  }
+  finally {
+    tester.stop();
+  }
+}
