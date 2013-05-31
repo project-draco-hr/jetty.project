@@ -87,7 +87,7 @@ setState(State.SPACE2);
 _responseStatus=_responseStatus * 10 + (ch - '0');
 }
  else if (ch < HttpTokens.SPACE && ch >= 0) {
-return_from_parse|=_responseHandler.startResponse(_version,_responseStatus,null);
+return_from_parse=_responseHandler.startResponse(_version,_responseStatus,null) || return_from_parse;
 setState(State.HEADER);
 }
  else {
@@ -100,11 +100,11 @@ setState(State.SPACE2);
 }
  else if (ch < HttpTokens.SPACE && ch >= 0) {
 _uri.flip();
-return_from_parse|=_requestHandler.startRequest(_method,_methodString,_uri,null);
+return_from_parse=_requestHandler.startRequest(_method,_methodString,_uri,null) || return_from_parse;
 setState(State.END);
 BufferUtil.clear(buffer);
-return_from_parse|=_handler.headerComplete();
-return_from_parse|=_handler.messageComplete();
+return_from_parse=_handler.headerComplete() || return_from_parse;
+return_from_parse=_handler.messageComplete() || return_from_parse;
 }
  else {
 if (!_uri.hasRemaining()) {
@@ -150,16 +150,16 @@ buffer.position(pos);
 }
  else if (ch == HttpTokens.LINE_FEED) {
 if (_responseHandler != null) {
-return_from_parse|=_responseHandler.startResponse(_version,_responseStatus,null);
+return_from_parse=_responseHandler.startResponse(_version,_responseStatus,null) || return_from_parse;
 setState(State.HEADER);
 }
  else {
 _uri.flip();
-return_from_parse|=_requestHandler.startRequest(_method,_methodString,_uri,null);
+return_from_parse=_requestHandler.startRequest(_method,_methodString,_uri,null) || return_from_parse;
 setState(State.END);
 BufferUtil.clear(buffer);
-return_from_parse|=_handler.headerComplete();
-return_from_parse|=_handler.messageComplete();
+return_from_parse=_handler.headerComplete() || return_from_parse;
+return_from_parse=_handler.messageComplete() || return_from_parse;
 }
 }
 break;
@@ -175,7 +175,7 @@ if (header_cache > 0) _connectionFields=new ArrayTernaryTrie<>(header_cache);
 }
 setState(State.HEADER);
 _uri.flip();
-return_from_parse|=_requestHandler.startRequest(_method,_methodString,_uri,_version);
+return_from_parse=_requestHandler.startRequest(_method,_methodString,_uri,_version) || return_from_parse;
 continue;
 }
  else _string.append((char)ch);
@@ -184,7 +184,7 @@ case REASON:
 if (ch == HttpTokens.LINE_FEED) {
 String reason=takeLengthString();
 setState(State.HEADER);
-return_from_parse|=_responseHandler.startResponse(_version,_responseStatus,reason);
+return_from_parse=_responseHandler.startResponse(_version,_responseStatus,reason) || return_from_parse;
 continue;
 }
  else {
