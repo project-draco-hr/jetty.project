@@ -5,10 +5,13 @@
   request.setVersion("HTTP/1.0");
   request.setHeader("Host","tester");
   request.setHeader("Accept-Encoding",compressionType);
+  if (ifmodifiedsince > 0)   request.setHeader(HttpHeaders.IF_MODIFIED_SINCE,HttpFields.formatDate(ifmodifiedsince));
   if (this.userAgent != null)   request.setHeader("User-Agent",this.userAgent);
-  request.setURI(uri);
+  request.setURI("/context/" + requestedFilename);
   ByteArrayBuffer reqsBuff=new ByteArrayBuffer(request.generate().getBytes());
   ByteArrayBuffer respBuff=servletTester.getResponses(reqsBuff);
   response.parse(respBuff.asArray());
+  Assert.assertThat(response.getStatus(),Matchers.equalTo(304));
+  Assert.assertThat(response.getHeader("ETag"),Matchers.startsWith("W/"));
   return response;
 }
