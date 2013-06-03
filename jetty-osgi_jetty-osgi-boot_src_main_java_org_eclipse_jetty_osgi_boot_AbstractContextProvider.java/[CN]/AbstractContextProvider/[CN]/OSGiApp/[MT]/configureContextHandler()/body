@@ -27,14 +27,16 @@
           if (jettyHome.startsWith("\"") || jettyHome.startsWith("'"))           jettyHome=jettyHome.substring(1);
           if (jettyHome.endsWith("\"") || (jettyHome.endsWith("'")))           jettyHome=jettyHome.substring(0,jettyHome.length() - 1);
           res=getFileAsResource(jettyHome,_contextFile);
-          if (LOG.isDebugEnabled())           LOG.debug("jetty home context file:" + res);
+          LOG.debug("jetty home context file: {}",res);
         }
       }
     }
     if (res == null) {
       if (bundleOverrideLocation != null) {
-        res=getFileAsResource(Resource.newResource(bundleOverrideLocation).getFile(),_contextFile);
-        if (LOG.isDebugEnabled())         LOG.debug("Bundle override location context file:" + res);
+        try (Resource location=Resource.newResource(bundleOverrideLocation)){
+          res=location.addPath(_contextFile);
+        }
+         LOG.debug("Bundle override location context file: {}",res);
       }
     }
     if (res == null) {
