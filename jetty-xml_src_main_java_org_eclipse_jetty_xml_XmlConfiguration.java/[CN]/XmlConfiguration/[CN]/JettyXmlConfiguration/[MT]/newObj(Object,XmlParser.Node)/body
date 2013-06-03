@@ -1,26 +1,27 @@
 {
   Class<?> oClass=nodeClass(node);
   int argIndex=node.size();
-  for (int i=0; i < node.size(); i++) {
-    Object o=node.get(i);
-    if (o instanceof String)     continue;
-    if (!((XmlParser.Node)o).getTag().equals("Arg")) {
-      argIndex=i;
-      break;
-    }
-  }
   Map<String,Object> namedArgMap=new HashMap<>();
   List<Object> arguments=new LinkedList<>();
+  XmlParser.Node child;
   for (int i=0; i < node.size(); i++) {
     Object o=node.get(i);
     if (o instanceof String) {
       continue;
     }
-    XmlParser.Node argNode=(XmlParser.Node)o;
-    String namedAttribute=argNode.getAttribute("name");
-    Object value=value(obj,(XmlParser.Node)o);
-    if (namedAttribute != null)     namedArgMap.put(namedAttribute,value);
-    arguments.add(value);
+    child=(XmlParser.Node)o;
+    if (child.getTag().equals("Arg")) {
+      String namedAttribute=child.getAttribute("name");
+      Object value=value(obj,child);
+      if (namedAttribute != null) {
+        namedArgMap.put(namedAttribute,value);
+      }
+      arguments.add(value);
+    }
+ else {
+      argIndex=i;
+      break;
+    }
   }
   if (LOG.isDebugEnabled())   LOG.debug("XML new " + oClass);
   Object n;
