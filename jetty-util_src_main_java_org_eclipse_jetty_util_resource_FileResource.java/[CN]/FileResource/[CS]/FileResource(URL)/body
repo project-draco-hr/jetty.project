@@ -1,30 +1,28 @@
 {
-  super(url,null);
+  File file;
   try {
-    _file=new File(new URI(url.toString()));
+    file=new File(url.toURI());
   }
  catch (  URISyntaxException e) {
     throw e;
   }
 catch (  Exception e) {
+    if (!url.toString().startsWith("file:"))     throw new IllegalArgumentException("!file:");
     LOG.ignore(e);
     try {
       String file_url="file:" + URIUtil.encodePath(url.toString().substring(5));
       URI uri=new URI(file_url);
-      if (uri.getAuthority() == null)       _file=new File(uri);
- else       _file=new File("//" + uri.getAuthority() + URIUtil.decodePath(url.getFile()));
+      if (uri.getAuthority() == null)       file=new File(uri);
+ else       file=new File("//" + uri.getAuthority() + URIUtil.decodePath(url.getFile()));
     }
  catch (    Exception e2) {
       LOG.ignore(e2);
-      checkConnection();
-      Permission perm=_connection.getPermission();
-      _file=new File(perm == null ? url.getFile() : perm.getName());
+      URLConnection connection=url.openConnection();
+      Permission perm=connection.getPermission();
+      file=new File(perm == null ? url.getFile() : perm.getName());
     }
   }
-  if (_file.isDirectory()) {
-    if (!_urlString.endsWith("/"))     _urlString=_urlString + "/";
-  }
- else {
-    if (_urlString.endsWith("/"))     _urlString=_urlString.substring(0,_urlString.length() - 1);
-  }
+  _file=file;
+  _uri=normalizeURI(_file,url.toURI());
+  _alias=checkAlias(_file);
 }
