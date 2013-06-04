@@ -1,0 +1,22 @@
+{
+  LocalWebSocketConnection conn=new LocalWebSocketConnection(testname);
+  try (PayloadInputStream stream=new PayloadInputStream(conn)){
+    final AtomicBoolean hadError=new AtomicBoolean(false);
+    new Thread(new Runnable(){
+      @Override public void run(){
+        try {
+          TimeUnit.MILLISECONDS.sleep(400);
+          stream.messageComplete();
+        }
+ catch (        InterruptedException e) {
+          hadError.set(true);
+          e.printStackTrace(System.err);
+        }
+      }
+    }
+).start();
+    int b=stream.read();
+    Assert.assertThat("Error when appending",hadError.get(),is(false));
+    Assert.assertThat("Initial byte",b,is(-1));
+  }
+ }
