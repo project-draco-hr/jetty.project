@@ -1,17 +1,17 @@
 {
-  if (finished) {
-    throw new IOException("Cannot append to finished buffer");
+  if (buffersExhausted.get()) {
+    throw new RuntimeException("Last frame already received");
   }
-  if (payload == null) {
+  if (closed.get()) {
     return;
   }
-  driver.getPolicy().assertValidBinaryMessageSize(size + payload.remaining());
-  size+=payload.remaining();
-synchronized (buf) {
-    BufferUtil.put(payload,buf);
+  try {
+    buffers.put(payload);
+    if (isLast) {
+      buffersExhausted.set(true);
+    }
   }
-  if (needsNotification) {
-    needsNotification=true;
-    this.driver.onInputStream(this);
+ catch (  InterruptedException e) {
+    throw new IOException(e);
   }
 }
