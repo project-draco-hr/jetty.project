@@ -1,6 +1,6 @@
 {
   if (activeMessage == null) {
-    MessageHandlerWrapper wrapper=jsrsession.getMessageHandlerWrapper(MessageType.BINARY);
+    final MessageHandlerWrapper wrapper=jsrsession.getMessageHandlerWrapper(MessageType.BINARY);
     if (wrapper == null) {
       LOG.debug("No BINARY MessageHandler declared");
       return;
@@ -9,7 +9,15 @@
       activeMessage=new BinaryPartialMessage(wrapper);
     }
  else     if (wrapper.wantsStreams()) {
-      activeMessage=new BinaryStreamMessage(this,wrapper);
+      final MessageInputStream stream=new MessageInputStream(session.getConnection());
+      activeMessage=stream;
+      dispatch(new Runnable(){
+        @SuppressWarnings("unchecked") @Override public void run(){
+          MessageHandler.Whole<InputStream> handler=(Whole<InputStream>)wrapper.getHandler();
+          handler.onMessage(stream);
+        }
+      }
+);
     }
  else {
       activeMessage=new BinaryWholeMessage(this,wrapper);

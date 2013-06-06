@@ -1,6 +1,6 @@
 {
   if (activeMessage == null) {
-    MessageHandlerWrapper wrapper=jsrsession.getMessageHandlerWrapper(MessageType.TEXT);
+    final MessageHandlerWrapper wrapper=jsrsession.getMessageHandlerWrapper(MessageType.TEXT);
     if (wrapper == null) {
       LOG.debug("No TEXT MessageHandler declared");
       return;
@@ -9,7 +9,15 @@
       activeMessage=new TextPartialMessage(wrapper);
     }
  else     if (wrapper.wantsStreams()) {
-      activeMessage=new TextStreamMessage(this,wrapper);
+      final MessageReader stream=new MessageReader(new MessageInputStream(session.getConnection()));
+      activeMessage=stream;
+      dispatch(new Runnable(){
+        @SuppressWarnings("unchecked") @Override public void run(){
+          MessageHandler.Whole<Reader> handler=(Whole<Reader>)wrapper.getHandler();
+          handler.onMessage(stream);
+        }
+      }
+);
     }
  else {
       activeMessage=new TextWholeMessage(this,wrapper);
