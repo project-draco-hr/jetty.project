@@ -1,0 +1,33 @@
+{
+  final CountDownLatch replyLatch=new CountDownLatch(1);
+  final CountDownLatch dataLatch=new CountDownLatch(1);
+  ServletContextHandler contextHandler=new ServletContextHandler(getServer(),"/ctx");
+  FilterHolder gzipFilterHolder=new FilterHolder(GzipFilter.class);
+  contextHandler.addFilter(gzipFilterHolder,"/*",EnumSet.allOf(DispatcherType.class));
+  ServletHolder servletHolder=new ServletHolder(DefaultServlet.class);
+  servletHolder.setInitParameter("resourceBase","src/test/resources/");
+  servletHolder.setInitParameter("dirAllowed","true");
+  servletHolder.setInitParameter("maxCachedFiles","10");
+  contextHandler.addServlet(servletHolder,"/*");
+  Session session=startClient(version,startHTTPServer(version,contextHandler),null);
+  Fields headers=SPDYTestUtils.createHeaders("localhost",connector.getPort(),version,"GET","/ctx/big_script.js");
+  session.syn(new SynInfo(headers,true),new StreamFrameListener.Adapter(){
+    AtomicInteger bytesReceived=new AtomicInteger(0);
+    @Override public void onReply(    Stream stream,    ReplyInfo replyInfo){
+      Fields replyHeaders=replyInfo.getHeaders();
+      Assert.assertTrue(replyHeaders.get(HTTPSPDYHeader.STATUS.name(version)).value().contains("200"));
+      replyLatch.countDown();
+    }
+    @Override public void onData(    Stream stream,    DataInfo dataInfo){
+      bytesReceived.addAndGet(dataInfo.available());
+      dataInfo.consume(dataInfo.available());
+      if (dataInfo.isClose()) {
+        assertThat("bytes received matches file size: 76847",bytesReceived.get(),is(76847));
+        dataLatch.countDown();
+      }
+    }
+  }
+);
+  assertThat("reply is received",replyLatch.await(5,TimeUnit.SECONDS),is(true));
+  assertThat("all data is sent",dataLatch.await(5,TimeUnit.SECONDS),is(true));
+}
