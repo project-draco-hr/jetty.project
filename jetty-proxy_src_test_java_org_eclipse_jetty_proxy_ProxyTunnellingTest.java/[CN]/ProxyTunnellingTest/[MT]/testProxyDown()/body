@@ -1,0 +1,20 @@
+{
+  startSSLServer(new ServerHandler());
+  startProxy();
+  int proxyPort=proxyPort();
+  stopProxy();
+  HttpClient httpClient=new HttpClient(sslContextFactory);
+  httpClient.setProxyConfiguration(new ProxyConfiguration("localhost",proxyPort));
+  httpClient.start();
+  try {
+    String body="BODY";
+    httpClient.newRequest("localhost",serverConnector.getLocalPort()).scheme(HttpScheme.HTTPS.asString()).method(HttpMethod.GET).path("/echo?body=" + URLEncoder.encode(body,"UTF-8")).send();
+    Assert.fail();
+  }
+ catch (  ExecutionException x) {
+    Assert.assertThat(x.getCause(),Matchers.instanceOf(ConnectException.class));
+  }
+ finally {
+    httpClient.stop();
+  }
+}
