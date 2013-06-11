@@ -1,0 +1,41 @@
+{
+  Server server=new Server();
+  HttpConfiguration httpConfig=new HttpConfiguration();
+  final String serverName="test_server_name";
+  final int serverPort=13;
+  final String redirectPath="/redirect";
+  httpConfig.addCustomizer(new HostHeaderCustomizer(serverName,serverPort));
+  ServerConnector connector=new ServerConnector(server,new HttpConnectionFactory(httpConfig));
+  server.addConnector(connector);
+  server.setHandler(new AbstractHandler(){
+    @Override public void handle(    String target,    Request baseRequest,    HttpServletRequest request,    HttpServletResponse response) throws IOException, ServletException {
+      baseRequest.setHandled(true);
+      Assert.assertEquals(serverName,request.getServerName());
+      Assert.assertEquals(serverPort,request.getServerPort());
+      response.sendRedirect(redirectPath);
+    }
+  }
+);
+  server.start();
+  try {
+    try (Socket socket=new Socket("localhost",connector.getLocalPort())){
+      OutputStream output=socket.getOutputStream();
+      String request="" + "GET / HTTP/1.0\r\n" + "\r\n";
+      output.write(request.getBytes("UTF-8"));
+      output.flush();
+      BufferedReader input=new BufferedReader(new InputStreamReader(socket.getInputStream(),"UTF-8"));
+      SimpleHttpParser parser=new SimpleHttpParser();
+      SimpleHttpResponse response=parser.readResponse(input);
+      String location=response.getHeaders().get("location");
+      Assert.assertNotNull(location);
+      String schemePrefix="http://";
+      Assert.assertTrue(location.startsWith(schemePrefix));
+      Assert.assertTrue(location.endsWith(redirectPath));
+      String hostPort=location.substring(schemePrefix.length(),location.length() - redirectPath.length());
+      Assert.assertEquals(serverName + ":" + serverPort,hostPort);
+    }
+   }
+  finally {
+    server.stop();
+  }
+}

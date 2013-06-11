@@ -7,12 +7,13 @@
       Assert.assertEquals("GET",httpRequest.getMethod());
       Assert.assertEquals(path,target);
       Assert.assertEquals(path,httpRequest.getRequestURI());
-      Assert.assertEquals("localhost:" + connector.getLocalPort(),httpRequest.getHeader("host"));
+      assertThat("accept-encoding is set to gzip, even if client didn't set it",httpRequest.getHeader("accept-encoding"),containsString("gzip"));
+      assertThat(httpRequest.getHeader("host"),is("localhost:" + connector.getLocalPort()));
       handlerLatch.countDown();
     }
   }
 ),null);
-  Fields headers=SPDYTestUtils.createHeaders("localhost",connector.getPort(),version,"GET",path);
+  Fields headers=SPDYTestUtils.createHeaders("localhost",connector.getLocalPort(),version,"GET",path);
   final CountDownLatch replyLatch=new CountDownLatch(1);
   session.syn(new SynInfo(headers,true),new StreamFrameListener.Adapter(){
     @Override public void onReply(    Stream stream,    ReplyInfo replyInfo){
