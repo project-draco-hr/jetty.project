@@ -1,13 +1,9 @@
 {
   ((StdErrLog)Log.getLogger(org.eclipse.jetty.server.session.JDBCSessionManager.class)).setHideStacks(true);
+  Resource.setDefaultUseCaches(false);
   String contextPath="/foo";
-  File srcDir=new File(System.getProperty("basedir"),"src");
-  File targetDir=new File(System.getProperty("basedir"),"target");
-  File testDir=new File(srcDir,"test");
-  File resourcesDir=new File(testDir,"resources");
-  File unpackedWarDir=new File(targetDir,"foo");
-  if (unpackedWarDir.exists())   IO.delete(unpackedWarDir);
-  unpackedWarDir.mkdir();
+  File unpackedWarDir=testdir.getDir();
+  testdir.ensureEmpty();
   File webInfDir=new File(unpackedWarDir,"WEB-INF");
   webInfDir.mkdir();
   File webXml=new File(webInfDir,"web.xml");
@@ -15,8 +11,8 @@
   FileWriter w=new FileWriter(webXml);
   w.write(xml);
   w.close();
-  File foobarJar=new File(resourcesDir,"foobar.jar");
-  File foobarNOfooJar=new File(resourcesDir,"foobarNOfoo.jar");
+  File foobarJar=MavenTestingUtils.getTestResourceFile("foobar.jar");
+  File foobarNOfooJar=MavenTestingUtils.getTestResourceFile("foobarNOfoo.jar");
   URL[] foobarUrls=new URL[]{foobarJar.toURI().toURL()};
   URL[] barUrls=new URL[]{foobarNOfooJar.toURI().toURL()};
   URLClassLoader loaderWithFoo=new URLClassLoader(foobarUrls,Thread.currentThread().getContextClassLoader());
