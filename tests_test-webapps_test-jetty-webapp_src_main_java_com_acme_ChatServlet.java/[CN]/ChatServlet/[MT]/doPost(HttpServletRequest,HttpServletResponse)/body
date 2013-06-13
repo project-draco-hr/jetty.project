@@ -1,8 +1,31 @@
 {
-  String action=request.getParameter("action");
+  boolean join=Boolean.parseBoolean(request.getParameter("join"));
   String message=request.getParameter("message");
   String username=request.getParameter("user");
-  if (action.equals("join"))   join(request,response,username);
- else   if (action.equals("poll"))   poll(request,response,username);
- else   if (action.equals("chat"))   chat(request,response,username,message);
+  LOG.debug("doPost called. join={},message={},username={}",join,message,username);
+  if (username == null) {
+    LOG.debug("no paramter user set, sending 503");
+    response.sendError(503,"user==null");
+    return;
+  }
+  Map<String,Member> room=getRoom(request.getPathInfo());
+  Member member=getMember(username,room);
+  if (message != null) {
+    sendMessageToAllMembers(message,username,room);
+  }
+  if (message == null || join) {
+synchronized (member) {
+      LOG.debug("Queue size: {}",member._queue.size());
+      if (member._queue.size() > 0) {
+        sendSingleMessage(response,member);
+      }
+ else {
+        LOG.debug("starting async");
+        AsyncContext async=request.startAsync();
+        async.setTimeout(asyncTimeout);
+        async.addListener(member);
+        if (!member._async.compareAndSet(null,async))         throw new IllegalStateException();
+      }
+    }
+  }
 }
