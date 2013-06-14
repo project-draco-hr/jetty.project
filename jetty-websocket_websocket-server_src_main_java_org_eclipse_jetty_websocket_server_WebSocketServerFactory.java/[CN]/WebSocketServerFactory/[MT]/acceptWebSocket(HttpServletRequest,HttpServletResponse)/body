@@ -1,22 +1,27 @@
 {
-  ServletWebSocketRequest sockreq=new ServletWebSocketRequest(request);
-  ServletWebSocketResponse sockresp=new ServletWebSocketResponse(response);
-  WebSocketCreator creator=getCreator();
-  UpgradeContext context=getActiveUpgradeContext();
-  if (context == null) {
-    context=new UpgradeContext();
-    setActiveUpgradeContext(context);
+  try {
+    ServletUpgradeRequest sockreq=new ServletUpgradeRequest(request);
+    ServletUpgradeResponse sockresp=new ServletUpgradeResponse(response);
+    WebSocketCreator creator=getCreator();
+    UpgradeContext context=getActiveUpgradeContext();
+    if (context == null) {
+      context=new UpgradeContext();
+      setActiveUpgradeContext(context);
+    }
+    context.setRequest(sockreq);
+    context.setResponse(sockresp);
+    Object websocketPojo=creator.createWebSocket(sockreq,sockresp);
+    if (sockresp.isCommitted()) {
+      return false;
+    }
+    if (websocketPojo == null) {
+      response.sendError(HttpServletResponse.SC_SERVICE_UNAVAILABLE);
+      return false;
+    }
+    EventDriver driver=eventDriverFactory.wrap(websocketPojo);
+    return upgrade(sockreq,sockresp,driver);
   }
-  context.setRequest(sockreq);
-  context.setResponse(sockresp);
-  Object websocketPojo=creator.createWebSocket(sockreq,sockresp);
-  if (sockresp.isCommitted()) {
-    return false;
+ catch (  URISyntaxException e) {
+    throw new IOException("Unable to accept websocket due to mangled URI",e);
   }
-  if (websocketPojo == null) {
-    response.sendError(HttpServletResponse.SC_SERVICE_UNAVAILABLE);
-    return false;
-  }
-  EventDriver driver=eventDriverFactory.wrap(websocketPojo);
-  return upgrade(sockreq,sockresp,driver);
 }
