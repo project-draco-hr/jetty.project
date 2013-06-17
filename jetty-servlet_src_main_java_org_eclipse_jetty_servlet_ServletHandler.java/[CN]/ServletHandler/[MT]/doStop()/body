@@ -1,5 +1,7 @@
 {
   super.doStop();
+  List<FilterHolder> filterHolders=new ArrayList<FilterHolder>();
+  List<FilterMapping> filterMappings=ArrayUtil.asMutableList(_filterMappings);
   if (_filters != null) {
     for (int i=_filters.length; i-- > 0; ) {
       try {
@@ -8,8 +10,27 @@
  catch (      Exception e) {
         LOG.warn(Log.EXCEPTION,e);
       }
+      if (_filters[i].getSource() != Source.EMBEDDED) {
+        _filterNameMap.remove(_filters[i].getName());
+        ListIterator<FilterMapping> fmitor=filterMappings.listIterator();
+        while (fmitor.hasNext()) {
+          FilterMapping fm=fmitor.next();
+          if (fm.getFilterName().equals(_filters[i].getName()))           fmitor.remove();
+        }
+      }
+ else       filterHolders.add(_filters[i]);
     }
   }
+  FilterHolder[] fhs=(FilterHolder[])LazyList.toArray(filterHolders,FilterHolder.class);
+  updateBeans(_filters,fhs);
+  _filters=fhs;
+  FilterMapping[] fms=(FilterMapping[])LazyList.toArray(filterMappings,FilterMapping.class);
+  updateBeans(_filterMappings,fms);
+  _filterMappings=fms;
+  _matchAfterIndex=(_filterMappings == null || _filterMappings.length == 0 ? -1 : _filterMappings.length - 1);
+  _matchBeforeIndex=-1;
+  List<ServletHolder> servletHolders=new ArrayList<ServletHolder>();
+  List<ServletMapping> servletMappings=ArrayUtil.asMutableList(_servletMappings);
   if (_servlets != null) {
     for (int i=_servlets.length; i-- > 0; ) {
       try {
@@ -18,11 +39,24 @@
  catch (      Exception e) {
         LOG.warn(Log.EXCEPTION,e);
       }
+      if (_servlets[i].getSource() != Source.EMBEDDED) {
+        _servletNameMap.remove(_servlets[i].getName());
+        ListIterator<ServletMapping> smitor=servletMappings.listIterator();
+        while (smitor.hasNext()) {
+          ServletMapping sm=smitor.next();
+          if (sm.getServletName().equals(_servlets[i].getName()))           smitor.remove();
+        }
+      }
+ else       servletHolders.add(_servlets[i]);
     }
   }
+  ServletHolder[] shs=(ServletHolder[])LazyList.toArray(servletHolders,ServletHolder.class);
+  updateBeans(_servlets,shs);
+  _servlets=shs;
+  ServletMapping[] sms=(ServletMapping[])LazyList.toArray(servletMappings,ServletMapping.class);
+  updateBeans(_servletMappings,sms);
+  _servletMappings=sms;
   _filterPathMappings=null;
   _filterNameMappings=null;
   _servletPathMap=null;
-  _matchBeforeIndex=-1;
-  _matchAfterIndex=-1;
 }

@@ -1,0 +1,51 @@
+{
+  super(WSURI.toWebsocket(request.getRequestURL(),request.getQueryString()));
+  this.req=request;
+  setMethod(request.getMethod());
+  setHttpVersion(request.getProtocol());
+  Map<String,List<String>> pmap=new HashMap<>();
+  if (request.getParameterMap() != null) {
+    for (    Map.Entry<String,String[]> entry : request.getParameterMap().entrySet()) {
+      pmap.put(entry.getKey(),Arrays.asList(entry.getValue()));
+    }
+  }
+  super.setParameterMap(pmap);
+  Cookie rcookies[]=request.getCookies();
+  if (rcookies != null) {
+    List<HttpCookie> cookies=new ArrayList<>();
+    for (    Cookie rcookie : rcookies) {
+      HttpCookie hcookie=new HttpCookie(rcookie.getName(),rcookie.getValue());
+      cookies.add(hcookie);
+    }
+    super.setCookies(cookies);
+  }
+  Enumeration<String> headerNames=request.getHeaderNames();
+  while (headerNames.hasMoreElements()) {
+    String name=headerNames.nextElement();
+    Enumeration<String> valuesEnum=request.getHeaders(name);
+    List<String> values=new ArrayList<>();
+    while (valuesEnum.hasMoreElements()) {
+      values.add(valuesEnum.nextElement());
+    }
+    setHeader(name,values);
+  }
+  Enumeration<String> protocols=request.getHeaders("Sec-WebSocket-Protocol");
+  List<String> subProtocols=new ArrayList<>();
+  String protocol=null;
+  while ((protocol == null) && (protocols != null) && protocols.hasMoreElements()) {
+    String candidate=protocols.nextElement();
+    for (    String p : parseProtocols(candidate)) {
+      subProtocols.add(p);
+    }
+  }
+  setSubProtocols(subProtocols);
+  Enumeration<String> e=request.getHeaders("Sec-WebSocket-Extensions");
+  while (e.hasMoreElements()) {
+    Iterator<String> extTokenIter=QuoteUtil.splitAt(e.nextElement(),",");
+    while (extTokenIter.hasNext()) {
+      String extToken=extTokenIter.next();
+      ExtensionConfig config=ExtensionConfig.parse(extToken);
+      addExtensions(config);
+    }
+  }
+}
