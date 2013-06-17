@@ -7,9 +7,24 @@
   int len=req.getContentLength();
   if (len < 0)   len=0;
   if ((pathTranslated == null) || (pathTranslated.length() == 0))   pathTranslated=path;
+  String bodyFormEncoded=null;
+  if ((HttpMethod.POST.equals(req.getMethod()) || HttpMethod.PUT.equals(req.getMethod())) && "application/x-www-form-urlencoded".equals(req.getContentType())) {
+    MultiMap<String> parameterMap=new MultiMap<String>();
+    Enumeration names=req.getParameterNames();
+    while (names.hasMoreElements()) {
+      String parameterName=(String)names.nextElement();
+      parameterMap.addValues(parameterName,req.getParameterValues(parameterName));
+    }
+    bodyFormEncoded=UrlEncoded.encode(parameterMap,Charset.forName(req.getCharacterEncoding()),true);
+  }
   EnvList env=new EnvList(_env);
   env.set("AUTH_TYPE",req.getAuthType());
-  env.set("CONTENT_LENGTH",Integer.toString(len));
+  if (bodyFormEncoded != null) {
+    env.set("CONTENT_LENGTH",Integer.toString(bodyFormEncoded.length()));
+  }
+ else {
+    env.set("CONTENT_LENGTH",Integer.toString(len));
+  }
   env.set("CONTENT_TYPE",req.getContentType());
   env.set("GATEWAY_INTERFACE","CGI/1.1");
   if ((pathInfo != null) && (pathInfo.length() > 0)) {
@@ -37,23 +52,14 @@
   String execCmd=path;
   if ((execCmd.charAt(0) != '"') && (execCmd.indexOf(" ") >= 0))   execCmd="\"" + execCmd + "\"";
   if (_cmdPrefix != null)   execCmd=_cmdPrefix + " " + execCmd;
-  Process p=(dir == null) ? Runtime.getRuntime().exec(execCmd,env.getEnvArray()) : Runtime.getRuntime().exec(execCmd,env.getEnvArray(),dir);
-  final InputStream inFromReq=req.getInputStream();
-  final OutputStream outToCgi=p.getOutputStream();
-  final int inLength=len;
+  LOG.debug("Environment: " + env.getExportString());
+  LOG.debug("Command: " + execCmd);
+  Process p;
+  if (dir == null)   p=Runtime.getRuntime().exec(execCmd,env.getEnvArray());
+ else   p=Runtime.getRuntime().exec(execCmd,env.getEnvArray(),dir);
+  if (bodyFormEncoded != null)   writeProcessInput(p,bodyFormEncoded);
+ else   if (len > 0)   writeProcessInput(p,req.getInputStream(),len);
   IO.copyThread(p.getErrorStream(),System.err);
-  new Thread(new Runnable(){
-    public void run(){
-      try {
-        if (inLength > 0)         IO.copy(inFromReq,outToCgi,inLength);
-        outToCgi.close();
-      }
- catch (      IOException e) {
-        LOG.ignore(e);
-      }
-    }
-  }
-).start();
   OutputStream os=null;
   try {
     String line=null;
@@ -101,10 +107,9 @@ catch (  InterruptedException ie) {
         os.close();
       }
  catch (      Exception e) {
-        LOG.ignore(e);
+        LOG.debug(e);
       }
     }
-    os=null;
     p.destroy();
   }
 }
