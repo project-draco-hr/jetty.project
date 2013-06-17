@@ -1,0 +1,20 @@
+{
+  Assert.assertThat("server scheme",server.getServerUri().getScheme(),is("wss"));
+  WebSocketClient client=new WebSocketClient(server.getSslContextFactory());
+  try {
+    client.start();
+    CaptureSocket clientSocket=new CaptureSocket();
+    URI requestUri=server.getServerUri().resolve("/deep?a=b");
+    Future<Session> fut=client.connect(clientSocket,requestUri);
+    Session session=fut.get(3,TimeUnit.SECONDS);
+    session.getRemote().sendString("session.upgradeRequest.requestURI");
+    clientSocket.messages.awaitEventCount(1,500,TimeUnit.MILLISECONDS);
+    EventQueue<String> captured=clientSocket.messages;
+    String expected=String.format("session.upgradeRequest.requestURI=%s",requestUri.toASCIIString());
+    Assert.assertThat("session.upgradeRequest.requestURI",captured.poll(),is(expected));
+    clientSocket.close();
+  }
+  finally {
+    client.stop();
+  }
+}
