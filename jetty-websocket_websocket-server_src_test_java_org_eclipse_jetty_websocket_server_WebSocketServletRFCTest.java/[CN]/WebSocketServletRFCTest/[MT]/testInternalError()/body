@@ -5,12 +5,14 @@
     client.connect();
     client.sendStandardRequest();
     client.expectUpgradeResponse();
-    client.write(WebSocketFrame.text("CRASH"));
-    IncomingFramesCapture capture=client.readFrames(1,TimeUnit.MILLISECONDS,500);
-    Frame cf=capture.getFrames().poll();
-    CloseInfo close=new CloseInfo(cf);
-    Assert.assertThat("Close Frame.status code",close.getStatusCode(),is(StatusCode.SERVER_ERROR));
-  }
+    try (StacklessLogging context=new StacklessLogging(EventDriver.class)){
+      client.write(WebSocketFrame.text("CRASH"));
+      IncomingFramesCapture capture=client.readFrames(1,TimeUnit.MILLISECONDS,500);
+      Frame cf=capture.getFrames().poll();
+      CloseInfo close=new CloseInfo(cf);
+      Assert.assertThat("Close Frame.status code",close.getStatusCode(),is(StatusCode.SERVER_ERROR));
+    }
+   }
   finally {
     enableStacks(EventDriver.class,true);
     client.close();
