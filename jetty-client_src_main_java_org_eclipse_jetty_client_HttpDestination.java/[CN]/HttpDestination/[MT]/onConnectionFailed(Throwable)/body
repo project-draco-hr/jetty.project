@@ -3,20 +3,20 @@
   boolean startConnection=false;
 synchronized (this) {
     _pendingConnections--;
-    if (_newConnection > 0) {
+    if (_pendingReservedConnections > 0) {
       connect_failure=throwable;
-      _newConnection--;
+      _pendingReservedConnections--;
     }
- else     if (_queue.size() > 0) {
-      HttpExchange ex=_queue.remove(0);
+ else     if (_exchanges.size() > 0) {
+      HttpExchange ex=_exchanges.remove(0);
       if (ex.setStatus(HttpExchange.STATUS_EXCEPTED))       ex.getEventListener().onConnectionFailed(throwable);
-      if (!_queue.isEmpty() && _client.isStarted())       startConnection=true;
+      if (!_exchanges.isEmpty() && _client.isStarted())       startConnection=true;
     }
   }
   if (startConnection)   startNewConnection();
   if (connect_failure != null) {
     try {
-      _newQueue.put(connect_failure);
+      _reservedConnections.put(connect_failure);
     }
  catch (    InterruptedException e) {
       LOG.ignore(e);

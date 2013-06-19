@@ -1,0 +1,54 @@
+{
+  startSSLServer(new ServerHandler());
+  startProxy();
+  final HttpClient httpClient=new HttpClient();
+  httpClient.setProxy(new Address("localhost",proxyPort()));
+  httpClient.start();
+  try {
+    final AtomicReference<AbstractHttpConnection> connection=new AtomicReference<AbstractHttpConnection>();
+    final CountDownLatch connectionLatch=new CountDownLatch(1);
+    ContentExchange exchange1=new ContentExchange(true){
+      @Override protected void onRequestCommitted() throws IOException {
+        HttpDestination destination=httpClient.getDestination(new Address("localhost",serverConnector.getLocalPort()),true);
+        destination.startNewConnection();
+        AbstractHttpConnection httpConnection=null;
+        while (httpConnection == null) {
+          try {
+            Thread.sleep(10);
+            httpConnection=destination.getIdleConnection();
+          }
+ catch (          InterruptedException x) {
+            throw new InterruptedIOException();
+          }
+        }
+        connection.set(httpConnection);
+        connectionLatch.countDown();
+      }
+    }
+;
+    exchange1.setMethod(HttpMethods.GET);
+    String body1="BODY";
+    exchange1.setURL("https://localhost:" + serverConnector.getLocalPort() + "/echo?body="+ URLEncoder.encode(body1,"UTF-8"));
+    httpClient.send(exchange1);
+    assertEquals(HttpExchange.STATUS_COMPLETED,exchange1.waitForDone());
+    assertEquals(HttpStatus.OK_200,exchange1.getResponseStatus());
+    String content1=exchange1.getResponseContent();
+    assertEquals(body1,content1);
+    Assert.assertTrue(connectionLatch.await(5,TimeUnit.SECONDS));
+    ContentExchange exchange2=new ContentExchange(true);
+    exchange2.setMethod(HttpMethods.POST);
+    exchange2.setURL("https://localhost:" + serverConnector.getLocalPort() + "/echo");
+    exchange2.setRequestHeader(HttpHeaders.CONTENT_TYPE,MimeTypes.FORM_ENCODED);
+    String body2="body=" + body1;
+    exchange2.setRequestHeader(HttpHeaders.CONTENT_LENGTH,String.valueOf(body2.length()));
+    exchange2.setRequestContent(new ByteArrayBuffer(body2,"UTF-8"));
+    connection.get().send(exchange2);
+    assertEquals(HttpExchange.STATUS_COMPLETED,exchange2.waitForDone());
+    assertEquals(HttpStatus.OK_200,exchange2.getResponseStatus());
+    String content2=exchange2.getResponseContent();
+    assertEquals(body1,content2);
+  }
+  finally {
+    httpClient.stop();
+  }
+}
