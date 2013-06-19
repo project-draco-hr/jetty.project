@@ -22,28 +22,28 @@
     private final AtomicInteger replyFrames=new AtomicInteger();
     private final AtomicInteger dataFrames=new AtomicInteger();
     @Override public void onReply(    Stream stream,    ReplyInfo replyInfo){
-      Assert.assertEquals(1,replyFrames.incrementAndGet());
+      assertEquals(1,replyFrames.incrementAndGet());
       Assert.assertFalse(replyInfo.isClose());
       Fields replyHeaders=replyInfo.getHeaders();
-      Assert.assertTrue(replyHeaders.get(HTTPSPDYHeader.STATUS.name(version)).value().contains("200"));
-      Assert.assertTrue(replyHeaders.get("extra").value().contains("X"));
+      assertTrue(replyHeaders.get(HTTPSPDYHeader.STATUS.name(version)).value().contains("200"));
+      assertTrue(replyHeaders.get("extra").value().contains("X"));
       replyLatch.countDown();
     }
     @Override public void onData(    Stream stream,    DataInfo dataInfo){
       int count=dataFrames.incrementAndGet();
       if (count == 1) {
         Assert.assertFalse(dataInfo.isClose());
-        Assert.assertEquals(pangram1,dataInfo.asString("UTF-8",true));
+        assertEquals(pangram1,dataInfo.asString("UTF-8",true));
       }
  else       if (count == 2) {
-        Assert.assertTrue(dataInfo.isClose());
-        Assert.assertEquals(pangram2,dataInfo.asString("UTF-8",true));
+        assertTrue(dataInfo.isClose());
+        assertEquals(pangram2,dataInfo.asString("UTF-8",true));
       }
       dataLatch.countDown();
     }
   }
 );
-  Assert.assertTrue(handlerLatch.await(5,TimeUnit.SECONDS));
-  Assert.assertTrue(replyLatch.await(5,TimeUnit.SECONDS));
-  Assert.assertTrue(dataLatch.await(5,TimeUnit.SECONDS));
+  assertTrue(handlerLatch.await(5,TimeUnit.SECONDS));
+  assertTrue(replyLatch.await(5,TimeUnit.SECONDS));
+  assertTrue(dataLatch.await(5,TimeUnit.SECONDS));
 }
