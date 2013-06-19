@@ -1,0 +1,22 @@
+{
+  if (BufferUtil.hasContent(_aggregate)) {
+    _channel.write(_aggregate,_complete && _len == 0,this);
+    return false;
+  }
+  if (!_complete && _len < BufferUtil.space(_aggregate) && _len < _aggregate.capacity() / 4) {
+    BufferUtil.append(_aggregate,_b,_off,_len);
+  }
+ else   if (_len > 0 && !_flushed) {
+    ByteBuffer buffer=ByteBuffer.wrap(_b,_off,_len);
+    _flushed=true;
+    _channel.write(buffer,_complete,this);
+    return false;
+  }
+ else   if (_len == 0 && !_flushed) {
+    _flushed=true;
+    _channel.write(BufferUtil.EMPTY_BUFFER,_complete,this);
+    return false;
+  }
+  if (_complete)   closed();
+  return true;
+}

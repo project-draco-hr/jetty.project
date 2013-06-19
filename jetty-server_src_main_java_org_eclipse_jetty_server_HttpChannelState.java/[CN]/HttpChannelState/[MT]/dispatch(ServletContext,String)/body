@@ -1,24 +1,19 @@
 {
   boolean dispatch;
 synchronized (this) {
-switch (_state) {
-case ASYNCSTARTED:
-      _state=State.REDISPATCHING;
+    if (_async != Async.STARTED && _async != Async.EXPIRING)     throw new IllegalStateException("AsyncContext#dispath " + this.getStatusString());
+    _async=Async.DISPATCH;
     _event.setDispatchTarget(context,path);
-  _dispatched=true;
-return;
-case ASYNCWAIT:
-dispatch=!_expired;
-_state=State.REDISPATCH;
-_event.setDispatchTarget(context,path);
-_dispatched=true;
-break;
+switch (_state) {
+case DISPATCHED:
+case ASYNCIO:
+      dispatch=false;
+    break;
 default :
-throw new IllegalStateException(this.getStatusString());
+  dispatch=true;
+break;
 }
 }
-if (dispatch) {
 cancelTimeout();
-scheduleDispatch();
-}
+if (dispatch) scheduleDispatch();
 }

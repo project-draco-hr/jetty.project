@@ -2,37 +2,27 @@
   final List<AsyncListener> aListeners;
   AsyncEvent event;
 synchronized (this) {
-switch (_state) {
-case ASYNCSTARTED:
-case ASYNCWAIT:
-      _expired=true;
+    if (_async != Async.STARTED)     return;
+    _async=Async.EXPIRING;
     event=_event;
-  aListeners=_asyncListeners;
-break;
-default :
-return;
-}
-}
-if (aListeners != null) {
-for (AsyncListener listener : aListeners) {
-try {
-listener.onTimeout(event);
-}
- catch (Exception e) {
-LOG.warn(e);
-}
-}
-}
+    aListeners=_asyncListeners;
+  }
+  if (aListeners != null) {
+    for (    AsyncListener listener : aListeners) {
+      try {
+        listener.onTimeout(event);
+      }
+ catch (      Exception e) {
+        LOG.warn(e);
+      }
+    }
+  }
+  boolean dispatch=false;
 synchronized (this) {
-switch (_state) {
-case ASYNCSTARTED:
-case ASYNCWAIT:
-_state=State.REDISPATCH;
-break;
-default :
-_expired=false;
-break;
-}
-}
-scheduleDispatch();
+    if (_async == Async.EXPIRING) {
+      _async=Async.EXPIRED;
+      if (_state == State.ASYNCWAIT)       dispatch=true;
+    }
+  }
+  if (dispatch)   scheduleDispatch();
 }

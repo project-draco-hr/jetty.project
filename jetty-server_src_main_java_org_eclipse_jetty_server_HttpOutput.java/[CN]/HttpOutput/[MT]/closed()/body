@@ -1,13 +1,17 @@
 {
-  if (!_closed) {
-    _closed=true;
-    try {
-      _channel.getResponse().closeOutput();
+  State state=_state.get();
+  while (state != State.CLOSED) {
+    if (_state.compareAndSet(state,State.CLOSED)) {
+      try {
+        _channel.getResponse().closeOutput();
+      }
+ catch (      IOException e) {
+        _channel.failed();
+        LOG.ignore(e);
+      }
+      releaseBuffer();
+      return;
     }
- catch (    IOException e) {
-      _channel.failed();
-      LOG.ignore(e);
-    }
-    releaseBuffer();
+    state=_state.get();
   }
 }

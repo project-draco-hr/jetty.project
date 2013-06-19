@@ -1,23 +1,53 @@
 {
-  if (isClosed())   throw new EofException("Closed");
   _written+=len;
   boolean complete=_channel.getResponse().isAllContentWritten(_written);
-  int capacity=getBufferSize();
-  if (!complete && len <= capacity / 4) {
-    if (_aggregate == null)     _aggregate=_channel.getByteBufferPool().acquire(capacity,false);
-    int filled=BufferUtil.fill(_aggregate,b,off,len);
-    if (!complete && filled == len && !BufferUtil.isFull(_aggregate))     return;
-    off+=filled;
-    len-=filled;
-  }
-  if (BufferUtil.hasContent(_aggregate)) {
-    _channel.write(_aggregate,complete && len == 0);
-    if (len > 0 && !complete && len <= _aggregate.capacity() / 4) {
-      BufferUtil.append(_aggregate,b,off,len);
-      return;
-    }
-  }
-  if (len > 0)   _channel.write(ByteBuffer.wrap(b,off,len),complete);
- else   if (complete)   _channel.write(BufferUtil.EMPTY_BUFFER,complete);
-  if (complete)   closed();
+  while (true) {
+switch (_state.get()) {
+case OPEN:
+      break;
+case ASYNC:
+    throw new IllegalStateException("isReady() not called");
+case READY:
+  if (!_state.compareAndSet(State.READY,State.PENDING))   continue;
+int capacity=getBufferSize();
+if (!complete && len <= capacity / 4) {
+if (_aggregate == null) _aggregate=_channel.getByteBufferPool().acquire(capacity,false);
+int filled=BufferUtil.fill(_aggregate,b,off,len);
+if (!complete && filled == len && !BufferUtil.isFull(_aggregate)) {
+  if (!_state.compareAndSet(State.PENDING,State.ASYNC))   throw new IllegalStateException();
+  return;
+}
+off+=filled;
+len-=filled;
+}
+new AsyncWrite(b,off,len,complete).process();
+return;
+case PENDING:
+case UNREADY:
+throw new WritePendingException();
+case CLOSED:
+throw new EofException("Closed");
+}
+break;
+}
+int capacity=getBufferSize();
+if (!complete && len <= capacity / 4) {
+if (_aggregate == null) _aggregate=_channel.getByteBufferPool().acquire(capacity,false);
+int filled=BufferUtil.fill(_aggregate,b,off,len);
+if (!complete && filled == len && !BufferUtil.isFull(_aggregate)) return;
+off+=filled;
+len-=filled;
+}
+if (BufferUtil.hasContent(_aggregate)) {
+_channel.write(_aggregate,complete && len == 0);
+if (len > 0 && !complete && len <= _aggregate.capacity() / 4) {
+BufferUtil.append(_aggregate,b,off,len);
+return;
+}
+}
+if (len > 0) _channel.write(ByteBuffer.wrap(b,off,len),complete);
+ else if (complete) _channel.write(BufferUtil.EMPTY_BUFFER,complete);
+if (complete) {
+closed();
+}
 }

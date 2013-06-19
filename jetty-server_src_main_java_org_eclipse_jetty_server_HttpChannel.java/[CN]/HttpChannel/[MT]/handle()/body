@@ -6,66 +6,78 @@
     threadName=Thread.currentThread().getName();
     Thread.currentThread().setName(threadName + " - " + _uri);
   }
-  HttpChannelState.Next next=_state.handling();
-  while (next == Next.CONTINUE && getServer().isRunning()) {
+  HttpChannelState.Action action=_state.handling();
+  loop:   while (action.ordinal() < HttpChannelState.Action.WAIT.ordinal() && getServer().isRunning()) {
     try {
-      _request.setHandled(false);
+switch (action) {
+case REQUEST_DISPATCH:
+        _request.setHandled(false);
       _response.getHttpOutput().reopen();
-      if (_state.isInitial()) {
-        _request.setTimeStamp(System.currentTimeMillis());
-        _request.setDispatcherType(DispatcherType.REQUEST);
-        for (        HttpConfiguration.Customizer customizer : _configuration.getCustomizers())         customizer.customize(getConnector(),_configuration,_request);
-        getServer().handle(this);
-      }
- else {
-        if (_request.getHttpChannelState().isExpired()) {
-          _request.setDispatcherType(DispatcherType.ERROR);
-          _request.setAttribute(RequestDispatcher.ERROR_STATUS_CODE,new Integer(500));
-          _request.setAttribute(RequestDispatcher.ERROR_MESSAGE,"Async Timeout");
-          _request.setAttribute(RequestDispatcher.ERROR_REQUEST_URI,_request.getRequestURI());
-          _response.setStatusWithReason(500,"Async Timeout");
-        }
- else         _request.setDispatcherType(DispatcherType.ASYNC);
-        getServer().handleAsync(this);
-      }
-    }
- catch (    Error e) {
-      if ("ContinuationThrowable".equals(e.getClass().getSimpleName()))       LOG.ignore(e);
- else       throw e;
-    }
-catch (    Exception e) {
-      if (e instanceof EofException)       LOG.debug(e);
- else       LOG.warn(String.valueOf(_uri),e);
-      _state.error(e);
-      _request.setHandled(true);
-      handleException(e);
-    }
+    _request.setTimeStamp(System.currentTimeMillis());
+  _request.setDispatcherType(DispatcherType.REQUEST);
+for (HttpConfiguration.Customizer customizer : _configuration.getCustomizers()) customizer.customize(getConnector(),_configuration,_request);
+getServer().handle(this);
+break;
+case ASYNC_DISPATCH:
+_request.setHandled(false);
+_response.getHttpOutput().reopen();
+_request.setDispatcherType(DispatcherType.ASYNC);
+getServer().handleAsync(this);
+break;
+case ASYNC_EXPIRED:
+_request.setHandled(false);
+_response.getHttpOutput().reopen();
+_request.setDispatcherType(DispatcherType.ERROR);
+_request.setAttribute(RequestDispatcher.ERROR_STATUS_CODE,new Integer(500));
+_request.setAttribute(RequestDispatcher.ERROR_MESSAGE,"Async Timeout");
+_request.setAttribute(RequestDispatcher.ERROR_REQUEST_URI,_request.getRequestURI());
+_response.setStatusWithReason(500,"Async Timeout");
+getServer().handleAsync(this);
+break;
+case IO_CALLBACK:
+_response.getHttpOutput().handle();
+break;
+default :
+break loop;
+}
+}
+ catch (Error e) {
+if ("ContinuationThrowable".equals(e.getClass().getSimpleName())) LOG.ignore(e);
+ else throw e;
+}
+catch (Exception e) {
+if (e instanceof EofException) LOG.debug(e);
+ else LOG.warn(String.valueOf(_uri),e);
+_state.error(e);
+_request.setHandled(true);
+handleException(e);
+}
  finally {
-      next=_state.unhandle();
-    }
-  }
-  if (threadName != null && LOG.isDebugEnabled())   Thread.currentThread().setName(threadName);
-  setCurrentHttpChannel(null);
-  if (next == Next.COMPLETE) {
-    try {
-      _state.completed();
-      if (!_response.isCommitted() && !_request.isHandled())       _response.sendError(404);
- else       _response.closeOutput();
-    }
- catch (    EofException e) {
-      LOG.debug(e);
-    }
-catch (    Exception e) {
-      LOG.warn(e);
-    }
+action=_state.unhandle();
+}
+}
+if (threadName != null && LOG.isDebugEnabled()) Thread.currentThread().setName(threadName);
+setCurrentHttpChannel(null);
+if (action == Action.COMPLETE) {
+try {
+_state.completed();
+if (!_response.isCommitted() && !_request.isHandled()) _response.sendError(404);
+ else _response.closeOutput();
+}
+ catch (EofException e) {
+LOG.debug(e);
+}
+catch (Exception e) {
+LOG.warn(e);
+}
  finally {
-      next=Next.RECYCLE;
-    }
-  }
-  if (next == Next.RECYCLE) {
-    _request.setHandled(true);
-    _transport.completed();
-  }
-  LOG.debug("{} handle exit, result {}",this,next);
-  return next != Next.WAIT;
+action=Action.RECYCLE;
+}
+}
+if (action == Action.RECYCLE) {
+_request.setHandled(true);
+_transport.completed();
+}
+LOG.debug("{} handle exit, result {}",this,action);
+return action != Action.WAIT;
 }

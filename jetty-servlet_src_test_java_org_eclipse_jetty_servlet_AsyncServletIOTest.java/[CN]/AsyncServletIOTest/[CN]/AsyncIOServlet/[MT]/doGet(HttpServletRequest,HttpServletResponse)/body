@@ -1,0 +1,27 @@
+{
+  final String[] writes=request.getParameterValues("w");
+  final AsyncContext async=request.startAsync();
+  final ServletOutputStream out=response.getOutputStream();
+  out.setWriteListener(new WriteListener(){
+    int _w=0;
+    @Override public void onWritePossible() throws IOException {
+      _count.incrementAndGet();
+      while (writes != null && _w < writes.length) {
+        int write=Integer.valueOf(writes[_w++]);
+        if (write == 0)         out.flush();
+ else {
+          byte[] buf=new byte[write + 1];
+          Arrays.fill(buf,(byte)('0' + ((_w - 1) % 10)));
+          buf[write]='\n';
+          out.write(buf);
+        }
+        if (!out.isReady())         return;
+      }
+      async.complete();
+    }
+    @Override public void onError(    Throwable t){
+      async.complete();
+    }
+  }
+);
+}

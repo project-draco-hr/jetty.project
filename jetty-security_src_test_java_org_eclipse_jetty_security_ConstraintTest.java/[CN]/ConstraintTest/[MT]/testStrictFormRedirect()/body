@@ -12,7 +12,7 @@
   String session=response.substring(response.indexOf("JSESSIONID=") + 11,response.indexOf(";Path=/ctx"));
   response=_connector.getResponses("POST /ctx/j_security_check HTTP/1.0\r\n" + "Cookie: JSESSIONID=" + session + "\r\n"+ "Content-Type: application/x-www-form-urlencoded\r\n"+ "Content-Length: 31\r\n"+ "\r\n"+ "j_username=user&j_password=wrong\r\n");
   assertThat(response,containsString("Location"));
-  response=_connector.getResponses("POST /ctx/j_security_check HTTP/1.0\r\n" + "Cookie: JSESSIONID=" + session + "\r\n"+ "Content-Type: application/x-www-form-urlencoded\r\n"+ "Content-Length: 35\r\n"+ "\r\n"+ "j_username=user&j_password=password\r\n");
+  response=_connector.getResponses("POST /ctx/j_security_check HTTP/1.0\r\n" + "Cookie: JSESSIONID=" + session + "\r\n"+ "Content-Type: application/x-www-form-urlencoded\r\n"+ "Content-Length: 36\r\n"+ "\r\n"+ "j_username=user3&j_password=password\r\n");
   assertThat(response,startsWith("HTTP/1.1 302 "));
   assertThat(response,containsString("Location"));
   assertThat(response,containsString("/ctx/auth/info"));
@@ -37,6 +37,17 @@
   response=_connector.getResponses("GET /ctx/admin/info HTTP/1.0\r\n" + "Cookie: JSESSIONID=" + session + "\r\n"+ "\r\n");
   assertThat(response,startsWith("HTTP/1.1 403"));
   assertThat(response,containsString("!role"));
+  response=_connector.getResponses("GET /ctx/starstar/info HTTP/1.0\r\n\r\n");
+  assertThat(response,startsWith("HTTP/1.1 302 "));
+  assertThat(response,containsString("testLoginPage"));
+  session=response.substring(response.indexOf("JSESSIONID=") + 11,response.indexOf(";Path=/ctx"));
+  response=_connector.getResponses("POST /ctx/j_security_check HTTP/1.0\r\n" + "Cookie: JSESSIONID=" + session + "\r\n"+ "Content-Type: application/x-www-form-urlencoded\r\n"+ "Content-Length: 36\r\n"+ "\r\n"+ "j_username=user3&j_password=password\r\n");
+  assertThat(response,startsWith("HTTP/1.1 302 "));
+  assertThat(response,containsString("Location"));
+  assertThat(response,containsString("/ctx/starstar/info"));
+  session=response.substring(response.indexOf("JSESSIONID=") + 11,response.indexOf(";Path=/ctx"));
+  response=_connector.getResponses("GET /ctx/starstar/info HTTP/1.0\r\n" + "Cookie: JSESSIONID=" + session + "\r\n"+ "\r\n");
+  assertThat(response,startsWith("HTTP/1.1 200 OK"));
   response=_connector.getResponses("GET /ctx/auth/info HTTP/1.0\r\n\r\n");
   session=response.substring(response.indexOf("JSESSIONID=") + 11,response.indexOf(";Path=/ctx"));
   response=_connector.getResponses("POST /ctx/j_security_check HTTP/1.0\r\n" + "Cookie: JSESSIONID=" + session + "\r\n"+ "Content-Type: application/x-www-form-urlencoded\r\n"+ "Content-Length: 36\r\n"+ "\r\n"+ "j_username=admin&j_password=password\r\n");

@@ -8,8 +8,7 @@
   }
  else {
     start=System.currentTimeMillis();
-    _asyncWaitStats.decrement();
-    if (state.isDispatched())     _asyncDispatches.incrementAndGet();
+    _asyncDispatches.incrementAndGet();
   }
   try {
     super.handle(path,request,httpRequest,httpResponse);
@@ -20,8 +19,10 @@
     _dispatchedStats.decrement();
     _dispatchedTimeStats.set(dispatched);
     if (state.isSuspended()) {
-      if (state.isInitial())       state.addListener(_onCompletion);
-      _asyncWaitStats.increment();
+      if (state.isInitial()) {
+        state.addListener(_onCompletion);
+        _asyncWaitStats.increment();
+      }
     }
  else     if (state.isInitial()) {
       _requestStats.decrement();

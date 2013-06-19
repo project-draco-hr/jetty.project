@@ -1,0 +1,17 @@
+{
+  List<HttpMethodConstraintElement> methodElements=new ArrayList<HttpMethodConstraintElement>();
+  methodElements.add(new HttpMethodConstraintElement("GET",new HttpConstraintElement(TransportGuarantee.NONE,"R1")));
+  methodElements.add(new HttpMethodConstraintElement("POST",new HttpConstraintElement(TransportGuarantee.CONFIDENTIAL,"R1")));
+  ServletSecurityElement element=new ServletSecurityElement(methodElements);
+  List<ConstraintMapping> mappings=ConstraintSecurityHandler.createConstraintsWithMappingsForPath("foo","/foo/*",element);
+  assertTrue(!mappings.isEmpty());
+  assertEquals(2,mappings.size());
+  assertEquals("GET",mappings.get(0).getMethod());
+  assertEquals("R1",mappings.get(0).getConstraint().getRoles()[0]);
+  assertTrue(mappings.get(0).getMethodOmissions() == null);
+  assertEquals(0,mappings.get(0).getConstraint().getDataConstraint());
+  assertEquals("POST",mappings.get(1).getMethod());
+  assertEquals("R1",mappings.get(1).getConstraint().getRoles()[0]);
+  assertEquals(2,mappings.get(1).getConstraint().getDataConstraint());
+  assertTrue(mappings.get(1).getMethodOmissions() == null);
+}
