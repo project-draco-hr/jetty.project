@@ -27,14 +27,16 @@
           if (jettyHome.startsWith("\"") || jettyHome.startsWith("'"))           jettyHome=jettyHome.substring(1);
           if (jettyHome.endsWith("\"") || (jettyHome.endsWith("'")))           jettyHome=jettyHome.substring(0,jettyHome.length() - 1);
           res=getFileAsResource(jettyHome,_contextFile);
-          if (LOG.isDebugEnabled())           LOG.debug("jetty home context file:" + res);
+          LOG.debug("jetty home context file: {}",res);
         }
       }
     }
     if (res == null) {
       if (bundleOverrideLocation != null) {
-        res=getFileAsResource(Resource.newResource(bundleOverrideLocation).getFile(),_contextFile);
-        if (LOG.isDebugEnabled())         LOG.debug("Bundle override location context file:" + res);
+        try (Resource location=Resource.newResource(bundleOverrideLocation)){
+          res=location.addPath(_contextFile);
+        }
+         LOG.debug("Bundle override location context file: {}",res);
       }
     }
     if (res == null) {
@@ -51,7 +53,7 @@
         XmlConfiguration xmlConfiguration=new XmlConfiguration(res.getInputStream());
         HashMap properties=new HashMap();
         properties.put("Server",getServerInstanceWrapper().getServer());
-        properties.put("bundle.root",rootResource.toString());
+        properties.put(OSGiWebappConstants.JETTY_BUNDLE_ROOT,rootResource.toString());
         xmlConfiguration.getProperties().putAll(properties);
         if (_contextHandler == null)         _contextHandler=(ContextHandler)xmlConfiguration.configure();
  else         xmlConfiguration.configure(_contextHandler);

@@ -9,8 +9,6 @@
   Assert.assertEquals(0,activeConnections.size());
   final long delay=1000;
   final CountDownLatch successLatch=new CountDownLatch(3);
-  final AtomicBoolean failed=new AtomicBoolean(false);
-  final AtomicBoolean four_hundred=new AtomicBoolean(false);
   client.newRequest(host,port).scheme(scheme).listener(new Request.Listener.Empty(){
     @Override public void onBegin(    Request request){
       request.header(HttpHeader.HOST,null);
@@ -29,11 +27,11 @@
   }
 ).send(new Response.Listener.Empty(){
     @Override public void onSuccess(    Response response){
-      four_hundred.set(response.getStatus() == 400);
+      Assert.assertEquals(400,response.getStatus());
       successLatch.countDown();
     }
     @Override public void onComplete(    Result result){
-      failed.set(result.isFailed());
+      Assert.assertFalse(result.isFailed());
       successLatch.countDown();
     }
   }
@@ -41,6 +39,4 @@
   Assert.assertTrue(successLatch.await(delay * 5,TimeUnit.MILLISECONDS));
   Assert.assertEquals(0,idleConnections.size());
   Assert.assertEquals(0,activeConnections.size());
-  Assert.assertFalse(failed.get());
-  Assert.assertTrue(four_hundred.get());
 }

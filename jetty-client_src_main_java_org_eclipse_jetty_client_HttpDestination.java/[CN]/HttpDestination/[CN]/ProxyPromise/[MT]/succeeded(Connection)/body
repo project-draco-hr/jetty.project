@@ -1,5 +1,14 @@
 {
-  boolean tunnel=isProxied() && HttpScheme.HTTPS.is(getScheme()) && client.getSslContextFactory() != null;
-  if (tunnel)   tunnel(connection);
- else   delegate.succeeded(connection);
+  if (isProxied() && HttpScheme.HTTPS.is(getScheme())) {
+    if (client.getSslContextFactory() != null) {
+      tunnel(connection);
+    }
+ else {
+      String message=String.format("Cannot perform requests over SSL, no %s in %s",SslContextFactory.class.getSimpleName(),HttpClient.class.getSimpleName());
+      delegate.failed(new IllegalStateException(message));
+    }
+  }
+ else {
+    delegate.succeeded(connection);
+  }
 }

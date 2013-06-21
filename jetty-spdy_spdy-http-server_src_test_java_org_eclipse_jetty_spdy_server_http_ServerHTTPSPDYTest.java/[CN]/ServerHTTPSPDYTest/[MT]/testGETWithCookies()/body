@@ -1,0 +1,36 @@
+{
+  final String path="/foo";
+  final String uri=path;
+  final String cookie1="cookie1";
+  final String cookie2="cookie2";
+  final String cookie1Value="cookie 1 value";
+  final String cookie2Value="cookie 2 value";
+  final CountDownLatch handlerLatch=new CountDownLatch(1);
+  Session session=startClient(version,startHTTPServer(version,new AbstractHandler(){
+    @Override public void handle(    String target,    Request request,    HttpServletRequest httpRequest,    HttpServletResponse httpResponse) throws IOException, ServletException {
+      request.setHandled(true);
+      httpResponse.addCookie(new Cookie(cookie1,cookie1Value));
+      httpResponse.addCookie(new Cookie(cookie2,cookie2Value));
+      assertThat("method is GET",httpRequest.getMethod(),is("GET"));
+      assertThat("target is /foo",target,is(path));
+      assertThat("requestUri is /foo",httpRequest.getRequestURI(),is(path));
+      handlerLatch.countDown();
+    }
+  }
+),null);
+  Fields headers=SPDYTestUtils.createHeaders("localhost",connector.getPort(),version,"GET",uri);
+  final CountDownLatch replyLatch=new CountDownLatch(1);
+  session.syn(new SynInfo(headers,true),new StreamFrameListener.Adapter(){
+    @Override public void onReply(    Stream stream,    ReplyInfo replyInfo){
+      assertThat("isClose is true",replyInfo.isClose(),is(true));
+      Fields replyHeaders=replyInfo.getHeaders();
+      assertThat("response code is 200 OK",replyHeaders.get(HTTPSPDYHeader.STATUS.name(version)).value().contains("200"),is(true));
+      assertThat(replyInfo.getHeaders().get("Set-Cookie").values()[0],is(cookie1 + "=\"" + cookie1Value+ "\""));
+      assertThat(replyInfo.getHeaders().get("Set-Cookie").values()[1],is(cookie2 + "=\"" + cookie2Value+ "\""));
+      replyLatch.countDown();
+    }
+  }
+);
+  assertTrue(handlerLatch.await(5,TimeUnit.SECONDS));
+  assertTrue(replyLatch.await(5,TimeUnit.SECONDS));
+}

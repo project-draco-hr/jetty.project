@@ -6,8 +6,7 @@
     if (ch == 0)     continue;
     if (_maxHeaderBytes > 0 && ++_headerBytes > _maxHeaderBytes) {
       LOG.warn("Header is too large >" + _maxHeaderBytes);
-      badMessage(buffer,HttpStatus.REQUEST_ENTITY_TOO_LARGE_413,null);
-      return true;
+      throw new BadMessage(HttpStatus.REQUEST_ENTITY_TOO_LARGE_413);
     }
 switch (_state) {
 case HEADER:
@@ -36,7 +35,7 @@ default :
             _field=null;
             return true;
           }
-          return_from_parse|=_handler.parsedHeader(_field != null ? _field : new HttpField(_header,_headerString,_valueString));
+          return_from_parse=_handler.parsedHeader(_field != null ? _field : new HttpField(_header,_headerString,_valueString)) || return_from_parse;
         }
         _headerString=_valueString=null;
         _header=null;
@@ -45,8 +44,7 @@ default :
         if (ch == HttpTokens.LINE_FEED) {
           _contentPosition=0;
           if (!_host && _version != HttpVersion.HTTP_1_0 && _requestHandler != null) {
-            badMessage(buffer,HttpStatus.BAD_REQUEST_400,"No Host");
-            return true;
+            throw new BadMessage(HttpStatus.BAD_REQUEST_400,"No Host");
           }
           if (_responseHandler != null && (_responseStatus == 304 || _responseStatus == 204 || _responseStatus < 200))           _endOfContent=EndOfContent.NO_CONTENT;
  else           if (_endOfContent == EndOfContent.UNKNOWN_CONTENT) {
@@ -56,20 +54,20 @@ default :
 switch (_endOfContent) {
 case EOF_CONTENT:
             setState(State.EOF_CONTENT);
-          return_from_parse|=_handler.headerComplete();
+          return_from_parse=_handler.headerComplete() || return_from_parse;
         break;
 case CHUNKED_CONTENT:
       setState(State.CHUNKED_CONTENT);
-    return_from_parse|=_handler.headerComplete();
+    return_from_parse=_handler.headerComplete() || return_from_parse;
   break;
 case NO_CONTENT:
-return_from_parse|=_handler.headerComplete();
+return_from_parse=_handler.headerComplete() || return_from_parse;
 setState(State.END);
-return_from_parse|=_handler.messageComplete();
+return_from_parse=_handler.messageComplete() || return_from_parse;
 break;
 default :
 setState(State.CONTENT);
-return_from_parse|=_handler.headerComplete();
+return_from_parse=_handler.headerComplete() || return_from_parse;
 break;
 }
 }

@@ -3,5 +3,11 @@
   if (_aggregate == null)   _aggregate=_channel.getByteBufferPool().acquire(getBufferSize(),false);
   BufferUtil.append(_aggregate,(byte)b);
   _written++;
-  if (!closeIfAllContentWritten() && BufferUtil.isFull(_aggregate))   _channel.write(_aggregate,false);
+  boolean complete=_channel.getResponse().isAllContentWritten(_written);
+  if (complete || BufferUtil.isFull(_aggregate)) {
+    BlockingCallback callback=_channel.getWriteBlockingCallback();
+    _channel.write(_aggregate,false,callback);
+    callback.block();
+    if (complete)     closed();
+  }
 }

@@ -1,0 +1,22 @@
+{
+  if (isClosed())   throw new IOException("Closed");
+  if (BufferUtil.hasContent(_aggregate))   throw new IOException("written");
+  if (_channel.isCommitted())   throw new IOException("committed");
+  ByteBuffer buffer=_channel.useDirectBuffers() ? httpContent.getDirectBuffer() : null;
+  if (buffer == null)   buffer=httpContent.getIndirectBuffer();
+  if (buffer != null) {
+    sendContent(buffer,callback);
+    return;
+  }
+  ReadableByteChannel rbc=httpContent.getReadableByteChannel();
+  if (rbc != null) {
+    sendContent(rbc,callback);
+    return;
+  }
+  InputStream in=httpContent.getInputStream();
+  if (in != null) {
+    sendContent(in,callback);
+    return;
+  }
+  callback.failed(new IllegalArgumentException("unknown content for " + httpContent));
+}

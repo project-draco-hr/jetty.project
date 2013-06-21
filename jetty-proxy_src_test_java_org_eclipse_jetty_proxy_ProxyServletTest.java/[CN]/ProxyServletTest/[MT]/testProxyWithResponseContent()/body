@@ -1,5 +1,13 @@
 {
   prepareProxy(new ProxyServlet());
+  HttpClient result=new HttpClient();
+  result.setProxyConfiguration(new ProxyConfiguration("localhost",proxyConnector.getLocalPort()));
+  QueuedThreadPool threadPool=new QueuedThreadPool();
+  threadPool.setName("foo");
+  threadPool.setMaxThreads(2);
+  result.setExecutor(threadPool);
+  result.start();
+  ContentResponse[] responses=new ContentResponse[10];
   final byte[] content=new byte[1024];
   Arrays.fill(content,(byte)'A');
   prepareServer(new HttpServlet(){
@@ -9,8 +17,12 @@
     }
   }
 );
-  ContentResponse response=client.newRequest("localhost",serverConnector.getLocalPort()).timeout(5,TimeUnit.SECONDS).send();
-  Assert.assertEquals(200,response.getStatus());
-  Assert.assertTrue(response.getHeaders().containsKey(PROXIED_HEADER));
-  Assert.assertArrayEquals(content,response.getContent());
+  for (int i=0; i < 10; ++i) {
+    responses[i]=result.newRequest("localhost",serverConnector.getLocalPort()).timeout(5,TimeUnit.SECONDS).send();
+  }
+  for (int i=0; i < 10; ++i) {
+    Assert.assertEquals(200,responses[i].getStatus());
+    Assert.assertTrue(responses[i].getHeaders().containsKey(PROXIED_HEADER));
+    Assert.assertArrayEquals(content,responses[i].getContent());
+  }
 }

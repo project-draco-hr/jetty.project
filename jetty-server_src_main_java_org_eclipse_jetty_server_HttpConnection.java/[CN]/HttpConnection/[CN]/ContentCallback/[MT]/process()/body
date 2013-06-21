@@ -1,0 +1,50 @@
+{
+  ByteBuffer chunk=_chunk;
+  while (true) {
+    HttpGenerator.Result result=_generator.generateResponse(null,null,chunk,_content,_lastContent);
+    if (LOG.isDebugEnabled())     LOG.debug("{} generate: {} ({},{})@{}",this,result,BufferUtil.toSummaryString(_content),_lastContent,_generator.getState());
+switch (result) {
+case NEED_HEADER:
+      throw new IllegalStateException();
+case NEED_CHUNK:
+{
+      chunk=_chunk=_bufferPool.acquire(HttpGenerator.CHUNK_SIZE,CHUNK_BUFFER_DIRECT);
+      continue;
+    }
+case FLUSH:
+{
+    if (_channel.getRequest().isHead()) {
+      BufferUtil.clear(chunk);
+      BufferUtil.clear(_content);
+      continue;
+    }
+ else     if (BufferUtil.hasContent(chunk)) {
+      if (BufferUtil.hasContent(_content))       getEndPoint().write(this,chunk,_content);
+ else       getEndPoint().write(this,chunk);
+    }
+ else     if (BufferUtil.hasContent(_content)) {
+      getEndPoint().write(this,_content);
+    }
+ else     continue;
+    return false;
+  }
+case SHUTDOWN_OUT:
+{
+  getEndPoint().shutdownOutput();
+  continue;
+}
+case DONE:
+{
+return true;
+}
+case CONTINUE:
+{
+break;
+}
+default :
+{
+throw new IllegalStateException("generateResponse=" + result);
+}
+}
+}
+}

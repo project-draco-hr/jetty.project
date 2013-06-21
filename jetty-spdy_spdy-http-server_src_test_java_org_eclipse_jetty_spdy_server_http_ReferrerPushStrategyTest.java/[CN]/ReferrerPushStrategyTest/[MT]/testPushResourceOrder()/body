@@ -1,11 +1,12 @@
 {
   final CountDownLatch allExpectedPushesReceivedLatch=new CountDownLatch(4);
+  final CountDownLatch allPushDataReceivedLatch=new CountDownLatch(4);
   Session pushCacheBuildSession=startClient(version,serverAddress,null);
-  sendRequest(pushCacheBuildSession,mainRequestHeaders,null,null);
-  sendRequest(pushCacheBuildSession,associatedCSSRequestHeaders,null,null);
-  sendRequest(pushCacheBuildSession,associatedJSRequestHeaders,null,null);
-  sendRequest(pushCacheBuildSession,createHeaders("/image1.jpg",mainResource),null,null);
-  sendRequest(pushCacheBuildSession,createHeaders("/image2.jpg",mainResource),null,null);
+  sendRequest(pushCacheBuildSession,mainRequestHeaders,null,null,false);
+  sendRequest(pushCacheBuildSession,associatedCSSRequestHeaders,null,null,false);
+  sendRequest(pushCacheBuildSession,associatedJSRequestHeaders,null,null,false);
+  sendRequest(pushCacheBuildSession,createHeaders("/image1.jpg",mainResource),null,null,false);
+  sendRequest(pushCacheBuildSession,createHeaders("/image2.jpg",mainResource),null,null,false);
   Session session=startClient(version,serverAddress,null);
   session.syn(new SynInfo(mainRequestHeaders,true),new StreamFrameListener.Adapter(){
     @Override public StreamFrameListener onPush(    Stream stream,    PushInfo pushInfo){
@@ -26,9 +27,15 @@ assertThat("4th pushed resource is image2",uriHeader.endsWith("image2.jpg"),is(t
 break;
 }
 allExpectedPushesReceivedLatch.countDown();
-return super.onPush(stream,pushInfo);
+return new Adapter(){
+@Override public void onData(Stream stream,DataInfo dataInfo){
+if (dataInfo.isClose()) allPushDataReceivedLatch.countDown();
+}
+}
+;
 }
 }
 );
 assertThat("All expected push resources have been received",allExpectedPushesReceivedLatch.await(5,TimeUnit.SECONDS),is(true));
+assertThat("All push data has been fully received",allPushDataReceivedLatch.await(5,TimeUnit.SECONDS),is(true));
 }

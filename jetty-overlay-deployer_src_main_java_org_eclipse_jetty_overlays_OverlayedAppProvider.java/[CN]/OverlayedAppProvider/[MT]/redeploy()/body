@@ -1,0 +1,75 @@
+{
+  Map<String,Template> templates=new ConcurrentHashMap<String,Template>();
+  for (  Template template : _templates.values()) {
+    Template other=templates.get(template.getTemplateName());
+    if (other != null) {
+      __log.warn("Multiple Templates: {} & {}",template.getName(),other.getName());
+      if (other.getName().compareToIgnoreCase(template.getName()) <= 0)       continue;
+    }
+    templates.put(template.getTemplateName(),template);
+  }
+  for (  Template template : templates.values()) {
+    String webappname=template.getClassifier();
+    if (webappname == null)     continue;
+    Webapp webapp=_webapps.get(webappname);
+    if (webapp == null) {
+      __log.warn("No webapp found for template: {}",template.getName());
+      templates.remove(template.getTemplateName());
+    }
+ else {
+      template.setWebapp(webapp);
+    }
+  }
+  Set<String> deployed=new HashSet<String>();
+  List<Instance> deploy=new ArrayList<Instance>();
+  for (  Instance instance : _instances.values()) {
+    Template template=templates.get(instance.getTemplateName());
+    instance.setTemplate(template);
+    if (template != null) {
+      String key=instance.getInstanceKey();
+      App app=_deployed.get(key);
+      if (app == null)       deploy.add(instance);
+ else       deployed.add(key);
+    }
+  }
+  List<String> undeploy=new ArrayList<String>();
+  for (  String key : _deployed.keySet()) {
+    if (!deployed.contains(key))     undeploy.add(key);
+  }
+  for (  String key : undeploy) {
+    App app=_deployed.remove(key);
+    if (app != null) {
+      __log.info("Undeploy {}",key);
+      _deploymentManager.removeApp(app);
+    }
+  }
+  for (  Instance instance : deploy) {
+    String key=instance.getInstanceKey();
+    OverlayedApp app=new OverlayedApp(_deploymentManager,this,key,instance);
+    _deployed.put(key,app);
+  }
+  Set<String> sharedKeys=new HashSet<String>(_shared.keySet());
+  for (  OverlayedApp app : _deployed.values()) {
+    Instance instance=app.getInstance();
+    sharedKeys.remove(instance.getSharedKey());
+  }
+  for (  String sharedKey : sharedKeys) {
+    __log.debug("Remove " + sharedKey);
+    TemplateContext shared=_shared.remove(sharedKey);
+    if (shared != null) {
+      try {
+        shared.stop();
+      }
+ catch (      Exception e) {
+        __log.warn(e);
+      }
+      shared.destroy();
+    }
+  }
+  for (  Instance instance : deploy) {
+    String key=instance.getInstanceKey();
+    OverlayedApp app=_deployed.get(key);
+    __log.info("Deploy {}",key);
+    _deploymentManager.addApp(app);
+  }
+}

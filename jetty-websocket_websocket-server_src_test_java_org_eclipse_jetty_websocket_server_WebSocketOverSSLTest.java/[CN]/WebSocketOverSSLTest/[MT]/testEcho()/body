@@ -1,0 +1,19 @@
+{
+  Assert.assertThat("server scheme",server.getServerUri().getScheme(),is("wss"));
+  WebSocketClient client=new WebSocketClient(server.getSslContextFactory());
+  try {
+    client.start();
+    CaptureSocket clientSocket=new CaptureSocket();
+    Future<Session> fut=client.connect(clientSocket,server.getServerUri());
+    Session session=fut.get(3,TimeUnit.SECONDS);
+    String msg="this is an echo ... cho ... ho ... o";
+    session.getRemote().sendString(msg);
+    clientSocket.messages.awaitEventCount(1,500,TimeUnit.MILLISECONDS);
+    EventQueue<String> captured=clientSocket.messages;
+    Assert.assertThat("Text Message",captured.poll(),is(msg));
+    clientSocket.close();
+  }
+  finally {
+    client.stop();
+  }
+}

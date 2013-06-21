@@ -4,6 +4,11 @@
   String overrideBundleInstallLocation=(String)_properties.get(OSGiWebappConstants.JETTY_BUNDLE_INSTALL_LOCATION_OVERRIDE);
   File bundleInstallLocation=(overrideBundleInstallLocation == null ? BundleFileLocatorHelperFactory.getFactory().getHelper().getBundleInstallLocation(_bundle) : new File(overrideBundleInstallLocation));
   URL url=null;
+  Resource rootResource=Resource.newResource(BundleFileLocatorHelperFactory.getFactory().getHelper().getLocalURL(bundleInstallLocation.toURI().toURL()));
+  if (rootResource.exists() && !rootResource.isDirectory() && !rootResource.toString().startsWith("jar:")) {
+    Resource jarResource=JarResource.newJarResource(rootResource);
+    if (jarResource.exists() && jarResource.isDirectory())     rootResource=jarResource;
+  }
   if (_webAppPath == null || _webAppPath.length() == 0 || ".".equals(_webAppPath)) {
     url=bundleInstallLocation.toURI().toURL();
   }
@@ -38,14 +43,17 @@
   tmp=(String)_properties.get(OSGiWebappConstants.JETTY_DEFAULT_WEB_XML_PATH);
   if (tmp != null) {
     File defaultWebXml=getFile(tmp,bundleInstallLocation);
-    if (defaultWebXml != null && defaultWebXml.exists())     _webApp.setDefaultsDescriptor(defaultWebXml.getAbsolutePath());
+    if (defaultWebXml != null) {
+      if (defaultWebXml.exists())       _webApp.setDefaultsDescriptor(defaultWebXml.getAbsolutePath());
+ else       LOG.warn(defaultWebXml.getAbsolutePath() + " does not exist");
+    }
   }
   String requireTldBundles=(String)_properties.get(OSGiWebappConstants.REQUIRE_TLD_BUNDLE);
   String pathsToTldBundles=getPathsToRequiredBundles(requireTldBundles);
   OSGiWebappClassLoader webAppLoader=new OSGiWebappClassLoader(_serverWrapper.getParentClassLoaderForWebapps(),_webApp,_bundle);
   if (pathsToTldBundles != null)   webAppLoader.addClassPath(pathsToTldBundles);
   _webApp.setClassLoader(webAppLoader);
-  applyMetaInfContextXml();
+  applyMetaInfContextXml(rootResource);
   _webApp.setAttribute(OSGiWebappConstants.REQUIRE_TLD_BUNDLE,requireTldBundles);
   _webApp.setAttribute(OSGiWebappConstants.RFC66_OSGI_BUNDLE_CONTEXT,_bundle.getBundleContext());
   _webApp.setAttribute("org.springframework.osgi.web." + BundleContext.class.getName(),_bundle.getBundleContext());

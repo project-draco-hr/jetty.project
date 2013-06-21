@@ -18,12 +18,12 @@
     Assert.assertEquals(0,activeConnections.size());
     Log.getLogger(HttpConnection.class).info("Expecting java.lang.IllegalStateException: HttpParser{s=CLOSED,...");
     final CountDownLatch latch=new CountDownLatch(1);
-    final AtomicBoolean failed=new AtomicBoolean(false);
     ByteBuffer buffer=ByteBuffer.allocate(16 * 1024 * 1024);
     Arrays.fill(buffer.array(),(byte)'x');
     client.newRequest(host,port).scheme(scheme).content(new ByteBufferContentProvider(buffer)).send(new Response.Listener.Empty(){
       @Override public void onComplete(      Result result){
-        failed.set(result.isFailed());
+        Assert.assertEquals(0,idleConnections.size());
+        Assert.assertEquals(0,activeConnections.size());
         latch.countDown();
       }
     }
@@ -31,7 +31,6 @@
     Assert.assertTrue(latch.await(5,TimeUnit.SECONDS));
     Assert.assertEquals(0,idleConnections.size());
     Assert.assertEquals(0,activeConnections.size());
-    Assert.assertTrue(failed.get());
     server.stop();
   }
   finally {

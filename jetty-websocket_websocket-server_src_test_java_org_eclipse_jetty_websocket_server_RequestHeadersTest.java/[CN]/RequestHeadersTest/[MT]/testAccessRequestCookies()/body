@@ -1,0 +1,22 @@
+{
+  BlockheadClient client=new BlockheadClient(server.getServerUri());
+  client.setTimeout(TimeUnit.SECONDS,1);
+  try {
+    client.connect();
+    client.addHeader("Cookie: fruit=Pear; type=Anjou\r\n");
+    client.sendStandardRequest();
+    client.expectUpgradeResponse();
+    UpgradeRequest req=echoCreator.getLastRequest();
+    Assert.assertThat("Last Request",req,notNullValue());
+    List<HttpCookie> cookies=req.getCookies();
+    Assert.assertThat("Request cookies",cookies,notNullValue());
+    Assert.assertThat("Request cookies.size",cookies.size(),is(2));
+    for (    HttpCookie cookie : cookies) {
+      Assert.assertThat("Cookie name",cookie.getName(),anyOf(is("fruit"),is("type")));
+      Assert.assertThat("Cookie value",cookie.getValue(),anyOf(is("Pear"),is("Anjou")));
+    }
+  }
+  finally {
+    client.close();
+  }
+}
