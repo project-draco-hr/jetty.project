@@ -1,21 +1,22 @@
 {
-  enableStacks(Parser.class,false);
-  byte payload[]=new byte[126];
-  Arrays.fill(payload,(byte)'5');
-  List<WebSocketFrame> send=new ArrayList<>();
-  send.add(WebSocketFrame.binary(payload).setOpCode(OpCode.PING));
-  send.add(new CloseInfo(StatusCode.NORMAL,"Test 2.5").asFrame());
-  List<WebSocketFrame> expect=new ArrayList<>();
-  expect.add(new CloseInfo(StatusCode.PROTOCOL).asFrame());
-  Fuzzer fuzzer=new Fuzzer(this);
-  try {
-    fuzzer.connect();
-    fuzzer.setSendMode(Fuzzer.SendMode.BULK);
-    fuzzer.send(send);
-    fuzzer.expect(expect);
-  }
+  try (StacklessLogging scope=new StacklessLogging(Parser.class)){
+    byte payload[]=new byte[126];
+    Arrays.fill(payload,(byte)'5');
+    List<WebSocketFrame> send=new ArrayList<>();
+    send.add(WebSocketFrame.binary(payload).setOpCode(OpCode.PING));
+    send.add(new CloseInfo(StatusCode.NORMAL,"Test 2.5").asFrame());
+    List<WebSocketFrame> expect=new ArrayList<>();
+    expect.add(new CloseInfo(StatusCode.PROTOCOL).asFrame());
+    Fuzzer fuzzer=new Fuzzer(this);
+    try {
+      fuzzer.connect();
+      fuzzer.setSendMode(Fuzzer.SendMode.BULK);
+      fuzzer.send(send);
+      fuzzer.expect(expect);
+      fuzzer.expectServerDisconnect(Fuzzer.DisconnectMode.CLEAN);
+    }
   finally {
-    enableStacks(Parser.class,true);
-    fuzzer.close();
+      fuzzer.close();
+    }
   }
-}
+ }
