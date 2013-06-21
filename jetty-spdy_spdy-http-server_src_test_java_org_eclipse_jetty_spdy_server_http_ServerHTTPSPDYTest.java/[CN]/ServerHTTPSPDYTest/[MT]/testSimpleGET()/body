@@ -4,9 +4,9 @@
   Session session=startClient(version,startHTTPServer(version,new AbstractHandler(){
     @Override public void handle(    String target,    Request request,    HttpServletRequest httpRequest,    HttpServletResponse httpResponse) throws IOException, ServletException {
       request.setHandled(true);
-      Assert.assertEquals("GET",httpRequest.getMethod());
-      Assert.assertEquals(path,target);
-      Assert.assertEquals(path,httpRequest.getRequestURI());
+      assertEquals("GET",httpRequest.getMethod());
+      assertEquals(path,target);
+      assertEquals(path,httpRequest.getRequestURI());
       assertThat("accept-encoding is set to gzip, even if client didn't set it",httpRequest.getHeader("accept-encoding"),containsString("gzip"));
       assertThat(httpRequest.getHeader("host"),is("localhost:" + connector.getLocalPort()));
       handlerLatch.countDown();
@@ -17,13 +17,13 @@
   final CountDownLatch replyLatch=new CountDownLatch(1);
   session.syn(new SynInfo(headers,true),new StreamFrameListener.Adapter(){
     @Override public void onReply(    Stream stream,    ReplyInfo replyInfo){
-      Assert.assertTrue(replyInfo.isClose());
+      assertTrue(replyInfo.isClose());
       Fields replyHeaders=replyInfo.getHeaders();
-      Assert.assertTrue(replyHeaders.get(HTTPSPDYHeader.STATUS.name(version)).value().contains("200"));
+      assertTrue(replyHeaders.get(HTTPSPDYHeader.STATUS.name(version)).value().contains("200"));
       replyLatch.countDown();
     }
   }
 );
-  Assert.assertTrue(handlerLatch.await(5,TimeUnit.SECONDS));
-  Assert.assertTrue(replyLatch.await(5,TimeUnit.SECONDS));
+  assertTrue(handlerLatch.await(5,TimeUnit.SECONDS));
+  assertTrue(replyLatch.await(5,TimeUnit.SECONDS));
 }
