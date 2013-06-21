@@ -2,7 +2,7 @@
   BlockheadServer server=new BlockheadServer();
   WebSocketClient client=new WebSocketClient();
   try {
-    int bufferSize=512;
+    final int bufferSize=512;
     server.start();
     client.start();
     LatchedSocket websocket=new LatchedSocket();
@@ -13,17 +13,17 @@
     socket.addResponseHeader("Transfer-Encoding","chunked");
     socket.upgrade();
     Assert.assertTrue("Timed out waiting for Client side WebSocket open event",websocket.openLatch.await(1,TimeUnit.SECONDS));
-    int length=bufferSize / 2;
-    ByteBuffer serverFrame=ByteBuffer.allocate(bufferSize);
+    byte payload[]=new byte[bufferSize / 2];
+    Arrays.fill(payload,(byte)'x');
+    ByteBuffer serverFrame=BufferUtil.allocate(bufferSize);
+    BufferUtil.flipToFill(serverFrame);
     serverFrame.put((byte)(0x80 | 0x01));
     serverFrame.put((byte)0x7E);
-    serverFrame.put((byte)(length >> 8));
-    serverFrame.put((byte)(length & 0xFF));
-    for (int i=0; i < length; ++i) {
-      serverFrame.put((byte)'x');
-    }
-    serverFrame.flip();
-    byte buf[]=serverFrame.array();
+    serverFrame.put((byte)(payload.length >> 8));
+    serverFrame.put((byte)(payload.length & 0xFF));
+    serverFrame.put(payload);
+    BufferUtil.flipToFlush(serverFrame,0);
+    byte buf[]=BufferUtil.toArray(serverFrame);
     socket.write(buf,0,buf.length);
     socket.flush();
     Assert.assertTrue(websocket.dataLatch.await(1000,TimeUnit.SECONDS));
