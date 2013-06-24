@@ -1,0 +1,24 @@
+{
+  Callback callback=new Callback(){
+    @Override public void succeeded(){
+      while (true) {
+        State state=connection._state.get();
+        if (!(state instanceof NestedState))         break;
+        State nested=((NestedState)state)._nested;
+        if (connection.next(state,nested))         break;
+      }
+      _callback.succeeded();
+    }
+    @Override public void failed(    Throwable x){
+      while (true) {
+        State state=connection._state.get();
+        if (!(state instanceof NestedState))         break;
+        State nested=((NestedState)state)._nested;
+        if (connection.next(state,nested))         break;
+      }
+      _callback.failed(x);
+    }
+  }
+;
+  connection.getEndPoint().fillInterested(callback);
+}
