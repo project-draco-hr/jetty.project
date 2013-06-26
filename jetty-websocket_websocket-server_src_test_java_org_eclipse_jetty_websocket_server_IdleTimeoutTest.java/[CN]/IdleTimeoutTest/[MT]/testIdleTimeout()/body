@@ -1,20 +1,22 @@
 {
   BlockheadClient client=new BlockheadClient(server.getServerUri());
   client.setProtocols("onConnect");
-  client.setTimeout(TimeUnit.MILLISECONDS,1500);
+  client.setTimeout(TimeUnit.MILLISECONDS,2500);
   try {
     client.connect();
     client.sendStandardRequest();
     client.expectUpgradeResponse();
     client.sleep(TimeUnit.MILLISECONDS,1000);
     client.write(WebSocketFrame.text("Hello"));
-    client.readFrames(2,TimeUnit.MILLISECONDS,1500);
-    Assert.fail("Should have resulted in IOException");
+    IncomingFramesCapture capture=client.readFrames(1,TimeUnit.MILLISECONDS,1500);
+    WebSocketFrame frame=capture.getFrames().poll();
+    Assert.assertThat("Was close frame",frame.getOpCode(),is(OpCode.CLOSE));
+    CloseInfo close=new CloseInfo(frame);
+    Assert.assertThat("Close.code",close.getStatusCode(),is(StatusCode.SHUTDOWN));
+    Assert.assertThat("Close.reason",close.getReason(),containsString("Idle Timeout"));
+    client.expectServerDisconnect();
   }
- catch (  IOException e) {
-    Assert.assertThat("IOException",e.getMessage(),anyOf(containsString("closed"),containsString("disconnected")));
-  }
- finally {
+  finally {
     client.close();
   }
 }
