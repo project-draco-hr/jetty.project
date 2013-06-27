@@ -1,0 +1,47 @@
+{
+  if ((type == null) || (type == Object.class)) {
+    return false;
+  }
+  if (type instanceof Class) {
+    Class<?> clazz=(Class<?>)type;
+    if (clazz.getName().matches("^javax*\\..*")) {
+      return false;
+    }
+    Type ifaces[]=clazz.getGenericInterfaces();
+    for (    Type iface : ifaces) {
+      if (resolveGenericRef(ref,clazz,iface)) {
+        if (ref.needsUnwrap()) {
+          TypeVariable<?> needVar=(TypeVariable<?>)ref.genericType;
+          int typeParamIdx=findTypeParameterIndex(clazz,needVar);
+          if (typeParamIdx >= 0) {
+            TypeVariable<?> params[]=clazz.getTypeParameters();
+            if (params.length >= typeParamIdx) {
+              ref.setGenericFromType(params[typeParamIdx],typeParamIdx);
+            }
+          }
+ else           if (iface instanceof ParameterizedType) {
+            Type arg=((ParameterizedType)iface).getActualTypeArguments()[ref.genericIndex];
+            ref.setGenericFromType(arg,ref.genericIndex);
+          }
+        }
+        return true;
+      }
+    }
+    type=clazz.getGenericSuperclass();
+    return resolveGenericRef(ref,type);
+  }
+  if (type instanceof ParameterizedType) {
+    ParameterizedType ptype=(ParameterizedType)type;
+    Class<?> rawClass=(Class<?>)ptype.getRawType();
+    if (resolveGenericRef(ref,rawClass)) {
+      if (ref.needsUnwrap()) {
+        TypeVariable<?> needVar=(TypeVariable<?>)ref.genericType;
+        int typeParamIdx=findTypeParameterIndex(rawClass,needVar);
+        Type arg=ptype.getActualTypeArguments()[typeParamIdx];
+        ref.setGenericFromType(arg,typeParamIdx);
+        return true;
+      }
+    }
+  }
+  return false;
+}

@@ -1,19 +1,8 @@
 {
-  for (  ParameterizedType iencoder : getEncoderInterfaces(encoder)) {
-    Type handledTypes[]=iencoder.getActualTypeArguments();
-    if (handledTypes == null) {
-      throw new InvalidSignatureException(encoder + " has invalid signature for " + iencoder+ " Generic type is null");
-    }
-    if (handledTypes.length != 1) {
-      throw new InvalidSignatureException(encoder + " has invalid signature for " + iencoder+ " - multi-value generic types not supported");
-    }
-    Type handledType=handledTypes[0];
-    if (handledType instanceof Class<?>) {
-      Class<?> handler=(Class<?>)handledType;
-      add(handler,encoder);
-    }
- else {
-      throw new InvalidSignatureException(encoder + " has invalid signature for " + iencoder+ " - only java.lang.Class based generics supported");
+  for (  Class<?> type : TYPES) {
+    Class<?> encoderClass=ReflectUtils.findGenericClassFor(encoder,type);
+    if (encoderClass != null) {
+      add(encoderClass,encoder);
     }
   }
 }
