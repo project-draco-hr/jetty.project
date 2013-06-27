@@ -35,13 +35,23 @@ case '%':
 if (i + 2 < end) {
 if ('u' == raw[i + 1]) {
 i++;
-if (i + 4 < end) buffer.getStringBuilder().append(Character.toChars((convertHexDigit(raw[++i]) << 12) + (convertHexDigit(raw[++i]) << 8) + (convertHexDigit(raw[++i]) << 4)+ convertHexDigit(raw[++i])));
+if (i + 4 < end) {
+byte top=raw[++i];
+byte hi=raw[++i];
+byte lo=raw[++i];
+byte bot=raw[++i];
+buffer.getStringBuilder().append(Character.toChars((convertHexDigit(top) << 12) + (convertHexDigit(hi) << 8) + (convertHexDigit(lo) << 4)+ convertHexDigit(bot)));
+}
  else {
 buffer.getStringBuilder().append(Utf8Appendable.REPLACEMENT);
 i=end;
 }
 }
- else buffer.append((byte)((convertHexDigit(raw[++i]) << 4) + convertHexDigit(raw[++i])));
+ else {
+byte hi=raw[++i];
+byte lo=raw[++i];
+buffer.append((byte)((convertHexDigit(hi) << 4) + convertHexDigit(lo)));
+}
 }
  else {
 buffer.getStringBuilder().append(Utf8Appendable.REPLACEMENT);
@@ -54,6 +64,11 @@ break;
 }
 }
  catch (NotUtf8Exception e) {
+LOG.warn(e.toString());
+LOG.debug(e);
+}
+catch (NumberFormatException e) {
+buffer.append(Utf8Appendable.REPLACEMENT_UTF8,0,3);
 LOG.warn(e.toString());
 LOG.debug(e);
 }
