@@ -1,3 +1,12 @@
 {
-  messageHandlers.remove(handler);
+  try {
+    for (    MessageHandlerMetadata metadata : messageHandlerFactory.getMetadata(handler.getClass())) {
+      DecoderMetadata decoder=decoderFactory.getMetadataFor(metadata.getMessageClass());
+      MessageType key=decoder.getMessageType();
+      wrappers[key.ordinal()]=null;
+    }
+  }
+ catch (  IllegalStateException e) {
+    LOG.warn("Unable to identify MessageHandler: " + handler.getClass().getName(),e);
+  }
 }
