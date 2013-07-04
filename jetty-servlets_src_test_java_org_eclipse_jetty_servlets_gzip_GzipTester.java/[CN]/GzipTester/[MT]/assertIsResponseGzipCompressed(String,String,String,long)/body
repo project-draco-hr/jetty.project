@@ -9,7 +9,15 @@
   if (this.userAgent != null)   request.setHeader("User-Agent",this.userAgent);
   request.setURI("/context/" + requestedFilename);
   response=HttpTester.parseResponse(tester.getResponses(request.generate()));
-  Assert.assertThat("Response.header[Content-Length]",response.get("Content-Length"),notNullValue());
+  String contentLength=response.getHeader("Content-Length");
+  String transferEncoding=response.getHeader("Transfer-Encoding");
+  boolean chunked=(transferEncoding != null) && (transferEncoding.indexOf("chunk") >= 0);
+  if (!chunked) {
+    Assert.assertThat("Response.header[Content-Length]",contentLength,notNullValue());
+  }
+ else {
+    Assert.assertThat("Response.header[Transfer-Encoding]",transferEncoding,notNullValue());
+  }
   int qindex=compressionType.indexOf(";");
   if (qindex < 0)   Assert.assertThat("Response.header[Content-Encoding]",response.get("Content-Encoding"),containsString(compressionType));
  else   Assert.assertThat("Response.header[Content-Encoding]",response.get("Content-Encoding"),containsString(compressionType.substring(0,qindex)));
