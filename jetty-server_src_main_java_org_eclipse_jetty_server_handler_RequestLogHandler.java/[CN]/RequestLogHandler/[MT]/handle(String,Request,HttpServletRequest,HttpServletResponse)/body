@@ -7,8 +7,16 @@
     super.handle(target,baseRequest,request,response);
   }
   finally {
-    if (_requestLog != null && DispatcherType.REQUEST.equals(baseRequest.getDispatcherType())) {
-      _requestLog.log(baseRequest,(Response)response);
+    if (continuation.isAsync()) {
+      if (continuation.isInitial())       continuation.addContinuationListener(new ContinuationListener(){
+        public void onTimeout(        Continuation continuation){
+        }
+        public void onComplete(        Continuation continuation){
+          _requestLog.log(baseRequest,(Response)response);
+        }
+      }
+);
     }
+ else     _requestLog.log(baseRequest,(Response)response);
   }
 }
