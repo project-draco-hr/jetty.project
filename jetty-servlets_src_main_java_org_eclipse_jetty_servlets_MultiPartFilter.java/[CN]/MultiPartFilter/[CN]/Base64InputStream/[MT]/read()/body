@@ -1,10 +1,17 @@
 {
   if (_buffer == null || _pos >= _buffer.length) {
     _line=_in.readLine();
+    System.err.println("LINE: " + _line);
     if (_line == null)     return -1;
     if (_line.startsWith("--"))     _buffer=(_line + "\r\n").getBytes();
  else     if (_line.length() == 0)     _buffer="\r\n".getBytes();
- else     _buffer=B64Code.decode(_line);
+ else {
+      ByteArrayOutputStream bout=new ByteArrayOutputStream(4 * _line.length() / 3);
+      B64Code.decode(_line,bout);
+      bout.write(13);
+      bout.write(10);
+      _buffer=bout.toByteArray();
+    }
     _pos=0;
   }
   return _buffer[_pos++];
