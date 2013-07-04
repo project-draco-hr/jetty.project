@@ -1,11 +1,10 @@
 {
   PushResource resource;
-synchronized (this) {
-    if (active)     return;
+  if (active.compareAndSet(false,true)) {
     resource=queue.poll();
     if (resource == null)     return;
-    active=true;
+    LOG.debug("Opening new push channel for: {}",resource);
+    HttpChannelOverSPDY pushChannel=newHttpChannelOverSPDY(resource.getPushStream(),resource.getPushRequestHeaders());
+    pushChannel.requestStart(resource.getPushRequestHeaders(),true);
   }
-  HttpChannelOverSPDY pushChannel=newHttpChannelOverSPDY(resource.getPushStream(),resource.getPushRequestHeaders());
-  pushChannel.requestStart(resource.getPushRequestHeaders(),true);
 }
