@@ -1,29 +1,30 @@
 {
+  if (_requestHandler != null) {
+    _method=HttpMethod.lookAheadGet(buffer);
+    if (_method != null) {
+      _methodString=_method.asString();
+      buffer.position(buffer.position() + _methodString.length() + 1);
+      setState(State.SPACE1);
+      return false;
+    }
+  }
+ else   if (_responseHandler != null) {
+    _version=HttpVersion.lookAheadGet(buffer);
+    if (_version != null) {
+      buffer.position(buffer.position() + _version.asString().length() + 1);
+      setState(State.SPACE1);
+      return false;
+    }
+  }
   while (_state == State.START && buffer.hasRemaining()) {
-    if (_requestHandler != null) {
-      _method=HttpMethod.lookAheadGet(buffer);
-      if (_method != null) {
-        _methodString=_method.asString();
-        buffer.position(buffer.position() + _methodString.length() + 1);
-        setState(State.SPACE1);
-        return false;
-      }
-    }
- else     if (_responseHandler != null) {
-      _version=HttpVersion.lookAheadGet(buffer);
-      if (_version != null) {
-        buffer.position(buffer.position() + _version.asString().length() + 1);
-        setState(State.SPACE1);
-        return false;
-      }
-    }
-    byte ch=next(buffer);
+    int ch=next(buffer);
     if (ch > HttpTokens.SPACE) {
       _string.setLength(0);
       _string.append((char)ch);
       setState(_requestHandler != null ? State.METHOD : State.RESPONSE_VERSION);
       return false;
     }
+ else     if (ch == 0)     break;
   }
   return false;
 }

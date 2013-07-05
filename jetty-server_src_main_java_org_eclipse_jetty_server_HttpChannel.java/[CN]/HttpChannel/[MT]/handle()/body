@@ -9,6 +9,7 @@
   HttpChannelState.Action action=_state.handling();
   loop:   while (action.ordinal() < HttpChannelState.Action.WAIT.ordinal() && getServer().isRunning()) {
     try {
+      LOG.debug("{} action {}",this,action);
 switch (action) {
 case REQUEST_DISPATCH:
         _request.setHandled(false);
@@ -34,9 +35,20 @@ _request.setAttribute(RequestDispatcher.ERROR_REQUEST_URI,_request.getRequestURI
 _response.setStatusWithReason(500,"Async Timeout");
 getServer().handleAsync(this);
 break;
-case IO_CALLBACK:
-_response.getHttpOutput().handle();
+case READ_CALLBACK:
+{
+ContextHandler handler=_state.getContextHandler();
+if (handler != null) handler.handle(_request.getHttpInput());
+ else _request.getHttpInput().run();
 break;
+}
+case WRITE_CALLBACK:
+{
+ContextHandler handler=_state.getContextHandler();
+if (handler != null) handler.handle(_response.getHttpOutput());
+ else _response.getHttpOutput().run();
+break;
+}
 default :
 break loop;
 }

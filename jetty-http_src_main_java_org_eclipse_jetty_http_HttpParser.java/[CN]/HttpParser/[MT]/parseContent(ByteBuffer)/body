@@ -1,0 +1,98 @@
+{
+  byte ch;
+  while (_state.ordinal() < State.END.ordinal() && buffer.hasRemaining()) {
+switch (_state) {
+case EOF_CONTENT:
+      _contentChunk=buffer.asReadOnlyBuffer();
+    _contentPosition+=_contentChunk.remaining();
+  buffer.position(buffer.position() + _contentChunk.remaining());
+if (_handler.content(_contentChunk)) return true;
+break;
+case CONTENT:
+{
+long remaining=_contentLength - _contentPosition;
+if (remaining == 0) {
+setState(State.END);
+if (_handler.messageComplete()) return true;
+}
+ else {
+_contentChunk=buffer.asReadOnlyBuffer();
+if (_contentChunk.remaining() > remaining) {
+  _contentChunk.limit(_contentChunk.position() + (int)remaining);
+}
+_contentPosition+=_contentChunk.remaining();
+buffer.position(buffer.position() + _contentChunk.remaining());
+boolean handle=_handler.content(_contentChunk);
+if (_contentPosition == _contentLength) {
+  setState(State.END);
+  if (_handler.messageComplete())   return true;
+}
+if (handle) return true;
+}
+break;
+}
+case CHUNKED_CONTENT:
+{
+ch=next(buffer);
+if (ch > HttpTokens.SPACE) {
+_chunkLength=TypeUtil.convertHexDigit(ch);
+_chunkPosition=0;
+setState(State.CHUNK_SIZE);
+}
+break;
+}
+case CHUNK_SIZE:
+{
+ch=next(buffer);
+if (ch == 0) break;
+if (ch == HttpTokens.LINE_FEED) {
+if (_chunkLength == 0) {
+setState(State.END);
+if (_handler.messageComplete()) return true;
+}
+ else setState(State.CHUNK);
+}
+ else if (ch <= HttpTokens.SPACE || ch == HttpTokens.SEMI_COLON) setState(State.CHUNK_PARAMS);
+ else _chunkLength=_chunkLength * 16 + TypeUtil.convertHexDigit(ch);
+break;
+}
+case CHUNK_PARAMS:
+{
+ch=next(buffer);
+if (ch == HttpTokens.LINE_FEED) {
+if (_chunkLength == 0) {
+setState(State.END);
+if (_handler.messageComplete()) return true;
+}
+ else setState(State.CHUNK);
+}
+break;
+}
+case CHUNK:
+{
+int remaining=_chunkLength - _chunkPosition;
+if (remaining == 0) {
+setState(State.CHUNKED_CONTENT);
+}
+ else {
+_contentChunk=buffer.asReadOnlyBuffer();
+if (_contentChunk.remaining() > remaining) _contentChunk.limit(_contentChunk.position() + remaining);
+remaining=_contentChunk.remaining();
+_contentPosition+=remaining;
+_chunkPosition+=remaining;
+buffer.position(buffer.position() + remaining);
+if (_handler.content(_contentChunk)) return true;
+}
+break;
+}
+case CLOSED:
+{
+BufferUtil.clear(buffer);
+return false;
+}
+default :
+break;
+}
+}
+return false;
+}

@@ -27,7 +27,11 @@
   Assert.assertEquals(TLSRecord.Type.APPLICATION,record.getType());
   proxy.flushToClient(record);
   record=proxy.readFromServer();
-  Assert.assertNull(record);
+  if (record != null) {
+    Assert.assertEquals(record.getType(),Type.ALERT);
+    record=proxy.readFromServer();
+    Assert.assertNull(String.valueOf(record),record);
+  }
   TimeUnit.MILLISECONDS.sleep(500);
   Assert.assertThat(sslFills.get(),Matchers.lessThan(20));
   Assert.assertThat(sslFlushes.get(),Matchers.lessThan(20));

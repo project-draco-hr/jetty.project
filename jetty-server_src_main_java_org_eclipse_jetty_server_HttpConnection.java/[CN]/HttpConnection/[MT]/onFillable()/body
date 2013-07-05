@@ -1,38 +1,25 @@
 {
   LOG.debug("{} onFillable {}",this,_channel.getState());
   setCurrentConnection(this);
+  int filled=Integer.MAX_VALUE;
+  boolean suspended=false;
   try {
-    while (true) {
-      boolean call_channel=_parser.parseNext(_requestBuffer == null ? BufferUtil.EMPTY_BUFFER : _requestBuffer);
-      if (call_channel) {
-        while (_parser.inContentState()) {
-          if (!_parser.parseNext(_requestBuffer == null ? BufferUtil.EMPTY_BUFFER : _requestBuffer))           break;
+    while (!suspended && getEndPoint().getConnection() == this) {
+      if (BufferUtil.isEmpty(_requestBuffer)) {
+        if (filled <= 0)         break;
+        if (getEndPoint().isInputShutdown()) {
+          filled=-1;
+          _parser.atEOF();
         }
-        boolean handle=_channel.handle();
-        if (!handle || getEndPoint().getConnection() != this)         return;
-      }
- else       if (BufferUtil.isEmpty(_requestBuffer)) {
-        if (_requestBuffer == null)         _requestBuffer=_bufferPool.acquire(getInputBufferSize(),REQUEST_BUFFER_DIRECT);
-        int filled=getEndPoint().fill(_requestBuffer);
-        if (filled == 0)         filled=getEndPoint().fill(_requestBuffer);
-        LOG.debug("{} filled {}",this,filled);
-        if (filled == 0) {
-          releaseRequestBuffer();
-          fillInterested();
-          return;
-        }
- else         if (filled < 0) {
-          _parser.shutdownInput();
-          if (getEndPoint().isOutputShutdown())           getEndPoint().close();
- else           getEndPoint().shutdownOutput();
-          releaseRequestBuffer();
-          return;
-        }
-      }
  else {
-        LOG.warn("Unexpected state: " + this + " "+ _channel+ " "+ _channel.getRequest());
-        if (!_channel.getState().isSuspended())         getEndPoint().close();
-        return;
+          if (_requestBuffer == null)           _requestBuffer=_bufferPool.acquire(getInputBufferSize(),REQUEST_BUFFER_DIRECT);
+          filled=getEndPoint().fill(_requestBuffer);
+          if (filled == 0)           filled=getEndPoint().fill(_requestBuffer);
+          if (filled < 0)           _parser.atEOF();
+        }
+      }
+      if (_parser.parseNext(_requestBuffer == null ? BufferUtil.EMPTY_BUFFER : _requestBuffer)) {
+        suspended=!_channel.handle();
       }
     }
   }
@@ -46,5 +33,8 @@ catch (  Exception e) {
   }
  finally {
     setCurrentConnection(null);
+    if (!suspended && getEndPoint().isOpen()) {
+      fillInterested();
+    }
   }
 }

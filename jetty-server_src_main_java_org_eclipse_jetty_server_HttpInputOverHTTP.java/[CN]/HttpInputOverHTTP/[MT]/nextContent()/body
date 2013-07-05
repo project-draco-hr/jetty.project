@@ -1,0 +1,23 @@
+{
+  if (BufferUtil.hasContent(_content))   return _content;
+  _content=null;
+  ByteBuffer requestBuffer=_httpConnection.getRequestBuffer();
+  while (!_httpConnection.getParser().isComplete()) {
+    _httpConnection.getParser().parseNext(requestBuffer == null ? BufferUtil.EMPTY_BUFFER : requestBuffer);
+    if (BufferUtil.hasContent(_content))     return _content;
+    if (BufferUtil.isEmpty(requestBuffer) && _httpConnection.getEndPoint().isInputShutdown()) {
+      _httpConnection.getParser().atEOF();
+      continue;
+    }
+    int filled=_httpConnection.getEndPoint().fill(requestBuffer);
+    LOG.debug("{} filled {}",this,filled);
+    if (filled <= 0) {
+      if (filled < 0) {
+        _httpConnection.getParser().atEOF();
+        continue;
+      }
+      return null;
+    }
+  }
+  return null;
+}

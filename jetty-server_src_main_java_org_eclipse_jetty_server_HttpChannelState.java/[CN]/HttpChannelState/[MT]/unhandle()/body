@@ -1,5 +1,6 @@
 {
 synchronized (this) {
+    if (DEBUG)     LOG.debug("{} unhandle {}",this,_state);
 switch (_state) {
 case DISPATCHED:
 case ASYNCIO:
@@ -7,10 +8,15 @@ case ASYNCIO:
 default :
     throw new IllegalStateException(this.getStatusString());
 }
-if (_asyncIO) {
-  _asyncIO=false;
+if (_asyncRead) {
   _state=State.ASYNCIO;
-  return Action.IO_CALLBACK;
+  _asyncRead=false;
+  return Action.READ_CALLBACK;
+}
+if (_asyncWrite) {
+  _asyncWrite=false;
+  _state=State.ASYNCIO;
+  return Action.WRITE_CALLBACK;
 }
 if (_async != null) {
   _initial=false;

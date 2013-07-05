@@ -1,19 +1,21 @@
 {
-  if (DEBUG)   LOG.debug("failed: {} {}",this,cause);
   while (true) {
     State current=_state.get();
 switch (current.getType()) {
 case IDLE:
 case FAILED:
-      return;
-case PENDING:
-    PendingState pending=(PendingState)current;
-  if (updateState(pending,__IDLE)) {
-    pending.fail(cause);
+      if (DEBUG)       LOG.debug("ignored: {} {}",this,cause);
     return;
-  }
+case PENDING:
+  if (DEBUG)   LOG.debug("failed: {} {}",this,cause);
+PendingState pending=(PendingState)current;
+if (updateState(pending,__IDLE)) {
+pending.fail(cause);
+return;
+}
 break;
 default :
+if (DEBUG) LOG.debug("failed: {} {}",this,cause);
 if (updateState(current,new FailedState(cause))) return;
 break;
 }

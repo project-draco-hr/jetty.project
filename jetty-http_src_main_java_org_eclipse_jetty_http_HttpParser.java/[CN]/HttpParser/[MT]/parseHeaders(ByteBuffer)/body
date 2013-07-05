@@ -1,9 +1,8 @@
 {
-  boolean return_from_parse=false;
-  while (_state.ordinal() < State.END.ordinal() && buffer.hasRemaining() && !return_from_parse) {
+  boolean handle=false;
+  while (_state.ordinal() < State.CONTENT.ordinal() && buffer.hasRemaining() && !handle) {
     byte ch=next(buffer);
-    if (ch == -1)     return true;
-    if (ch == 0)     continue;
+    if (ch == 0)     break;
     if (_maxHeaderBytes > 0 && ++_headerBytes > _maxHeaderBytes) {
       LOG.warn("Header is too large >" + _maxHeaderBytes);
       throw new BadMessage(HttpStatus.REQUEST_ENTITY_TOO_LARGE_413);
@@ -35,7 +34,7 @@ default :
             _field=null;
             return true;
           }
-          return_from_parse=_handler.parsedHeader(_field != null ? _field : new HttpField(_header,_headerString,_valueString)) || return_from_parse;
+          handle=_handler.parsedHeader(_field != null ? _field : new HttpField(_header,_headerString,_valueString)) || handle;
         }
         _headerString=_valueString=null;
         _header=null;
@@ -54,20 +53,20 @@ default :
 switch (_endOfContent) {
 case EOF_CONTENT:
             setState(State.EOF_CONTENT);
-          return_from_parse=_handler.headerComplete() || return_from_parse;
+          handle=_handler.headerComplete() || handle;
         break;
 case CHUNKED_CONTENT:
       setState(State.CHUNKED_CONTENT);
-    return_from_parse=_handler.headerComplete() || return_from_parse;
+    handle=_handler.headerComplete() || handle;
   break;
 case NO_CONTENT:
-return_from_parse=_handler.headerComplete() || return_from_parse;
+handle=_handler.headerComplete() || handle;
 setState(State.END);
-return_from_parse=_handler.messageComplete() || return_from_parse;
+handle=_handler.messageComplete() || handle;
 break;
 default :
 setState(State.CONTENT);
-return_from_parse=_handler.headerComplete() || return_from_parse;
+handle=_handler.headerComplete() || handle;
 break;
 }
 }
@@ -256,5 +255,5 @@ default :
 throw new IllegalStateException(_state.toString());
 }
 }
-return return_from_parse;
+return handle;
 }

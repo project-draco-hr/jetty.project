@@ -1,5 +1,6 @@
 {
 synchronized (this) {
+    if (DEBUG)     LOG.debug("{} handling {}",this,_state);
 switch (_state) {
 case IDLE:
       _initial=true;
@@ -16,10 +17,15 @@ return Action.COMPLETE;
 case COMPLETED:
 return Action.RECYCLE;
 case ASYNCWAIT:
-if (_asyncIO) {
+if (_asyncRead) {
 _state=State.ASYNCIO;
-_asyncIO=false;
-return Action.IO_CALLBACK;
+_asyncRead=false;
+return Action.READ_CALLBACK;
+}
+if (_asyncWrite) {
+_state=State.ASYNCIO;
+_asyncWrite=false;
+return Action.WRITE_CALLBACK;
 }
 if (_async != null) {
 Async async=_async;

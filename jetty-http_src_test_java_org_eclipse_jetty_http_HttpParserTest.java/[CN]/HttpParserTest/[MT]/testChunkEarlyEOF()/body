@@ -1,0 +1,15 @@
+{
+  ByteBuffer buffer=BufferUtil.toBuffer("GET /chunk HTTP/1.0\015\012" + "Header1: value1\015\012" + "Transfer-Encoding: chunked\015\012"+ "\015\012"+ "a;\015\012"+ "0123456789\015\012");
+  HttpParser.RequestHandler<ByteBuffer> handler=new Handler();
+  HttpParser parser=new HttpParser(handler);
+  parser.atEOF();
+  parseAll(parser,buffer);
+  assertEquals("GET",_methodOrVersion);
+  assertEquals("/chunk",_uriOrStatus);
+  assertEquals("HTTP/1.0",_versionOrReason);
+  assertEquals(1,_headers);
+  assertEquals("Header1",_hdr[0]);
+  assertEquals("value1",_val[0]);
+  assertEquals("0123456789",_content);
+  assertTrue(_early);
+}

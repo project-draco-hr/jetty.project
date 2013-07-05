@@ -1,11 +1,33 @@
 {
-  final String[] writes=request.getParameterValues("w");
   final AsyncContext async=request.startAsync();
+  final AtomicInteger complete=new AtomicInteger(2);
+  if (request.getContentLength() > 0) {
+    final ServletInputStream in=request.getInputStream();
+    in.setReadListener(new ReadListener(){
+      byte[] _buf=new byte[32];
+      @Override public void onError(      Throwable t){
+        if (complete.decrementAndGet() == 0)         async.complete();
+      }
+      @Override public void onDataAvailable() throws IOException {
+        while (in.isReady()) {
+          _oda.incrementAndGet();
+          int len=in.read(_buf);
+          if (len > 0)           _read.addAndGet(len);
+        }
+      }
+      @Override public void onAllDataRead() throws IOException {
+        if (complete.decrementAndGet() == 0)         async.complete();
+      }
+    }
+);
+  }
+ else   complete.decrementAndGet();
+  final String[] writes=request.getParameterValues("w");
   final ServletOutputStream out=response.getOutputStream();
   out.setWriteListener(new WriteListener(){
     int _w=0;
     @Override public void onWritePossible() throws IOException {
-      _count.incrementAndGet();
+      _owp.incrementAndGet();
       while (writes != null && _w < writes.length) {
         int write=Integer.valueOf(writes[_w++]);
         if (write == 0)         out.flush();
@@ -17,7 +39,7 @@
         }
         if (!out.isReady())         return;
       }
-      async.complete();
+      if (complete.decrementAndGet() == 0)       async.complete();
     }
     @Override public void onError(    Throwable t){
       async.complete();
