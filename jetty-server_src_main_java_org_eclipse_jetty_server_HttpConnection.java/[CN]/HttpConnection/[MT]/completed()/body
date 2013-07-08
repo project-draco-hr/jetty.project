@@ -1,5 +1,4 @@
 {
-  if (_parser.inContentState() && _generator.isPersistent() && !_channel.isExpecting100Continue())   _channel.getRequest().getHttpInput().consumeAll();
   if (_channel.getResponse().getStatus() == HttpStatus.SWITCHING_PROTOCOLS_101) {
     Connection connection=(Connection)_channel.getRequest().getAttribute(UPGRADE_CONNECTION_ATTRIBUTE);
     if (connection != null) {
@@ -7,23 +6,33 @@
       onClose();
       getEndPoint().setConnection(connection);
       connection.onOpen();
-      reset();
+      _channel.reset();
+      _parser.reset();
+      _generator.reset();
+      releaseRequestBuffer();
       return;
     }
   }
-  reset();
+  if (_channel.isExpecting100Continue())   _parser.close();
+ else   if (_parser.inContentState() && _generator.isPersistent())   _channel.getRequest().getHttpInput().consumeAll();
+  _channel.reset();
+  if (_generator.isPersistent() && !_parser.isClosed())   _parser.reset();
+ else   _parser.close();
+  releaseRequestBuffer();
+  if (_chunk != null)   _bufferPool.release(_chunk);
+  _chunk=null;
+  _generator.reset();
   if (getCurrentConnection() != this) {
     if (_parser.isStart()) {
       if (_requestBuffer == null) {
         fillInterested();
       }
- else       if (getConnector().isStarted()) {
-        LOG.debug("{} pipelined",this);
+ else       if (getConnector().isRunning()) {
         try {
           getExecutor().execute(this);
         }
  catch (        RejectedExecutionException e) {
-          if (getConnector().isStarted())           LOG.warn(e);
+          if (getConnector().isRunning())           LOG.warn(e);
  else           LOG.ignore(e);
           getEndPoint().close();
         }
@@ -32,5 +41,6 @@
         getEndPoint().close();
       }
     }
+ else     if (getEndPoint().isOpen())     fillInterested();
   }
 }

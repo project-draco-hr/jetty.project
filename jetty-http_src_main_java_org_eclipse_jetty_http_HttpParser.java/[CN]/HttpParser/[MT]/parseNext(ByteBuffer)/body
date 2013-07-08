@@ -1,5 +1,5 @@
 {
-  if (LOG.isDebugEnabled())   LOG.debug("parseNext s={} {}",_state,BufferUtil.toDetailString(buffer));
+  if (DEBUG)   LOG.debug("parseNext s={} {}",_state,BufferUtil.toDetailString(buffer));
   try {
     boolean handle=false;
     if (_state == State.START) {
@@ -51,6 +51,7 @@ _handler.earlyEOF();
 setState(State.CLOSED);
 break;
 default :
+if (DEBUG) LOG.debug("{} EOF in {}",this,_state);
 _handler.badMessage(400,null);
 setState(State.CLOSED);
 break;
@@ -61,7 +62,7 @@ return handle;
  catch (BadMessage e) {
 BufferUtil.clear(buffer);
 LOG.warn("badMessage: " + e._code + (e._message != null ? " " + e._message : "")+ " for "+ _handler);
-LOG.debug(e);
+if (DEBUG) LOG.debug(e);
 setState(State.CLOSED);
 _handler.badMessage(e._code,e._message);
 return false;
@@ -69,7 +70,7 @@ return false;
 catch (Exception e) {
 BufferUtil.clear(buffer);
 LOG.warn("badMessage: " + e.toString() + " for "+ _handler);
-LOG.debug(e);
+if (DEBUG) LOG.debug(e);
 if (_state.ordinal() <= State.END.ordinal()) {
 setState(State.CLOSED);
 _handler.badMessage(400,null);
