@@ -1,6 +1,7 @@
 {
   final AsyncContext async=request.startAsync();
   final AtomicInteger complete=new AtomicInteger(2);
+  final AtomicBoolean onDataAvailable=new AtomicBoolean(false);
   if (request.getContentLength() > 0) {
     final ServletInputStream in=request.getInputStream();
     in.setReadListener(new ReadListener(){
@@ -9,13 +10,19 @@
         if (complete.decrementAndGet() == 0)         async.complete();
       }
       @Override public void onDataAvailable() throws IOException {
+        if (!onDataAvailable.compareAndSet(false,true))         throw new IllegalStateException();
         while (in.isReady()) {
           _oda.incrementAndGet();
           int len=in.read(_buf);
           if (len > 0)           _read.addAndGet(len);
         }
+        if (!onDataAvailable.compareAndSet(true,false))         throw new IllegalStateException();
       }
       @Override public void onAllDataRead() throws IOException {
+        if (onDataAvailable.get()) {
+          System.err.println("OADR too early!");
+          _read.set(-1);
+        }
         if (complete.decrementAndGet() == 0)         async.complete();
       }
     }
