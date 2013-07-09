@@ -6,6 +6,7 @@
   Stream stream=client.syn(new SynInfo(headers,false),new StreamFrameListener.Adapter(){
     private final ByteArrayOutputStream result=new ByteArrayOutputStream();
     @Override public void onReply(    Stream stream,    ReplyInfo replyInfo){
+      LOG.debug("Got reply: {}",replyInfo);
       Fields headers=replyInfo.getHeaders();
       assertThat("response comes from the given server",headers.get(serverIdentificationString),is(notNullValue()));
       replyLatch.countDown();
@@ -13,6 +14,7 @@
     @Override public void onData(    Stream stream,    DataInfo dataInfo){
       result.write(dataInfo.asBytes(true),0,dataInfo.length());
       if (dataInfo.isClose()) {
+        LOG.debug("Got last dataFrame: {}",dataInfo);
         assertThat("received data matches send data",data,is(result.toString()));
         dataLatch.countDown();
       }
@@ -22,4 +24,5 @@
   stream.data(new StringDataInfo(data,true),new Callback.Adapter());
   assertThat("reply has been received",replyLatch.await(5,TimeUnit.SECONDS),is(true));
   assertThat("data has been received",dataLatch.await(5,TimeUnit.SECONDS),is(true));
+  LOG.debug("Successfully received response");
 }
