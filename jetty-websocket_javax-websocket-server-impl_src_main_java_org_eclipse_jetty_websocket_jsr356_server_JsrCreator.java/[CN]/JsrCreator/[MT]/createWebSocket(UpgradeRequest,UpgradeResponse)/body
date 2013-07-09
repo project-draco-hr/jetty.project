@@ -1,6 +1,7 @@
 {
   JsrHandshakeRequest hsreq=new JsrHandshakeRequest(req);
   JsrHandshakeResponse hsresp=new JsrHandshakeResponse(resp);
+  ServerEndpointConfig config=metadata.getConfig();
   ServerEndpointConfig.Configurator configurator=config.getConfigurator();
   configurator.modifyHandshake(config,hsreq,hsresp);
   if (!configurator.checkOrigin(req.getOrigin())) {
@@ -20,7 +21,8 @@
   }
   try {
     Class<?> endpointClass=config.getEndpointClass();
-    return config.getConfigurator().getEndpointInstance(endpointClass);
+    Object endpoint=config.getConfigurator().getEndpointInstance(endpointClass);
+    return new EndpointInstance(endpoint,config,metadata);
   }
  catch (  InstantiationException e) {
     LOG.debug("Unable to create websocket: " + config.getEndpointClass().getName(),e);

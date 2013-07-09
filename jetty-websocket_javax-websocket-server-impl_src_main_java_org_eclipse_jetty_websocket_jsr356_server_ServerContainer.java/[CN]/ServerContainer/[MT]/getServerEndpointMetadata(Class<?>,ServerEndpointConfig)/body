@@ -1,0 +1,29 @@
+{
+synchronized (endpointServerMetadataCache) {
+    ServerEndpointMetadata metadata=endpointServerMetadataCache.get(endpoint);
+    if (metadata != null) {
+      return metadata;
+    }
+    ServerEndpoint anno=endpoint.getAnnotation(ServerEndpoint.class);
+    if (anno != null) {
+      AnnotatedServerEndpointMetadata ametadata=new AnnotatedServerEndpointMetadata(this,endpoint);
+      AnnotatedEndpointScanner<ServerEndpoint,ServerEndpointConfig> scanner=new AnnotatedEndpointScanner<>(ametadata);
+      metadata=ametadata;
+      scanner.scan();
+    }
+ else     if (Endpoint.class.isAssignableFrom(endpoint)) {
+      @SuppressWarnings("unchecked") Class<? extends Endpoint> eendpoint=(Class<? extends Endpoint>)endpoint;
+      metadata=new SimpleServerEndpointMetadata(eendpoint,config);
+    }
+ else {
+      StringBuilder err=new StringBuilder();
+      err.append("Not a recognized websocket [");
+      err.append(endpoint.getName());
+      err.append("] does not extend @").append(ServerEndpoint.class.getName());
+      err.append(" or extend from ").append(Endpoint.class.getName());
+      throw new DeploymentException("Unable to identify as valid Endpoint: " + endpoint);
+    }
+    endpointServerMetadataCache.put(endpoint,metadata);
+    return metadata;
+  }
+}

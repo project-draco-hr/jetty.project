@@ -4,7 +4,16 @@
   flush(true);
   LOG.debug("Sent Frame Count: {}",frameCount);
   closed=true;
-  super.close();
-  bufferPool.release(buffer);
-  LOG.debug("closed");
+  try {
+    if (callback != null) {
+      callback.writeSuccess();
+    }
+    super.close();
+    bufferPool.release(buffer);
+    LOG.debug("closed");
+  }
+ catch (  IOException e) {
+    notifyFailure(e);
+    throw e;
+  }
 }

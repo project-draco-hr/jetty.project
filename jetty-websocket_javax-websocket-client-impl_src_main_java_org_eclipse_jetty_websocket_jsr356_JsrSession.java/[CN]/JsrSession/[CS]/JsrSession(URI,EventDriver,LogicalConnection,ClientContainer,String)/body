@@ -1,17 +1,15 @@
 {
   super(requestURI,websocket,connection);
-  if (websocket instanceof AbstractJsrEventDriver) {
-    this.config=((AbstractJsrEventDriver)websocket).getConfig();
+  if (!(websocket instanceof AbstractJsrEventDriver)) {
+    throw new IllegalArgumentException("Cannot non JSR WebSocket: " + websocket);
   }
- else {
-    this.config=new BasicEndpointConfig();
-  }
+  AbstractJsrEventDriver jsr=(AbstractJsrEventDriver)websocket;
+  this.config=jsr.getConfig();
+  this.metadata=jsr.getMetadata();
   this.container=container;
   this.id=id;
-  this.decoderFactory=new DecoderFactory(container.getDecoderFactory());
-  this.encoderFactory=new EncoderFactory(container.getEncoderFactory());
-  this.activeDecoders=new HashMap<>();
-  this.activeEncoders=new HashMap<>();
+  this.decoderFactory=new DecoderFactory(metadata.getDecoders(),container.getDecoderFactory());
+  this.encoderFactory=new EncoderFactory(metadata.getEncoders(),container.getEncoderFactory());
   this.messageHandlerFactory=new MessageHandlerFactory();
   this.wrappers=new MessageHandlerWrapper[MessageType.values().length];
   this.messageHandlerSet=new HashSet<>();

@@ -1,26 +1,4 @@
 {
-  try {
-    ClientEndpoint anno=annotatedEndpointClass.getAnnotation(ClientEndpoint.class);
-    if (anno != null) {
-      JsrClientMetadata metadata=new JsrClientMetadata(this,annotatedEndpointClass);
-      Object websocket=annotatedEndpointClass.newInstance();
-      return connect(websocket,metadata.getConfig(),path);
-    }
- else     if (Endpoint.class.isAssignableFrom(annotatedEndpointClass)) {
-      Object websocket=annotatedEndpointClass.newInstance();
-      ClientEndpointConfig cec=new EmptyClientEndpointConfig();
-      return connect(websocket,cec,path);
-    }
- else {
-      StringBuilder err=new StringBuilder();
-      err.append("Not a recognized websocket [");
-      err.append(annotatedEndpointClass.getName());
-      err.append("] does not extend @").append(ClientEndpoint.class.getName());
-      err.append(" or extend from ").append(Endpoint.class.getName());
-      throw new DeploymentException(err.toString());
-    }
-  }
- catch (  InstantiationException|IllegalAccessException e) {
-    throw new DeploymentException("Unable to instantiate websocket: " + annotatedEndpointClass,e);
-  }
+  EndpointInstance instance=newClientEndpointInstance(annotatedEndpointClass,null);
+  return connect(instance,path);
 }

@@ -1,7 +1,17 @@
 {
-  DecoderMetadata metadata=getMetadataFor(type);
-  if (metadata != null) {
-    return newWrapper(metadata);
+synchronized (activeWrappers) {
+    Wrapper wrapper=activeWrappers.get(type);
+    if ((wrapper == null) && (parentFactory != null)) {
+      wrapper=parentFactory.getWrapperFor(type);
+    }
+    if (wrapper == null) {
+      DecoderMetadata metadata=metadatas.getMetadataByType(type);
+      if (metadata == null) {
+        return null;
+      }
+      wrapper=newWrapper(metadata);
+      activeWrappers.put(type,wrapper);
+    }
+    return wrapper;
   }
-  return null;
 }

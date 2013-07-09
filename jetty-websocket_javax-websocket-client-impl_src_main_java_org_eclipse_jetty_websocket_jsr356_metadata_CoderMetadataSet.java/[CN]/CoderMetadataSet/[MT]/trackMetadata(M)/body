@@ -1,0 +1,36 @@
+{
+synchronized (metadatas) {
+    boolean duplicate=false;
+    if (metadatas.contains(metadata)) {
+      duplicate=true;
+    }
+    Class<?> type=metadata.getObjectType();
+    if (typeMap.containsKey(type)) {
+      duplicate=true;
+    }
+    if (duplicate) {
+      StringBuilder err=new StringBuilder();
+      err.append("Duplicate decoder for type: ");
+      err.append(type);
+      err.append(" (class ").append(metadata.getCoderClass().getName());
+      M dup=getMetadataByType(type);
+      err.append(" duplicates ");
+      err.append(dup.getCoderClass().getName());
+      err.append(")");
+      throw new IllegalStateException(err.toString());
+    }
+    Class<? extends T> coderClass=metadata.getCoderClass();
+    int newidx=metadatas.size();
+    metadatas.add(metadata);
+    coders.add(coderClass);
+    typeMap.put(type,newidx);
+    List<Integer> indexes=implMap.get(coderClass);
+    if (indexes == null) {
+      indexes=new ArrayList<>();
+    }
+    if (indexes.contains(newidx)) {
+    }
+    indexes.add(newidx);
+    implMap.put(coderClass,indexes);
+  }
+}

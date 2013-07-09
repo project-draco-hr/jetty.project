@@ -2,27 +2,33 @@
   ByteBuffer data=utf.getByteBuffer();
   frame.setPayload(data);
   frame.setFin(fin);
-  blocker=new FutureWriteCallback();
-  outgoing.outgoingFrame(frame,blocker);
   try {
-    blocker.get();
-    utf.clear();
-    frameCount++;
-    frame.setOpCode(OpCode.CONTINUATION);
-  }
- catch (  ExecutionException e) {
-    Throwable cause=e.getCause();
-    if (cause != null) {
-      if (cause instanceof IOException) {
-        throw (IOException)cause;
-      }
- else {
-        throw new IOException(cause);
-      }
+    blocker=new FutureWriteCallback();
+    outgoing.outgoingFrame(frame,blocker);
+    try {
+      blocker.get();
+      utf.clear();
+      frameCount++;
+      frame.setOpCode(OpCode.CONTINUATION);
     }
-    throw new IOException("Failed to flush",e);
+ catch (    ExecutionException e) {
+      Throwable cause=e.getCause();
+      if (cause != null) {
+        if (cause instanceof IOException) {
+          throw (IOException)cause;
+        }
+ else {
+          throw new IOException(cause);
+        }
+      }
+      throw new IOException("Failed to flush",e);
+    }
+catch (    InterruptedException e) {
+      throw new IOException("Failed to flush",e);
+    }
   }
-catch (  InterruptedException e) {
-    throw new IOException("Failed to flush",e);
+ catch (  IOException e) {
+    notifyFailure(e);
+    throw e;
   }
 }

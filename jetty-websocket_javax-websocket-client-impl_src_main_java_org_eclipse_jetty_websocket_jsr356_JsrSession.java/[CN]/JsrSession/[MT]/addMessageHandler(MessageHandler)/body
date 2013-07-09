@@ -2,8 +2,17 @@
   Objects.requireNonNull(handler,"MessageHandler cannot be null");
 synchronized (wrappers) {
     for (    MessageHandlerMetadata metadata : messageHandlerFactory.getMetadata(handler.getClass())) {
-      DecoderWrapper decoder=decoderFactory.getWrapperFor(metadata.getMessageClass());
-      MessageType key=decoder.getMetadata().getMessageType();
+      DecoderFactory.Wrapper wrapper=decoderFactory.getWrapperFor(metadata.getMessageClass());
+      if (wrapper == null) {
+        StringBuilder err=new StringBuilder();
+        err.append("Unable to find decoder for type <");
+        err.append(metadata.getMessageClass().getName());
+        err.append("> used in <");
+        err.append(metadata.getHandlerClass().getName());
+        err.append(">");
+        throw new IllegalStateException(err.toString());
+      }
+      MessageType key=wrapper.getMetadata().getMessageType();
       MessageHandlerWrapper other=wrappers[key.ordinal()];
       if (other != null) {
         StringBuilder err=new StringBuilder();
@@ -20,8 +29,8 @@ synchronized (wrappers) {
         throw new IllegalStateException(err.toString());
       }
  else {
-        MessageHandlerWrapper wrapper=new MessageHandlerWrapper(handler,metadata,decoder);
-        wrappers[key.ordinal()]=wrapper;
+        MessageHandlerWrapper handlerWrapper=new MessageHandlerWrapper(handler,metadata,wrapper);
+        wrappers[key.ordinal()]=handlerWrapper;
       }
     }
     messageHandlerSet.clear();

@@ -1,12 +1,9 @@
 {
-  Object endpoint=websocket;
-  if (websocket instanceof ConfiguredEndpoint) {
-    ConfiguredEndpoint ce=(ConfiguredEndpoint)websocket;
-    endpoint=ce.getEndpoint();
+  if (!(websocket instanceof EndpointInstance)) {
+    throw new IllegalStateException(String.format("Websocket %s must be an %s",websocket.getClass().getName(),EndpointInstance.class.getName()));
   }
-  Class<?> endpointClass=endpoint.getClass();
-  JsrClientMetadata basemetadata=container.getClientEndpointMetadata(endpointClass);
-  JsrEvents events=new JsrEvents(basemetadata);
-  AnnotatedClientEndpointConfig config=basemetadata.getConfig();
-  return new JsrAnnotatedEventDriver(policy,endpoint,events,config);
+  EndpointInstance ei=(EndpointInstance)websocket;
+  AnnotatedClientEndpointMetadata metadata=(AnnotatedClientEndpointMetadata)ei.getMetadata();
+  JsrEvents<ClientEndpoint,ClientEndpointConfig> events=new JsrEvents<>(metadata);
+  return new JsrAnnotatedEventDriver(policy,ei,events);
 }

@@ -1,0 +1,23 @@
+{
+  Objects.requireNonNull(instance,"EndpointInstance cannot be null");
+  Objects.requireNonNull(path,"Path cannot be null");
+  ClientEndpointConfig config=(ClientEndpointConfig)instance.getConfig();
+  ClientUpgradeRequest req=new ClientUpgradeRequest();
+  UpgradeListener upgradeListener=null;
+  for (  Extension ext : config.getExtensions()) {
+    req.addExtensions(new JsrExtensionConfig(ext));
+  }
+  if (config.getPreferredSubprotocols().size() > 0) {
+    req.setSubProtocols(config.getPreferredSubprotocols());
+  }
+  if (config.getConfigurator() != null) {
+    upgradeListener=new JsrUpgradeListener(config.getConfigurator());
+  }
+  Future<org.eclipse.jetty.websocket.api.Session> futSess=client.connect(instance,path,req,upgradeListener);
+  try {
+    return (JsrSession)futSess.get();
+  }
+ catch (  InterruptedException|ExecutionException e) {
+    throw new IOException("Connect failure",e);
+  }
+}
