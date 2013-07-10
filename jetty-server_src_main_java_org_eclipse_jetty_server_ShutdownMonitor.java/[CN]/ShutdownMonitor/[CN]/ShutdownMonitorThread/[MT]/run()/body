@@ -18,14 +18,16 @@
       if ("stop".equals(cmd)) {
         debug("Issuing graceful shutdown..");
         ShutdownThread.getInstance().run();
+        close(serverSocket);
+        serverSocket=null;
+        shutdownInput(socket);
         debug("Informing client that we are stopped.");
         out.write("Stopped\r\n".getBytes(StringUtil.__UTF8));
         out.flush();
-        debug("Shutting down monitor");
+        socket.shutdownOutput();
         close(socket);
         socket=null;
-        close(serverSocket);
-        serverSocket=null;
+        debug("Shutting down monitor");
         if (exitVm) {
           debug("Killing JVM");
           System.exit(0);
