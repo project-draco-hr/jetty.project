@@ -59,10 +59,17 @@
   if (param.type.isAssignableFrom(Reader.class)) {
     assertPartialMessageSupportDisabled(param,callable);
     param.bind(Role.MESSAGE_TEXT_STREAM);
+    callable.setDecoderClass(ReaderDecoder.class);
     return true;
   }
-  if (param.type.isAssignableFrom(Boolean.TYPE)) {
-    param.bind(Role.MESSAGE_PARTIAL_FLAG);
+  if (param.type == Boolean.TYPE) {
+    if (isMessageRoleAssigned(callable)) {
+      param.bind(Role.MESSAGE_PARTIAL_FLAG);
+    }
+ else {
+      param.bind(Role.MESSAGE_TEXT);
+      callable.setDecoderClass(BooleanDecoder.class);
+    }
     return true;
   }
   return false;
