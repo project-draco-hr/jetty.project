@@ -1,0 +1,34 @@
+{
+  RequestState current=requestState.get();
+switch (current) {
+case COMMIT:
+case CONTENT:
+{
+      boolean completed=exchange.requestComplete();
+      if (!completed)       return false;
+      reset();
+      Result result=exchange.terminateRequest(null);
+      Request request=exchange.getRequest();
+      LOG.debug("Request success {}",request);
+      HttpDestination destination=getHttpChannel().getHttpDestination();
+      destination.getRequestNotifier().notifySuccess(exchange.getRequest());
+      if (result != null) {
+        boolean ordered=destination.getHttpClient().isStrictEventOrdering();
+        if (!ordered)         channel.exchangeTerminated(result);
+        LOG.debug("Request/Response succeded {}",request);
+        HttpConversation conversation=exchange.getConversation();
+        destination.getResponseNotifier().notifyComplete(conversation.getResponseListeners(),result);
+        if (ordered)         channel.exchangeTerminated(result);
+      }
+      return true;
+    }
+case FAILURE:
+{
+    return false;
+  }
+default :
+{
+  throw new IllegalStateException();
+}
+}
+}

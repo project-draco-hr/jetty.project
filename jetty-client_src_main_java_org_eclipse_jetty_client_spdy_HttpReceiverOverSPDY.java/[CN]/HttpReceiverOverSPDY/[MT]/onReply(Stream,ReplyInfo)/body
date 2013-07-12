@@ -1,0 +1,20 @@
+{
+  HttpExchange exchange=getHttpExchange();
+  if (exchange == null)   return;
+  HttpResponse response=exchange.getResponse();
+  Fields fields=replyInfo.getHeaders();
+  HttpVersion version=HttpVersion.fromString(fields.get(":version").value());
+  response.version(version);
+  Integer status=fields.get(":status").valueAsInt();
+  response.status(status);
+  response.reason(HttpStatus.getMessage(status));
+  onResponseBegin(exchange);
+  for (  Fields.Field field : fields) {
+    HttpField httpField=new HttpField(field.name(),field.value());
+    onResponseHeader(exchange,httpField);
+  }
+  onResponseHeaders(exchange);
+  if (replyInfo.isClose()) {
+    onResponseSuccess(exchange);
+  }
+}

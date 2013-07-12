@@ -1,0 +1,19 @@
+{
+  boolean completed=exchange.responseComplete();
+  if (!completed)   return false;
+  reset();
+  Result result=exchange.terminateResponse(null);
+  HttpResponse response=exchange.getResponse();
+  LOG.debug("Response success {}",response);
+  List<Response.ResponseListener> listeners=exchange.getConversation().getResponseListeners();
+  ResponseNotifier notifier=getHttpDestination().getResponseNotifier();
+  notifier.notifySuccess(listeners,response);
+  if (result != null) {
+    boolean ordered=getHttpDestination().getHttpClient().isStrictEventOrdering();
+    if (!ordered)     channel.exchangeTerminated(result);
+    LOG.debug("Request/Response complete {}",response);
+    notifier.notifyComplete(listeners,result);
+    if (ordered)     channel.exchangeTerminated(result);
+  }
+  return true;
+}

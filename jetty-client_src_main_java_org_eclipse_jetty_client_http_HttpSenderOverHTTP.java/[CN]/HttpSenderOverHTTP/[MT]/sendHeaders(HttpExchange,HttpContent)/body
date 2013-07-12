@@ -1,0 +1,60 @@
+{
+  Request request=exchange.getRequest();
+  ContentProvider requestContent=request.getContent();
+  long contentLength=requestContent == null ? -1 : requestContent.getLength();
+  String path=request.getPath();
+  String query=request.getQuery();
+  if (query != null)   path+="?" + query;
+  HttpGenerator.RequestInfo requestInfo=new HttpGenerator.RequestInfo(request.getVersion(),request.getHeaders(),contentLength,request.getMethod().asString(),path);
+  try {
+    HttpClient client=getHttpChannel().getHttpDestination().getHttpClient();
+    ByteBufferPool bufferPool=client.getByteBufferPool();
+    ByteBuffer header=bufferPool.acquire(client.getRequestBufferSize(),false);
+    ByteBuffer chunk=null;
+    ByteBuffer contentBuffer=null;
+    boolean lastContent=false;
+    if (!expects100Continue(request)) {
+      content.advance();
+      contentBuffer=content.getByteBuffer();
+      lastContent=content.isLast();
+    }
+    while (true) {
+      HttpGenerator.Result result=generator.generateRequest(requestInfo,header,chunk,contentBuffer,lastContent);
+switch (result) {
+case NEED_CHUNK:
+{
+          chunk=bufferPool.acquire(HttpGenerator.CHUNK_SIZE,false);
+          break;
+        }
+case FLUSH:
+{
+        int size=1;
+        boolean hasChunk=chunk != null;
+        if (hasChunk)         ++size;
+        boolean hasContent=contentBuffer != null;
+        if (hasContent)         ++size;
+        ByteBuffer[] toWrite=new ByteBuffer[size];
+        ByteBuffer[] toRecycle=new ByteBuffer[hasChunk ? 2 : 1];
+        toWrite[0]=header;
+        toRecycle[0]=header;
+        if (hasChunk) {
+          toWrite[1]=chunk;
+          toRecycle[1]=chunk;
+        }
+        if (hasContent)         toWrite[toWrite.length - 1]=contentBuffer;
+        EndPoint endPoint=getHttpChannel().getHttpConnection().getEndPoint();
+        endPoint.write(new ByteBufferRecyclerCallback(content,bufferPool,toRecycle),toWrite);
+        return;
+      }
+default :
+{
+      throw new IllegalStateException();
+    }
+}
+}
+}
+ catch (Throwable x) {
+LOG.debug(x);
+content.failed(x);
+}
+}

@@ -1,0 +1,26 @@
+{
+  HttpClient client=getHttpClient();
+  final HttpExchange exchange=getHttpExchanges().poll();
+  LOG.debug("Processing exchange {} on connection {}",exchange,connection);
+  if (exchange != null) {
+    final Request request=exchange.getRequest();
+    Throwable cause=request.getAbortCause();
+    if (cause != null) {
+      abort(exchange,cause);
+      LOG.debug("Aborted before processing {}: {}",exchange,cause);
+    }
+ else {
+      if (dispatch) {
+        client.getExecutor().execute(new Runnable(){
+          @Override public void run(){
+            connection.send(exchange);
+          }
+        }
+);
+      }
+ else {
+        connection.send(exchange);
+      }
+    }
+  }
+}

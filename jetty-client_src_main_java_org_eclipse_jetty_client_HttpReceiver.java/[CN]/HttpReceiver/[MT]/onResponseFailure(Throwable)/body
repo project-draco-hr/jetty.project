@@ -1,0 +1,20 @@
+{
+  HttpExchange exchange=getHttpExchange();
+  if (exchange == null)   return false;
+  boolean completed=exchange.responseComplete();
+  if (!completed)   return false;
+  dispose();
+  Result result=exchange.terminateResponse(failure);
+  HttpResponse response=exchange.getResponse();
+  LOG.debug("Response failure {} {}",response,failure);
+  List<Response.ResponseListener> listeners=exchange.getConversation().getResponseListeners();
+  ResponseNotifier notifier=getHttpDestination().getResponseNotifier();
+  notifier.notifyFailure(listeners,response,failure);
+  if (result != null) {
+    boolean ordered=getHttpDestination().getHttpClient().isStrictEventOrdering();
+    if (!ordered)     channel.exchangeTerminated(result);
+    notifier.notifyComplete(listeners,result);
+    if (ordered)     channel.exchangeTerminated(result);
+  }
+  return true;
+}

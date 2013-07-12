@@ -2,10 +2,11 @@
   start(new EmptyServerHandler());
   String host="localhost";
   int port=connector.getLocalPort();
-  HttpDestination destination=(HttpDestination)client.getDestination(scheme,host,port);
-  final BlockingQueue<Connection> idleConnections=destination.getIdleConnections();
+  HttpDestinationOverHTTP destination=(HttpDestinationOverHTTP)client.getDestination(scheme,host,port);
+  HttpConnectionPool connectionPool=destination.getHttpConnectionPool();
+  final BlockingQueue<Connection> idleConnections=connectionPool.getIdleConnections();
   Assert.assertEquals(0,idleConnections.size());
-  final BlockingQueue<Connection> activeConnections=destination.getActiveConnections();
+  final BlockingQueue<Connection> activeConnections=connectionPool.getActiveConnections();
   Assert.assertEquals(0,activeConnections.size());
   server.stop();
   final CountDownLatch failureLatch=new CountDownLatch(2);

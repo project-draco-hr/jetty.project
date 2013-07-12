@@ -1,32 +1,48 @@
 {
+  HttpExchange exchange=getHttpExchange();
+  if (exchange == null)   return;
   while (true) {
-    SendState current=sendState.get();
+    SenderState current=senderState.get();
 switch (current) {
 case IDLE:
 {
-        if (updateSendState(current,SendState.EXECUTE)) {
-          LOG.debug("Deferred content available, sending");
-          send();
+        if (updateSenderState(current,SenderState.SENDING)) {
+          LOG.debug("Deferred content available, idle -> sending");
+          content.advance();
+          sendContent(exchange,new ContentCallback(content));
           return;
         }
         break;
       }
-case EXECUTE:
+case SENDING:
 {
-      if (updateSendState(current,SendState.SCHEDULE)) {
-        LOG.debug("Deferred content available, scheduling");
+      if (updateSenderState(current,SenderState.SCHEDULED)) {
+        LOG.debug("Deferred content available, sending -> scheduled");
         return;
       }
       break;
     }
-case SCHEDULE:
+case EXPECTING:
 {
-    LOG.debug("Deferred content available, queueing");
-    return;
+    if (updateSenderState(current,SenderState.SCHEDULED)) {
+      LOG.debug("Deferred content available, expecting -> scheduled");
+      return;
+    }
+    break;
   }
+case WAITING:
+{
+  LOG.debug("Deferred content available, waiting");
+  return;
+}
+case SCHEDULED:
+{
+LOG.debug("Deferred content available, scheduled");
+return;
+}
 default :
 {
-  throw new IllegalStateException();
+throw new IllegalStateException();
 }
 }
 }

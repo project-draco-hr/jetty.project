@@ -1,0 +1,22 @@
+{
+  RequestState current=requestState.get();
+switch (current) {
+case COMMIT:
+case CONTENT:
+{
+      if (!updateRequestState(current,RequestState.CONTENT))       return false;
+      if (LOG.isDebugEnabled())       LOG.debug("Request content {}{}{}",request,System.getProperty("line.separator"),BufferUtil.toDetailString(content));
+      RequestNotifier notifier=getHttpChannel().getHttpDestination().getRequestNotifier();
+      notifier.notifyContent(request,content);
+      return true;
+    }
+case FAILURE:
+{
+    return false;
+  }
+default :
+{
+  throw new IllegalStateException();
+}
+}
+}
