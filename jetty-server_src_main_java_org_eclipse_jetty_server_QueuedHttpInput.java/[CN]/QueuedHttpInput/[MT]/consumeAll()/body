@@ -1,21 +1,14 @@
 {
 synchronized (lock()) {
-    T item=_inputQ.peekUnsafe();
-    while (!_state.isEOF()) {
-      while (item != null) {
-        _inputQ.pollUnsafe();
-        onContentConsumed(item);
-        item=_inputQ.peekUnsafe();
-        if (item == null)         onAllContentConsumed();
+    try {
+      while (!isFinished()) {
+        T item=getNextContent();
+        if (item == null)         blockForContent();
+ else         consume(item,remaining(item));
       }
-      try {
-        blockForContent();
-        item=_inputQ.peekUnsafe();
-        if (item == null)         checkEOF();
-      }
- catch (      IOException e) {
-        throw new RuntimeIOException(e);
-      }
+    }
+ catch (    IOException e) {
+      throw new RuntimeIOException(e);
     }
   }
 }
