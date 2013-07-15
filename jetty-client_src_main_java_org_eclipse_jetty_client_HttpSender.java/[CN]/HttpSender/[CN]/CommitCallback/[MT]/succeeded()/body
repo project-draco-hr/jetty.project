@@ -1,51 +1,8 @@
 {
-  HttpExchange exchange=getHttpExchange();
-  if (exchange == null)   return;
-  Request request=exchange.getRequest();
-  if (!headersToCommit(request))   return;
-  if (!hasContent()) {
-    someToSuccess(exchange);
+  try {
+    process();
   }
- else {
-    ByteBuffer content=getContent();
-    if (content != null) {
-      if (!someToContent(request,content))       return;
-    }
-    while (true) {
-      SenderState current=senderState.get();
-switch (current) {
-case SENDING:
-{
-          if (advance()) {
-            sendContent(exchange,new ContentCallback(this));
-          }
- else {
-            if (isLast()) {
-              sendContent(exchange,new LastContentCallback(this));
-            }
- else {
-              if (!updateSenderState(current,SenderState.IDLE))               break;
-              LOG.debug("Waiting for deferred content for {}",request);
-            }
-          }
-          return;
-        }
-case EXPECTING:
-{
-        if (!updateSenderState(current,SenderState.WAITING))         break;
-        return;
-      }
-case SCHEDULED:
-{
-      if (expects100Continue(request))       return;
-      updateSenderState(current,SenderState.SENDING);
-      break;
-    }
-default :
-{
-    throw new IllegalStateException();
+ catch (  Exception x) {
+    anyToFailure(x);
   }
-}
-}
-}
 }
