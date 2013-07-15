@@ -1,17 +1,16 @@
 {
+  final List<AsyncListener> lastAsyncListeners;
 synchronized (this) {
     if (_state != State.DISPATCHED || _async != null)     throw new IllegalStateException(this.getStatusString());
     _async=Async.STARTED;
     _event=event;
-    List<AsyncListener> listeners=_lastAsyncListeners;
-    _lastAsyncListeners=_asyncListeners;
-    if (listeners != null)     listeners.clear();
-    _asyncListeners=listeners;
+    lastAsyncListeners=_asyncListeners;
+    _asyncListeners=null;
   }
-  if (_lastAsyncListeners != null) {
-    for (    AsyncListener listener : _lastAsyncListeners) {
+  if (lastAsyncListeners != null) {
+    for (    AsyncListener listener : lastAsyncListeners) {
       try {
-        listener.onStartAsync(_event);
+        listener.onStartAsync(event);
       }
  catch (      Exception e) {
         LOG.warn(e);
