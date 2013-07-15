@@ -2,17 +2,14 @@
   URI uri=URI.create("http://localhost:" + connector.getLocalPort());
   DeferredContentProvider deferredContentProvider=new DeferredContentProvider();
   org.eclipse.jetty.client.api.Request request=httpClient.newRequest(uri).method(HttpMethod.POST).content(deferredContentProvider);
-  request.header("Via","http/1.1 Thomass-MacBook-Pro.local");
-  request.header("X-Forwarded-Proto","http");
-  request.header("X-Forwarded-Host","localhost");
-  request.header("X-Forwarded-For","localhost/127.0.0.1:61726");
-  request.header("X-Forwarded-Server","Thomass-MacBook-Pro.local");
   ArrayList<Response.ResponseListener> listeners=new ArrayList<>();
+  final CountDownLatch responseLatch=new CountDownLatch(1);
   listeners.add(new Response.ContentListener(){
     @Override public void onContent(    Response response,    ByteBuffer content){
       assertThat("response status is 200",response.getStatus(),is(200));
       requestLatch.countDown();
-      LOG.warn("status={},response={}",response.getStatus(),BufferUtil.toDetailString(content));
+      responseLatch.countDown();
+      LOG.debug("#{} status={},response={}",requestLatch.getCount(),response.getStatus(),BufferUtil.toDetailString(content));
     }
   }
 );
@@ -20,4 +17,10 @@
   final String body=UUID.randomUUID().toString();
   deferredContentProvider.offer(BufferUtil.toBuffer(body.getBytes()));
   deferredContentProvider.close();
+  try {
+    responseLatch.await(5,TimeUnit.SECONDS);
+  }
+ catch (  InterruptedException e) {
+    e.printStackTrace();
+  }
 }
