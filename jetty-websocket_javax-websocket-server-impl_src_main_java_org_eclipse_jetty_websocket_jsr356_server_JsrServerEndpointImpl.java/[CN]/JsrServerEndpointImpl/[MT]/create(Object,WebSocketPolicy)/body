@@ -5,5 +5,11 @@
   EndpointInstance ei=(EndpointInstance)websocket;
   AnnotatedServerEndpointMetadata metadata=(AnnotatedServerEndpointMetadata)ei.getMetadata();
   JsrEvents<ServerEndpoint,ServerEndpointConfig> events=new JsrEvents<>(metadata);
-  return new JsrAnnotatedEventDriver(policy,ei,events);
+  JsrAnnotatedEventDriver driver=new JsrAnnotatedEventDriver(policy,ei,events);
+  ServerEndpointConfig config=(ServerEndpointConfig)ei.getConfig();
+  if (config instanceof PathParamServerEndpointConfig) {
+    PathParamServerEndpointConfig ppconfig=(PathParamServerEndpointConfig)config;
+    driver.setRequestParameters(ppconfig.getPathParamMap());
+  }
+  return driver;
 }

@@ -8,8 +8,20 @@
     for (    Param param : params) {
       if (param.role == Role.PATH_PARAM) {
         int idx=param.index;
-        String value=pathParams.get(param.getPathParamName());
-        args[idx]=value;
+        String rawvalue=pathParams.get(param.getPathParamName());
+        Decoder decoder=session.getDecoderFactory().getDecoderFor(param.type);
+        if (decoder instanceof Decoder.Text<?>) {
+          Decoder.Text<?> textDecoder=(Decoder.Text<?>)decoder;
+          try {
+            args[idx]=textDecoder.decode(rawvalue);
+          }
+ catch (          DecodeException e) {
+            session.notifyError(e);
+          }
+        }
+ else {
+          throw new InvalidWebSocketException("PathParam decoders must use Decoder.Text");
+        }
       }
     }
   }
