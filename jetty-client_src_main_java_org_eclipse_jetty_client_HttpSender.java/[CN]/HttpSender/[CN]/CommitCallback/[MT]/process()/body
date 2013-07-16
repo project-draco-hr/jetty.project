@@ -3,25 +3,26 @@
   if (exchange == null)   return;
   Request request=exchange.getRequest();
   if (!headersToCommit(request))   return;
-  if (!hasContent()) {
+  HttpContent content=HttpSender.this.content;
+  if (!content.hasContent()) {
     someToSuccess(exchange);
   }
  else {
-    ByteBuffer content=getContent();
-    if (content != null) {
-      if (!someToContent(request,content))       return;
+    ByteBuffer contentBuffer=content.getContent();
+    if (contentBuffer != null) {
+      if (!someToContent(request,contentBuffer))       return;
     }
     while (true) {
       SenderState current=senderState.get();
 switch (current) {
 case SENDING:
 {
-          if (advance()) {
-            sendContent(exchange,new ContentCallback(this));
+          if (content.advance()) {
+            sendContent(exchange,content,contentCallback);
           }
  else {
-            if (isLast()) {
-              sendContent(exchange,new LastContentCallback(this));
+            if (content.isLast()) {
+              sendContent(exchange,content,lastCallback);
             }
  else {
               if (!updateSenderState(current,SenderState.IDLE))               break;
