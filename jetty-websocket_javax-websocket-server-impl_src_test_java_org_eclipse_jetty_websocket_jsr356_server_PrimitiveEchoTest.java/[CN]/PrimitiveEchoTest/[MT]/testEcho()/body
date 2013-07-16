@@ -1,0 +1,21 @@
+{
+  EchoClientSocket socket=new EchoClientSocket();
+  URI toUri=serverUri.resolve(testcase.path.substring(1));
+  try {
+    client.connectToServer(socket,toUri);
+    socket.waitForConnected(2,TimeUnit.SECONDS);
+    int messageCount=0;
+    for (    Object msg : testcase.messages) {
+      socket.sendObject(msg);
+      messageCount++;
+    }
+    EventQueue<String> received=socket.eventQueue;
+    received.awaitEventCount(messageCount,3,TimeUnit.SECONDS);
+    for (    String expected : testcase.expectedStrings) {
+      Assert.assertThat("Received Echo Responses",received,contains(expected));
+    }
+  }
+  finally {
+    socket.close();
+  }
+}
