@@ -7,6 +7,7 @@
       assertEquals("HEAD",httpRequest.getMethod());
       assertEquals(path,target);
       assertEquals(path,httpRequest.getRequestURI());
+      httpResponse.getWriter().write("body that shouldn't be sent on a HEAD request");
       handlerLatch.countDown();
     }
   }
@@ -19,6 +20,9 @@
       Fields replyHeaders=replyInfo.getHeaders();
       assertTrue(replyHeaders.get(HTTPSPDYHeader.STATUS.name(version)).value().contains("200"));
       replyLatch.countDown();
+    }
+    @Override public void onData(    Stream stream,    DataInfo dataInfo){
+      fail("HEAD request shouldn't send any data");
     }
   }
 );
