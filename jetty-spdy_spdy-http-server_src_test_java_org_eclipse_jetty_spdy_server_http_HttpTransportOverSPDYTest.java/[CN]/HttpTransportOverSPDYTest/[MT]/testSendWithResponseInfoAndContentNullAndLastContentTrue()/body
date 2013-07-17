@@ -4,7 +4,9 @@
   when(stream.isClosed()).thenReturn(false).thenReturn(true);
   httpTransportOverSPDY.send(responseInfo,content,lastContent,callback);
   ArgumentCaptor<ReplyInfo> replyInfoCaptor=ArgumentCaptor.forClass(ReplyInfo.class);
-  verify(stream,times(1)).reply(replyInfoCaptor.capture(),any(Callback.class));
+  ArgumentCaptor<Callback> callbackCaptor=ArgumentCaptor.forClass(Callback.class);
+  verify(stream,times(1)).reply(replyInfoCaptor.capture(),callbackCaptor.capture());
+  callbackCaptor.getValue().succeeded();
   assertThat("ReplyInfo close is true",replyInfoCaptor.getValue().isClose(),is(true));
   verify(callback,times(1)).succeeded();
 }
