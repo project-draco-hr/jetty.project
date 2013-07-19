@@ -1,7 +1,6 @@
 {
-  if (!headersComplete) {
-    if (headerComplete())     post(this);
-  }
+  boolean dispatch=false;
+  if (!headersComplete && headerComplete())   dispatch=true;
   LOG.debug("HTTP > {} bytes of content",dataInfo.length());
   ByteBuffer copyByteBuffer=dataInfo.asByteBuffer(false);
   ByteBufferDataInfo copyDataInfo=new ByteBufferDataInfo(copyByteBuffer,dataInfo.isClose()){
@@ -12,8 +11,7 @@
   }
 ;
   LOG.debug("Queuing last={} content {}",endRequest,copyDataInfo);
-  if (content(copyDataInfo))   post(this);
-  if (endRequest) {
-    if (messageComplete())     post(this);
-  }
+  if (content(copyDataInfo))   dispatch=true;
+  if (endRequest && messageComplete())   dispatch=true;
+  if (dispatch)   dispatch();
 }

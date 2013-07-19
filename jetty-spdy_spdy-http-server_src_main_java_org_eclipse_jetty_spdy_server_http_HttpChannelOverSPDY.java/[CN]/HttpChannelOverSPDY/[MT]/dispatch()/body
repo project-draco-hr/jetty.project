@@ -1,20 +1,10 @@
 {
-synchronized (tasks) {
-    if (dispatched)     return;
-    final Runnable task=tasks.poll();
-    if (task != null) {
+synchronized (this) {
+    if (dispatched)     redispatch=true;
+ else {
+      LOG.debug("Dispatch {}",this);
       dispatched=true;
-      LOG.debug("Dispatching task {}",task);
-      execute(new Runnable(){
-        @Override public void run(){
-          LOG.debug("Executing task {}",task);
-          task.run();
-          LOG.debug("Completing task {}",task);
-          dispatched=false;
-          dispatch();
-        }
-      }
-);
+      execute(this);
     }
   }
 }
