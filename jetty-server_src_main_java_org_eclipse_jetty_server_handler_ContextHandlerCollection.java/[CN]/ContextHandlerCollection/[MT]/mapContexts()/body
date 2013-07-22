@@ -1,52 +1,37 @@
 {
-  PathMap<Object> contextMap=new PathMap<Object>();
-  Handler[] branches=getHandlers();
-  for (int b=0; branches != null && b < branches.length; b++) {
-    Handler[] handlers=null;
-    if (branches[b] instanceof ContextHandler) {
-      handlers=new Handler[]{branches[b]};
-    }
- else     if (branches[b] instanceof HandlerContainer) {
-      handlers=((HandlerContainer)branches[b]).getChildHandlersByClass(ContextHandler.class);
-    }
- else     continue;
-    for (int i=0; i < handlers.length; i++) {
-      ContextHandler handler=(ContextHandler)handlers[i];
-      String contextPath=handler.getContextPath();
-      if (contextPath == null || contextPath.indexOf(',') >= 0 || contextPath.startsWith("*"))       throw new IllegalArgumentException("Illegal context spec:" + contextPath);
-      if (!contextPath.startsWith("/"))       contextPath='/' + contextPath;
-      if (contextPath.length() > 1) {
-        if (contextPath.endsWith("/"))         contextPath+="*";
- else         if (!contextPath.endsWith("/*"))         contextPath+="/*";
+  int capacity=512;
+  Trie<ContextHandler[]> trie;
+  loop:   while (true) {
+    trie=new ArrayTernaryTrie<>(false,capacity);
+    Handler[] branches=getHandlers();
+    for (int b=0; branches != null && b < branches.length; b++) {
+      Handler[] handlers=null;
+      if (branches[b] instanceof ContextHandler) {
+        handlers=new Handler[]{branches[b]};
       }
-      Object contexts=contextMap.get(contextPath);
-      String[] vhosts=handler.getVirtualHosts();
-      if (vhosts != null && vhosts.length > 0) {
-        Map<String,Object> hosts;
-        if (contexts instanceof Map)         hosts=(Map<String,Object>)contexts;
- else {
-          hosts=new HashMap<String,Object>();
-          hosts.put("*",contexts);
-          contextMap.put(contextPath,hosts);
-        }
-        for (int j=0; j < vhosts.length; j++) {
-          String vhost=vhosts[j];
-          contexts=hosts.get(vhost);
-          contexts=LazyList.add(contexts,branches[b]);
-          hosts.put(vhost,contexts);
+ else       if (branches[b] instanceof HandlerContainer) {
+        handlers=((HandlerContainer)branches[b]).getChildHandlersByClass(ContextHandler.class);
+      }
+ else       continue;
+      for (int i=0; handlers != null && i < handlers.length; i++) {
+        ContextHandler handler=(ContextHandler)handlers[i];
+        String contextPath=handler.getContextPath().substring(1);
+        ContextHandler[] contexts=trie.get(contextPath);
+        if (!trie.put(contextPath,ArrayUtil.addToArray(contexts,handler,ContextHandler.class))) {
+          capacity+=512;
+          continue loop;
         }
       }
- else       if (contexts instanceof Map) {
-        Map<String,Object> hosts=(Map<String,Object>)contexts;
-        contexts=hosts.get("*");
-        contexts=LazyList.add(contexts,branches[b]);
-        hosts.put("*",contexts);
-      }
- else {
-        contexts=LazyList.add(contexts,branches[b]);
-        contextMap.put(contextPath,contexts);
-      }
     }
+    break;
   }
-  _contextMap=contextMap;
+  for (  String ctx : trie.keySet()) {
+    ContextHandler[] contexts=trie.get(ctx);
+    ContextHandler[] sorted=new ContextHandler[contexts.length];
+    int i=0;
+    for (    ContextHandler handler : contexts)     if (handler.getVirtualHosts() != null && handler.getVirtualHosts().length > 0)     sorted[i++]=handler;
+    for (    ContextHandler handler : contexts)     if (handler.getVirtualHosts() == null || handler.getVirtualHosts().length == 0)     sorted[i++]=handler;
+    trie.put(ctx,sorted);
+  }
+  _contexts=trie;
 }

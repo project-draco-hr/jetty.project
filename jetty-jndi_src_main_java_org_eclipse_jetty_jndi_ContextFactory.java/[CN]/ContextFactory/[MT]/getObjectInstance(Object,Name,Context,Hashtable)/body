@@ -4,8 +4,19 @@
     if (__log.isDebugEnabled())     __log.debug("Using the Context that is bound on the thread");
     return ctx;
   }
+  ClassLoader loader=(ClassLoader)__threadClassLoader.get();
+  if (loader != null) {
+    if (__log.isDebugEnabled() && loader != null)     __log.debug("Using threadlocal classloader");
+    ctx=getContextForClassLoader(loader);
+    if (ctx == null) {
+      ctx=newNamingContext(obj,loader,env,name,nameCtx);
+      __contextMap.put(loader,ctx);
+      if (__log.isDebugEnabled())       __log.debug("Made context " + name.get(0) + " for classloader: "+ loader);
+    }
+    return ctx;
+  }
   ClassLoader tccl=Thread.currentThread().getContextClassLoader();
-  ClassLoader loader=tccl;
+  loader=tccl;
   if (loader != null) {
     if (__log.isDebugEnabled() && loader != null)     __log.debug("Trying thread context classloader");
     while (ctx == null && loader != null) {

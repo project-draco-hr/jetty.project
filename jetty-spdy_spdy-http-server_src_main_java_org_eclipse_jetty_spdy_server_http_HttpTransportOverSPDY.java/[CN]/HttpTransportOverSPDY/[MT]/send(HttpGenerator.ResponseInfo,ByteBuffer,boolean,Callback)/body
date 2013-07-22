@@ -5,7 +5,9 @@
     callback.failed(exception);
     return;
   }
-  boolean hasContent=BufferUtil.hasContent(content);
+  boolean isHeadRequest=HttpMethod.HEAD.name().equalsIgnoreCase(requestHeaders.get(HTTPSPDYHeader.METHOD.name(version)).value());
+  boolean hasContent=BufferUtil.hasContent(content) && !isHeadRequest;
+  boolean close=!hasContent && lastContent;
   if (info != null) {
     if (!committed.compareAndSet(false,true)) {
       StreamException exception=new StreamException(stream.getId(),StreamStatus.PROTOCOL_ERROR,"Stream already committed!");
@@ -13,40 +15,20 @@
       LOG.warn("Committed response twice.",exception);
       return;
     }
-    short version=stream.getSession().getVersion();
-    Fields headers=new Fields();
-    HttpVersion httpVersion=HttpVersion.HTTP_1_1;
-    headers.put(HTTPSPDYHeader.VERSION.name(version),httpVersion.asString());
-    int status=info.getStatus();
-    StringBuilder httpStatus=new StringBuilder().append(status);
-    String reason=info.getReason();
-    if (reason == null)     reason=HttpStatus.getMessage(status);
-    if (reason != null)     httpStatus.append(" ").append(reason);
-    headers.put(HTTPSPDYHeader.STATUS.name(version),httpStatus.toString());
-    LOG.debug("HTTP < {} {}",httpVersion,httpStatus);
-    HttpFields fields=info.getHttpFields();
-    if (fields != null) {
-      for (int i=0; i < fields.size(); ++i) {
-        HttpField field=fields.getField(i);
-        String name=field.getName();
-        String value=field.getValue();
-        headers.add(name,value);
-        LOG.debug("HTTP < {}: {}",name,value);
+    sendReply(info,!hasContent ? callback : new Callback.Adapter(){
+      @Override public void failed(      Throwable x){
+        callback.failed(x);
       }
     }
-    if (configuration.getSendServerVersion())     headers.add(HttpHeader.SERVER.asString(),HttpConfiguration.SERVER_VERSION);
-    if (configuration.getSendXPoweredBy())     headers.add(HttpHeader.X_POWERED_BY.asString(),HttpConfiguration.SERVER_VERSION);
-    boolean close=!hasContent && lastContent;
-    ReplyInfo reply=new ReplyInfo(headers,close);
-    reply(stream,reply);
+,close);
   }
   if (hasContent) {
-    if (stream.isClosed() || stream.isReset())     callback.failed(new EofException("stream closed"));
- else     stream.data(new ByteBufferDataInfo(endPoint.getIdleTimeout(),TimeUnit.MILLISECONDS,content,lastContent),callback);
+    LOG.debug("Send content: {} on stream: {} lastContent={}",BufferUtil.toDetailString(content),stream,lastContent);
+    stream.data(new ByteBufferDataInfo(endPoint.getIdleTimeout(),TimeUnit.MILLISECONDS,content,lastContent),callback);
   }
- else   if (lastContent) {
-    if (stream.isClosed() || stream.isReset())     callback.succeeded();
- else     stream.data(new ByteBufferDataInfo(endPoint.getIdleTimeout(),TimeUnit.MILLISECONDS,BufferUtil.EMPTY_BUFFER,lastContent),callback);
+ else   if (lastContent && info == null) {
+    LOG.debug("No content and lastContent=true. Sending empty ByteBuffer to close stream: {}",stream);
+    stream.data(new ByteBufferDataInfo(endPoint.getIdleTimeout(),TimeUnit.MILLISECONDS,BufferUtil.EMPTY_BUFFER,lastContent),callback);
   }
- else   callback.succeeded();
+ else   if (!lastContent && !hasContent && info == null)   throw new IllegalStateException("not lastContent, no content and no responseInfo!");
 }
