@@ -1,0 +1,67 @@
+{
+  Server server=new Server();
+  LocalConnector connector0=new LocalConnector(server);
+  LocalConnector connector1=new LocalConnector(server);
+  connector1.setName("connector1");
+  server.setConnectors(new Connector[]{connector0,connector1});
+  ContextHandler contextA=new ContextHandler("/ctx");
+  contextA.setVirtualHosts(new String[]{"www.example.com","alias.example.com"});
+  IsHandledHandler handlerA=new IsHandledHandler("A");
+  contextA.setHandler(handlerA);
+  contextA.setAllowNullPathInfo(true);
+  ContextHandler contextB=new ContextHandler("/ctx");
+  IsHandledHandler handlerB=new IsHandledHandler("B");
+  contextB.setHandler(handlerB);
+  contextB.setVirtualHosts(new String[]{"*.other.com","@connector1"});
+  ContextHandler contextC=new ContextHandler("/ctx");
+  IsHandledHandler handlerC=new IsHandledHandler("C");
+  contextC.setHandler(handlerC);
+  ContextHandler contextD=new ContextHandler("/");
+  IsHandledHandler handlerD=new IsHandledHandler("D");
+  contextD.setHandler(handlerD);
+  ContextHandler contextE=new ContextHandler("/ctx/foo");
+  IsHandledHandler handlerE=new IsHandledHandler("E");
+  contextE.setHandler(handlerE);
+  ContextHandler contextF=new ContextHandler("/ctxlong");
+  IsHandledHandler handlerF=new IsHandledHandler("F");
+  contextF.setHandler(handlerF);
+  ContextHandlerCollection c=new ContextHandlerCollection();
+  c.addHandler(contextA);
+  c.addHandler(contextB);
+  c.addHandler(contextC);
+  HandlerList list=new HandlerList();
+  list.addHandler(contextD);
+  list.addHandler(contextE);
+  list.addHandler(contextF);
+  c.addHandler(list);
+  server.setHandler(c);
+  try {
+    server.start();
+    Object[][] tests=new Object[][]{{connector0,"www.example.com.","/ctx",handlerA},{connector0,"www.example.com.","/ctx/",handlerA},{connector0,"www.example.com.","/ctx/info",handlerA},{connector0,"www.example.com","/ctx/info",handlerA},{connector0,"alias.example.com","/ctx/info",handlerA},{connector1,"www.example.com.","/ctx/info",handlerA},{connector1,"www.example.com","/ctx/info",handlerA},{connector1,"alias.example.com","/ctx/info",handlerA},{connector1,"www.other.com","/ctx",null},{connector1,"www.other.com","/ctx/",handlerB},{connector1,"www.other.com","/ctx/info",handlerB},{connector0,"www.other.com","/ctx/info",handlerC},{connector0,"www.example.com","/ctxinfo",handlerD},{connector1,"unknown.com","/unknown",handlerD},{connector0,"alias.example.com","/ctx/foo/info",handlerE},{connector0,"alias.example.com","/ctxlong/info",handlerF}};
+    for (int i=0; i < tests.length; i++) {
+      Object[] test=tests[i];
+      LocalConnector connector=(LocalConnector)test[0];
+      String host=(String)test[1];
+      String uri=(String)test[2];
+      IsHandledHandler handler=(IsHandledHandler)test[3];
+      handlerA.reset();
+      handlerB.reset();
+      handlerC.reset();
+      handlerD.reset();
+      handlerE.reset();
+      handlerF.reset();
+      String response=connector.getResponses("GET " + uri + " HTTP/1.0\nHost: "+ host+ "\n\n");
+      if (handler == null) {
+        Assert.assertThat(response,Matchers.containsString(" 302 "));
+      }
+ else       if (!handler.isHandled()) {
+        System.err.printf("FAILED %d %s@%s --> %s | %s%n",i,uri,host,connector.getName(),handler);
+        System.err.println(response);
+        Assert.fail();
+      }
+    }
+  }
+  finally {
+    server.stop();
+  }
+}
