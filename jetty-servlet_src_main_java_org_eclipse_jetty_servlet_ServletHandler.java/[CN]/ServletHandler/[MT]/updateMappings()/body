@@ -24,18 +24,43 @@
   }
  else {
     PathMap<ServletHolder> pm=new PathMap<>();
-    for (    ServletMapping servletmapping : _servletMappings) {
-      ServletHolder servlet_holder=_servletNameMap.get(servletmapping.getServletName());
-      if (servlet_holder == null)       throw new IllegalStateException("No such servlet: " + servletmapping.getServletName());
- else       if (servlet_holder.isEnabled() && servletmapping.getPathSpecs() != null) {
-        String[] pathSpecs=servletmapping.getPathSpecs();
-        for (        String pathSpec : pathSpecs)         if (pathSpec != null) {
-          ServletHolder previous=pm.put(pathSpec,servlet_holder);
-          if (previous != null)           throw new IllegalStateException("Multiple servlets map to path: " + pathSpec);
+    Map<String,ServletMapping> servletPathMappings=new HashMap<String,ServletMapping>();
+    HashMap<String,Set<ServletMapping>> sms=new HashMap<String,Set<ServletMapping>>();
+    for (    ServletMapping servletMapping : _servletMappings) {
+      String[] pathSpecs=servletMapping.getPathSpecs();
+      if (pathSpecs != null) {
+        for (        String pathSpec : pathSpecs) {
+          Set<ServletMapping> mappings=sms.get(pathSpec);
+          if (mappings == null) {
+            mappings=new HashSet<ServletMapping>();
+            sms.put(pathSpec,mappings);
+          }
+          mappings.add(servletMapping);
         }
       }
     }
+    for (    String pathSpec : sms.keySet()) {
+      Set<ServletMapping> mappings=sms.get(pathSpec);
+      ServletMapping finalMapping=null;
+      for (      ServletMapping mapping : mappings) {
+        ServletHolder servlet_holder=_servletNameMap.get(mapping.getServletName());
+        if (servlet_holder == null)         throw new IllegalStateException("No such servlet: " + mapping.getServletName());
+        if (!servlet_holder.isEnabled())         continue;
+        if (finalMapping == null)         finalMapping=mapping;
+ else {
+          if (finalMapping.isDefault())           finalMapping=mapping;
+ else {
+            if (!mapping.isDefault())             throw new IllegalStateException("Multiple servlets map to path: " + pathSpec);
+          }
+        }
+      }
+      if (finalMapping == null)       throw new IllegalStateException("No acceptable servlet mappings for " + pathSpec);
+      if (LOG.isDebugEnabled())       LOG.debug("Chose path={} mapped to servlet={} from default={}",pathSpec,finalMapping.getServletName(),finalMapping.isDefault());
+      servletPathMappings.put(pathSpec,finalMapping);
+      pm.put(pathSpec,_servletNameMap.get(finalMapping.getServletName()));
+    }
     _servletPathMap=pm;
+    _servletPathMappings=servletPathMappings;
   }
   if (_chainCache != null) {
     for (int i=_chainCache.length; i-- > 0; ) {
