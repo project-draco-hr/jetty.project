@@ -1,0 +1,29 @@
+{
+  int maxQueued=1;
+  client.setMaxRequestsQueuedPerDestination(maxQueued);
+  client.setMaxConnectionsPerDestination(1);
+  ContentResponse response=client.newRequest("localhost",connector.getLocalPort()).scheme(scheme).send();
+  Assert.assertEquals(200,response.getStatus());
+  final CountDownLatch successLatch=new CountDownLatch(1);
+  final CountDownLatch failureLatch=new CountDownLatch(1);
+  client.newRequest("localhost",connector.getLocalPort()).scheme(scheme).onRequestQueued(new Request.QueuedListener(){
+    @Override public void onQueued(    Request request){
+      client.newRequest("localhost",connector.getLocalPort()).scheme(scheme).send(new Response.CompleteListener(){
+        @Override public void onComplete(        Result result){
+          Assert.assertTrue(result.isFailed());
+          Assert.assertThat(result.getRequestFailure(),Matchers.instanceOf(RejectedExecutionException.class));
+          failureLatch.countDown();
+        }
+      }
+);
+    }
+  }
+).send(new Response.CompleteListener(){
+    @Override public void onComplete(    Result result){
+      if (result.isSucceeded())       successLatch.countDown();
+    }
+  }
+);
+  Assert.assertTrue(failureLatch.await(5,TimeUnit.SECONDS));
+  Assert.assertTrue(successLatch.await(5,TimeUnit.SECONDS));
+}

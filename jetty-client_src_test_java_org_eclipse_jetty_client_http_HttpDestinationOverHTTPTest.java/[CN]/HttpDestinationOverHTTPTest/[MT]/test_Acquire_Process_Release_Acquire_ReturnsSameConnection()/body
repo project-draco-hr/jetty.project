@@ -1,0 +1,15 @@
+{
+  HttpDestinationOverHTTP destination=new HttpDestinationOverHTTP(client,"http","localhost",connector.getLocalPort());
+  HttpConnectionOverHTTP connection1=destination.acquire();
+  long start=System.nanoTime();
+  while (connection1 == null && TimeUnit.NANOSECONDS.toSeconds(System.nanoTime() - start) < 5) {
+    TimeUnit.MILLISECONDS.sleep(50);
+    connection1=(HttpConnectionOverHTTP)destination.getHttpConnectionPool().getIdleConnections().peek();
+  }
+  Assert.assertNotNull(connection1);
+  Assert.assertSame(connection1,destination.acquire());
+  destination.process(connection1,false);
+  destination.release(connection1);
+  Connection connection2=destination.acquire();
+  Assert.assertSame(connection1,connection2);
+}

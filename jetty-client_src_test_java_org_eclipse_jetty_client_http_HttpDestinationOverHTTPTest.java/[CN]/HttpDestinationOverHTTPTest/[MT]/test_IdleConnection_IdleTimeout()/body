@@ -1,0 +1,17 @@
+{
+  long idleTimeout=1000;
+  client.setIdleTimeout(idleTimeout);
+  HttpDestinationOverHTTP destination=new HttpDestinationOverHTTP(client,"http","localhost",connector.getLocalPort());
+  Connection connection1=destination.acquire();
+  if (connection1 == null) {
+    long start=System.nanoTime();
+    while (connection1 == null && TimeUnit.NANOSECONDS.toSeconds(System.nanoTime() - start) < 5) {
+      TimeUnit.MILLISECONDS.sleep(50);
+      connection1=destination.getHttpConnectionPool().getIdleConnections().peek();
+    }
+    Assert.assertNotNull(connection1);
+    TimeUnit.MILLISECONDS.sleep(2 * idleTimeout);
+    connection1=destination.getHttpConnectionPool().getIdleConnections().poll();
+    Assert.assertNull(connection1);
+  }
+}
