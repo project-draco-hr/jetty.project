@@ -1,0 +1,16 @@
+{
+  server=new Server();
+  short version=SPDY.V3;
+  HTTPSPDYServerConnectionFactory spdyConnectionFactory=new HTTPSPDYServerConnectionFactory(version,new HttpConfiguration(),new PushStrategy.None());
+  connector=new ServerConnector(server,spdyConnectionFactory);
+  server.addConnector(connector);
+  server.setHandler(handler);
+  server.start();
+  QueuedThreadPool executor=new QueuedThreadPool();
+  executor.setName(executor.getName() + "-client");
+  factory=new SPDYClient.Factory(executor);
+  factory.start();
+  client=new HttpClient(new HttpClientTransportOverSPDY(factory.newSPDYClient(version)),null);
+  client.setExecutor(executor);
+  client.start();
+}
