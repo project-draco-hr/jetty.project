@@ -11,9 +11,10 @@
   destination.getRequestNotifier().notifyFailure(request,failure);
   boolean notCommitted=isBeforeCommit(requestState);
   if (result == null && notCommitted && request.getAbortCause() == null) {
-    exchange.responseComplete();
-    result=exchange.terminateResponse(failure);
-    LOG.debug("Failed response from request {}",exchange);
+    if (exchange.responseComplete()) {
+      result=exchange.terminateResponse(failure);
+      LOG.debug("Failed response from request {}",exchange);
+    }
   }
   if (result != null) {
     boolean ordered=destination.getHttpClient().isStrictEventOrdering();
