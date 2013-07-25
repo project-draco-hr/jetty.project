@@ -1,5 +1,6 @@
 {
   if (getContentType() == null || !getContentType().startsWith("multipart/form-data"))   throw new ServletException("Content-Type != multipart/form-data");
+  if (_multiPartInputStream == null)   _multiPartInputStream=(MultiPartInputStream)getAttribute(__MULTIPART_INPUT_STREAM);
   if (_multiPartInputStream == null) {
     MultipartConfigElement config=(MultipartConfigElement)getAttribute(__MULTIPART_CONFIG_ELEMENT);
     if (config == null)     throw new IllegalStateException("No multipart config for servlet");
@@ -9,12 +10,22 @@
     Collection<Part> parts=_multiPartInputStream.getParts();
     for (    Part p : parts) {
       MultiPartInputStream.MultiPart mp=(MultiPartInputStream.MultiPart)p;
-      if (mp.getContentDispositionFilename() == null && mp.getFile() == null) {
+      if (mp.getContentDispositionFilename() == null) {
         String charset=null;
         if (mp.getContentType() != null)         charset=MimeTypes.getCharsetFromContentType(new ByteArrayBuffer(mp.getContentType()));
-        String content=new String(mp.getBytes(),charset == null ? StringUtil.__UTF8 : charset);
-        getParameter("");
-        getParameters().add(mp.getName(),content);
+        ByteArrayOutputStream os=null;
+        InputStream is=mp.getInputStream();
+        try {
+          os=new ByteArrayOutputStream();
+          IO.copy(is,os);
+          String content=new String(os.toByteArray(),charset == null ? StringUtil.__UTF8 : charset);
+          getParameter("");
+          getParameters().add(mp.getName(),content);
+        }
+  finally {
+          IO.close(os);
+          IO.close(is);
+        }
       }
     }
   }

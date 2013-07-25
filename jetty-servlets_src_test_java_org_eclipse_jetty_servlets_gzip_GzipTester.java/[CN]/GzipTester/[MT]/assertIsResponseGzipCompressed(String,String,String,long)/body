@@ -1,0 +1,46 @@
+{
+  HttpTester request=new HttpTester();
+  HttpTester response=new HttpTester();
+  request.setMethod(method);
+  request.setVersion("HTTP/1.0");
+  request.setHeader("Host","tester");
+  request.setHeader("Accept-Encoding",compressionType);
+  if (ifmodifiedsince > 0)   request.setHeader(HttpHeaders.IF_MODIFIED_SINCE,HttpFields.formatDate(ifmodifiedsince));
+  if (this.userAgent != null)   request.setHeader("User-Agent",this.userAgent);
+  request.setURI("/context/" + requestedFilename);
+  ByteArrayBuffer reqsBuff=new ByteArrayBuffer(request.generate().getBytes());
+  ByteArrayBuffer respBuff=servletTester.getResponses(reqsBuff);
+  response.parse(respBuff.asArray());
+  Assert.assertThat("Response.method",response.getMethod(),nullValue());
+  String contentLength=response.getHeader("Content-Length");
+  String transferEncoding=response.getHeader("Transfer-Encoding");
+  int qindex=compressionType.indexOf(";");
+  if (qindex < 0)   Assert.assertThat("Response.header[Content-Encoding]",response.getHeader("Content-Encoding"),containsString(compressionType));
+ else   Assert.assertThat("Response.header[Content-Encoding]",response.getHeader("Content-Encoding"),containsString(compressionType.substring(0,qindex)));
+  Assert.assertThat(response.getHeader("ETag"),Matchers.startsWith("W/"));
+  File serverFile=testdir.getFile(serverFilename);
+  String expected=IO.readToString(serverFile);
+  String actual=null;
+  ByteArrayInputStream bais=null;
+  InputStream in=null;
+  ByteArrayOutputStream out=null;
+  try {
+    bais=new ByteArrayInputStream(response.getContentBytes());
+    if (compressionType.startsWith(GzipFilter.GZIP)) {
+      in=new GZIPInputStream(bais);
+    }
+ else     if (compressionType.startsWith(GzipFilter.DEFLATE)) {
+      in=new InflaterInputStream(bais,new Inflater(true));
+    }
+    out=new ByteArrayOutputStream();
+    IO.copy(in,out);
+    actual=out.toString(encoding);
+    assertThat("Uncompressed contents",actual,equalTo(expected));
+  }
+  finally {
+    IO.close(out);
+    IO.close(in);
+    IO.close(bais);
+  }
+  return response;
+}

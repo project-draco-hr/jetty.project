@@ -1,5 +1,7 @@
 {
   super.doStop();
+  List<FilterHolder> filterHolders=new ArrayList<FilterHolder>();
+  List<FilterMapping> filterMappings=LazyList.array2List(_filterMappings);
   if (_filters != null) {
     for (int i=_filters.length; i-- > 0; ) {
       try {
@@ -8,8 +10,23 @@
  catch (      Exception e) {
         LOG.warn(Log.EXCEPTION,e);
       }
+      if (_filters[i].getSource() != Source.EMBEDDED) {
+        _filterNameMap.remove(_filters[i].getName());
+        ListIterator<FilterMapping> fmitor=filterMappings.listIterator();
+        while (fmitor.hasNext()) {
+          FilterMapping fm=fmitor.next();
+          if (fm.getFilterName().equals(_filters[i].getName()))           fmitor.remove();
+        }
+      }
+ else       filterHolders.add(_filters[i]);
     }
   }
+  _filters=(FilterHolder[])LazyList.toArray(filterHolders,FilterHolder.class);
+  _filterMappings=(FilterMapping[])LazyList.toArray(filterMappings,FilterMapping.class);
+  _matchAfterIndex=(_filterMappings == null || _filterMappings.length == 0 ? -1 : _filterMappings.length - 1);
+  _matchBeforeIndex=-1;
+  List<ServletHolder> servletHolders=new ArrayList<ServletHolder>();
+  List<ServletMapping> servletMappings=LazyList.array2List(_servletMappings);
   if (_servlets != null) {
     for (int i=_servlets.length; i-- > 0; ) {
       try {
@@ -18,8 +35,19 @@
  catch (      Exception e) {
         LOG.warn(Log.EXCEPTION,e);
       }
+      if (_servlets[i].getSource() != Source.EMBEDDED) {
+        _servletNameMap.remove(_servlets[i].getName());
+        ListIterator<ServletMapping> smitor=servletMappings.listIterator();
+        while (smitor.hasNext()) {
+          ServletMapping sm=smitor.next();
+          if (sm.getServletName().equals(_servlets[i].getName()))           smitor.remove();
+        }
+      }
+ else       servletHolders.add(_servlets[i]);
     }
   }
+  _servlets=(ServletHolder[])LazyList.toArray(servletHolders,ServletHolder.class);
+  _servletMappings=(ServletMapping[])LazyList.toArray(servletMappings,ServletMapping.class);
   _filterPathMappings=null;
   _filterNameMappings=null;
   _servletPathMap=null;
