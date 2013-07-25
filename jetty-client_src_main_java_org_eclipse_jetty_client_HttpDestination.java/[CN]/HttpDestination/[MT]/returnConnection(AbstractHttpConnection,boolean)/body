@@ -11,12 +11,12 @@
   if (!_client.isStarted())   return;
   if (!close && connection.getEndPoint().isOpen()) {
 synchronized (this) {
-      if (_queue.size() == 0) {
+      if (_exchanges.size() == 0) {
         connection.setIdleTimeout();
-        _idle.add(connection);
+        _idleConnections.add(connection);
       }
  else {
-        HttpExchange ex=_queue.remove(0);
+        HttpExchange ex=_exchanges.remove(0);
         send(connection,ex);
       }
       this.notifyAll();
@@ -26,7 +26,7 @@ synchronized (this) {
     boolean startConnection=false;
 synchronized (this) {
       _connections.remove(connection);
-      if (!_queue.isEmpty())       startConnection=true;
+      if (!_exchanges.isEmpty())       startConnection=true;
     }
     if (startConnection)     startNewConnection();
   }

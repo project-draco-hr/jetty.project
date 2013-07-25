@@ -1,0 +1,19 @@
+{
+  HttpTester request=new HttpTester(){
+  }
+;
+  HttpTester response=new HttpTester();
+  tester.addServlet(TestServletCharSet.class,"/test2");
+  request.setMethod("POST");
+  request.setVersion("HTTP/1.0");
+  request.setHeader("Host","tester");
+  request.setURI("/context/test2");
+  String boundary="XyXyXy";
+  request.setHeader("Content-Type","multipart/form-data; boundary=" + boundary);
+  ByteArrayOutputStream baos=new ByteArrayOutputStream();
+  baos.write(("--" + boundary + "\r\n"+ "Content-Disposition: form-data; name=\"ttt\"\r\n"+ "Content-Type: application/octet-stream; charset=UTF-8\r\n\r\n").getBytes());
+  baos.write("ttt\u01FCzzz".getBytes(StringUtil.__UTF8));
+  baos.write(("\r\n--" + boundary + "--\r\n\r\n").getBytes());
+  request.setContentBytes(baos.toByteArray());
+  response.parse(tester.getResponses(new ByteArrayBuffer(request.generate().getBytes(StringUtil.__UTF8))).toString());
+}
