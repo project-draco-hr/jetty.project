@@ -1,7 +1,7 @@
 {
-  Connector[] connectors=_server.getConnectors();
+  Collection<NetworkConnector> connectors=_server.getBeans(NetworkConnector.class);
   if (connectors != null) {
-    for (    Connector connector : connectors) {
+    for (    NetworkConnector connector : connectors) {
       if (connector.getPort() == addr.getPort()) {
         if (LOG.isDebugEnabled())         LOG.debug("server already bound to port " + addr.getPort() + ", no need to rebind");
         return;
@@ -11,8 +11,7 @@
   if (_serverShared)   throw new IOException("jetty server is not bound to port " + addr.getPort());
   this._addr=addr;
   if (LOG.isDebugEnabled())   LOG.debug("binding server to port " + addr.getPort());
-  SelectChannelConnector connector=new SelectChannelConnector();
-  connector.setAcceptors(1);
+  ServerConnector connector=new ServerConnector(_server);
   connector.setPort(addr.getPort());
   connector.setHost(addr.getHostName());
   _server.addConnector(connector);
