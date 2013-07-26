@@ -1,27 +1,27 @@
 {
-  try {
-    Fields headers=new Fields(replyInfo.getHeaders(),false);
-    headers.remove(HTTPSPDYHeader.SCHEME.name(version));
-    String status=headers.remove(HTTPSPDYHeader.STATUS.name(version)).value();
-    Matcher matcher=statusRegexp.matcher(status);
-    matcher.matches();
-    int code=Integer.parseInt(matcher.group(1));
-    String reason=matcher.group(2).trim();
-    HttpVersion httpVersion=HttpVersion.fromString(headers.remove(HTTPSPDYHeader.VERSION.name(version)).value());
-    Fields.Field host=headers.remove(HTTPSPDYHeader.HOST.name(version));
-    if (host != null)     headers.put("host",host.value());
-    HttpFields fields=new HttpFields();
-    for (    Fields.Field header : headers) {
-      String name=camelize(header.name());
-      fields.put(name,header.value());
+  Fields headers=new Fields(replyInfo.getHeaders(),false);
+  headers.remove(HTTPSPDYHeader.SCHEME.name(version));
+  String status=headers.remove(HTTPSPDYHeader.STATUS.name(version)).value();
+  Matcher matcher=statusRegexp.matcher(status);
+  matcher.matches();
+  int code=Integer.parseInt(matcher.group(1));
+  String reason=matcher.group(2).trim();
+  HttpVersion httpVersion=HttpVersion.fromString(headers.remove(HTTPSPDYHeader.VERSION.name(version)).value());
+  Fields.Field host=headers.remove(HTTPSPDYHeader.HOST.name(version));
+  if (host != null)   headers.put("host",host.value());
+  HttpFields fields=new HttpFields();
+  for (  Fields.Field header : headers) {
+    String name=camelize(header.name());
+    fields.put(name,header.value());
+  }
+  long contentLength=fields.getLongField(HttpHeader.CONTENT_LENGTH.asString());
+  HttpGenerator.ResponseInfo info=new HttpGenerator.ResponseInfo(httpVersion,fields,contentLength,code,reason,false);
+  send(info,null,replyInfo.isClose(),new Adapter(){
+    @Override public void failed(    Throwable x){
+      handler.failed(x);
     }
-    long contentLength=fields.getLongField(HttpHeader.CONTENT_LENGTH.asString());
-    HttpGenerator.ResponseInfo info=new HttpGenerator.ResponseInfo(httpVersion,fields,contentLength,code,reason,false);
-    send(info,null,replyInfo.isClose());
-    if (replyInfo.isClose())     completed();
-    handler.succeeded();
   }
- catch (  IOException x) {
-    handler.failed(x);
-  }
+);
+  if (replyInfo.isClose())   completed();
+  handler.succeeded();
 }
