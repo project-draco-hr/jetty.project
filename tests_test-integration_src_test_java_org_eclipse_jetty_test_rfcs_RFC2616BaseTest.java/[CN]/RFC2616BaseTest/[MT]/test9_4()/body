@@ -4,11 +4,11 @@
   req1.append("Host: localhost\n");
   req1.append("Connection: close\n");
   req1.append("\n");
-  response=http.request(req1);
-  response.assertStatusOK("9.4 GET / Response Code");
-  response.assertHeader("9.4 GET / Content Type","Content-Type","text/plain");
-  response.assertHeader("9.4 HEAD / Content Type","Content-Length","25");
-  response.assertBody("9.4 GET / Body","Host=Default\nResource=R1\n");
+  HttpTester.Response response=http.request(req1);
+  assertEquals("9.4 GET / Response Code",HttpStatus.OK_200,response.getStatus());
+  assertEquals("9.4 GET / Content Type","text/plain",response.get("Content-Type"));
+  assertEquals("9.4 HEAD / Content Type","25",response.get("Content-Length"));
+  assertTrue("9.4 GET / Body",response.getContent().contains("Host=Default\nResource=R1\n"));
   StringBuffer req2=new StringBuffer();
   req2.append("HEAD /tests/R1.txt HTTP/1.1\n");
   req2.append("Host: localhost\n");
@@ -19,7 +19,7 @@
     http.send(sock,req2);
     String rawHeadResponse=http.readRaw(sock);
     int headResponseLength=rawHeadResponse.length();
-    String rawGetResponse=response.getRawResponse().toString().substring(0,headResponseLength);
+    String rawGetResponse=response.toString().substring(0,headResponseLength);
     List<String> linesGet=StringUtil.asLines(rawGetResponse);
     List<String> linesHead=StringUtil.asLines(rawHeadResponse);
     StringUtil.removeStartsWith("Date: ",linesGet);

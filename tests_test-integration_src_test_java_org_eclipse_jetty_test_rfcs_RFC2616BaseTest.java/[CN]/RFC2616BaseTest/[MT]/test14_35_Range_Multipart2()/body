@@ -6,10 +6,10 @@
   req1.append("Range: ").append(rangedef).append("\n");
   req1.append("Connection: close\n");
   req1.append("\n");
-  response=http.request(req1);
+  HttpTester.Response response=http.request(req1);
   String msg="Partial (Byte) Range: '" + rangedef + "'";
-  response.assertStatus(msg,HttpStatus.PARTIAL_CONTENT_206);
-  String contentType=response.getHeader("Content-Type");
+  assertEquals(msg,HttpStatus.PARTIAL_CONTENT_206,response.getStatus());
+  String contentType=response.get("Content-Type");
   StringAssert.assertContains(msg + " Content-Type",contentType,"multipart/byteranges");
   String boundary=null;
   String parts[]=StringUtil.split(contentType,';');
@@ -21,18 +21,18 @@
     }
   }
   Assert.assertNotNull(msg + " Should have found boundary in Content-Type header",boundary);
-  List<HttpResponseTester> multiparts=response.findBodyMultiparts(boundary);
+  List<HttpTester.Response> multiparts=HttpTesting.getParts(boundary,response);
   Assert.assertEquals(msg + " multiparts in body (count)",3,multiparts.size());
-  HttpResponseTester multipart1=multiparts.get(0);
-  multipart1.assertHeader(msg + " Multipart 1","Content-Type","text/plain");
-  multipart1.assertHeader(msg + " Multipart 1","Content-Range","bytes 26-26/27");
-  multipart1.assertBody(msg + " Multipart 1","\n");
-  HttpResponseTester multipart2=multiparts.get(1);
-  multipart2.assertHeader(msg + " Multipart 2","Content-Type","text/plain");
-  multipart2.assertHeader(msg + " Multipart 2","Content-Range","bytes 25-26/27");
-  multipart2.assertBody(msg + " Multipart 2","Z\n");
-  HttpResponseTester multipart3=multiparts.get(2);
-  multipart3.assertHeader(msg + " Multipart 3","Content-Type","text/plain");
-  multipart3.assertHeader(msg + " Multipart 3","Content-Range","bytes 24-26/27");
-  multipart3.assertBody(msg + " Multipart 3","YZ\n");
+  HttpTester.Response multipart1=multiparts.get(0);
+  assertEquals(msg + " Multipart 1","text/plain",multipart1.get("Content-Type"));
+  assertEquals(msg + " Multipart 1","bytes 26-26/27",multipart1.get("Content-Range"));
+  assertTrue(msg + " Multipart 1",multipart1.getContent().contains("\n"));
+  HttpTester.Response multipart2=multiparts.get(1);
+  assertEquals(msg + " Multipart 2","text/plain",multipart2.get("Content-Type"));
+  assertEquals(msg + " Multipart 2","bytes 25-26/27",multipart2.get("Content-Range"));
+  assertTrue(msg + " Multipart 2",multipart2.getContent().contains("Z\n"));
+  HttpTester.Response multipart3=multiparts.get(2);
+  assertEquals(msg + " Multipart 3","text/plain",multipart3.get("Content-Type"));
+  assertEquals(msg + " Multipart 3","bytes 24-26/27",multipart3.get("Content-Range"));
+  assertTrue(msg + " Multipart 3",multipart3.getContent().contains("YZ\n"));
 }
