@@ -1,0 +1,60 @@
+{
+  WebSocketUpgradeFilter filter=(WebSocketUpgradeFilter)ctx.getAttribute(WebSocketUpgradeFilter.class.getName());
+  if (filter == null) {
+    LOG.warn("Required attribute not available: " + WebSocketUpgradeFilter.class.getName());
+    return;
+  }
+  DiscoveredEndpoints discovered=(DiscoveredEndpoints)ctx.getAttribute(DiscoveredEndpoints.class.getName());
+  if (discovered == null) {
+    LOG.warn("Required attribute not available: " + DiscoveredEndpoints.class.getName());
+    return;
+  }
+  LOG.debug("Found {} classes",c.size());
+  LOG.debug("Discovered: {}",discovered);
+  addEndpoints(c,discovered);
+  ServerContainer container=(ServerContainer)ctx.getAttribute(javax.websocket.server.ServerContainer.class.getName());
+  Set<Class<? extends Endpoint>> archiveSpecificExtendEndpoints=new HashSet<>();
+  Set<Class<?>> archiveSpecificAnnotatedEndpoints=new HashSet<>();
+  List<Class<? extends ServerApplicationConfig>> serverAppConfigs=filterServerApplicationConfigs(c);
+  if (serverAppConfigs.size() >= 1) {
+    for (    Class<? extends ServerApplicationConfig> clazz : filterServerApplicationConfigs(c)) {
+      LOG.debug("Found ServerApplicationConfig: {}",clazz);
+      try {
+        ServerApplicationConfig config=(ServerApplicationConfig)clazz.newInstance();
+        URI archiveURI=DiscoveredEndpoints.getArchiveURI(clazz);
+        archiveSpecificExtendEndpoints.clear();
+        archiveSpecificAnnotatedEndpoints.clear();
+        discovered.getArchiveSpecificExtendedEndpoints(archiveURI,archiveSpecificExtendEndpoints);
+        discovered.getArchiveSpecificAnnnotatedEndpoints(archiveURI,archiveSpecificAnnotatedEndpoints);
+        Set<ServerEndpointConfig> seconfigs=config.getEndpointConfigs(archiveSpecificExtendEndpoints);
+        if (seconfigs != null) {
+          for (          ServerEndpointConfig sec : seconfigs) {
+            container.addEndpoint(sec);
+          }
+        }
+        Set<Class<?>> annotatedClasses=config.getAnnotatedEndpointClasses(archiveSpecificAnnotatedEndpoints);
+        if (annotatedClasses != null) {
+          for (          Class<?> annotatedClass : annotatedClasses) {
+            container.addEndpoint(annotatedClass);
+          }
+        }
+      }
+ catch (      InstantiationException|IllegalAccessException e) {
+        throw new ServletException("Unable to instantiate: " + clazz.getName(),e);
+      }
+catch (      DeploymentException e) {
+        throw new ServletException(e);
+      }
+    }
+  }
+ else {
+    for (    Class<?> annotatedClass : discovered.getAnnotatedEndpoints()) {
+      try {
+        container.addEndpoint(annotatedClass);
+      }
+ catch (      DeploymentException e) {
+        throw new ServletException(e);
+      }
+    }
+  }
+}

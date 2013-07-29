@@ -1,0 +1,43 @@
+{
+  List<Class<? extends Decoder>> compositeDecoders=new ArrayList<>();
+  List<Class<? extends Encoder>> compositeEncoders=new ArrayList<>();
+  List<String> compositeSubProtocols=new ArrayList<>();
+  Configurator configr=null;
+  if (baseConfig != null) {
+    compositeDecoders.addAll(baseConfig.getDecoders());
+    compositeEncoders.addAll(baseConfig.getEncoders());
+    compositeSubProtocols.addAll(baseConfig.getSubprotocols());
+    configr=baseConfig.getConfigurator();
+  }
+  compositeDecoders.addAll(Arrays.asList(anno.decoders()));
+  compositeEncoders.addAll(Arrays.asList(anno.encoders()));
+  compositeSubProtocols.addAll(Arrays.asList(anno.subprotocols()));
+  this.decoders=Collections.unmodifiableList(compositeDecoders);
+  this.encoders=Collections.unmodifiableList(compositeEncoders);
+  this.subprotocols=Collections.unmodifiableList(compositeSubProtocols);
+  this.extensions=new ArrayList<>();
+  this.path=anno.value();
+  this.endpointClass=endpointClass;
+  this.userProperties=new HashMap<>();
+  if (anno.configurator() == null) {
+    if (configr != null) {
+      this.configurator=configr;
+    }
+ else {
+      this.configurator=BasicServerEndpointConfigurator.INSTANCE;
+    }
+  }
+ else {
+    try {
+      this.configurator=anno.configurator().newInstance();
+    }
+ catch (    InstantiationException|IllegalAccessException e) {
+      StringBuilder err=new StringBuilder();
+      err.append("Unable to instantiate ClientEndpoint.configurator() of ");
+      err.append(anno.configurator().getName());
+      err.append(" defined as annotation in ");
+      err.append(anno.getClass().getName());
+      throw new DeploymentException(err.toString(),e);
+    }
+  }
+}
