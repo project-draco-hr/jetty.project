@@ -1,10 +1,12 @@
 {
   Class<?> websocketClass=websocket.getClass();
-  JettyAnnotatedMetadata metadata=cache.get(websocketClass);
-  if (metadata == null) {
-    JettyAnnotatedScanner scanner=new JettyAnnotatedScanner();
-    metadata=scanner.scan(websocketClass);
-    cache.put(websocketClass,metadata);
+synchronized (cache) {
+    JettyAnnotatedMetadata metadata=cache.get(websocketClass);
+    if (metadata == null) {
+      JettyAnnotatedScanner scanner=new JettyAnnotatedScanner();
+      metadata=scanner.scan(websocketClass);
+      cache.put(websocketClass,metadata);
+    }
+    return new JettyAnnotatedEventDriver(policy,websocket,metadata);
   }
-  return new JettyAnnotatedEventDriver(policy,websocket,metadata);
 }
