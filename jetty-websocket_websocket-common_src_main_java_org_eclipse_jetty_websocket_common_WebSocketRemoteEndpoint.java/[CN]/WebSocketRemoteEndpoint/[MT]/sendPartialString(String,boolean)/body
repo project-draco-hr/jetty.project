@@ -9,7 +9,11 @@
         LOG.debug("sendPartialString({}, {})",fragment,isLast);
       }
       WebSocketFrame frame=WebSocketFrame.text(fragment).setFin(isLast);
+      if (partialStarted) {
+        frame.setContinuation(true);
+      }
       blockingWrite(frame);
+      partialStarted=!isLast;
     }
   finally {
       if (isLast) {
