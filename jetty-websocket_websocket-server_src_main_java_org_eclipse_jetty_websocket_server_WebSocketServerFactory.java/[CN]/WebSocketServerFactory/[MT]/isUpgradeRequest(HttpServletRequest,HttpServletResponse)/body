@@ -4,10 +4,20 @@
   }
   String connection=request.getHeader("connection");
   if (connection == null) {
+    LOG.debug("No 'Connection' header found");
     return false;
   }
-  if (!"upgrade".equalsIgnoreCase(connection)) {
-    LOG.debug("Not a 'Connection: Upgrade' (was [Connection: " + connection + "])");
+  boolean foundUpgradeToken=false;
+  Iterator<String> iter=QuoteUtil.splitAt(connection,",");
+  while (iter.hasNext()) {
+    String token=iter.next();
+    if ("upgrade".equalsIgnoreCase(token)) {
+      foundUpgradeToken=true;
+      break;
+    }
+  }
+  if (!foundUpgradeToken) {
+    LOG.debug("No a `Upgrade` token found in 'Connection' header (was [Connection: {}])",request.getHeader("connection"));
     return false;
   }
   String upgrade=request.getHeader("Upgrade");
