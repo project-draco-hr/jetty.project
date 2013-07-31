@@ -1,0 +1,31 @@
+{
+  WSServer wsb=new WSServer(testdir,"app");
+  wsb.createWebInf();
+  wsb.copyEndpoint(LargeEchoSocket.class);
+  try {
+    wsb.start();
+    URI uri=wsb.getServerBaseURI();
+    WebAppContext webapp=wsb.createWebAppContext();
+    wsb.deployWebapp(webapp);
+    WebSocketClient client=new WebSocketClient();
+    try {
+      client.getPolicy().setMaxTextMessageSize(128 * 1024);
+      client.start();
+      JettyEchoSocket clientEcho=new JettyEchoSocket();
+      Future<Session> foo=client.connect(clientEcho,uri.resolve("echo/large"));
+      foo.get(1,TimeUnit.SECONDS);
+      byte txt[]=new byte[100 * 1024];
+      Arrays.fill(txt,(byte)'o');
+      String msg=new String(txt,StringUtil.__UTF8_CHARSET);
+      clientEcho.sendMessage(msg);
+      Queue<String> msgs=clientEcho.awaitMessages(1);
+      Assert.assertEquals("Expected message",msg,msgs.poll());
+    }
+  finally {
+      client.stop();
+    }
+  }
+  finally {
+    wsb.stop();
+  }
+}
