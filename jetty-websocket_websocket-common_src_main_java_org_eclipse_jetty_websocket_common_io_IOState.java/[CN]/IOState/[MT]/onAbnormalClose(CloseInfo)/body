@@ -1,17 +1,17 @@
 {
   ConnectionState event=null;
-synchronized (this.state) {
+synchronized (this) {
     if (this.state == ConnectionState.CLOSED) {
       return;
     }
     if (this.state == ConnectionState.OPEN) {
-      this.cleanClose.set(false);
+      this.cleanClose=false;
     }
     this.state=ConnectionState.CLOSED;
-    this.closeInfo.compareAndSet(null,close);
-    this.inputAvailable.set(false);
-    this.outputAvailable.set(false);
-    this.closeHandshakeSource.set(CloseHandshakeSource.ABNORMAL);
+    if (closeInfo == null)     this.closeInfo=close;
+    this.inputAvailable=false;
+    this.outputAvailable=false;
+    this.closeHandshakeSource=CloseHandshakeSource.ABNORMAL;
     event=this.state;
   }
   notifyStateListeners(event);

@@ -10,17 +10,19 @@
     LOG.debug("FastClose in CONNECTED detected");
     onOpened();
   }
-synchronized (this.state) {
-    closeInfo.compareAndSet(null,close);
-    boolean in=inputAvailable.get();
-    boolean out=outputAvailable.get();
-    closeHandshakeSource.compareAndSet(CloseHandshakeSource.NONE,CloseHandshakeSource.LOCAL);
+synchronized (this) {
+    if (closeInfo == null)     closeInfo=close;
+    boolean in=inputAvailable;
+    boolean out=outputAvailable;
+    if (closeHandshakeSource == CloseHandshakeSource.NONE) {
+      closeHandshakeSource=CloseHandshakeSource.LOCAL;
+    }
     out=false;
-    outputAvailable.set(false);
+    outputAvailable=false;
     LOG.debug("onCloseLocal(), input={}, output={}",in,out);
     if (!in && !out) {
       LOG.debug("Close Handshake satisfied, disconnecting");
-      cleanClose.set(true);
+      cleanClose=true;
       this.state=ConnectionState.CLOSED;
       event=this.state;
     }
@@ -35,12 +37,12 @@ synchronized (this.state) {
     notifyStateListeners(event);
     if (close.isHarsh()) {
       LOG.debug("Harsh close, disconnecting");
-synchronized (this.state) {
-        this.state=ConnectionState.CLOSED;
-        cleanClose.set(false);
-        outputAvailable.set(false);
-        inputAvailable.set(false);
-        this.closeHandshakeSource.set(CloseHandshakeSource.ABNORMAL);
+synchronized (this) {
+        state=ConnectionState.CLOSED;
+        cleanClose=false;
+        outputAvailable=false;
+        inputAvailable=false;
+        closeHandshakeSource=CloseHandshakeSource.ABNORMAL;
         event=this.state;
       }
       notifyStateListeners(event);
