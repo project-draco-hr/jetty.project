@@ -1,0 +1,37 @@
+{
+  File distroUnpackDir=MavenTestingUtils.getTargetFile("test-dist");
+  PathAssert.assertDirExists(artifactName + " dependency:unpack",distroUnpackDir);
+  File subdirs[]=distroUnpackDir.listFiles(new FileFilter(){
+    public boolean accept(    File path){
+      if (!path.isDirectory()) {
+        return false;
+      }
+      return path.getName().startsWith(artifactName + "-");
+    }
+  }
+);
+  if (subdirs.length == 0) {
+    StringBuilder err=new StringBuilder();
+    err.append("No target/test-dist/");
+    err.append(artifactName);
+    err.append("-${version} directory found.");
+    err.append("\n  To fix this, run 'mvn process-test-resources' to create the directory.");
+    throw new IOException(err.toString());
+  }
+  if (subdirs.length != 1) {
+    StringBuilder err=new StringBuilder();
+    err.append("Too many target/test-dist/");
+    err.append(artifactName);
+    err.append("-${version} directories found.");
+    for (    File dir : subdirs) {
+      err.append("\n  ").append(dir.getAbsolutePath());
+    }
+    err.append("\n  To fix this, run 'mvn clean process-test-resources' to recreate the target/test-dist directory.");
+    throw new IOException(err.toString());
+  }
+  File distroSrcDir=subdirs[0];
+  FS.ensureEmpty(jettyHomeDir);
+  System.out.printf("Copying Jetty Distribution: %s%n",distroSrcDir.getAbsolutePath());
+  System.out.printf("            To Testing Dir: %s%n",jettyHomeDir.getAbsolutePath());
+  IO.copyDir(distroSrcDir,jettyHomeDir);
+}
