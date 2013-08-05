@@ -1,0 +1,24 @@
+{
+  String boundary="XyXyXy";
+  HttpTester request=new HttpTester();
+  HttpTester response=new HttpTester();
+  tester.addServlet(BoundaryServlet.class,"/testb");
+  tester.setAttribute("fileName","abc");
+  tester.setAttribute("desc","123");
+  tester.setAttribute("title","ttt");
+  request.setMethod("POST");
+  request.setVersion("HTTP/1.0");
+  request.setHeader("Host","tester");
+  request.setURI("/context/testb");
+  request.setHeader("Content-Type","multipart/form-data; boundary=" + boundary);
+  String content="--XyXyXy";
+  ByteArrayOutputStream baos=new ByteArrayOutputStream();
+  baos.write(content.getBytes());
+  for (int i=0; i < 8500; i++) {
+    baos.write('a');
+  }
+  request.setContent(baos.toString());
+  response.parse(tester.getResponses(request.generate()));
+  assertTrue(response.getContent().contains("Buffer size exceeded"));
+  assertEquals(HttpServletResponse.SC_INTERNAL_SERVER_ERROR,response.getStatus());
+}
