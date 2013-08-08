@@ -12,22 +12,24 @@
     try {
       JarEntry entry=jar_in.getNextJarEntry();
       while (entry != null) {
-        try {
-          String name=entry.getName();
-          if (name.toLowerCase(Locale.ENGLISH).endsWith(".class")) {
-            String shortName=name.replace('/','.').substring(0,name.length() - 6);
-            if ((resolver == null) || (!resolver.isExcluded(shortName) && (!isParsed(shortName) || resolver.shouldOverride(shortName)))) {
-              Resource clazz=Resource.newResource("jar:" + uri + "!/"+ name);
-              if (LOG.isDebugEnabled()) {
-                LOG.debug("Scanning class from jar {}",clazz);
+        if (!entry.isDirectory()) {
+          try {
+            String name=entry.getName();
+            if (isValidClassFileName(name)) {
+              String shortName=name.replace('/','.').substring(0,name.length() - 6);
+              if ((resolver == null) || (!resolver.isExcluded(shortName) && (!isParsed(shortName) || resolver.shouldOverride(shortName)))) {
+                Resource clazz=Resource.newResource("jar:" + uri + "!/"+ name);
+                if (LOG.isDebugEnabled()) {
+                  LOG.debug("Scanning class from jar {}",clazz);
+                }
+                ;
+                scanClass(clazz.getInputStream());
               }
-              ;
-              scanClass(clazz.getInputStream());
             }
           }
-        }
- catch (        Exception e) {
-          LOG.warn("Problem processing jar entry " + entry,e);
+ catch (          Exception e) {
+            LOG.warn("Problem processing jar entry " + entry,e);
+          }
         }
         entry=jar_in.getNextJarEntry();
       }
