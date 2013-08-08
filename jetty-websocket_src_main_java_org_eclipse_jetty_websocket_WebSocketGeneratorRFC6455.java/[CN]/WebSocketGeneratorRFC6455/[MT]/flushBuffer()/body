@@ -1,9 +1,15 @@
 {
-  if (!_endp.isOpen())   throw new EofException();
-  if (_buffer != null) {
-    int flushed=_buffer.hasContent() ? _endp.flush(_buffer) : 0;
-    if (_closed && _buffer.length() == 0)     _endp.shutdownOutput();
-    return flushed;
+  if (!_lock.tryLock())   return 0;
+  try {
+    if (!_endp.isOpen())     throw new EofException();
+    if (_buffer != null) {
+      int flushed=_buffer.hasContent() ? _endp.flush(_buffer) : 0;
+      if (_closed && _buffer.length() == 0)       _endp.shutdownOutput();
+      return flushed;
+    }
+    return 0;
   }
-  return 0;
+  finally {
+    _lock.unlock();
+  }
 }
