@@ -6,18 +6,16 @@
   }
   if (_errorPages != null) {
     String error_page=null;
-    Class<?> exClass=(Class<?>)request.getAttribute(Dispatcher.ERROR_EXCEPTION_TYPE);
-    if (ServletException.class.equals(exClass)) {
+    Throwable th=(Throwable)request.getAttribute(Dispatcher.ERROR_EXCEPTION);
+    while (error_page == null && th != null) {
+      Class<?> exClass=th.getClass();
       error_page=(String)_errorPages.get(exClass.getName());
-      if (error_page == null) {
-        Throwable th=(Throwable)request.getAttribute(Dispatcher.ERROR_EXCEPTION);
-        while (th instanceof ServletException)         th=((ServletException)th).getRootCause();
-        if (th != null)         exClass=th.getClass();
+      while (error_page == null) {
+        exClass=exClass.getSuperclass();
+        if (exClass == null)         break;
+        error_page=(String)_errorPages.get(exClass.getName());
       }
-    }
-    while (error_page == null && exClass != null) {
-      error_page=(String)_errorPages.get(exClass.getName());
-      exClass=exClass.getSuperclass();
+      th=(th instanceof ServletException) ? ((ServletException)th).getRootCause() : null;
     }
     if (error_page == null) {
       Integer code=(Integer)request.getAttribute(Dispatcher.ERROR_STATUS_CODE);
