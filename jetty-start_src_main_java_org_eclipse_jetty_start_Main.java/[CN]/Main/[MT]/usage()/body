@@ -24,13 +24,7 @@
           }
         }
  else         if (info.equals("@CONFIGS")) {
-          File etc=new File(System.getProperty("jetty.home","."),"etc");
-          if (!etc.exists() || !etc.isDirectory()) {
-            System.out.print(indent);
-            System.out.println("Unable to find/list " + etc);
-            continue;
-          }
-          File configs[]=etc.listFiles(new FileFilter(){
+          FileFilter filter=new FileFilter(){
             public boolean accept(            File path){
               if (!path.isFile()) {
                 return false;
@@ -39,28 +33,39 @@
               return (name.startsWith("jetty") && name.endsWith(".xml"));
             }
           }
-);
-          List<File> configFiles=new ArrayList<File>();
-          configFiles.addAll(Arrays.asList(configs));
-          Collections.sort(configFiles);
-          for (          File configFile : configFiles) {
+;
+          File etc=new File(_config.getJettyHome(),"etc");
+          if (!etc.exists() || !etc.isDirectory()) {
             System.out.print(indent);
-            System.out.print("etc/");
-            System.out.println(configFile.getName());
+            System.out.println("Unable to find/list " + etc);
+            continue;
           }
-        }
- else         if (info.equals("@STARTINI")) {
-          List<String> ini=parseStartIniFiles();
-          if (ini != null && ini.size() > 0) {
-            for (            String a : ini) {
-              System.out.print(indent);
-              System.out.println(a);
+          List<File> configFiles=new ArrayList<File>();
+          File[] configs=etc.listFiles(filter);
+          configFiles.addAll(Arrays.asList(configs));
+          if (!_config.getJettyHome().equals(_config.getJettyBase())) {
+            etc=new File(_config.getJettyBase(),"etc");
+            if (etc.exists() && etc.isDirectory()) {
+              configs=etc.listFiles(filter);
+              configFiles.addAll(Arrays.asList(configs));
             }
           }
- else {
-            System.out.print(indent);
-            System.out.println("none");
-          }
+          Collections.sort(configFiles);
+          for (          File configFile : configFiles)           System.out.printf("%s%s%n",indent,path(configFile));
+        }
+ else         if (info.equals("@STARTINI")) {
+          for (          File file : _iniFiles) {
+            String path=path(file);
+            System.out.printf("%s%s:%n",indent,path);
+            try (FileReader reader=new FileReader(file);BufferedReader in=new BufferedReader(reader)){
+              String arg;
+              while ((arg=in.readLine()) != null) {
+                arg=arg.trim();
+                if (arg.length() == 0 || arg.startsWith("#"))                 continue;
+                System.out.printf("%s  %s%n",indent,arg);
+              }
+            }
+           }
         }
       }
  else {

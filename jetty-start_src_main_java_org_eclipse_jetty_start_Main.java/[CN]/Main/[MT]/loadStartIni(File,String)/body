@@ -1,9 +1,12 @@
 {
-  if (!ini.exists()) {
-    System.err.println("Warning - can't find ini file: " + ini);
+  if (ini == null || !ini.exists() || ini.isDirectory() || !ini.canRead()) {
+    System.err.println("Warning - bad ini file: " + name);
     return Collections.emptyList();
   }
+  ini=ini.getAbsoluteFile();
+  if (!_iniFiles.contains(ini))   _iniFiles.add(ini);
   List<String> args=new ArrayList<String>();
+  args.add("_SRC_=" + name);
   FileReader reader=null;
   BufferedReader buf=null;
   try {
@@ -17,9 +20,8 @@
       }
       if (arg.endsWith("/")) {
         try {
-          File start_d=new File(arg);
-          if (!start_d.exists() || !start_d.isDirectory())           start_d=new File(_jettyHome,arg);
-          if (start_d.isDirectory()) {
+          File start_d=_config.getFileBaseHomeAbs(arg);
+          if (start_d != null && start_d.isDirectory()) {
             File[] inis=start_d.listFiles(new FilenameFilter(){
               @Override public boolean accept(              File dir,              String name){
                 return name.toLowerCase(Locale.ENGLISH).endsWith(".ini");
@@ -27,7 +29,8 @@
             }
 );
             Arrays.sort(inis);
-            for (            File i : inis)             args.addAll(loadStartIni(i));
+            for (            File i : inis)             args.addAll(loadStartIni(i,i.getAbsolutePath()));
+            args.add("_SRC_=" + name);
             continue;
           }
         }

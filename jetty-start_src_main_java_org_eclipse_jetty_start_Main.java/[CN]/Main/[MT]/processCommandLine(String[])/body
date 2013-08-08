@@ -1,15 +1,20 @@
 {
+  String source="";
+  ArrayList<String> arguments=new ArrayList<>(Arrays.asList(args));
+  boolean ini=false;
+  for (  String arg : arguments)   if (arg.startsWith("--ini=") || arg.equals("--ini"))   ini=true;
+  if (!ini)   arguments.add("--ini=start.ini");
   List<String> xmls=new ArrayList<String>();
-  int startup=0;
-  for (  String arg : arguments) {
+  for (int i=0; i < arguments.size(); i++) {
+    String arg=arguments.get(i);
     if ("--help".equals(arg) || "-?".equals(arg)) {
       _showUsage=true;
       continue;
     }
     if ("--stop".equals(arg)) {
-      int port=Integer.parseInt(Config.getProperty("STOP.PORT","-1"));
-      String key=Config.getProperty("STOP.KEY",null);
-      int timeout=Integer.parseInt(Config.getProperty("STOP.WAIT","0"));
+      int port=Integer.parseInt(_config.getProperty("STOP.PORT","-1"));
+      String key=_config.getProperty("STOP.KEY",null);
+      int timeout=Integer.parseInt(_config.getProperty("STOP.WAIT","0"));
       stop(port,key,timeout);
       return null;
     }
@@ -35,6 +40,19 @@
     }
     if ("--exec".equals(arg)) {
       _exec=true;
+      continue;
+    }
+    if (arg.startsWith("--ini=") || arg.equals("--ini")) {
+      ini=true;
+      if (arg.length() > 6) {
+        String name=arg.substring(6);
+        File file=_config.getFileBaseHomeAbs(name);
+        arguments.addAll(i + 1,loadStartIni(file,name));
+      }
+      continue;
+    }
+    if (arg.startsWith("--config=")) {
+      _startConfig=arg.substring(9);
       continue;
     }
     if ("--daemon".equals(arg)) {
@@ -78,9 +96,39 @@ if (arg.indexOf('=') >= 0) {
 String[] assign=arg.split("=",2);
 switch (assign.length) {
 case 2:
-if ("OPTIONS".equals(assign[0])) {
+if ("_SRC_".equals(assign[0])) {
+source=assign[1].trim();
+}
+ else if ("DEFINE".equals(assign[0])) {
 String opts[]=assign[1].split(",");
-for (String opt : opts) _config.addActiveOption(opt.trim());
+for (String opt : opts) _config.defineOption(opt.trim());
+}
+ else if ("DEPEND".equals(assign[0])) {
+String opts[]=assign[1].split(",");
+for (String opt : opts) {
+  opt=opt.trim();
+  if (!_config.getOptions().contains(opt)) {
+    System.err.printf("Missing Dependency: %s DEPEND %s%n",path(source),opt);
+    usageExit(ERR_LOGGING);
+  }
+}
+}
+ else if ("EXCLUDE".equals(assign[0])) {
+String opts[]=assign[1].split(",");
+for (String opt : opts) {
+  opt=opt.trim();
+  if (_config.getOptions().contains(opt)) {
+    System.err.printf("Excluded Dependency: %s EXCLUDE %s%n",path(source),opt);
+    usageExit(ERR_LOGGING);
+  }
+}
+}
+ else if ("OPTION".equals(assign[0])) {
+String opts[]=assign[1].split(",");
+for (String opt : opts) _config.addOption(opt.trim());
+}
+ else if ("OPTIONS".equals(assign[0])) {
+this._config.setProperty(assign[0],assign[1]);
 }
  else {
 this._config.setProperty(assign[0],assign[1]);
