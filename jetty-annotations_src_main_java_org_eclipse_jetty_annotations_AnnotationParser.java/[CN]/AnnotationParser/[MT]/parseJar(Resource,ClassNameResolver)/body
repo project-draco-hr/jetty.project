@@ -12,25 +12,7 @@
     try {
       JarEntry entry=jar_in.getNextJarEntry();
       while (entry != null) {
-        if (!entry.isDirectory()) {
-          try {
-            String name=entry.getName();
-            if (isValidClassFileName(name)) {
-              String shortName=name.replace('/','.').substring(0,name.length() - 6);
-              if ((resolver == null) || (!resolver.isExcluded(shortName) && (!isParsed(shortName) || resolver.shouldOverride(shortName)))) {
-                Resource clazz=Resource.newResource("jar:" + uri + "!/"+ name);
-                if (LOG.isDebugEnabled()) {
-                  LOG.debug("Scanning class from jar {}",clazz);
-                }
-                ;
-                scanClass(clazz.getInputStream());
-              }
-            }
-          }
- catch (          Exception e) {
-            LOG.warn("Problem processing jar entry " + entry,e);
-          }
-        }
+        parseJarEntry(uri,entry,resolver);
         entry=jar_in.getNextJarEntry();
       }
     }
