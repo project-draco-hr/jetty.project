@@ -70,6 +70,7 @@ handle=_handler.headerComplete() || handle;
 break;
 }
 }
+ else if (ch <= HttpTokens.SPACE) throw new BadMessage();
  else {
 if (buffer.hasRemaining()) {
 HttpField field=_connectionFields == null ? null : _connectionFields.getBest(buffer,-1,buffer.remaining());
@@ -114,6 +115,7 @@ _length=1;
 }
 break;
 case HEADER_NAME:
+if (ch < 0) throw new BadMessage();
 switch (ch) {
 case HttpTokens.LINE_FEED:
 if (_headerString == null) {
@@ -131,7 +133,6 @@ setState(State.HEADER_VALUE);
 break;
 case HttpTokens.SPACE:
 case HttpTokens.TAB:
-_string.append((char)ch);
 break;
 default :
 {
@@ -142,6 +143,9 @@ setState(State.HEADER_IN_NAME);
 }
 break;
 case HEADER_IN_NAME:
+if (ch < HttpTokens.SPACE) {
+}
+if (ch < 0) throw new BadMessage("Illegal character");
 switch (ch) {
 case HttpTokens.LINE_FEED:
 _headerString=takeString();
@@ -205,7 +209,7 @@ case HttpTokens.TAB:
 break;
 default :
 {
-_string.append((char)ch);
+_string.append((char)(0xff & ch));
 _length=_string.length();
 setState(State.HEADER_IN_VALUE);
 }
@@ -247,7 +251,7 @@ _length=_valueString.length();
 _valueString=null;
 _field=null;
 }
-_string.append((char)ch);
+_string.append((char)(0xff & ch));
 _length++;
 }
 break;
