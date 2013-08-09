@@ -1,0 +1,21 @@
+{
+  ByteBuffer buffer=BufferUtil.allocate(4096);
+  BufferUtil.flipToFill(buffer);
+  BufferUtil.put(BufferUtil.toBuffer("GET "),buffer);
+  buffer.put("/foo/\u0690/".getBytes(StringUtil.__UTF8_CHARSET));
+  BufferUtil.put(BufferUtil.toBuffer(" HTTP/1.0\r\n"),buffer);
+  BufferUtil.put(BufferUtil.toBuffer("Header1: "),buffer);
+  buffer.put("\u00e6 \u00e6".getBytes(StringUtil.__ISO_8859_1_CHARSET));
+  BufferUtil.put(BufferUtil.toBuffer("  \r\n\r\n"),buffer);
+  BufferUtil.flipToFlush(buffer,0);
+  HttpParser.RequestHandler<ByteBuffer> handler=new Handler();
+  HttpParser parser=new HttpParser(handler);
+  parseAll(parser,buffer);
+  assertEquals("GET",_methodOrVersion);
+  assertEquals("/foo/\u0690/",_uriOrStatus);
+  assertEquals("HTTP/1.0",_versionOrReason);
+  assertEquals("Header1",_hdr[0]);
+  assertEquals("\u00e6 \u00e6",_val[0]);
+  assertEquals(0,_headers);
+  assertEquals(null,_bad);
+}
