@@ -2,21 +2,13 @@
   byte payload[]=new byte[10240];
   Arrays.fill(payload,(byte)0x44);
   WebSocketFrame frame=WebSocketFrame.binary(payload);
-  int totalParts=0;
-  int totalBytes=0;
   int windowSize=1024;
+  WindowHelper helper=new WindowHelper(windowSize);
+  ByteBuffer completeBuffer=helper.generateWindowed(frame);
   int expectedHeaderSize=4;
-  int expectedParts=(int)Math.ceil((double)(payload.length + expectedHeaderSize) / windowSize);
-  Generator generator=new UnitGenerator();
-  boolean done=false;
-  while (!done) {
-    Assert.assertThat("Too many parts",totalParts,lessThanOrEqualTo(expectedParts));
-    ByteBuffer buf=generator.generate(windowSize,frame);
-    Assert.assertThat("Generated should not exceed window size",buf.remaining(),lessThanOrEqualTo(windowSize));
-    totalBytes+=buf.remaining();
-    totalParts++;
-    done=(frame.remaining() <= 0);
-  }
-  Assert.assertThat("Created Parts",totalParts,is(expectedParts));
-  Assert.assertThat("Created Bytes",totalBytes,is(payload.length + expectedHeaderSize));
+  int expectedSize=payload.length + expectedHeaderSize;
+  int expectedParts=(int)Math.ceil((double)(payload.length) / windowSize);
+  helper.assertTotalParts(expectedParts);
+  helper.assertTotalBytes(payload.length + expectedHeaderSize);
+  Assert.assertThat("Generated Buffer",completeBuffer.remaining(),is(expectedSize));
 }

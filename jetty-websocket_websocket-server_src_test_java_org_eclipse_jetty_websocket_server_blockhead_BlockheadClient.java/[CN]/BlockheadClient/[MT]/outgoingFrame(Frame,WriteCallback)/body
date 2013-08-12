@@ -1,10 +1,11 @@
 {
-  ByteBuffer buf=generator.generate(frame);
+  ByteBuffer headerBuf=generator.generateHeaderBytes(frame);
   if (LOG.isDebugEnabled()) {
-    LOG.debug("writing out: {}",BufferUtil.toDetailString(buf));
+    LOG.debug("writing out: {}",BufferUtil.toDetailString(headerBuf));
   }
   try {
-    BufferUtil.writeTo(buf,out);
+    BufferUtil.writeTo(headerBuf,out);
+    BufferUtil.writeTo(frame.getPayload(),out);
     out.flush();
     if (callback != null) {
       callback.writeSuccess();
@@ -16,7 +17,7 @@
     }
   }
  finally {
-    bufferPool.release(buf);
+    bufferPool.release(headerBuf);
   }
   if (frame.getType().getOpCode() == OpCode.CLOSE) {
     disconnect();

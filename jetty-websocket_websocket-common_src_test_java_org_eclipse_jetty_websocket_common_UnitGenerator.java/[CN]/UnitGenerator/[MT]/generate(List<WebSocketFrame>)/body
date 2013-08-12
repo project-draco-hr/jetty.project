@@ -9,10 +9,15 @@
   BufferUtil.clearToFill(completeBuf);
   for (  WebSocketFrame f : frames) {
     f.setMask(MASK);
-    ByteBuffer slice=f.getPayload().slice();
-    BufferUtil.put(generator.generate(f),completeBuf);
-    f.setPayload(slice);
+    BufferUtil.put(generator.generateHeaderBytes(f),completeBuf);
+    ByteBuffer window=generator.getPayloadWindow(f.getPayloadLength(),f);
+    if (BufferUtil.hasContent(window)) {
+      BufferUtil.put(window,completeBuf);
+    }
   }
   BufferUtil.flipToFlush(completeBuf,0);
+  if (LOG.isDebugEnabled()) {
+    LOG.debug("generate({} frames) - {}",frames.size(),BufferUtil.toDetailString(completeBuf));
+  }
   return completeBuf;
 }

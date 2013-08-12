@@ -1,0 +1,19 @@
+{
+  UnitGenerator generator=new UnitGenerator();
+  TrackingCallback flushCallback=new TrackingCallback();
+  bytesProvider=new WriteBytesProvider(generator,flushCallback);
+  TrackingCallback textCallback=new TrackingCallback();
+  TrackingCallback closeCallback=new TrackingCallback();
+  bytesProvider.enqueue(WebSocketFrame.text("Bye"),textCallback);
+  bytesProvider.enqueue(new CloseInfo().asFrame(),closeCallback);
+  List<ByteBuffer> bytes=bytesProvider.getByteBuffers();
+  Assert.assertThat("Number of buffers",bytes.size(),is(4));
+  StringBuilder expected=new StringBuilder();
+  expected.append("8103427965");
+  expected.append("8800");
+  assertExpectedBytes(bytes,expected.toString());
+  bytesProvider.succeeded();
+  assertCallbackSuccessCount(flushCallback,1);
+  assertCallbackSuccessCount(textCallback,1);
+  assertCallbackSuccessCount(closeCallback,1);
+}

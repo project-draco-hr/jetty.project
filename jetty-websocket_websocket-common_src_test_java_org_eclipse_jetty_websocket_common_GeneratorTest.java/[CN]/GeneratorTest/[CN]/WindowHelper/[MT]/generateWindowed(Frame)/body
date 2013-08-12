@@ -1,0 +1,24 @@
+{
+  int completeBufSize=0;
+  for (  Frame f : frames) {
+    completeBufSize+=Generator.OVERHEAD + f.getPayloadLength();
+  }
+  ByteBuffer completeBuf=ByteBuffer.allocate(completeBufSize);
+  BufferUtil.clearToFill(completeBuf);
+  Generator generator=new UnitGenerator();
+  for (  Frame f : frames) {
+    ByteBuffer header=generator.generateHeaderBytes(f);
+    totalBytes+=BufferUtil.put(header,completeBuf);
+    boolean done=false;
+    while (!done) {
+      ByteBuffer window=generator.getPayloadWindow(windowSize,f);
+      Assert.assertThat("Generated should not exceed window size",window.remaining(),lessThanOrEqualTo(windowSize));
+      totalBytes+=window.remaining();
+      completeBuf.put(window);
+      totalParts++;
+      done=(f.remaining() <= 0);
+    }
+  }
+  BufferUtil.flipToFlush(completeBuf,0);
+  return completeBuf;
+}

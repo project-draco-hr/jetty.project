@@ -1,17 +1,20 @@
 {
-  Callback successCallback=null;
+  List<Callback> successNotifiers=new ArrayList<>();
 synchronized (this) {
     generator.getBufferPool().release(buffer);
-    if (active == null) {
-      return;
+    if (active != null) {
+      if (active.frame.remaining() <= 0) {
+        successNotifiers.add(active.callback);
+        active=null;
+      }
     }
-    if (active.frame.remaining() <= 0) {
-      successCallback=active.callback;
-      active=null;
+    for (    FrameEntry entry : past) {
+      successNotifiers.add(entry.callback);
     }
+    past.clear();
     flushCallback.succeeded();
   }
-  if (successCallback != null) {
+  for (  Callback successCallback : successNotifiers) {
     try {
       successCallback.succeeded();
     }

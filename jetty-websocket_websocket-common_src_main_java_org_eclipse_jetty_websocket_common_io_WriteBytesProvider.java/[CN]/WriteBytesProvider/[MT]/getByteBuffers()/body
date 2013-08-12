@@ -1,0 +1,23 @@
+{
+  List<ByteBuffer> bufs=new ArrayList<>();
+  int count=0;
+synchronized (this) {
+    for (; count < gatheredBufferLimit; count++) {
+      if (active == null) {
+        if (queue.isEmpty()) {
+          return bufs;
+        }
+        active=queue.pop();
+        bufs.add(active.getHeaderBytes());
+        count++;
+      }
+      bufs.add(active.getPayloadWindow());
+      if (active.isDone()) {
+        past.add(active);
+        active=null;
+      }
+    }
+  }
+  LOG.debug("Collected {} ByteBuffers",bufs.size());
+  return bufs;
+}

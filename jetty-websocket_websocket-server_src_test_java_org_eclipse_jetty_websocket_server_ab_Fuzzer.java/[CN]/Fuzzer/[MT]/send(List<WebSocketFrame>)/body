@@ -7,15 +7,12 @@
       buflen+=f.getPayloadLength() + Generator.OVERHEAD;
     }
     ByteBuffer buf=ByteBuffer.allocate(buflen);
-    BufferUtil.clearToFill(buf);
     for (    WebSocketFrame f : send) {
       setClientMask(f);
-      ByteBuffer rawbytes=generator.generate(f);
-      if (LOG.isDebugEnabled()) {
-        LOG.debug("frame: {}",f);
-        LOG.debug("bytes: {}",BufferUtil.toDetailString(rawbytes));
+      buf.put(generator.generateHeaderBytes(f));
+      if (f.hasPayload()) {
+        buf.put(f.getPayload());
       }
-      BufferUtil.put(rawbytes,buf);
     }
     BufferUtil.flipToFlush(buf,0);
 switch (sendMode) {
@@ -32,7 +29,14 @@ throw new RuntimeException("Whoops, unsupported sendMode: " + sendMode);
  else if (sendMode == SendMode.PER_FRAME) {
 for (WebSocketFrame f : send) {
 f.setMask(MASK);
-client.writeRaw(generator.generate(f));
+ByteBuffer fullframe=ByteBuffer.allocate(f.getPayloadLength() + Generator.OVERHEAD);
+BufferUtil.flipToFill(fullframe);
+fullframe.put(generator.generateHeaderBytes(f));
+if (f.hasPayload()) {
+fullframe.put(f.getPayload());
+}
+BufferUtil.flipToFlush(fullframe,0);
+client.writeRaw(fullframe);
 client.flush();
 }
 }
