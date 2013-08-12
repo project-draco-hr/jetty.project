@@ -30,11 +30,8 @@ throw new RuntimeException("Whoops, unsupported sendMode: " + sendMode);
 for (WebSocketFrame f : send) {
 f.setMask(MASK);
 ByteBuffer fullframe=ByteBuffer.allocate(f.getPayloadLength() + Generator.OVERHEAD);
-BufferUtil.flipToFill(fullframe);
-fullframe.put(generator.generateHeaderBytes(f));
-if (f.hasPayload()) {
-fullframe.put(f.getPayload());
-}
+BufferUtil.clearToFill(fullframe);
+generator.generateWholeFrame(f,fullframe);
 BufferUtil.flipToFlush(fullframe,0);
 client.writeRaw(fullframe);
 client.flush();

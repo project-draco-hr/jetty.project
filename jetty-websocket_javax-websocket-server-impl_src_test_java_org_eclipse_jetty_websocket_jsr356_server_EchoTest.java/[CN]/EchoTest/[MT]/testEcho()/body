@@ -1,32 +1,25 @@
 {
-  EchoClientSocket socket=new EchoClientSocket();
+  int messageCount=testcase.getMessageCount();
+  EchoClientSocket socket=new EchoClientSocket(messageCount);
   URI toUri=serverUri.resolve(testcase.path.substring(1));
   try {
     client.connectToServer(socket,toUri);
     socket.waitForConnected(2,TimeUnit.SECONDS);
-    int messageCount=0;
     for (    Object msg : testcase.messages) {
       if (msg instanceof PartialText) {
         PartialText pt=(PartialText)msg;
         socket.sendPartialText(pt.part,pt.fin);
-        if (pt.fin) {
-          messageCount++;
-        }
       }
  else       if (msg instanceof PartialBinary) {
         PartialBinary pb=(PartialBinary)msg;
         socket.sendPartialBinary(pb.part,pb.fin);
-        if (pb.fin) {
-          messageCount++;
-        }
       }
  else {
         socket.sendObject(msg);
-        messageCount++;
       }
     }
+    socket.awaitAllEvents(1,TimeUnit.SECONDS);
     EventQueue<String> received=socket.eventQueue;
-    received.awaitEventCount(messageCount,3,TimeUnit.SECONDS);
     for (    String expected : testcase.expectedStrings) {
       Assert.assertThat("Received Echo Responses",received,contains(expected));
     }

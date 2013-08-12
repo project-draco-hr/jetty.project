@@ -1,7 +1,7 @@
 {
-  LOG.debug("onCloseLocal({})",close);
   ConnectionState event=null;
   ConnectionState initialState=this.state;
+  LOG.debug("onCloseLocal({}) : {}",close,initialState);
   if (initialState == ConnectionState.CLOSED) {
     LOG.debug("already closed");
     return;
@@ -31,22 +31,8 @@ synchronized (this) {
       event=this.state;
     }
   }
-  LOG.debug("event = {}",event);
   if (event != null) {
     LOG.debug("notifying state listeners: {}",event);
     notifyStateListeners(event);
-    if (close.isHarsh()) {
-      LOG.debug("Harsh close, disconnecting");
-synchronized (this) {
-        state=ConnectionState.CLOSED;
-        cleanClose=false;
-        outputAvailable=false;
-        inputAvailable=false;
-        closeHandshakeSource=CloseHandshakeSource.ABNORMAL;
-        event=this.state;
-      }
-      notifyStateListeners(event);
-      return;
-    }
   }
 }
