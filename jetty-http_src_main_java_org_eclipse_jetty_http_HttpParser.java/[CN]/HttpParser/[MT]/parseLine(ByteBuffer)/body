@@ -17,9 +17,10 @@
 switch (_state) {
 case METHOD:
       if (ch == HttpTokens.SPACE) {
+        _length=_string.length();
         _methodString=takeString();
         HttpMethod method=HttpMethod.CACHE.get(_methodString);
-        if (method != null)         _methodString=method.asString();
+        if (method != null && !_strict)         _methodString=method.asString();
         setState(State.SPACE1);
       }
  else       if (ch < HttpTokens.SPACE)       throw new BadMessage(ch < 0 ? "Illegal character" : "No URI");
@@ -27,6 +28,7 @@ case METHOD:
     break;
 case RESPONSE_VERSION:
   if (ch == HttpTokens.SPACE) {
+    _length=_string.length();
     String version=takeString();
     _version=HttpVersion.CACHE.get(version);
     if (_version == null) {
@@ -159,7 +161,10 @@ return_from_parse=_handler.messageComplete() || return_from_parse;
 break;
 case REQUEST_VERSION:
 if (ch == HttpTokens.LINE_FEED) {
-if (_version == null) _version=HttpVersion.CACHE.get(takeString());
+if (_version == null) {
+_length=_string.length();
+_version=HttpVersion.CACHE.get(takeString());
+}
 if (_version == null) {
 throw new BadMessage(HttpStatus.BAD_REQUEST_400,"Unknown Version");
 }
@@ -177,7 +182,7 @@ continue;
 break;
 case REASON:
 if (ch == HttpTokens.LINE_FEED) {
-String reason=takeLengthString();
+String reason=takeString();
 setState(State.HEADER);
 return_from_parse=_responseHandler.startResponse(_version,_responseStatus,reason) || return_from_parse;
 continue;
