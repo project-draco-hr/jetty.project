@@ -1,24 +1,15 @@
 {
   _handler._checker=new RequestTester(){
     @Override public boolean check(    HttpServletRequest request,    HttpServletResponse response){
-      Map map=null;
-      try {
-        request.getParameterMap();
-        Assert.fail("Expected parsing failure");
-        return false;
-      }
- catch (      Exception e) {
-        map=request.getParameterMap();
-        assertFalse(map == null);
-        assertTrue(map.isEmpty());
-        Enumeration names=request.getParameterNames();
-        assertFalse(names.hasMoreElements());
-      }
+      Map<String,String[]> map=null;
+      map=request.getParameterMap();
+      assertEquals("aaa" + Utf8Appendable.REPLACEMENT + "bbb",map.get("param")[0]);
+      assertEquals("value",map.get("other")[0]);
       return true;
     }
   }
 ;
-  String request="GET /?param=%ZZaaa HTTP/1.1\r\n" + "Host: whatever\r\n" + "Content-Type: text/html;charset=utf8\n"+ "Connection: close\n"+ "\n";
+  String request="GET /?param=aaa%ZZbbb&other=value HTTP/1.1\r\n" + "Host: whatever\r\n" + "Content-Type: text/html;charset=utf8\n"+ "Connection: close\n"+ "\n";
   String responses=_connector.getResponses(request);
   assertTrue(responses.startsWith("HTTP/1.1 200"));
 }

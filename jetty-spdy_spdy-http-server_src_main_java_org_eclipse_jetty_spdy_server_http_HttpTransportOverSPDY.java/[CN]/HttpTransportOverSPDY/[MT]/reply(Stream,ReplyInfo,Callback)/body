@@ -1,0 +1,12 @@
+{
+  if (!stream.isUnidirectional())   stream.reply(replyInfo,callback);
+ else   stream.headers(new HeadersInfo(replyInfo.getHeaders(),replyInfo.isClose()),callback);
+  Fields responseHeaders=replyInfo.getHeaders();
+  if (responseHeaders.get(HTTPSPDYHeader.STATUS.name(version)).value().startsWith("200") && !stream.isClosed()) {
+    Set<String> pushResources=pushStrategy.apply(stream,requestHeaders,responseHeaders);
+    if (pushResources.size() > 0) {
+      PushResourceCoordinator pushResourceCoordinator=new PushResourceCoordinator(pushResources);
+      pushResourceCoordinator.coordinate();
+    }
+  }
+}

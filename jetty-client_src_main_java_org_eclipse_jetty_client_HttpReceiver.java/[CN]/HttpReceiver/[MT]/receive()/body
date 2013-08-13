@@ -5,18 +5,24 @@
   ByteBuffer buffer=bufferPool.acquire(client.getResponseBufferSize(),true);
   try {
     while (true) {
-      int read=endPoint.fill(buffer);
-      LOG.debug("Read {} bytes from {}",read,connection);
-      if (read > 0) {
-        parse(buffer);
-      }
- else       if (read == 0) {
-        fillInterested();
+      if (connection.isClosed()) {
+        LOG.debug("{} closed",connection);
         break;
       }
  else {
-        shutdown();
-        break;
+        int read=endPoint.fill(buffer);
+        LOG.debug("Read {} bytes from {}",read,connection);
+        if (read > 0) {
+          parse(buffer);
+        }
+ else         if (read == 0) {
+          fillInterested();
+          break;
+        }
+ else {
+          shutdown();
+          break;
+        }
       }
     }
   }

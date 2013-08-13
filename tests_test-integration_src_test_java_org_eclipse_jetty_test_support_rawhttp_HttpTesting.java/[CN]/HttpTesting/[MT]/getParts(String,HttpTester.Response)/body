@@ -1,0 +1,44 @@
+{
+  List<HttpTester.Response> parts=new ArrayList<HttpTester.Response>();
+  BufferedReader buf=new BufferedReader(new StringReader(response.getContent()));
+  String line;
+  String startBoundary="--" + boundary;
+  String endBoundary="--" + boundary + "--";
+  StringBuffer partBuff=null;
+  boolean parsingHeader=true;
+  boolean previousBodyLine=false;
+  while ((line=buf.readLine()) != null) {
+    if (line.equals(startBoundary)) {
+      if (partBuff != null) {
+        HttpTester.Response part=HttpTester.parseResponse(partBuff.toString());
+        parts.add(part);
+      }
+      partBuff=new StringBuffer();
+      parsingHeader=true;
+      previousBodyLine=false;
+      continue;
+    }
+    if (line.equals(endBoundary)) {
+      if (partBuff != null) {
+        HttpTester.Response part=HttpTester.parseResponse(partBuff.toString());
+        parts.add(part);
+      }
+      break;
+    }
+    if (parsingHeader) {
+      if (line.equals("")) {
+        parsingHeader=false;
+        continue;
+      }
+      partBuff.append(line);
+    }
+ else {
+      if (previousBodyLine) {
+        partBuff.append("\n");
+      }
+      partBuff.append(line);
+      previousBodyLine=true;
+    }
+  }
+  return parts;
+}

@@ -3,10 +3,14 @@
   boolean lastContent=true;
   httpTransportOverSPDY.send(responseInfo,content,lastContent,callback);
   ArgumentCaptor<ReplyInfo> replyInfoCaptor=ArgumentCaptor.forClass(ReplyInfo.class);
-  verify(stream,times(1)).reply(replyInfoCaptor.capture(),any(Callback.class));
+  ArgumentCaptor<Callback> callbackCaptor=ArgumentCaptor.forClass(Callback.class);
+  verify(stream,times(1)).reply(replyInfoCaptor.capture(),callbackCaptor.capture());
+  callbackCaptor.getValue().succeeded();
   assertThat("ReplyInfo close is false",replyInfoCaptor.getValue().isClose(),is(false));
   ArgumentCaptor<ByteBufferDataInfo> dataInfoCaptor=ArgumentCaptor.forClass(ByteBufferDataInfo.class);
-  verify(stream,times(1)).data(dataInfoCaptor.capture(),any(Callback.class));
+  verify(stream,times(1)).data(dataInfoCaptor.capture(),callbackCaptor.capture());
+  callbackCaptor.getValue().succeeded();
   assertThat("lastContent is true",dataInfoCaptor.getValue().isClose(),is(true));
   assertThat("ByteBuffer length is 4096",dataInfoCaptor.getValue().length(),is(4096));
+  verify(callback,times(1)).succeeded();
 }

@@ -2,7 +2,6 @@
   boolean return_from_parse=false;
   while (_state.ordinal() < State.HEADER.ordinal() && buffer.hasRemaining() && !return_from_parse) {
     byte ch=next(buffer);
-    if (ch == -1)     return true;
     if (ch == 0)     continue;
     if (_maxHeaderBytes > 0 && ++_headerBytes > _maxHeaderBytes) {
       if (_state == State.URI) {
@@ -18,18 +17,18 @@
 switch (_state) {
 case METHOD:
       if (ch == HttpTokens.SPACE) {
+        _length=_string.length();
         _methodString=takeString();
         HttpMethod method=HttpMethod.CACHE.get(_methodString);
-        if (method != null)         _methodString=method.asString();
+        if (method != null && !_strict)         _methodString=method.asString();
         setState(State.SPACE1);
       }
- else       if (ch < HttpTokens.SPACE && ch >= 0) {
-        throw new BadMessage(HttpStatus.BAD_REQUEST_400,"No URI");
-      }
+ else       if (ch < HttpTokens.SPACE)       throw new BadMessage(ch < 0 ? "Illegal character" : "No URI");
  else       _string.append((char)ch);
     break;
 case RESPONSE_VERSION:
   if (ch == HttpTokens.SPACE) {
+    _length=_string.length();
     String version=takeString();
     _version=HttpVersion.CACHE.get(version);
     if (_version == null) {
@@ -37,13 +36,11 @@ case RESPONSE_VERSION:
     }
     setState(State.SPACE1);
   }
- else   if (ch < HttpTokens.SPACE && ch >= 0) {
-    throw new BadMessage(HttpStatus.BAD_REQUEST_400,"No Status");
-  }
+ else   if (ch < HttpTokens.SPACE)   throw new BadMessage(ch < 0 ? "Illegal character" : "No Status");
  else   _string.append((char)ch);
 break;
 case SPACE1:
-if (ch > HttpTokens.SPACE || ch < 0) {
+if (ch > HttpTokens.SPACE) {
 if (_responseHandler != null) {
   setState(State.STATUS);
   _responseStatus=ch - '0';
@@ -75,9 +72,7 @@ if (_responseHandler != null) {
  else   _uri.put(ch);
 }
 }
- else if (ch < HttpTokens.SPACE) {
-throw new BadMessage(HttpStatus.BAD_REQUEST_400,_requestHandler != null ? "No URI" : "No Status");
-}
+ else if (ch < HttpTokens.SPACE) throw new BadMessage(HttpStatus.BAD_REQUEST_400,_requestHandler != null ? "No URI" : "No Status");
 break;
 case STATUS:
 if (ch == HttpTokens.SPACE) {
@@ -91,7 +86,7 @@ return_from_parse=_responseHandler.startResponse(_version,_responseStatus,null) 
 setState(State.HEADER);
 }
  else {
-throw new IllegalStateException();
+throw new BadMessage();
 }
 break;
 case URI:
@@ -117,7 +112,7 @@ _uri.put(ch);
 }
 break;
 case SPACE2:
-if (ch > HttpTokens.SPACE || ch < 0) {
+if (ch > HttpTokens.SPACE) {
 _string.setLength(0);
 _string.append((char)ch);
 if (_responseHandler != null) {
@@ -162,10 +157,14 @@ return_from_parse=_handler.headerComplete() || return_from_parse;
 return_from_parse=_handler.messageComplete() || return_from_parse;
 }
 }
+ else if (ch < HttpTokens.SPACE) throw new BadMessage();
 break;
 case REQUEST_VERSION:
 if (ch == HttpTokens.LINE_FEED) {
-if (_version == null) _version=HttpVersion.CACHE.get(takeString());
+if (_version == null) {
+_length=_string.length();
+_version=HttpVersion.CACHE.get(takeString());
+}
 if (_version == null) {
 throw new BadMessage(HttpStatus.BAD_REQUEST_400,"Unknown Version");
 }
@@ -178,19 +177,21 @@ _uri.flip();
 return_from_parse=_requestHandler.startRequest(_method,_methodString,_uri,_version) || return_from_parse;
 continue;
 }
- else _string.append((char)ch);
+ else if (ch > HttpTokens.SPACE) _string.append((char)ch);
+ else throw new BadMessage();
 break;
 case REASON:
 if (ch == HttpTokens.LINE_FEED) {
-String reason=takeLengthString();
+String reason=takeString();
 setState(State.HEADER);
 return_from_parse=_responseHandler.startResponse(_version,_responseStatus,reason) || return_from_parse;
 continue;
 }
- else {
+ else if (ch >= HttpTokens.SPACE) {
 _string.append((char)ch);
 if (ch != ' ' && ch != '\t') _length=_string.length();
 }
+ else throw new BadMessage();
 break;
 default :
 throw new IllegalStateException(_state.toString());

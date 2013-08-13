@@ -4,18 +4,15 @@
   connection.send(connect,new Response.CompleteListener(){
     @Override public void onComplete(    Result result){
       if (result.isFailed()) {
-        failed(result.getFailure());
-        connection.close();
+        tunnelFailed(connection,delegate,result.getFailure());
       }
  else {
         Response response=result.getResponse();
         if (response.getStatus() == 200) {
-          Connection tunnel=client.tunnel(connection);
-          delegate.succeeded(tunnel);
+          tunnelSucceeded(connection,delegate);
         }
  else {
-          failed(new HttpResponseException("Received " + response + " for "+ result.getRequest(),response));
-          connection.close();
+          tunnelFailed(connection,delegate,new HttpResponseException("Received " + response + " for "+ result.getRequest(),response));
         }
       }
     }

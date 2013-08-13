@@ -1,12 +1,12 @@
 {
-  HttpRequestTester request=new HttpRequestTester();
+  HttpTester.Request request=HttpTester.newRequest();
   request.setMethod("GET");
   request.setURI("/tests/alpha.txt");
-  request.addHeader("Host","localhost");
-  request.addHeader("Connection","close");
+  request.put("Host","localhost");
+  request.put("Connection","close");
   HttpTesting testing=new HttpTesting(new HttpSocketImpl(),serverPort);
-  HttpResponseTester response=testing.request(request);
-  response.assertStatusOK();
-  response.assertContentType("text/plain");
-  response.assertBody("ABCDEFGHIJKLMNOPQRSTUVWXYZ\n");
+  HttpTester.Response response=testing.request(request);
+  assertEquals(HttpStatus.OK_200,response.getStatus());
+  assertEquals("text/plain",response.get("Content-Type"));
+  assertTrue(response.getContent().contains("ABCDEFGHIJKLMNOPQRSTUVWXYZ\n"));
 }
