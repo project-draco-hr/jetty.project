@@ -47,19 +47,10 @@
         err.append(pathParamSpec);
         throw new IllegalArgumentException(err.toString());
       }
- else       if (VALID_VARIABLE_NAME.matcher(variable).matches()) {
-        segmentSignature[i]='v';
-        varNames.add(variable);
-        regex.append("/([^/]+)");
-      }
- else {
-        StringBuilder err=new StringBuilder();
-        err.append("Syntax Error: variable {");
-        err.append(variable);
-        err.append("} an invalid variable name: ");
-        err.append(pathParamSpec);
-        throw new IllegalArgumentException(err.toString());
-      }
+      assertIsValidVariableLiteral(variable);
+      segmentSignature[i]='v';
+      varNames.add(variable);
+      regex.append("/([^/]+)");
     }
  else     if (mat.find(0)) {
       StringBuilder err=new StringBuilder();
@@ -81,14 +72,23 @@
       StringBuilder err=new StringBuilder();
       err.append("Syntax Error: path segment /");
       err.append(segment);
-      err.append("/ contains a wildcard symbol: ");
+      err.append("/ contains a wildcard symbol (not supported by javax.websocket): ");
       err.append(pathParamSpec);
       throw new IllegalArgumentException(err.toString());
     }
  else {
       segmentSignature[i]='e';
-      regex.append('/').append(segment);
+      regex.append('/');
+      for (      char c : segment.toCharArray()) {
+        if ((c == '.') || (c == '[') || (c == ']')|| (c == '\\')) {
+          regex.append('\\');
+        }
+        regex.append(c);
+      }
     }
+  }
+  if (pathParamSpec.charAt(pathParamSpec.length() - 1) == '/') {
+    regex.append('/');
   }
   regex.append('$');
   this.pattern=Pattern.compile(regex.toString());
