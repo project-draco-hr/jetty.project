@@ -1,0 +1,28 @@
+{
+  final String mini=module + ".ini";
+  final String disable=module + ".ini.disabled";
+  final AtomicBoolean found=new AtomicBoolean(false);
+  FileFilter filter=new FileFilter(){
+    public boolean accept(    File path){
+      if (!path.isFile())       return false;
+      String n=path.getName();
+      int i=n.indexOf(mini);
+      if (i < 0)       return false;
+      if (i > 0 && i != 4 && n.charAt(i - 1) != '-')       return false;
+      found.set(true);
+      if (n.endsWith(disable)) {
+        System.err.printf("Module %s already disabled in %s as %s%n",module,path(path.getParent()),n);
+      }
+ else       if (n.endsWith(mini)) {
+        String disabled=n + ".disabled";
+        System.err.printf("Disable %s in %s as %s%n",module,path(path.getParent()),disabled);
+        path.renameTo(new File(path.getParentFile(),disabled));
+      }
+ else       System.err.printf("Bad module %s in %s as %s%n",module,path(path.getParent()),n);
+      return false;
+    }
+  }
+;
+  for (  File dir : _iniDirs)   dir.listFiles(filter);
+  if (!found.get())   for (  File dir : _iniDirs)   System.err.printf("Module %s not found in %s%n",module,path(dir));
+}

@@ -9,6 +9,7 @@
     String arg=arguments.get(i);
     if ("--help".equals(arg) || "-?".equals(arg)) {
       _showUsage=true;
+      _noRun=true;
       continue;
     }
     if ("--stop".equals(arg)) {
@@ -16,7 +17,7 @@
       String key=_config.getProperty("STOP.KEY",null);
       int timeout=Integer.parseInt(_config.getProperty("STOP.WAIT","0"));
       stop(port,key,timeout);
-      return null;
+      _noRun=true;
     }
     if (arg.startsWith("--download=")) {
       download(arg);
@@ -24,23 +25,37 @@
     }
     if ("--version".equals(arg) || "-v".equals(arg) || "--info".equals(arg)) {
       _dumpVersions=true;
+      _noRun=true;
       continue;
     }
     if ("--list-modes".equals(arg) || "--list-options".equals(arg)) {
       _listOptions=true;
+      _noRun=true;
       continue;
     }
     if ("--list-config".equals(arg)) {
       _listConfig=true;
+      _noRun=true;
       continue;
     }
     if ("--exec-print".equals(arg) || "--dry-run".equals(arg)) {
       _dryRun=true;
+      _noRun=true;
       continue;
     }
     if ("--exec".equals(arg)) {
       _exec=true;
       continue;
+    }
+    if (arg.startsWith("--enable=") || arg.equals("--enable")) {
+      String module=arg.length() > 8 ? arg.substring(9) : arguments.get(++i);
+      _noRun=true;
+      _enable.add(module);
+    }
+    if (arg.startsWith("--disable=") || arg.equals("--disable")) {
+      String module=arg.length() > 9 ? arg.substring(10) : arguments.get(++i);
+      _noRun=true;
+      _disable.add(module);
     }
     if (arg.startsWith("--ini=") || arg.equals("--ini")) {
       ini=true;
@@ -108,8 +123,8 @@ String opts[]=assign[1].split(",");
 for (String opt : opts) {
   opt=opt.trim();
   if (!_config.getOptions().contains(opt)) {
-    System.err.printf("Missing Dependency: %s DEPEND %s%n",path(source),opt);
-    usageExit(ERR_LOGGING);
+    System.err.printf("ERROR: Missing Dependency: %s DEPEND %s%n",path(source),opt);
+    _noRun=true;
   }
 }
 }
@@ -118,8 +133,8 @@ String opts[]=assign[1].split(",");
 for (String opt : opts) {
   opt=opt.trim();
   if (_config.getOptions().contains(opt)) {
-    System.err.printf("Excluded Dependency: %s EXCLUDE %s%n",path(source),opt);
-    usageExit(ERR_LOGGING);
+    System.err.printf("ERROR: Excluded Dependency: %s EXCLUDE %s%n",path(source),opt);
+    _noRun=true;
   }
 }
 }
