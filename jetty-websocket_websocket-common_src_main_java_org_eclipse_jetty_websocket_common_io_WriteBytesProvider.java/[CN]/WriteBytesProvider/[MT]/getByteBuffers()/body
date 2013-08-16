@@ -1,5 +1,5 @@
 {
-  List<ByteBuffer> bufs=new ArrayList<>();
+  List<ByteBuffer> bufs=null;
   int count=0;
 synchronized (this) {
     for (; count < gatheredBufferLimit; count++) {
@@ -8,8 +8,14 @@ synchronized (this) {
           return bufs;
         }
         active=queue.pop();
+        if (bufs == null) {
+          bufs=new ArrayList<>();
+        }
         bufs.add(active.getHeaderBytes());
         count++;
+      }
+      if (bufs == null) {
+        bufs=new ArrayList<>();
       }
       bufs.add(active.getPayloadWindow());
       if (active.isDone()) {

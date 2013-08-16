@@ -1,23 +1,23 @@
 {
-synchronized (this) {
-    boolean notified=false;
-    if (active != null) {
-      active.notifyFailure(t);
-      notified=true;
-    }
-    failure=t;
-    for (    FrameEntry fe : past) {
-      fe.notifyFailure(t);
-      notified=true;
-    }
-    past.clear();
-    for (    FrameEntry fe : queue) {
-      fe.notifyFailure(t);
-      notified=true;
-    }
-    queue.clear();
-    if (notified) {
-      flushCallback.failed(t);
-    }
+  boolean notified=false;
+  if (active != null) {
+    FrameEntry entry=active;
+    active=null;
+    entry.notifyFailure(t);
+    notified=true;
+  }
+  failure=t;
+  while (!past.isEmpty()) {
+    FrameEntry entry=past.pop();
+    entry.notifyFailure(t);
+    notified=true;
+  }
+  while (!queue.isEmpty()) {
+    FrameEntry entry=queue.pop();
+    entry.notifyFailure(t);
+    notified=true;
+  }
+  if (notified) {
+    flushCallback.failed(t);
   }
 }
