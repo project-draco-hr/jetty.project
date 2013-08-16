@@ -1,6 +1,6 @@
 {
   if (_thread == Thread.currentThread()) {
-    if (_runningChanges)     _changes.offer(change);
+    if (_state.get() == SelectorState.CHANGING)     _changes.offer(change);
  else {
       runChanges();
       runChange(change);
@@ -9,7 +9,29 @@
  else {
     _changes.offer(change);
     LOG.debug("Queued change {}",change);
-    boolean wakeup=_needsWakeup;
-    if (wakeup)     wakeup();
+    loop:     while (true) {
+switch (_state.get()) {
+case CHANGING:
+        if (!_state.compareAndSet(SelectorState.CHANGING,SelectorState.MORE_CHANGES))         continue;
+      break loop;
+case SELECTING:
+    if (!_state.compareAndSet(SelectorState.SELECTING,SelectorState.WAKING))     continue;
+  final long sequence=_sequence;
+try {
+  do {
+    wakeup();
+    if (WAKEUP_SPIN_PERIOD == 0)     Thread.yield();
+ else     Thread.sleep(WAKEUP_SPIN_PERIOD);
   }
+ while (sequence == _sequence);
+}
+ catch (InterruptedException e) {
+  LOG.ignore(e);
+}
+break loop;
+default :
+break loop;
+}
+}
+}
 }

@@ -1,26 +1,40 @@
 {
   boolean debug=LOG.isDebugEnabled();
   try {
-    processChanges();
-    if (debug)     LOG.debug("Selector loop waiting on select");
-    int selected=_selector.select();
-    if (debug)     LOG.debug("Selector loop woken up from select, {}/{} selected",selected,_selector.keys().size());
-    _needsWakeup=false;
-    Set<SelectionKey> selectedKeys=_selector.selectedKeys();
-    for (    SelectionKey key : selectedKeys) {
-      if (key.isValid()) {
-        processKey(key);
-      }
+    if (!_state.compareAndSet(SelectorState.PROCESSING,SelectorState.CHANGING))     throw new IllegalStateException();
+    change_loop:     while (true) {
+switch (_state.get()) {
+case CHANGING:
+        runChanges();
+      if (_state.compareAndSet(SelectorState.CHANGING,SelectorState.SELECTING))       break change_loop;
+    continue;
+case MORE_CHANGES:
+  if (!_state.compareAndSet(SelectorState.MORE_CHANGES,SelectorState.CHANGING))   throw new IllegalStateException();
+continue;
+default :
+throw new IllegalStateException();
+}
+}
+if (debug) LOG.debug("Selector loop waiting on select");
+int selected=_selector.select(SELECT_PERIOD);
+_sequence++;
+_state.set(SelectorState.PROCESSING);
+if (debug) LOG.debug("Selector loop woken up from select, {}/{} selected",selected,_selector.keys().size());
+Set<SelectionKey> selectedKeys=_selector.selectedKeys();
+for (SelectionKey key : selectedKeys) {
+if (key.isValid()) {
+processKey(key);
+}
  else {
-        if (debug)         LOG.debug("Selector loop ignoring invalid key for channel {}",key.channel());
-        Object attachment=key.attachment();
-        if (attachment instanceof EndPoint)         ((EndPoint)attachment).close();
-      }
-    }
-    selectedKeys.clear();
-  }
- catch (  Exception x) {
-    if (isRunning())     LOG.warn(x);
- else     LOG.ignore(x);
-  }
+if (debug) LOG.debug("Selector loop ignoring invalid key for channel {}",key.channel());
+Object attachment=key.attachment();
+if (attachment instanceof EndPoint) ((EndPoint)attachment).close();
+}
+}
+selectedKeys.clear();
+}
+ catch (Exception x) {
+if (isRunning()) LOG.warn(x);
+ else LOG.ignore(x);
+}
 }
