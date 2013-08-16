@@ -1,6 +1,6 @@
 {
   if (_thread == Thread.currentThread()) {
-    if (_state.get() == SelectorState.CHANGING)     _changes.offer(change);
+    if (_state.compareAndSet(SelectorState.CHANGING,SelectorState.MORE_CHANGES))     _changes.offer(change);
  else {
       runChanges();
       runChange(change);
@@ -16,18 +16,7 @@ case CHANGING:
       break loop;
 case SELECTING:
     if (!_state.compareAndSet(SelectorState.SELECTING,SelectorState.WAKING))     continue;
-  final long sequence=_sequence;
-try {
-  do {
-    wakeup();
-    if (WAKEUP_SPIN_PERIOD == 0)     Thread.yield();
- else     Thread.sleep(WAKEUP_SPIN_PERIOD);
-  }
- while (sequence == _sequence);
-}
- catch (InterruptedException e) {
-  LOG.ignore(e);
-}
+  wakeup();
 break loop;
 default :
 break loop;
