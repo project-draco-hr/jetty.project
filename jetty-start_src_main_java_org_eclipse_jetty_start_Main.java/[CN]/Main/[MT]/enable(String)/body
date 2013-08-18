@@ -1,28 +1,27 @@
 {
   final String mini=module + ".ini";
   final String disable=module + ".ini.disabled";
-  final AtomicBoolean found=new AtomicBoolean(false);
-  FileFilter filter=new FileFilter(){
-    public boolean accept(    File path){
-      if (!path.isFile())       return false;
-      String n=path.getName();
-      int i=n.indexOf(mini);
-      if (i < 0)       return false;
-      if (i > 0 && i != 4 && n.charAt(i - 1) != '-')       return false;
-      found.set(true);
-      if (n.endsWith(mini)) {
-        System.err.printf("Module %s already enabled in %s as %s%n",module,path(path.getParent()),n);
+  FileFilter disabledModuleFilter=new FS.FileNamesFilter(mini,disable);
+  HomeBase hb=_config.getHomeBase();
+  boolean found=false;
+  for (  String includedPath : _iniIncludePaths) {
+    Config.debug("Searching ${jetty.home}/%s and ${jetty.base}/% for %s",includedPath,includedPath,mini);
+    for (    File file : hb.rawListFiles(includedPath,disabledModuleFilter)) {
+      String n=file.getName();
+      if (n.equalsIgnoreCase(mini)) {
+        System.err.printf("Module %s already enabled in %s%n",module,hb.toShortForm(file.getParent()));
+        found=true;
       }
- else       if (n.endsWith(disable)) {
-        String enabled=n.substring(0,n.length() - 9);
-        System.err.printf("Enable %s in %s as %s%n",module,path(path.getParent()),enabled);
-        path.renameTo(new File(path.getParentFile(),enabled));
+ else       if (n.equals(disable)) {
+        System.err.printf("Enabling Module %s in %s%n",module,hb.toShortForm(file.getParent()));
+        file.renameTo(new File(file.getParentFile(),mini));
+        found=true;
       }
- else       System.err.printf("Bad module %s in %s as %s%n",module,path(path.getParent()),n);
-      return false;
     }
   }
-;
-  for (  File dir : _iniDirs)   dir.listFiles(filter);
-  if (!found.get())   for (  File dir : _iniDirs)   System.err.printf("Module %s not found in %s%n",module,path(dir));
+  if (!found) {
+    for (    String includedPath : _iniIncludePaths) {
+      System.err.printf("Module %s not found in %s%n",module,includedPath);
+    }
+  }
 }
