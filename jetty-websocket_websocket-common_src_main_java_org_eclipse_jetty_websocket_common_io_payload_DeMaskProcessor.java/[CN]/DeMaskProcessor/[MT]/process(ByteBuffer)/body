@@ -1,10 +1,21 @@
 {
-  if (!isMasked) {
+  if (maskBytes == null) {
     return;
   }
+  int maskInt=ByteBuffer.wrap(maskBytes).getInt();
   int start=payload.position();
   int end=payload.limit();
-  for (int i=start; i < end; i++, offset++) {
-    payload.put(i,(byte)(payload.get(i) ^ mask[offset % 4]));
+  int offset=this.maskOffset;
+  int remaining;
+  while ((remaining=end - start) > 0) {
+    if (remaining >= 4 && offset == 0) {
+      payload.putInt(start,payload.getInt(start) ^ maskInt);
+      start+=4;
+    }
+ else {
+      payload.put(start,(byte)(payload.get(start) ^ maskBytes[offset & 3]));
+      ++start;
+      ++offset;
+    }
   }
 }
