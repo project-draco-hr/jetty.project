@@ -8,10 +8,14 @@
       if (LOG.isDebugEnabled()) {
         LOG.debug("sendPartialString({}, {})",fragment,isLast);
       }
-      WebSocketFrame frame=WebSocketFrame.text(fragment).setFin(isLast);
+      DataFrame frame=null;
       if (partialStarted) {
-        frame.setContinuation(true);
+        frame=new ContinuationFrame(fragment);
       }
+ else {
+        frame=new TextFrame(fragment);
+      }
+      frame.setFin(isLast);
       blockingWrite(frame);
       partialStarted=!isLast;
     }

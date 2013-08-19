@@ -7,15 +7,13 @@
   payload.put(invalidUtf);
   BufferUtil.flipToFlush(payload,0);
   List<WebSocketFrame> send=new ArrayList<>();
-  WebSocketFrame close=new WebSocketFrame();
+  WebSocketFrame close=new BadFrame(OpCode.CLOSE);
   close.setPayload(payload);
-  close.setOpCode(OpCode.CLOSE);
   send.add(close);
   List<WebSocketFrame> expect=new ArrayList<>();
   expect.add(new CloseInfo(StatusCode.BAD_PAYLOAD).asFrame());
   Fuzzer fuzzer=new Fuzzer(this);
-  try {
-    enableStacks(Parser.class,false);
+  try (StacklessLogging scope=new StacklessLogging(Parser.class)){
     fuzzer.connect();
     fuzzer.setSendMode(Fuzzer.SendMode.BULK);
     fuzzer.send(send);
@@ -23,7 +21,6 @@
     fuzzer.expectNoMoreFrames();
   }
   finally {
-    enableStacks(Parser.class,true);
     fuzzer.close();
   }
 }
