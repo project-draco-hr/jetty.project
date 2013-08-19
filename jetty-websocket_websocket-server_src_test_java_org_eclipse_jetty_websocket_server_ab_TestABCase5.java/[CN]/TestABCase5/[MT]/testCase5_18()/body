@@ -1,20 +1,18 @@
 {
-  enableStacks(Parser.class,false);
   List<WebSocketFrame> send=new ArrayList<>();
-  send.add(new WebSocketFrame(OpCode.TEXT).setPayload("fragment1").setFin(false));
-  send.add(new WebSocketFrame(OpCode.TEXT).setPayload("fragment2").setFin(true));
+  send.add(new TextFrame("fragment1").setFin(false));
+  send.add(new TextFrame("fragment2").setFin(true));
   send.add(new CloseInfo(StatusCode.NORMAL).asFrame());
   List<WebSocketFrame> expect=new ArrayList<>();
   expect.add(new CloseInfo(StatusCode.PROTOCOL).asFrame());
   Fuzzer fuzzer=new Fuzzer(this);
-  try {
+  try (StacklessLogging supress=new StacklessLogging(Parser.class)){
     fuzzer.connect();
     fuzzer.setSendMode(Fuzzer.SendMode.BULK);
     fuzzer.send(send);
     fuzzer.expect(expect);
   }
   finally {
-    enableStacks(Parser.class,true);
     fuzzer.close();
   }
 }

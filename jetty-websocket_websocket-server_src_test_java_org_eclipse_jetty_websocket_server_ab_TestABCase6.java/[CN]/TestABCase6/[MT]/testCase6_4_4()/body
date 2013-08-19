@@ -1,13 +1,12 @@
 {
-  enableStacks(Parser.class,false);
   byte invalid[]=Hex.asByteArray("CEBAE1BDB9CF83CEBCCEB5F49080808080656469746564");
   List<WebSocketFrame> send=new ArrayList<>();
-  send.add(new WebSocketFrame(OpCode.TEXT).setPayload(invalid));
+  send.add(new TextFrame().setPayload(ByteBuffer.wrap(invalid)));
   send.add(new CloseInfo(StatusCode.NORMAL).asFrame());
   List<WebSocketFrame> expect=new ArrayList<>();
   expect.add(new CloseInfo(StatusCode.BAD_PAYLOAD).asFrame());
   Fuzzer fuzzer=new Fuzzer(this);
-  try {
+  try (StacklessLogging scope=new StacklessLogging(Parser.class)){
     fuzzer.connect();
     ByteBuffer net=fuzzer.asNetworkBuffer(send);
     fuzzer.send(net,6);
@@ -19,7 +18,6 @@
     fuzzer.expect(expect);
   }
   finally {
-    enableStacks(Parser.class,true);
     fuzzer.close();
   }
 }
