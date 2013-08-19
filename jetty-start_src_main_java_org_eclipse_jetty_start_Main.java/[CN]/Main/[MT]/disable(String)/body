@@ -1,7 +1,7 @@
 {
   final String mini=module + ".ini";
   final String disable=module + ".ini.disabled";
-  FileFilter disabledModuleFilter=new FS.FileNamesFilter(mini,disable);
+  FileFilter disabledModuleFilter=new FS.FilenameRegexFilter("(\\d\\d\\d-)?" + Pattern.quote(module) + "\\.ini(\\.disabled)?");
   HomeBase hb=_config.getHomeBase();
   boolean found=false;
   for (  String includedPath : _iniIncludePaths) {
@@ -16,6 +16,21 @@
         System.err.printf("Disabling Module %s in %s%n",module,hb.toShortForm(file.getParent()));
         file.renameTo(new File(file.getParentFile(),disable));
         found=true;
+      }
+ else {
+        Matcher matcher=NNN_MODULE_INI.matcher(n);
+        if (matcher.matches()) {
+          if (matcher.group(3) != null) {
+            System.err.printf("Module %s already disabled in %s as %s%n",module,hb.toShortForm(file.getParent()),n);
+            found=true;
+          }
+ else {
+            String disabled=matcher.group(1) + disable;
+            System.err.printf("Disabling Module %s in %s as %s%n",module,hb.toShortForm(file.getParent()),disabled);
+            file.renameTo(new File(file.getParentFile(),disabled));
+            found=true;
+          }
+        }
       }
     }
   }

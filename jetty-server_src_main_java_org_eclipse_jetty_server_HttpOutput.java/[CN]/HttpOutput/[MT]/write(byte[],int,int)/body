@@ -10,7 +10,7 @@ case ASYNC:
 case READY:
   if (!_state.compareAndSet(State.READY,State.PENDING))   continue;
 int capacity=getBufferSize();
-if (!complete && len <= capacity / 4) {
+if (!complete && len <= _commitSize) {
 if (_aggregate == null) _aggregate=_channel.getByteBufferPool().acquire(capacity,false);
 int filled=BufferUtil.fill(_aggregate,b,off,len);
 if (!complete && filled == len && !BufferUtil.isFull(_aggregate)) {
@@ -31,7 +31,7 @@ throw new EofException("Closed");
 break;
 }
 int capacity=getBufferSize();
-if (!complete && len <= capacity / 4) {
+if (!complete && len <= _commitSize) {
 if (_aggregate == null) _aggregate=_channel.getByteBufferPool().acquire(capacity,false);
 int filled=BufferUtil.fill(_aggregate,b,off,len);
 if (!complete && filled == len && !BufferUtil.isFull(_aggregate)) return;
@@ -40,7 +40,7 @@ len-=filled;
 }
 if (BufferUtil.hasContent(_aggregate)) {
 _channel.write(_aggregate,complete && len == 0);
-if (len > 0 && !complete && len <= _aggregate.capacity() / 4) {
+if (len > 0 && !complete && len <= _commitSize) {
 BufferUtil.append(_aggregate,b,off,len);
 return;
 }
