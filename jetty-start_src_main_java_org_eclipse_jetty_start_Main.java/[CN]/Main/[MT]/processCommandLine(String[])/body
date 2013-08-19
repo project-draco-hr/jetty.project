@@ -1,14 +1,18 @@
 {
   String source="";
   ArrayList<String> arguments=new ArrayList<>(Arrays.asList(args));
-  boolean ini=false;
-  for (  String arg : arguments) {
-    if (arg.startsWith("--ini=") || arg.equals("--ini")) {
-      ini=true;
-    }
-  }
-  if (!ini) {
+  if (findArgumentPrefix(arguments,"--ini=") == null) {
     arguments.add(0,"--ini=start.ini");
+  }
+  String home=findArgumentPrefix(arguments,"-Djetty.home=");
+  if (home != null) {
+    String value=home.replaceFirst("^[^=]*=","");
+    _config.getBaseHome().setHomeDir(new File(value));
+  }
+  String base=findArgumentPrefix(arguments,"-Djetty.base=");
+  if (base != null) {
+    String value=base.replaceFirst("^[^=]*=","");
+    _config.getBaseHome().setBaseDir(new File(value));
   }
   List<String> xmls=new ArrayList<String>();
   for (int i=0; i < arguments.size(); i++) {
@@ -64,10 +68,9 @@
       _disable.add(module);
     }
     if (arg.startsWith("--ini=") || arg.equals("--ini")) {
-      ini=true;
       if (arg.length() > 6) {
         String name=arg.substring(6);
-        File file=_config.getHomeBase().getFile(name);
+        File file=_config.getBaseHome().getFile(name);
         StartIni startini=new StartIni(file,this);
         _iniFiles.add(file);
         arguments.addAll(i + 1,startini.getLines());
