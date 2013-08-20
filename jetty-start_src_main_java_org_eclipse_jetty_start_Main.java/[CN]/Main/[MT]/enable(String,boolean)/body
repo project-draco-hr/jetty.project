@@ -1,0 +1,80 @@
+{
+  final String mini=module + ".ini";
+  final String disable=module + ".ini.disabled";
+  BaseHome hb=_config.getBaseHome();
+  File start_d=hb.getFile("start.d");
+  boolean found=false;
+  File enabled=null;
+  if (start_d.exists() && start_d.isDirectory()) {
+    for (    File file : start_d.listFiles(new FS.FilenameRegexFilter("(\\d\\d\\d-)?" + Pattern.quote(module) + "\\.ini(\\.disabled)?"))) {
+      String n=file.getName();
+      if (n.equalsIgnoreCase(mini)) {
+        if (verbose)         System.err.printf("Module %s already enabled in %s%n",module,hb.toShortForm(file.getParent()));
+        found=true;
+        break;
+      }
+      if (n.equalsIgnoreCase(disable)) {
+        enabled=new File(file.getParentFile(),mini);
+        System.err.printf("Enabling Module %s as %s%n",module,hb.toShortForm(enabled));
+        file.renameTo(enabled);
+        found=true;
+        break;
+      }
+      Matcher matcher=NNN_MODULE_INI.matcher(n);
+      if (matcher.matches()) {
+        if (matcher.group(3) == null) {
+          if (verbose)           System.err.printf("Module %s already enabled in %s as %s%n",module,hb.toShortForm(file.getParent()),n);
+          found=true;
+        }
+ else {
+          enabled=new File(file.getParentFile(),matcher.group(1) + mini);
+          System.err.printf("Enabling Module %s as %s%n",module,hb.toShortForm(enabled));
+          file.renameTo(enabled);
+          found=true;
+        }
+      }
+    }
+  }
+  if (!found && hb.isBaseDifferent()) {
+    File start_home=new File(hb.getHomeDir(),"start.d");
+    if (start_home.exists() && start_home.isDirectory()) {
+      for (      File file : start_home.listFiles(new FS.FilenameRegexFilter("(\\d\\d\\d-)?" + Pattern.quote(module) + "\\.ini(\\.disabled)?"))) {
+        try {
+          String n=file.getName();
+          if (n.equalsIgnoreCase(mini) || n.equalsIgnoreCase(disable)) {
+            enabled=new File(start_d,mini);
+            Files.copy(file.toPath(),enabled.toPath());
+            System.err.printf("Enabling Module %s as %s%n",module,hb.toShortForm(enabled));
+            found=true;
+            break;
+          }
+          Matcher matcher=NNN_MODULE_INI.matcher(n);
+          if (matcher.matches()) {
+            enabled=new File(start_d,matcher.group(1) + mini);
+            Files.copy(file.toPath(),enabled.toPath());
+            System.err.printf("Enabling Module %s as %s%n",module,hb.toShortForm(enabled));
+            found=true;
+            break;
+          }
+        }
+ catch (        IOException e) {
+          e.printStackTrace();
+        }
+      }
+    }
+  }
+  if (!found) {
+    System.err.printf("Module %s not found!%n",module);
+  }
+ else   if (enabled != null) {
+    StartIni ini=new StartIni(enabled);
+    for (    String line : ini.getLineMatches(Pattern.compile("^DEPEND=.*$"))) {
+      String depend=line.trim().split("=")[1];
+      for (      String m : depend.split(","))       enable(m,false);
+    }
+    for (    String line : ini.getLineMatches(Pattern.compile("^EXCLUDE=.*$"))) {
+      String depend=line.trim().split("=")[1];
+      for (      String m : depend.split(","))       disable(m,false);
+    }
+  }
+}
