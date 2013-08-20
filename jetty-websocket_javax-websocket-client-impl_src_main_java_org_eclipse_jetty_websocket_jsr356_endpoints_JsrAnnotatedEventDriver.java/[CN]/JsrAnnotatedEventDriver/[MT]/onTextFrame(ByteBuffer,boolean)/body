@@ -7,19 +7,12 @@
   boolean handled=false;
   if (events.hasText()) {
     handled=true;
-    if (events.isTextPartialSupported()) {
-      LOG.debug("Partial Text Message: fin={}",fin);
-      try {
-        String text=BufferUtil.toUTF8String(buffer);
-        events.callText(jsrsession.getAsyncRemote(),websocket,text,fin);
+    if (activeMessage == null) {
+      if (events.isTextPartialSupported()) {
+        LOG.debug("Partial Text Message: fin={}",fin);
+        activeMessage=new TextPartialOnMessage(this);
       }
- catch (      DecodeException e) {
-        onFatalError(e);
-      }
-      return;
-    }
  else {
-      if (activeMessage == null) {
         LOG.debug("Whole Text Message");
         activeMessage=new SimpleTextMessage(this);
       }
