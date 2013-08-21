@@ -1,5 +1,5 @@
 {
-  if (frame.getType().isControl() || !frame.isRsv1()) {
+  if (OpCode.isControlFrame(frame.getOpCode()) || !frame.isRsv1()) {
     nextIncomingFrame(frame);
     return;
   }
@@ -7,7 +7,8 @@
   method.decompress().input(data);
   while (!method.decompress().isDone()) {
     ByteBuffer uncompressed=method.decompress().process();
-    WebSocketFrame out=new WebSocketFrame(frame).setPayload(uncompressed);
+    DataFrame out=new DataFrame(frame);
+    out.setPayload(uncompressed);
     if (!method.decompress().isDone()) {
       out.setFin(false);
     }

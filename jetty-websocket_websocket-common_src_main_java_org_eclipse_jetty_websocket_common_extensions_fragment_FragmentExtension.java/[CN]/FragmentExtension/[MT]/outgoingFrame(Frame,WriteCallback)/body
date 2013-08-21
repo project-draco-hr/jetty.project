@@ -1,10 +1,9 @@
 {
-  if (frame.getType().isControl()) {
+  if (OpCode.isControlFrame(frame.getOpCode())) {
     nextOutgoingFrame(frame,callback);
     return;
   }
   int length=frame.getPayloadLength();
-  byte opcode=frame.getType().getOpCode();
   ByteBuffer payload=frame.getPayload().slice();
   int originalLimit=payload.limit();
   int currentPosition=payload.position();
@@ -14,23 +13,18 @@
   }
   boolean continuation=false;
   while (length > maxLength) {
-    WebSocketFrame frag=new WebSocketFrame(frame);
-    frag.setOpCode(opcode);
+    DataFrame frag=new DataFrame(frame,continuation);
     frag.setFin(false);
-    frag.setContinuation(continuation);
     payload.position(currentPosition);
     payload.limit(Math.min(payload.position() + maxLength,originalLimit));
     frag.setPayload(payload);
     nextOutgoingFrame(frag,null);
     length-=maxLength;
-    opcode=OpCode.CONTINUATION;
     continuation=true;
     currentPosition=payload.limit();
   }
-  WebSocketFrame frag=new WebSocketFrame(frame);
-  frag.setOpCode(opcode);
+  DataFrame frag=new DataFrame(frame,continuation);
   frag.setFin(frame.isFin());
-  frag.setContinuation(continuation);
   payload.position(currentPosition);
   payload.limit(originalLimit);
   frag.setPayload(payload);

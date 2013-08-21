@@ -7,18 +7,12 @@
   boolean handled=false;
   if (events.hasBinary()) {
     handled=true;
-    if (events.isBinaryPartialSupported()) {
-      LOG.debug("Partial Binary Message: fin={}",fin);
-      try {
-        events.callBinary(jsrsession.getAsyncRemote(),websocket,buffer,fin);
+    if (activeMessage == null) {
+      if (events.isBinaryPartialSupported()) {
+        LOG.debug("Partial Binary Message: fin={}",fin);
+        activeMessage=new BinaryPartialOnMessage(this);
       }
- catch (      DecodeException e) {
-        onFatalError(e);
-      }
-      return;
-    }
  else {
-      if (activeMessage == null) {
         LOG.debug("Whole Binary Message");
         activeMessage=new SimpleBinaryMessage(this);
       }

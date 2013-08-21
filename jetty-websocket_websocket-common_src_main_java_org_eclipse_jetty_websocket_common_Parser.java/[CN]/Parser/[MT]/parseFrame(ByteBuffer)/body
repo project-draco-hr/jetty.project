@@ -37,46 +37,49 @@ case FINOP:
       if (!rsv3InUse && rsv3) {
         throw new ProtocolException("RSV3 not allowed to be set");
       }
-      boolean isContinuation=false;
 switch (opcode) {
 case OpCode.TEXT:
-        if (isTextFrameValidated) {
-          strictnessProcessor=new UTF8Validator();
-        }
- else {
-          strictnessProcessor=NoOpValidator.INSTANCE;
-        }
-      break;
-case OpCode.CLOSE:
-    strictnessProcessor=new CloseReasonValidator();
-  break;
-default :
-strictnessProcessor=NoOpValidator.INSTANCE;
+        frame=new TextFrame();
+      if ((priorDataFrame != null) && (!priorDataFrame.isFin())) {
+        throw new ProtocolException("Unexpected " + OpCode.name(opcode) + " frame, was expecting CONTINUATION");
+      }
+    break;
+case OpCode.BINARY:
+  frame=new BinaryFrame();
+if ((priorDataFrame != null) && (!priorDataFrame.isFin())) {
+  throw new ProtocolException("Unexpected " + OpCode.name(opcode) + " frame, was expecting CONTINUATION");
+}
 break;
-}
-if (OpCode.isControlFrame(opcode)) {
-if (!fin) {
-throw new ProtocolException("Fragmented Control Frame [" + OpCode.name(opcode) + "]");
-}
-}
- else if (opcode == OpCode.CONTINUATION) {
-isContinuation=true;
+case OpCode.CONTINUATION:
+frame=new ContinuationFrame();
 if (priorDataFrame == null) {
 throw new ProtocolException("CONTINUATION frame without prior !FIN");
 }
 opcode=lastDataOpcode;
+break;
+case OpCode.CLOSE:
+frame=new CloseFrame();
+if (!fin) {
+throw new ProtocolException("Fragmented Close Frame [" + OpCode.name(opcode) + "]");
 }
- else if (OpCode.isDataFrame(opcode)) {
-if ((priorDataFrame != null) && (!priorDataFrame.isFin())) {
-throw new ProtocolException("Unexpected " + OpCode.name(opcode) + " frame, was expecting CONTINUATION");
+break;
+case OpCode.PING:
+frame=new PingFrame();
+if (!fin) {
+throw new ProtocolException("Fragmented Ping Frame [" + OpCode.name(opcode) + "]");
 }
+break;
+case OpCode.PONG:
+frame=new PongFrame();
+if (!fin) {
+throw new ProtocolException("Fragmented Pong Frame [" + OpCode.name(opcode) + "]");
 }
-frame=new WebSocketFrame(opcode);
+break;
+}
 frame.setFin(fin);
 frame.setRsv1(rsv1);
 frame.setRsv2(rsv2);
 frame.setRsv3(rsv3);
-frame.setContinuation(isContinuation);
 if (frame.isDataFrame()) {
 lastDataOpcode=opcode;
 }

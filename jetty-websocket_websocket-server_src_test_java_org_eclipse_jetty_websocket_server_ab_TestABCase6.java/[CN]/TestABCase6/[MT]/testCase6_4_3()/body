@@ -7,7 +7,7 @@
     payload.put(TypeUtil.fromHexString("656469746564"));
     BufferUtil.flipToFlush(payload,0);
     List<WebSocketFrame> send=new ArrayList<>();
-    send.add(new WebSocketFrame(OpCode.TEXT).setPayload(payload));
+    send.add(new TextFrame().setPayload(payload));
     send.add(new CloseInfo(StatusCode.NORMAL).asFrame());
     List<WebSocketFrame> expect=new ArrayList<>();
     expect.add(new CloseInfo(StatusCode.BAD_PAYLOAD).asFrame());
@@ -25,11 +25,11 @@
       part3.position(splits[1]);
       part3.limit(splits[2]);
       fuzzer.send(part1);
-      TimeUnit.SECONDS.sleep(1);
+      TimeUnit.MILLISECONDS.sleep(500);
       fuzzer.send(part2);
-      fuzzer.expect(expect);
-      TimeUnit.SECONDS.sleep(1);
+      TimeUnit.MILLISECONDS.sleep(500);
       fuzzer.send(part3);
+      fuzzer.expect(expect);
       fuzzer.expectServerDisconnect(Fuzzer.DisconnectMode.UNCLEAN);
     }
   finally {

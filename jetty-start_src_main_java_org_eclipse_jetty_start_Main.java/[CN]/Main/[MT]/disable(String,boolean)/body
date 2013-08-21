@@ -1,0 +1,39 @@
+{
+  final String mini=module + ".ini";
+  final String disable=module + ".ini.disabled";
+  BaseHome hb=_config.getBaseHome();
+  File start_d=hb.getFile("start.d");
+  boolean found=false;
+  if (start_d.exists() && start_d.isDirectory()) {
+    for (    File file : start_d.listFiles(new FS.FilenameRegexFilter("(\\d\\d\\d-)?" + Pattern.quote(module) + "\\.ini(\\.disabled)?"))) {
+      String n=file.getName();
+      if (n.equalsIgnoreCase(disable)) {
+        if (verbose)         System.err.printf("Module %s already disabled in %s%n",module,hb.toShortForm(file.getParent()));
+        found=true;
+      }
+ else       if (n.equalsIgnoreCase(mini)) {
+        System.err.printf("Disabling Module %s in %s%n",module,hb.toShortForm(file.getParent()));
+        file.renameTo(new File(file.getParentFile(),disable));
+        found=true;
+      }
+ else {
+        Matcher matcher=NNN_MODULE_INI.matcher(n);
+        if (matcher.matches()) {
+          if (matcher.group(3) != null) {
+            if (verbose)             System.err.printf("Module %s already disabled in %s as %s%n",module,hb.toShortForm(file.getParent()),n);
+            found=true;
+          }
+ else {
+            String disabled=matcher.group(1) + disable;
+            System.err.printf("Disabling Module %s in %s as %s%n",module,hb.toShortForm(file.getParent()),disabled);
+            file.renameTo(new File(file.getParentFile(),disabled));
+            found=true;
+          }
+        }
+      }
+    }
+  }
+  if (!found && verbose) {
+    System.err.printf("Module %s not found!%n",module);
+  }
+}

@@ -34,19 +34,25 @@
             }
           }
 ;
-          List<File> configFiles=_config.getHomeBase().listFiles("etc",filter);
+          List<File> configFiles=_config.getBaseHome().listFiles("etc",filter);
           for (          File configFile : configFiles) {
             System.out.printf("%s%s%n",indent,path(configFile));
           }
         }
  else         if (info.equals("@STARTINI")) {
-          for (          File file : _iniFiles) {
-            String path=_config.getHomeBase().toShortForm(file);
-            System.out.printf("%s%s%n",indent,path);
-            if (Config.isDebug()) {
-              StartIni ini=new StartIni(file);
-              for (              String arg : ini) {
-                System.out.printf("%s +-- %s%n",indent,arg);
+          BaseHome hb=_config.getBaseHome();
+          File start_d=hb.getFile("start.d");
+          if (start_d.exists() && start_d.isDirectory()) {
+            File[] files=start_d.listFiles(new FS.FilenameRegexFilter("(\\d\\d\\d-)?.*\\.ini(\\.disabled)?"));
+            Arrays.sort(files,new NaturalSort.Files());
+            for (            File file : files) {
+              String path=_config.getBaseHome().toShortForm(file);
+              System.out.printf("%s%s%n",indent,path);
+              if (Config.isDebug()) {
+                StartIni ini=new StartIni(file);
+                for (                String arg : ini) {
+                  System.out.printf("%s +-- %s%n",indent,arg);
+                }
               }
             }
           }
