@@ -1,5 +1,6 @@
 {
   final Request request=exchange.getRequest();
+  final long idleTimeout=request.getIdleTimeout();
   short spdyVersion=getHttpChannel().getSession().getVersion();
   Fields fields=new Fields();
   HttpField hostHeader=null;
@@ -18,6 +19,7 @@
   SynInfo synInfo=new SynInfo(fields,!content.hasContent());
   getHttpChannel().getSession().syn(synInfo,getHttpChannel().getHttpReceiver(),new Promise<Stream>(){
     @Override public void succeeded(    Stream stream){
+      stream.setIdleTimeout(idleTimeout);
       if (content.hasContent())       HttpSenderOverSPDY.this.stream=stream;
       callback.succeeded();
     }

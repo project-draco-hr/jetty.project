@@ -1,0 +1,25 @@
+{
+  final int idleTimeout=500;
+  final CountDownLatch timeoutReceivedLatch=new CountDownLatch(1);
+  Session session=startClient(version,startHTTPServer(version,new AbstractHandler(){
+    @Override public void handle(    String target,    final Request request,    HttpServletRequest httpRequest,    HttpServletResponse httpResponse) throws IOException, ServletException {
+      try {
+        Thread.sleep(2 * idleTimeout);
+      }
+ catch (      InterruptedException e) {
+        throw new RuntimeException(e);
+      }
+      request.setHandled(true);
+    }
+  }
+,idleTimeout),null);
+  Fields headers=SPDYTestUtils.createHeaders("localhost",connector.getPort(),version,"GET","/");
+  Stream stream=session.syn(new SynInfo(5,TimeUnit.SECONDS,headers,true,(byte)0),new StreamFrameListener.Adapter(){
+    @Override public void onFailure(    Throwable x){
+      assertThat("we got a TimeoutException",x,instanceOf(TimeoutException.class));
+      timeoutReceivedLatch.countDown();
+    }
+  }
+);
+  assertThat("idle timeout hit",timeoutReceivedLatch.await(5,TimeUnit.SECONDS),is(true));
+}
