@@ -1,0 +1,36 @@
+{
+  final int idleTimeout=500;
+  final CountDownLatch timeoutReceivedLatch=new CountDownLatch(1);
+  final CountDownLatch replyReceivedLatch=new CountDownLatch(3);
+  Session session=startClient(version,startHTTPServer(version,new AbstractHandler(){
+    @Override public void handle(    String target,    final Request request,    HttpServletRequest httpRequest,    HttpServletResponse httpResponse) throws IOException, ServletException {
+      if ("true".equals(request.getHeader("slow"))) {
+        try {
+          Thread.sleep(2 * idleTimeout);
+        }
+ catch (        InterruptedException e) {
+          throw new RuntimeException(e);
+        }
+      }
+      request.setHandled(true);
+    }
+  }
+,idleTimeout),null);
+  Fields headers=SPDYTestUtils.createHeaders("localhost",connector.getPort(),version,"GET","/");
+  Fields slowHeaders=SPDYTestUtils.createHeaders("localhost",connector.getPort(),version,"GET","/");
+  slowHeaders.add("slow","true");
+  sendSingleRequestThatIsNotExpectedToTimeout(replyReceivedLatch,session,headers);
+  session.syn(new SynInfo(5,TimeUnit.SECONDS,slowHeaders,true,(byte)0),new StreamFrameListener.Adapter(){
+    @Override public void onFailure(    Throwable x){
+      assertThat("we got a TimeoutException",x,instanceOf(TimeoutException.class));
+      timeoutReceivedLatch.countDown();
+    }
+  }
+);
+  Thread.sleep(idleTimeout / 2);
+  sendSingleRequestThatIsNotExpectedToTimeout(replyReceivedLatch,session,headers);
+  Thread.sleep(idleTimeout / 2);
+  sendSingleRequestThatIsNotExpectedToTimeout(replyReceivedLatch,session,headers);
+  assertThat("idle timeout hit",timeoutReceivedLatch.await(5,TimeUnit.SECONDS),is(true));
+  assertThat("received replies on 3 non idle requests",replyReceivedLatch.await(5,TimeUnit.SECONDS),is(true));
+}
