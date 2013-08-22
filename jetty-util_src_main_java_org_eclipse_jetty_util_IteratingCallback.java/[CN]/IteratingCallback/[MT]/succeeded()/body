@@ -1,3 +1,15 @@
 {
-  if (!_iterating.compareAndSet(true,false))   iterate();
+  if (_state.compareAndSet(State.ITERATING,State.WAITING))   return;
+  loop:   while (true) {
+switch (_state.get()) {
+case ITERATING:
+      if (_state.compareAndSet(State.ITERATING,State.WAITING))       break loop;
+    continue;
+case WAITING:
+  iterate();
+break loop;
+default :
+throw new IllegalStateException("Already " + _state.get());
+}
+}
 }
