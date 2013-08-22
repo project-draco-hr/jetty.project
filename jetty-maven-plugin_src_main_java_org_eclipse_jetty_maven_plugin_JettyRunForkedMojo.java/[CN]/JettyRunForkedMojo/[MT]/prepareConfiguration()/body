@@ -10,7 +10,15 @@
       if (!tmpDirectory.exists())       tmpDirectory.mkdirs();
       props.put("tmp.dir",tmpDirectory.getAbsolutePath());
     }
-    if (webAppSourceDirectory != null)     props.put("base.dir",webAppSourceDirectory.getAbsolutePath());
+    if (webAppSourceDirectory == null || !webAppSourceDirectory.exists()) {
+      webAppSourceDirectory=new File(project.getBasedir(),DEFAULT_WEBAPP_SRC);
+      if (!webAppSourceDirectory.exists()) {
+        File target=new File(project.getBuild().getDirectory());
+        webAppSourceDirectory=new File(target,FAKE_WEBAPP);
+        if (!webAppSourceDirectory.exists())         webAppSourceDirectory.mkdirs();
+      }
+    }
+    props.put("base.dir",webAppSourceDirectory.getAbsolutePath());
     StringBuilder builder=new StringBuilder();
     props.put("base.first",Boolean.toString(baseAppFirst));
     List<File> classDirs=getClassesDirs();
