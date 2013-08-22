@@ -1,0 +1,64 @@
+{
+  Classpath classpath=args.getClasspath();
+  System.setProperty("java.class.path",classpath.toString());
+  ClassLoader cl=classpath.getClassLoader();
+  StartLog.debug("java.class.path=" + System.getProperty("java.class.path"));
+  StartLog.debug("jetty.home=" + System.getProperty("jetty.home"));
+  StartLog.debug("jetty.base=" + System.getProperty("jetty.base"));
+  StartLog.debug("java.home=" + System.getProperty("java.home"));
+  StartLog.debug("java.io.tmpdir=" + System.getProperty("java.io.tmpdir"));
+  StartLog.debug("java.class.path=" + classpath);
+  StartLog.debug("classloader=" + cl);
+  StartLog.debug("classloader.parent=" + cl.getParent());
+  StartLog.debug("properties=" + args.getProperties());
+  if (args.isHelp()) {
+    usage();
+  }
+  if (args.isVersion()) {
+    showClasspathWithVersions(classpath);
+  }
+  if (args.isListConfig()) {
+    listConfig();
+  }
+  if (args.isListModules()) {
+    listModules();
+  }
+  if (args.isDryRun()) {
+    CommandLineBuilder cmd=args.getMainArgs(baseHome);
+    System.out.println(cmd.toString());
+  }
+  for (  String url : args.getDownloads()) {
+    download(url);
+  }
+  if (!args.isRun()) {
+    return;
+  }
+  if (args.isExec()) {
+    CommandLineBuilder cmd=args.getMainArgs(baseHome);
+    ProcessBuilder pbuilder=new ProcessBuilder(cmd.getArgs());
+    final Process process=pbuilder.start();
+    Runtime.getRuntime().addShutdownHook(new Thread(){
+      @Override public void run(){
+        StartLog.debug("Destroying " + process);
+        process.destroy();
+      }
+    }
+);
+    copyInThread(process.getErrorStream(),System.err);
+    copyInThread(process.getInputStream(),System.out);
+    copyInThread(System.in,process.getOutputStream());
+    process.waitFor();
+    System.exit(0);
+    return;
+  }
+  if (args.hasJvmArgs() || args.hasSystemProperties()) {
+    System.err.println("WARNING: System properties and/or JVM args set.  Consider using --dry-run or --exec");
+  }
+  Thread.currentThread().setContextClassLoader(cl);
+  try {
+    invokeMain(args);
+  }
+ catch (  Exception e) {
+    usageExit(e,ERR_INVOKE_MAIN);
+  }
+}

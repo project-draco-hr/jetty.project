@@ -1,2 +1,40 @@
 {
+  for (  Module module : activeModules) {
+    for (    String rawlibref : module.getLibs()) {
+      String libref=rawlibref.replace("${jetty.version}",VERSION);
+      libref=FS.separators(libref);
+      if (libref.contains("*")) {
+        int idx=libref.lastIndexOf(File.separatorChar);
+        String relativePath="/";
+        String filenameRef=libref;
+        if (idx >= 0) {
+          relativePath=libref.substring(0,idx);
+          filenameRef=libref.substring(idx + 1);
+        }
+        StringBuilder regex=new StringBuilder();
+        regex.append('^');
+        for (        char c : filenameRef.toCharArray()) {
+switch (c) {
+case '*':
+            regex.append(".*");
+          break;
+case '.':
+        regex.append("\\.");
+      break;
+default :
+    regex.append(c);
+}
+}
+regex.append('$');
+FileFilter filter=new FS.FilenameRegexFilter(regex.toString());
+for (File libfile : baseHome.listFiles(relativePath,filter)) {
+classpath.addComponent(libfile);
+}
+}
+ else {
+File libfile=baseHome.getFile(libref);
+classpath.addComponent(libfile);
+}
+}
+}
 }
