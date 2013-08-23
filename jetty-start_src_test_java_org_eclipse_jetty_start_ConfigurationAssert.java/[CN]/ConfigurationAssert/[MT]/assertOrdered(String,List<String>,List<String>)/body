@@ -1,2 +1,40 @@
 {
+  boolean mismatch=expectedList.size() != actualList.size();
+  List<Integer> badEntries=new ArrayList<>();
+  int min=Math.min(expectedList.size(),actualList.size());
+  int max=Math.max(expectedList.size(),actualList.size());
+  for (int i=0; i < min; i++) {
+    if (!expectedList.get(i).equals(actualList.get(i))) {
+      badEntries.add(i);
+    }
+  }
+  for (int i=min; i < max; i++) {
+    badEntries.add(i);
+  }
+  if (mismatch || badEntries.size() > 0) {
+    StringWriter message=new StringWriter();
+    PrintWriter err=new PrintWriter(message);
+    err.printf("%s: Assert Contains (Unordered)",msg);
+    if (mismatch) {
+      err.print(" [size mismatch]");
+    }
+    if (badEntries.size() >= 0) {
+      err.printf(" [%d entries not matched]",badEntries.size());
+    }
+    err.println();
+    err.printf("Actual Entries (size: %d)%n",actualList.size());
+    for (int i=0; i < actualList.size(); i++) {
+      String actual=actualList.get(i);
+      char indicator=badEntries.contains(i) ? '>' : ' ';
+      err.printf("%s[%d] %s%n",indicator,i,actual);
+    }
+    err.printf("Expected Entries (size: %d)%n",expectedList.size());
+    for (int i=0; i < expectedList.size(); i++) {
+      String expected=expectedList.get(i);
+      char indicator=badEntries.contains(i) ? '>' : ' ';
+      err.printf("%s[%d] %s%n",indicator,i,expected);
+    }
+    err.flush();
+    Assert.fail(message.toString());
+  }
 }
