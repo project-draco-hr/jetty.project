@@ -1,15 +1,17 @@
 {
   if (_thread == Thread.currentThread()) {
-    if (_runningChanges)     _changes.offer(change);
- else {
+    if (_state.get() == State.PROCESSING) {
       runChanges();
       runChange(change);
+    }
+ else {
+      _changes.offer(change);
     }
   }
  else {
     _changes.offer(change);
     LOG.debug("Queued change {}",change);
-    boolean wakeup=_needsWakeup;
-    if (wakeup)     wakeup();
+    if (_state.compareAndSet(State.SELECTING,State.WAKING))     wakeup();
+ else     _state.compareAndSet(State.CHANGING,State.MORE_CHANGES);
   }
 }
