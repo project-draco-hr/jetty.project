@@ -1,17 +1,15 @@
 {
   try {
-    while (_iterating.compareAndSet(false,true)) {
+    while (_state.compareAndSet(State.WAITING,State.ITERATING)) {
       if (process()) {
-        completed();
+        if (_state.compareAndSet(State.ITERATING,State.SUCCEEDED))         completed();
+ else         throw new IllegalStateException("Already " + _state.get());
         return;
       }
+ else       if (_state.compareAndSet(State.ITERATING,State.WAITING))       break;
     }
   }
  catch (  Exception e) {
-    _iterating.set(false);
     failed(e);
-  }
- finally {
-    _iterating.set(false);
   }
 }

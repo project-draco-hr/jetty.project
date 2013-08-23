@@ -1,23 +1,22 @@
 {
-  boolean eof=false;
+  if (_eof) {
+    closed();
+    _channel.getByteBufferPool().release(_buffer);
+    return true;
+  }
   int len=_in.read(_buffer.array(),0,_buffer.capacity());
   if (len < 0) {
-    eof=true;
+    _eof=true;
     len=0;
     _in.close();
   }
  else   if (len < _buffer.capacity()) {
     int len2=_in.read(_buffer.array(),len,_buffer.capacity() - len);
-    if (len2 < 0)     eof=true;
+    if (len2 < 0)     _eof=true;
  else     len+=len2;
   }
   _buffer.position(0);
   _buffer.limit(len);
-  _channel.write(_buffer,eof,this);
-  if (eof) {
-    closed();
-    _channel.getByteBufferPool().release(_buffer);
-    return true;
-  }
+  _channel.write(_buffer,_eof,this);
   return false;
 }

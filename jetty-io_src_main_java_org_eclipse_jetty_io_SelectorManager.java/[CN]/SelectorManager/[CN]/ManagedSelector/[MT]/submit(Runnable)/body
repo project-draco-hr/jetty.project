@@ -1,15 +1,34 @@
 {
-  if (_thread == Thread.currentThread()) {
-    if (_runningChanges)     _changes.offer(change);
- else {
+  if (isSelectorThread()) {
+    if (_state.get() == State.PROCESS) {
       runChanges();
       runChange(change);
+    }
+ else {
+      _changes.offer(change);
     }
   }
  else {
     _changes.offer(change);
     LOG.debug("Queued change {}",change);
-    boolean wakeup=_needsWakeup;
-    if (wakeup)     wakeup();
-  }
+    out:     while (true) {
+switch (_state.get()) {
+case SELECT:
+        if (!_state.compareAndSet(State.SELECT,State.WAKEUP))         continue;
+      wakeup();
+    break out;
+case CHANGES:
+  if (_state.compareAndSet(State.CHANGES,State.MORE_CHANGES))   break out;
+continue;
+case WAKEUP:
+break out;
+case MORE_CHANGES:
+break out;
+case PROCESS:
+break out;
+default :
+throw new IllegalStateException();
+}
+}
+}
 }

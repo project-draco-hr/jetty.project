@@ -1,0 +1,16 @@
+{
+  final CountDownLatch onFailCalledLatch=new CountDownLatch(1);
+  IStream stream=new StandardStream(1,(byte)0,session,null,scheduler,null);
+  stream.setStreamFrameListener(new StreamFrameListener.Adapter(){
+    @Override public void onFailure(    Throwable x){
+      assertThat("exception is a TimeoutException",x,is(instanceOf(TimeoutException.class)));
+      onFailCalledLatch.countDown();
+    }
+  }
+);
+  stream.process(new StringDataInfo("string",false));
+  Thread.sleep(500);
+  stream.process(new StringDataInfo("string",false));
+  Thread.sleep(500);
+  assertThat("onFailure has been called",onFailCalledLatch.await(1,TimeUnit.SECONDS),is(false));
+}
