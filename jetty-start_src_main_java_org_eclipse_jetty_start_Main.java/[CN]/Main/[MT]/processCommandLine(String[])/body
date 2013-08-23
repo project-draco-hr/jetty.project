@@ -1,166 +1,42 @@
 {
-  ArrayList<String> cmd_line=new ArrayList<>(Arrays.asList(args));
-  _config.getBaseHome().initialize(cmd_line);
-  List<StartIni> inis=new ArrayList<>();
-  File start_ini=_config.getBaseHome().getFile("start.ini");
-  if (start_ini.exists() && start_ini.canRead() && !start_ini.isDirectory())   inis.add(new StartIni(start_ini));
-  File start_d=_config.getBaseHome().getFile("start.d");
-  if (start_d.exists() && start_d.canRead() && start_d.isDirectory()) {
+  StartArgs args=new StartArgs(cmdLine);
+  baseHome.initialize(args);
+  StartLog.getInstance().initialize(baseHome,args);
+  StartLog.debug("jetty.home=%s",baseHome.getHome());
+  StartLog.debug("jetty.base=%s",baseHome.getBase());
+  args.addSystemProperty("jetty.home",baseHome.getHome());
+  args.addSystemProperty("jetty.base",baseHome.getBase());
+  File start_ini=baseHome.getBaseFile("start.ini");
+  if (FS.canReadFile(start_ini)) {
+    StartLog.debug("Reading ${jetty.base}/start.ini) - %s",start_ini);
+    args.parse(new StartIni(start_ini));
+  }
+  File start_d=baseHome.getBaseFile("start.d");
+  if (FS.canReadDirectory(start_d)) {
     List<File> files=new ArrayList<>();
-    for (    File file : start_d.listFiles(new FS.IniFilter()))     files.add(file);
+    for (    File file : start_d.listFiles(new FS.IniFilter())) {
+      files.add(file);
+    }
     Collections.sort(files,new NaturalSort.Files());
-    for (    File file : files)     inis.add(new StartIni(file));
-  }
-  inis.add(new StartIni(cmd_line));
-  List<String> xmls=new ArrayList<String>();
-  for (  StartIni ini : inis) {
-    String source="<cmdline>";
-    if (ini.getFile() != null)     source=ini.getFile().getAbsolutePath();
-    for (    String arg : ini.getLines()) {
-      if ("--help".equals(arg) || "-?".equals(arg)) {
-        _showUsage=true;
-        _noRun=true;
-        continue;
-      }
-      if ("--stop".equals(arg)) {
-        int port=Integer.parseInt(_config.getProperty("STOP.PORT","-1"));
-        String key=_config.getProperty("STOP.KEY",null);
-        int timeout=Integer.parseInt(_config.getProperty("STOP.WAIT","0"));
-        stop(port,key,timeout);
-        _noRun=true;
-      }
-      if (arg.startsWith("--download=")) {
-        download(arg);
-        continue;
-      }
-      if ("--version".equals(arg) || "-v".equals(arg) || "--info".equals(arg)) {
-        _dumpVersions=true;
-        _noRun=true;
-        continue;
-      }
-      if ("--list-modes".equals(arg) || "--list-options".equals(arg)) {
-        _listOptions=true;
-        _noRun=true;
-        continue;
-      }
-      if ("--list-config".equals(arg)) {
-        _listConfig=true;
-        _noRun=true;
-        continue;
-      }
-      if ("--exec-print".equals(arg) || "--dry-run".equals(arg)) {
-        _dryRun=true;
-        _noRun=true;
-        continue;
-      }
-      if ("--exec".equals(arg)) {
-        _exec=true;
-        continue;
-      }
-      if (arg.startsWith("--enable=")) {
-        String module=arg.substring(9);
-        _noRun=true;
-        _enable.add(module);
-      }
-      if (arg.startsWith("--disable=")) {
-        String module=arg.substring(10);
-        _noRun=true;
-        _disable.add(module);
-      }
-      if (arg.startsWith("--config=")) {
-        _startConfig=arg.substring(9);
-        continue;
-      }
-      if ("--daemon".equals(arg)) {
-        File startDir=new File(System.getProperty("jetty.logs","logs"));
-        if (!startDir.exists() || !startDir.canWrite())         startDir=new File(".");
-        File startLog=new File(startDir,START_LOG_ROLLOVER_DATEFORMAT.format(new Date()));
-        if (!startLog.exists() && !startLog.createNewFile()) {
-          System.err.println("Unable to create: " + startLog.getAbsolutePath());
-          usageExit(ERR_LOGGING);
-        }
-        if (!startLog.canWrite()) {
-          System.err.println("Unable to write to: " + startLog.getAbsolutePath());
-          usageExit(ERR_LOGGING);
-        }
-        PrintStream logger=new PrintStream(new FileOutputStream(startLog,false));
-        System.setOut(logger);
-        System.setErr(logger);
-        System.out.println("Establishing " + START_LOG_FILENAME + " on "+ new Date());
-        continue;
-      }
-      if (arg.startsWith("-D")) {
-        String[] assign=arg.substring(2).split("=",2);
-        _sysProps.add(assign[0]);
-switch (assign.length) {
-case 2:
-          System.setProperty(assign[0],assign[1]);
-        break;
-case 1:
-      System.setProperty(assign[0],"");
-    break;
-default :
-  break;
-}
-continue;
-}
-if (arg.startsWith("-")) {
-_jvmArgs.add(arg);
-continue;
-}
-if (arg.indexOf('=') >= 0) {
-String[] assign=arg.split("=",2);
-switch (assign.length) {
-case 2:
-if ("DEFINE".equals(assign[0])) {
-  String opts[]=assign[1].split(",");
-  for (  String opt : opts)   _config.defineOption(opt.trim());
-}
- else if ("DEPEND".equals(assign[0])) {
-  String opts[]=assign[1].split(",");
-  for (  String opt : opts) {
-    opt=opt.trim();
-    if (!_config.getOptions().contains(opt)) {
-      System.err.printf("ERROR: Missing Dependency: %s DEPEND %s%n",path(source),opt);
-      _noRun=true;
+    for (    File file : files) {
+      StartLog.debug("Reading ${jetty.base}/start.d/%s - %s",file.getName(),file);
+      args.parse(new StartIni(file));
     }
   }
-}
- else if ("EXCLUDE".equals(assign[0])) {
-  String opts[]=assign[1].split(",");
-  for (  String opt : opts) {
-    opt=opt.trim();
-    if (_config.getOptions().contains(opt)) {
-      System.err.printf("ERROR: Excluded Dependency: %s EXCLUDE %s%n",path(source),opt);
-      _noRun=true;
-    }
+  StartLog.debug("Parsing collected arguments");
+  args.parseCommandLine();
+  Modules modules=new Modules();
+  StartLog.debug("Registering all modules");
+  modules.registerAll(baseHome);
+  for (  String enabledModule : args.getEnabledModules()) {
+    StartLog.debug("Enabling module: %s",enabledModule);
+    modules.enable(enabledModule);
   }
-}
- else if ("OPTION".equals(assign[0])) {
-  String opts[]=assign[1].split(",");
-  for (  String opt : opts)   _config.addOption(opt.trim());
-}
- else if ("OPTIONS".equals(assign[0])) {
-  this._config.setProperty(assign[0],assign[1]);
-}
- else {
-  this._config.setProperty(assign[0],assign[1]);
-}
-break;
-case 1:
-this._config.setProperty(assign[0],null);
-break;
-default :
-break;
-}
-continue;
-}
-if (xmls.contains(arg)) {
-System.err.println("WARN: Argument '" + arg + "' specified multiple times. Check start.ini?");
-System.err.println("Use \"java -jar start.jar --help\" for more information.");
-}
-xmls.add(arg);
-}
-}
-return xmls;
+  StartLog.debug("Building Module Graph");
+  modules.buildGraph();
+  args.setAllModules(modules);
+  List<Module> activeModules=modules.resolveEnabled();
+  args.expandModules(baseHome,activeModules);
+  args.resolveExtraXmls(baseHome);
+  return args;
 }

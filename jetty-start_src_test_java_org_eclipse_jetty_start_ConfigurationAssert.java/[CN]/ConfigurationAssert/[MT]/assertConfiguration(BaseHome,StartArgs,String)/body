@@ -1,0 +1,40 @@
+{
+  File file=MavenTestingUtils.getTestResourceFile(filename);
+  TextFile textFile=new TextFile(file);
+  List<String> expectedXmls=new ArrayList<>();
+  for (  String line : textFile) {
+    if (line.startsWith("XML|")) {
+      expectedXmls.add(getValue(line));
+    }
+  }
+  List<String> actualXmls=new ArrayList<>();
+  for (  File xml : args.getXmlFiles()) {
+    actualXmls.add(baseHome.toShortForm(xml));
+  }
+  assertThat("XML Resolution Order " + actualXmls,actualXmls,contains(expectedXmls.toArray()));
+  Set<String> expectedLibs=new HashSet<>();
+  for (  String line : textFile) {
+    if (line.startsWith("LIB|")) {
+      expectedLibs.add(getValue(line));
+    }
+  }
+  Set<String> actualLibs=new HashSet<>();
+  for (  File path : args.getClasspath()) {
+    actualLibs.add(baseHome.toShortForm(path));
+  }
+  assertThat("Libs " + actualLibs,actualLibs,containsInAnyOrder(expectedLibs.toArray()));
+  Set<String> expectedProperties=new HashSet<>();
+  for (  String line : textFile) {
+    if (line.startsWith("PROP|")) {
+      expectedProperties.add(getValue(line));
+    }
+  }
+  Set<String> actualProperties=new HashSet<>();
+  @SuppressWarnings("unchecked") Enumeration<String> nameEnum=(Enumeration<String>)args.getProperties().propertyNames();
+  while (nameEnum.hasMoreElements()) {
+    String name=nameEnum.nextElement();
+    String value=args.getProperties().getProperty(name);
+    actualProperties.add(name + "=" + value);
+  }
+  assertThat("Properties " + actualProperties,actualProperties,containsInAnyOrder(expectedProperties.toArray()));
+}

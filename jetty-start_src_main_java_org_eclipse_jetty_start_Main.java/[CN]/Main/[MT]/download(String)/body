@@ -1,21 +1,33 @@
 {
   try {
     String[] split=arg.split(":",3);
-    if (split.length != 3 || "http".equalsIgnoreCase(split[0]) || !split[1].startsWith("//"))     throw new IllegalArgumentException("Not --download=<http uri>:<location>");
+    if ((split.length != 3) || "http".equalsIgnoreCase(split[0]) || !split[1].startsWith("//")) {
+      throw new IllegalArgumentException("Not --download=<http uri>:<location>");
+    }
     String location=split[2];
-    if (File.separatorChar != '/')     location.replaceAll("/",File.separator);
+    if (File.separatorChar != '/') {
+      location.replaceAll("/",File.separator);
+    }
     File file=new File(location);
-    Config.debug("Download to %s %s",file.getAbsolutePath(),(file.exists() ? "[Exists!]" : ""));
-    if (file.exists())     return;
+    StartLog.debug("Download to %s %s",file.getAbsolutePath(),(file.exists() ? "[Exists!]" : ""));
+    if (file.exists()) {
+      return;
+    }
     URL url=new URL(split[0].substring(11) + ":" + split[1]);
     System.err.println("DOWNLOAD: " + url + " to "+ location);
-    if (!file.getParentFile().exists())     file.getParentFile().mkdirs();
+    if (!file.getParentFile().exists()) {
+      file.getParentFile().mkdirs();
+    }
     byte[] buf=new byte[8192];
     try (InputStream in=url.openStream();OutputStream out=new FileOutputStream(file)){
       while (true) {
         int len=in.read(buf);
-        if (len > 0)         out.write(buf,0,len);
-        if (len < 0)         break;
+        if (len > 0) {
+          out.write(buf,0,len);
+        }
+        if (len < 0) {
+          break;
+        }
       }
     }
    }

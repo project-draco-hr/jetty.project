@@ -1,0 +1,101 @@
+{
+  if ("--help".equals(arg) || "-?".equals(arg)) {
+    help=true;
+    run=false;
+    return;
+  }
+  if ("--debug".equals(arg)) {
+    return;
+  }
+  if ("--stop".equals(arg)) {
+    stopCommand=true;
+    run=false;
+    return;
+  }
+  if (arg.startsWith("--download=")) {
+    downloads.add(getValue(arg));
+    return;
+  }
+  if ("--list-classpath".equals(arg) || "--version".equals(arg) || "-v".equals(arg)|| "--info".equals(arg)) {
+    listClasspath=true;
+    run=false;
+    return;
+  }
+  if ("--list-config".equals(arg)) {
+    listConfig=true;
+    run=false;
+    return;
+  }
+  if ("--list-modules".equals(arg)) {
+    listModules=true;
+    run=false;
+    return;
+  }
+  if ("--dry-run".equals(arg) || "--exec-print".equals(arg)) {
+    dryRun=true;
+    run=false;
+    return;
+  }
+  if ("--exec".equals(arg)) {
+    exec=true;
+    return;
+  }
+  if (arg.startsWith("--enable=")) {
+    String moduleName=getValue(arg);
+    run=false;
+    return;
+  }
+  if (arg.startsWith("--disable=")) {
+    String moduleName=getValue(arg);
+    run=false;
+    return;
+  }
+  if (arg.startsWith("MODULE=")) {
+    enabledModules.add(getValue(arg));
+    return;
+  }
+  if (arg.startsWith("MODULES=")) {
+    for (    String moduleName : getValue(arg).split(",")) {
+      if (moduleName == null) {
+        continue;
+      }
+      enabledModules.add(moduleName.trim());
+    }
+    return;
+  }
+  if (arg.startsWith("-D")) {
+    String[] assign=arg.substring(2).split("=",2);
+    systemPropertyKeys.add(assign[0]);
+switch (assign.length) {
+case 2:
+      System.setProperty(assign[0],assign[1]);
+    break;
+case 1:
+  System.setProperty(assign[0],"");
+break;
+default :
+break;
+}
+return;
+}
+if (arg.startsWith("-")) {
+if (!jvmArgs.contains(arg)) {
+jvmArgs.add(arg);
+}
+return;
+}
+int idx=arg.indexOf('=');
+if (idx >= 0) {
+String key=arg.substring(0,idx);
+String value=arg.substring(idx + 1);
+properties.setProperty(key,value);
+return;
+}
+if (FS.isXml(arg)) {
+if (!xmlRefs.contains(arg)) {
+xmlRefs.add(arg);
+}
+return;
+}
+throw new UsageException(ERR_BAD_ARG,"Unrecognized argument: %s",arg);
+}
