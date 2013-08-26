@@ -1,5 +1,6 @@
 {
   List<String> modulesThatWereDisabled=new ArrayList<>();
+  List<String> modulesThatWereEnabled=new ArrayList<>();
   Set<String> resolvedModulesToDisable=args.getAllModules().resolveChildModulesOf(moduleName);
   System.out.printf(" - Disabling Module: %s%n",moduleName);
   if (resolvedModulesToDisable.size() > 1) {
@@ -13,6 +14,18 @@
       needDelim=true;
     }
     System.out.println();
+  }
+  Modules modules=args.getAllModules();
+  Module leaf=modules.get(moduleName);
+  if (leaf.getChildEdges().size() <= 0) {
+    List<String> sources=new ArrayList<>();
+    sources.add("<module-persistence>");
+    for (    Module parent : leaf.getParentEdges()) {
+      parent.setEnabled(true);
+      parent.addSources(sources);
+      addUniqueLine(parent.getName());
+      modulesThatWereEnabled.add(parent.getName());
+    }
   }
   ListIterator<String> iter=super.listIterator();
   while (iter.hasNext()) {
@@ -30,8 +43,12 @@
     }
     return true;
   }
+ else   if (modulesThatWereEnabled.size() > 0) {
+    System.out.printf("Module %s was has been effectively disabled.%n",moduleName);
+    return true;
+  }
  else {
-    System.out.printf("Module %s not found, nothing actually disabled.%n",moduleName);
+    System.out.printf("Module %s not found, no changes made to module persistence.%n",moduleName);
     return false;
   }
 }
