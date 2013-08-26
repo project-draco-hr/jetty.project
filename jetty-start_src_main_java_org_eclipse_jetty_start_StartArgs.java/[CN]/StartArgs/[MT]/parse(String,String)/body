@@ -1,5 +1,6 @@
 {
   if ("--help".equals(arg) || "-?".equals(arg)) {
+    if (!CMD_LINE_SOURCE.equals(source))     throw new UsageException(ERR_BAD_ARG,"%s not allowed in %s",arg,source);
     help=true;
     run=false;
     return;
@@ -8,6 +9,7 @@
     return;
   }
   if ("--stop".equals(arg)) {
+    if (!CMD_LINE_SOURCE.equals(source))     throw new UsageException(ERR_BAD_ARG,"%s not allowed in %s",arg,source);
     stopCommand=true;
     run=false;
     return;
@@ -32,6 +34,7 @@
     return;
   }
   if ("--dry-run".equals(arg) || "--exec-print".equals(arg)) {
+    if (!CMD_LINE_SOURCE.equals(source))     throw new UsageException(ERR_BAD_ARG,"%s not allowed in %s",arg,source);
     dryRun=true;
     run=false;
     return;
@@ -41,33 +44,31 @@
     return;
   }
   if (arg.startsWith("--enable=")) {
-    String moduleName=getValue(arg);
+    if (!CMD_LINE_SOURCE.equals(source))     throw new UsageException(ERR_BAD_ARG,"%s not allowed in %s",arg,source);
+    enable.addAll(getValues(arg));
     run=false;
     return;
   }
   if (arg.startsWith("--disable=")) {
-    String moduleName=getValue(arg);
+    if (!CMD_LINE_SOURCE.equals(source))     throw new UsageException(ERR_BAD_ARG,"%s not allowed in %s",arg,source);
+    disable.addAll(getValues(arg));
     run=false;
     return;
   }
   if (arg.startsWith("--module=")) {
-    for (    String moduleName : getValue(arg).split(",")) {
-      if (moduleName == null) {
-        continue;
+    for (    String moduleName : getValues(arg)) {
+      modules.add(moduleName);
+      List<String> list=sources.get(moduleName);
+      if (list == null) {
+        list=new ArrayList<String>();
+        sources.put(moduleName,list);
       }
-      moduleName=moduleName.trim();
-      enabledModules.add(moduleName);
-      List<String> sources=moduleSources.get(moduleName);
-      if (sources == null) {
-        sources=new ArrayList<String>();
-        moduleSources.put(moduleName,sources);
-      }
-      sources.add(source);
+      list.add(source);
     }
     return;
   }
   if (arg.startsWith("MODULE=") || arg.startsWith("MODULES=")) {
-    System.err.println("ERROR: Ignored deprecated arg: " + arg);
+    StartLog.warn("Ignored deprecated arg: {}",arg);
     return;
   }
   if (arg.startsWith("-D")) {
