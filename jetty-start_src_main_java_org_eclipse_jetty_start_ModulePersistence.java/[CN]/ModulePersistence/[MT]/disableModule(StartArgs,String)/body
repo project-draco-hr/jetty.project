@@ -1,0 +1,37 @@
+{
+  List<String> modulesThatWereDisabled=new ArrayList<>();
+  Set<String> resolvedModulesToDisable=args.getAllModules().resolveChildModulesOf(moduleName);
+  System.out.printf(" - Disabling Module: %s%n",moduleName);
+  if (resolvedModulesToDisable.size() > 1) {
+    System.out.printf(" - (Resolved to) : ");
+    boolean needDelim=false;
+    for (    String name : resolvedModulesToDisable) {
+      if (needDelim) {
+        System.out.print(" -> ");
+      }
+      System.out.print(name);
+      needDelim=true;
+    }
+    System.out.println();
+  }
+  ListIterator<String> iter=super.listIterator();
+  while (iter.hasNext()) {
+    String line=iter.next().trim();
+    if (resolvedModulesToDisable.contains(line)) {
+      iter.remove();
+      modulesThatWereDisabled.add(line);
+    }
+  }
+  saveFile();
+  if (modulesThatWereDisabled.size() > 0) {
+    System.out.printf("Disabled %d module%s%n",modulesThatWereDisabled.size(),modulesThatWereDisabled.size() > 1 ? "s" : "");
+    for (    String name : modulesThatWereDisabled) {
+      System.out.printf(" - %s%n",name);
+    }
+    return true;
+  }
+ else {
+    System.out.printf("Module %s not found, nothing actually disabled.%n",moduleName);
+    return false;
+  }
+}

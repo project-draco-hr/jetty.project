@@ -1,0 +1,20 @@
+{
+  File homeDir=MavenTestingUtils.getTestResourceDir("usecases/home");
+  File baseDir=testdir.getEmptyDir();
+  File modulesDir=testdir.getFile("modules");
+  FS.ensureEmpty(modulesDir);
+  File mfile=new File(modulesDir,"enabled");
+  writeFile(mfile,"http","websocket");
+  ModulePersistence persistence=new ModulePersistence(mfile);
+  Assert.assertThat("persistence.enabled",persistence.getEnabled(),containsInAnyOrder("http","websocket"));
+  Main main=new Main();
+  List<String> cmds=new ArrayList<>();
+  cmds.add("jetty.home=" + homeDir.getAbsolutePath());
+  cmds.add("jetty.base=" + baseDir.getAbsolutePath());
+  cmds.add("--disable-module=http");
+  StartArgs args=main.processCommandLine(cmds);
+  Assert.assertThat("isRun",args.isRun(),is(false));
+  main.start(args);
+  persistence=new ModulePersistence(mfile);
+  Assert.assertThat("persistence.enabled",persistence.getEnabled(),containsInAnyOrder("websocket"));
+}

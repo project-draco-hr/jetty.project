@@ -2,15 +2,6 @@
   StartLog.debug("StartArgs: %s",args);
   Classpath classpath=args.getClasspath();
   System.setProperty("java.class.path",classpath.toString());
-  ClassLoader cl=classpath.getClassLoader();
-  StartLog.debug("jetty.home=" + System.getProperty("jetty.home"));
-  StartLog.debug("jetty.base=" + System.getProperty("jetty.base"));
-  StartLog.debug("java.home=" + System.getProperty("java.home"));
-  StartLog.debug("java.io.tmpdir=" + System.getProperty("java.io.tmpdir"));
-  StartLog.debug("java.class.path=" + classpath);
-  StartLog.debug("classloader=" + cl);
-  StartLog.debug("classloader.parent=" + cl.getParent());
-  StartLog.debug("properties=" + args.getProperties());
   if (args.isHelp()) {
     usage();
   }
@@ -30,11 +21,18 @@
   for (  String url : args.getDownloads()) {
     download(url);
   }
-  for (  String module : args.getDisable()) {
-    disable(args,module,true);
-  }
-  for (  String module : args.getEnable()) {
-    enable(args,module,true);
+  File file=baseHome.getBaseFile("modules/enabled");
+  ModulePersistence persistence=new ModulePersistence(file);
+  if (args.isModulePersistenceChanging()) {
+    System.out.println("Persistent Module Management:");
+    System.out.println("-----------------------------");
+    System.out.printf("Persistence file: %s%n",baseHome.toShortForm(file));
+    for (    String module : args.getModulePersistDisable()) {
+      persistence.disableModule(args,module);
+    }
+    for (    String module : args.getModulePersistEnable()) {
+      persistence.enableModule(args,module);
+    }
   }
   if (args.isStopCommand()) {
     int stopPort=Integer.parseInt(args.getProperties().getProperty("STOP.PORT"));
@@ -71,6 +69,7 @@
   if (args.hasJvmArgs() || args.hasSystemProperties()) {
     System.err.println("WARNING: System properties and/or JVM args set.  Consider using --dry-run or --exec");
   }
+  ClassLoader cl=classpath.getClassLoader();
   Thread.currentThread().setContextClassLoader(cl);
   try {
     invokeMain(args);
