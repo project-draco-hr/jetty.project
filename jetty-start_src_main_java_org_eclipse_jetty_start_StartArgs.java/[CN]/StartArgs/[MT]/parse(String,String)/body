@@ -50,17 +50,24 @@
     run=false;
     return;
   }
-  if (arg.startsWith("MODULE=")) {
-    enabledModules.add(getValue(arg));
-    return;
-  }
-  if (arg.startsWith("MODULES=")) {
+  if (arg.startsWith("--module=")) {
     for (    String moduleName : getValue(arg).split(",")) {
       if (moduleName == null) {
         continue;
       }
-      enabledModules.add(moduleName.trim());
+      moduleName=moduleName.trim();
+      enabledModules.add(moduleName);
+      List<String> sources=moduleSources.get(moduleName);
+      if (sources == null) {
+        sources=new ArrayList<String>();
+        moduleSources.put(moduleName,sources);
+      }
+      sources.add(source);
     }
+    return;
+  }
+  if (arg.startsWith("MODULE=") || arg.startsWith("MODULES=")) {
+    System.err.println("ERROR: Ignored deprecated arg: " + arg);
     return;
   }
   if (arg.startsWith("-D")) {
@@ -97,5 +104,5 @@ xmlRefs.add(arg);
 }
 return;
 }
-throw new UsageException(ERR_BAD_ARG,"Unrecognized argument: %s",arg);
+throw new UsageException(ERR_BAD_ARG,"Unrecognized argument: %s in %s",arg,source);
 }
