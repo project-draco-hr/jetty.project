@@ -1,0 +1,44 @@
+{
+  if (OpCode.isControlFrame(frame.getOpCode())) {
+    nextOutgoingFrame(frame,callback);
+    return;
+  }
+  if (!frame.hasPayload()) {
+    nextOutgoingFrame(frame,callback);
+    return;
+  }
+  if (LOG.isDebugEnabled()) {
+    LOG.debug("outgoingFrame({}, {}) - {}",OpCode.name(frame.getOpCode()),callback != null ? callback.getClass().getSimpleName() : "<null>",BufferUtil.toDetailString(frame.getPayload()));
+  }
+  byte uncompressed[]=BufferUtil.toArray(frame.getPayload());
+  if (!compressor.finished()) {
+    compressor.setInput(uncompressed,0,uncompressed.length);
+    byte compressed[]=new byte[uncompressed.length + OVERHEAD];
+    while (!compressor.needsInput()) {
+      int len=compressor.deflate(compressed,0,compressed.length,Deflater.SYNC_FLUSH);
+      ByteBuffer outbuf=getBufferPool().acquire(len,true);
+      BufferUtil.clearToFill(outbuf);
+      if (len > 0) {
+        outbuf.put(compressed,0,len - 4);
+      }
+      BufferUtil.flipToFlush(outbuf,0);
+      if (len > 0 && BFINAL_HACK) {
+        byte b0=outbuf.get(0);
+        if ((b0 & 1) != 0) {
+          outbuf.put(0,(b0^=1));
+        }
+      }
+      DataFrame out=new DataFrame(frame);
+      out.setRsv1(true);
+      out.setPooledBuffer(true);
+      out.setPayload(outbuf);
+      if (!compressor.needsInput()) {
+        out.setFin(false);
+        nextOutgoingFrame(out,null);
+      }
+ else {
+        nextOutgoingFrame(out,callback);
+      }
+    }
+  }
+}
