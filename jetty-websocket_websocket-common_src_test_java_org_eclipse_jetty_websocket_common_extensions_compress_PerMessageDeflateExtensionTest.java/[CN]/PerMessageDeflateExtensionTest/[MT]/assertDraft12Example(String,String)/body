@@ -1,0 +1,31 @@
+{
+  WebSocketPolicy policy=WebSocketPolicy.newClientPolicy();
+  PerMessageDeflateExtension ext=new PerMessageDeflateExtension();
+  ext.setBufferPool(new MappedByteBufferPool());
+  ext.setPolicy(policy);
+  ExtensionConfig config=ExtensionConfig.parse("permessage-deflate");
+  ext.setConfig(config);
+  IncomingFramesCapture capture=new IncomingFramesCapture();
+  ext.setNextIncomingFrames(capture);
+  String hex=hexStrCompleteFrame.replaceAll("\\s*0x","");
+  byte net[]=TypeUtil.fromHexString(hex);
+  Parser parser=new UnitParser(policy);
+  parser.configureFromExtensions(Collections.singletonList(ext));
+  parser.setIncomingFramesHandler(ext);
+  parser.parse(ByteBuffer.wrap(net));
+  int expectedCount=expectedStrs.length;
+  capture.assertFrameCount(expectedCount);
+  capture.assertHasFrame(OpCode.TEXT,expectedCount);
+  for (int i=0; i < expectedCount; i++) {
+    WebSocketFrame actual=capture.getFrames().pop();
+    String prefix=String.format("frame[%d]",i);
+    Assert.assertThat(prefix + ".opcode",actual.getOpCode(),is(OpCode.TEXT));
+    Assert.assertThat(prefix + ".fin",actual.isFin(),is(true));
+    Assert.assertThat(prefix + ".rsv1",actual.isRsv1(),is(false));
+    Assert.assertThat(prefix + ".rsv2",actual.isRsv2(),is(false));
+    Assert.assertThat(prefix + ".rsv3",actual.isRsv3(),is(false));
+    ByteBuffer expected=BufferUtil.toBuffer(expectedStrs[i],StringUtil.__UTF8_CHARSET);
+    Assert.assertThat(prefix + ".payloadLength",actual.getPayloadLength(),is(expected.remaining()));
+    ByteBufferAssert.assertEquals(prefix + ".payload",expected,actual.getPayload().slice());
+  }
+}
