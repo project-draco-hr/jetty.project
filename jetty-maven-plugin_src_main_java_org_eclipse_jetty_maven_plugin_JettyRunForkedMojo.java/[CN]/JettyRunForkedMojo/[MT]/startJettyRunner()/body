@@ -48,16 +48,16 @@
  else {
       forkedProcess.getErrorStream().close();
       try {
-        LineNumberReader reader=new LineNumberReader(new InputStreamReader(forkedProcess.getInputStream()));
         String line="";
-        int attempts=maxStartupLines;
-        while (attempts > 0 && line != null) {
-          --attempts;
-          line=reader.readLine();
-          if (line != null && line.startsWith(token))           break;
+        try (InputStream is=forkedProcess.getInputStream();LineNumberReader reader=new LineNumberReader(new InputStreamReader(is))){
+          int attempts=maxStartupLines;
+          while (attempts > 0 && line != null) {
+            --attempts;
+            line=reader.readLine();
+            if (line != null && line.startsWith(token))             break;
+          }
         }
-        reader.close();
-        if (line != null && line.trim().equals(token))         PluginLog.getLog().info("Forked process started.");
+         if (line != null && line.trim().equals(token))         PluginLog.getLog().info("Forked process started.");
  else {
           String err=(line == null ? "" : (line.startsWith(token) ? line.substring(token.length()) : line));
           PluginLog.getLog().info("Forked process startup errors" + (!"".equals(err) ? ", received: " + err : ""));

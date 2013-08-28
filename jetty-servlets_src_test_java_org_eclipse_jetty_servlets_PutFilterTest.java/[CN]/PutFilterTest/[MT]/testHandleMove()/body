@@ -12,10 +12,10 @@
   assertEquals(HttpServletResponse.SC_CREATED,response.getStatus());
   File file=new File(_dir,"file.txt");
   assertTrue(file.exists());
-  FileInputStream fis=new FileInputStream(file);
-  assertEquals(data1,IO.toString(fis));
-  fis.close();
-  request.setMethod("MOVE");
+  try (InputStream fis=new FileInputStream(file)){
+    assertEquals(data1,IO.toString(fis));
+  }
+   request.setMethod("MOVE");
   request.setURI("/context/file.txt");
   request.setHeader("new-uri","/context/blah.txt");
   response=HttpTester.parseResponse(tester.getResponses(request.generate()));

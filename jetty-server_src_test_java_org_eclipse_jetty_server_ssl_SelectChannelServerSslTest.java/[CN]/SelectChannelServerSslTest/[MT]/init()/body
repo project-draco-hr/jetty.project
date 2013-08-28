@@ -9,8 +9,10 @@
   ServerConnector connector=new ServerConnector(_server,1,1,sslContextFactory);
   startServer(connector);
   KeyStore keystore=KeyStore.getInstance(KeyStore.getDefaultType());
-  keystore.load(new FileInputStream(sslContextFactory.getKeyStorePath()),"storepwd".toCharArray());
-  TrustManagerFactory trustManagerFactory=TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+  try (InputStream stream=new FileInputStream(sslContextFactory.getKeyStorePath())){
+    keystore.load(stream,"storepwd".toCharArray());
+  }
+   TrustManagerFactory trustManagerFactory=TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
   trustManagerFactory.init(keystore);
   __sslContext=SSLContext.getInstance("TLS");
   __sslContext.init(null,trustManagerFactory.getTrustManagers(),null);

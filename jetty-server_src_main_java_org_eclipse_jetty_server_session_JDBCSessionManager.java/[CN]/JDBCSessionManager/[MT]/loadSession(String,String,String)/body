@@ -6,13 +6,8 @@
  * @see java.lang.Runnable#run()
  */
     @SuppressWarnings("unchecked") public void run(){
-      Session session=null;
-      Connection connection=null;
-      PreparedStatement statement=null;
-      try {
-        connection=getConnection();
-        statement=_jdbcSessionIdMgr._dbAdaptor.getLoadStatement(connection,id,canonicalContextPath,vhost);
-        ResultSet result=statement.executeQuery();
+      try (Connection connection=getConnection();PreparedStatement statement=_jdbcSessionIdMgr._dbAdaptor.getLoadStatement(connection,id,canonicalContextPath,vhost);ResultSet result=statement.executeQuery()){
+        Session session=null;
         if (result.next()) {
           long maxInterval=result.getLong("maxInterval");
           if (maxInterval == JDBCSessionIdManager.MAX_INTERVAL_NOT_SET) {
@@ -26,28 +21,17 @@
           session.setExpiryTime(result.getLong("expiryTime"));
           session.setCanonicalContext(result.getString("contextPath"));
           session.setVirtualHost(result.getString("virtualHost"));
-          InputStream is=((JDBCSessionIdManager)getSessionIdManager())._dbAdaptor.getBlobInputStream(result,"map");
-          ClassLoadingObjectInputStream ois=new ClassLoadingObjectInputStream(is);
-          Object o=ois.readObject();
-          session.addAttributes((Map<String,Object>)o);
-          ois.close();
-          if (LOG.isDebugEnabled())           LOG.debug("LOADED session " + session);
+          try (InputStream is=((JDBCSessionIdManager)getSessionIdManager())._dbAdaptor.getBlobInputStream(result,"map");ClassLoadingObjectInputStream ois=new ClassLoadingObjectInputStream(is)){
+            Object o=ois.readObject();
+            session.addAttributes((Map<String,Object>)o);
+          }
+           if (LOG.isDebugEnabled())           LOG.debug("LOADED session " + session);
         }
  else         if (LOG.isDebugEnabled())         LOG.debug("Failed to load session " + id);
         _reference.set(session);
       }
  catch (      Exception e) {
         _exception.set(e);
-      }
- finally {
-        if (connection != null) {
-          try {
-            connection.close();
-          }
- catch (          Exception e) {
-            LOG.warn(e);
-          }
-        }
       }
     }
   }

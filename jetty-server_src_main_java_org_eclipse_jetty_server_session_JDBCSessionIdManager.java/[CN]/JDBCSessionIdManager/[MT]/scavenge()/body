@@ -1,57 +1,59 @@
 {
   Connection connection=null;
-  Set<String> expiredSessionIds=new HashSet<String>();
   try {
     if (LOG.isDebugEnabled())     LOG.debug(getWorkerName() + "- Scavenge sweep started at " + System.currentTimeMillis());
     if (_lastScavengeTime > 0) {
       connection=getConnection();
       connection.setAutoCommit(true);
-      PreparedStatement statement=connection.prepareStatement(_selectBoundedExpiredSessions);
+      Set<String> expiredSessionIds=new HashSet<String>();
       long lowerBound=(_lastScavengeTime - _scavengeIntervalMs);
       long upperBound=_lastScavengeTime;
       if (LOG.isDebugEnabled())       LOG.debug(getWorkerName() + "- Pass 1: Searching for sessions expired between " + lowerBound+ " and "+ upperBound);
-      statement.setString(1,getWorkerName());
-      statement.setLong(2,lowerBound);
-      statement.setLong(3,upperBound);
-      ResultSet result=statement.executeQuery();
-      while (result.next()) {
-        String sessionId=result.getString("sessionId");
-        expiredSessionIds.add(sessionId);
-        if (LOG.isDebugEnabled())         LOG.debug("Found expired sessionId=" + sessionId);
-      }
-      result.close();
-      scavengeSessions(expiredSessionIds,false);
-      PreparedStatement selectExpiredSessions=connection.prepareStatement(_selectExpiredSessions);
-      expiredSessionIds.clear();
-      upperBound=_lastScavengeTime - (2 * _scavengeIntervalMs);
-      if (upperBound > 0) {
-        if (LOG.isDebugEnabled())         LOG.debug(getWorkerName() + "- Pass 2: Searching for sessions expired before " + upperBound);
-        selectExpiredSessions.setLong(1,upperBound);
-        result=selectExpiredSessions.executeQuery();
-        while (result.next()) {
-          String sessionId=result.getString("sessionId");
-          String lastNode=result.getString("lastNode");
-          if ((getWorkerName() == null && lastNode == null) || (getWorkerName() != null && getWorkerName().equals(lastNode)))           expiredSessionIds.add(sessionId);
-          if (LOG.isDebugEnabled())           LOG.debug("Found expired sessionId=" + sessionId + " last managed by "+ getWorkerName());
+      try (PreparedStatement statement=connection.prepareStatement(_selectBoundedExpiredSessions)){
+        statement.setString(1,getWorkerName());
+        statement.setLong(2,lowerBound);
+        statement.setLong(3,upperBound);
+        try (ResultSet result=statement.executeQuery()){
+          while (result.next()) {
+            String sessionId=result.getString("sessionId");
+            expiredSessionIds.add(sessionId);
+            if (LOG.isDebugEnabled())             LOG.debug("Found expired sessionId=" + sessionId);
+          }
         }
-        result.close();
-        scavengeSessions(expiredSessionIds,false);
-      }
-      upperBound=_lastScavengeTime - (3 * _scavengeIntervalMs);
-      expiredSessionIds.clear();
-      if (upperBound > 0) {
-        if (LOG.isDebugEnabled())         LOG.debug(getWorkerName() + "- Pass 3: searching for sessions expired before " + upperBound);
-        selectExpiredSessions.setLong(1,upperBound);
-        result=selectExpiredSessions.executeQuery();
-        while (result.next()) {
-          String sessionId=result.getString("sessionId");
-          expiredSessionIds.add(sessionId);
-          if (LOG.isDebugEnabled())           LOG.debug("Found expired sessionId=" + sessionId);
+       }
+       scavengeSessions(expiredSessionIds,false);
+      try (PreparedStatement selectExpiredSessions=connection.prepareStatement(_selectExpiredSessions)){
+        expiredSessionIds.clear();
+        upperBound=_lastScavengeTime - (2 * _scavengeIntervalMs);
+        if (upperBound > 0) {
+          if (LOG.isDebugEnabled())           LOG.debug(getWorkerName() + "- Pass 2: Searching for sessions expired before " + upperBound);
+          selectExpiredSessions.setLong(1,upperBound);
+          try (ResultSet result=selectExpiredSessions.executeQuery()){
+            while (result.next()) {
+              String sessionId=result.getString("sessionId");
+              String lastNode=result.getString("lastNode");
+              if ((getWorkerName() == null && lastNode == null) || (getWorkerName() != null && getWorkerName().equals(lastNode)))               expiredSessionIds.add(sessionId);
+              if (LOG.isDebugEnabled())               LOG.debug("Found expired sessionId=" + sessionId + " last managed by "+ getWorkerName());
+            }
+          }
+           scavengeSessions(expiredSessionIds,false);
         }
-        result.close();
-        scavengeSessions(expiredSessionIds,true);
+        upperBound=_lastScavengeTime - (3 * _scavengeIntervalMs);
+        expiredSessionIds.clear();
+        if (upperBound > 0) {
+          if (LOG.isDebugEnabled())           LOG.debug(getWorkerName() + "- Pass 3: searching for sessions expired before " + upperBound);
+          selectExpiredSessions.setLong(1,upperBound);
+          try (ResultSet result=selectExpiredSessions.executeQuery()){
+            while (result.next()) {
+              String sessionId=result.getString("sessionId");
+              expiredSessionIds.add(sessionId);
+              if (LOG.isDebugEnabled())               LOG.debug("Found expired sessionId=" + sessionId);
+            }
+          }
+           scavengeSessions(expiredSessionIds,true);
+        }
       }
-    }
+     }
   }
  catch (  Exception e) {
     if (isRunning())     LOG.warn("Problem selecting expired sessions",e);

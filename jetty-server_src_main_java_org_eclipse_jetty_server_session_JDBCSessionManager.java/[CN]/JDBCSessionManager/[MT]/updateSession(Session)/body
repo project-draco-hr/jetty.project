@@ -1,11 +1,8 @@
 {
   if (data == null)   return;
-  Connection connection=getConnection();
-  PreparedStatement statement=null;
-  try {
+  try (Connection connection=getConnection();PreparedStatement statement=connection.prepareStatement(_jdbcSessionIdMgr._updateSession)){
     long now=System.currentTimeMillis();
     connection.setAutoCommit(true);
-    statement=connection.prepareStatement(_jdbcSessionIdMgr._updateSession);
     statement.setString(1,data.getId());
     statement.setString(2,getSessionIdManager().getWorkerName());
     statement.setLong(3,data.getAccessed());
@@ -16,15 +13,13 @@
     ByteArrayOutputStream baos=new ByteArrayOutputStream();
     ObjectOutputStream oos=new ObjectOutputStream(baos);
     oos.writeObject(data.getAttributeMap());
+    oos.flush();
     byte[] bytes=baos.toByteArray();
     ByteArrayInputStream bais=new ByteArrayInputStream(bytes);
     statement.setBinaryStream(8,bais,bytes.length);
     statement.setString(9,data.getRowId());
     statement.executeUpdate();
     data.setLastSaved(now);
-    if (LOG.isDebugEnabled())     LOG.debug("Updated session " + data);
   }
-  finally {
-    if (connection != null)     connection.close();
-  }
+   if (LOG.isDebugEnabled())   LOG.debug("Updated session " + data);
 }

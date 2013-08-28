@@ -1,29 +1,27 @@
 {
-  Connection connection=null;
-  try {
-    connection=getConnection();
-    PreparedStatement statement=connection.prepareStatement(userQuery);
-    statement.setString(1,userName);
-    ResultSet results=statement.executeQuery();
+  try (Connection connection=getConnection()){
     String dbCredential=null;
-    if (results.next()) {
-      dbCredential=results.getString(1);
+    try (PreparedStatement statement=connection.prepareStatement(userQuery)){
+      statement.setString(1,userName);
+      try (ResultSet results=statement.executeQuery()){
+        if (results.next()) {
+          dbCredential=results.getString(1);
+        }
+      }
+     }
+     if (dbCredential == null) {
+      return null;
     }
-    results.close();
-    statement.close();
-    statement=connection.prepareStatement(rolesQuery);
-    statement.setString(1,userName);
-    results=statement.executeQuery();
     List<String> roles=new ArrayList<String>();
-    while (results.next()) {
-      String roleName=results.getString(1);
-      roles.add(roleName);
-    }
-    results.close();
-    statement.close();
-    return dbCredential == null ? null : new UserInfo(userName,Credential.getCredential(dbCredential),roles);
+    try (PreparedStatement statement=connection.prepareStatement(rolesQuery)){
+      statement.setString(1,userName);
+      try (ResultSet results=statement.executeQuery()){
+        while (results.next()) {
+          String roleName=results.getString(1);
+          roles.add(roleName);
+        }
+      }
+     }
+     return new UserInfo(userName,Credential.getCredential(dbCredential),roles);
   }
-  finally {
-    if (connection != null)     connection.close();
-  }
-}
+ }

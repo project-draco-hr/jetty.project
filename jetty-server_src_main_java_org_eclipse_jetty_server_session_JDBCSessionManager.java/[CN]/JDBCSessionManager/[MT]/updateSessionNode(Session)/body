@@ -1,17 +1,10 @@
 {
   String nodeId=getSessionIdManager().getWorkerName();
-  Connection connection=getConnection();
-  PreparedStatement statement=null;
-  try {
+  try (Connection connection=getConnection();PreparedStatement statement=connection.prepareStatement(_jdbcSessionIdMgr._updateSessionNode)){
     connection.setAutoCommit(true);
-    statement=connection.prepareStatement(_jdbcSessionIdMgr._updateSessionNode);
     statement.setString(1,nodeId);
     statement.setString(2,data.getRowId());
     statement.executeUpdate();
-    statement.close();
-    if (LOG.isDebugEnabled())     LOG.debug("Updated last node for session id=" + data.getId() + ", lastNode = "+ nodeId);
   }
-  finally {
-    if (connection != null)     connection.close();
-  }
+   if (LOG.isDebugEnabled())   LOG.debug("Updated last node for session id=" + data.getId() + ", lastNode = "+ nodeId);
 }

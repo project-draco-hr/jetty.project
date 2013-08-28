@@ -1,35 +1,27 @@
 {
   if (expiredIds == null || expiredIds.isEmpty())   return;
   String[] ids=expiredIds.toArray(new String[expiredIds.size()]);
-  Connection con=null;
-  try {
-    con=getConnection();
+  try (Connection con=getConnection()){
     con.setTransactionIsolation(Connection.TRANSACTION_SERIALIZABLE);
     con.setAutoCommit(false);
     int start=0;
     int end=0;
     int blocksize=_deleteBlockSize;
     int block=0;
-    while (end < ids.length) {
-      start=block * blocksize;
-      if ((ids.length - start) >= blocksize)       end=start + blocksize;
- else       end=ids.length;
-      Statement statement=con.createStatement();
-      statement.executeUpdate(fillInClause("delete from " + _sessionIdTable + " where id in ",ids,start,end));
-      statement.executeUpdate(fillInClause("delete from " + _sessionTable + " where sessionId in ",ids,start,end));
-      block++;
+    try (Statement statement=con.createStatement()){
+      while (end < ids.length) {
+        start=block * blocksize;
+        if ((ids.length - start) >= blocksize)         end=start + blocksize;
+ else         end=ids.length;
+        statement.executeUpdate(fillInClause("delete from " + _sessionIdTable + " where id in ",ids,start,end));
+        statement.executeUpdate(fillInClause("delete from " + _sessionTable + " where sessionId in ",ids,start,end));
+        block++;
+      }
     }
-    con.commit();
-  }
- catch (  Exception e) {
-    if (con != null) {
+ catch (    Exception e) {
       con.rollback();
       throw e;
     }
+    con.commit();
   }
- finally {
-    if (con != null) {
-      con.close();
-    }
-  }
-}
+ }
