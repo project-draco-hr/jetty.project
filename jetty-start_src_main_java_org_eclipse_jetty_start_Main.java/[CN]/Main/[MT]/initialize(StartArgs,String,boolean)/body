@@ -1,20 +1,25 @@
 {
-  File start_d=baseHome.getFile("start.d");
+  File start_d=baseHome.getBaseFile("start.d");
   Modules modules=args.getAllModules();
   Module module=modules.get(name);
   if (module == null) {
     StartLog.warn("ERROR: No known module for %s",name);
     return;
   }
-  Set<String> sources=module.getSources();
-  boolean explictly_enabled=sources != null && sources.size() > 0;
   File ini=new File(start_d,name + ".ini");
   String short_ini=baseHome.toShortForm(ini);
+  StartIni start_ini=null;
   if (ini.exists()) {
-    if (new StartIni(ini).getLineMatches(Pattern.compile("--module=(.*, *)*" + name)).size() == 0)     StartLog.warn("WARNING: %s not initialised in %s!",name,short_ini);
- else     StartLog.warn("%-15s initialised in %s",name,short_ini);
+    start_ini=new StartIni(ini);
+    if (start_ini.getLineMatches(Pattern.compile("--module=(.*, *)*" + name)).size() == 0) {
+      StartLog.warn("ERROR: %s is not enabled in %s!",name,short_ini);
+      return;
+    }
   }
- else   if (topLevel || (module.getInitialise().size() > 0 && !explictly_enabled)) {
+  boolean transitive=module.isEnabled() && module.getSources().size() == 0;
+  boolean has_ini_lines=module.getInitialise().size() > 0;
+  if (!module.isEnabled() || (transitive && has_ini_lines) || (topLevel && !ini.exists())) {
+    if (!start_d.exists())     start_d.mkdirs();
     if (!ini.createNewFile()) {
       StartLog.warn("ERROR: %s cannot be initialised in %s! ",name,short_ini);
       return;
@@ -25,17 +30,31 @@
       out.println("--module=" + name);
       for (      String line : module.getInitialise())       out.println(line);
     }
-     StartIni start_ini=new StartIni(ini);
+     start_ini=new StartIni(ini);
     args.parse(baseHome,start_ini);
     for (    String enable : start_ini.getLineMatches(Pattern.compile("--module=.*"))) {
       modules.enable(enable.substring(enable.indexOf('=') + 1).trim(),Collections.singletonList(short_ini));
     }
   }
-  for (  String source : sources) {
+ else   if (ini.exists()) {
+    StartLog.info("%-15s initialised in %s",name,short_ini);
+  }
+  for (  String source : module.getSources()) {
     if (!short_ini.equals(source))     StartLog.warn("%-15s enabled in     %s",name,baseHome.toShortForm(source));
   }
   for (  String download : module.getDownloads())   download(StartArgs.toDownloadArg(download));
-  if (module != null && topLevel) {
-    for (    String parent : modules.resolveParentModulesOf(name))     if (!name.equals(parent))     initialize(args,parent,false);
+  if (topLevel) {
+    List<Module> parents=new ArrayList<>();
+    for (    String parent : modules.resolveParentModulesOf(name)) {
+      if (!name.equals(parent)) {
+        Module m=modules.get(parent);
+        m.setEnabled(true);
+        parents.add(m);
+      }
+    }
+    Collections.sort(parents,Collections.reverseOrder(new Module.DepthComparator()));
+    for (    Module m : parents) {
+      initialize(args,m.getName(),false);
+    }
   }
 }
