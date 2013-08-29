@@ -1,0 +1,28 @@
+{
+  docroot=new File("target/tests/docroot").getCanonicalFile().getAbsoluteFile();
+  FS.ensureDirExists(docroot);
+  FS.ensureEmpty(docroot);
+  File index=new File(docroot,"index.html");
+  index.createNewFile();
+  File sub=new File(docroot,"subdir");
+  sub.mkdir();
+  File data=new File(sub,"data.txt");
+  data.createNewFile();
+  File verylong=new File(sub,"TextFile.Long.txt");
+  verylong.createNewFile();
+  if (!OS.IS_WINDOWS) {
+    File eightDotThree=new File(sub,"TEXTFI~1.TXT");
+    Files.createSymbolicLink(eightDotThree.toPath(),verylong.toPath());
+  }
+  server=new Server();
+  context=new ContextHandler("/");
+  context.setBaseResource(Resource.newResource(docroot));
+  context.addAliasCheck(new ContextHandler.AliasCheck(){
+    @Override public boolean check(    String path,    Resource resource){
+      return allowAliases.get();
+    }
+  }
+);
+  server.setHandler(context);
+  server.start();
+}
