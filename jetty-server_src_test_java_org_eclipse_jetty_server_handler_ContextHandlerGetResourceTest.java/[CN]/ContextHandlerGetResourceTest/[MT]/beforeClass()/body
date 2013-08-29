@@ -10,15 +10,28 @@
   data.createNewFile();
   File verylong=new File(sub,"TextFile.Long.txt");
   verylong.createNewFile();
-  if (!OS.IS_WINDOWS) {
+  otherroot=new File("target/tests/otherroot").getCanonicalFile().getAbsoluteFile();
+  FS.ensureDirExists(otherroot);
+  FS.ensureEmpty(otherroot);
+  File other=new File(otherroot,"other.txt");
+  other.createNewFile();
+  File transit=new File(docroot.getParentFile(),"transit");
+  System.err.println("transit " + transit);
+  transit.delete();
+  if (OS.IS_UNIX) {
     File eightDotThree=new File(sub,"TEXTFI~1.TXT");
     Files.createSymbolicLink(eightDotThree.toPath(),verylong.toPath());
+    Files.createSymbolicLink(new File(docroot,"other").toPath(),new File("../transit").toPath());
+    Files.createSymbolicLink(transit.toPath(),otherroot.toPath());
   }
   server=new Server();
   context=new ContextHandler("/");
   context.setBaseResource(Resource.newResource(docroot));
   context.addAliasCheck(new ContextHandler.AliasCheck(){
+    final AllowSymLinkAliasChecker symlinkcheck=new AllowSymLinkAliasChecker();
     @Override public boolean check(    String path,    Resource resource){
+      if (allowAliases.get())       return true;
+      if (allowSymlinks.get())       return symlinkcheck.check(path,resource);
       return allowAliases.get();
     }
   }
