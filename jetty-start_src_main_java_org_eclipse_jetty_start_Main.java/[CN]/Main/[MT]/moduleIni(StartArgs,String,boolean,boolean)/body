@@ -18,14 +18,14 @@
       return;
     }
   }
-  boolean transitive=module.isEnabled() && module.getSources().size() == 0;
+  boolean transitive=module.isEnabled() && (module.getSources().size() == 0);
   boolean has_ini_lines=module.getInitialise().size() > 0;
   if (!module.isEnabled() || (transitive && has_ini_lines) || (topLevel && !ini.exists() && !appendStartIni)) {
     String source=null;
     PrintWriter out=null;
     try {
       if (appendStartIni) {
-        if (!start_ini.exists() && !start_ini.createNewFile() || !start_ini.canWrite()) {
+        if ((!start_ini.exists() && !start_ini.createNewFile()) || !start_ini.canWrite()) {
           StartLog.warn("ERROR: Bad %s! ",start_ini);
           return;
         }
@@ -34,7 +34,9 @@
         out=new PrintWriter(new FileWriter(start_ini,true));
       }
  else {
-        if (!start_d.exists())         start_d.mkdirs();
+        if (!start_d.exists()) {
+          start_d.mkdirs();
+        }
         if (!start_d.isDirectory() || !start_d.canWrite()) {
           StartLog.warn("ERROR: Bad start.d %s! ",start_d);
           return;
@@ -47,7 +49,9 @@
         StartLog.warn("%-15s initialised in %s (created)",name,source);
         out=new PrintWriter(ini);
       }
-      if (appendStartIni)       out.println();
+      if (appendStartIni) {
+        out.println();
+      }
       out.println("#");
       out.println("# Initialize module " + name);
       out.println("#");
@@ -62,25 +66,35 @@
         if (m.matches()) {
           for (int i=1; i <= m.groupCount(); i++) {
             String n=m.group(i);
-            if (n == null)             continue;
+            if (n == null) {
+              continue;
+            }
             n=n.trim();
-            if (n.length() == 0 || n.startsWith(","))             continue;
+            if ((n.length() == 0) || n.startsWith(",")) {
+              continue;
+            }
             modules.enable(n,Collections.singletonList(source));
           }
         }
       }
     }
   finally {
-      if (out != null)       out.close();
+      if (out != null) {
+        out.close();
+      }
     }
   }
  else   if (ini.exists()) {
     StartLog.info("%-15s initialised in %s",name,short_ini);
   }
   for (  String source : module.getSources()) {
-    if (!short_ini.equals(source))     StartLog.warn("%-15s enabled in     %s",name,baseHome.toShortForm(source));
+    if (!short_ini.equals(source)) {
+      StartLog.warn("%-15s enabled in     %s",name,baseHome.toShortForm(source));
+    }
   }
-  for (  String download : module.getDownloads())   download(StartArgs.toDownloadArg(download));
+  for (  String download : module.getDownloads()) {
+    download(new DownloadArg(download));
+  }
   if (topLevel) {
     List<Module> parents=new ArrayList<>();
     for (    String parent : modules.resolveParentModulesOf(name)) {
