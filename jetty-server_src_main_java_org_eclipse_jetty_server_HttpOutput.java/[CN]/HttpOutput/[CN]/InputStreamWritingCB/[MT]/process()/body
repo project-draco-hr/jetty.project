@@ -5,15 +5,11 @@
     _channel.getByteBufferPool().release(_buffer);
     return true;
   }
-  int len=_in.read(_buffer.array(),0,_buffer.capacity());
-  if (len < 0) {
-    _eof=true;
-    len=0;
-  }
- else   if (len < _buffer.capacity()) {
-    int len2=_in.read(_buffer.array(),len,_buffer.capacity() - len);
-    if (len2 < 0)     _eof=true;
- else     len+=len2;
+  int len=0;
+  while (len < _buffer.capacity() && !_eof) {
+    int r=_in.read(_buffer.array(),0,_buffer.capacity() - len);
+    if (r < 0)     _eof=true;
+ else     len+=r;
   }
   _buffer.position(0);
   _buffer.limit(len);

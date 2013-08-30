@@ -6,17 +6,7 @@
     return true;
   }
   _buffer.clear();
-  int len=_in.read(_buffer);
-  if (len < 0) {
-    _eof=true;
-    len=0;
-    _in.close();
-  }
- else   if (len < _buffer.capacity()) {
-    int len2=_in.read(_buffer);
-    if (len2 < 0)     _eof=true;
- else     len+=len2;
-  }
+  while (_buffer.hasRemaining() && !_eof)   _eof=(_in.read(_buffer)) < 0;
   _buffer.flip();
   _channel.write(_buffer,_eof,this);
   return false;
