@@ -1,0 +1,27 @@
+{
+  HttpVersion httpVersion=HttpVersion.fromString(headers.get("version").value());
+  boolean persistent=false;
+switch (httpVersion) {
+case HTTP_1_0:
+{
+      Fields.Field keepAliveHeader=headers.get(HttpHeader.KEEP_ALIVE.asString());
+      if (keepAliveHeader != null)       persistent=HttpHeaderValue.KEEP_ALIVE.asString().equals(keepAliveHeader.value());
+      if (!persistent)       persistent=HttpMethod.CONNECT.is(headers.get("method").value());
+      if (persistent)       headersToAddTo.add(HttpHeader.CONNECTION.asString(),HttpHeaderValue.KEEP_ALIVE.asString());
+      break;
+    }
+case HTTP_1_1:
+{
+    Fields.Field connectionHeader=headers.get(HttpHeader.CONNECTION.asString());
+    if (connectionHeader != null)     persistent=!HttpHeaderValue.CLOSE.asString().equals(connectionHeader.value());
+ else     persistent=true;
+    if (!persistent)     persistent=HttpMethod.CONNECT.is(headers.get("method").value());
+    if (!persistent)     headersToAddTo.add(HttpHeader.CONNECTION.asString(),HttpHeaderValue.CLOSE.asString());
+    break;
+  }
+default :
+{
+  throw new IllegalStateException();
+}
+}
+}
