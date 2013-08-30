@@ -1,0 +1,42 @@
+{
+  while (true) {
+switch (state) {
+case HEADER:
+{
+        if (!headerParser.parse(buffer))         return;
+        state=State.CONTENT;
+        break;
+      }
+case CONTENT:
+{
+      ContentParser contentParser=findContentParser(headerParser.getFrameType());
+      if (headerParser.getContentLength() == 0) {
+        contentParser.noContent();
+      }
+ else {
+        if (!contentParser.parse(buffer))         return;
+      }
+      padding=headerParser.getPaddingLength();
+      state=State.PADDING;
+      break;
+    }
+case PADDING:
+{
+    if (buffer.remaining() >= padding) {
+      buffer.position(buffer.position() + padding);
+      reset();
+      break;
+    }
+ else {
+      padding-=buffer.remaining();
+      buffer.position(buffer.limit());
+      return;
+    }
+  }
+default :
+{
+  throw new IllegalStateException();
+}
+}
+}
+}

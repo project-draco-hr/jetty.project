@@ -1,0 +1,58 @@
+{
+  Fields fields=new Fields();
+  final String methodParamName="REQUEST_METHOD";
+  final String methodParamValue="GET";
+  fields.put(new Fields.Field(methodParamName,methodParamValue));
+  final String uriParamName="REQUEST_URI";
+  final String uriParamValue="/api/0.6/map?bbox=-64.217736,-31.456810,-64.187736,-31.432322,filler=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
+  fields.put(new Fields.Field(uriParamName,uriParamValue));
+  final String protocolParamName="SERVER_PROTOCOL";
+  final String protocolParamValue="HTTP/1.1";
+  fields.put(new Fields.Field(protocolParamName,protocolParamValue));
+  final String hostParamName="FEDCBA9876543210FEDCBA9876543210FEDCBA9876543210FEDCBA9876543210FEDCBA9876543210FEDCBA9876543210FEDCBA9876543210FEDCBA9876543210";
+  final String hostParamValue="api.openstreetmap.org";
+  fields.put(new Fields.Field(hostParamName,hostParamValue));
+  ByteBufferPool byteBufferPool=new MappedByteBufferPool();
+  ClientGenerator generator=new ClientGenerator(byteBufferPool);
+  ByteBuffer buffer=generator.generateRequestHeaders(13,fields);
+  final int[] primes=new int[]{2,3,5,7,11};
+  int result=1;
+  for (  int prime : primes)   result*=prime;
+  final AtomicInteger params=new AtomicInteger(1);
+  ClientParser parser=new ClientParser(new ClientParser.Listener.Adapter(){
+    @Override public void onParam(    String name,    String value){
+switch (name) {
+case methodParamName:
+        Assert.assertEquals(methodParamValue,value);
+      params.set(params.get() * primes[0]);
+    break;
+case uriParamName:
+  Assert.assertEquals(uriParamValue,value);
+params.set(params.get() * primes[1]);
+break;
+case protocolParamName:
+Assert.assertEquals(protocolParamValue,value);
+params.set(params.get() * primes[2]);
+break;
+case hostParamName:
+Assert.assertEquals(hostParamValue,value);
+params.set(params.get() * primes[3]);
+break;
+default :
+throw new IllegalStateException();
+}
+}
+@Override public void onParams(){
+params.set(params.get() * primes[4]);
+}
+}
+);
+parser.parse(buffer);
+Assert.assertFalse(buffer.hasRemaining());
+Assert.assertEquals(result,params.get());
+buffer.flip();
+params.set(1);
+while (buffer.hasRemaining()) parser.parse(ByteBuffer.wrap(new byte[]{buffer.get()}));
+Assert.assertFalse(buffer.hasRemaining());
+Assert.assertEquals(result,params.get());
+}
