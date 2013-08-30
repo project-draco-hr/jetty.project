@@ -1,0 +1,49 @@
+{
+  Pattern section=Pattern.compile("\\s*\\[([^]]*)\\]\\s*");
+  if (!FS.canReadFile(file)) {
+    StartLog.debug("Skipping read of missing file: %s",file.getAbsolutePath());
+    return;
+  }
+  try (FileReader reader=new FileReader(file)){
+    try (BufferedReader buf=new BufferedReader(reader)){
+      String line;
+      String sectionType="";
+      while ((line=buf.readLine()) != null) {
+        line=line.trim();
+        Matcher sectionMatcher=section.matcher(line);
+        if (sectionMatcher.matches()) {
+          sectionType=sectionMatcher.group(1).trim().toUpperCase();
+        }
+ else {
+          if (line.length() == 0 || line.startsWith("#")) {
+            if ("INI".equals(sectionType)) {
+              initialise.add(line);
+            }
+          }
+ else {
+switch (sectionType) {
+case "DEPEND":
+              parentNames.add(line);
+            break;
+case "LIB":
+          libs.add(line);
+        break;
+case "XML":
+      xmls.add(line);
+    break;
+case "OPTIONAL":
+  optionalParentNames.add(line);
+break;
+case "DOWNLOAD":
+downloads.add(line);
+break;
+case "INI":
+initialise.add(line);
+break;
+}
+}
+}
+}
+}
+ }
+ }
