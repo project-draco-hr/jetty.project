@@ -1,5 +1,5 @@
 {
-  final byte[] data="0123456789ABCDEF".getBytes("UTF-8");
+  final String data="0123456789ABCDEF";
   InetSocketAddress proxyAddress=startProxy(startServer(new ServerSessionFrameListener.Adapter(){
     @Override public StreamFrameListener onSyn(    Stream stream,    SynInfo synInfo){
       return new StreamFrameListener.Adapter(){
@@ -9,6 +9,7 @@
             Fields headers=new Fields();
             headers.put(HTTPSPDYHeader.VERSION.name(version),"HTTP/1.1");
             headers.put(HTTPSPDYHeader.STATUS.name(version),"303 See Other");
+            headers.put(HttpHeader.LOCATION.asString(),"http://other.location");
             stream.reply(new ReplyInfo(headers,true),new Callback.Adapter());
           }
         }
@@ -17,25 +18,8 @@
     }
   }
 ));
-  Socket client=new Socket();
-  client.connect(proxyAddress);
-  OutputStream output=client.getOutputStream();
-  String request="" + "POST / HTTP/1.1\r\n" + "Host: localhost:" + proxyAddress.getPort() + "\r\n"+ "Content-Length: "+ data.length+ "\r\n"+ "Content-Type: application/octet-stream\r\n"+ "\r\n";
-  output.write(request.getBytes("UTF-8"));
-  output.write(data);
-  output.flush();
-  InputStream input=client.getInputStream();
-  BufferedReader reader=new BufferedReader(new InputStreamReader(input,"UTF-8"));
-  String line=reader.readLine();
-  Assert.assertTrue(line.contains(" 303"));
-  while (line.length() > 0)   line=reader.readLine();
-  Assert.assertFalse(reader.ready());
-  output.write(request.getBytes("UTF-8"));
-  output.write(data);
-  output.flush();
-  line=reader.readLine();
-  Assert.assertTrue(line.contains(" 303"));
-  while (line.length() > 0)   line=reader.readLine();
-  Assert.assertFalse(reader.ready());
-  client.close();
+  ContentResponse response=httpClient.newRequest("localhost",proxyAddress.getPort()).method(HttpMethod.POST).content(new StringContentProvider(data)).followRedirects(false).send();
+  assertThat("response code is 303",response.getStatus(),is(303));
+  ContentResponse response2=httpClient.newRequest("localhost",proxyAddress.getPort()).method(HttpMethod.POST).content(new StringContentProvider(data)).followRedirects(false).send();
+  assertThat("response2 code is 303",response2.getStatus(),is(303));
 }
