@@ -1,0 +1,28 @@
+{
+  ByteBuffer content=ByteBuffer.allocate(contentLength);
+  ByteBufferPool byteBufferPool=new MappedByteBufferPool();
+  ClientGenerator generator=new ClientGenerator(byteBufferPool);
+  final int id=13;
+  Generator.Result result=generator.generateRequestContent(id,content,true,null);
+  final AtomicInteger length=new AtomicInteger();
+  ClientParser parser=new ClientParser(new ClientParser.Listener.Adapter(){
+    @Override public void onContent(    int request,    FCGI.StreamType stream,    ByteBuffer buffer){
+      Assert.assertEquals(id,request);
+      length.addAndGet(buffer.remaining());
+    }
+    @Override public void onEnd(    int request){
+      Assert.assertEquals(id,request);
+      Assert.assertEquals(contentLength,length.get());
+    }
+  }
+);
+  for (  ByteBuffer buffer : result.getByteBuffers()) {
+    parser.parse(buffer);
+    Assert.assertFalse(buffer.hasRemaining());
+  }
+  for (  ByteBuffer buffer : result.getByteBuffers()) {
+    buffer.flip();
+    while (buffer.hasRemaining())     parser.parse(ByteBuffer.wrap(new byte[]{buffer.get()}));
+    Assert.assertFalse(buffer.hasRemaining());
+  }
+}
