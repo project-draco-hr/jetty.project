@@ -1,0 +1,41 @@
+{
+  final int id=13;
+  Fields fields=new Fields();
+  final String statusName="Status";
+  final int code=200;
+  final String contentTypeName="Content-Type";
+  final String contentTypeValue="text/html;charset=utf-8";
+  fields.put(contentTypeName,contentTypeValue);
+  ByteBufferPool byteBufferPool=new MappedByteBufferPool();
+  ServerGenerator generator=new ServerGenerator(byteBufferPool);
+  Generator.Result result=generator.generateResponseHeaders(id,code,"OK",fields,null);
+  final int[] primes=new int[]{2,3,5};
+  int value=1;
+  for (  int prime : primes)   value*=prime;
+  final AtomicInteger params=new AtomicInteger(1);
+  ClientParser parser=new ClientParser(new Parser.Listener.Adapter(){
+    @Override public void onHeader(    int request,    String name,    String value){
+      Assert.assertEquals(id,request);
+switch (name) {
+case statusName:
+        Assert.assertTrue(value.startsWith(String.valueOf(code)));
+      params.set(params.get() * primes[0]);
+    break;
+case contentTypeName:
+  Assert.assertEquals(contentTypeValue,value);
+params.set(params.get() * primes[1]);
+break;
+}
+}
+@Override public void onHeaders(int request){
+Assert.assertEquals(id,request);
+params.set(params.get() * primes[2]);
+}
+}
+);
+for (ByteBuffer buffer : result.getByteBuffers()) {
+parser.parse(buffer);
+Assert.assertFalse(buffer.hasRemaining());
+}
+Assert.assertEquals(value,params.get());
+}
