@@ -9,7 +9,7 @@
   final BlockingQueue<Connection> activeConnections=connectionPool.getActiveConnections();
   Assert.assertEquals(0,activeConnections.size());
   final CountDownLatch successLatch=new CountDownLatch(3);
-  client.newRequest(host,port).scheme(scheme).listener(new Request.Listener.Empty(){
+  client.newRequest(host,port).scheme(scheme).listener(new Request.Listener.Adapter(){
     @Override public void onBegin(    Request request){
       request.header(HttpHeader.HOST,null);
     }
@@ -17,7 +17,7 @@
       successLatch.countDown();
     }
   }
-).send(new Response.Listener.Empty(){
+).send(new Response.Listener.Adapter(){
     @Override public void onSuccess(    Response response){
       Assert.assertEquals(400,response.getStatus());
       successLatch.countDown();
