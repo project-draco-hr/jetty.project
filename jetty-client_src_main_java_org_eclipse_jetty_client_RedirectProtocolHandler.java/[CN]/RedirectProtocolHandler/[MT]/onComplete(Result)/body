@@ -1,58 +1,6 @@
 {
-  if (!result.isFailed()) {
-    Request request=result.getRequest();
-    Response response=result.getResponse();
-    String location=response.getHeaders().get("location");
-    if (location != null) {
-      URI newURI=sanitize(location);
-      LOG.debug("Redirecting to {} (Location: {})",newURI,location);
-      if (newURI != null) {
-        if (!newURI.isAbsolute())         newURI=request.getURI().resolve(newURI);
-        int status=response.getStatus();
-switch (status) {
-case 301:
-{
-            String method=request.getMethod();
-            if (HttpMethod.GET.is(method) || HttpMethod.HEAD.is(method) || HttpMethod.PUT.is(method))             redirect(result,method,newURI);
- else             if (HttpMethod.POST.is(method))             redirect(result,HttpMethod.GET.asString(),newURI);
- else             fail(result,new HttpResponseException("HTTP protocol violation: received 301 for non GET/HEAD/POST/PUT request",response));
-            break;
-          }
-case 302:
-{
-          String method=request.getMethod();
-          if (HttpMethod.HEAD.is(method) || HttpMethod.PUT.is(method))           redirect(result,method,newURI);
- else           redirect(result,HttpMethod.GET.asString(),newURI);
-          break;
-        }
-case 303:
-{
-        String method=request.getMethod();
-        if (HttpMethod.HEAD.is(method))         redirect(result,method,newURI);
- else         redirect(result,HttpMethod.GET.asString(),newURI);
-        break;
-      }
-case 307:
-{
-      redirect(result,request.getMethod(),newURI);
-      break;
-    }
-default :
-{
-    fail(result,new HttpResponseException("Unhandled HTTP status code " + status,response));
-    break;
-  }
-}
-}
- else {
-fail(result,new HttpResponseException("Malformed Location header " + location,response));
-}
-}
- else {
-fail(result,new HttpResponseException("Missing Location header " + location,response));
-}
-}
- else {
-fail(result,result.getFailure());
-}
+  Request request=result.getRequest();
+  Response response=result.getResponse();
+  if (result.isSucceeded())   redirector.redirect(request,response,null);
+ else   redirector.fail(request,response,result.getFailure());
 }

@@ -1,11 +1,10 @@
 {
-  final Request request=result.getRequest();
   HttpConversation conversation=client.getConversation(request.getConversationID(),false);
-  Integer redirects=(Integer)conversation.getAttribute(ATTRIBUTE);
+  Integer redirects=conversation == null ? Integer.valueOf(0) : (Integer)conversation.getAttribute(ATTRIBUTE);
   if (redirects == null)   redirects=0;
   if (redirects < client.getMaxRedirects()) {
     ++redirects;
-    conversation.setAttribute(ATTRIBUTE,redirects);
+    if (conversation != null)     conversation.setAttribute(ATTRIBUTE,redirects);
     Request redirect=client.copyRequest(request,location);
     redirect.method(method);
     redirect.onRequestBegin(new Request.BeginListener(){
@@ -15,9 +14,11 @@
       }
     }
 );
-    redirect.send(null);
+    redirect.send(listener);
+    return redirect;
   }
  else {
-    fail(result,new HttpResponseException("Max redirects exceeded " + redirects,result.getResponse()));
+    fail(request,response,new HttpResponseException("Max redirects exceeded " + redirects,response));
+    return null;
   }
 }

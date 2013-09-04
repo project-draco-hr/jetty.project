@@ -1,0 +1,35 @@
+{
+  if (!newURI.isAbsolute())   newURI=request.getURI().resolve(newURI);
+  int status=response.getStatus();
+switch (status) {
+case 301:
+{
+      String method=request.getMethod();
+      if (HttpMethod.GET.is(method) || HttpMethod.HEAD.is(method) || HttpMethod.PUT.is(method))       return redirect(request,response,listener,newURI,method);
+ else       if (HttpMethod.POST.is(method))       return redirect(request,response,listener,newURI,HttpMethod.GET.asString());
+      fail(request,response,new HttpResponseException("HTTP protocol violation: received 301 for non GET/HEAD/POST/PUT request",response));
+      return null;
+    }
+case 302:
+{
+    String method=request.getMethod();
+    if (HttpMethod.HEAD.is(method) || HttpMethod.PUT.is(method))     return redirect(request,response,listener,newURI,method);
+ else     return redirect(request,response,listener,newURI,HttpMethod.GET.asString());
+  }
+case 303:
+{
+  String method=request.getMethod();
+  if (HttpMethod.HEAD.is(method))   return redirect(request,response,listener,newURI,method);
+ else   return redirect(request,response,listener,newURI,HttpMethod.GET.asString());
+}
+case 307:
+{
+return redirect(request,response,listener,newURI,request.getMethod());
+}
+default :
+{
+fail(request,response,new HttpResponseException("Unhandled HTTP status code " + status,response));
+return null;
+}
+}
+}
