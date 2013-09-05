@@ -1,7 +1,7 @@
 {
 synchronized (lock()) {
     T item=_inputQ.peekUnsafe();
-    while (!isShutdown() && !isEarlyEOF()) {
+    loop:     while (!isShutdown() && !isEarlyEOF()) {
       while (item != null) {
         _inputQ.pollUnsafe();
         onContentConsumed(item);
@@ -14,7 +14,8 @@ synchronized (lock()) {
         if (item == null)         break;
       }
  catch (      IOException e) {
-        throw new RuntimeIOException(e);
+        LOG.warn(e);
+        break loop;
       }
     }
   }
