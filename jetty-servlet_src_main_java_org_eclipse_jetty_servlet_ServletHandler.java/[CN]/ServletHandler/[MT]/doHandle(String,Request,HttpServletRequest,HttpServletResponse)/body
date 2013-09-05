@@ -40,13 +40,10 @@ catch (  Exception e) {
       if (e instanceof ServletException)       throw (ServletException)e;
     }
     Throwable th=e;
-    if (th instanceof UnavailableException) {
-      LOG.debug(th);
-    }
- else     if (th instanceof ServletException) {
+    if (th instanceof ServletException) {
       if (th instanceof QuietServletException) {
-        LOG.debug(th);
         LOG.warn(th.toString());
+        LOG.debug(th);
       }
  else       LOG.warn(th);
       while (th instanceof ServletException) {
@@ -55,16 +52,12 @@ catch (  Exception e) {
         th=cause;
       }
     }
- else     if (th instanceof EofException)     throw (EofException)th;
- else     if (LOG.isDebugEnabled()) {
-      LOG.warn(request.getRequestURI(),th);
-      LOG.debug(request.toString());
-    }
- else     if (th instanceof IOException || th instanceof UnavailableException) {
-      LOG.debug(request.getRequestURI(),th);
+ else     if (th instanceof EofException) {
+      throw (EofException)th;
     }
  else {
       LOG.warn(request.getRequestURI(),th);
+      if (LOG.isDebugEnabled())       LOG.debug(request.toString());
     }
     if (!response.isCommitted()) {
       request.setAttribute(RequestDispatcher.ERROR_EXCEPTION_TYPE,th.getClass());
