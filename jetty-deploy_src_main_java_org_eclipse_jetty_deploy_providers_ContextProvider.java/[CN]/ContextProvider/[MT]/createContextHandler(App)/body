@@ -2,7 +2,17 @@
   Resource resource=Resource.newResource(app.getOriginId());
   File file=resource.getFile();
   if (resource.exists() && FileID.isXmlFile(file)) {
-    XmlConfiguration xmlc=new XmlConfiguration(resource.getURL());
+    XmlConfiguration xmlc=new XmlConfiguration(resource.getURL()){
+      @Override public void initializeDefaults(      Object context){
+        super.initializeDefaults(context);
+        if (context instanceof WebAppContext) {
+          WebAppContext webapp=(WebAppContext)context;
+          webapp.setParentLoaderPriority(_parentLoaderPriority);
+          if (_defaultsDescriptor != null)           webapp.setDefaultsDescriptor(_defaultsDescriptor);
+        }
+      }
+    }
+;
     xmlc.getIdMap().put("Server",getDeploymentManager().getServer());
     if (getConfigurationManager() != null)     xmlc.getProperties().putAll(getConfigurationManager().getProperties());
     return (ContextHandler)xmlc.configure();
