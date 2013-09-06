@@ -1,5 +1,5 @@
 {
-  _beanFactory.registerSingleton("properties",_propertyMap);
+  _beanFactory.registerSingleton("properties",_configuration.getProperties());
   for (  String bean : _beanFactory.getBeanDefinitionNames()) {
     LOG.debug("{} - {}",bean,Arrays.asList(_beanFactory.getAliases(bean)));
     String[] aliases=_beanFactory.getAliases(bean);
@@ -9,16 +9,17 @@
     }
   }
   if (_main == null)   _main=_beanFactory.getBeanDefinitionNames()[0];
-  LOG.debug("idMap {}",_idMap);
-  for (  String id : _idMap.keySet()) {
+  Map<String,Object> idMap=_configuration.getIdMap();
+  LOG.debug("idMap {}",idMap);
+  for (  String id : idMap.keySet()) {
     LOG.debug("register {}",id);
-    _beanFactory.registerSingleton(id,_idMap.get(id));
+    _beanFactory.registerSingleton(id,idMap.get(id));
   }
-  for (  String id : _idMap.keySet()) {
+  for (  String id : idMap.keySet()) {
     if (_beanFactory.containsBeanDefinition(id)) {
       LOG.debug("reconfigure {}",id);
-      _beanFactory.configureBean(_idMap.get(id),id);
+      _beanFactory.configureBean(idMap.get(id),id);
     }
   }
-  for (  String id : _beanFactory.getSingletonNames())   _idMap.put(id,_beanFactory.getBean(id));
+  for (  String id : _beanFactory.getSingletonNames())   idMap.put(id,_beanFactory.getBean(id));
 }
