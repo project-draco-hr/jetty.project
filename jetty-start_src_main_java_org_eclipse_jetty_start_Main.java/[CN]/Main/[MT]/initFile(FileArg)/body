@@ -1,0 +1,36 @@
+{
+  try {
+    File file=baseHome.getBaseFile(arg.location);
+    StartLog.debug("Download to %s %s",file.getAbsolutePath(),(file.exists() ? "[Exists!]" : ""));
+    if (file.exists()) {
+      return;
+    }
+    if (arg.uri != null) {
+      URL url=new URL(arg.uri);
+      System.err.println("DOWNLOAD: " + url + " to "+ arg.location);
+      FS.ensureDirectoryExists(file.getParentFile());
+      byte[] buf=new byte[8192];
+      try (InputStream in=url.openStream();OutputStream out=new FileOutputStream(file)){
+        while (true) {
+          int len=in.read(buf);
+          if (len > 0) {
+            out.write(buf,0,len);
+          }
+          if (len < 0) {
+            break;
+          }
+        }
+      }
+     }
+ else     if (arg.location.endsWith("/")) {
+      System.err.println("MKDIR: " + baseHome.toShortForm(file));
+      file.mkdirs();
+    }
+ else     StartLog.warn("MISSING: required file " + baseHome.toShortForm(file));
+  }
+ catch (  Exception e) {
+    StartLog.warn("ERROR: processing %s%n%s",arg,e);
+    StartLog.warn(e);
+    usageExit(EXIT_USAGE);
+  }
+}
