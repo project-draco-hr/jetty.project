@@ -1,10 +1,28 @@
 {
   try {
-    if ("Status".equalsIgnoreCase(field.getName())) {
-      int code=Integer.parseInt(field.getValue().split(" ")[0]);
-      httpParser.setResponseStatus(code);
+    if ("Status".equalsIgnoreCase(httpField.getName())) {
+      if (!begun) {
+        begun=true;
+        String[] parts=httpField.getValue().split(" ");
+        int code=Integer.parseInt(parts[0]);
+        httpParser.setResponseStatus(code);
+        String reason=parts.length > 1 ? parts[1] : HttpStatus.getMessage(code);
+        listener.onBegin(headerParser.getRequest(),code,reason);
+        if (fields != null) {
+          for (          HttpField field : fields)           listener.onHeader(headerParser.getRequest(),field);
+          fields=null;
+        }
+      }
     }
-    listener.onHeader(headerParser.getRequest(),field.getName(),field.getValue());
+ else {
+      if (begun) {
+        listener.onHeader(headerParser.getRequest(),httpField);
+      }
+ else {
+        if (fields == null)         fields=new ArrayList<>();
+        fields.add(httpField);
+      }
+    }
   }
  catch (  Throwable x) {
     logger.debug("Exception while invoking listener " + listener,x);
