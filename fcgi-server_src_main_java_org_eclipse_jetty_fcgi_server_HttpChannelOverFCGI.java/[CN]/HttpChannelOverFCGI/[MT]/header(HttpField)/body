@@ -1,0 +1,25 @@
+{
+  LOG.debug("FCGI header {}",field);
+  if (METHOD_HEADER.equalsIgnoreCase(field.getName())) {
+    method=field.getValue();
+    if (uri != null && version != null)     startRequest();
+  }
+ else   if (URI_HEADER.equalsIgnoreCase(field.getName())) {
+    uri=field.getValue();
+    if (method != null && version != null)     startRequest();
+  }
+ else   if (VERSION_HEADER.equalsIgnoreCase(field.getName())) {
+    version=field.getValue();
+    if (method != null && uri != null)     startRequest();
+  }
+ else {
+    if (started) {
+      resumeHeaders();
+      convertHeader(field);
+    }
+ else {
+      if (fields == null)       fields=new ArrayList<>();
+      fields.add(field);
+    }
+  }
+}

@@ -1,0 +1,18 @@
+{
+  if (active != null) {
+    active.succeeded();
+    active=null;
+  }
+  Generator.Result result;
+synchronized (queue) {
+    if (queue.isEmpty()) {
+      flushing=false;
+      return false;
+    }
+    result=queue.poll();
+  }
+  active=result;
+  List<ByteBuffer> buffers=result.getByteBuffers();
+  endPoint.write(this,buffers.toArray(new ByteBuffer[buffers.size()]));
+  return false;
+}
