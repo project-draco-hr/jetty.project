@@ -4,7 +4,17 @@
   if (!resource.exists())   throw new IllegalStateException("App resouce does not exist " + resource);
   String context=file.getName();
   if (resource.exists() && FileID.isXmlFile(file)) {
-    XmlConfiguration xmlc=new XmlConfiguration(resource.getURL());
+    XmlConfiguration xmlc=new XmlConfiguration(resource.getURL()){
+      @Override public void initializeDefaults(      Object context){
+        super.initializeDefaults(context);
+        if (context instanceof WebAppContext) {
+          WebAppContext webapp=(WebAppContext)context;
+          webapp.setParentLoaderPriority(_parentLoaderPriority);
+          if (_defaultsDescriptor != null)           webapp.setDefaultsDescriptor(_defaultsDescriptor);
+        }
+      }
+    }
+;
     xmlc.getIdMap().put("Server",getDeploymentManager().getServer());
     xmlc.getProperties().put("jetty.home",System.getProperty("jetty.home","."));
     xmlc.getProperties().put("jetty.base",System.getProperty("jetty.base","."));
@@ -24,32 +34,32 @@
   if (context.endsWith("/") && context.length() > 0) {
     context=context.substring(0,context.length() - 1);
   }
-  WebAppContext wah=new WebAppContext();
-  wah.setDisplayName(context);
+  WebAppContext webAppContext=new WebAppContext();
+  webAppContext.setDisplayName(context);
   if (context.equalsIgnoreCase("root")) {
     context=URIUtil.SLASH;
   }
  else   if (context.toLowerCase(Locale.ENGLISH).startsWith("root-")) {
     int dash=context.toLowerCase(Locale.ENGLISH).indexOf('-');
     String virtual=context.substring(dash + 1);
-    wah.setVirtualHosts(new String[]{virtual});
+    webAppContext.setVirtualHosts(new String[]{virtual});
     context=URIUtil.SLASH;
   }
   if (context.charAt(0) != '/') {
     context="/" + context;
   }
-  wah.setContextPath(context);
-  wah.setWar(file.getAbsolutePath());
+  webAppContext.setContextPath(context);
+  webAppContext.setWar(file.getAbsolutePath());
   if (_defaultsDescriptor != null) {
-    wah.setDefaultsDescriptor(_defaultsDescriptor);
+    webAppContext.setDefaultsDescriptor(_defaultsDescriptor);
   }
-  wah.setExtractWAR(_extractWars);
-  wah.setParentLoaderPriority(_parentLoaderPriority);
+  webAppContext.setExtractWAR(_extractWars);
+  webAppContext.setParentLoaderPriority(_parentLoaderPriority);
   if (_configurationClasses != null) {
-    wah.setConfigurationClasses(_configurationClasses);
+    webAppContext.setConfigurationClasses(_configurationClasses);
   }
   if (_tempDirectory != null) {
-    wah.setAttribute(WebAppContext.BASETEMPDIR,_tempDirectory);
+    webAppContext.setAttribute(WebAppContext.BASETEMPDIR,_tempDirectory);
   }
-  return wah;
+  return webAppContext;
 }
