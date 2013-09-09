@@ -7,11 +7,11 @@
     files[i]=File.createTempFile("R-" + i + "-",".txt");
     files[i].deleteOnExit();
     names[i]=files[i].getName();
-    FileOutputStream out=new FileOutputStream(files[i]);
-    for (int j=0; j < (i * 10 - 1); j++)     out.write(' ');
-    out.write('\n');
-    out.close();
-  }
+    try (OutputStream out=new FileOutputStream(files[i])){
+      for (int j=0; j < (i * 10 - 1); j++)       out.write(' ');
+      out.write('\n');
+    }
+   }
   directory=Resource.newResource(files[0].getParentFile().getAbsolutePath());
   cache=new ResourceCache(null,directory,new MimeTypes(),false,false);
   cache.setMaxCacheSize(95);
@@ -50,10 +50,10 @@
   assertEquals(60,cache.getCachedSize());
   assertEquals(1,cache.getCachedFiles());
   Thread.sleep(200);
-  FileOutputStream out=new FileOutputStream(files[6]);
-  out.write(' ');
-  out.close();
-  content=cache.lookup(names[7]);
+  try (OutputStream out=new FileOutputStream(files[6])){
+    out.write(' ');
+  }
+   content=cache.lookup(names[7]);
   assertEquals(70,cache.getCachedSize());
   assertEquals(1,cache.getCachedFiles());
   Thread.sleep(200);

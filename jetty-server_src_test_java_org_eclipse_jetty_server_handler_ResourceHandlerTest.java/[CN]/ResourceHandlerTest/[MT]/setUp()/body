@@ -2,12 +2,14 @@
   File dir=MavenTestingUtils.getTargetFile("test-classes/simple");
   File huge=new File(dir,"huge.txt");
   File big=new File(dir,"big.txt");
-  FileOutputStream out=new FileOutputStream(huge);
-  for (int i=0; i < 100; i++) {
-    FileInputStream in=new FileInputStream(big);
-    IO.copy(in,out);
+  try (OutputStream out=new FileOutputStream(huge)){
+    for (int i=0; i < 100; i++) {
+      try (InputStream in=new FileInputStream(big)){
+        IO.copy(in,out);
+      }
+     }
   }
-  huge.deleteOnExit();
+   huge.deleteOnExit();
   _server=new Server();
   _config=new HttpConfiguration();
   _config.setOutputBufferSize(2048);

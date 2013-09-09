@@ -1,11 +1,11 @@
 {
   testdir.ensureEmpty();
   File testFile=testdir.getFile("file.txt");
-  BufferedOutputStream testOut=new BufferedOutputStream(new FileOutputStream(testFile));
-  ByteArrayInputStream testIn=new ByteArrayInputStream(__content.getBytes("ISO8859_1"));
-  IO.copy(testIn,testOut);
-  testOut.close();
-  tester=new ServletTester("/context");
+  try (OutputStream testOut=new BufferedOutputStream(new FileOutputStream(testFile))){
+    ByteArrayInputStream testIn=new ByteArrayInputStream(__content.getBytes("ISO8859_1"));
+    IO.copy(testIn,testOut);
+  }
+   tester=new ServletTester("/context");
   tester.getContext().setResourceBase(testdir.getDir().getCanonicalPath());
   tester.getContext().addServlet(org.eclipse.jetty.servlet.DefaultServlet.class,"/");
   FilterHolder holder=tester.getContext().addFilter(IncludableGzipFilter.class,"/*",null);

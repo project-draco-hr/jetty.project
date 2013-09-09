@@ -1,42 +1,29 @@
 {
-  Connection connection=null;
   try {
     initDb();
-    connection=getConnection();
-    PreparedStatement statement=connection.prepareStatement(_userSql);
-    statement.setObject(1,userName);
-    ResultSet rs=statement.executeQuery();
-    if (rs.next()) {
-      int key=rs.getInt(_userTableKey);
-      String credentials=rs.getString(_userTablePasswordField);
-      statement.close();
-      statement=connection.prepareStatement(_roleSql);
-      statement.setInt(1,key);
-      rs=statement.executeQuery();
-      List<String> roles=new ArrayList<String>();
-      while (rs.next())       roles.add(rs.getString(_roleTableRoleField));
-      statement.close();
-      return putUser(userName,new Password(credentials),roles.toArray(new String[roles.size()]));
-    }
-  }
+    try (Connection connection=getConnection();PreparedStatement statement1=connection.prepareStatement(_userSql)){
+      statement1.setObject(1,userName);
+      try (ResultSet rs1=statement1.executeQuery()){
+        if (rs1.next()) {
+          int key=rs1.getInt(_userTableKey);
+          String credentials=rs1.getString(_userTablePasswordField);
+          List<String> roles=new ArrayList<String>();
+          try (PreparedStatement statement2=connection.prepareStatement(_roleSql)){
+            statement2.setInt(1,key);
+            try (ResultSet rs2=statement2.executeQuery()){
+              while (rs2.next())               roles.add(rs2.getString(_roleTableRoleField));
+            }
+           }
+           return putUser(userName,new Password(credentials),roles.toArray(new String[roles.size()]));
+        }
+      }
+     }
+   }
  catch (  NamingException e) {
     LOG.warn("No datasource for " + _jndiName,e);
   }
 catch (  SQLException e) {
     LOG.warn("Problem loading user info for " + userName,e);
-  }
- finally {
-    if (connection != null) {
-      try {
-        connection.close();
-      }
- catch (      SQLException x) {
-        LOG.warn("Problem closing connection",x);
-      }
- finally {
-        connection=null;
-      }
-    }
   }
   return null;
 }
