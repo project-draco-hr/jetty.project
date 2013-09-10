@@ -3,8 +3,9 @@
   JarScanner scanner=new JarScanner(){
     public void processEntry(    URI jarUri,    JarEntry entry){
       try {
+        if (entry.isDirectory())         return;
         String name=entry.getName();
-        if (name.toLowerCase(Locale.ENGLISH).endsWith(".class")) {
+        if (isValidClassFilePath(name) && isValidClassFileName(name)) {
           String shortName=name.replace('/','.').substring(0,name.length() - 6);
           if ((resolver == null) || (!resolver.isExcluded(shortName) && (!isParsed(shortName) || resolver.shouldOverride(shortName)))) {
             Resource clazz=Resource.newResource("jar:" + jarUri + "!/"+ name);

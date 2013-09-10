@@ -1,16 +1,18 @@
 {
+  parseConfig(options);
   if (_propertyUserStores.get(_filename) == null) {
-    parseConfig(options);
-    PropertyUserStore _propertyUserStore=new PropertyUserStore();
-    _propertyUserStore.setConfig(_filename);
-    _propertyUserStore.setRefreshInterval(_refreshInterval);
-    LOG.debug("setupPropertyUserStore: Starting new PropertyUserStore. PropertiesFile: " + _filename + " refreshInterval: "+ _refreshInterval);
-    try {
-      _propertyUserStore.start();
+    PropertyUserStore propertyUserStore=new PropertyUserStore();
+    propertyUserStore.setConfig(_filename);
+    propertyUserStore.setRefreshInterval(_refreshInterval);
+    PropertyUserStore prev=_propertyUserStores.putIfAbsent(_filename,propertyUserStore);
+    if (prev == null) {
+      LOG.debug("setupPropertyUserStore: Starting new PropertyUserStore. PropertiesFile: " + _filename + " refreshInterval: "+ _refreshInterval);
+      try {
+        propertyUserStore.start();
+      }
+ catch (      Exception e) {
+        LOG.warn("Exception while starting propertyUserStore: ",e);
+      }
     }
- catch (    Exception e) {
-      LOG.warn("Exception while starting propertyUserStore: ",e);
-    }
-    _propertyUserStores.put(_filename,_propertyUserStore);
   }
 }
