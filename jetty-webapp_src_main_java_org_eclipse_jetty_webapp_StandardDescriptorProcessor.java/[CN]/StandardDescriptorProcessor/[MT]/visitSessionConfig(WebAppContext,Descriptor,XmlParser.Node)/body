@@ -5,40 +5,60 @@
     context.getSessionHandler().getSessionManager().setMaxInactiveInterval(timeout * 60);
   }
   Iterator iter=node.iterator("tracking-mode");
-  Set<SessionTrackingMode> modes=new HashSet<SessionTrackingMode>();
-  modes.addAll(context.getSessionHandler().getSessionManager().getEffectiveSessionTrackingModes());
-  while (iter.hasNext()) {
-    XmlParser.Node mNode=(XmlParser.Node)iter.next();
-    String trackMode=mNode.toString(false,true);
-    modes.add(SessionTrackingMode.valueOf(trackMode));
-  }
-  context.getSessionHandler().getSessionManager().setSessionTrackingModes(modes);
-  XmlParser.Node cookieConfig=node.get("cookie-config");
-  if (cookieConfig != null) {
-    String name=cookieConfig.getString("name",false,true);
-    if (name != null) {
+  if (iter.hasNext()) {
+    Set<SessionTrackingMode> modes=null;
+    Origin o=context.getMetaData().getOrigin("session.tracking-mode");
+switch (o) {
+case NotSet:
+case WebDefaults:
+{
+        modes=new HashSet<SessionTrackingMode>();
+        context.getMetaData().setOrigin("session.tracking-mode",descriptor);
+        break;
+      }
+case WebXml:
+case WebFragment:
+case WebOverride:
+{
+      if (descriptor instanceof OverrideDescriptor)       modes=new HashSet<SessionTrackingMode>();
+ else       modes=new HashSet<SessionTrackingMode>(context.getSessionHandler().getSessionManager().getEffectiveSessionTrackingModes());
+      context.getMetaData().setOrigin("session.tracking-mode",descriptor);
+      break;
+    }
+}
+while (iter.hasNext()) {
+  XmlParser.Node mNode=(XmlParser.Node)iter.next();
+  String trackMode=mNode.toString(false,true);
+  modes.add(SessionTrackingMode.valueOf(trackMode));
+}
+context.getSessionHandler().getSessionManager().setSessionTrackingModes(modes);
+}
+XmlParser.Node cookieConfig=node.get("cookie-config");
+if (cookieConfig != null) {
+String name=cookieConfig.getString("name",false,true);
+if (name != null) {
 switch (context.getMetaData().getOrigin("cookie-config.name")) {
 case NotSet:
 {
-          context.getSessionHandler().getSessionManager().getSessionCookieConfig().setName(name);
-          context.getMetaData().setOrigin("cookie-config.name",descriptor);
-          break;
-        }
+      context.getSessionHandler().getSessionManager().getSessionCookieConfig().setName(name);
+      context.getMetaData().setOrigin("cookie-config.name",descriptor);
+      break;
+    }
 case WebXml:
 case WebDefaults:
 case WebOverride:
 {
-        if (!(descriptor instanceof FragmentDescriptor)) {
-          context.getSessionHandler().getSessionManager().getSessionCookieConfig().setName(name);
-          context.getMetaData().setOrigin("cookie-config.name",descriptor);
-        }
-        break;
-      }
+    if (!(descriptor instanceof FragmentDescriptor)) {
+      context.getSessionHandler().getSessionManager().getSessionCookieConfig().setName(name);
+      context.getMetaData().setOrigin("cookie-config.name",descriptor);
+    }
+    break;
+  }
 case WebFragment:
 {
-      if (!context.getSessionHandler().getSessionManager().getSessionCookieConfig().getName().equals(name))       throw new IllegalStateException("Conflicting cookie-config name " + name + " in "+ descriptor.getResource());
-      break;
-    }
+  if (!context.getSessionHandler().getSessionManager().getSessionCookieConfig().getName().equals(name))   throw new IllegalStateException("Conflicting cookie-config name " + name + " in "+ descriptor.getResource());
+  break;
+}
 }
 }
 String domain=cookieConfig.getString("domain",false,true);
@@ -46,19 +66,19 @@ if (domain != null) {
 switch (context.getMetaData().getOrigin("cookie-config.domain")) {
 case NotSet:
 {
-    context.getSessionHandler().getSessionManager().getSessionCookieConfig().setDomain(domain);
-    context.getMetaData().setOrigin("cookie-config.domain",descriptor);
-    break;
-  }
+context.getSessionHandler().getSessionManager().getSessionCookieConfig().setDomain(domain);
+context.getMetaData().setOrigin("cookie-config.domain",descriptor);
+break;
+}
 case WebXml:
 case WebDefaults:
 case WebOverride:
 {
-  if (!(descriptor instanceof FragmentDescriptor)) {
-    context.getSessionHandler().getSessionManager().getSessionCookieConfig().setDomain(domain);
-    context.getMetaData().setOrigin("cookie-config.domain",descriptor);
-  }
-  break;
+if (!(descriptor instanceof FragmentDescriptor)) {
+context.getSessionHandler().getSessionManager().getSessionCookieConfig().setDomain(domain);
+context.getMetaData().setOrigin("cookie-config.domain",descriptor);
+}
+break;
 }
 case WebFragment:
 {
