@@ -22,11 +22,11 @@
     if (value instanceof String[])     params.addValues(entry.getKey(),(String[])value);
  else     params.add(entry.getKey(),value);
   }
+  boolean badFormatLogged=false;
   try {
     String line=((ReadLineInputStream)in).readLine();
     if (line == null)     throw new IOException("Missing content for multipart request");
     line=line.trim();
-    boolean badFormatLogged=false;
     while (line != null && !line.equals(boundary)) {
       if (!badFormatLogged) {
         LOG.warn("Badly formatted multipart request");
@@ -177,7 +177,11 @@
     }
     chain.doFilter(new Wrapper(srequest,params),response);
   }
-  finally {
+ catch (  IOException e) {
+    if (!badFormatLogged)     LOG.warn("Badly formatted multipart request");
+    throw e;
+  }
+ finally {
     deleteFiles(request);
   }
 }

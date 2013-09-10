@@ -7,16 +7,18 @@
     super.handle(target,baseRequest,request,response);
   }
   finally {
-    if (continuation.isAsync()) {
-      if (continuation.isInitial())       continuation.addContinuationListener(new ContinuationListener(){
-        public void onTimeout(        Continuation continuation){
+    if (_requestLog != null && baseRequest.getDispatcherType().equals(DispatcherType.REQUEST)) {
+      if (continuation.isAsync()) {
+        if (continuation.isInitial())         continuation.addContinuationListener(new ContinuationListener(){
+          public void onTimeout(          Continuation continuation){
+          }
+          public void onComplete(          Continuation continuation){
+            _requestLog.log(baseRequest,(Response)response);
+          }
         }
-        public void onComplete(        Continuation continuation){
-          _requestLog.log(baseRequest,(Response)response);
-        }
-      }
 );
+      }
+ else       _requestLog.log(baseRequest,(Response)response);
     }
- else     _requestLog.log(baseRequest,(Response)response);
   }
 }
