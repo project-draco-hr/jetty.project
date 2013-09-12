@@ -13,9 +13,11 @@
   payload.get(compressed,0,inlen);
   System.arraycopy(TAIL,0,compressed,inlen,TAIL.length);
   decompressor.setInput(compressed,0,compressed.length);
+  int maxSize=Math.max(getPolicy().getMaxTextMessageSize(),getPolicy().getMaxBinaryMessageBufferSize());
+  ByteAccumulator accumulator=new ByteAccumulator(maxSize);
+  DataFrame out=new DataFrame(frame);
+  out.setRsv1(false);
   while (decompressor.getRemaining() > 0 && !decompressor.finished()) {
-    DataFrame out=new DataFrame(frame);
-    out.setRsv1(false);
     byte outbuf[]=new byte[Math.min(inlen * 2,bufferSize)];
     try {
       int len=decompressor.inflate(outbuf);
@@ -28,13 +30,14 @@
         }
       }
       if (len > 0) {
-        out.setPayload(ByteBuffer.wrap(outbuf,0,len));
+        accumulator.addBuffer(outbuf,0,len);
       }
-      nextIncomingFrame(out);
     }
  catch (    DataFormatException e) {
       LOG.warn(e);
       throw new BadPayloadException(e);
     }
   }
+  out.setPayload(accumulator.getByteBuffer(getBufferPool()));
+  nextIncomingFrame(out);
 }
