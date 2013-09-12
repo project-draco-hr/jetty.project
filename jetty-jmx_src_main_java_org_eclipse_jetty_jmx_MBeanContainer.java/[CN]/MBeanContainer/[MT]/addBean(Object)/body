@@ -32,9 +32,12 @@
         buf.append("name=").append(name);
       }
       String basis=buf.toString();
-      Integer count=_unique.get(basis);
-      count=count == null ? 0 : 1 + count;
-      _unique.put(basis,count);
+      Integer count;
+synchronized (__unique) {
+        count=__unique.get(basis);
+        count=count == null ? 0 : 1 + count;
+        __unique.put(basis,count);
+      }
       String domain=_domain;
       if (domain == null)       domain=obj.getClass().getPackage().getName();
       oname=ObjectName.getInstance(domain + ":" + basis+ ",id="+ count);
