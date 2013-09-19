@@ -3,7 +3,8 @@
   classes.add("org.eclipse.jetty.annotations.ServletC");
   AnnotationParser parser=new AnnotationParser();
   WebAppContext wac=new WebAppContext();
-  WebServletAnnotationHandler handler=new WebServletAnnotationHandler(wac);
+  List<DiscoveredAnnotation> results=new ArrayList<DiscoveredAnnotation>();
+  TestWebServletAnnotationHandler handler=new TestWebServletAnnotationHandler(wac,results);
   parser.registerHandler(handler);
   parser.parse(classes,new ClassNameResolver(){
     public boolean isExcluded(    String name){
@@ -14,9 +15,9 @@
     }
   }
 );
-  assertEquals(1,handler.getAnnotationList().size());
-  assertTrue(handler.getAnnotationList().get(0) instanceof WebServletAnnotation);
-  handler.getAnnotationList().get(0).apply();
+  assertEquals(1,results.size());
+  assertTrue(results.get(0) instanceof WebServletAnnotation);
+  results.get(0).apply();
   ServletHolder[] holders=wac.getServletHandler().getServlets();
   assertNotNull(holders);
   assertEquals(1,holders.length);
