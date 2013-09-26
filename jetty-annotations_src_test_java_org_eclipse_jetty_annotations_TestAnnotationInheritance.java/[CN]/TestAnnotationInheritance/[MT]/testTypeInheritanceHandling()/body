@@ -1,8 +1,7 @@
 {
-  MultiMap map=new MultiMap();
+  ConcurrentHashMap<String,ConcurrentHashSet<String>> map=new ConcurrentHashMap<String,ConcurrentHashSet<String>>();
   AnnotationParser parser=new AnnotationParser();
   ClassInheritanceHandler handler=new ClassInheritanceHandler(map);
-  parser.registerHandler(handler);
 class Foo implements InterfaceD {
   }
   classNames.clear();
@@ -10,18 +9,17 @@ class Foo implements InterfaceD {
   classNames.add(ClassB.class.getName());
   classNames.add(InterfaceD.class.getName());
   classNames.add(Foo.class.getName());
-  parser.parse(classNames,null);
+  parser.parse(Collections.singleton(handler),classNames,null);
   assertNotNull(map);
   assertFalse(map.isEmpty());
   assertEquals(2,map.size());
-  Map stringArrayMap=map.toStringArrayMap();
-  assertTrue(stringArrayMap.keySet().contains("org.eclipse.jetty.annotations.ClassA"));
-  assertTrue(stringArrayMap.keySet().contains("org.eclipse.jetty.annotations.InterfaceD"));
-  String[] classes=(String[])stringArrayMap.get("org.eclipse.jetty.annotations.ClassA");
-  assertEquals(1,classes.length);
-  assertEquals("org.eclipse.jetty.annotations.ClassB",classes[0]);
-  classes=(String[])stringArrayMap.get("org.eclipse.jetty.annotations.InterfaceD");
-  assertEquals(2,classes.length);
-  assertEquals("org.eclipse.jetty.annotations.ClassB",classes[0]);
-  assertEquals(Foo.class.getName(),classes[1]);
+  assertTrue(map.keySet().contains("org.eclipse.jetty.annotations.ClassA"));
+  assertTrue(map.keySet().contains("org.eclipse.jetty.annotations.InterfaceD"));
+  ConcurrentHashSet<String> classes=map.get("org.eclipse.jetty.annotations.ClassA");
+  assertEquals(1,classes.size());
+  assertEquals("org.eclipse.jetty.annotations.ClassB",classes.iterator().next());
+  classes=map.get("org.eclipse.jetty.annotations.InterfaceD");
+  assertEquals(2,classes.size());
+  assertTrue(classes.contains("org.eclipse.jetty.annotations.ClassB"));
+  assertTrue(classes.contains(Foo.class.getName()));
 }

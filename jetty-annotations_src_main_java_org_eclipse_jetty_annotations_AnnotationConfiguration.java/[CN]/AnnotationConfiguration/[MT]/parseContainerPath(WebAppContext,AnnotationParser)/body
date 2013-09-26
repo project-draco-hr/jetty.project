@@ -1,13 +1,11 @@
 {
   LOG.debug("Scanning container jars");
-  parser.clearHandlers();
-  parser.registerHandlers(_discoverableAnnotationHandlers);
-  parser.registerHandler(_classInheritanceHandler);
-  parser.registerHandlers(_containerInitializerAnnotationHandlers);
-  ArrayList<URI> containerUris=new ArrayList<URI>();
+  final Set<Handler> handlers=new HashSet<Handler>();
+  handlers.addAll(_discoverableAnnotationHandlers);
+  handlers.addAll(_containerInitializerAnnotationHandlers);
+  if (_classInheritanceHandler != null)   handlers.add(_classInheritanceHandler);
   for (  Resource r : context.getMetaData().getContainerResources()) {
-    URI uri=r.getURI();
-    containerUris.add(uri);
+    if (_parserTasks != null)     _parserTasks.add(new ParserTask(parser,handlers,r,_containerClassNameResolver));
+ else     parser.parse(handlers,r,_containerClassNameResolver);
   }
-  parser.parse(containerUris.toArray(new URI[containerUris.size()]),new ContainerClassNameResolver(context));
 }

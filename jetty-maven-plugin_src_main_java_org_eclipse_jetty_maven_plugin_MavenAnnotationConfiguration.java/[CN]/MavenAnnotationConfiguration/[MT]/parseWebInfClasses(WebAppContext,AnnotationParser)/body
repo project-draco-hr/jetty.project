@@ -5,19 +5,19 @@
     LOG.debug("Scanning classes ");
     MetaData metaData=context.getMetaData();
     if (metaData == null)     throw new IllegalStateException("No metadata");
-    parser.clearHandlers();
-    parser.registerHandlers(_discoverableAnnotationHandlers);
-    parser.registerHandler(_classInheritanceHandler);
-    parser.registerHandlers(_containerInitializerAnnotationHandlers);
+    Set<Handler> handlers=new HashSet<Handler>();
+    handlers.addAll(_discoverableAnnotationHandlers);
+    if (_classInheritanceHandler != null)     handlers.add(_classInheritanceHandler);
+    handlers.addAll(_containerInitializerAnnotationHandlers);
     for (    File f : jwac.getClassPathFiles()) {
       if (f.isDirectory() && f.exists()) {
-        doParse(context,parser,Resource.newResource(f.toURI()));
+        doParse(handlers,context,parser,Resource.newResource(f.toURI()));
       }
     }
     if (context.getWebInf() != null && context.getWebInf().exists()) {
       Resource classesDir=context.getWebInf().addPath("classes/");
       if (classesDir.exists()) {
-        doParse(context,parser,classesDir);
+        doParse(handlers,context,parser,classesDir);
       }
     }
   }
