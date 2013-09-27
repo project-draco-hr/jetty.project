@@ -6,7 +6,12 @@
     try {
       for (      String s : _applicableTypeNames)       classes.add(Loader.loadClass(context.getClass(),s));
       context.getServletContext().setExtendedListenerTypes(true);
-      _target.onStartup(classes,context.getServletContext());
+      if (LOG.isDebugEnabled()) {
+        long start=System.nanoTime();
+        _target.onStartup(classes,context.getServletContext());
+        LOG.debug("ContainerInitializer {} called in {}ms",_target.getClass().getName(),TimeUnit.MILLISECONDS.convert(System.nanoTime() - start,TimeUnit.NANOSECONDS));
+      }
+ else       _target.onStartup(classes,context.getServletContext());
     }
   finally {
       context.getServletContext().setExtendedListenerTypes(false);
