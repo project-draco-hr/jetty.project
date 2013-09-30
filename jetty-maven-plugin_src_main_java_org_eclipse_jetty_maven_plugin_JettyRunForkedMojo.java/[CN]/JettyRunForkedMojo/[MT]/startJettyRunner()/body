@@ -37,16 +37,17 @@
     ProcessBuilder builder=new ProcessBuilder(cmd);
     builder.directory(project.getBasedir());
     if (PluginLog.getLog().isDebugEnabled())     PluginLog.getLog().debug(Arrays.toString(cmd.toArray()));
-    forkedProcess=builder.start();
     PluginLog.getLog().info("Forked process starting");
     if (waitForChild) {
+      forkedProcess=builder.start();
       startPump("STDOUT",forkedProcess.getInputStream());
       startPump("STDERR",forkedProcess.getErrorStream());
       int exitcode=forkedProcess.waitFor();
       PluginLog.getLog().info("Forked execution exit: " + exitcode);
     }
  else {
-      forkedProcess.getErrorStream().close();
+      builder.redirectErrorStream(true);
+      forkedProcess=builder.start();
       try {
         String line="";
         try (InputStream is=forkedProcess.getInputStream();LineNumberReader reader=new LineNumberReader(new InputStreamReader(is))){
