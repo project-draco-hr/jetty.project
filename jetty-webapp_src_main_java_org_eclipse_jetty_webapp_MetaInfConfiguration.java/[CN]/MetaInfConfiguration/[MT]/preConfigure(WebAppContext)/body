@@ -2,23 +2,27 @@
   ArrayList<Resource> jars=new ArrayList<Resource>();
   jars.addAll(context.getMetaData().getContainerResources());
   jars.addAll(context.getMetaData().getWebInfJars());
-  JarScanner scanner=new JarScanner(){
-    public void processEntry(    URI jarUri,    JarEntry entry){
-      try {
-        MetaInfConfiguration.this.processEntry(context,jarUri,entry);
-      }
- catch (      Exception e) {
-        LOG.warn("Problem processing jar entry " + entry,e);
-      }
-    }
-  }
-;
   if (jars != null) {
-    URI[] uris=new URI[jars.size()];
-    int i=0;
     for (    Resource r : jars) {
-      uris[i++]=r.getURI();
+      URI uri=r.getURI();
+      Resource fragXml=Resource.newResource("jar:" + uri + "!/META-INF/web-fragment.xml");
+      if (fragXml.exists()) {
+        Map<Resource,Resource> fragments=(Map<Resource,Resource>)context.getAttribute(METAINF_FRAGMENTS);
+        if (fragments == null) {
+          fragments=new HashMap<Resource,Resource>();
+          context.setAttribute(METAINF_FRAGMENTS,fragments);
+        }
+        fragments.put(r,fragXml);
+      }
+      Resource resourcesDir=Resource.newResource("jar:" + uri + "!/META-INF/resources");
+      if (resourcesDir.exists()) {
+        Set<Resource> dirs=(Set<Resource>)context.getAttribute(METAINF_RESOURCES);
+        if (dirs == null) {
+          dirs=new HashSet<Resource>();
+          context.setAttribute(METAINF_RESOURCES,dirs);
+        }
+        dirs.add(resourcesDir);
+      }
     }
-    scanner.scan(null,uris,true);
   }
 }

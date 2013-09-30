@@ -1,22 +1,12 @@
 {
-  boolean metadataComplete=context.getMetaData().isMetaDataComplete();
   context.addDecorator(new AnnotationDecorator(context));
-  AnnotationParser parser=null;
-  if (!metadataComplete) {
+  if (!context.getMetaData().isMetaDataComplete()) {
     if (context.getServletContext().getEffectiveMajorVersion() >= 3 || context.isConfigurationDiscovered()) {
       _discoverableAnnotationHandlers.add(new WebServletAnnotationHandler(context));
       _discoverableAnnotationHandlers.add(new WebFilterAnnotationHandler(context));
       _discoverableAnnotationHandlers.add(new WebListenerAnnotationHandler(context));
     }
   }
- else   if (LOG.isDebugEnabled())   LOG.debug("Metadata-complete==true,  not processing discoverable servlet annotations for context " + context);
   createServletContainerInitializerAnnotationHandlers(context,getNonExcludedInitializers(context));
-  if (!_discoverableAnnotationHandlers.isEmpty() || _classInheritanceHandler != null || !_containerInitializerAnnotationHandlers.isEmpty()) {
-    parser=createAnnotationParser();
-    if (LOG.isDebugEnabled())     LOG.debug("Scanning all classses for annotations: webxmlVersion=" + context.getServletContext().getEffectiveMajorVersion() + " configurationDiscovered="+ context.isConfigurationDiscovered());
-    parseContainerPath(context,parser);
-    parseWebInfClasses(context,parser);
-    parseWebInfLib(context,parser);
-    for (    DiscoverableAnnotationHandler h : _discoverableAnnotationHandlers)     context.getMetaData().addDiscoveredAnnotations(((AbstractDiscoverableAnnotationHandler)h).getAnnotationList());
-  }
+  if (!_discoverableAnnotationHandlers.isEmpty() || _classInheritanceHandler != null || !_containerInitializerAnnotationHandlers.isEmpty())   scanForAnnotations(context);
 }

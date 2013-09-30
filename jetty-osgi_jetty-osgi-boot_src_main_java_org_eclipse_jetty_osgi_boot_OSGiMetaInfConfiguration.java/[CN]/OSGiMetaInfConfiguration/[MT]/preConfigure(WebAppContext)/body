@@ -1,6 +1,6 @@
 {
-  List<Resource> frags=(List<Resource>)context.getAttribute(METAINF_FRAGMENTS);
-  List<Resource> resfrags=(List<Resource>)context.getAttribute(METAINF_RESOURCES);
+  Map<Resource,Resource> frags=(Map<Resource,Resource>)context.getAttribute(METAINF_FRAGMENTS);
+  Set<Resource> resfrags=(Set<Resource>)context.getAttribute(METAINF_RESOURCES);
   List<Resource> tldfrags=(List<Resource>)context.getAttribute(METAINF_TLDS);
   Bundle[] fragments=PackageAdminServiceTracker.INSTANCE.getFragmentsAndRequiredBundles((Bundle)context.getAttribute(OSGiWebappConstants.JETTY_OSGI_BUNDLE));
   for (  Bundle frag : fragments) {
@@ -11,10 +11,10 @@
       try {
         if (webFrag != null) {
           if (frags == null) {
-            frags=new ArrayList<Resource>();
+            frags=new HashMap<Resource,Resource>();
             context.setAttribute(METAINF_FRAGMENTS,frags);
           }
-          frags.add(Resource.newResource(BundleFileLocatorHelperFactory.getFactory().getHelper().getBundleInstallLocation(frag).toURI()));
+          frags.put(Resource.newResource(BundleFileLocatorHelperFactory.getFactory().getHelper().getBundleInstallLocation(frag).toURI()),Resource.newResource(webFrag));
         }
         if (resEnum != null && resEnum.hasMoreElements()) {
           URL resourcesEntry=frag.getEntry("/META-INF/resources/");
@@ -22,7 +22,7 @@
           }
  else {
             if (resfrags == null) {
-              resfrags=new ArrayList<Resource>();
+              resfrags=new HashSet<Resource>();
               context.setAttribute(METAINF_RESOURCES,resfrags);
             }
             resfrags.add(Resource.newResource(BundleFileLocatorHelperFactory.getFactory().getHelper().getLocalURL(resourcesEntry)));
