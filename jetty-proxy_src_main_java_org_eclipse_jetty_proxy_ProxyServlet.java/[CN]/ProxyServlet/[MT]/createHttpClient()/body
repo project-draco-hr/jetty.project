@@ -3,13 +3,19 @@
   HttpClient client=newHttpClient();
   client.setFollowRedirects(false);
   client.setCookieStore(new HttpCookieStore.Empty());
+  Executor executor;
   String value=config.getInitParameter("maxThreads");
-  if (value == null)   value="256";
-  QueuedThreadPool executor=new QueuedThreadPool(Integer.parseInt(value));
-  String servletName=config.getServletName();
-  int dot=servletName.lastIndexOf('.');
-  if (dot >= 0)   servletName=servletName.substring(dot + 1);
-  executor.setName(servletName);
+  if (value == null || "-".equals(value)) {
+    executor=(Executor)getServletContext().getAttribute("org.eclipse.jetty.server.Executor");
+  }
+ else {
+    QueuedThreadPool qtp=new QueuedThreadPool(Integer.parseInt(value));
+    String servletName=config.getServletName();
+    int dot=servletName.lastIndexOf('.');
+    if (dot >= 0)     servletName=servletName.substring(dot + 1);
+    qtp.setName(servletName);
+    executor=qtp;
+  }
   client.setExecutor(executor);
   value=config.getInitParameter("maxConnections");
   if (value == null)   value="32768";
