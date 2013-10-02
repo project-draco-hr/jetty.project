@@ -9,15 +9,18 @@
   field=headers.remove(HttpHeader.CONTENT_TYPE);
   if (field != null)   headers.put(FCGI.Headers.CONTENT_TYPE,field.getValue());
   headers.put(FCGI.Headers.GATEWAY_INTERFACE,"CGI/1.1");
+  HttpClientTransportOverFCGI transport=(HttpClientTransportOverFCGI)getHttpChannel().getHttpDestination().getHttpClient().getTransport();
+  Pattern uriPattern=transport.getURIPattern();
+  Matcher matcher=uriPattern.matcher(uri.toString());
   headers.put(FCGI.Headers.QUERY_STRING,uri.getQuery());
   headers.put(FCGI.Headers.REQUEST_METHOD,httpRequest.getMethod());
   headers.put(FCGI.Headers.REQUEST_URI,uri.toString());
   headers.put(FCGI.Headers.SERVER_PROTOCOL,httpRequest.getVersion().asString());
   int request=getHttpChannel().getRequest();
-  boolean noContent=!content.hasContent();
-  Generator.Result result=generator.generateRequestHeaders(request,headers,noContent ? new Callback.Adapter() : callback);
+  boolean hasContent=content.hasContent();
+  Generator.Result result=generator.generateRequestHeaders(request,headers,hasContent ? callback : new Callback.Adapter());
   getHttpChannel().flush(result);
-  if (noContent) {
+  if (!hasContent) {
     result=generator.generateRequestContent(request,null,true,callback);
     getHttpChannel().flush(result);
   }
