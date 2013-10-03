@@ -123,8 +123,19 @@ if (idx >= 0) {
 String key=arg.substring(0,idx);
 String value=arg.substring(idx + 1);
 if (source != CMD_LINE_SOURCE) {
-if (propertySource.containsKey(key)) throw new UsageException(ERR_BAD_ARG,"Property %s in %s already set in %s",key,source,propertySource.get(key));
+if (propertySource.containsKey(key)) {
+throw new UsageException(ERR_BAD_ARG,"Property %s in %s already set in %s",key,source,propertySource.get(key));
+}
 propertySource.put(key,source);
+}
+if ("OPTION".equals(key) || "OPTIONS".equals(key)) {
+StringBuilder warn=new StringBuilder();
+warn.append("The behavior of the argument ");
+warn.append(arg).append(" (seen in ").append(source);
+warn.append(") has changed, and is now considered a normal property.  ");
+warn.append(key).append(" no longer controls what libraries are on your classpath,");
+warn.append(" use --module instead. See --help for details.");
+StartLog.warn(warn.toString());
 }
 properties.setProperty(key,value);
 return;
