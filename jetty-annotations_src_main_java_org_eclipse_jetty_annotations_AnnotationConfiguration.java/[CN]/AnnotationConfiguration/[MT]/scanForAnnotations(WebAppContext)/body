@@ -1,30 +1,17 @@
 {
   AnnotationParser parser=createAnnotationParser();
-  boolean multiThreadedScan=isUseMultiThreading(context);
-  int maxScanWait=0;
-  if (multiThreadedScan) {
-    _parserTasks=new ArrayList<ParserTask>();
-    maxScanWait=getMaxScanWait(context);
-  }
+  _parserTasks=new ArrayList<ParserTask>();
   long start=0;
   if (LOG.isDebugEnabled()) {
-    start=System.nanoTime();
-    LOG.debug("Scanning for annotations: webxml={}, metadatacomplete={}, configurationDiscovered={}, multiThreaded={}",context.getServletContext().getEffectiveMajorVersion(),context.getMetaData().isMetaDataComplete(),context.isConfigurationDiscovered(),multiThreadedScan);
+    LOG.debug("Scanning for annotations: webxml={}, metadatacomplete={}, configurationDiscovered={}, multiThreaded={}, maxScanWait={}",context.getServletContext().getEffectiveMajorVersion(),context.getMetaData().isMetaDataComplete(),context.isConfigurationDiscovered(),isUseMultiThreading(context),getMaxScanWait(context));
   }
   parseContainerPath(context,parser);
   parseWebInfClasses(context,parser);
   parseWebInfLib(context,parser);
-  if (!multiThreadedScan) {
-    if (LOG.isDebugEnabled()) {
-      long end=System.nanoTime();
-      LOG.debug("Annotation parsing millisec={}",(TimeUnit.MILLISECONDS.convert(end - start,TimeUnit.NANOSECONDS)));
-    }
-    return;
-  }
   if (LOG.isDebugEnabled())   start=System.nanoTime();
+  final Semaphore task_limit=(isUseMultiThreading(context) ? new Semaphore(Runtime.getRuntime().availableProcessors()) : new Semaphore(1));
   final CountDownLatch latch=new CountDownLatch(_parserTasks.size());
   final MultiException me=new MultiException();
-  final Semaphore task_limit=new Semaphore(Runtime.getRuntime().availableProcessors());
   for (  final ParserTask p : _parserTasks) {
     task_limit.acquire();
     context.getServer().getThreadPool().execute(new Runnable(){
@@ -43,11 +30,8 @@
     }
 );
   }
-  boolean timeout=!latch.await(maxScanWait,TimeUnit.SECONDS);
-  if (LOG.isDebugEnabled()) {
-    long end=System.nanoTime();
-    LOG.debug("Annotation parsing millisec={}",(TimeUnit.MILLISECONDS.convert(end - start,TimeUnit.NANOSECONDS)));
-  }
+  boolean timeout=!latch.await(getMaxScanWait(context),TimeUnit.SECONDS);
+  if (LOG.isDebugEnabled())   LOG.debug("Annotation parsing millisec={}",(TimeUnit.MILLISECONDS.convert(System.nanoTime() - start,TimeUnit.NANOSECONDS)));
   if (timeout)   me.add(new Exception("Timeout scanning annotations"));
   me.ifExceptionThrow();
 }
