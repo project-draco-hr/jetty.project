@@ -1,21 +1,22 @@
 {
-  SessionPromise sessionPromise=(SessionPromise)attachment;
-  final SPDYClient client=sessionPromise.client;
+  SessionContext context=(SessionContext)attachment;
+  final SPDYClient client=context.client;
   try {
     if (sslContextFactory != null) {
       final SSLEngine engine=client.newSSLEngine(sslContextFactory,channel);
       SslConnection sslConnection=new SslConnection(bufferPool,getExecutor(),endPoint,engine);
       sslConnection.setRenegotiationAllowed(sslContextFactory.isRenegotiationAllowed());
       DecryptedEndPoint sslEndPoint=sslConnection.getDecryptedEndPoint();
-      NextProtoNegoClientConnection connection=new NextProtoNegoClientConnection(channel,sslEndPoint,attachment,getExecutor(),client);
+      NextProtoNegoClientConnection connection=new NextProtoNegoClientConnection(sslEndPoint,getExecutor(),client,attachment,engine);
       sslEndPoint.setConnection(connection);
       return sslConnection;
     }
-    SPDYClientConnectionFactory connectionFactory=new SPDYClientConnectionFactory();
-    return connectionFactory.newConnection(channel,endPoint,attachment);
+ else {
+      return connectionFactory.newConnection(endPoint,attachment);
+    }
   }
  catch (  RuntimeException x) {
-    sessionPromise.failed(x);
+    context.failed(x);
     throw x;
   }
 }
