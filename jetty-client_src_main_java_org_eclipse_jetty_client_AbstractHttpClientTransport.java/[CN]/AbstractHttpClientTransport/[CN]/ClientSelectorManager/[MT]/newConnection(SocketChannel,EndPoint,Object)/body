@@ -1,22 +1,5 @@
 {
-  ConnectionCallback callback=(ConnectionCallback)attachment;
-  HttpDestination destination=callback.destination;
-  SslContextFactory sslContextFactory=client.getSslContextFactory();
-  if (!destination.isProxied() && HttpScheme.HTTPS.is(destination.getScheme())) {
-    if (sslContextFactory == null) {
-      IOException failure=new ConnectException("Missing " + SslContextFactory.class.getSimpleName() + " for "+ destination.getScheme()+ " requests");
-      callback.failed(failure);
-      throw failure;
-    }
- else {
-      SslConnection sslConnection=createSslConnection(endPoint,destination);
-      callback.succeeded((org.eclipse.jetty.client.api.Connection)sslConnection.getDecryptedEndPoint().getConnection());
-      return sslConnection;
-    }
-  }
- else {
-    Connection connection=AbstractHttpClientTransport.this.newConnection(endPoint,destination);
-    callback.succeeded((org.eclipse.jetty.client.api.Connection)connection);
-    return connection;
-  }
+  @SuppressWarnings("unchecked") Map<String,Object> context=(Map<String,Object>)attachment;
+  HttpDestination destination=(HttpDestination)context.get(HTTP_DESTINATION_CONTEXT_KEY);
+  return destination.getClientConnectionFactory().newConnection(endPoint,context);
 }

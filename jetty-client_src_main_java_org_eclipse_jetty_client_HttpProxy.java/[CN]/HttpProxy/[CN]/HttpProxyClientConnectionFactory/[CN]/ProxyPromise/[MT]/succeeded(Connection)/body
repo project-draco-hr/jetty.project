@@ -1,0 +1,16 @@
+{
+  HttpDestination destination=(HttpDestination)context.get(HttpClientTransport.HTTP_DESTINATION_CONTEXT_KEY);
+  if (HttpScheme.HTTPS.is(destination.getScheme())) {
+    SslContextFactory sslContextFactory=destination.getHttpClient().getSslContextFactory();
+    if (sslContextFactory != null) {
+      tunnel(destination,connection);
+    }
+ else {
+      String message=String.format("Cannot perform requests over SSL, no %s in %s",SslContextFactory.class.getSimpleName(),HttpClient.class.getSimpleName());
+      promise.failed(new IllegalStateException(message));
+    }
+  }
+ else {
+    promise.succeeded(connection);
+  }
+}

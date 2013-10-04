@@ -3,12 +3,13 @@
   HttpVersion version=request.getVersion();
   HttpFields headers=request.getHeaders();
   ContentProvider content=request.getContent();
+  ProxyConfiguration.Proxy proxy=destination.getProxy();
   String path=request.getPath();
   if (path.trim().length() == 0) {
     path="/";
     request.path(path);
   }
-  if (destination.isProxied() && !HttpMethod.CONNECT.is(method)) {
+  if (proxy != null && !HttpMethod.CONNECT.is(method)) {
     path=request.getURI().toString();
     request.path(path);
   }
@@ -33,7 +34,9 @@
     cookieString.append(cookie.getName()).append("=").append(cookie.getValue());
   }
   if (cookieString != null)   request.header(HttpHeader.COOKIE.asString(),cookieString.toString());
-  URI authenticationURI=destination.isProxied() ? destination.getProxyURI() : request.getURI();
-  Authentication.Result authnResult=getHttpClient().getAuthenticationStore().findAuthenticationResult(authenticationURI);
-  if (authnResult != null)   authnResult.apply(request);
+  URI authenticationURI=proxy != null ? proxy.getURI() : request.getURI();
+  if (authenticationURI != null) {
+    Authentication.Result authnResult=getHttpClient().getAuthenticationStore().findAuthenticationResult(authenticationURI);
+    if (authnResult != null)     authnResult.apply(request);
+  }
 }
