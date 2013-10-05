@@ -1,15 +1,18 @@
 {
   if (_white.size() > 0) {
     boolean match=false;
+    boolean matchedByPath=false;
     Object whiteObj=_white.getLazyMatches(path);
     if (whiteObj != null) {
+      matchedByPath=true;
       List whiteList=(whiteObj instanceof List) ? (List)whiteObj : Collections.singletonList(whiteObj);
       for (      Object entry : whiteList) {
         IPAddressMap<Boolean> addrMap=((Map.Entry<String,IPAddressMap<Boolean>>)entry).getValue();
         if (match=(addrMap != null && (addrMap.size() == 0 || addrMap.match(addr) != null)))         break;
       }
     }
-    if (!match)     return false;
+    if (!_whiteListByPath && !match)     return false;
+ else     if (_whiteListByPath && matchedByPath && !match)     return false;
   }
   if (_black.size() > 0) {
     Object blackObj=_black.getLazyMatches(path);
