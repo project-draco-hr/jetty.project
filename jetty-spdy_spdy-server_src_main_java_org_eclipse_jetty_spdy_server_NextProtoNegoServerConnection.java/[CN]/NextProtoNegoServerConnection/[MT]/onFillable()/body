@@ -1,21 +1,37 @@
 {
-  while (true) {
-    int filled=fill();
-    if (filled == 0 && nextProtocol == null)     fillInterested();
-    if (filled <= 0 || nextProtocol != null)     break;
+  int filled=fill();
+  if (filled == 0) {
+    if (nextProtocol == null) {
+      if (engine.getHandshakeStatus() == SSLEngineResult.HandshakeStatus.NOT_HANDSHAKING) {
+        LOG.debug("{} missing next protocol. SSLEngine: {}",this,engine);
+        close();
+      }
+ else {
+        fillInterested();
+      }
+    }
+ else {
+      ConnectionFactory connectionFactory=connector.getConnectionFactory(nextProtocol);
+      if (connectionFactory == null) {
+        LOG.debug("{} application selected protocol '{}', but no correspondent {} has been configured",this,nextProtocol,ConnectionFactory.class.getName());
+        close();
+      }
+ else {
+        EndPoint endPoint=getEndPoint();
+        Connection oldConnection=endPoint.getConnection();
+        Connection newConnection=connectionFactory.newConnection(connector,endPoint);
+        LOG.debug("{} switching from {} to {}",this,oldConnection,newConnection);
+        oldConnection.onClose();
+        endPoint.setConnection(newConnection);
+        getEndPoint().getConnection().onOpen();
+      }
+    }
   }
-  if (nextProtocol == null && engine.getHandshakeStatus() == SSLEngineResult.HandshakeStatus.NOT_HANDSHAKING) {
-    LOG.debug("{} missing next protocol. SSLEngine: {}",this,engine);
+ else   if (filled < 0) {
+    LOG.debug("{} closing on client close",this);
     close();
   }
-  if (nextProtocol != null) {
-    ConnectionFactory connectionFactory=connector.getConnectionFactory(nextProtocol);
-    EndPoint endPoint=getEndPoint();
-    Connection oldConnection=endPoint.getConnection();
-    oldConnection.onClose();
-    Connection connection=connectionFactory.newConnection(connector,endPoint);
-    LOG.debug("{} switching from {} to {}",this,oldConnection,connection);
-    endPoint.setConnection(connection);
-    getEndPoint().getConnection().onOpen();
+ else {
+    throw new IllegalStateException();
   }
 }
