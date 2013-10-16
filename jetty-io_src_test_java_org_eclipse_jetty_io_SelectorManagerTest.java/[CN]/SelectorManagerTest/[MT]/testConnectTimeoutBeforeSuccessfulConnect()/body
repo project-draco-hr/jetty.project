@@ -5,6 +5,7 @@
   SocketChannel client=SocketChannel.open();
   client.configureBlocking(false);
   client.connect(address);
+  final AtomicBoolean timeoutConnection=new AtomicBoolean();
   final long connectTimeout=1000;
   SelectorManager selectorManager=new SelectorManager(executor,scheduler){
     @Override protected EndPoint newEndPoint(    SocketChannel channel,    ManagedSelector selector,    SelectionKey selectionKey) throws IOException {
@@ -12,7 +13,7 @@
     }
     @Override protected boolean finishConnect(    SocketChannel channel) throws IOException {
       try {
-        TimeUnit.MILLISECONDS.sleep(connectTimeout * 2);
+        if (timeoutConnection.get())         TimeUnit.MILLISECONDS.sleep(connectTimeout * 2);
         return super.finishConnect(channel);
       }
  catch (      InterruptedException e) {
@@ -34,14 +35,24 @@
   selectorManager.setConnectTimeout(connectTimeout);
   selectorManager.start();
   try {
-    final CountDownLatch latch=new CountDownLatch(1);
+    timeoutConnection.set(true);
+    final CountDownLatch latch1=new CountDownLatch(1);
     selectorManager.connect(client,new Callback.Adapter(){
       @Override public void failed(      Throwable x){
-        latch.countDown();
+        latch1.countDown();
       }
     }
 );
-    Assert.assertTrue(latch.await(connectTimeout * 3,TimeUnit.MILLISECONDS));
+    Assert.assertTrue(latch1.await(connectTimeout * 3,TimeUnit.MILLISECONDS));
+    timeoutConnection.set(false);
+    final CountDownLatch latch2=new CountDownLatch(1);
+    selectorManager.connect(client,new Callback.Adapter(){
+      @Override public void failed(      Throwable x){
+        latch2.countDown();
+      }
+    }
+);
+    Assert.assertTrue(latch2.await(connectTimeout,TimeUnit.MILLISECONDS));
   }
   finally {
     selectorManager.stop();
