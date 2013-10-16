@@ -1,0 +1,55 @@
+{
+  SSLSocket client1=newClient();
+  SimpleProxy.AutomaticFlow automaticProxyFlow=proxy.startAutomaticFlow();
+  client1.startHandshake();
+  client1.close();
+  Assert.assertTrue(automaticProxyFlow.stop(5,TimeUnit.SECONDS));
+  int proxyPort=proxy.getPort();
+  proxy.stop();
+  proxy=new SimpleProxy(threadPool,proxyPort,"localhost",serverPort);
+  proxy.start();
+  logger.info("proxy:{} <==> server:{}",proxy.getPort(),serverPort);
+  final SSLSocket client2=newClient(proxy);
+  Future<Object> handshake=threadPool.submit(new Callable<Object>(){
+    @Override public Object call() throws Exception {
+      client2.startHandshake();
+      return null;
+    }
+  }
+);
+  TLSRecord record=proxy.readFromClient();
+  Assert.assertNotNull(record);
+  proxy.flushToServer(record);
+  record=proxy.readFromServer();
+  Assert.assertNotNull(record);
+  proxy.flushToClient(record);
+  record=proxy.readFromServer();
+  Assert.assertNotNull(record);
+  proxy.flushToClient(record);
+  record=proxy.readFromServer();
+  Assert.assertNotNull(record);
+  proxy.flushToClient(record);
+  record=proxy.readFromClient();
+  Assert.assertNotNull(record);
+  TLSRecord doneRecord=proxy.readFromClient();
+  Assert.assertNotNull(doneRecord);
+  client2.close();
+  TLSRecord closeRecord=proxy.readFromClient();
+  Assert.assertNotNull(closeRecord);
+  Assert.assertEquals(TLSRecord.Type.ALERT,closeRecord.getType());
+  byte[] recordBytes=record.getBytes();
+  byte[] doneBytes=doneRecord.getBytes();
+  byte[] closeRecordBytes=closeRecord.getBytes();
+  byte[] chunk=new byte[recordBytes.length + doneBytes.length + closeRecordBytes.length];
+  System.arraycopy(recordBytes,0,chunk,0,recordBytes.length);
+  System.arraycopy(doneBytes,0,chunk,recordBytes.length,doneBytes.length);
+  System.arraycopy(closeRecordBytes,0,chunk,recordBytes.length + doneBytes.length,closeRecordBytes.length);
+  proxy.flushToServer(0,chunk);
+  proxy.flushToServer(null);
+  record=proxy.readFromServer();
+  Assert.assertNull(record);
+  TimeUnit.MILLISECONDS.sleep(500);
+  Assert.assertThat(sslFills.get(),Matchers.lessThan(20));
+  Assert.assertThat(sslFlushes.get(),Matchers.lessThan(20));
+  Assert.assertThat(httpParses.get(),Matchers.lessThan(20));
+}
