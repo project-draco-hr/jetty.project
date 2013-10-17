@@ -55,33 +55,6 @@
   setRemotePort(parameter != null && Boolean.parseBoolean(parameter));
   parameter=filterConfig.getInitParameter(ENABLED_INIT_PARAM);
   setEnabled(parameter == null || Boolean.parseBoolean(parameter));
-  _requestTimeoutQ.setNow();
-  _requestTimeoutQ.setDuration(_maxRequestMs);
-  _trackerTimeoutQ.setNow();
-  _trackerTimeoutQ.setDuration(_maxIdleTrackerMs);
-  _running=true;
-  _timerThread=(new Thread(){
-    public void run(){
-      try {
-        while (_running) {
-          long now=_requestTimeoutQ.setNow();
-          _requestTimeoutQ.tick();
-          _trackerTimeoutQ.setNow(now);
-          _trackerTimeoutQ.tick();
-          try {
-            Thread.sleep(100);
-          }
- catch (          InterruptedException e) {
-            LOG.ignore(e);
-          }
-        }
-      }
-  finally {
-        LOG.debug("DoSFilter timer exited");
-      }
-    }
-  }
-);
-  _timerThread.start();
+  _scheduler=startScheduler();
   if (_context != null && Boolean.parseBoolean(filterConfig.getInitParameter(MANAGED_ATTR_INIT_PARAM)))   _context.setAttribute(filterConfig.getFilterName(),this);
 }

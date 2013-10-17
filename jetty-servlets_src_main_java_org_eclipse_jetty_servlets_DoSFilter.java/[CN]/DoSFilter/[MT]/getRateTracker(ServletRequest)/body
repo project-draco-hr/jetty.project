@@ -6,23 +6,24 @@
     type=USER_AUTH;
   }
  else {
-    if (_trackSessions && session != null && !session.isNew()) {
+    if (isTrackSessions() && session != null && !session.isNew()) {
       loadId=session.getId();
       type=USER_SESSION;
     }
  else {
-      loadId=_remotePort ? (request.getRemoteAddr() + request.getRemotePort()) : request.getRemoteAddr();
+      loadId=isRemotePort() ? (request.getRemoteAddr() + request.getRemotePort()) : request.getRemoteAddr();
       type=USER_IP;
     }
   }
   RateTracker tracker=_rateTrackers.get(loadId);
   if (tracker == null) {
     boolean allowed=checkWhitelist(_whitelist,request.getRemoteAddr());
-    tracker=allowed ? new FixedRateTracker(loadId,type,_maxRequestsPerSec) : new RateTracker(loadId,type,_maxRequestsPerSec);
+    int maxRequestsPerSec=getMaxRequestsPerSec();
+    tracker=allowed ? new FixedRateTracker(loadId,type,maxRequestsPerSec) : new RateTracker(loadId,type,maxRequestsPerSec);
     RateTracker existing=_rateTrackers.putIfAbsent(loadId,tracker);
     if (existing != null)     tracker=existing;
     if (type == USER_IP) {
-      _trackerTimeoutQ.schedule(tracker);
+      _scheduler.schedule(tracker,getMaxIdleTrackerMs(),TimeUnit.MILLISECONDS);
     }
  else     if (session != null) {
       session.setAttribute(__TRACKER,tracker);
