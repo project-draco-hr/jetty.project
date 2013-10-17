@@ -1,12 +1,46 @@
 {
-  List<ServletContainerInitializer> nonExcludedInitializers=new ArrayList<ServletContainerInitializer>();
+  ArrayList<ServletContainerInitializer> nonExcludedInitializers=new ArrayList<ServletContainerInitializer>();
   long start=0;
   if (LOG.isDebugEnabled())   start=System.nanoTime();
   ServiceLoader<ServletContainerInitializer> loadedInitializers=ServiceLoader.load(ServletContainerInitializer.class,context.getClassLoader());
   if (LOG.isDebugEnabled())   LOG.debug("Service loaders found in {}ms",(TimeUnit.MILLISECONDS.convert((System.nanoTime() - start),TimeUnit.NANOSECONDS)));
-  if (loadedInitializers != null) {
-    for (    ServletContainerInitializer service : loadedInitializers) {
-      if (!isFromExcludedJar(context,service))       nonExcludedInitializers.add(service);
+  if (loadedInitializers == null)   return Collections.emptyList();
+  ServletContainerInitializerOrdering initializerOrdering=getInitializerOrdering(context);
+  if (initializerOrdering != null && !initializerOrdering.isDefaultOrder()) {
+    if (LOG.isDebugEnabled())     LOG.debug("Ordering ServletContainerInitializers with " + initializerOrdering);
+    for (    ServletContainerInitializer sci : loadedInitializers) {
+      Resource sciResource=getJarFor(sci);
+      if (!isFromExcludedJar(context,sci,sciResource)) {
+        String name=sci.getClass().getName();
+        if (initializerOrdering.getIndexOf(name) >= 0 || initializerOrdering.hasWildcard())         nonExcludedInitializers.add(sci);
+      }
+    }
+    Collections.sort(nonExcludedInitializers,new ServletContainerInitializerComparator(initializerOrdering));
+  }
+ else {
+    if (LOG.isDebugEnabled())     LOG.debug("Ordering ServletContainerInitializers as container path, webapp path");
+    Map<ServletContainerInitializer,Resource> webappPathInitializerResourceMap=new HashMap<ServletContainerInitializer,Resource>();
+    for (    ServletContainerInitializer sci : loadedInitializers) {
+      if (sci.getClass().getClassLoader() == context.getClassLoader().getParent()) {
+        nonExcludedInitializers.add(sci);
+      }
+ else {
+        Resource sciResource=getJarFor(sci);
+        if (!isFromExcludedJar(context,sci,sciResource)) {
+          webappPathInitializerResourceMap.put(sci,sciResource);
+        }
+      }
+    }
+    if (context.getMetaData().getOrdering() == null)     nonExcludedInitializers.addAll(webappPathInitializerResourceMap.keySet());
+ else {
+      for (      Map.Entry<ServletContainerInitializer,Resource> entry : webappPathInitializerResourceMap.entrySet()) {
+        if (entry.getValue() == null)         nonExcludedInitializers.add(entry.getKey());
+      }
+      for (      Resource webInfJar : context.getMetaData().getOrderedWebInfJars()) {
+        for (        Map.Entry<ServletContainerInitializer,Resource> entry : webappPathInitializerResourceMap.entrySet()) {
+          if (webInfJar.equals(entry.getValue()))           nonExcludedInitializers.add(entry.getKey());
+        }
+      }
     }
   }
   return nonExcludedInitializers;
