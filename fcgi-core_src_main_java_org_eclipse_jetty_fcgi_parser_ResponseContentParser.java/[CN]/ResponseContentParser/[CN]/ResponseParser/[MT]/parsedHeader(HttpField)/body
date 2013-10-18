@@ -1,0 +1,24 @@
+{
+  try {
+    String name=httpField.getName();
+    if ("Status".equalsIgnoreCase(name)) {
+      if (!seenResponseCode) {
+        seenResponseCode=true;
+        String[] parts=httpField.getValue().split(" ");
+        int code=Integer.parseInt(parts[0]);
+        httpParser.setResponseStatus(code);
+        String reason=parts.length > 1 ? parts[1] : HttpStatus.getMessage(code);
+        notifyBegin(code,reason);
+        notifyHeaders(fields);
+      }
+    }
+ else {
+      if (seenResponseCode)       notifyHeader(httpField);
+ else       fields.add(httpField);
+    }
+  }
+ catch (  Throwable x) {
+    logger.debug("Exception while invoking listener " + listener,x);
+  }
+  return false;
+}
