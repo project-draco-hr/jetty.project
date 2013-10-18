@@ -1,22 +1,29 @@
 {
-  JettyTrackingSocket cliSock=new JettyTrackingSocket();
-  client.getPolicy().setIdleTimeout(10000);
-  URI wsUri=server.getWsUri();
-  ClientUpgradeRequest request=new ClientUpgradeRequest();
-  request.setSubProtocols("echo");
-  Future<Session> future=client.connect(cliSock,wsUri,request);
-  final ServerConnection srvSock=server.accept();
-  srvSock.upgrade();
-  Session sess=future.get(500,TimeUnit.MILLISECONDS);
-  Assert.assertThat("Session",sess,notNullValue());
-  Assert.assertThat("Session.open",sess.isOpen(),is(true));
-  Assert.assertThat("Session.upgradeRequest",sess.getUpgradeRequest(),notNullValue());
-  Assert.assertThat("Session.upgradeResponse",sess.getUpgradeResponse(),notNullValue());
-  cliSock.assertWasOpened();
-  cliSock.assertNotClosed();
-  Assert.assertThat("client.connectionManager.sessions.size",client.getConnectionManager().getSessions().size(),is(1));
-  cliSock.getSession().getRemote().sendString("Hello World!",null);
-  srvSock.echoMessage(1,TimeUnit.MILLISECONDS,500);
-  cliSock.waitForMessage(500,TimeUnit.MILLISECONDS);
-  cliSock.assertMessage("Hello World!");
+  WebSocketClient client=new WebSocketClient();
+  client.start();
+  try {
+    TrackingSocket cliSock=new TrackingSocket();
+    client.getPolicy().setIdleTimeout(10000);
+    URI wsUri=server.getWsUri();
+    ClientUpgradeRequest request=new ClientUpgradeRequest();
+    request.setSubProtocols("echo");
+    Future<Session> future=client.connect(cliSock,wsUri,request);
+    final ServerConnection srvSock=server.accept();
+    srvSock.upgrade();
+    Session sess=future.get(500,TimeUnit.MILLISECONDS);
+    Assert.assertThat("Session",sess,notNullValue());
+    Assert.assertThat("Session.open",sess.isOpen(),is(true));
+    Assert.assertThat("Session.upgradeRequest",sess.getUpgradeRequest(),notNullValue());
+    Assert.assertThat("Session.upgradeResponse",sess.getUpgradeResponse(),notNullValue());
+    cliSock.assertWasOpened();
+    cliSock.assertNotClosed();
+    Assert.assertThat("client.connectionManager.sessions.size",client.getConnectionManager().getSessions().size(),is(1));
+    cliSock.getSession().getRemote().sendStringByFuture("Hello World!");
+    srvSock.echoMessage(1,TimeUnit.MILLISECONDS,500);
+    cliSock.waitForMessage(500,TimeUnit.MILLISECONDS);
+    cliSock.assertMessage("Hello World!");
+  }
+  finally {
+    client.stop();
+  }
 }
