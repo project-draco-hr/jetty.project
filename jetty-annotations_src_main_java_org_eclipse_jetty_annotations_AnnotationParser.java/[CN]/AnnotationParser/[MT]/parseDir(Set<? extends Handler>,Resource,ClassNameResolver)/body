@@ -10,11 +10,9 @@
     Resource res=dir.addPath(files[f]);
     if (res.isDirectory())     parseDir(handlers,res,resolver);
  else {
-      boolean valid=true;
+      System.err.println("TRYING TO SCAN " + res);
       File file=res.getFile();
-      if (file == null)       LOG.warn("Unable to validate class file name for {}",res);
- else       valid=isValidClassFileName(file.getName());
-      if (valid) {
+      if (isValidClassFileName((file == null ? null : file.getName()))) {
         try {
           String name=res.getName();
           if ((resolver == null) || (!resolver.isExcluded(name) && (!isParsed(name) || resolver.shouldOverride(name)))) {
@@ -29,6 +27,9 @@
  catch (        Exception ex) {
           me.add(new RuntimeException("Error scanning file " + files[f],ex));
         }
+      }
+ else {
+        if (LOG.isDebugEnabled())         LOG.debug("Skipping scan on invalid file {}",res);
       }
     }
   }
