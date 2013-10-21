@@ -2,26 +2,25 @@
   if (_white.size() > 0) {
     boolean match=false;
     boolean matchedByPath=false;
-    Object whiteObj=_white.getLazyMatches(path);
-    if (whiteObj != null) {
+    for (    Map.Entry<String,IPAddressMap<Boolean>> entry : _white.getMatches(path)) {
       matchedByPath=true;
-      List whiteList=(whiteObj instanceof List) ? (List)whiteObj : Collections.singletonList(whiteObj);
-      for (      Object entry : whiteList) {
-        IPAddressMap<Boolean> addrMap=((Map.Entry<String,IPAddressMap<Boolean>>)entry).getValue();
-        if (match=(addrMap != null && (addrMap.size() == 0 || addrMap.match(addr) != null)))         break;
+      IPAddressMap<Boolean> addrMap=entry.getValue();
+      if ((addrMap != null && (addrMap.size() == 0 || addrMap.match(addr) != null))) {
+        match=true;
+        break;
       }
     }
-    if (!_whiteListByPath && !match)     return false;
- else     if (_whiteListByPath && matchedByPath && !match)     return false;
+    if (_whiteListByPath) {
+      if (matchedByPath && !match)       return false;
+    }
+ else {
+      if (!match)       return false;
+    }
   }
   if (_black.size() > 0) {
-    Object blackObj=_black.getLazyMatches(path);
-    if (blackObj != null) {
-      List blackList=(blackObj instanceof List) ? (List)blackObj : Collections.singletonList(blackObj);
-      for (      Object entry : blackList) {
-        IPAddressMap<Boolean> addrMap=((Map.Entry<String,IPAddressMap<Boolean>>)entry).getValue();
-        if (addrMap != null && (addrMap.size() == 0 || addrMap.match(addr) != null))         return false;
-      }
+    for (    Map.Entry<String,IPAddressMap<Boolean>> entry : _black.getMatches(path)) {
+      IPAddressMap<Boolean> addrMap=entry.getValue();
+      if (addrMap != null && (addrMap.size() == 0 || addrMap.match(addr) != null))       return false;
     }
   }
   return true;
