@@ -1,3 +1,31 @@
 {
-  return LazyList.getList(getLazyMatches(path));
+  MappedEntry<O> entry;
+  List<MappedEntry<O>> entries=new ArrayList<>();
+  if (path == null)   return entries;
+  if (path.length() == 0)   return _defaultSingletonList;
+  entry=_exactMap.get(path);
+  if (entry != null)   entries.add(entry);
+  int l=path.length();
+  int i=l;
+  final Trie<PathMap.MappedEntry<O>> prefix_map=_prefixMap;
+  while (i >= 0) {
+    entry=prefix_map.getBest(path,0,i);
+    if (entry == null)     break;
+    String key=entry.getKey();
+    if (key.length() - 2 >= path.length() || path.charAt(key.length() - 2) == '/')     entries.add(entry);
+    i=key.length() - 3;
+  }
+  if (_prefixDefault != null)   entries.add(_prefixDefault);
+  i=0;
+  final Trie<PathMap.MappedEntry<O>> suffix_map=_suffixMap;
+  while ((i=path.indexOf('.',i + 1)) > 0) {
+    entry=suffix_map.get(path,i + 1,l - i - 1);
+    if (entry != null)     entries.add(entry);
+  }
+  if ("/".equals(path)) {
+    entry=_exactMap.get("");
+    if (entry != null)     entries.add(entry);
+  }
+  if (_default != null)   entries.add(_default);
+  return entries;
 }
