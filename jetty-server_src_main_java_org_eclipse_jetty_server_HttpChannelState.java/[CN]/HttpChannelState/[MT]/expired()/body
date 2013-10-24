@@ -1,6 +1,6 @@
 {
   final List<AsyncListener> aListeners;
-  AsyncEvent event;
+  AsyncContextEvent event;
 synchronized (this) {
     if (_async != Async.STARTED)     return;
     _async=Async.EXPIRING;
@@ -13,7 +13,10 @@ synchronized (this) {
         listener.onTimeout(event);
       }
  catch (      Exception e) {
-        LOG.warn(e);
+        LOG.debug(e);
+        event.setThrowable(e);
+        _channel.getRequest().setAttribute(RequestDispatcher.ERROR_EXCEPTION,e);
+        break;
       }
     }
   }

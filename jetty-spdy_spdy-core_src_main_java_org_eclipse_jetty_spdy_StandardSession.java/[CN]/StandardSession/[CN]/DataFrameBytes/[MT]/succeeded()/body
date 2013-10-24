@@ -1,0 +1,14 @@
+{
+  bufferPool.release(buffer);
+  IStream stream=getStream();
+  dataInfo.consume(size);
+  flowControlStrategy.updateWindow(StandardSession.this,stream,-size);
+  if (dataInfo.available() > 0) {
+    flusher.prepend(this);
+  }
+ else {
+    super.succeeded();
+    stream.updateCloseState(dataInfo.isClose(),true);
+    if (stream.isClosed())     removeStream(stream);
+  }
+}

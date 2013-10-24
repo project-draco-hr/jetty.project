@@ -1,6 +1,6 @@
 {
   final CountDownLatch latch=new CountDownLatch(1);
-  HttpDestinationOverHTTP destination=new HttpDestinationOverHTTP(client,"http","localhost",connector.getLocalPort()){
+  HttpDestinationOverHTTP destination=new HttpDestinationOverHTTP(client,new Origin("http","localhost",connector.getLocalPort())){
     @Override protected void process(    HttpConnectionOverHTTP connection,    boolean dispatch){
       try {
         latch.await(5,TimeUnit.SECONDS);
@@ -17,8 +17,8 @@
   Connection connection2=destination.acquire();
   Assert.assertNull(connection2);
   latch.countDown();
-  Connection connection=destination.getHttpConnectionPool().getIdleConnections().poll(5,TimeUnit.SECONDS);
+  Connection connection=destination.getConnectionPool().getIdleConnections().poll(5,TimeUnit.SECONDS);
   Assert.assertNotNull(connection);
-  connection=destination.getHttpConnectionPool().getIdleConnections().poll(5,TimeUnit.SECONDS);
+  connection=destination.getConnectionPool().getIdleConnections().poll(5,TimeUnit.SECONDS);
   Assert.assertNotNull(connection);
 }

@@ -2,9 +2,11 @@
   LocalWebSocketConnection conn=new LocalWebSocketConnection(testname);
   try (MessageInputStream stream=new MessageInputStream(conn)){
     final AtomicBoolean hadError=new AtomicBoolean(false);
+    final CountDownLatch startLatch=new CountDownLatch(1);
     new Thread(new Runnable(){
       @Override public void run(){
         try {
+          startLatch.countDown();
           boolean fin=false;
           TimeUnit.MILLISECONDS.sleep(200);
           stream.appendMessage(BufferUtil.toBuffer("Saved",UTF8),fin);
@@ -21,6 +23,7 @@
       }
     }
 ).start();
+    startLatch.await();
     byte buf[]=new byte[32];
     int len=stream.read(buf);
     String message=new String(buf,0,len,UTF8);

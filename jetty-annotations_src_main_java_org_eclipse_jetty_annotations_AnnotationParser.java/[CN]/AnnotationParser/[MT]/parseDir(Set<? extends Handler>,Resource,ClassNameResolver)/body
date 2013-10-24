@@ -4,17 +4,16 @@
     LOG.debug("Scanning dir {}",dir);
   }
   ;
+  MultiException me=new MultiException();
   String[] files=dir.list();
   for (int f=0; files != null && f < files.length; f++) {
-    try {
-      Resource res=dir.addPath(files[f]);
-      if (res.isDirectory())       parseDir(handlers,res,resolver);
+    Resource res=dir.addPath(files[f]);
+    if (res.isDirectory())     parseDir(handlers,res,resolver);
  else {
-        boolean valid=true;
-        File file=res.getFile();
-        if (file == null)         LOG.warn("Unable to validate class file name for {}",res);
- else         valid=isValidClassFileName(file.getName());
-        if (valid) {
+      System.err.println("TRYING TO SCAN " + res);
+      File file=res.getFile();
+      if (isValidClassFileName((file == null ? null : file.getName()))) {
+        try {
           String name=res.getName();
           if ((resolver == null) || (!resolver.isExcluded(name) && (!isParsed(name) || resolver.shouldOverride(name)))) {
             Resource r=Resource.newResource(res.getURL());
@@ -25,10 +24,14 @@
             scanClass(handlers,dir,r.getInputStream());
           }
         }
+ catch (        Exception ex) {
+          me.add(new RuntimeException("Error scanning file " + files[f],ex));
+        }
+      }
+ else {
+        if (LOG.isDebugEnabled())         LOG.debug("Skipping scan on invalid file {}",res);
       }
     }
- catch (    Exception ex) {
-      LOG.warn(Log.EXCEPTION,ex);
-    }
   }
+  me.ifExceptionThrow();
 }

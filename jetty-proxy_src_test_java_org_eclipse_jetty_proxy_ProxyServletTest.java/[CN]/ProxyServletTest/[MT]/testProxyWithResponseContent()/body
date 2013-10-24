@@ -1,7 +1,7 @@
 {
   prepareProxy(new ProxyServlet());
   HttpClient result=new HttpClient();
-  result.setProxyConfiguration(new ProxyConfiguration("localhost",proxyConnector.getLocalPort()));
+  result.getProxyConfiguration().getProxies().add(new HttpProxy("localhost",proxyConnector.getLocalPort()));
   QueuedThreadPool threadPool=new QueuedThreadPool();
   threadPool.setName("foo");
   threadPool.setMaxThreads(20);
@@ -9,7 +9,7 @@
   result.start();
   ContentResponse[] responses=new ContentResponse[10];
   final byte[] content=new byte[1024];
-  Arrays.fill(content,(byte)'A');
+  new Random().nextBytes(content);
   prepareServer(new HttpServlet(){
     @Override protected void doGet(    HttpServletRequest req,    HttpServletResponse resp) throws ServletException, IOException {
       if (req.getHeader("Via") != null)       resp.addHeader(PROXIED_HEADER,"true");

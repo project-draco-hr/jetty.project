@@ -1,0 +1,23 @@
+{
+  String target=destination.getOrigin().getAddress().asString();
+  Origin.Address proxyAddress=destination.getConnectAddress();
+  HttpClient httpClient=destination.getHttpClient();
+  Request connect=httpClient.newRequest(proxyAddress.getHost(),proxyAddress.getPort()).scheme(HttpScheme.HTTP.asString()).method(HttpMethod.CONNECT).path(target).header(HttpHeader.HOST,target).timeout(httpClient.getConnectTimeout(),TimeUnit.MILLISECONDS);
+  connection.send(connect,new Response.CompleteListener(){
+    @Override public void onComplete(    Result result){
+      if (result.isFailed()) {
+        tunnelFailed(result.getFailure());
+      }
+ else {
+        Response response=result.getResponse();
+        if (response.getStatus() == 200) {
+          tunnelSucceeded();
+        }
+ else {
+          tunnelFailed(new HttpResponseException("Received " + response + " for "+ result.getRequest(),response));
+        }
+      }
+    }
+  }
+);
+}

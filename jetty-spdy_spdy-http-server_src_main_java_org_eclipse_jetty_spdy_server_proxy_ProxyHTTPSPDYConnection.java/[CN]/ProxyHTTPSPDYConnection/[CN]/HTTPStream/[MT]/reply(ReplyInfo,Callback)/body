@@ -2,18 +2,18 @@
   Fields headers=new Fields(replyInfo.getHeaders(),false);
   addPersistenceHeader(headers);
   headers.remove(HTTPSPDYHeader.SCHEME.name(version));
-  String status=headers.remove(HTTPSPDYHeader.STATUS.name(version)).value();
+  String status=headers.remove(HTTPSPDYHeader.STATUS.name(version)).getValue();
   Matcher matcher=statusRegexp.matcher(status);
   matcher.matches();
   int code=Integer.parseInt(matcher.group(1));
   String reason=matcher.group(2).trim();
-  HttpVersion httpVersion=HttpVersion.fromString(headers.remove(HTTPSPDYHeader.VERSION.name(version)).value());
+  HttpVersion httpVersion=HttpVersion.fromString(headers.remove(HTTPSPDYHeader.VERSION.name(version)).getValue());
   Fields.Field host=headers.remove(HTTPSPDYHeader.HOST.name(version));
-  if (host != null)   headers.put("host",host.value());
+  if (host != null)   headers.put("host",host.getValue());
   HttpFields fields=new HttpFields();
   for (  Fields.Field header : headers) {
-    String name=camelize(header.name());
-    fields.put(name,header.value());
+    String name=camelize(header.getName());
+    fields.put(name,header.getValue());
   }
   long contentLength=fields.getLongField(HttpHeader.CONTENT_LENGTH.asString());
   HttpGenerator.ResponseInfo info=new HttpGenerator.ResponseInfo(httpVersion,fields,contentLength,code,reason,false);

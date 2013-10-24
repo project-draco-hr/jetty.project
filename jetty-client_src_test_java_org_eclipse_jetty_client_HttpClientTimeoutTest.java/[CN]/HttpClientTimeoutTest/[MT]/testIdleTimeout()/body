@@ -4,11 +4,22 @@
   client.stop();
   final AtomicBoolean sslIdle=new AtomicBoolean();
   client=new HttpClient(new HttpClientTransportOverHTTP(){
-    @Override protected SslConnection newSslConnection(    HttpClient httpClient,    EndPoint endPoint,    SSLEngine engine){
-      return new SslConnection(httpClient.getByteBufferPool(),httpClient.getExecutor(),endPoint,engine){
-        @Override protected boolean onReadTimeout(){
-          sslIdle.set(true);
-          return super.onReadTimeout();
+    @Override public HttpDestination newHttpDestination(    Origin origin){
+      return new HttpDestinationOverHTTP(getHttpClient(),origin){
+        @Override protected ClientConnectionFactory newSslClientConnectionFactory(        ClientConnectionFactory connectionFactory){
+          HttpClient client=getHttpClient();
+          return new SslClientConnectionFactory(client.getSslContextFactory(),client.getByteBufferPool(),client.getExecutor(),connectionFactory){
+            @Override protected SslConnection newSslConnection(            ByteBufferPool byteBufferPool,            Executor executor,            EndPoint endPoint,            SSLEngine engine){
+              return new SslConnection(byteBufferPool,executor,endPoint,engine){
+                @Override protected boolean onReadTimeout(){
+                  sslIdle.set(true);
+                  return super.onReadTimeout();
+                }
+              }
+;
+            }
+          }
+;
         }
       }
 ;

@@ -1,3 +1,16 @@
 {
-  return _dateField;
+  long now=System.currentTimeMillis();
+  long seconds=now / 1000;
+  DateField df=_dateField;
+  if (df == null || df._seconds != seconds) {
+synchronized (this) {
+      df=_dateField;
+      if (df == null || df._seconds != seconds) {
+        HttpField field=new HttpGenerator.CachedHttpField(HttpHeader.DATE,DateGenerator.formatDate(now));
+        _dateField=new DateField(seconds,field);
+        return field;
+      }
+    }
+  }
+  return df._dateField;
 }
