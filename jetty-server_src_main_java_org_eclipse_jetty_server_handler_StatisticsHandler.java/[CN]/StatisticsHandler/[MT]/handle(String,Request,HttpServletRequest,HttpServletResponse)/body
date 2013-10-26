@@ -25,9 +25,14 @@
       }
     }
  else     if (state.isInitial()) {
-      _requestStats.decrement();
+      long d=_requestStats.decrement();
       _requestTimeStats.set(dispatched);
       updateResponse(request);
+      FutureCallback shutdown=_shutdown.get();
+      if (shutdown != null) {
+        httpResponse.flushBuffer();
+        if (d == 0)         shutdown.succeeded();
+      }
     }
   }
 }
