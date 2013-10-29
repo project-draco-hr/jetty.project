@@ -1,5 +1,6 @@
 {
   try {
+    if (isIgnored())     return false;
     if (callbackHandler == null)     throw new LoginException("No callback handler");
     Callback[] callbacks=configureCallbacks();
     callbackHandler.handle(callbacks);
@@ -9,16 +10,17 @@
     if (webCredential == null)     webCredential=((PasswordCallback)callbacks[2]).getPassword();
     if ((webUserName == null) || (webCredential == null)) {
       setAuthenticated(false);
-      return isAuthenticated();
+      throw new FailedLoginException();
     }
     UserInfo userInfo=getUserInfo(webUserName);
     if (userInfo == null) {
       setAuthenticated(false);
-      return isAuthenticated();
+      throw new FailedLoginException();
     }
     currentUser=new JAASUserInfo(userInfo);
     setAuthenticated(currentUser.checkCredential(webCredential));
-    return isAuthenticated();
+    if (isAuthenticated())     return true;
+ else     throw new FailedLoginException();
   }
  catch (  IOException e) {
     throw new LoginException(e.toString());
@@ -27,7 +29,7 @@ catch (  UnsupportedCallbackException e) {
     throw new LoginException(e.toString());
   }
 catch (  Exception e) {
-    e.printStackTrace();
+    if (e instanceof LoginException)     throw (LoginException)e;
     throw new LoginException(e.toString());
   }
 }
