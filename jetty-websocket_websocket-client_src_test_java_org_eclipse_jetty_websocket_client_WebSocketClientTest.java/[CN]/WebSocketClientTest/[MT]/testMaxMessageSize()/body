@@ -1,0 +1,26 @@
+{
+  WebSocketClient client=new WebSocketClient();
+  client.start();
+  try {
+    MaxMessageSocket wsocket=new MaxMessageSocket();
+    URI wsUri=server.getWsUri();
+    Future<Session> future=client.connect(wsocket,wsUri);
+    ServerConnection ssocket=server.accept();
+    ssocket.upgrade();
+    wsocket.awaitConnect(1,TimeUnit.SECONDS);
+    Session sess=future.get(500,TimeUnit.MILLISECONDS);
+    Assert.assertThat("Session",sess,notNullValue());
+    Assert.assertThat("Session.open",sess.isOpen(),is(true));
+    byte buf[]=new byte[80 * 1024];
+    Arrays.fill(buf,(byte)'x');
+    String msg=StringUtil.toUTF8String(buf,0,buf.length);
+    wsocket.getSession().getRemote().sendStringByFuture(msg);
+    ssocket.echoMessage(1,TimeUnit.MILLISECONDS,500);
+    wsocket.waitForMessage(500,TimeUnit.MILLISECONDS);
+    wsocket.assertMessage(msg);
+    Assert.assertTrue(wsocket.dataLatch.await(1000,TimeUnit.SECONDS));
+  }
+  finally {
+    client.stop();
+  }
+}

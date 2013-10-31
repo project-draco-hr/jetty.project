@@ -10,8 +10,8 @@
       Resource res=dir.addPath(files[f]);
       if (res.isDirectory())       parseDir(res,resolver);
  else {
-        String filename=res.getFile().getName();
-        if (isValidClassFileName(filename)) {
+        File file=res.getFile();
+        if (isValidClassFileName((file == null ? null : file.getName()))) {
           String name=res.getName();
           if ((resolver == null) || (!resolver.isExcluded(name) && (!isParsed(name) || resolver.shouldOverride(name)))) {
             Resource r=Resource.newResource(res.getURL());
@@ -21,6 +21,9 @@
             ;
             scanClass(r.getInputStream());
           }
+        }
+ else {
+          if (LOG.isDebugEnabled())           LOG.debug("Skipping scan on invalid file {}",res);
         }
       }
     }
