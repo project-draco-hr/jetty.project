@@ -1,0 +1,34 @@
+{
+  start(new EmptyServerHandler());
+  final AtomicInteger counter=new AtomicInteger();
+  Request.Listener listener=new Request.Listener(){
+    @Override public void onQueued(    Request request){
+      counter.incrementAndGet();
+    }
+    @Override public void onBegin(    Request request){
+      counter.incrementAndGet();
+    }
+    @Override public void onHeaders(    Request request){
+      counter.incrementAndGet();
+    }
+    @Override public void onCommit(    Request request){
+      counter.incrementAndGet();
+    }
+    @Override public void onContent(    Request request,    ByteBuffer content){
+      counter.incrementAndGet();
+    }
+    @Override public void onFailure(    Request request,    Throwable failure){
+      counter.incrementAndGet();
+    }
+    @Override public void onSuccess(    Request request){
+      counter.incrementAndGet();
+    }
+  }
+;
+  ContentResponse response=client.newRequest("localhost",connector.getLocalPort()).scheme(scheme).onRequestQueued(listener).onRequestBegin(listener).onRequestHeaders(listener).onRequestCommit(listener).onRequestContent(listener).onRequestSuccess(listener).onRequestFailure(listener).listener(listener).send();
+  Assert.assertEquals(200,response.getStatus());
+  int expectedEventsTriggeredByOnRequestXXXListeners=5;
+  int expectedEventsTriggeredByListener=5;
+  int expected=expectedEventsTriggeredByOnRequestXXXListeners + expectedEventsTriggeredByListener;
+  Assert.assertEquals(expected,counter.get());
+}

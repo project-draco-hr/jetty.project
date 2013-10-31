@@ -54,9 +54,9 @@ catch (  Exception e) {
       LOG.warn(request.getRequestURI(),th);
       if (LOG.isDebugEnabled())       LOG.debug(request.toString());
     }
+    request.setAttribute(RequestDispatcher.ERROR_EXCEPTION_TYPE,th.getClass());
+    request.setAttribute(RequestDispatcher.ERROR_EXCEPTION,th);
     if (!response.isCommitted()) {
-      request.setAttribute(RequestDispatcher.ERROR_EXCEPTION_TYPE,th.getClass());
-      request.setAttribute(RequestDispatcher.ERROR_EXCEPTION,th);
       if (th instanceof UnavailableException) {
         UnavailableException ue=(UnavailableException)th;
         if (ue.isPermanent())         response.sendError(HttpServletResponse.SC_NOT_FOUND);
@@ -65,18 +65,18 @@ catch (  Exception e) {
  else       response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
     }
  else     LOG.debug("Response already committed",th);
+    if (request.isAsyncStarted())     request.getAsyncContext().complete();
   }
 catch (  Error e) {
     if ("ContinuationThrowable".equals(e.getClass().getSimpleName()))     throw e;
     if (!(DispatcherType.REQUEST.equals(type) || DispatcherType.ASYNC.equals(type)))     throw e;
     LOG.warn("Error for " + request.getRequestURI(),e);
     if (LOG.isDebugEnabled())     LOG.debug(request.toString());
-    if (!response.isCommitted()) {
-      request.setAttribute(RequestDispatcher.ERROR_EXCEPTION_TYPE,e.getClass());
-      request.setAttribute(RequestDispatcher.ERROR_EXCEPTION,e);
-      response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-    }
+    request.setAttribute(RequestDispatcher.ERROR_EXCEPTION_TYPE,e.getClass());
+    request.setAttribute(RequestDispatcher.ERROR_EXCEPTION,e);
+    if (!response.isCommitted())     response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
  else     LOG.debug("Response already committed for handling ",e);
+    if (request.isAsyncStarted())     request.getAsyncContext().complete();
   }
  finally {
     if (servlet_holder != null)     baseRequest.setHandled(true);
