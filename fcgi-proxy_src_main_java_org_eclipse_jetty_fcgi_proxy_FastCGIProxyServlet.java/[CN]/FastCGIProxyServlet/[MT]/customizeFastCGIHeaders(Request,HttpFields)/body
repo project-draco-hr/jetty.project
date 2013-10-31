@@ -5,10 +5,17 @@
   fastCGIHeaders.put(FCGI.Headers.SERVER_ADDR,(String)proxyRequest.getAttributes().get(SERVER_ADDR_ATTRIBUTE));
   fastCGIHeaders.put(FCGI.Headers.SERVER_PORT,(String)proxyRequest.getAttributes().get(SERVER_PORT_ATTRIBUTE));
   if (HttpScheme.HTTPS.is((String)proxyRequest.getAttributes().get(SCHEME_ATTRIBUTE)))   fastCGIHeaders.put(FCGI.Headers.HTTPS,"on");
-  String root=fastCGIHeaders.get(FCGI.Headers.DOCUMENT_ROOT);
-  String path=proxyRequest.getURI().getRawPath();
-  Matcher matcher=scriptPattern.matcher(path);
-  String scriptName=matcher.matches() ? matcher.group(1) : path;
+  String rawPath=proxyRequest.getURI().getRawPath();
+  String requestPath=(String)proxyRequest.getAttributes().get(REQUEST_URI_ATTRIBUTE);
+  if (requestPath == null)   requestPath=rawPath;
+  fastCGIHeaders.put(FCGI.Headers.REQUEST_URI,requestPath);
+  String scriptName=rawPath;
+  Matcher matcher=scriptPattern.matcher(rawPath);
+  if (matcher.matches()) {
+    scriptName=matcher.group(1);
+    if (matcher.groupCount() > 1)     fastCGIHeaders.put(FCGI.Headers.PATH_INFO,matcher.group(2));
+  }
   fastCGIHeaders.put(FCGI.Headers.SCRIPT_NAME,scriptName);
+  String root=fastCGIHeaders.get(FCGI.Headers.DOCUMENT_ROOT);
   fastCGIHeaders.put(FCGI.Headers.SCRIPT_FILENAME,root + scriptName);
 }
