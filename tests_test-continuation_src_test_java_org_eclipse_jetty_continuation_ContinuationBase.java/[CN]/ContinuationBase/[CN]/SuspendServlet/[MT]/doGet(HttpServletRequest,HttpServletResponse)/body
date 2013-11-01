@@ -20,7 +20,7 @@
   if (request.getParameter("complete2") != null)   complete2_after=Integer.parseInt(request.getParameter("complete2"));
   if (request.getParameter("undispatch") != null)   undispatch=Boolean.parseBoolean(request.getParameter("undispatch"));
   if (continuation.isInitial()) {
-    ((HttpServletResponse)response).addHeader("history","initial");
+    response.addHeader("history","initial");
     if (read_before > 0) {
       byte[] buf=new byte[read_before];
       request.getInputStream().read(buf);
@@ -33,7 +33,7 @@
     if (suspend_for >= 0) {
       if (suspend_for > 0)       continuation.setTimeout(suspend_for);
       continuation.addContinuationListener(__listener);
-      ((HttpServletResponse)response).addHeader("history","suspend");
+      response.addHeader("history","suspend");
       continuation.suspend(response);
       if (complete_after > 0) {
         TimerTask complete=new TimerTask(){
@@ -92,11 +92,11 @@ synchronized (_timer) {
     }
   }
  else {
-    ((HttpServletResponse)response).addHeader("history","!initial");
+    response.addHeader("history","!initial");
     if (suspend2_for >= 0 && request.getAttribute("2nd") == null) {
       request.setAttribute("2nd","cycle");
       if (suspend2_for > 0)       continuation.setTimeout(suspend2_for);
-      ((HttpServletResponse)response).addHeader("history","suspend");
+      response.addHeader("history","suspend");
       continuation.suspend(response);
       if (complete2_after > 0) {
         TimerTask complete=new TimerTask(){
@@ -124,7 +124,7 @@ synchronized (_timer) {
  else       if (resume2_after > 0) {
         TimerTask resume=new TimerTask(){
           @Override public void run(){
-            ((HttpServletResponse)response).addHeader("history","resume");
+            response.addHeader("history","resume");
             continuation.resume();
           }
         }
@@ -134,7 +134,7 @@ synchronized (_timer) {
         }
       }
  else       if (resume2_after == 0) {
-        ((HttpServletResponse)response).addHeader("history","resume");
+        response.addHeader("history","resume");
         continuation.resume();
       }
       if (undispatch)       continuation.undispatch();
