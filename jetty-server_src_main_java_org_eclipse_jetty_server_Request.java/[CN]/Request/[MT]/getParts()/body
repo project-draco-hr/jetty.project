@@ -8,24 +8,20 @@
     setAttribute(__MULTIPART_INPUT_STREAM,_multiPartInputStream);
     setAttribute(__MULTIPART_CONTEXT,_context);
     Collection<Part> parts=_multiPartInputStream.getParts();
+    ByteArrayOutputStream os=null;
     for (    Part p : parts) {
       MultiPartInputStreamParser.MultiPart mp=(MultiPartInputStreamParser.MultiPart)p;
       if (mp.getContentDispositionFilename() == null) {
         String charset=null;
         if (mp.getContentType() != null)         charset=MimeTypes.getCharsetFromContentType(mp.getContentType());
-        ByteArrayOutputStream os=null;
-        InputStream is=mp.getInputStream();
-        try {
-          os=new ByteArrayOutputStream();
+        try (InputStream is=mp.getInputStream()){
+          if (os == null)           os=new ByteArrayOutputStream();
           IO.copy(is,os);
-          String content=new String(os.toByteArray(),charset == null ? StringUtil.__UTF8 : charset);
+          String content=new String(os.toByteArray(),charset == null ? StandardCharsets.UTF_8 : Charset.forName(charset));
           getParameter("");
           getParameters().add(mp.getName(),content);
         }
-  finally {
-          IO.close(os);
-          IO.close(is);
-        }
+         os.reset();
       }
     }
   }
