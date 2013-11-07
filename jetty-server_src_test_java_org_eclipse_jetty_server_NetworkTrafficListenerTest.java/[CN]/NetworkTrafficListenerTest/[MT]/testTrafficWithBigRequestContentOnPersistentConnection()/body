@@ -16,10 +16,10 @@
   final CountDownLatch outgoingLatch=new CountDownLatch(1);
   connector.addNetworkTrafficListener(new NetworkTrafficListener.Empty(){
     public void incoming(    Socket socket,    ByteBuffer bytes){
-      incomingData.set(incomingData.get() + BufferUtil.toString(bytes,StringUtil.__UTF8_CHARSET));
+      incomingData.set(incomingData.get() + BufferUtil.toString(bytes,StandardCharsets.UTF_8));
     }
     public void outgoing(    Socket socket,    ByteBuffer bytes){
-      outgoingData.set(outgoingData.get() + BufferUtil.toString(bytes,StringUtil.__UTF8_CHARSET));
+      outgoingData.set(outgoingData.get() + BufferUtil.toString(bytes,StandardCharsets.UTF_8));
       outgoingLatch.countDown();
     }
   }
@@ -31,12 +31,12 @@
   String expectedResponse="" + "HTTP/1.1 200 OK\r\n" + "Content-Length: 0\r\n"+ "\r\n";
   Socket socket=new Socket("localhost",port);
   OutputStream output=socket.getOutputStream();
-  output.write(request.getBytes("UTF-8"));
+  output.write(request.getBytes(StandardCharsets.UTF_8));
   output.flush();
   assertTrue(outgoingLatch.await(1,TimeUnit.SECONDS));
   assertEquals(expectedResponse,outgoingData.get());
   byte[] responseBytes=readResponse(socket);
-  String response=new String(responseBytes,"UTF-8");
+  String response=new String(responseBytes,StandardCharsets.UTF_8);
   assertEquals(expectedResponse,response);
   assertEquals(request,incomingData.get());
   socket.close();

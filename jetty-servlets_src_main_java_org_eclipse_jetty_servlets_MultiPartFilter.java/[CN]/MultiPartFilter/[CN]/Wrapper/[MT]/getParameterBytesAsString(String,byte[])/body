@@ -1,9 +1,14 @@
 {
   Object ct=_params.getValue(name + CONTENT_TYPE_SUFFIX,0);
-  String contentType=_encoding;
+  Charset contentType=_encoding;
   if (ct != null) {
     String tmp=MimeTypes.getCharsetFromContentType((String)ct);
-    contentType=(tmp == null ? _encoding : tmp);
+    try {
+      contentType=(tmp == null ? _encoding : Charset.forName(tmp));
+    }
+ catch (    UnsupportedCharsetException e) {
+      throw new UnsupportedEncodingException(e.getMessage());
+    }
   }
   return new String(bytes,contentType);
 }

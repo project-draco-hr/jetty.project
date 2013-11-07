@@ -31,27 +31,27 @@
     int wait=1000;
     String request1="GET " + uri + "?suspend="+ wait+ " HTTP/1.1\r\n"+ "Host: localhost:"+ connector.getLocalPort()+ "\r\n"+ "\r\n";
     OutputStream output1=socket1.getOutputStream();
-    output1.write(request1.getBytes("UTF-8"));
+    output1.write(request1.getBytes(StandardCharsets.UTF_8));
     output1.flush();
     Assert.assertTrue(asyncLatch.await(5,TimeUnit.SECONDS));
     String error="408";
     try (Socket socket2=new Socket("localhost",connector.getLocalPort())){
       String request2="DELETE " + uri + "?error="+ error+ " HTTP/1.1\r\n"+ "Host: localhost:"+ connector.getLocalPort()+ "\r\n"+ "\r\n";
       OutputStream output2=socket2.getOutputStream();
-      output2.write(request2.getBytes("UTF-8"));
+      output2.write(request2.getBytes(StandardCharsets.UTF_8));
       output2.flush();
       SimpleHttpParser parser2=new SimpleHttpParser();
-      BufferedReader input2=new BufferedReader(new InputStreamReader(socket2.getInputStream(),"UTF-8"));
+      BufferedReader input2=new BufferedReader(new InputStreamReader(socket2.getInputStream(),StandardCharsets.UTF_8));
       SimpleHttpResponse response2=parser2.readResponse(input2);
       Assert.assertEquals("200",response2.getCode());
     }
      socket1.setSoTimeout(2 * wait);
     SimpleHttpParser parser1=new SimpleHttpParser();
-    BufferedReader input1=new BufferedReader(new InputStreamReader(socket1.getInputStream(),"UTF-8"));
+    BufferedReader input1=new BufferedReader(new InputStreamReader(socket1.getInputStream(),StandardCharsets.UTF_8));
     SimpleHttpResponse response1=parser1.readResponse(input1);
     Assert.assertEquals(error,response1.getCode());
     String request3="GET " + uri + " HTTP/1.1\r\n"+ "Host: localhost:"+ connector.getLocalPort()+ "\r\n"+ "\r\n";
-    output1.write(request3.getBytes("UTF-8"));
+    output1.write(request3.getBytes(StandardCharsets.UTF_8));
     output1.flush();
     SimpleHttpResponse response3=parser1.readResponse(input1);
     Assert.assertEquals("200",response3.getCode());
