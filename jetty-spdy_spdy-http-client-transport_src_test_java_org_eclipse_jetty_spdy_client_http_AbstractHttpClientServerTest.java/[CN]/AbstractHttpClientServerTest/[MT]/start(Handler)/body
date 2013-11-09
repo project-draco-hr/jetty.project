@@ -1,8 +1,15 @@
 {
-  server=new Server();
   short version=SPDY.V3;
-  HTTPSPDYServerConnectionFactory spdyConnectionFactory=new HTTPSPDYServerConnectionFactory(version,new HttpConfiguration(),new PushStrategy.None());
-  connector=new ServerConnector(server,spdyConnectionFactory);
+  HTTPSPDYServerConnectionFactory httpSPDY=new HTTPSPDYServerConnectionFactory(version,new HttpConfiguration());
+  if (sslContextFactory != null) {
+    sslContextFactory.setEndpointIdentificationAlgorithm("");
+    sslContextFactory.setKeyStorePath("src/test/resources/keystore.jks");
+    sslContextFactory.setKeyStorePassword("storepwd");
+    sslContextFactory.setTrustStorePath("src/test/resources/truststore.jks");
+    sslContextFactory.setTrustStorePassword("storepwd");
+  }
+  server=new Server();
+  connector=new ServerConnector(server,AbstractConnectionFactory.getFactories(sslContextFactory,httpSPDY));
   server.addConnector(connector);
   server.setHandler(handler);
   server.start();
@@ -10,7 +17,7 @@
   executor.setName(executor.getName() + "-client");
   factory=new SPDYClient.Factory(executor);
   factory.start();
-  client=new HttpClient(new HttpClientTransportOverSPDY(factory.newSPDYClient(version)),null);
+  client=new HttpClient(new HttpClientTransportOverSPDY(factory.newSPDYClient(version)),sslContextFactory);
   client.setExecutor(executor);
   client.start();
 }
