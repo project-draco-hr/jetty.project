@@ -2,22 +2,25 @@
   String action=request.getParameter("action");
   if ("create".equals(action)) {
     HttpSession session=request.getSession(true);
+    session.setAttribute("foo","bar");
     assertTrue(session.isNew());
   }
  else   if ("invalidate".equals(action)) {
     HttpSession existingSession=request.getSession(false);
     assertNotNull(existingSession);
-    existingSession.invalidate();
-    String id=request.getRequestedSessionId();
-    assertNotNull(id);
-    id=id.substring(0,id.indexOf("."));
+    String id=existingSession.getId();
+    id=(id.indexOf(".") > 0 ? id.substring(0,id.indexOf(".")) : id);
     DBObject dbSession=_sessions.findOne(new BasicDBObject("id",id));
-    assertTrue(dbSession != null);
+    assertNotNull(dbSession);
+    existingSession.invalidate();
+    dbSession=_sessions.findOne(new BasicDBObject("id",id));
+    assertNotNull(dbSession);
+    assertTrue(dbSession.containsField(MongoSessionManager.__INVALIDATED));
   }
  else   if ("test".equals(action)) {
     String id=request.getRequestedSessionId();
     assertNotNull(id);
-    id=id.substring(0,id.indexOf("."));
+    id=(id.indexOf(".") > 0 ? id.substring(0,id.indexOf(".")) : id);
     HttpSession existingSession=request.getSession(false);
     assertTrue(existingSession == null);
     DBObject dbSession=_sessions.findOne(new BasicDBObject("id",id));
