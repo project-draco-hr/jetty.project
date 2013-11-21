@@ -10,48 +10,34 @@ case START:
         if ((frame != null) && (frame.isFin())) {
           frame.reset();
         }
-        state=State.FINOP;
-        break;
-      }
-case FINOP:
-{
-      byte b=buffer.get();
-      boolean fin=((b & 0x80) != 0);
-      boolean rsv1=((b & 0x40) != 0);
-      boolean rsv2=((b & 0x20) != 0);
-      boolean rsv3=((b & 0x10) != 0);
-      byte opc=(byte)(b & 0x0F);
-      byte opcode=opc;
-      if (!OpCode.isKnown(opcode)) {
-        throw new ProtocolException("Unknown opcode: " + opc);
-      }
-      if (LOG.isDebugEnabled()) {
-        LOG.debug("OpCode {}, fin={} rsv={}{}{}",OpCode.name(opcode),fin,(rsv1 ? '1' : '.'),(rsv2 ? '1' : '.'),(rsv3 ? '1' : '.'));
-      }
-      if (!rsv1InUse && rsv1) {
-        throw new ProtocolException("RSV1 not allowed to be set");
-      }
-      if (!rsv2InUse && rsv2) {
-        throw new ProtocolException("RSV2 not allowed to be set");
-      }
-      if (!rsv3InUse && rsv3) {
-        throw new ProtocolException("RSV3 not allowed to be set");
-      }
+        byte b=buffer.get();
+        boolean fin=((b & 0x80) != 0);
+        byte opc=(byte)(b & 0x0F);
+        byte opcode=opc;
+        if (!OpCode.isKnown(opcode)) {
+          throw new ProtocolException("Unknown opcode: " + opc);
+        }
+        if (LOG.isDebugEnabled()) {
+          LOG.debug("OpCode {}, fin={} rsv={}{}{}",OpCode.name(opcode),fin,(isRsv1InUse() ? '1' : '.'),(isRsv2InUse() ? '1' : '.'),(isRsv3InUse() ? '1' : '.'));
+        }
 switch (opcode) {
 case OpCode.TEXT:
-        frame=new TextFrame();
+          frame=new TextFrame();
+        lastDataOpcode=opcode;
       if ((priorDataFrame != null) && (!priorDataFrame.isFin())) {
         throw new ProtocolException("Unexpected " + OpCode.name(opcode) + " frame, was expecting CONTINUATION");
       }
     break;
 case OpCode.BINARY:
   frame=new BinaryFrame();
+lastDataOpcode=opcode;
 if ((priorDataFrame != null) && (!priorDataFrame.isFin())) {
-  throw new ProtocolException("Unexpected " + OpCode.name(opcode) + " frame, was expecting CONTINUATION");
+throw new ProtocolException("Unexpected " + OpCode.name(opcode) + " frame, was expecting CONTINUATION");
 }
 break;
 case OpCode.CONTINUATION:
 frame=new ContinuationFrame();
+lastDataOpcode=opcode;
 if (priorDataFrame == null) {
 throw new ProtocolException("CONTINUATION frame without prior !FIN");
 }
@@ -77,11 +63,24 @@ throw new ProtocolException("Fragmented Pong Frame [" + OpCode.name(opcode) + "]
 break;
 }
 frame.setFin(fin);
-frame.setRsv1(rsv1);
-frame.setRsv2(rsv2);
-frame.setRsv3(rsv3);
-if (frame.isDataFrame()) {
-lastDataOpcode=opcode;
+if ((b & 0x70) != 0) {
+if ((b & 0x40) != 0) {
+if (isRsv1InUse()) frame.setRsv1(true);
+ else throw new ProtocolException("RSV1 not allowed to be set");
+}
+if ((b & 0x20) != 0) {
+if (isRsv2InUse()) frame.setRsv2(true);
+ else throw new ProtocolException("RSV2 not allowed to be set");
+}
+if ((b & 0x10) != 0) {
+if (isRsv3InUse()) frame.setRsv3(true);
+ else throw new ProtocolException("RSV3 not allowed to be set");
+}
+}
+ else {
+if (LOG.isDebugEnabled()) {
+LOG.debug("OpCode {}, fin={} rsv=000",OpCode.name(opcode),fin);
+}
 }
 state=State.PAYLOAD_LEN;
 break;
