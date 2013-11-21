@@ -1,32 +1,30 @@
 {
-  DBObject o=_sessions.findOne(new BasicDBObject(__ID,clusterId));
-  __log.debug("MongoSessionManager:loaded " + o);
-  if (o == null) {
-    return null;
-  }
+  DBObject o=_dbSessions.findOne(new BasicDBObject(__ID,clusterId));
+  __log.debug("MongoSessionManager:id={} loaded={}",clusterId,o);
+  if (o == null)   return null;
   Boolean valid=(Boolean)o.get(__VALID);
-  if (valid == null || !valid) {
-    return null;
-  }
+  __log.debug("MongoSessionManager:id={} valid={}",clusterId,valid);
+  if (valid == null || !valid)   return null;
   try {
-    Object version=o.get(getContextKey(__VERSION));
+    Object version=o.get(getContextAttributeKey(__VERSION));
     Long created=(Long)o.get(__CREATED);
     Long accessed=(Long)o.get(__ACCESSED);
-    NoSqlSession session=new NoSqlSession(this,created,accessed,clusterId,version);
+    NoSqlSession session=null;
     DBObject attrs=(DBObject)getNestedValue(o,getContextKey());
-    __log.debug("MongoSessionManager:attrs: " + attrs);
+    __log.debug("MongoSessionManager:attrs {}",attrs);
     if (attrs != null) {
+      __log.debug("MongoSessionManager: session {} present for context {}",clusterId,getContextKey());
+      session=new NoSqlSession(this,created,accessed,clusterId,version);
       for (      String name : attrs.keySet()) {
-        if (__METADATA.equals(name)) {
-          continue;
-        }
+        if (__METADATA.equals(name))         continue;
         String attr=decodeName(name);
         Object value=decodeValue(attrs.get(name));
         session.doPutOrRemove(attr,value);
         session.bindValue(attr,value);
       }
+      session.didActivate();
     }
-    session.didActivate();
+ else     __log.debug("MongoSessionManager: session  {} not present for context {}",clusterId,getContextKey());
     return session;
   }
  catch (  Exception e) {

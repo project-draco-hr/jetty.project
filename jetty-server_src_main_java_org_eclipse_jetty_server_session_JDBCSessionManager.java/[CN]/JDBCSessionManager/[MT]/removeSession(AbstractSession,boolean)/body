@@ -1,20 +1,9 @@
 {
-  boolean removed=false;
-synchronized (this) {
-    if (_sessions.containsKey(session.getClusterId())) {
-      removed=true;
-      removeSession(session.getClusterId());
-    }
-  }
+  boolean removed=super.removeSession(session,invalidate);
   if (removed) {
-    _sessionIdManager.removeSession(session);
-    if (invalidate)     _sessionIdManager.invalidateAll(session.getClusterId());
-    if (invalidate && !_sessionListeners.isEmpty()) {
-      HttpSessionEvent event=new HttpSessionEvent(session);
-      for (      HttpSessionListener l : _sessionListeners)       l.sessionDestroyed(event);
-    }
     if (!invalidate) {
       session.willPassivate();
     }
   }
+  return removed;
 }
