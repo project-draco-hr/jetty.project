@@ -1,15 +1,27 @@
 {
   try {
-    while (_state.compareAndSet(State.WAITING,State.ITERATING)) {
-      if (process()) {
-        if (_state.compareAndSet(State.ITERATING,State.SUCCEEDED))         completed();
- else         throw new IllegalStateException("Already " + _state.get());
-        return;
-      }
- else       if (_state.compareAndSet(State.ITERATING,State.WAITING))       break;
-    }
-  }
- catch (  Exception e) {
-    failed(e);
-  }
+    while (_state.compareAndSet(State.IDLE,State.ITERATING)) {
+      State next=process();
+switch (next) {
+case SUCCEEDED:
+        if (!_state.compareAndSet(State.ITERATING,State.SUCCEEDED))         throw new IllegalStateException("state=" + _state.get());
+      completed();
+    return;
+case SCHEDULED:
+  if (_state.compareAndSet(State.ITERATING,State.SCHEDULED))   return;
+continue;
+case IDLE:
+if (!_state.compareAndSet(State.ITERATING,State.IDLE)) throw new IllegalStateException("state=" + _state.get());
+return;
+case FAILED:
+_state.set(State.FAILED);
+return;
+default :
+throw new IllegalStateException("state=" + _state.get() + " next="+ next);
+}
+}
+}
+ catch (Exception e) {
+failed(e);
+}
 }

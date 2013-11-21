@@ -8,19 +8,19 @@ case OPEN:
 case ASYNC:
     throw new IllegalStateException("isReady() not called");
 case READY:
-  if (!_state.compareAndSet(State.READY,State.PENDING))   continue;
+  if (!_state.compareAndSet(OutputState.READY,OutputState.PENDING))   continue;
 int capacity=getBufferSize();
 if (!complete && len <= _commitSize) {
 if (_aggregate == null) _aggregate=_channel.getByteBufferPool().acquire(capacity,false);
 int filled=BufferUtil.fill(_aggregate,b,off,len);
 if (filled == len && !BufferUtil.isFull(_aggregate)) {
-  if (!_state.compareAndSet(State.PENDING,State.ASYNC))   throw new IllegalStateException();
+  if (!_state.compareAndSet(OutputState.PENDING,OutputState.ASYNC))   throw new IllegalStateException();
   return;
 }
 off+=filled;
 len-=filled;
 }
-new AsyncWrite(b,off,len,complete).process();
+new AsyncWrite(b,off,len,complete).iterate();
 return;
 case PENDING:
 case UNREADY:

@@ -1,0 +1,17 @@
+{
+  TestCB cb=new TestCB(){
+    int i=4;
+    @Override protected State process() throws Exception {
+      processed++;
+      if (i-- > 1) {
+        scheduler.schedule(i > 2 ? successTask : failTask,50,TimeUnit.MILLISECONDS);
+        return State.SCHEDULED;
+      }
+      return State.SUCCEEDED;
+    }
+  }
+;
+  cb.iterate();
+  Assert.assertFalse(cb.waitForComplete());
+  Assert.assertEquals(2,cb.processed);
+}

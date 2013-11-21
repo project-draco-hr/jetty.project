@@ -1,15 +1,18 @@
 {
-  if (_state.compareAndSet(State.ITERATING,State.WAITING))   return;
+  if (_state.compareAndSet(State.ITERATING,State.IDLE))   return;
   loop:   while (true) {
 switch (_state.get()) {
 case ITERATING:
-      if (_state.compareAndSet(State.ITERATING,State.WAITING))       break loop;
+      if (_state.compareAndSet(State.ITERATING,State.IDLE))       break loop;
     continue;
-case WAITING:
-  iterate();
+case SCHEDULED:
+  if (_state.compareAndSet(State.SCHEDULED,State.IDLE))   iterate();
+break loop;
+case IDLE:
+iterate();
 break loop;
 default :
-throw new IllegalStateException("Already " + _state.get());
+throw new IllegalStateException(this + " state=" + _state.get());
 }
 }
 }

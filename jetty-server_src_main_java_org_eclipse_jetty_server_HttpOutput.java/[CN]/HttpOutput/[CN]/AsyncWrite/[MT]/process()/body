@@ -1,7 +1,7 @@
 {
   if (BufferUtil.hasContent(_aggregate)) {
     _channel.write(_aggregate,_complete && _len == 0,this);
-    return false;
+    return State.SCHEDULED;
   }
   if (!_complete && _len < BufferUtil.space(_aggregate) && _len < _commitSize) {
     BufferUtil.put(_buffer,_aggregate);
@@ -9,13 +9,13 @@
  else   if (_len > 0 && !_flushed) {
     _flushed=true;
     _channel.write(_buffer,_complete,this);
-    return false;
+    return State.SCHEDULED;
   }
  else   if (_len == 0 && !_flushed) {
     _flushed=true;
     _channel.write(BufferUtil.EMPTY_BUFFER,_complete,this);
-    return false;
+    return State.SCHEDULED;
   }
   if (_complete)   closed();
-  return true;
+  return State.SUCCEEDED;
 }
