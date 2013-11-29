@@ -59,6 +59,7 @@
       long singleLength=singleSatisfiableRange.getSize(content_length);
       writeHeaders(response,content,singleLength);
       response.setStatus(HttpServletResponse.SC_PARTIAL_CONTENT);
+      if (!response.containsHeader(HttpHeader.DATE.asString()))       response.addDateHeader(HttpHeader.DATE.asString(),System.currentTimeMillis());
       response.setHeader(HttpHeader.CONTENT_RANGE.asString(),singleSatisfiableRange.toHeaderRangeString(content_length));
       resource.writeTo(out,singleSatisfiableRange.getFirst(content_length),singleLength);
       return;
@@ -68,6 +69,7 @@
     if (mimetype == null)     LOG.warn("Unknown mimetype for " + request.getRequestURI());
     MultiPartOutputStream multi=new MultiPartOutputStream(out);
     response.setStatus(HttpServletResponse.SC_PARTIAL_CONTENT);
+    if (!response.containsHeader(HttpHeader.DATE.asString()))     response.addDateHeader(HttpHeader.DATE.asString(),System.currentTimeMillis());
     String ctp;
     if (request.getHeader(HttpHeader.REQUEST_RANGE.asString()) != null)     ctp="multipart/x-byteranges; boundary=";
  else     ctp="multipart/byteranges; boundary=";
