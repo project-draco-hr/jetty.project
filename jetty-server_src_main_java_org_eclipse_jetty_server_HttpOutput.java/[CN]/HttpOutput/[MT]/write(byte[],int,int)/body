@@ -9,16 +9,15 @@ case ASYNC:
     throw new IllegalStateException("isReady() not called");
 case READY:
   if (!_state.compareAndSet(OutputState.READY,OutputState.PENDING))   continue;
-int capacity=getBufferSize();
 if (!complete && len <= _commitSize) {
-if (_aggregate == null) _aggregate=_channel.getByteBufferPool().acquire(capacity,false);
-int filled=BufferUtil.fill(_aggregate,b,off,len);
-if (filled == len && !BufferUtil.isFull(_aggregate)) {
-  if (!_state.compareAndSet(OutputState.PENDING,OutputState.ASYNC))   throw new IllegalStateException();
-  return;
-}
-off+=filled;
-len-=filled;
+  if (_aggregate == null)   _aggregate=_channel.getByteBufferPool().acquire(getBufferSize(),false);
+  int filled=BufferUtil.fill(_aggregate,b,off,len);
+  if (filled == len && !BufferUtil.isFull(_aggregate)) {
+    if (!_state.compareAndSet(OutputState.PENDING,OutputState.ASYNC))     throw new IllegalStateException();
+    return;
+  }
+  off+=filled;
+  len-=filled;
 }
 new AsyncWrite(b,off,len,complete).iterate();
 return;
@@ -45,9 +44,20 @@ BufferUtil.append(_aggregate,b,off,len);
 return;
 }
 }
-if (len > 0) _channel.write(ByteBuffer.wrap(b,off,len).asReadOnlyBuffer(),complete);
- else if (complete) _channel.write(BufferUtil.EMPTY_BUFFER,complete);
-if (complete) {
-closed();
+if (len > 0) {
+ByteBuffer wrap=ByteBuffer.wrap(b,off,len);
+ByteBuffer readonly=wrap.asReadOnlyBuffer();
+while (len > getBufferSize()) {
+int p=readonly.position();
+int l=p + getBufferSize();
+readonly.limit(p + getBufferSize());
+_channel.write(readonly,false);
+len-=getBufferSize();
+readonly.limit(l + Math.min(len,getBufferSize()));
+readonly.position(l);
 }
+_channel.write(readonly,complete);
+}
+ else if (complete) _channel.write(BufferUtil.EMPTY_BUFFER,complete);
+if (complete) closed();
 }

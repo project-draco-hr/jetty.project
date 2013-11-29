@@ -1,21 +1,36 @@
 {
   if (BufferUtil.hasContent(_aggregate)) {
-    _channel.write(_aggregate,_complete && _len == 0,this);
+    _completed=_len == 0;
+    _channel.write(_aggregate,_complete && _completed,this);
     return State.SCHEDULED;
   }
   if (!_complete && _len < BufferUtil.space(_aggregate) && _len < _commitSize) {
     BufferUtil.put(_buffer,_aggregate);
+    return State.SUCCEEDED;
   }
- else   if (_len > 0 && !_flushed) {
-    _flushed=true;
-    _channel.write(_buffer,_complete,this);
+  if (_buffer.hasRemaining()) {
+    if (_slice == null) {
+      _completed=true;
+      _channel.write(_buffer,_complete,this);
+      return State.SCHEDULED;
+    }
+    int p=_buffer.position();
+    int l=Math.min(getBufferSize(),_buffer.remaining());
+    int pl=p + l;
+    _slice.limit(pl);
+    _buffer.position(pl);
+    _slice.position(p);
+    _completed=!_buffer.hasRemaining();
+    _channel.write(_buffer,_complete && _completed,this);
     return State.SCHEDULED;
   }
- else   if (_len == 0 && !_flushed) {
-    _flushed=true;
-    _channel.write(BufferUtil.EMPTY_BUFFER,_complete,this);
-    return State.SCHEDULED;
+  if (_complete) {
+    if (!_completed) {
+      _completed=true;
+      _channel.write(BufferUtil.EMPTY_BUFFER,_complete,this);
+      return State.SCHEDULED;
+    }
+    closed();
   }
-  if (_complete)   closed();
   return State.SUCCEEDED;
 }
