@@ -1,0 +1,80 @@
+{
+  super.init(filterConfig);
+  _context=filterConfig.getServletContext();
+  String tmp=filterConfig.getInitParameter("bufferSize");
+  if (tmp != null)   _bufferSize=Integer.parseInt(tmp);
+  LOG.debug("{} bufferSize={}",this,_bufferSize);
+  tmp=filterConfig.getInitParameter("minGzipSize");
+  if (tmp != null)   _minGzipSize=Integer.parseInt(tmp);
+  LOG.debug("{} minGzipSize={}",this,_minGzipSize);
+  tmp=filterConfig.getInitParameter("deflateCompressionLevel");
+  if (tmp != null)   _deflateCompressionLevel=Integer.parseInt(tmp);
+  LOG.debug("{} deflateCompressionLevel={}",this,_deflateCompressionLevel);
+  tmp=filterConfig.getInitParameter("deflateNoWrap");
+  if (tmp != null)   _deflateNoWrap=Boolean.parseBoolean(tmp);
+  LOG.debug("{} deflateNoWrap={}",this,_deflateNoWrap);
+  tmp=filterConfig.getInitParameter("checkGzExists");
+  if (tmp != null)   _checkGzExists=Boolean.parseBoolean(tmp);
+  LOG.debug("{} checkGzExists={}",this,_checkGzExists);
+  tmp=filterConfig.getInitParameter("methods");
+  if (tmp != null) {
+    StringTokenizer tok=new StringTokenizer(tmp,",",false);
+    while (tok.hasMoreTokens())     _methods.add(tok.nextToken().trim().toUpperCase());
+  }
+ else   _methods.add(HttpMethod.GET.asString());
+  LOG.debug("{} methods={}",this,_methods);
+  tmp=filterConfig.getInitParameter("mimeTypes");
+  if (tmp == null) {
+    _excludeMimeTypes=true;
+    tmp=filterConfig.getInitParameter("excludedMimeTypes");
+    if (tmp == null) {
+      for (      String type : MimeTypes.getKnownMimeTypes()) {
+        if (type.startsWith("image/") || type.startsWith("audio/") || type.startsWith("video/"))         _mimeTypes.add(type);
+        _mimeTypes.add("application/compress");
+        _mimeTypes.add("application/zip");
+        _mimeTypes.add("application/gzip");
+      }
+    }
+ else {
+      StringTokenizer tok=new StringTokenizer(tmp,",",false);
+      while (tok.hasMoreTokens())       _mimeTypes.add(tok.nextToken().trim());
+    }
+  }
+ else {
+    StringTokenizer tok=new StringTokenizer(tmp,",",false);
+    while (tok.hasMoreTokens())     _mimeTypes.add(tok.nextToken().trim());
+  }
+  LOG.debug("{} mimeTypes={}",this,_mimeTypes);
+  LOG.debug("{} excludeMimeTypes={}",this,_excludeMimeTypes);
+  tmp=filterConfig.getInitParameter("excludedAgents");
+  if (tmp != null) {
+    _excludedAgents=new HashSet<String>();
+    StringTokenizer tok=new StringTokenizer(tmp,",",false);
+    while (tok.hasMoreTokens())     _excludedAgents.add(tok.nextToken().trim());
+  }
+  LOG.debug("{} excludedAgents={}",this,_excludedAgents);
+  tmp=filterConfig.getInitParameter("excludeAgentPatterns");
+  if (tmp != null) {
+    _excludedAgentPatterns=new HashSet<Pattern>();
+    StringTokenizer tok=new StringTokenizer(tmp,",",false);
+    while (tok.hasMoreTokens())     _excludedAgentPatterns.add(Pattern.compile(tok.nextToken().trim()));
+  }
+  LOG.debug("{} excludedAgentPatterns={}",this,_excludedAgentPatterns);
+  tmp=filterConfig.getInitParameter("excludePaths");
+  if (tmp != null) {
+    _excludedPaths=new HashSet<String>();
+    StringTokenizer tok=new StringTokenizer(tmp,",",false);
+    while (tok.hasMoreTokens())     _excludedPaths.add(tok.nextToken().trim());
+  }
+  LOG.debug("{} excludedPaths={}",this,_excludedPaths);
+  tmp=filterConfig.getInitParameter("excludePathPatterns");
+  if (tmp != null) {
+    _excludedPathPatterns=new HashSet<Pattern>();
+    StringTokenizer tok=new StringTokenizer(tmp,",",false);
+    while (tok.hasMoreTokens())     _excludedPathPatterns.add(Pattern.compile(tok.nextToken().trim()));
+  }
+  LOG.debug("{} excludedPathPatterns={}",this,_excludedPathPatterns);
+  tmp=filterConfig.getInitParameter("vary");
+  if (tmp != null)   _vary=new HttpGenerator.CachedHttpField(HttpHeader.VARY,tmp);
+  LOG.debug("{} vary={}",this,_vary);
+}

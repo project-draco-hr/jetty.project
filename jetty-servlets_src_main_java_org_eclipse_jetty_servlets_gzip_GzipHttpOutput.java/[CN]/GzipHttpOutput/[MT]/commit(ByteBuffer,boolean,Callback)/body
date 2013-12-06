@@ -1,0 +1,39 @@
+{
+  Response response=getHttpChannel().getResponse();
+  int sc=response.getStatus();
+  if (sc > 0 && (sc < 200 || sc == 204 || sc == 205 || sc >= 300)) {
+    noCompression();
+    super.write(content,complete,callback);
+    return;
+  }
+  String ct=getHttpChannel().getResponse().getContentType();
+  if (ct != null) {
+    ct=MimeTypes.getContentTypeWithoutCharset(ct);
+    if (_factory.isExcludedMimeType(StringUtil.asciiToLowerCase(ct))) {
+      noCompression();
+      super.write(content,complete,callback);
+      return;
+    }
+  }
+  if (_state.compareAndSet(GZState.MIGHT_COMPRESS,GZState.COMMITTING)) {
+    HttpFields fields=response.getHttpFields();
+    fields.add(_factory.getVaryField());
+    long content_length=response.getContentLength();
+    if (content_length < 0 && complete)     content_length=content.remaining();
+    _deflater=content.isDirect() ? null : _factory.getDeflater(getHttpChannel().getRequest(),content_length);
+    if (_deflater == null) {
+      _state.set(GZState.NOT_COMPRESSING);
+      super.write(content,complete,callback);
+      return;
+    }
+    fields.put(CONTENT_ENCODING_GZIP);
+    _crc.reset();
+    _buffer=getHttpChannel().getByteBufferPool().acquire(_factory.getBufferSize(),false);
+    BufferUtil.fill(_buffer,GZIP_HEADER,0,GZIP_HEADER.length);
+    response.setContentLength(-1);
+    String etag=fields.get(HttpHeader.ETAG);
+    if (etag != null)     fields.put(HttpHeader.ETAG,etag.substring(0,etag.length() - 1) + "--gzip\"");
+    _state.set(GZState.COMPRESSING);
+    gzip(content,complete,callback);
+  }
+}

@@ -38,7 +38,7 @@ off+=filled;
 len-=filled;
 }
 if (BufferUtil.hasContent(_aggregate)) {
-_channel.write(_aggregate,complete && len == 0);
+write(_aggregate,complete && len == 0);
 if (len > 0 && !complete && len <= _commitSize) {
 BufferUtil.append(_aggregate,b,off,len);
 return;
@@ -46,18 +46,18 @@ return;
 }
 if (len > 0) {
 ByteBuffer wrap=ByteBuffer.wrap(b,off,len);
-ByteBuffer readonly=wrap.asReadOnlyBuffer();
+ByteBuffer view=wrap.duplicate();
 while (len > getBufferSize()) {
-int p=readonly.position();
+int p=view.position();
 int l=p + getBufferSize();
-readonly.limit(p + getBufferSize());
-_channel.write(readonly,false);
+view.limit(p + getBufferSize());
+write(view,false);
 len-=getBufferSize();
-readonly.limit(l + Math.min(len,getBufferSize()));
-readonly.position(l);
+view.limit(l + Math.min(len,getBufferSize()));
+view.position(l);
 }
-_channel.write(readonly,complete);
+write(view,complete);
 }
- else if (complete) _channel.write(BufferUtil.EMPTY_BUFFER,complete);
+ else if (complete) write(BufferUtil.EMPTY_BUFFER,complete);
 if (complete) closed();
 }
