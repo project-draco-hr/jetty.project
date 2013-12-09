@@ -19,7 +19,20 @@
       ByteBuffer outbuf=getBufferPool().acquire(len,true);
       BufferUtil.clearToFill(outbuf);
       if (len > 0) {
-        outbuf.put(compressed,0,len - 4);
+        if (len > 4) {
+          int idx=len - 4;
+          boolean found=true;
+          for (int n=0; n < TAIL.length; n++) {
+            if (compressed[idx + n] != TAIL[n]) {
+              found=false;
+              break;
+            }
+          }
+          if (found) {
+            len=len - 4;
+          }
+        }
+        outbuf.put(compressed,0,len);
       }
       BufferUtil.flipToFlush(outbuf,0);
       if (len > 0 && BFINAL_HACK) {
@@ -28,7 +41,7 @@
           outbuf.put(0,(b0^=1));
         }
       }
-      DataFrame out=new DataFrame(frame);
+      DataFrame out=new DataFrame(frame,outgoingCompressed);
       out.setRsv1(true);
       out.setBufferPool(getBufferPool());
       out.setPayload(outbuf);
@@ -39,6 +52,7 @@
  else {
         nextOutgoingFrame(out,callback);
       }
+      outgoingCompressed=!out.isFin();
     }
   }
 }
