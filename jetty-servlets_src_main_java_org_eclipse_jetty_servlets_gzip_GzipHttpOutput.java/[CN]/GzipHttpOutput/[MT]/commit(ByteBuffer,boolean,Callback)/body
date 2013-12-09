@@ -2,6 +2,7 @@
   Response response=getHttpChannel().getResponse();
   int sc=response.getStatus();
   if (sc > 0 && (sc < 200 || sc == 204 || sc == 205 || sc >= 300)) {
+    LOG.debug("{} exclude by status {}",this,sc);
     noCompression();
     super.write(content,complete,callback);
     return;
@@ -10,6 +11,7 @@
   if (ct != null) {
     ct=MimeTypes.getContentTypeWithoutCharset(ct);
     if (_factory.isExcludedMimeType(StringUtil.asciiToLowerCase(ct))) {
+      LOG.debug("{} exclude by mimeType {}",this,ct);
       noCompression();
       super.write(content,complete,callback);
       return;
@@ -20,8 +22,9 @@
     fields.add(_factory.getVaryField());
     long content_length=response.getContentLength();
     if (content_length < 0 && complete)     content_length=content.remaining();
-    _deflater=content.isDirect() ? null : _factory.getDeflater(getHttpChannel().getRequest(),content_length);
+    _deflater=_factory.getDeflater(getHttpChannel().getRequest(),content_length);
     if (_deflater == null) {
+      LOG.debug("{} exclude no deflater",this);
       _state.set(GZState.NOT_COMPRESSING);
       super.write(content,complete,callback);
       return;
@@ -33,6 +36,7 @@
     response.setContentLength(-1);
     String etag=fields.get(HttpHeader.ETAG);
     if (etag != null)     fields.put(HttpHeader.ETAG,etag.substring(0,etag.length() - 1) + "--gzip\"");
+    LOG.debug("{} compressing {}",this,_deflater);
     _state.set(GZState.COMPRESSING);
     gzip(content,complete,callback);
   }

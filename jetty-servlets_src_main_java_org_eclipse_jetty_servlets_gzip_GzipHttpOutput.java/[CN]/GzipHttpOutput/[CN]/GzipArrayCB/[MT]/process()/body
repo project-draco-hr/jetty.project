@@ -5,18 +5,17 @@
       _deflater=null;
       getHttpChannel().getByteBufferPool().release(_buffer);
       _buffer=null;
+      return State.SUCCEEDED;
     }
-    return State.SUCCEEDED;
+    if (!_complete)     return State.SUCCEEDED;
   }
+  BufferUtil.compact(_buffer);
   int off=_buffer.arrayOffset() + _buffer.limit();
   int len=_buffer.capacity() - _buffer.limit() - (_complete ? 8 : 0);
   int produced=_deflater.deflate(_buffer.array(),off,len,Deflater.NO_FLUSH);
   _buffer.limit(_buffer.limit() + produced);
   boolean complete=_deflater.finished();
-  if (complete) {
-    addTrailer();
-    _deflater.end();
-  }
+  if (complete)   addTrailer();
   superWrite(_buffer,complete,this);
   return State.SCHEDULED;
 }

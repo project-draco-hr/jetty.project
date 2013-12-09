@@ -1,4 +1,5 @@
 {
+  LOG.debug("{} doFilter {}",this,req);
   HttpServletRequest request=(HttpServletRequest)req;
   HttpServletResponse response=(HttpServletResponse)res;
   String requestURI=request.getRequestURI();
@@ -43,17 +44,16 @@
     channel.getResponse().setHttpOutput(out=new GzipHttpOutput(channel));
   }
   GzipHttpOutput cout=(GzipHttpOutput)out;
-  boolean exceptional=true;
   try {
     cout.mightCompress(this);
     super.doFilter(request,response,chain);
-    exceptional=false;
   }
-  finally {
-    LOG.debug("{} excepted {}",this,request);
-    if (exceptional && !response.isCommitted()) {
+ catch (  Throwable e) {
+    LOG.debug("{} excepted {}",this,request,e);
+    if (!response.isCommitted()) {
       cout.resetBuffer();
-      cout.noCompression();
+      cout.noCompressionIfPossible();
     }
+    throw e;
   }
 }
