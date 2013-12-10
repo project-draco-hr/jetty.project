@@ -1,20 +1,19 @@
 {
   if (LOG.isDebugEnabled()) {
-    LOG.debug("appendMessage(ByteBuffer,{}): {}",isLast,BufferUtil.toDetailString(payload));
-  }
-  if (buffersExhausted.get()) {
-    throw new RuntimeException("Last frame already received");
+    LOG.debug("appendMessage(ByteBuffer,{}): {}",fin,BufferUtil.toDetailString(framePayload));
   }
   if (closed.get()) {
     return;
   }
   try {
-    buffers.put(payload);
-    if (isLast) {
-      buffersExhausted.set(true);
-    }
+    buffers.put(framePayload);
   }
  catch (  InterruptedException e) {
     throw new IOException(e);
+  }
+ finally {
+    if (fin) {
+      buffers.offer(EOF);
+    }
   }
 }

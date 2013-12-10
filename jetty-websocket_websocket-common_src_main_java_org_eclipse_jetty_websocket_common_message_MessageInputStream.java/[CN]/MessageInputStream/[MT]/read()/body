@@ -4,15 +4,20 @@
     if (closed.get()) {
       return -1;
     }
-    if (activeBuffer == null) {
-      activeBuffer=buffers.take();
-    }
-    while (activeBuffer.remaining() <= 0) {
-      if (buffersExhausted.get()) {
+    while (activeBuffer == null || !activeBuffer.hasRemaining()) {
+      if (timeoutMs == -1) {
+        activeBuffer=buffers.take();
+      }
+ else {
+        activeBuffer=buffers.poll(timeoutMs,TimeUnit.MILLISECONDS);
+        if (activeBuffer == null) {
+          throw new IOException(String.format("Read timeout: %,dms expired",timeoutMs));
+        }
+      }
+      if (activeBuffer == EOF) {
         closed.set(true);
         return -1;
       }
-      activeBuffer=buffers.take();
     }
     return activeBuffer.get();
   }
