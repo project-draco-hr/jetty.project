@@ -1,0 +1,29 @@
+{
+  final AtomicInteger writes=new AtomicInteger();
+  final AtomicBoolean fail=new AtomicBoolean();
+  Controller controller=new Controller(){
+    @Override public void write(    Callback callback,    ByteBuffer... buffers){
+      writes.incrementAndGet();
+      if (fail.get())       callback.failed(new ClosedChannelException());
+ else       callback.succeeded();
+    }
+    @Override public void close(    boolean onlyOutput){
+    }
+  }
+;
+  ISession session=new StandardSession(VERSION,bufferPool,scheduler,controller,endPoint,null,1,null,generator,null);
+  IStream stream=new StandardStream(1,(byte)0,session,null,scheduler,null);
+  stream.updateWindowSize(8192);
+  stream.reply(new ReplyInfo(false),new Callback.Adapter());
+  fail.set(true);
+  final CountDownLatch failedCalledLatch=new CountDownLatch(1);
+  Callback.Adapter callback=new Callback.Adapter(){
+    @Override public void failed(    Throwable x){
+      failedCalledLatch.countDown();
+    }
+  }
+;
+  stream.data(new StringDataInfo(5,TimeUnit.SECONDS,"data",false),callback);
+  Assert.assertEquals(2,writes.get());
+  Assert.assertTrue(failedCalledLatch.await(5,TimeUnit.SECONDS));
+}

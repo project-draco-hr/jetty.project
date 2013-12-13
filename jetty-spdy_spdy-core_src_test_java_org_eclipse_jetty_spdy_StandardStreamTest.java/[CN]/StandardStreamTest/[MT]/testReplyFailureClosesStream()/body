@@ -1,0 +1,30 @@
+{
+  ISession session=new StandardSession(SPDY.V3,null,null,null,null,null,1,null,null,null){
+    @Override public void control(    IStream stream,    ControlFrame frame,    long timeout,    TimeUnit unit,    Callback callback){
+      callback.failed(new ClosedChannelException());
+    }
+  }
+;
+  IStream stream=new StandardStream(1,(byte)0,session,null,scheduler,null);
+  final AtomicInteger failureCount=new AtomicInteger();
+  stream.setStreamFrameListener(new StreamFrameListener.Adapter(){
+    @Override public void onFailure(    Stream stream,    Throwable x){
+      failureCount.incrementAndGet();
+    }
+  }
+);
+  long idleTimeout=500;
+  stream.setIdleTimeout(idleTimeout);
+  stream.process(new SynStreamFrame(SPDY.V3,(byte)0,1,0,(byte)0,(short)0,null));
+  final CountDownLatch failureLatch=new CountDownLatch(1);
+  stream.reply(new ReplyInfo(false),new Callback.Adapter(){
+    @Override public void failed(    Throwable x){
+      failureLatch.countDown();
+    }
+  }
+);
+  Assert.assertTrue(failureLatch.await(5,TimeUnit.SECONDS));
+  Thread.sleep(3 * idleTimeout);
+  Assert.assertEquals(0,failureCount.get());
+  Assert.assertTrue(stream.isClosed());
+}
