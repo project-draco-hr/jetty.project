@@ -1,32 +1,16 @@
 {
-  if (msgLock.tryLock()) {
-    try {
-      if (msgType.get() == TEXT) {
-        throw new IllegalStateException("Prior TEXT message pending, cannot start new BINARY message yet.");
-      }
-      msgType.set(BINARY);
-      if (LOG.isDebugEnabled()) {
-        LOG.debug("sendPartialBytes({}, {})",BufferUtil.toDetailString(fragment),isLast);
-      }
-      DataFrame frame=null;
-      if (partialStarted) {
-        frame=new ContinuationFrame().setPayload(fragment);
-      }
- else {
-        frame=new BinaryFrame().setPayload(fragment);
-      }
-      frame.setFin(isLast);
-      blockingWrite(frame);
-      partialStarted=!isLast;
+  boolean first=lockPartialMsg(MsgType.TEXT);
+  try {
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("sendPartialBytes({}, {})",BufferUtil.toDetailString(fragment),isLast);
     }
-  finally {
-      if (isLast) {
-        msgType.set(NONE);
-      }
-      msgLock.unlock();
-    }
+    DataFrame frame=first ? new BinaryFrame() : new ContinuationFrame();
+    frame.setPayload(fragment);
+    frame.setFin(isLast);
+    blockingWrite(frame);
   }
- else {
-    throw new IllegalStateException(PRIORMSG_ERROR);
+  finally {
+    if (isLast)     unlockMsg();
+ else     unlockPartialMsg();
   }
 }

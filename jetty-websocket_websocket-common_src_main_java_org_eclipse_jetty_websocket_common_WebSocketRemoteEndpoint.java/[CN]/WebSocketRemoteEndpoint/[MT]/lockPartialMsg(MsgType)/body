@@ -1,0 +1,19 @@
+{
+  while (true) {
+    MsgType was=msgType.get();
+switch (was) {
+case NONE:
+      if (msgType.compareAndSet(MsgType.NONE,type))       return true;
+    break;
+case BINARY:
+case TEXT:
+  throw new IllegalStateException(PRIORMSG_ERROR);
+case PARTIAL_BINARY:
+if (type == MsgType.BINARY && msgType.compareAndSet(MsgType.PARTIAL_BINARY,MsgType.BINARY)) return false;
+throw new IllegalStateException("Prior BINARY message pending, cannot start new " + type + " message yet.");
+case PARTIAL_TEXT:
+if (type == MsgType.TEXT && msgType.compareAndSet(MsgType.PARTIAL_TEXT,MsgType.TEXT)) return false;
+throw new IllegalStateException("Prior TEXT message pending, cannot start new " + type + " message yet.");
+}
+}
+}

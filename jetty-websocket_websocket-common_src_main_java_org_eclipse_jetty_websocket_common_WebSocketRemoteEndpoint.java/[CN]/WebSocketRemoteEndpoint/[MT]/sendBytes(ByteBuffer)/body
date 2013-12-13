@@ -1,19 +1,13 @@
 {
-  if (msgLock.tryLock()) {
-    try {
-      msgType.set(BINARY);
-      connection.getIOState().assertOutputOpen();
-      if (LOG.isDebugEnabled()) {
-        LOG.debug("sendBytes with {}",BufferUtil.toDetailString(data));
-      }
-      blockingWrite(new BinaryFrame().setPayload(data));
+  lockMsg(MsgType.BINARY);
+  try {
+    connection.getIOState().assertOutputOpen();
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("sendBytes with {}",BufferUtil.toDetailString(data));
     }
-  finally {
-      msgType.set(NONE);
-      msgLock.unlock();
-    }
+    blockingWrite(new BinaryFrame().setPayload(data));
   }
- else {
-    throw new IllegalStateException(PRIORMSG_ERROR);
+  finally {
+    unlockMsg();
   }
 }
