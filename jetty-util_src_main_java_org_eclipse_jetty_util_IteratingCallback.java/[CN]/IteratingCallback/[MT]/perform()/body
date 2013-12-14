@@ -1,0 +1,34 @@
+{
+  while (_state.compareAndSet(State.INACTIVE,State.ITERATING)) {
+    Action action=process();
+switch (action) {
+case IDLE:
+{
+        if (_state.compareAndSet(State.ITERATING,State.INACTIVE))         return true;
+        if (_state.compareAndSet(State.ITERATE_AGAIN,State.INACTIVE))         continue;
+        continue;
+      }
+case EXECUTING:
+{
+      if (_state.compareAndSet(State.ITERATING,State.SCHEDULED) || _state.compareAndSet(State.ITERATE_AGAIN,State.SCHEDULED))       return true;
+      continue;
+    }
+case SUCCEEDED:
+{
+    success();
+    completed();
+    return true;
+  }
+case FAILED:
+{
+  failure();
+  return true;
+}
+default :
+{
+throw new IllegalStateException(toString());
+}
+}
+}
+return false;
+}

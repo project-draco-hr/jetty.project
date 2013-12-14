@@ -2,38 +2,24 @@
   try {
     while (true) {
 switch (_state.get()) {
-case IDLE:
-        while (_state.compareAndSet(State.IDLE,State.ITERATING)) {
-          Next next=process();
-switch (next) {
-case SUCCEEDED:
-            if (!_state.compareAndSet(State.ITERATING,State.SUCCEEDED) && !_state.compareAndSet(State.ITERATE_AGAIN,State.SUCCEEDED))             throw new IllegalStateException("state=" + _state.get());
-          completed();
-        return;
-case SCHEDULED:
-      if (_state.compareAndSet(State.ITERATING,State.SCHEDULED) || _state.compareAndSet(State.ITERATE_AGAIN,State.SCHEDULED))       return;
-    continue;
-case IDLE:
-  if (_state.compareAndSet(State.ITERATING,State.IDLE))   return;
-if (_state.compareAndSet(State.ITERATE_AGAIN,State.IDLE)) continue;
-throw new IllegalStateException("state=" + _state.get());
-case FAILED:
-_state.set(State.FAILED);
-return;
-default :
-throw new IllegalStateException("state=" + _state.get() + " next="+ next);
-}
-}
-break;
+case INACTIVE:
+{
+          if (perform())           return;
+          break;
+        }
 case ITERATING:
-if (_state.compareAndSet(State.ITERATING,State.ITERATE_AGAIN)) return;
-break;
+{
+        if (_state.compareAndSet(State.ITERATING,State.ITERATE_AGAIN))         return;
+        break;
+      }
 default :
-return;
+{
+      return;
+    }
 }
 }
 }
- catch (Exception e) {
-failed(e);
+ catch (Throwable x) {
+failed(x);
 }
 }

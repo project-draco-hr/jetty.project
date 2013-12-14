@@ -2,15 +2,15 @@
   final CountDownLatch idle=new CountDownLatch(1);
   TestCB cb=new TestCB(){
     int i=5;
-    @Override protected Next process(){
+    @Override protected Action process(){
       processed++;
 switch (i--) {
 case 5:
         succeeded();
-      return Next.SCHEDULED;
+      return Action.EXECUTING;
 case 4:
     scheduler.schedule(successTask,5,TimeUnit.MILLISECONDS);
-  return Next.SCHEDULED;
+  return Action.EXECUTING;
 case 3:
 scheduler.schedule(new Runnable(){
   @Override public void run(){
@@ -18,15 +18,15 @@ scheduler.schedule(new Runnable(){
   }
 }
 ,5,TimeUnit.MILLISECONDS);
-return Next.IDLE;
+return Action.IDLE;
 case 2:
 succeeded();
-return Next.SCHEDULED;
+return Action.EXECUTING;
 case 1:
 scheduler.schedule(successTask,5,TimeUnit.MILLISECONDS);
-return Next.SCHEDULED;
+return Action.EXECUTING;
 case 0:
-return Next.SUCCEEDED;
+return Action.SUCCEEDED;
 default :
 throw new IllegalStateException();
 }
