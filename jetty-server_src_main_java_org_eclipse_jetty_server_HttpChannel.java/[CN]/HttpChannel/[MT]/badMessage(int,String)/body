@@ -1,7 +1,13 @@
 {
   if (status < 400 || status > 599)   status=HttpStatus.BAD_REQUEST_400;
   try {
-    if (_state.handling() == Action.REQUEST_DISPATCH)     sendResponse(new ResponseInfo(HttpVersion.HTTP_1_1,new HttpFields(),0,status,reason,false),null,true);
+    if (_state.handling() == Action.REQUEST_DISPATCH) {
+      ByteBuffer content=null;
+      HttpFields fields=new HttpFields();
+      ErrorHandler handler=getServer().getBean(ErrorHandler.class);
+      if (handler != null)       content=handler.badMessageError(status,reason,fields);
+      sendResponse(new ResponseInfo(HttpVersion.HTTP_1_1,fields,0,status,reason,false),content,true);
+    }
   }
  catch (  IOException e) {
     LOG.debug(e);
