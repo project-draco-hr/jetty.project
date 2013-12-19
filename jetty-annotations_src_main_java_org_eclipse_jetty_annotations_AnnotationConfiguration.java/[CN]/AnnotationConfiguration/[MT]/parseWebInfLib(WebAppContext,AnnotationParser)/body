@@ -1,9 +1,9 @@
 {
-  LOG.debug("Scanning WEB-INF/lib jars");
   List<FragmentDescriptor> frags=context.getMetaData().getFragments();
   ArrayList<URI> webInfUris=new ArrayList<URI>();
   List<Resource> jars=context.getMetaData().getOrderedWebInfJars();
   if (jars == null || jars.isEmpty())   jars=context.getMetaData().getWebInfJars();
+  _webInfLibStats=new CounterStatistic();
   for (  Resource r : jars) {
     final Set<Handler> handlers=new HashSet<Handler>();
     FragmentDescriptor f=getFragmentFromJar(r,frags);
@@ -11,7 +11,12 @@
       if (_classInheritanceHandler != null)       handlers.add(_classInheritanceHandler);
       handlers.addAll(_containerInitializerAnnotationHandlers);
       if (f == null || !isMetaDataComplete(f))       handlers.addAll(_discoverableAnnotationHandlers);
-      if (_parserTasks != null)       _parserTasks.add(new ParserTask(parser,handlers,r,_webAppClassNameResolver));
+      if (_parserTasks != null) {
+        ParserTask task=new ParserTask(parser,handlers,r,_webAppClassNameResolver);
+        _parserTasks.add(task);
+        _webInfLibStats.increment();
+        if (LOG.isDebugEnabled())         task.setStatistic(new TimeStatistic());
+      }
     }
   }
 }

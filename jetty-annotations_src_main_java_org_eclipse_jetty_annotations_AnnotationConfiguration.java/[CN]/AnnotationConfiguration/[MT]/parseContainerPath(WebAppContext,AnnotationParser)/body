@@ -1,10 +1,15 @@
 {
-  LOG.debug("Scanning container jars");
   final Set<Handler> handlers=new HashSet<Handler>();
   handlers.addAll(_discoverableAnnotationHandlers);
   handlers.addAll(_containerInitializerAnnotationHandlers);
   if (_classInheritanceHandler != null)   handlers.add(_classInheritanceHandler);
+  _containerPathStats=new CounterStatistic();
   for (  Resource r : context.getMetaData().getContainerResources()) {
-    if (_parserTasks != null)     _parserTasks.add(new ParserTask(parser,handlers,r,_containerClassNameResolver));
+    if (_parserTasks != null) {
+      ParserTask task=new ParserTask(parser,handlers,r,_containerClassNameResolver);
+      _parserTasks.add(task);
+      _containerPathStats.increment();
+      if (LOG.isDebugEnabled())       task.setStatistic(new TimeStatistic());
+    }
   }
 }
