@@ -1,0 +1,35 @@
+{
+synchronized (lock) {
+    int index=0;
+    int size=queue.size();
+    while (index < size) {
+      FrameBytes frameBytes=queue.getUnsafe(index);
+      IStream stream=frameBytes.getStream();
+      if (stream != null) {
+        if (stalled.size() > 0 && stalled.contains(stream)) {
+          ++index;
+          continue;
+        }
+        if (stream.getWindowSize() <= 0) {
+          stalled.add(stream);
+          ++index;
+          continue;
+        }
+      }
+      queue.remove(index);
+      --size;
+      if (stream != null && stream.isReset() && frameBytes instanceof StandardSession.DataFrameBytes) {
+        frameBytes.failed(new StreamException(frameBytes.getStream().getId(),StreamStatus.INVALID_STREAM,"Stream: " + frameBytes.getStream() + " is reset!"));
+        continue;
+      }
+      active.add(frameBytes);
+    }
+    stalled.clear();
+    if (LOG.isDebugEnabled())     LOG.debug("Flushing {} of {} frame(s) in queue",active.size(),queue.size());
+  }
+  if (active.isEmpty())   return Action.IDLE;
+  ByteBuffer[] buffers=new ByteBuffer[active.size()];
+  for (int i=0; i < buffers.length; i++)   buffers[i]=active.get(i).getByteBuffer();
+  if (controller != null)   controller.write(this,buffers);
+  return Action.SCHEDULED;
+}

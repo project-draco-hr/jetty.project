@@ -4,7 +4,8 @@
     @Override protected AbstractCompressedStream newCompressedStream(    HttpServletRequest request,    HttpServletResponse response) throws IOException {
       return new AbstractCompressedStream(compressionType,request,this,_vary){
         private Deflater _allocatedDeflater;
-        @Override protected DeflaterOutputStream createStream() throws IOException {
+        private byte[] _allocatedBuffer;
+        @Override protected OutputStream createStream() throws IOException {
           if (compressionType == null) {
             return null;
           }
@@ -14,11 +15,16 @@
             _deflater.remove();
             _allocatedDeflater.reset();
           }
+          _allocatedBuffer=_buffer.get();
+          if (_allocatedBuffer == null)           _allocatedBuffer=new byte[_bufferSize];
+ else {
+            _buffer.remove();
+          }
 switch (compressionType) {
 case GZIP:
-            return new GzipOutputStream(_response.getOutputStream(),_allocatedDeflater,_bufferSize);
+            return new GzipOutputStream(_response.getOutputStream(),_allocatedDeflater,_allocatedBuffer);
 case DEFLATE:
-          return new DeflaterOutputStream(_response.getOutputStream(),_allocatedDeflater,_bufferSize);
+          return new DeflatedOutputStream(_response.getOutputStream(),_allocatedDeflater,_allocatedBuffer);
       }
       throw new IllegalStateException(compressionType + " not supported");
     }
@@ -26,6 +32,9 @@ case DEFLATE:
       super.finish();
       if (_allocatedDeflater != null && _deflater.get() == null) {
         _deflater.set(_allocatedDeflater);
+      }
+      if (_allocatedBuffer != null && _buffer.get() == null) {
+        _buffer.set(_allocatedBuffer);
       }
     }
   }

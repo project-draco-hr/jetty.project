@@ -1,0 +1,16 @@
+{
+  List<StandardSession.FrameBytes> failed=new ArrayList<>();
+synchronized (lock) {
+    failure=x;
+    if (LOG.isDebugEnabled()) {
+      String logMessage=String.format("Failed write of %s, failing all %d frame(s) in queue",this,queue.size());
+      LOG.debug(logMessage,x);
+    }
+    failed.addAll(active);
+    active.clear();
+    failed.addAll(queue);
+    queue.clear();
+  }
+  for (  StandardSession.FrameBytes frame : failed)   frame.failed(x);
+  super.failed(x);
+}

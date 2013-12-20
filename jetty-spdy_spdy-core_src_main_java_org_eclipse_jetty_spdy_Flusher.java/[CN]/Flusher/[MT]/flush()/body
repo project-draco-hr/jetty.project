@@ -1,34 +1,3 @@
 {
-  StandardSession.FrameBytes frameBytes=null;
-  ByteBuffer buffer=null;
-  boolean failFrameBytes=false;
-synchronized (queue) {
-    if (flushing || queue.isEmpty())     return;
-    Set<IStream> stalledStreams=null;
-    for (int i=0; i < queue.size(); ++i) {
-      frameBytes=queue.get(i);
-      IStream stream=frameBytes.getStream();
-      if (stream != null && stalledStreams != null && stalledStreams.contains(stream))       continue;
-      buffer=frameBytes.getByteBuffer();
-      if (buffer != null) {
-        queue.remove(i);
-        if (stream != null && stream.isReset() && !(frameBytes instanceof StandardSession.ControlFrameBytes))         failFrameBytes=true;
-        break;
-      }
-      if (stalledStreams == null)       stalledStreams=new HashSet<>();
-      if (stream != null)       stalledStreams.add(stream);
-      LOG.debug("Flush stalled for {}, {} frame(s) in queue",frameBytes,queue.size());
-    }
-    if (buffer == null)     return;
-    if (!failFrameBytes) {
-      flushing=true;
-      LOG.debug("Flushing {}, {} frame(s) in queue",frameBytes,queue.size());
-    }
-  }
-  if (failFrameBytes) {
-    frameBytes.failed(new StreamException(frameBytes.getStream().getId(),StreamStatus.INVALID_STREAM,"Stream: " + frameBytes.getStream() + " is reset!"));
-  }
- else {
-    write(buffer,frameBytes);
-  }
+  callback.iterate();
 }

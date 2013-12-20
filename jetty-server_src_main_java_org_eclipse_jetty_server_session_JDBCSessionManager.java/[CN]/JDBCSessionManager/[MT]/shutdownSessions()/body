@@ -1,0 +1,19 @@
+{
+  long gracefulStopMs=getContextHandler().getServer().getStopTimeout();
+  long stopTime=0;
+  if (gracefulStopMs > 0)   stopTime=System.nanoTime() + (TimeUnit.NANOSECONDS.convert(gracefulStopMs,TimeUnit.MILLISECONDS));
+  ArrayList<Session> sessions=(_sessions == null ? new ArrayList<Session>() : new ArrayList<Session>(_sessions.values()));
+  while (sessions.size() > 0 && ((stopTime > 0 && (System.nanoTime() < stopTime)) || (stopTime == 0))) {
+    for (    Session session : sessions) {
+      try {
+        session.save(false);
+      }
+ catch (      Exception e) {
+        LOG.warn(e);
+      }
+      _sessions.remove(session.getClusterId());
+    }
+    if (stopTime == 0)     break;
+    sessions=new ArrayList<Session>(_sessions.values());
+  }
+}

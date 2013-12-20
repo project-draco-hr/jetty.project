@@ -1,6 +1,6 @@
 {
   try {
-    __log.debug("MongoSessionManager:save:" + session);
+    __log.debug("MongoSessionManager:save session {}",session.getClusterId());
     session.willPassivate();
     BasicDBObject key=new BasicDBObject(__ID,session.getClusterId());
     BasicDBObject update=new BasicDBObject();
@@ -8,16 +8,30 @@
     BasicDBObject sets=new BasicDBObject();
     BasicDBObject unsets=new BasicDBObject();
     if (session.isValid()) {
+      long expiry=(session.getMaxInactiveInterval() > 0 ? (session.getAccessed() + (1000 * getMaxInactiveInterval())) : 0);
+      __log.debug("MongoSessionManager: calculated expiry {} for session {}",expiry,session.getId());
       if (version == null) {
         upsert=true;
         version=new Long(1);
         sets.put(__CREATED,session.getCreationTime());
         sets.put(__VALID,true);
-        sets.put(getContextKey(__VERSION),version);
+        sets.put(getContextAttributeKey(__VERSION),version);
+        sets.put(__MAX_IDLE,getMaxInactiveInterval());
+        sets.put(__EXPIRY,expiry);
       }
  else {
         version=new Long(((Number)version).longValue() + 1);
-        update.put("$inc",__version_1);
+        update.put("$inc",_version_1);
+        BasicDBObject fields=new BasicDBObject();
+        fields.append(__MAX_IDLE,true);
+        fields.append(__EXPIRY,true);
+        DBObject o=_dbSessions.findOne(new BasicDBObject("id",session.getClusterId()),fields);
+        if (o != null) {
+          Integer currentMaxIdle=(Integer)o.get(__MAX_IDLE);
+          Long currentExpiry=(Long)o.get(__EXPIRY);
+          if (currentMaxIdle != null && getMaxInactiveInterval() > 0 && getMaxInactiveInterval() < currentMaxIdle)           sets.put(__MAX_IDLE,getMaxInactiveInterval());
+          if (currentExpiry != null && expiry > 0 && expiry < currentExpiry)           sets.put(__EXPIRY,currentExpiry);
+        }
       }
       sets.put(__ACCESSED,session.getAccessed());
       Set<String> names=session.takeDirty();
@@ -37,8 +51,8 @@
     }
     if (!sets.isEmpty())     update.put("$set",sets);
     if (!unsets.isEmpty())     update.put("$unset",unsets);
-    _sessions.update(key,update,upsert,false);
-    __log.debug("MongoSessionManager:save:db.sessions.update(" + key + ","+ update+ ",true)");
+    _dbSessions.update(key,update,upsert,false);
+    __log.debug("MongoSessionManager:save:db.sessions.update( {}, {}, true) ",key,update);
     if (activateAfterSave)     session.didActivate();
     return version;
   }

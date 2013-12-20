@@ -1,10 +1,32 @@
 {
-  if (state == ConnectionState.CLOSED) {
-    IOState ioState=this.connection.getIOState();
-    if (ioState.wasAbnormalClose()) {
-      CloseInfo close=ioState.getCloseInfo();
-      LOG.debug("Detected abnormal close: {}",close);
-      notifyClose(close.getStatusCode(),close.getReason());
+switch (state) {
+case CLOSING:
+    for (    SessionListener listener : sessionListeners) {
+      try {
+        listener.onSessionClosed(this);
+      }
+ catch (      Throwable t) {
+        LOG.ignore(t);
+      }
     }
-  }
+  break;
+case CLOSED:
+IOState ioState=this.connection.getIOState();
+if (ioState.wasAbnormalClose()) {
+CloseInfo close=ioState.getCloseInfo();
+LOG.debug("Detected abnormal close: {}",close);
+notifyClose(close.getStatusCode(),close.getReason());
+}
+break;
+case OPEN:
+for (SessionListener listener : sessionListeners) {
+try {
+listener.onSessionOpened(this);
+}
+ catch (Throwable t) {
+LOG.ignore(t);
+}
+}
+break;
+}
 }

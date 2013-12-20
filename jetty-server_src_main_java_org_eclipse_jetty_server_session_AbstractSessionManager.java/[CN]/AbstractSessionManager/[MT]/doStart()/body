@@ -6,8 +6,15 @@
 synchronized (server) {
       _sessionIdManager=server.getSessionIdManager();
       if (_sessionIdManager == null) {
-        _sessionIdManager=new HashSessionIdManager();
-        server.setSessionIdManager(_sessionIdManager);
+        ClassLoader serverLoader=server.getClass().getClassLoader();
+        try {
+          Thread.currentThread().setContextClassLoader(serverLoader);
+          _sessionIdManager=new HashSessionIdManager();
+          server.setSessionIdManager(_sessionIdManager);
+        }
+  finally {
+          Thread.currentThread().setContextClassLoader(_loader);
+        }
       }
     }
   }

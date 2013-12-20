@@ -1,0 +1,26 @@
+{
+  try {
+    while (true) {
+      HttpOutput.OutputState last=_state.get();
+switch (last) {
+case PENDING:
+        if (!_state.compareAndSet(HttpOutput.OutputState.PENDING,HttpOutput.OutputState.ASYNC))         continue;
+      break;
+case UNREADY:
+    if (!_state.compareAndSet(HttpOutput.OutputState.UNREADY,HttpOutput.OutputState.READY))     continue;
+  _channel.getState().onWritePossible();
+break;
+case CLOSED:
+_onError=new EofException("Closed");
+break;
+default :
+throw new IllegalStateException();
+}
+break;
+}
+}
+ catch (Exception e) {
+_onError=e;
+_channel.getState().onWritePossible();
+}
+}

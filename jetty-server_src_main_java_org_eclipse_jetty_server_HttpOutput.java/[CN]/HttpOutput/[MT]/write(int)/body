@@ -7,23 +7,22 @@ case OPEN:
       if (_aggregate == null)       _aggregate=_channel.getByteBufferPool().acquire(getBufferSize(),false);
     BufferUtil.append(_aggregate,(byte)b);
   if (complete || BufferUtil.isFull(_aggregate)) {
-    BlockingCallback callback=_channel.getWriteBlockingCallback();
-    _channel.write(_aggregate,complete,callback);
-    callback.block();
+    write(_aggregate,complete,_writeblock);
+    _writeblock.block();
     if (complete)     closed();
   }
 break;
 case ASYNC:
 throw new IllegalStateException("isReady() not called");
 case READY:
-if (!_state.compareAndSet(State.READY,State.PENDING)) continue;
+if (!_state.compareAndSet(OutputState.READY,OutputState.PENDING)) continue;
 if (_aggregate == null) _aggregate=_channel.getByteBufferPool().acquire(getBufferSize(),false);
 BufferUtil.append(_aggregate,(byte)b);
 if (!complete && !BufferUtil.isFull(_aggregate)) {
-if (!_state.compareAndSet(State.PENDING,State.ASYNC)) throw new IllegalStateException();
+if (!_state.compareAndSet(OutputState.PENDING,OutputState.ASYNC)) throw new IllegalStateException();
 return;
 }
-new AsyncFlush().process();
+new AsyncFlush().iterate();
 return;
 case PENDING:
 case UNREADY:

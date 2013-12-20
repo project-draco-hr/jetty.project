@@ -1,20 +1,9 @@
 {
-  Throwable failure;
-synchronized (queue) {
-    failure=this.failure;
+synchronized (lock) {
+    Throwable failure=this.failure;
     if (failure == null) {
-      if (frameBytes instanceof StandardSession.ControlFrameBytes)       queue.addLast(frameBytes);
- else {
-        int index=queue.size();
-        while (index > 0) {
-          StandardSession.FrameBytes element=queue.get(index - 1);
-          if (element.compareTo(frameBytes) >= 0)           break;
-          --index;
-        }
-        queue.add(index,frameBytes);
-      }
+      queue.add(frameBytes);
     }
+    return failure;
   }
-  if (failure == null)   iteratingCallback.iterate();
- else   frameBytes.failed(new SPDYException(failure));
 }

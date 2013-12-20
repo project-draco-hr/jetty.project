@@ -3,29 +3,11 @@
   frame.setPayload(data);
   frame.setFin(fin);
   try {
-    blocker=new FutureWriteCallback();
     outgoing.outgoingFrame(frame,blocker);
-    try {
-      blocker.get();
-      utf.clear();
-      frameCount++;
-      frame.setIsContinuation();
-    }
- catch (    ExecutionException e) {
-      Throwable cause=e.getCause();
-      if (cause != null) {
-        if (cause instanceof IOException) {
-          throw (IOException)cause;
-        }
- else {
-          throw new IOException(cause);
-        }
-      }
-      throw new IOException("Failed to flush",e);
-    }
-catch (    InterruptedException e) {
-      throw new IOException("Failed to flush",e);
-    }
+    blocker.block();
+    utf.clear();
+    frameCount++;
+    frame.setIsContinuation();
   }
  catch (  IOException e) {
     notifyFailure(e);

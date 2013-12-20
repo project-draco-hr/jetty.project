@@ -1,0 +1,36 @@
+{
+  WebSocketClient client=new WebSocketClient();
+  client.start();
+  try {
+    JettyTrackingSocket cliSock=new JettyTrackingSocket();
+    client.getPolicy().setIdleTimeout(10000);
+    URI wsUri=server.getWsUri();
+    ClientUpgradeRequest request=new ClientUpgradeRequest();
+    request.setSubProtocols("echo");
+    Future<Session> future=client.connect(cliSock,wsUri,request);
+    final ServerConnection srvSock=server.accept();
+    srvSock.upgrade();
+    Session sess=future.get(500,TimeUnit.MILLISECONDS);
+    Assert.assertThat("Session",sess,notNullValue());
+    Assert.assertThat("Session.open",sess.isOpen(),is(true));
+    Assert.assertThat("Session.upgradeRequest",sess.getUpgradeRequest(),notNullValue());
+    Assert.assertThat("Session.upgradeResponse",sess.getUpgradeResponse(),notNullValue());
+    cliSock.assertWasOpened();
+    cliSock.assertNotClosed();
+    Assert.assertThat("client.connectionManager.sessions.size",client.getConnectionManager().getSessions().size(),is(1));
+    cliSock.getSession().getRemote().sendStringByFuture("Hello World!");
+    srvSock.echoMessage(1,TimeUnit.MILLISECONDS,500);
+    cliSock.waitForMessage(500,TimeUnit.MILLISECONDS);
+    Set<WebSocketSession> open=client.getOpenSessions();
+    Assert.assertThat("Open Sessions.size",open.size(),is(1));
+    cliSock.assertMessage("Hello World!");
+    cliSock.close();
+    srvSock.close();
+    cliSock.waitForClose(500,TimeUnit.MILLISECONDS);
+    open=client.getOpenSessions();
+    Assert.assertThat("Open Sessions.size",open.size(),is(0));
+  }
+  finally {
+    client.stop();
+  }
+}

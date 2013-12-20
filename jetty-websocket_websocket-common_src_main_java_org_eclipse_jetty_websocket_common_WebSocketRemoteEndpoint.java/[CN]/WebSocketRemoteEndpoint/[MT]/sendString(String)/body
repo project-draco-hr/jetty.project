@@ -1,19 +1,13 @@
 {
-  if (msgLock.tryLock()) {
-    try {
-      msgType.set(TEXT);
-      WebSocketFrame frame=new TextFrame().setPayload(text);
-      if (LOG.isDebugEnabled()) {
-        LOG.debug("sendString with {}",BufferUtil.toDetailString(frame.getPayload()));
-      }
-      blockingWrite(frame);
+  lockMsg(MsgType.BLOCKING);
+  try {
+    WebSocketFrame frame=new TextFrame().setPayload(text);
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("sendString with {}",BufferUtil.toDetailString(frame.getPayload()));
     }
-  finally {
-      msgType.set(NONE);
-      msgLock.unlock();
-    }
+    blockingWrite(frame);
   }
- else {
-    throw new IllegalStateException(PRIORMSG_ERROR);
+  finally {
+    unlockMsg(MsgType.BLOCKING);
   }
 }

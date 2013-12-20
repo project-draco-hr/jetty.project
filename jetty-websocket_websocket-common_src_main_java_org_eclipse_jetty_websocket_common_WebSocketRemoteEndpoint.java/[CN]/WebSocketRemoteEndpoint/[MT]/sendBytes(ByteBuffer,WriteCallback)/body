@@ -1,7 +1,12 @@
 {
-  msgType.set(BINARY);
-  if (LOG.isDebugEnabled()) {
-    LOG.debug("sendBytes({}, {})",BufferUtil.toDetailString(data),callback);
+  lockMsg(MsgType.ASYNC);
+  try {
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("sendBytes({}, {})",BufferUtil.toDetailString(data),callback);
+    }
+    uncheckedSendFrame(new BinaryFrame().setPayload(data),callback == null ? NOOP_CALLBACK : callback);
   }
-  sendFrame(new BinaryFrame().setPayload(data),callback == null ? NOOP_CALLBACK : callback);
+  finally {
+    unlockMsg(MsgType.ASYNC);
+  }
 }

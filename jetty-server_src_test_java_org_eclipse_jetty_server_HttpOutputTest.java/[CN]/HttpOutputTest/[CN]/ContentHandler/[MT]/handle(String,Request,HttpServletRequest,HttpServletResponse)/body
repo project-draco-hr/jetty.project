@@ -12,20 +12,23 @@
     _contentChannel=null;
     return;
   }
-  if (_bytes != null) {
+  if (_content != null && _writeLengthIfKnown)   response.setContentLength(_content.remaining());
+  if (_arrayBuffer != null) {
     if (_async) {
       final AsyncContext async=request.startAsync();
       out.setWriteListener(new WriteListener(){
         @Override public void onWritePossible() throws IOException {
           while (out.isReady()) {
+            Assert.assertTrue(out.isReady());
             int len=_content.remaining();
-            if (len > _bytes.length)             len=_bytes.length;
+            if (len > _arrayBuffer.length)             len=_arrayBuffer.length;
             if (len == 0) {
               async.complete();
               break;
             }
-            _content.get(_bytes,0,len);
-            out.write(_bytes,0,len);
+            _content.get(_arrayBuffer,0,len);
+            if (len == 1)             out.write(_arrayBuffer[0]);
+ else             out.write(_arrayBuffer,0,len);
           }
         }
         @Override public void onError(        Throwable t){
@@ -38,27 +41,30 @@
     }
     while (BufferUtil.hasContent(_content)) {
       int len=_content.remaining();
-      if (len > _bytes.length)       len=_bytes.length;
-      _content.get(_bytes,0,len);
-      out.write(_bytes,0,len);
+      if (len > _arrayBuffer.length)       len=_arrayBuffer.length;
+      _content.get(_arrayBuffer,0,len);
+      if (len == 1)       out.write(_arrayBuffer[0]);
+ else       out.write(_arrayBuffer,0,len);
     }
     return;
   }
-  if (_buffer != null) {
+  if (_byteBuffer != null) {
     if (_async) {
       final AsyncContext async=request.startAsync();
       out.setWriteListener(new WriteListener(){
         @Override public void onWritePossible() throws IOException {
           while (out.isReady()) {
+            Assert.assertTrue(out.isReady());
             if (BufferUtil.isEmpty(_content)) {
               async.complete();
               break;
             }
-            BufferUtil.clearToFill(_buffer);
-            BufferUtil.put(_content,_buffer);
-            BufferUtil.flipToFlush(_buffer,0);
-            out.write(_buffer);
+            BufferUtil.clearToFill(_byteBuffer);
+            BufferUtil.put(_content,_byteBuffer);
+            BufferUtil.flipToFlush(_byteBuffer,0);
+            out.write(_byteBuffer);
           }
+          Assert.assertFalse(out.isReady());
         }
         @Override public void onError(        Throwable t){
           t.printStackTrace();
@@ -69,15 +75,14 @@
       return;
     }
     while (BufferUtil.hasContent(_content)) {
-      BufferUtil.clearToFill(_buffer);
-      BufferUtil.put(_content,_buffer);
-      BufferUtil.flipToFlush(_buffer,0);
-      out.write(_buffer);
+      BufferUtil.clearToFill(_byteBuffer);
+      BufferUtil.put(_content,_byteBuffer);
+      BufferUtil.flipToFlush(_byteBuffer,0);
+      out.write(_byteBuffer);
     }
     return;
   }
   if (_content != null) {
-    response.setContentLength(_content.remaining());
     if (_content.hasArray())     out.write(_content.array(),_content.arrayOffset() + _content.position(),_content.remaining());
  else     out.sendContent(_content);
     _content=null;

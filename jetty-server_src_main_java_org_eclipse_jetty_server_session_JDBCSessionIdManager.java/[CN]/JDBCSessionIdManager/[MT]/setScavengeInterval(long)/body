@@ -6,16 +6,11 @@
   long tenPercent=_scavengeIntervalMs / 10;
   if ((System.currentTimeMillis() % 2) == 0)   _scavengeIntervalMs+=tenPercent;
   if (LOG.isDebugEnabled())   LOG.debug("Scavenging every " + _scavengeIntervalMs + " ms");
-  if (_timer != null && (period != old_period || _task == null)) {
+  if (_scheduler != null && (period != old_period || _task == null)) {
 synchronized (this) {
       if (_task != null)       _task.cancel();
-      _task=new TimerTask(){
-        @Override public void run(){
-          scavenge();
-        }
-      }
-;
-      _timer.schedule(_task,_scavengeIntervalMs,_scavengeIntervalMs);
+      if (_scavenger == null)       _scavenger=new Scavenger();
+      _task=_scheduler.schedule(_scavenger,_scavengeIntervalMs,TimeUnit.MILLISECONDS);
     }
   }
 }
