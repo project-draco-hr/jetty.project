@@ -1,15 +1,34 @@
 {
   while (true) {
-    MsgType was=msgType.get();
-switch (was) {
-case NONE:
-      if (msgType.compareAndSet(MsgType.NONE,type))       return;
-    break;
-case BINARY:
-case TEXT:
+    int state=msgState.get();
+switch (type) {
+case BLOCKING:
+      if ((state & (PARTIAL_BINARY_MASK + PARTIAL_TEXT_MASK)) != 0)       throw new IllegalStateException(String.format("Partial message pending %x for %s",state,type));
+    if ((state & BLOCK_MASK) != 0)     throw new IllegalStateException(String.format("Blocking message pending %x for %s",state,type));
+  if (msgState.compareAndSet(state,state | BLOCK_MASK))   return state == 0;
+break;
+case ASYNC:
+if ((state & (PARTIAL_BINARY_MASK + PARTIAL_TEXT_MASK)) != 0) throw new IllegalStateException(String.format("Partial message pending %x for %s",state,type));
+if ((state & ASYNC_MASK) == ASYNC_MASK) throw new IllegalStateException(String.format("Too many async sends: %x",state));
+if (msgState.compareAndSet(state,state + 1)) return state == 0;
+break;
+case STREAMING:
+if ((state & (PARTIAL_BINARY_MASK + PARTIAL_TEXT_MASK)) != 0) throw new IllegalStateException(String.format("Partial message pending %x for %s",state,type));
+if ((state & STREAM_MASK) != 0) throw new IllegalStateException(String.format("Already streaming %x for %s",state,type));
+if (msgState.compareAndSet(state,state | STREAM_MASK)) return state == 0;
+break;
 case PARTIAL_BINARY:
+if (state == PARTIAL_BINARY_MASK) return false;
+if (state == 0) {
+if (msgState.compareAndSet(0,state | PARTIAL_BINARY_MASK)) return true;
+}
+throw new IllegalStateException(String.format("Cannot send %s in state %x",type,state));
 case PARTIAL_TEXT:
-  throw new IllegalStateException(PRIORMSG_ERROR);
+if (state == PARTIAL_TEXT_MASK) return false;
+if (state == 0) {
+if (msgState.compareAndSet(0,state | PARTIAL_TEXT_MASK)) return true;
+}
+throw new IllegalStateException(String.format("Cannot send %s in state %x",type,state));
 }
 }
 }
