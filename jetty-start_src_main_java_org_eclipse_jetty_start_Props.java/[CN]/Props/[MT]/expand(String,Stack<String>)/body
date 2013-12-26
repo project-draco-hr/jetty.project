@@ -1,0 +1,48 @@
+{
+  if (str == null) {
+    return str;
+  }
+  if (str.indexOf("${") < 0) {
+    return str;
+  }
+  if (props.isEmpty()) {
+    throw new PropsException("Props is empty: no properties declared!?");
+  }
+  Pattern pat=Pattern.compile("(?<=[^$]|^)(\\$\\{[^}]*\\})");
+  Matcher mat=pat.matcher(str);
+  StringBuilder expanded=new StringBuilder();
+  int offset=0;
+  String property;
+  String value;
+  while (mat.find(offset)) {
+    property=cleanReference(mat.group(1));
+    if (seenStack.contains(property)) {
+      StringBuilder err=new StringBuilder();
+      err.append("Property expansion loop detected: ");
+      int idx=seenStack.lastIndexOf(property);
+      for (int i=idx; i < seenStack.size(); i++) {
+        err.append(seenStack.get(i));
+        err.append(" -> ");
+      }
+      err.append(property);
+      throw new PropsException(err.toString());
+    }
+    seenStack.push(property);
+    expanded.append(str.subSequence(offset,mat.start(1)));
+    value=getString(property);
+    if (value == null) {
+      StartLog.debug("Unable to expand: %s",property);
+      expanded.append(property);
+    }
+ else {
+      value=expand(value,seenStack);
+      expanded.append(value);
+    }
+    offset=mat.end(1);
+  }
+  expanded.append(str.substring(offset));
+  if (expanded.indexOf("$$") >= 0) {
+    return expanded.toString().replace("\\$\\$","\\$");
+  }
+  return expanded.toString();
+}

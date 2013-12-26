@@ -31,14 +31,12 @@
     }
   }
   List<String> actualProperties=new ArrayList<>();
-  @SuppressWarnings("unchecked") Enumeration<String> nameEnum=(Enumeration<String>)args.getProperties().propertyNames();
-  while (nameEnum.hasMoreElements()) {
-    String name=nameEnum.nextElement();
-    if ("jetty.home".equals(name) || "jetty.base".equals(name)) {
+  for (  Prop prop : args.getProperties()) {
+    String name=prop.key;
+    if ("jetty.home".equals(name) || "jetty.base".equals(name) || prop.origin.equals(Props.ORIGIN_SYSPROP)) {
       continue;
     }
-    String value=args.getProperties().getProperty(name);
-    actualProperties.add(name + "=" + value);
+    actualProperties.add(prop.key + "=" + args.getProperties().expand(prop.value));
   }
   assertContainsUnordered("Properties",expectedProperties,actualProperties);
   List<String> expectedDownloads=new ArrayList<>();
