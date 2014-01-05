@@ -1,0 +1,26 @@
+{
+  if (!getScheme().equals(request.getScheme()))   throw new IllegalArgumentException("Invalid request scheme " + request.getScheme() + " for destination "+ this);
+  if (!getHost().equals(request.getHost()))   throw new IllegalArgumentException("Invalid request host " + request.getHost() + " for destination "+ this);
+  int port=request.getPort();
+  if (port >= 0 && getPort() != port)   throw new IllegalArgumentException("Invalid request port " + port + " for destination "+ this);
+  HttpExchange exchange=new HttpExchange(this,request,listeners);
+  if (client.isRunning()) {
+    if (exchanges.offer(exchange)) {
+      if (!client.isRunning() && exchanges.remove(exchange)) {
+        request.abort(new RejectedExecutionException(client + " is stopping"));
+      }
+ else {
+        LOG.debug("Queued {}",request);
+        requestNotifier.notifyQueued(request);
+        send();
+      }
+    }
+ else {
+      LOG.debug("Max queue size {} exceeded by {}",client.getMaxRequestsQueuedPerDestination(),request);
+      request.abort(new RejectedExecutionException("Max requests per destination " + client.getMaxRequestsQueuedPerDestination() + " exceeded for "+ this));
+    }
+  }
+ else {
+    request.abort(new RejectedExecutionException(client + " is stopped"));
+  }
+}

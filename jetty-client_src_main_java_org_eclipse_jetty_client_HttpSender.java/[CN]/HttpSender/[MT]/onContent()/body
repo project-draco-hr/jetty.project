@@ -6,44 +6,55 @@
 switch (current) {
 case IDLE:
 {
-        if (updateSenderState(current,SenderState.SENDING)) {
-          LOG.debug("Deferred content available, idle -> sending");
+        SenderState newSenderState=SenderState.SENDING;
+        if (updateSenderState(current,newSenderState)) {
+          LOG.debug("Deferred content available, {} -> {}",current,newSenderState);
           HttpContent content=this.content;
-          content.advance();
-          sendContent(exchange,content,contentCallback);
+          if (content.advance())           sendContent(exchange,content,contentCallback);
+ else           if (content.isConsumed())           sendContent(exchange,content,lastCallback);
+ else           throw new IllegalStateException();
           return;
         }
         break;
       }
 case SENDING:
 {
-      if (updateSenderState(current,SenderState.SCHEDULED)) {
-        LOG.debug("Deferred content available, sending -> scheduled");
+      SenderState newSenderState=SenderState.SENDING_WITH_CONTENT;
+      if (updateSenderState(current,newSenderState)) {
+        LOG.debug("Deferred content available, {} -> {}",current,newSenderState);
         return;
       }
       break;
     }
 case EXPECTING:
 {
-    if (updateSenderState(current,SenderState.SCHEDULED)) {
-      LOG.debug("Deferred content available, expecting -> scheduled");
+    SenderState newSenderState=SenderState.EXPECTING_WITH_CONTENT;
+    if (updateSenderState(current,newSenderState)) {
+      LOG.debug("Deferred content available, {} -> {}",current,newSenderState);
       return;
     }
     break;
   }
+case PROCEEDING:
+{
+  SenderState newSenderState=SenderState.PROCEEDING_WITH_CONTENT;
+  if (updateSenderState(current,newSenderState)) {
+    LOG.debug("Deferred content available, {} -> {}",current,newSenderState);
+    return;
+  }
+  break;
+}
+case SENDING_WITH_CONTENT:
+case EXPECTING_WITH_CONTENT:
+case PROCEEDING_WITH_CONTENT:
 case WAITING:
 {
-  LOG.debug("Deferred content available, waiting");
-  return;
-}
-case SCHEDULED:
-{
-LOG.debug("Deferred content available, scheduled");
+LOG.debug("Deferred content available, {}",current);
 return;
 }
 default :
 {
-throw new IllegalStateException();
+throw new IllegalStateException(current.toString());
 }
 }
 }
