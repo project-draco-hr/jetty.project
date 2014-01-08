@@ -19,33 +19,51 @@ case SENDING:
 {
           if (content.advance()) {
             sendContent(exchange,content,contentCallback);
+            return;
           }
  else {
             if (content.isConsumed()) {
               sendContent(exchange,content,lastCallback);
+              return;
             }
  else {
-              if (!updateSenderState(current,SenderState.IDLE))               break;
-              LOG.debug("Waiting for deferred content for {}",request);
+              if (updateSenderState(current,SenderState.IDLE)) {
+                LOG.debug("Waiting for deferred content for {}",request);
+                return;
+              }
+              break;
             }
           }
-          return;
         }
+case SENDING_WITH_CONTENT:
+{
+        updateSenderState(current,SenderState.SENDING);
+        break;
+      }
 case EXPECTING:
 {
-        if (!updateSenderState(current,SenderState.WAITING))         break;
-        return;
-      }
-case SCHEDULED:
-{
-      if (expects100Continue(request))       return;
-      updateSenderState(current,SenderState.SENDING);
+      if (updateSenderState(current,SenderState.WAITING))       return;
       break;
     }
+case EXPECTING_WITH_CONTENT:
+{
+    if (updateSenderState(current,SenderState.WAITING))     return;
+    break;
+  }
+case PROCEEDING:
+{
+  if (updateSenderState(current,SenderState.IDLE))   return;
+  break;
+}
+case PROCEEDING_WITH_CONTENT:
+{
+updateSenderState(current,SenderState.SENDING);
+break;
+}
 default :
 {
-    throw new IllegalStateException();
-  }
+throw new IllegalStateException();
+}
 }
 }
 }

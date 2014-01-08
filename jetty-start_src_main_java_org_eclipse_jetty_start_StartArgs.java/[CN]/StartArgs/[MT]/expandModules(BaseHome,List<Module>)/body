@@ -1,7 +1,14 @@
 {
   for (  Module module : activeModules) {
     for (    String rawlibref : module.getLibs()) {
-      String libref=rawlibref.replace("${jetty.version}",VERSION);
+      String libref=properties.expand(rawlibref);
+      if (libref.startsWith("regex:")) {
+        String regex=libref.substring("regex:".length());
+        for (        File libfile : baseHome.listFilesRegex(regex)) {
+          classpath.addComponent(libfile);
+        }
+        continue;
+      }
       libref=FS.separators(libref);
       if (libref.contains("*")) {
         int idx=libref.lastIndexOf(File.separatorChar);

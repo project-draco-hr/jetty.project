@@ -7,10 +7,15 @@
   }
 );
   final Throwable cause=new Exception();
+  final AtomicBoolean aborted=new AtomicBoolean();
+  final CountDownLatch latch=new CountDownLatch(1);
   client.getProtocolHandlers().clear();
   client.getProtocolHandlers().add(new RedirectProtocolHandler(client){
     @Override public void onComplete(    Result result){
-      if (!result.isFailed())       result.getRequest().abort(cause);
+      if (!result.isFailed()) {
+        aborted.set(result.getRequest().abort(cause));
+        latch.countDown();
+      }
       super.onComplete(result);
     }
   }
@@ -20,6 +25,7 @@
     Assert.fail();
   }
  catch (  ExecutionException x) {
-    Assert.assertSame(cause,x.getCause());
+    Assert.assertTrue(latch.await(5,TimeUnit.SECONDS));
+    if (aborted.get())     Assert.assertSame(cause,x.getCause());
   }
 }

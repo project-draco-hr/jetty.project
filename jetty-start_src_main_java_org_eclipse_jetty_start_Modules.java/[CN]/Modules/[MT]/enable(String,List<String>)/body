@@ -1,12 +1,18 @@
 {
-  Module module=modules.get(name);
-  if (module == null) {
-    System.err.printf("WARNING: Cannot enable requested module [%s]: not a valid module name.%n",name);
-    return;
+  if (name.contains("*")) {
+    Pattern pat=Pattern.compile(name);
+    for (    Map.Entry<String,Module> entry : modules.entrySet()) {
+      if (pat.matcher(entry.getKey()).matches()) {
+        enableModule(entry.getValue(),sources);
+      }
+    }
   }
-  StartLog.debug("Enabling module: %s (via %s)",name,Main.join(sources,", "));
-  module.setEnabled(true);
-  if (sources != null) {
-    module.addSources(sources);
+ else {
+    Module module=modules.get(name);
+    if (module == null) {
+      System.err.printf("WARNING: Cannot enable requested module [%s]: not a valid module name.%n",name);
+      return;
+    }
+    enableModule(module,sources);
   }
 }

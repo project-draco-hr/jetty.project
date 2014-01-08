@@ -1,0 +1,34 @@
+{
+  File outputDir=MavenTestingUtils.getTargetTestingDir(NpnModuleTest.class.getSimpleName() + "-main");
+  FS.ensureEmpty(outputDir);
+  for (  String ref : KNOWN_GOOD_NPN_URLS) {
+    try {
+      URL url=new URL(ref);
+      System.err.printf("Attempting: %s%n",ref);
+      HttpURLConnection connection=(HttpURLConnection)url.openConnection();
+      String refname=url.toURI().getPath();
+      int idx=refname.lastIndexOf('/');
+      File outputFile=new File(outputDir,refname.substring(idx));
+      try (InputStream stream=connection.getInputStream();FileOutputStream out=new FileOutputStream(outputFile)){
+        assertThat("Response Status Code",connection.getResponseCode(),is(200));
+        IO.copy(stream,out);
+        System.err.printf("Downloaded %,d bytes%n",outputFile.length());
+      }
+ catch (      IOException e) {
+        e.printStackTrace(System.err);
+      }
+    }
+ catch (    MalformedURLException e) {
+      System.err.printf("Bad Ref: %s%n",ref);
+      e.printStackTrace(System.err);
+    }
+catch (    URISyntaxException e) {
+      System.err.printf("Bad Ref Syntax: %s%n",ref);
+      e.printStackTrace(System.err);
+    }
+catch (    IOException e) {
+      System.err.printf("Bad Connection: %s%n",ref);
+      e.printStackTrace(System.err);
+    }
+  }
+}

@@ -1,0 +1,24 @@
+{
+  for (  File file : basehome.listFiles("modules",new FS.FilenameRegexFilter("^.*\\.mod$"))) {
+    registerModule(basehome,args,file);
+  }
+  boolean done=false;
+  while (!done) {
+    done=true;
+    Set<String> missingParents=new HashSet<>();
+    for (    Module m : modules.values()) {
+      for (      String parent : m.getParentNames()) {
+        if (modules.containsKey(parent)) {
+          continue;
+        }
+        done=false;
+        missingParents.add(parent);
+      }
+    }
+    for (    String missingParent : missingParents) {
+      File file=basehome.getFile("modules/" + missingParent + ".mod");
+      Module module=registerModule(basehome,args,file);
+      updateParentReferencesTo(module);
+    }
+  }
+}
