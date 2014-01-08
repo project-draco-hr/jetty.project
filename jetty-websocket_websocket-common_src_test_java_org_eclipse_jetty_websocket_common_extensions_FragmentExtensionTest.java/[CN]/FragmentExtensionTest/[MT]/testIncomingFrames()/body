@@ -18,9 +18,9 @@
   capture.assertFrameCount(len);
   capture.assertHasFrame(OpCode.TEXT,len);
   String prefix;
-  for (int i=0; i < len; i++) {
+  int i=0;
+  for (  WebSocketFrame actual : capture.getFrames()) {
     prefix="Frame[" + i + "]";
-    WebSocketFrame actual=capture.getFrames().get(i);
     Assert.assertThat(prefix + ".opcode",actual.getOpCode(),is(OpCode.TEXT));
     Assert.assertThat(prefix + ".fin",actual.isFin(),is(true));
     Assert.assertThat(prefix + ".rsv1",actual.isRsv1(),is(false));
@@ -29,5 +29,6 @@
     ByteBuffer expected=BufferUtil.toBuffer(quote.get(i),StandardCharsets.UTF_8);
     Assert.assertThat(prefix + ".payloadLength",actual.getPayloadLength(),is(expected.remaining()));
     ByteBufferAssert.assertEquals(prefix + ".payload",expected,actual.getPayload().slice());
+    i++;
   }
 }
