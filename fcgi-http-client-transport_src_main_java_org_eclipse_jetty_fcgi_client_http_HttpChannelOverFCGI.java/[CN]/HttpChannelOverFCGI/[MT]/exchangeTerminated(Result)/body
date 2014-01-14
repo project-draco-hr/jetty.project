@@ -1,4 +1,9 @@
 {
   super.exchangeTerminated(result);
   idle.onClose();
+  boolean close=result.isFailed();
+  HttpFields responseHeaders=result.getResponse().getHeaders();
+  close|=responseHeaders.contains(HttpHeader.CONNECTION,HttpHeaderValue.CLOSE.asString());
+  if (close)   connection.close();
+ else   connection.release();
 }
