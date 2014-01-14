@@ -1,22 +1,14 @@
 {
 synchronized (lock()) {
-    T item=_inputQ.peekUnsafe();
-    loop:     while (!isShutdown() && !isEarlyEOF()) {
-      while (item != null) {
-        _inputQ.pollUnsafe();
-        onContentConsumed(item);
-        item=_inputQ.peekUnsafe();
-        if (item == null)         onAllContentConsumed();
+    try {
+      while (!isFinished()) {
+        T item=getNextContent();
+        if (item == null)         _state.waitForContent(this);
+ else         consume(item,remaining(item));
       }
-      try {
-        blockForContent();
-        item=_inputQ.peekUnsafe();
-        if (item == null)         break;
-      }
- catch (      IOException e) {
-        LOG.debug(e);
-        break loop;
-      }
+    }
+ catch (    IOException e) {
+      LOG.debug(e);
     }
   }
 }

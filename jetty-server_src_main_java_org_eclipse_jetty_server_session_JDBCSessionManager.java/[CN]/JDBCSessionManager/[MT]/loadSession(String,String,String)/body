@@ -6,22 +6,22 @@
  * @see java.lang.Runnable#run()
  */
     @SuppressWarnings("unchecked") public void run(){
-      try (Connection connection=getConnection();PreparedStatement statement=_jdbcSessionIdMgr._dbAdaptor.getLoadStatement(connection,id,canonicalContextPath,vhost);ResultSet result=statement.executeQuery()){
+      try (Connection connection=getConnection();PreparedStatement statement=_sessionTableSchema.getLoadStatement(connection,id,canonicalContextPath,vhost);ResultSet result=statement.executeQuery()){
         Session session=null;
         if (result.next()) {
-          long maxInterval=result.getLong("maxInterval");
+          long maxInterval=result.getLong(_sessionTableSchema.getMaxIntervalColumn());
           if (maxInterval == JDBCSessionIdManager.MAX_INTERVAL_NOT_SET) {
             maxInterval=getMaxInactiveInterval();
           }
-          session=new Session(id,result.getString(_jdbcSessionIdMgr._sessionTableRowId),result.getLong("createTime"),result.getLong("accessTime"),maxInterval);
-          session.setCookieSet(result.getLong("cookieTime"));
-          session.setLastAccessedTime(result.getLong("lastAccessTime"));
-          session.setLastNode(result.getString("lastNode"));
-          session.setLastSaved(result.getLong("lastSavedTime"));
-          session.setExpiryTime(result.getLong("expiryTime"));
-          session.setCanonicalContext(result.getString("contextPath"));
-          session.setVirtualHost(result.getString("virtualHost"));
-          try (InputStream is=((JDBCSessionIdManager)getSessionIdManager())._dbAdaptor.getBlobInputStream(result,"map");ClassLoadingObjectInputStream ois=new ClassLoadingObjectInputStream(is)){
+          session=new Session(id,result.getString(_sessionTableSchema.getRowIdColumn()),result.getLong(_sessionTableSchema.getCreateTimeColumn()),result.getLong(_sessionTableSchema.getAccessTimeColumn()),maxInterval);
+          session.setCookieSet(result.getLong(_sessionTableSchema.getCookieTimeColumn()));
+          session.setLastAccessedTime(result.getLong(_sessionTableSchema.getLastAccessTimeColumn()));
+          session.setLastNode(result.getString(_sessionTableSchema.getLastNodeColumn()));
+          session.setLastSaved(result.getLong(_sessionTableSchema.getLastSavedTimeColumn()));
+          session.setExpiryTime(result.getLong(_sessionTableSchema.getExpiryTimeColumn()));
+          session.setCanonicalContext(result.getString(_sessionTableSchema.getContextPathColumn()));
+          session.setVirtualHost(result.getString(_sessionTableSchema.getVirtualHostColumn()));
+          try (InputStream is=((JDBCSessionIdManager)getSessionIdManager())._dbAdaptor.getBlobInputStream(result,_sessionTableSchema.getMapColumn());ClassLoadingObjectInputStream ois=new ClassLoadingObjectInputStream(is)){
             Object o=ois.readObject();
             session.addAttributes((Map<String,Object>)o);
           }

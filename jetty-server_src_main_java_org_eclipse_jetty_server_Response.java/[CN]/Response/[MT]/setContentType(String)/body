@@ -11,24 +11,27 @@
     _contentType=contentType;
     _mimeType=MimeTypes.CACHE.get(contentType);
     String charset;
-    if (_mimeType != null && _mimeType.getCharset() != null)     charset=_mimeType.getCharset().toString();
+    if (_mimeType != null && _mimeType.getCharset() != null && !_mimeType.isCharsetAssumed())     charset=_mimeType.getCharset().toString();
  else     charset=MimeTypes.getCharsetFromContentType(contentType);
     if (charset == null) {
       if (_characterEncoding != null) {
-        _contentType=contentType + ";charset=" + _characterEncoding;
+        _contentType=contentType + "; charset=" + _characterEncoding;
         _mimeType=null;
       }
     }
  else     if (isWriting() && !charset.equals(_characterEncoding)) {
       _mimeType=null;
       _contentType=MimeTypes.getContentTypeWithoutCharset(_contentType);
-      if (_characterEncoding != null)       _contentType=_contentType + ";charset=" + _characterEncoding;
+      if (_characterEncoding != null)       _contentType=_contentType + "; charset=" + _characterEncoding;
     }
  else {
       _characterEncoding=charset;
+      _explicitEncoding=true;
     }
-    HttpField field=HttpField.CONTENT_TYPE.get(_contentType);
-    if (field != null)     _fields.put(field);
- else     _fields.put(HttpHeader.CONTENT_TYPE,_contentType);
+    if (HttpGenerator.__STRICT || _mimeType == null)     _fields.put(HttpHeader.CONTENT_TYPE,_contentType);
+ else {
+      _contentType=_mimeType.asString();
+      _fields.put(_mimeType.getContentTypeField());
+    }
   }
 }

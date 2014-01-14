@@ -1,0 +1,18 @@
+{
+  if (!updateResponseState(ResponseState.IDLE,ResponseState.BEGIN))   return false;
+  HttpConversation conversation=exchange.getConversation();
+  HttpResponse response=exchange.getResponse();
+  HttpDestination destination=getHttpDestination();
+  HttpClient client=destination.getHttpClient();
+  ProtocolHandler protocolHandler=client.findProtocolHandler(exchange.getRequest(),response);
+  Response.Listener handlerListener=null;
+  if (protocolHandler != null) {
+    handlerListener=protocolHandler.getResponseListener();
+    LOG.debug("Found protocol handler {}",protocolHandler);
+  }
+  exchange.getConversation().updateResponseListeners(handlerListener);
+  LOG.debug("Response begin {}",response);
+  ResponseNotifier notifier=destination.getResponseNotifier();
+  notifier.notifyBegin(conversation.getResponseListeners(),response);
+  return true;
+}

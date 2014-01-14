@@ -1,0 +1,35 @@
+{
+  super();
+  assertValidServletPathSpec(servletPathSpec);
+  if ((servletPathSpec == null) || (servletPathSpec.length() == 0) || "/".equals(servletPathSpec)) {
+    super.pathSpec="/";
+    super.pathDepth=-1;
+    this.specLength=1;
+    this.group=PathSpecGroup.DEFAULT;
+    return;
+  }
+  this.specLength=servletPathSpec.length();
+  super.pathDepth=0;
+  char lastChar=servletPathSpec.charAt(specLength - 1);
+  if ((servletPathSpec.charAt(0) == '/') && (specLength > 1) && (lastChar == '*')) {
+    this.group=PathSpecGroup.PREFIX_GLOB;
+  }
+ else   if (servletPathSpec.charAt(0) == '*') {
+    this.group=PathSpecGroup.SUFFIX_GLOB;
+  }
+ else {
+    this.group=PathSpecGroup.EXACT;
+  }
+  for (int i=0; i < specLength; i++) {
+    int cp=servletPathSpec.codePointAt(i);
+    if (cp < 128) {
+      char c=(char)cp;
+switch (c) {
+case '/':
+        super.pathDepth++;
+      break;
+  }
+}
+}
+super.pathSpec=servletPathSpec;
+}

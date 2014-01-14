@@ -7,10 +7,13 @@
   }
 );
   final Throwable cause=new Exception();
+  final AtomicBoolean aborted=new AtomicBoolean();
+  final CountDownLatch latch=new CountDownLatch(1);
   try {
     client.newRequest("localhost",connector.getLocalPort()).scheme(scheme).onRequestContent(new Request.ContentListener(){
       @Override public void onContent(      Request request,      ByteBuffer content){
-        request.abort(cause);
+        aborted.set(request.abort(cause));
+        latch.countDown();
       }
     }
 ).content(new ByteBufferContentProvider(ByteBuffer.wrap(new byte[]{0}),ByteBuffer.wrap(new byte[]{1})){
@@ -22,6 +25,7 @@
     Assert.fail();
   }
  catch (  ExecutionException x) {
-    Assert.assertSame(cause,x.getCause());
+    Assert.assertTrue(latch.await(5,TimeUnit.SECONDS));
+    if (aborted.get())     Assert.assertSame(cause,x.getCause());
   }
 }

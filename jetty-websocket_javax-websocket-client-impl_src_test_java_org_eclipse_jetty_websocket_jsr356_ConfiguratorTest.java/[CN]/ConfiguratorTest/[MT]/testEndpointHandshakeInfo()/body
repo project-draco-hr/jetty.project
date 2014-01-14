@@ -1,0 +1,13 @@
+{
+  WebSocketContainer container=ContainerProvider.getWebSocketContainer();
+  EndpointEchoClient echoer=new EndpointEchoClient();
+  ClientEndpointConfig.Builder cfgbldr=ClientEndpointConfig.Builder.create();
+  TrackingConfigurator configurator=new TrackingConfigurator();
+  cfgbldr.configurator(configurator);
+  ClientEndpointConfig config=cfgbldr.build();
+  Session session=container.connectToServer(echoer,config,serverUri);
+  session.getBasicRemote().sendText("Echo");
+  echoer.textCapture.messageQueue.awaitMessages(1,1000,TimeUnit.MILLISECONDS);
+  Assert.assertThat("configurator.request",configurator.request,notNullValue());
+  Assert.assertThat("configurator.response",configurator.response,notNullValue());
+}

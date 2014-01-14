@@ -1,0 +1,70 @@
+{
+  HttpExchange exchange=getHttpExchange();
+  if (exchange == null)   return;
+  Request request=exchange.getRequest();
+  if (!headersToCommit(request))   return;
+  HttpContent content=HttpSender.this.content;
+  if (!content.hasContent()) {
+    someToSuccess(exchange);
+  }
+ else {
+    ByteBuffer contentBuffer=content.getContent();
+    if (contentBuffer != null) {
+      if (!someToContent(request,contentBuffer))       return;
+    }
+    while (true) {
+      SenderState current=senderState.get();
+switch (current) {
+case SENDING:
+{
+          if (content.advance()) {
+            sendContent(exchange,content,contentCallback);
+            return;
+          }
+ else {
+            if (content.isConsumed()) {
+              sendContent(exchange,content,lastCallback);
+              return;
+            }
+ else {
+              if (updateSenderState(current,SenderState.IDLE)) {
+                LOG.debug("Waiting for deferred content for {}",request);
+                return;
+              }
+              break;
+            }
+          }
+        }
+case SENDING_WITH_CONTENT:
+{
+        updateSenderState(current,SenderState.SENDING);
+        break;
+      }
+case EXPECTING:
+{
+      if (updateSenderState(current,SenderState.WAITING))       return;
+      break;
+    }
+case EXPECTING_WITH_CONTENT:
+{
+    if (updateSenderState(current,SenderState.WAITING))     return;
+    break;
+  }
+case PROCEEDING:
+{
+  if (updateSenderState(current,SenderState.IDLE))   return;
+  break;
+}
+case PROCEEDING_WITH_CONTENT:
+{
+updateSenderState(current,SenderState.SENDING);
+break;
+}
+default :
+{
+throw new IllegalStateException();
+}
+}
+}
+}
+}

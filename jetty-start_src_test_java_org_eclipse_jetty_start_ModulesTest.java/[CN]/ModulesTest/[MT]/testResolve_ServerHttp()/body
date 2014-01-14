@@ -1,0 +1,36 @@
+{
+  File homeDir=MavenTestingUtils.getTestResourceDir("usecases/home");
+  BaseHome basehome=new BaseHome(homeDir,homeDir);
+  Modules modules=new Modules();
+  modules.registerAll(basehome,DEFAULT_ARGS);
+  modules.buildGraph();
+  modules.enable("server",TEST_SOURCE);
+  modules.enable("http",TEST_SOURCE);
+  List<Module> active=modules.resolveEnabled();
+  List<String> expectedNames=new ArrayList<>();
+  expectedNames.add("base");
+  expectedNames.add("xml");
+  expectedNames.add("server");
+  expectedNames.add("http");
+  List<String> actualNames=new ArrayList<>();
+  for (  Module actual : active) {
+    actualNames.add(actual.getName());
+  }
+  Assert.assertThat("Resolved Names: " + actualNames,actualNames,contains(expectedNames.toArray()));
+  List<String> expectedLibs=new ArrayList<>();
+  expectedLibs.add("lib/jetty-util-${jetty.version}.jar");
+  expectedLibs.add("lib/jetty-io-${jetty.version}.jar");
+  expectedLibs.add("lib/jetty-xml-${jetty.version}.jar");
+  expectedLibs.add("lib/servlet-api-3.1.jar");
+  expectedLibs.add("lib/jetty-schemas-3.1.jar");
+  expectedLibs.add("lib/jetty-http-${jetty.version}.jar");
+  expectedLibs.add("lib/jetty-continuation-${jetty.version}.jar");
+  expectedLibs.add("lib/jetty-server-${jetty.version}.jar");
+  List<String> actualLibs=modules.normalizeLibs(active);
+  Assert.assertThat("Resolved Libs: " + actualLibs,actualLibs,contains(expectedLibs.toArray()));
+  List<String> expectedXmls=new ArrayList<>();
+  expectedXmls.add("etc/jetty.xml");
+  expectedXmls.add("etc/jetty-http.xml");
+  List<String> actualXmls=modules.normalizeXmls(active);
+  Assert.assertThat("Resolved XMLs: " + actualXmls,actualXmls,contains(expectedXmls.toArray()));
+}

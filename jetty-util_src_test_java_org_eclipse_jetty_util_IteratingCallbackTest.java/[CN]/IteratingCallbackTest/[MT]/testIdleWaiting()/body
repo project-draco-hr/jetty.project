@@ -1,0 +1,42 @@
+{
+  final CountDownLatch idle=new CountDownLatch(1);
+  TestCB cb=new TestCB(){
+    int i=5;
+    @Override protected Action process(){
+      processed++;
+switch (i--) {
+case 5:
+        succeeded();
+      return Action.SCHEDULED;
+case 4:
+    scheduler.schedule(successTask,5,TimeUnit.MILLISECONDS);
+  return Action.SCHEDULED;
+case 3:
+scheduler.schedule(new Runnable(){
+  @Override public void run(){
+    idle.countDown();
+  }
+}
+,5,TimeUnit.MILLISECONDS);
+return Action.IDLE;
+case 2:
+succeeded();
+return Action.SCHEDULED;
+case 1:
+scheduler.schedule(successTask,5,TimeUnit.MILLISECONDS);
+return Action.SCHEDULED;
+case 0:
+return Action.SUCCEEDED;
+default :
+throw new IllegalStateException();
+}
+}
+}
+;
+cb.iterate();
+idle.await(10,TimeUnit.SECONDS);
+Assert.assertTrue(cb.isIdle());
+cb.iterate();
+Assert.assertTrue(cb.waitForComplete());
+Assert.assertEquals(6,cb.processed);
+}

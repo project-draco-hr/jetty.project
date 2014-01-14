@@ -1,43 +1,12 @@
 {
-  int maxContentLength=64 * 1024;
   String host=random.nextBoolean() ? "localhost" : "127.0.0.1";
-  URI uri=URI.create(scheme + "://" + host+ ":"+ connector.getLocalPort());
-  Request request=client.newRequest(uri);
   HttpMethod method=random.nextBoolean() ? HttpMethod.GET : HttpMethod.POST;
-  request.method(method);
   boolean ssl=HttpScheme.HTTPS.is(scheme);
-  if (!ssl && random.nextBoolean())   request.header(HttpHeader.CONNECTION,"close");
- else   if (!ssl && random.nextBoolean())   request.header("X-Close","true");
+  boolean clientClose=false;
+  if (!ssl && random.nextBoolean())   clientClose=true;
+  boolean serverClose=false;
+  if (!ssl && random.nextBoolean())   serverClose=true;
+  int maxContentLength=64 * 1024;
   int contentLength=random.nextInt(maxContentLength) + 1;
-switch (method) {
-case GET:
-    if (random.nextBoolean())     request.header("X-Download",String.valueOf(contentLength));
-  break;
-case POST:
-request.header("X-Upload",String.valueOf(contentLength));
-request.content(new BytesContentProvider(new byte[contentLength]));
-break;
-}
-final CountDownLatch requestLatch=new CountDownLatch(1);
-request.send(new Response.Listener.Empty(){
-private final AtomicInteger contentLength=new AtomicInteger();
-@Override public void onHeaders(Response response){
-String content=response.getHeaders().get("X-Content");
-if (content != null) contentLength.set(Integer.parseInt(content));
-}
-@Override public void onContent(Response response,ByteBuffer content){
-contentLength.addAndGet(-content.remaining());
-}
-@Override public void onComplete(Result result){
-if (result.isFailed()) {
-result.getFailure().printStackTrace();
-failures.add("Result failed " + result);
-}
-if (contentLength.get() != 0) failures.add("Content length mismatch " + contentLength);
-requestLatch.countDown();
-latch.countDown();
-}
-}
-);
-requestLatch.await(5,TimeUnit.SECONDS);
+  test(scheme,host,method.asString(),clientClose,serverClose,contentLength,true,latch,failures);
 }

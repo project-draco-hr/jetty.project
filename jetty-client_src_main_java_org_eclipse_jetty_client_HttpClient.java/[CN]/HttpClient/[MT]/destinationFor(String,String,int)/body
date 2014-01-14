@@ -1,14 +1,14 @@
 {
   port=normalizePort(scheme,port);
-  String address=address(scheme,host,port);
-  HttpDestination destination=destinations.get(address);
+  Origin origin=new Origin(scheme,host,port);
+  HttpDestination destination=destinations.get(origin);
   if (destination == null) {
-    destination=new HttpDestination(this,scheme,host,port);
+    destination=transport.newHttpDestination(origin);
     if (isRunning()) {
-      HttpDestination existing=destinations.putIfAbsent(address,destination);
+      HttpDestination existing=destinations.putIfAbsent(origin,destination);
       if (existing != null)       destination=existing;
  else       LOG.debug("Created {}",destination);
-      if (!isRunning())       destinations.remove(address);
+      if (!isRunning())       destinations.remove(origin);
     }
   }
   return destination;

@@ -1,0 +1,18 @@
+{
+  if (factory.isUpgradeRequest(request,response)) {
+    MappedResource<WebSocketCreator> resource=pathmap.getMatch(target);
+    if (resource == null) {
+      response.sendError(HttpServletResponse.SC_NOT_FOUND,"No websocket endpoint matching path: " + target);
+      return;
+    }
+    WebSocketCreator creator=resource.getResource();
+    request.setAttribute(PathSpec.class.getName(),resource);
+    if (factory.acceptWebSocket(creator,request,response)) {
+      return;
+    }
+    if (response.isCommitted()) {
+      return;
+    }
+  }
+  super.handle(target,baseRequest,request,response);
+}

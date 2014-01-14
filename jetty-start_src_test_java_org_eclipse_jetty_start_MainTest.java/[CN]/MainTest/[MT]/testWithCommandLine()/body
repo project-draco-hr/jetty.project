@@ -1,0 +1,18 @@
+{
+  List<String> cmdLineArgs=new ArrayList<>();
+  addUseCasesHome(cmdLineArgs);
+  cmdLineArgs.add("--exec");
+  cmdLineArgs.add("-Xms1024m");
+  cmdLineArgs.add("-Xmx1024m");
+  File extraJar=MavenTestingUtils.getTestResourceFile("extra-libs/example.jar");
+  File extraDir=MavenTestingUtils.getTestResourceDir("extra-resources");
+  cmdLineArgs.add(String.format("--lib=%s%s%s",extraJar.getAbsolutePath(),File.pathSeparatorChar,extraDir.getAbsolutePath()));
+  cmdLineArgs.add("jetty.xml");
+  cmdLineArgs.add("jetty-jmx.xml");
+  cmdLineArgs.add("jetty-logging.xml");
+  Main main=new Main();
+  StartArgs args=main.processCommandLine(cmdLineArgs.toArray(new String[cmdLineArgs.size()]));
+  BaseHome baseHome=main.getBaseHome();
+  System.err.println(args);
+  ConfigurationAssert.assertConfiguration(baseHome,args,"assert-home-with-jvm.txt");
+}

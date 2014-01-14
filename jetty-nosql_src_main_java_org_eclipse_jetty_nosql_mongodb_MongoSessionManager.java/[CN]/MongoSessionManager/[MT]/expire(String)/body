@@ -1,0 +1,15 @@
+{
+  __log.debug("MongoSessionManager:expire session {} ",idInCluster);
+  super.expire(idInCluster);
+  DBObject validKey=new BasicDBObject(__VALID,true);
+  DBObject o=_dbSessions.findOne(new BasicDBObject(__ID,idInCluster),validKey);
+  if (o != null && (Boolean)o.get(__VALID)) {
+    BasicDBObject update=new BasicDBObject();
+    BasicDBObject sets=new BasicDBObject();
+    sets.put(__VALID,false);
+    sets.put(__INVALIDATED,System.currentTimeMillis());
+    update.put("$set",sets);
+    BasicDBObject key=new BasicDBObject(__ID,idInCluster);
+    _dbSessions.update(key,update);
+  }
+}

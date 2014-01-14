@@ -1,28 +1,3 @@
 {
-  if (!isStarted()) {
-    throw new IllegalStateException(WebSocketClient.class.getSimpleName() + "@" + this.hashCode()+ " is not started");
-  }
-  if (!toUri.isAbsolute()) {
-    throw new IllegalArgumentException("WebSocket URI must be absolute");
-  }
-  if (StringUtil.isBlank(toUri.getScheme())) {
-    throw new IllegalArgumentException("WebSocket URI must include a scheme");
-  }
-  String scheme=toUri.getScheme().toLowerCase(Locale.ENGLISH);
-  if (("ws".equals(scheme) == false) && ("wss".equals(scheme) == false)) {
-    throw new IllegalArgumentException("WebSocket URI scheme only supports [ws] and [wss], not [" + scheme + "]");
-  }
-  request.setRequestURI(toUri);
-  request.setCookiesFrom(this.cookieStore);
-  for (  ExtensionConfig reqExt : request.getExtensions()) {
-    if (!extensionRegistry.isAvailable(reqExt.getName())) {
-      throw new IllegalArgumentException("Requested extension [" + reqExt.getName() + "] is not installed");
-    }
-  }
-  LOG.debug("connect websocket:{} to:{}",websocket,toUri);
-  ConnectionManager manager=getConnectionManager();
-  EventDriver driver=eventDriverFactory.wrap(websocket);
-  ConnectPromise promise=manager.connect(this,driver,request);
-  executor.execute(promise);
-  return promise;
+  return connect(websocket,toUri,request,null);
 }

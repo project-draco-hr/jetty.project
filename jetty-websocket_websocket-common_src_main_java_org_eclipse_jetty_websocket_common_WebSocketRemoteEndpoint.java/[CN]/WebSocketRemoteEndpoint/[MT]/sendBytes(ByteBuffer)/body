@@ -1,8 +1,13 @@
 {
-  connection.getIOState().assertOutputOpen();
-  if (LOG.isDebugEnabled()) {
-    LOG.debug("sendBytes with {}",BufferUtil.toDetailString(data));
+  lockMsg(MsgType.BLOCKING);
+  try {
+    connection.getIOState().assertOutputOpen();
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("sendBytes with {}",BufferUtil.toDetailString(data));
+    }
+    blockingWrite(new BinaryFrame().setPayload(data));
   }
-  WebSocketFrame frame=WebSocketFrame.binary().setPayload(data);
-  blockingWrite(frame);
+  finally {
+    unlockMsg(MsgType.BLOCKING);
+  }
 }

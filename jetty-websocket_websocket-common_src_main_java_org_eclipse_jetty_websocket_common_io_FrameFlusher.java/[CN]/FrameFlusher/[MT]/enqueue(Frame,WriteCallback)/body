@@ -1,0 +1,32 @@
+{
+  Objects.requireNonNull(frame);
+  FrameEntry entry=new FrameEntry(frame,callback);
+  LOG.debug("enqueue({})",entry);
+  Throwable failure=null;
+synchronized (lock) {
+    if (closed) {
+      LOG.debug("Write is closed: {} {}",frame,callback);
+      failure=new IOException("Write is closed");
+    }
+ else     if (this.failure != null) {
+      failure=this.failure;
+    }
+switch (frame.getOpCode()) {
+case OpCode.PING:
+      queue.add(0,entry);
+    break;
+case OpCode.CLOSE:
+  closed=true;
+queue.add(entry);
+break;
+default :
+queue.add(entry);
+}
+}
+if (failure != null) {
+LOG.debug("Write is in failure: {} {}",frame,callback);
+entry.notifyFailed(failure);
+return;
+}
+flush();
+}

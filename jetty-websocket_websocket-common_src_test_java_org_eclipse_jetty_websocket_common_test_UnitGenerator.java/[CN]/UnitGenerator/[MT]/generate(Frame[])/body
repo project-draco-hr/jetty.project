@@ -1,0 +1,17 @@
+{
+  Generator generator=new UnitGenerator();
+  int buflen=0;
+  for (  Frame f : frames) {
+    buflen+=f.getPayloadLength() + Generator.OVERHEAD;
+  }
+  ByteBuffer completeBuf=ByteBuffer.allocate(buflen);
+  BufferUtil.clearToFill(completeBuf);
+  for (  Frame f : frames) {
+    generator.generateWholeFrame(f,completeBuf);
+  }
+  BufferUtil.flipToFlush(completeBuf,0);
+  if (LOG.isDebugEnabled()) {
+    LOG.debug("generate({} frames) - {}",frames.length,BufferUtil.toDetailString(completeBuf));
+  }
+  return completeBuf;
+}

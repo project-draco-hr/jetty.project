@@ -1,0 +1,40 @@
+{
+  LOG.debug("onMethodAnnotation({}, {}, {}, {})",metadata,pojo,method,annotation);
+  if (isAnnotation(annotation,OnWebSocketConnect.class)) {
+    assertValidSignature(method,OnWebSocketConnect.class,validConnectParams);
+    assertUnset(metadata.onConnect,OnWebSocketConnect.class,method);
+    metadata.onConnect=new CallableMethod(pojo,method);
+    return;
+  }
+  if (isAnnotation(annotation,OnWebSocketMessage.class)) {
+    if (isSignatureMatch(method,validTextParams)) {
+      assertUnset(metadata.onText,OnWebSocketMessage.class,method);
+      metadata.onText=new OptionalSessionCallableMethod(pojo,method);
+      return;
+    }
+    if (isSignatureMatch(method,validBinaryParams)) {
+      assertUnset(metadata.onBinary,OnWebSocketMessage.class,method);
+      metadata.onBinary=new OptionalSessionCallableMethod(pojo,method);
+      return;
+    }
+    throw InvalidSignatureException.build(method,OnWebSocketMessage.class,validTextParams,validBinaryParams);
+  }
+  if (isAnnotation(annotation,OnWebSocketClose.class)) {
+    assertValidSignature(method,OnWebSocketClose.class,validCloseParams);
+    assertUnset(metadata.onClose,OnWebSocketClose.class,method);
+    metadata.onClose=new OptionalSessionCallableMethod(pojo,method);
+    return;
+  }
+  if (isAnnotation(annotation,OnWebSocketError.class)) {
+    assertValidSignature(method,OnWebSocketError.class,validErrorParams);
+    assertUnset(metadata.onError,OnWebSocketError.class,method);
+    metadata.onError=new OptionalSessionCallableMethod(pojo,method);
+    return;
+  }
+  if (isAnnotation(annotation,OnWebSocketFrame.class)) {
+    assertValidSignature(method,OnWebSocketFrame.class,validFrameParams);
+    assertUnset(metadata.onFrame,OnWebSocketFrame.class,method);
+    metadata.onFrame=new OptionalSessionCallableMethod(pojo,method);
+    return;
+  }
+}

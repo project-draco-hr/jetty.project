@@ -1,0 +1,24 @@
+{
+  final CountDownLatch failureLatch=new CountDownLatch(1);
+  IStream stream=new StandardStream(1,(byte)0,session,null,scheduler,null);
+  long idleTimeout=1000;
+  stream.setIdleTimeout(idleTimeout);
+  stream.setStreamFrameListener(new StreamFrameListener.Adapter(){
+    @Override public void onFailure(    Stream stream,    Throwable x){
+      assertThat("exception is a TimeoutException",x,is(instanceOf(TimeoutException.class)));
+      failureLatch.countDown();
+    }
+  }
+);
+  stream.process(new SynStreamFrame(SPDY.V3,(byte)0,1,0,(byte)0,(short)0,null));
+  stream.process(new StringDataInfo("string",false));
+  Thread.sleep(idleTimeout / 2);
+  stream.process(new StringDataInfo("string",false));
+  Thread.sleep(idleTimeout / 2);
+  stream.process(new StringDataInfo("string",false));
+  Thread.sleep(idleTimeout / 2);
+  stream.process(new StringDataInfo("string",true));
+  stream.reply(new ReplyInfo(true),new Callback.Adapter());
+  Thread.sleep(idleTimeout);
+  assertThat("onFailure has not been called",failureLatch.await(idleTimeout,TimeUnit.MILLISECONDS),is(false));
+}

@@ -1,0 +1,17 @@
+{
+  File content=testdir.getFile("content.txt");
+  try (OutputStream out=new FileOutputStream(content)){
+    byte[] b=new byte[1024];
+    for (int i=1024; i-- > 0; ) {
+      Arrays.fill(b,(byte)('0' + (i % 10)));
+      out.write(b);
+      out.write('\n');
+    }
+  }
+   long start=System.currentTimeMillis();
+  String response=connector.getResponses("GET /context/stream/content.txt HTTP/1.0\r\n\r\n");
+  long duration=System.currentTimeMillis() - start;
+  assertThat(response.length(),greaterThan(1024 * 1024));
+  assertThat(response,containsString("200 OK"));
+  assertThat(duration,greaterThan(PAUSE * 1024L * 1024 / BUFFER));
+}

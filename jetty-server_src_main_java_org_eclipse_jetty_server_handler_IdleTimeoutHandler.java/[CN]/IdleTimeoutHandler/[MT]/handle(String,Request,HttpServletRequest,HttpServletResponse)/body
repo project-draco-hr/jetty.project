@@ -1,0 +1,33 @@
+{
+  HttpConnection connection=HttpConnection.getCurrentConnection();
+  final EndPoint endp=connection == null ? null : connection.getEndPoint();
+  final long idle_timeout;
+  if (endp == null)   idle_timeout=-1;
+ else {
+    idle_timeout=endp.getIdleTimeout();
+    endp.setIdleTimeout(_idleTimeoutMs);
+  }
+  try {
+    super.handle(target,baseRequest,request,response);
+  }
+  finally {
+    if (endp != null) {
+      if (_applyToAsync && request.isAsyncStarted()) {
+        request.getAsyncContext().addListener(new AsyncListener(){
+          @Override public void onTimeout(          AsyncEvent event) throws IOException {
+          }
+          @Override public void onStartAsync(          AsyncEvent event) throws IOException {
+          }
+          @Override public void onError(          AsyncEvent event) throws IOException {
+            endp.setIdleTimeout(idle_timeout);
+          }
+          @Override public void onComplete(          AsyncEvent event) throws IOException {
+            endp.setIdleTimeout(idle_timeout);
+          }
+        }
+);
+      }
+ else       endp.setIdleTimeout(idle_timeout);
+    }
+  }
+}

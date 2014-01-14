@@ -1,0 +1,18 @@
+{
+  SPDYClient client=(SPDYClient)context.get(SPDY_CLIENT_CONTEXT_KEY);
+  SPDYClient.Factory factory=client.getFactory();
+  ByteBufferPool byteBufferPool=factory.getByteBufferPool();
+  CompressionFactory compressionFactory=new StandardCompressionFactory();
+  Parser parser=new Parser(compressionFactory.newDecompressor());
+  Generator generator=new Generator(byteBufferPool,compressionFactory.newCompressor());
+  SPDYConnection connection=new ClientSPDYConnection(endPoint,byteBufferPool,parser,factory,client.isDispatchIO());
+  FlowControlStrategy flowControlStrategy=client.newFlowControlStrategy();
+  SessionFrameListener listener=(SessionFrameListener)context.get(SPDY_SESSION_LISTENER_CONTEXT_KEY);
+  StandardSession session=new StandardSession(client.getVersion(),byteBufferPool,factory.getScheduler(),connection,endPoint,connection,1,listener,generator,flowControlStrategy);
+  session.setWindowSize(client.getInitialWindowSize());
+  parser.addListener(session);
+  connection.setSession(session);
+  @SuppressWarnings("unchecked") Promise<Session> promise=(Promise<Session>)context.get(SPDY_SESSION_PROMISE_CONTEXT_KEY);
+  promise.succeeded(session);
+  return connection;
+}

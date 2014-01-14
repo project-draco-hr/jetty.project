@@ -1,0 +1,33 @@
+{
+  CountDownLatch latch=new CountDownLatch(iterations);
+  List<String> failures=new ArrayList<>();
+  int factor=logger.isDebugEnabled() ? 25 : 1;
+  factor*="http".equalsIgnoreCase(scheme) ? 10 : 1000;
+  final Thread testThread=Thread.currentThread();
+  Scheduler.Task task=client.getScheduler().schedule(new Runnable(){
+    @Override public void run(){
+      logger.warn("Interrupting test, it is taking too long");
+      for (      String host : Arrays.asList("localhost","127.0.0.1")) {
+        HttpDestinationOverHTTP destination=(HttpDestinationOverHTTP)client.getDestination(scheme,host,connector.getLocalPort());
+        ConnectionPool connectionPool=destination.getConnectionPool();
+        for (        Connection connection : new ArrayList<>(connectionPool.getActiveConnections())) {
+          HttpConnectionOverHTTP active=(HttpConnectionOverHTTP)connection;
+          logger.warn(active.getEndPoint() + " exchange " + active.getHttpChannel().getHttpExchange());
+        }
+      }
+      testThread.interrupt();
+    }
+  }
+,iterations * factor,TimeUnit.MILLISECONDS);
+  long begin=System.nanoTime();
+  for (int i=0; i < iterations; ++i) {
+    test(random,latch,failures);
+  }
+  Assert.assertTrue(latch.await(iterations,TimeUnit.SECONDS));
+  long end=System.nanoTime();
+  task.cancel();
+  long elapsed=TimeUnit.NANOSECONDS.toMillis(end - begin);
+  logger.info("{} requests in {} ms, {} req/s",iterations,elapsed,elapsed > 0 ? iterations * 1000 / elapsed : -1);
+  for (  String failure : failures)   System.err.println("FAILED: " + failure);
+  Assert.assertTrue(failures.toString(),failures.isEmpty());
+}

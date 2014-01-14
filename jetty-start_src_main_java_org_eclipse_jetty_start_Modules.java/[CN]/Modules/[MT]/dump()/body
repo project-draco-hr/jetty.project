@@ -1,0 +1,45 @@
+{
+  List<Module> ordered=new ArrayList<>();
+  ordered.addAll(modules.values());
+  Collections.sort(ordered,new Module.NameComparator());
+  List<Module> active=resolveEnabled();
+  for (  Module module : ordered) {
+    boolean activated=active.contains(module);
+    boolean enabled=module.isEnabled();
+    boolean transitive=activated && !enabled;
+    char status='-';
+    if (enabled) {
+      status='*';
+    }
+ else     if (transitive) {
+      status='+';
+    }
+    System.out.printf("%n %s Module: %s%n",status,module.getName());
+    if (!module.getName().equals(module.getFilesystemRef())) {
+      System.out.printf("      Ref: %s%n",module.getFilesystemRef());
+    }
+    for (    String parent : module.getParentNames()) {
+      System.out.printf("   Parent: %s%n",parent);
+    }
+    for (    String lib : module.getLibs()) {
+      System.out.printf("      LIB: %s%n",lib);
+    }
+    for (    String xml : module.getXmls()) {
+      System.out.printf("      XML: %s%n",xml);
+    }
+    if (StartLog.isDebugEnabled()) {
+      System.out.printf("    depth: %d%n",module.getDepth());
+    }
+    if (activated) {
+      for (      String source : module.getSources()) {
+        System.out.printf("  Enabled: <via> %s%n",source);
+      }
+      if (transitive) {
+        System.out.printf("  Enabled: <via transitive reference>%n");
+      }
+    }
+ else {
+      System.out.printf("  Enabled: <not enabled in this configuration>%n");
+    }
+  }
+}

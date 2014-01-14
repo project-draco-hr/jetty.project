@@ -1,0 +1,27 @@
+{
+  _written+=buffer.remaining();
+  boolean complete=_channel.getResponse().isAllContentWritten(_written);
+  while (true) {
+switch (_state.get()) {
+case OPEN:
+      break;
+case ASYNC:
+    throw new IllegalStateException("isReady() not called");
+case READY:
+  if (!_state.compareAndSet(OutputState.READY,OutputState.PENDING))   continue;
+new AsyncWrite(buffer,complete).iterate();
+return;
+case PENDING:
+case UNREADY:
+throw new WritePendingException();
+case CLOSED:
+throw new EofException("Closed");
+}
+break;
+}
+int len=BufferUtil.length(buffer);
+if (BufferUtil.hasContent(_aggregate)) write(_aggregate,complete && len == 0);
+if (len > 0) write(buffer,complete);
+ else if (complete) write(BufferUtil.EMPTY_BUFFER,complete);
+if (complete) closed();
+}

@@ -1,7 +1,15 @@
 {
-  if (LOG.isDebugEnabled()) {
-    LOG.debug("sendPartialBytes({}, {})",BufferUtil.toDetailString(fragment),isLast);
+  boolean first=lockMsg(MsgType.PARTIAL_BINARY);
+  try {
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("sendPartialBytes({}, {})",BufferUtil.toDetailString(fragment),isLast);
+    }
+    DataFrame frame=first ? new BinaryFrame() : new ContinuationFrame();
+    frame.setPayload(fragment);
+    frame.setFin(isLast);
+    blockingWrite(frame);
   }
-  WebSocketFrame frame=WebSocketFrame.binary().setPayload(fragment).setFin(isLast);
-  blockingWrite(frame);
+  finally {
+    if (isLast)     unlockMsg(MsgType.PARTIAL_BINARY);
+  }
 }

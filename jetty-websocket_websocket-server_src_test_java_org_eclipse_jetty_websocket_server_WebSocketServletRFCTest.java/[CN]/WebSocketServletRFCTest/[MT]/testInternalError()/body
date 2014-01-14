@@ -1,11 +1,12 @@
 {
+  enableStacks(EventDriver.class,false);
   BlockheadClient client=new BlockheadClient(server.getServerUri());
   try {
     client.connect();
     client.sendStandardRequest();
     client.expectUpgradeResponse();
     try (StacklessLogging context=new StacklessLogging(EventDriver.class)){
-      client.write(WebSocketFrame.text("CRASH"));
+      client.write(new TextFrame().setPayload("CRASH"));
       IncomingFramesCapture capture=client.readFrames(1,TimeUnit.MILLISECONDS,500);
       Frame cf=capture.getFrames().poll();
       CloseInfo close=new CloseInfo(cf);
@@ -13,6 +14,7 @@
     }
    }
   finally {
+    enableStacks(EventDriver.class,true);
     client.close();
   }
 }

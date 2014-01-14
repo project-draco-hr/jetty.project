@@ -1,0 +1,38 @@
+{
+  AnnotationParser parser=createAnnotationParser();
+  _parserTasks=new ArrayList<ParserTask>();
+  long start=0;
+  if (LOG.isDebugEnabled())   LOG.debug("Annotation scanning commencing: webxml={}, metadatacomplete={}, configurationDiscovered={}, multiThreaded={}, maxScanWait={}",context.getServletContext().getEffectiveMajorVersion(),context.getMetaData().isMetaDataComplete(),context.isConfigurationDiscovered(),isUseMultiThreading(context),getMaxScanWait(context));
+  parseContainerPath(context,parser);
+  parseWebInfClasses(context,parser);
+  parseWebInfLib(context,parser);
+  start=System.nanoTime();
+  final Semaphore task_limit=(isUseMultiThreading(context) ? new Semaphore(Runtime.getRuntime().availableProcessors()) : new Semaphore(1));
+  final CountDownLatch latch=new CountDownLatch(_parserTasks.size());
+  final MultiException me=new MultiException();
+  for (  final ParserTask p : _parserTasks) {
+    task_limit.acquire();
+    context.getServer().getThreadPool().execute(new Runnable(){
+      @Override public void run(){
+        try {
+          p.call();
+        }
+ catch (        Exception e) {
+          me.add(e);
+        }
+ finally {
+          task_limit.release();
+          latch.countDown();
+        }
+      }
+    }
+);
+  }
+  boolean timeout=!latch.await(getMaxScanWait(context),TimeUnit.SECONDS);
+  if (LOG.isDebugEnabled()) {
+    for (    ParserTask p : _parserTasks)     LOG.debug("Scanned {} in {}ms",p.getResource(),TimeUnit.MILLISECONDS.convert(p.getStatistic().getElapsed(),TimeUnit.NANOSECONDS));
+  }
+  LOG.info("Scanned {} container path jars, {} WEB-INF/lib jars, {} WEB-INF/classes dirs in {}ms for context {}",_containerPathStats.getTotal(),_webInfLibStats.getTotal(),_webInfClassesStats.getTotal(),(TimeUnit.MILLISECONDS.convert(System.nanoTime() - start,TimeUnit.NANOSECONDS)),context);
+  if (timeout)   me.add(new Exception("Timeout scanning annotations"));
+  me.ifExceptionThrow();
+}

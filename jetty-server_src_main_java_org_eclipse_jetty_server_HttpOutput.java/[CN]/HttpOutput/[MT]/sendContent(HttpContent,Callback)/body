@@ -1,22 +1,33 @@
 {
-  if (isClosed())   throw new IOException("Closed");
   if (BufferUtil.hasContent(_aggregate))   throw new IOException("written");
   if (_channel.isCommitted())   throw new IOException("committed");
-  ByteBuffer buffer=_channel.useDirectBuffers() ? httpContent.getDirectBuffer() : null;
-  if (buffer == null)   buffer=httpContent.getIndirectBuffer();
-  if (buffer != null) {
-    sendContent(buffer,callback);
-    return;
-  }
-  ReadableByteChannel rbc=httpContent.getReadableByteChannel();
-  if (rbc != null) {
-    sendContent(rbc,callback);
-    return;
-  }
-  InputStream in=httpContent.getInputStream();
-  if (in != null) {
-    sendContent(in,callback);
-    return;
-  }
-  callback.failed(new IllegalArgumentException("unknown content for " + httpContent));
+  while (true) {
+switch (_state.get()) {
+case OPEN:
+      if (!_state.compareAndSet(OutputState.OPEN,OutputState.PENDING))       continue;
+    break;
+case CLOSED:
+  throw new EofException("Closed");
+default :
+throw new IllegalStateException();
+}
+break;
+}
+ByteBuffer buffer=_channel.useDirectBuffers() ? httpContent.getDirectBuffer() : null;
+if (buffer == null) buffer=httpContent.getIndirectBuffer();
+if (buffer != null) {
+sendContent(buffer,callback);
+return;
+}
+ReadableByteChannel rbc=httpContent.getReadableByteChannel();
+if (rbc != null) {
+sendContent(rbc,callback);
+return;
+}
+InputStream in=httpContent.getInputStream();
+if (in != null) {
+sendContent(in,callback);
+return;
+}
+callback.failed(new IllegalArgumentException("unknown content for " + httpContent));
 }

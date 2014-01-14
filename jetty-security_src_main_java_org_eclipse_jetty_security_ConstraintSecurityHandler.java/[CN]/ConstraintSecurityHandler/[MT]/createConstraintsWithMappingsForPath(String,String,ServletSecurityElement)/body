@@ -1,25 +1,29 @@
 {
   List<ConstraintMapping> mappings=new ArrayList<ConstraintMapping>();
-  Constraint constraint=ConstraintSecurityHandler.createConstraint(name,securityElement);
-  ConstraintMapping defaultMapping=new ConstraintMapping();
-  defaultMapping.setPathSpec(pathSpec);
-  defaultMapping.setConstraint(constraint);
-  mappings.add(defaultMapping);
+  Constraint httpConstraint=null;
+  ConstraintMapping httpConstraintMapping=null;
+  if (securityElement.getEmptyRoleSemantic() != EmptyRoleSemantic.PERMIT || securityElement.getRolesAllowed().length != 0 || securityElement.getTransportGuarantee() != TransportGuarantee.NONE) {
+    httpConstraint=ConstraintSecurityHandler.createConstraint(name,securityElement);
+    httpConstraintMapping=new ConstraintMapping();
+    httpConstraintMapping.setPathSpec(pathSpec);
+    httpConstraintMapping.setConstraint(httpConstraint);
+    mappings.add(httpConstraintMapping);
+  }
   List<String> methodOmissions=new ArrayList<String>();
-  Collection<HttpMethodConstraintElement> methodConstraints=securityElement.getHttpMethodConstraints();
-  if (methodConstraints != null) {
-    for (    HttpMethodConstraintElement methodConstraint : methodConstraints) {
-      Constraint mconstraint=ConstraintSecurityHandler.createConstraint(name,methodConstraint);
+  Collection<HttpMethodConstraintElement> methodConstraintElements=securityElement.getHttpMethodConstraints();
+  if (methodConstraintElements != null) {
+    for (    HttpMethodConstraintElement methodConstraintElement : methodConstraintElements) {
+      Constraint methodConstraint=ConstraintSecurityHandler.createConstraint(name,methodConstraintElement);
       ConstraintMapping mapping=new ConstraintMapping();
-      mapping.setConstraint(mconstraint);
+      mapping.setConstraint(methodConstraint);
       mapping.setPathSpec(pathSpec);
-      if (methodConstraint.getMethodName() != null) {
-        mapping.setMethod(methodConstraint.getMethodName());
-        methodOmissions.add(methodConstraint.getMethodName());
+      if (methodConstraintElement.getMethodName() != null) {
+        mapping.setMethod(methodConstraintElement.getMethodName());
+        methodOmissions.add(methodConstraintElement.getMethodName());
       }
       mappings.add(mapping);
     }
   }
-  if (methodOmissions.size() > 0)   defaultMapping.setMethodOmissions(methodOmissions.toArray(new String[methodOmissions.size()]));
+  if (methodOmissions.size() > 0 && httpConstraintMapping != null)   httpConstraintMapping.setMethodOmissions(methodOmissions.toArray(new String[methodOmissions.size()]));
   return mappings;
 }

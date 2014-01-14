@@ -1,0 +1,19 @@
+{
+  MultiException me=new MultiException();
+  for (  String s : classNames) {
+    try {
+      if ((resolver == null) || (!resolver.isExcluded(s) && (!isParsed(s) || resolver.shouldOverride(s)))) {
+        s=s.replace('.','/') + ".class";
+        URL resource=Loader.getResource(this.getClass(),s);
+        if (resource != null) {
+          Resource r=Resource.newResource(resource);
+          scanClass(handlers,null,r.getInputStream());
+        }
+      }
+    }
+ catch (    Exception e) {
+      me.add(new RuntimeException("Error scanning class " + s,e));
+    }
+  }
+  me.ifExceptionThrow();
+}

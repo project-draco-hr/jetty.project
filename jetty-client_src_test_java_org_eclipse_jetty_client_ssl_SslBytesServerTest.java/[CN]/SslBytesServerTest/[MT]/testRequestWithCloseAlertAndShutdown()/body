@@ -7,7 +7,7 @@
   Future<Object> request=threadPool.submit(new Callable<Object>(){
     @Override public Object call() throws Exception {
       OutputStream clientOutput=client.getOutputStream();
-      clientOutput.write(("" + "GET / HTTP/1.1\r\n" + "Host: localhost\r\n"+ "\r\n").getBytes("UTF-8"));
+      clientOutput.write(("" + "GET / HTTP/1.1\r\n" + "Host: localhost\r\n"+ "\r\n").getBytes(StandardCharsets.UTF_8));
       clientOutput.flush();
       return null;
     }
@@ -27,7 +27,11 @@
   Assert.assertEquals(TLSRecord.Type.APPLICATION,record.getType());
   proxy.flushToClient(record);
   record=proxy.readFromServer();
-  Assert.assertNull(record);
+  if (record != null) {
+    Assert.assertEquals(record.getType(),Type.ALERT);
+    record=proxy.readFromServer();
+    Assert.assertNull(String.valueOf(record),record);
+  }
   TimeUnit.MILLISECONDS.sleep(500);
   Assert.assertThat(sslFills.get(),Matchers.lessThan(20));
   Assert.assertThat(sslFlushes.get(),Matchers.lessThan(20));

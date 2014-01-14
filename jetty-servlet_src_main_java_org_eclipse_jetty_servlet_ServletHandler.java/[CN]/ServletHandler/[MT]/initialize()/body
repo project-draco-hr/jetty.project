@@ -1,5 +1,16 @@
 {
   MultiException mx=new MultiException();
+  if (_filters != null) {
+    for (    FilterHolder f : _filters) {
+      try {
+        f.start();
+        f.initialize();
+      }
+ catch (      Exception e) {
+        mx.add(e);
+      }
+    }
+  }
   if (_servlets != null) {
     ServletHolder[] servlets=_servlets.clone();
     Arrays.sort(servlets);
@@ -13,6 +24,8 @@
           }
           servlet.setClassName(forced_holder.getClassName());
         }
+        servlet.start();
+        servlet.initialize();
       }
  catch (      Throwable e) {
         LOG.debug(Log.EXCEPTION,e);
@@ -22,8 +35,10 @@
   }
   for (  Holder<?> h : getBeans(Holder.class)) {
     try {
-      h.start();
-      h.initialize();
+      if (!h.isStarted()) {
+        h.start();
+        h.initialize();
+      }
     }
  catch (    Exception e) {
       mx.add(e);

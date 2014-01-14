@@ -1,0 +1,26 @@
+{
+  WebSocketClient client=new WebSocketClient(bufferPool);
+  try {
+    client.start();
+    JettyEchoSocket clientEcho=new JettyEchoSocket();
+    LOG.debug("Client Attempting to connnect");
+    Future<Session> future=client.connect(clientEcho,uri);
+    future.get(1,TimeUnit.SECONDS);
+    LOG.debug("Client Connected");
+    LOG.debug("Waiting 1 second");
+    TimeUnit.SECONDS.sleep(1);
+    LOG.debug("Waited 1 second");
+    if (clientEcho.getClosed() == false) {
+      clientEcho.sendMessage("You shouldn't be there");
+      try {
+        Queue<String> msgs=clientEcho.awaitMessages(1);
+        assertThat("Should not have received messages echoed back",msgs,is(empty()));
+      }
+ catch (      TimeoutException|InterruptedException e) {
+      }
+    }
+  }
+  finally {
+    client.stop();
+  }
+}

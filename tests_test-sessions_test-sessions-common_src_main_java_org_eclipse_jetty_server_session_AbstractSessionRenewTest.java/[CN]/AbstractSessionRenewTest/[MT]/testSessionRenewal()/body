@@ -3,8 +3,10 @@
   String servletMapping="/server";
   int scavengePeriod=3;
   AbstractTestServer server=createServer(0,1,scavengePeriod);
-  ServletContextHandler context=server.addContext(contextPath);
+  WebAppContext context=server.addWebAppContext(".",contextPath);
   context.addServlet(TestServlet.class,servletMapping);
+  TestHttpSessionIdListener testListener=new TestHttpSessionIdListener();
+  context.addEventListener(testListener);
   HttpClient client=new HttpClient();
   try {
     server.start();
@@ -14,6 +16,7 @@
     assertEquals(HttpServletResponse.SC_OK,response.getStatus());
     String sessionCookie=response.getHeaders().getStringField("Set-Cookie");
     assertTrue(sessionCookie != null);
+    assertFalse(testListener.isCalled());
     Request request=client.newRequest("http://localhost:" + port + contextPath+ servletMapping+ "?action=renew");
     request.header("Cookie",sessionCookie);
     ContentResponse renewResponse=request.send();
@@ -21,6 +24,7 @@
     String renewSessionCookie=renewResponse.getHeaders().getStringField("Set-Cookie");
     assertNotNull(renewSessionCookie);
     assertNotSame(sessionCookie,renewSessionCookie);
+    assertTrue(testListener.isCalled());
   }
   finally {
     client.stop();

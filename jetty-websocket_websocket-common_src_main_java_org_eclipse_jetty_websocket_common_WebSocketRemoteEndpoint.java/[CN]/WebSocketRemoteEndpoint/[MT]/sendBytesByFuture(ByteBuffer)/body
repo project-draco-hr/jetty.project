@@ -1,7 +1,12 @@
 {
-  if (LOG.isDebugEnabled()) {
-    LOG.debug("sendBytesByFuture with {}",BufferUtil.toDetailString(data));
+  lockMsg(MsgType.ASYNC);
+  try {
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("sendBytesByFuture with {}",BufferUtil.toDetailString(data));
+    }
+    return sendAsyncFrame(new BinaryFrame().setPayload(data));
   }
-  WebSocketFrame frame=WebSocketFrame.binary().setPayload(data);
-  return sendAsyncFrame(frame);
+  finally {
+    unlockMsg(MsgType.ASYNC);
+  }
 }

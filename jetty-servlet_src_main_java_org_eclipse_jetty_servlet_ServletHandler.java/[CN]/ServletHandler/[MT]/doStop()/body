@@ -56,7 +56,23 @@
   ServletMapping[] sms=(ServletMapping[])LazyList.toArray(servletMappings,ServletMapping.class);
   updateBeans(_servletMappings,sms);
   _servletMappings=sms;
+  List<ListenerHolder> listenerHolders=new ArrayList<ListenerHolder>();
+  if (_listeners != null) {
+    for (int i=_listeners.length; i-- > 0; ) {
+      try {
+        _listeners[i].stop();
+      }
+ catch (      Exception e) {
+        LOG.warn(Log.EXCEPTION,e);
+      }
+      if (_listeners[i].getSource() == Source.EMBEDDED)       listenerHolders.add(_listeners[i]);
+    }
+  }
+  ListenerHolder[] listeners=(ListenerHolder[])LazyList.toArray(listenerHolders,ListenerHolder.class);
+  updateBeans(_listeners,listeners);
+  _listeners=listeners;
   _filterPathMappings=null;
   _filterNameMappings=null;
   _servletPathMap=null;
+  _servletPathMappings=null;
 }

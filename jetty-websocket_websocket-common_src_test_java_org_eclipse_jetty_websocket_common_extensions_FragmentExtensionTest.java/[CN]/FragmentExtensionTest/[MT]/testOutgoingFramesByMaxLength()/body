@@ -1,7 +1,7 @@
 {
   OutgoingFramesCapture capture=new OutgoingFramesCapture();
   FragmentExtension ext=new FragmentExtension();
-  ext.setBufferPool(new MappedByteBufferPool());
+  ext.setBufferPool(bufferPool);
   ext.setPolicy(WebSocketPolicy.newServerPolicy());
   ExtensionConfig config=ExtensionConfig.parse("fragment;maxLength=20");
   ext.setConfig(config);
@@ -11,16 +11,16 @@
   quote.add("a single experiment can prove me wrong.");
   quote.add("-- Albert Einstein");
   for (  String section : quote) {
-    Frame frame=WebSocketFrame.text(section);
+    Frame frame=new TextFrame().setPayload(section);
     ext.outgoingFrame(frame,null);
   }
   List<WebSocketFrame> expectedFrames=new ArrayList<>();
-  expectedFrames.add(new WebSocketFrame(OpCode.TEXT).setPayload("No amount of experim").setFin(false));
-  expectedFrames.add(new WebSocketFrame(OpCode.CONTINUATION).setPayload("entation can ever pr").setFin(false));
-  expectedFrames.add(new WebSocketFrame(OpCode.CONTINUATION).setPayload("ove me right;").setFin(true));
-  expectedFrames.add(new WebSocketFrame(OpCode.TEXT).setPayload("a single experiment ").setFin(false));
-  expectedFrames.add(new WebSocketFrame(OpCode.CONTINUATION).setPayload("can prove me wrong.").setFin(true));
-  expectedFrames.add(new WebSocketFrame(OpCode.TEXT).setPayload("-- Albert Einstein").setFin(true));
+  expectedFrames.add(new TextFrame().setPayload("No amount of experim").setFin(false));
+  expectedFrames.add(new ContinuationFrame().setPayload("entation can ever pr").setFin(false));
+  expectedFrames.add(new ContinuationFrame().setPayload("ove me right;").setFin(true));
+  expectedFrames.add(new TextFrame().setPayload("a single experiment ").setFin(false));
+  expectedFrames.add(new ContinuationFrame().setPayload("can prove me wrong.").setFin(true));
+  expectedFrames.add(new TextFrame().setPayload("-- Albert Einstein").setFin(true));
   int len=expectedFrames.size();
   capture.assertFrameCount(len);
   String prefix;

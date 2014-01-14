@@ -1,0 +1,47 @@
+{
+  if (!expects100Continue(exchange.getRequest()))   return;
+  if (failure != null) {
+    anyToFailure(failure);
+    return;
+  }
+  while (true) {
+    SenderState current=senderState.get();
+switch (current) {
+case EXPECTING:
+{
+        if (updateSenderState(current,SenderState.PROCEEDING)) {
+          LOG.debug("Proceeding while expecting");
+          return;
+        }
+        break;
+      }
+case EXPECTING_WITH_CONTENT:
+{
+      if (updateSenderState(current,SenderState.PROCEEDING_WITH_CONTENT)) {
+        LOG.debug("Proceeding while scheduled");
+        return;
+      }
+      break;
+    }
+case WAITING:
+{
+    HttpContent content=this.content;
+    if (content.advance()) {
+      if (!updateSenderState(current,SenderState.SENDING))       throw new IllegalStateException();
+      LOG.debug("Proceeding while waiting");
+      sendContent(exchange,content,contentCallback);
+      return;
+    }
+ else {
+      if (!updateSenderState(current,SenderState.IDLE))       throw new IllegalStateException();
+      LOG.debug("Proceeding deferred");
+      return;
+    }
+  }
+default :
+{
+  throw new IllegalStateException(current.toString());
+}
+}
+}
+}

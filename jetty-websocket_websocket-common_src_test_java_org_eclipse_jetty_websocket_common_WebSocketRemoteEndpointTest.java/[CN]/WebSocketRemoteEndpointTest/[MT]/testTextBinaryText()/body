@@ -1,0 +1,17 @@
+{
+  LocalWebSocketConnection conn=new LocalWebSocketConnection(testname,bufferPool);
+  OutgoingFramesCapture outgoing=new OutgoingFramesCapture();
+  WebSocketRemoteEndpoint remote=new WebSocketRemoteEndpoint(conn,outgoing);
+  conn.connect();
+  conn.open();
+  remote.sendPartialString("Hello ",false);
+  try {
+    ByteBuffer bytes=ByteBuffer.wrap(new byte[]{0,1,2});
+    remote.sendPartialBytes(bytes,false);
+    Assert.fail("Expected " + IllegalStateException.class.getName());
+  }
+ catch (  IllegalStateException e) {
+    Assert.assertThat("Exception",e.getMessage(),containsString("Cannot send"));
+  }
+  remote.sendPartialString("World!",true);
+}

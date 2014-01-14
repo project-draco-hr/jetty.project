@@ -1,19 +1,17 @@
 {
   Objects.requireNonNull(e);
-  final Lock tailLock=_tailLock;
-  final Lock headLock=_headLock;
   boolean notEmpty=false;
-  tailLock.lock();
+  _tailLock.lock();
   try {
     int size=_size.get();
     if (size >= _maxCapacity)     return false;
     if (size == _elements.length) {
-      headLock.lock();
+      _headLock.lock();
       try {
         if (!grow())         return false;
       }
   finally {
-        headLock.unlock();
+        _headLock.unlock();
       }
     }
     int tail=_indexes[TAIL_OFFSET];
@@ -22,15 +20,15 @@
     notEmpty=_size.getAndIncrement() == 0;
   }
   finally {
-    tailLock.unlock();
+    _tailLock.unlock();
   }
   if (notEmpty) {
-    headLock.lock();
+    _headLock.lock();
     try {
       _notEmpty.signal();
     }
   finally {
-      headLock.unlock();
+      _headLock.unlock();
     }
   }
   return true;

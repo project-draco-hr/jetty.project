@@ -1,10 +1,10 @@
 {
   if (isCommitted() || isIncluding())   return;
-  long written=_out.getWritten();
-  if (written > len)   throw new IllegalArgumentException("setContentLength(" + len + ") when already written "+ written);
   _contentLength=len;
-  _fields.putLongField(HttpHeader.CONTENT_LENGTH.toString(),len);
   if (_contentLength > 0) {
+    long written=_out.getWritten();
+    if (written > len)     throw new IllegalArgumentException("setContentLength(" + len + ") when already written "+ written);
+    _fields.putLongField(HttpHeader.CONTENT_LENGTH,len);
     if (isAllContentWritten(written)) {
       try {
         closeOutput();
@@ -14,4 +14,10 @@
       }
     }
   }
+ else   if (_contentLength == 0) {
+    long written=_out.getWritten();
+    if (written > 0)     throw new IllegalArgumentException("setContentLength(0) when already written " + written);
+    _fields.put(HttpHeader.CONTENT_LENGTH,"0");
+  }
+ else   _fields.remove(HttpHeader.CONTENT_LENGTH);
 }

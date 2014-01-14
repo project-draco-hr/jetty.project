@@ -6,6 +6,8 @@
   int remaining=msg.length;
   int offset=0;
   boolean fin;
+  ByteBuffer buf;
+  ;
   byte op=opcode;
   while (remaining > 0) {
     int len=Math.min(remaining,fragmentSize);
@@ -13,13 +15,14 @@
     System.arraycopy(msg,offset,frag,0,len);
     remaining-=len;
     fin=(remaining <= 0);
-    send.add(new WebSocketFrame(op).setPayload(frag).setFin(fin));
+    buf=ByteBuffer.wrap(frag);
+    send.add(toDataFrame(op).setPayload(buf).setFin(fin));
     offset+=len;
     op=OpCode.CONTINUATION;
   }
   send.add(new CloseInfo(StatusCode.NORMAL).asFrame());
   List<WebSocketFrame> expect=new ArrayList<>();
-  expect.add(new WebSocketFrame(opcode).setPayload(msg));
+  expect.add(toDataFrame(opcode).setPayload(copyOf(msg)));
   expect.add(new CloseInfo(StatusCode.NORMAL).asFrame());
   Fuzzer fuzzer=new Fuzzer(this);
   try {

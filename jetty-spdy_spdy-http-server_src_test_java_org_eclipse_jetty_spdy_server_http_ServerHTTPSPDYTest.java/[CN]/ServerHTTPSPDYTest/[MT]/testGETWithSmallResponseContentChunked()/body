@@ -7,14 +7,14 @@
       request.setHandled(true);
       httpResponse.setHeader("Transfer-Encoding","chunked");
       ServletOutputStream output=httpResponse.getOutputStream();
-      output.write(pangram1.getBytes("UTF-8"));
+      output.write(pangram1.getBytes(StandardCharsets.UTF_8));
       httpResponse.setHeader("EXTRA","X");
       output.flush();
-      output.write(pangram2.getBytes("UTF-8"));
+      output.write(pangram2.getBytes(StandardCharsets.UTF_8));
       handlerLatch.countDown();
     }
   }
-),null);
+,30000),null);
   Fields headers=SPDYTestUtils.createHeaders("localhost",connector.getPort(),version,"GET","/foo");
   final CountDownLatch replyLatch=new CountDownLatch(1);
   final CountDownLatch dataLatch=new CountDownLatch(2);
@@ -25,19 +25,19 @@
       assertEquals(1,replyFrames.incrementAndGet());
       Assert.assertFalse(replyInfo.isClose());
       Fields replyHeaders=replyInfo.getHeaders();
-      assertTrue(replyHeaders.get(HTTPSPDYHeader.STATUS.name(version)).value().contains("200"));
-      assertTrue(replyHeaders.get("extra").value().contains("X"));
+      assertTrue(replyHeaders.get(HTTPSPDYHeader.STATUS.name(version)).getValue().contains("200"));
+      assertTrue(replyHeaders.get("extra").getValue().contains("X"));
       replyLatch.countDown();
     }
     @Override public void onData(    Stream stream,    DataInfo dataInfo){
       int count=dataFrames.incrementAndGet();
       if (count == 1) {
         Assert.assertFalse(dataInfo.isClose());
-        assertEquals(pangram1,dataInfo.asString("UTF-8",true));
+        assertEquals(pangram1,dataInfo.asString(StandardCharsets.UTF_8,true));
       }
  else       if (count == 2) {
         assertTrue(dataInfo.isClose());
-        assertEquals(pangram2,dataInfo.asString("UTF-8",true));
+        assertEquals(pangram2,dataInfo.asString(StandardCharsets.UTF_8,true));
       }
       dataLatch.countDown();
     }

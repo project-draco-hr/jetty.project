@@ -1,0 +1,35 @@
+{
+  String ua=getUserAgent(request);
+  if (ua != null && isExcludedAgent(ua)) {
+    LOG.debug("{} excluded user agent {}",this,request);
+    return null;
+  }
+  if (content_length >= 0 && content_length < _minGzipSize) {
+    LOG.debug("{} excluded minGzipSize {}",this,request);
+    return null;
+  }
+  String accept=request.getHttpFields().get(HttpHeader.ACCEPT_ENCODING);
+  if (accept == null) {
+    LOG.debug("{} excluded !accept {}",this,request);
+    return null;
+  }
+  boolean gzip=false;
+  if (GZIP.equals(accept) || accept.startsWith("gzip,"))   gzip=true;
+ else {
+    List<String> list=HttpFields.qualityList(request.getHttpFields().getValues(HttpHeader.ACCEPT_ENCODING.asString(),","));
+    for (    String a : list) {
+      if (GZIP.equalsIgnoreCase(HttpFields.valueParameters(a,null))) {
+        gzip=true;
+        break;
+      }
+    }
+  }
+  if (!gzip) {
+    LOG.debug("{} excluded not gzip accept {}",this,request);
+    return null;
+  }
+  Deflater df=_deflater.get();
+  if (df == null)   df=new Deflater(_deflateCompressionLevel,_deflateNoWrap);
+ else   _deflater.set(null);
+  return df;
+}

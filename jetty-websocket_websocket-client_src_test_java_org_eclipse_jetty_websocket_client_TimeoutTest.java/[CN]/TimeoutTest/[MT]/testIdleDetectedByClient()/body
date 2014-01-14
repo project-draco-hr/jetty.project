@@ -1,5 +1,5 @@
 {
-  TrackingSocket wsocket=new TrackingSocket();
+  JettyTrackingSocket wsocket=new JettyTrackingSocket();
   URI wsUri=server.getWsUri();
   client.setMaxIdleTimeout(1000);
   Future<Session> future=client.connect(wsocket,wsUri);
@@ -10,11 +10,11 @@
     future.get(500,TimeUnit.MILLISECONDS);
     wsocket.waitForConnected(500,TimeUnit.MILLISECONDS);
     long start=System.currentTimeMillis();
-    wsocket.waitForClose(10,TimeUnit.SECONDS);
+    wsocket.waitForClose(2,TimeUnit.SECONDS);
     long end=System.currentTimeMillis();
     long dur=(end - start);
-    Assert.assertThat("Idle Timeout",dur,lessThanOrEqualTo(5000L));
-    wsocket.assertCloseCode(StatusCode.SHUTDOWN);
+    Assert.assertThat("Idle Timeout",dur,lessThanOrEqualTo(3000L));
+    wsocket.assertCloseCode(StatusCode.ABNORMAL);
   }
   finally {
     ssocket.stopEcho();

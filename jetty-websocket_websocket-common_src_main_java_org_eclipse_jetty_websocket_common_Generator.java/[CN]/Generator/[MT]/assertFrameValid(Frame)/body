@@ -2,23 +2,23 @@
   if (!validating) {
     return;
   }
-  if (!rsv1InUse && frame.isRsv1()) {
+  if (frame.isRsv1() && !isRsv1InUse()) {
     throw new ProtocolException("RSV1 not allowed to be set");
   }
-  if (!rsv2InUse && frame.isRsv2()) {
+  if (frame.isRsv2() && !isRsv2InUse()) {
     throw new ProtocolException("RSV2 not allowed to be set");
   }
-  if (!rsv3InUse && frame.isRsv3()) {
+  if (frame.isRsv3() && !isRsv3InUse()) {
     throw new ProtocolException("RSV3 not allowed to be set");
   }
-  if (frame.getType().isControl()) {
+  if (OpCode.isControlFrame(frame.getOpCode())) {
     if (frame.getPayloadLength() > 125) {
       throw new ProtocolException("Invalid control frame payload length");
     }
     if (!frame.isFin()) {
       throw new ProtocolException("Control Frames must be FIN=true");
     }
-    if (frame.getType().getOpCode() == OpCode.CLOSE) {
+    if (frame.getOpCode() == OpCode.CLOSE) {
       ByteBuffer payload=frame.getPayload();
       if (payload != null) {
         new CloseInfo(payload,true);

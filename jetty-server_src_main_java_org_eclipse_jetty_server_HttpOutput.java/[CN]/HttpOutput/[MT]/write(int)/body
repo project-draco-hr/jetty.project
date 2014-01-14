@@ -1,13 +1,35 @@
 {
-  if (isClosed())   throw new EOFException("Closed");
-  if (_aggregate == null)   _aggregate=_channel.getByteBufferPool().acquire(getBufferSize(),false);
-  BufferUtil.append(_aggregate,(byte)b);
-  _written++;
+  _written+=1;
   boolean complete=_channel.getResponse().isAllContentWritten(_written);
+  while (true) {
+switch (_state.get()) {
+case OPEN:
+      if (_aggregate == null)       _aggregate=_channel.getByteBufferPool().acquire(getBufferSize(),false);
+    BufferUtil.append(_aggregate,(byte)b);
   if (complete || BufferUtil.isFull(_aggregate)) {
-    BlockingCallback callback=_channel.getWriteBlockingCallback();
-    _channel.write(_aggregate,false,callback);
-    callback.block();
+    write(_aggregate,complete,_writeblock);
+    _writeblock.block();
     if (complete)     closed();
   }
+break;
+case ASYNC:
+throw new IllegalStateException("isReady() not called");
+case READY:
+if (!_state.compareAndSet(OutputState.READY,OutputState.PENDING)) continue;
+if (_aggregate == null) _aggregate=_channel.getByteBufferPool().acquire(getBufferSize(),false);
+BufferUtil.append(_aggregate,(byte)b);
+if (!complete && !BufferUtil.isFull(_aggregate)) {
+if (!_state.compareAndSet(OutputState.PENDING,OutputState.ASYNC)) throw new IllegalStateException();
+return;
+}
+new AsyncFlush().iterate();
+return;
+case PENDING:
+case UNREADY:
+throw new WritePendingException();
+case CLOSED:
+throw new EofException("Closed");
+}
+break;
+}
 }

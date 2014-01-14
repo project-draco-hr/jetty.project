@@ -1,0 +1,61 @@
+{
+switch (frame.getOpCode()) {
+case OpCode.BINARY:
+case OpCode.TEXT:
+    incomingCompressed=frame.isRsv1();
+  break;
+case OpCode.CONTINUATION:
+if (!incomingCompressed) {
+  nextIncomingFrame(frame);
+}
+break;
+default :
+nextIncomingFrame(frame);
+return;
+}
+if (!incomingCompressed || !frame.hasPayload()) {
+nextIncomingFrame(frame);
+return;
+}
+ByteBuffer payload=frame.getPayload();
+int inlen=payload.remaining();
+byte compressed[]=null;
+if (frame.isFin()) {
+compressed=new byte[inlen + TAIL.length];
+payload.get(compressed,0,inlen);
+System.arraycopy(TAIL,0,compressed,inlen,TAIL.length);
+incomingCompressed=false;
+}
+ else {
+compressed=new byte[inlen];
+payload.get(compressed,0,inlen);
+}
+decompressor.setInput(compressed,0,compressed.length);
+int maxSize=Math.max(getPolicy().getMaxTextMessageSize(),getPolicy().getMaxBinaryMessageBufferSize());
+ByteAccumulator accumulator=new ByteAccumulator(maxSize);
+DataFrame out=new DataFrame(frame);
+out.setRsv1(false);
+while (decompressor.getRemaining() > 0 && !decompressor.finished()) {
+byte outbuf[]=new byte[inlen];
+try {
+int len=decompressor.inflate(outbuf);
+if (len == 0) {
+if (decompressor.needsInput()) {
+throw new BadPayloadException("Unable to inflate frame, not enough input on frame");
+}
+if (decompressor.needsDictionary()) {
+throw new BadPayloadException("Unable to inflate frame, frame erroneously says it needs a dictionary");
+}
+}
+if (len > 0) {
+accumulator.addBuffer(outbuf,0,len);
+}
+}
+ catch (DataFormatException e) {
+LOG.warn(e);
+throw new BadPayloadException(e);
+}
+}
+out.setPayload(accumulator.getByteBuffer(getBufferPool()));
+nextIncomingFrame(out);
+}

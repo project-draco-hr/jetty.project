@@ -1,0 +1,18 @@
+{
+  if (loader == null)   return;
+  if (!(loader instanceof URLClassLoader))   return;
+  final MultiException me=new MultiException();
+  JarScanner scanner=new JarScanner(){
+    @Override public void processEntry(    URI jarUri,    JarEntry entry){
+      try {
+        parseJarEntry(handlers,Resource.newResource(jarUri),entry,resolver);
+      }
+ catch (      Exception e) {
+        me.add(new RuntimeException("Error parsing entry " + entry.getName() + " from jar "+ jarUri,e));
+      }
+    }
+  }
+;
+  scanner.scan(null,loader,nullInclusive,visitParents);
+  me.ifExceptionThrow();
+}

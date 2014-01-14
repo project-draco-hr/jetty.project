@@ -1,3 +1,15 @@
 {
-  connectionClosed(System.currentTimeMillis() - connection.getCreatedTimeStamp(),connection.getMessagesIn(),connection.getMessagesOut());
+  if (isStarted()) {
+    int msgsIn=connection.getMessagesIn();
+    int msgsOut=connection.getMessagesOut();
+    _messagesIn.set(msgsIn);
+    _messagesOut.set(msgsOut);
+    _connectionStats.decrement();
+    _connectionDurationStats.set(System.currentTimeMillis() - connection.getCreatedTimeStamp());
+    Sample sample=_samples.remove(connection);
+    if (sample != null) {
+      _closedIn.addAndGet(msgsIn - sample._messagesIn);
+      _closedOut.addAndGet(msgsOut - sample._messagesOut);
+    }
+  }
 }

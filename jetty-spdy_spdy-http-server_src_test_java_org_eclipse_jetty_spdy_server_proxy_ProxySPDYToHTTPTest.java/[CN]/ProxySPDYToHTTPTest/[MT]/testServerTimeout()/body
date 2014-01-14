@@ -12,7 +12,7 @@
     }
   }
 ),30000,timeout);
-  Session client=factory.newSPDYClient(version).connect(proxyAddress,null).get(5,TimeUnit.SECONDS);
+  Session client=factory.newSPDYClient(version).connect(proxyAddress,null);
   final CountDownLatch replyLatch=new CountDownLatch(1);
   Fields headers=SPDYTestUtils.createHeaders("localhost",proxyAddress.getPort(),version,"POST","/");
   headers.put(header,"bar");
@@ -20,7 +20,7 @@
   client.syn(new SynInfo(headers,true),new StreamFrameListener.Adapter(){
     @Override public void onReply(    Stream stream,    ReplyInfo replyInfo){
       Fields headers=replyInfo.getHeaders();
-      assertThat("status is 504",headers.get(HTTPSPDYHeader.STATUS.name(version)).value(),is("504"));
+      assertThat("status is 504",headers.get(HTTPSPDYHeader.STATUS.name(version)).getValue(),is("504"));
       replyLatch.countDown();
     }
   }

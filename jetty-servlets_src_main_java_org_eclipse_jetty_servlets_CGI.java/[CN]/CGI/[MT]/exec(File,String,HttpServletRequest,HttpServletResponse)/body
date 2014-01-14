@@ -54,14 +54,25 @@
   if (_cmdPrefix != null)   execCmd=_cmdPrefix + " " + execCmd;
   LOG.debug("Environment: " + env.getExportString());
   LOG.debug("Command: " + execCmd);
-  Process p;
+  final Process p;
   if (dir == null)   p=Runtime.getRuntime().exec(execCmd,env.getEnvArray());
  else   p=Runtime.getRuntime().exec(execCmd,env.getEnvArray(),dir);
   if (bodyFormEncoded != null)   writeProcessInput(p,bodyFormEncoded);
  else   if (len > 0)   writeProcessInput(p,req.getInputStream(),len);
-  IO.copyThread(p.getErrorStream(),System.err);
   OutputStream os=null;
+  AsyncContext async=req.startAsync();
   try {
+    async.start(new Runnable(){
+      @Override public void run(){
+        try {
+          IO.copy(p.getErrorStream(),System.err);
+        }
+ catch (        IOException e) {
+          LOG.warn(e);
+        }
+      }
+    }
+);
     String line=null;
     InputStream inFromCgi=p.getInputStream();
     while ((line=getTextLineFromStream(inFromCgi)).length() > 0) {
@@ -111,5 +122,6 @@ catch (  InterruptedException ie) {
       }
     }
     p.destroy();
+    async.complete();
   }
 }

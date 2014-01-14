@@ -18,7 +18,7 @@ case CONTENT_TYPE:
 {
       if (field.getValue().startsWith(MimeTypes.Type.MULTIPART_BYTERANGES.toString()))       _endOfContent=EndOfContent.SELF_DEFINING_CONTENT;
       content_type=true;
-      field.putTo(header);
+      putTo(field,header);
       break;
     }
 case TRANSFER_ENCODING:
@@ -28,8 +28,8 @@ case TRANSFER_ENCODING:
   }
 case CONNECTION:
 {
-  if (request != null)   field.putTo(header);
-  HttpHeaderValue[] values=new HttpHeaderValue[]{HttpHeaderValue.CACHE.get(field.getValue())};
+  if (request != null)   putTo(field,header);
+  HttpHeaderValue[] values=HttpHeaderValue.CLOSE.is(field.getValue()) ? CLOSE : new HttpHeaderValue[]{HttpHeaderValue.CACHE.get(field.getValue())};
   String[] split=null;
   if (values[0] == null) {
     split=field.getValue().split("\\s*,\\s*");
@@ -77,11 +77,11 @@ break;
 case SERVER:
 {
 send=send & ~SEND_SERVER;
-field.putTo(header);
+putTo(field,header);
 break;
 }
 default :
-field.putTo(header);
+putTo(field,header);
 }
 }
 }
@@ -137,7 +137,7 @@ break;
 if (isChunking()) {
 if (transfer_encoding != null && !HttpHeaderValue.CHUNKED.toString().equalsIgnoreCase(transfer_encoding.getValue())) {
 String c=transfer_encoding.getValue();
-if (c.endsWith(HttpHeaderValue.CHUNKED.toString())) transfer_encoding.putTo(header);
+if (c.endsWith(HttpHeaderValue.CHUNKED.toString())) putTo(transfer_encoding,header);
  else throw new IllegalArgumentException("BAD TE");
 }
  else header.put(TRANSFER_ENCODING_CHUNKED);

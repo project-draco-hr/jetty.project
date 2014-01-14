@@ -1,0 +1,31 @@
+{
+  Pattern jetty_home=Pattern.compile("(-D)?jetty.home=(.*)");
+  Pattern jetty_base=Pattern.compile("(-D)?jetty.base=(.*)");
+  File homePath=null;
+  File basePath=null;
+  for (  String arg : args.getCommandLine()) {
+    Matcher home_match=jetty_home.matcher(arg);
+    if (home_match.matches()) {
+      homePath=new File(home_match.group(2));
+    }
+    Matcher base_match=jetty_base.matcher(arg);
+    if (base_match.matches()) {
+      basePath=new File(base_match.group(2));
+    }
+  }
+  if (homePath != null) {
+    this.homeDir=homePath.getAbsoluteFile();
+    if (basePath == null) {
+      this.baseDir=homePath.getAbsoluteFile();
+      args.getProperties().setProperty("jetty.base",this.baseDir.toString(),"<internal-fallback>");
+    }
+ else {
+      this.baseDir=basePath.getAbsoluteFile();
+    }
+  }
+ else   if (basePath != null) {
+    this.baseDir=basePath.getAbsoluteFile();
+  }
+  args.addSystemProperty("jetty.home",this.homeDir.getAbsolutePath());
+  args.addSystemProperty("jetty.base",this.baseDir.getAbsolutePath());
+}

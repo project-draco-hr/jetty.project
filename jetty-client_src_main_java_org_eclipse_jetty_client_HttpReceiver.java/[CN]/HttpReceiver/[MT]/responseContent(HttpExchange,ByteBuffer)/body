@@ -1,0 +1,27 @@
+{
+  out:   while (true) {
+    ResponseState current=responseState.get();
+switch (current) {
+case HEADERS:
+case CONTENT:
+{
+        if (updateResponseState(current,ResponseState.CONTENT))         break out;
+        break;
+      }
+default :
+{
+      return false;
+    }
+}
+}
+HttpResponse response=exchange.getResponse();
+if (LOG.isDebugEnabled()) LOG.debug("Response content {}{}{}",response,System.getProperty("line.separator"),BufferUtil.toDetailString(buffer));
+ContentDecoder decoder=this.decoder;
+if (decoder != null) {
+buffer=decoder.decode(buffer);
+if (LOG.isDebugEnabled()) LOG.debug("Response content decoded ({}) {}{}{}",decoder,response,System.getProperty("line.separator"),BufferUtil.toDetailString(buffer));
+}
+ResponseNotifier notifier=getHttpDestination().getResponseNotifier();
+notifier.notifyContent(exchange.getConversation().getResponseListeners(),response,buffer);
+return true;
+}

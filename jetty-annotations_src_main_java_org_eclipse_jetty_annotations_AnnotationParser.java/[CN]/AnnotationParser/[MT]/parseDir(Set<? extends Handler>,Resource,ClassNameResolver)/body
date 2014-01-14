@@ -1,0 +1,36 @@
+{
+  if (!dir.isDirectory() || !dir.exists() || dir.getName().startsWith("."))   return;
+  if (LOG.isDebugEnabled()) {
+    LOG.debug("Scanning dir {}",dir);
+  }
+  ;
+  MultiException me=new MultiException();
+  String[] files=dir.list();
+  for (int f=0; files != null && f < files.length; f++) {
+    Resource res=dir.addPath(files[f]);
+    if (res.isDirectory())     parseDir(handlers,res,resolver);
+ else {
+      File file=res.getFile();
+      if (isValidClassFileName((file == null ? null : file.getName()))) {
+        try {
+          String name=res.getName();
+          if ((resolver == null) || (!resolver.isExcluded(name) && (!isParsed(name) || resolver.shouldOverride(name)))) {
+            Resource r=Resource.newResource(res.getURL());
+            if (LOG.isDebugEnabled()) {
+              LOG.debug("Scanning class {}",r);
+            }
+            ;
+            scanClass(handlers,dir,r.getInputStream());
+          }
+        }
+ catch (        Exception ex) {
+          me.add(new RuntimeException("Error scanning file " + files[f],ex));
+        }
+      }
+ else {
+        if (LOG.isDebugEnabled())         LOG.debug("Skipping scan on invalid file {}",res);
+      }
+    }
+  }
+  me.ifExceptionThrow();
+}

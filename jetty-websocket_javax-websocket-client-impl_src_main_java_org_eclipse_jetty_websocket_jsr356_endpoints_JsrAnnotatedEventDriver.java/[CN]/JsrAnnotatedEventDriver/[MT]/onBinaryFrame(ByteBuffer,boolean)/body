@@ -1,0 +1,44 @@
+{
+  if (LOG.isDebugEnabled()) {
+    LOG.debug("onBinaryFrame({}, {})",BufferUtil.toDetailString(buffer),fin);
+    LOG.debug("events.onBinary={}",events.hasBinary());
+    LOG.debug("events.onBinaryStream={}",events.hasBinaryStream());
+  }
+  boolean handled=false;
+  if (events.hasBinary()) {
+    handled=true;
+    if (activeMessage == null) {
+      if (events.isBinaryPartialSupported()) {
+        LOG.debug("Partial Binary Message: fin={}",fin);
+        activeMessage=new BinaryPartialOnMessage(this);
+      }
+ else {
+        LOG.debug("Whole Binary Message");
+        activeMessage=new SimpleBinaryMessage(this);
+      }
+    }
+  }
+  if (events.hasBinaryStream()) {
+    handled=true;
+    if (activeMessage == null) {
+      LOG.debug("Binary Message InputStream");
+      final MessageInputStream stream=new MessageInputStream(session.getConnection());
+      activeMessage=stream;
+      dispatch(new Runnable(){
+        @Override public void run(){
+          try {
+            events.callBinaryStream(jsrsession.getAsyncRemote(),websocket,stream);
+          }
+ catch (          DecodeException|IOException e) {
+            onFatalError(e);
+          }
+        }
+      }
+);
+    }
+  }
+  LOG.debug("handled = {}",handled);
+  if (handled && (activeMessage != null)) {
+    appendMessage(buffer,fin);
+  }
+}

@@ -1,0 +1,16 @@
+{
+  HttpServletRequest httpRequest=(HttpServletRequest)request;
+  HttpSession session=httpRequest.getSession(false);
+  if (session == null || session.getAttribute(SessionAuthentication.__J_AUTHENTICATED) == null)   return;
+  String juri=(String)session.getAttribute(__J_URI);
+  if (juri == null || juri.length() == 0)   return;
+  String method=(String)session.getAttribute(__J_METHOD);
+  if (method == null || method.length() == 0)   return;
+  StringBuffer buf=httpRequest.getRequestURL();
+  if (httpRequest.getQueryString() != null)   buf.append("?").append(httpRequest.getQueryString());
+  if (!juri.equals(buf.toString()))   return;
+  if (LOG.isDebugEnabled())   LOG.debug("Restoring original method {} for {} with method {}",method,juri,httpRequest.getMethod());
+  Request base_request=HttpChannel.getCurrentHttpChannel().getRequest();
+  HttpMethod m=HttpMethod.fromString(method);
+  base_request.setMethod(m,m.asString());
+}

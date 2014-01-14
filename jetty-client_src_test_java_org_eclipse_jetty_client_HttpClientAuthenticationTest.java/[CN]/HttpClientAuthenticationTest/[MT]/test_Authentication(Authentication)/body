@@ -1,7 +1,7 @@
 {
   AuthenticationStore authenticationStore=client.getAuthenticationStore();
   final AtomicReference<CountDownLatch> requests=new AtomicReference<>(new CountDownLatch(1));
-  Request.Listener.Empty requestListener=new Request.Listener.Empty(){
+  Request.Listener.Adapter requestListener=new Request.Listener.Adapter(){
     @Override public void onSuccess(    Request request){
       requests.get().countDown();
     }
@@ -14,10 +14,9 @@
   Assert.assertEquals(401,response.getStatus());
   Assert.assertTrue(requests.get().await(5,TimeUnit.SECONDS));
   client.getRequestListeners().remove(requestListener);
-  Assert.assertNull(client.getConversation(request.getConversationID(),false));
   authenticationStore.addAuthentication(authentication);
   requests.set(new CountDownLatch(2));
-  requestListener=new Request.Listener.Empty(){
+  requestListener=new Request.Listener.Adapter(){
     @Override public void onSuccess(    Request request){
       requests.get().countDown();
     }
@@ -31,7 +30,7 @@
   Assert.assertTrue(requests.get().await(5,TimeUnit.SECONDS));
   client.getRequestListeners().remove(requestListener);
   requests.set(new CountDownLatch(1));
-  requestListener=new Request.Listener.Empty(){
+  requestListener=new Request.Listener.Adapter(){
     @Override public void onSuccess(    Request request){
       requests.get().countDown();
     }

@@ -1,7 +1,7 @@
 {
   server.setHandler(new AbstractHandler(){
     @Override public void handle(    String target,    Request baseRequest,    HttpServletRequest request,    HttpServletResponse response) throws IOException, ServletException {
-      baseRequest.setHandled(true);
+      throw new IllegalStateException();
     }
   }
 );
@@ -9,7 +9,7 @@
   final AtomicInteger callbacks=new AtomicInteger();
   final CountDownLatch openLatch=new CountDownLatch(1);
   final CountDownLatch closeLatch=new CountDownLatch(1);
-  connector.addBean(new Connection.Listener.Empty(){
+  connector.addBean(new Connection.Listener.Adapter(){
     @Override public void onOpened(    Connection connection){
       callbacks.incrementAndGet();
       openLatch.countDown();
@@ -20,18 +20,14 @@
     }
   }
 );
-  Socket socket=new Socket("localhost",connector.getLocalPort());
-  socket.setSoTimeout((int)connector.getIdleTimeout());
-  OutputStream output=socket.getOutputStream();
-  output.write(("" + "GET / HTTP/1.1\r\n" + "Host: localhost:" + connector.getLocalPort() + "\r\n"+ "Connection: close\r\n"+ "\r\n").getBytes("UTF-8"));
-  output.flush();
-  BufferedReader reader=new BufferedReader(new InputStreamReader(socket.getInputStream()));
-  SimpleHttpResponse response=httpParser.readResponse(reader);
-  Assert.assertEquals("200",response.getCode());
-  Assert.assertEquals(-1,reader.read());
-  socket.close();
-  Assert.assertTrue(openLatch.await(5,TimeUnit.SECONDS));
-  Assert.assertTrue(closeLatch.await(5,TimeUnit.SECONDS));
-  TimeUnit.SECONDS.sleep(1);
-  Assert.assertEquals(2,callbacks.get());
-}
+  try (Socket socket=new Socket("localhost",connector.getLocalPort())){
+    socket.setSoTimeout((int)connector.getIdleTimeout());
+    Assert.assertTrue(openLatch.await(5,TimeUnit.SECONDS));
+    socket.shutdownOutput();
+    Assert.assertTrue(closeLatch.await(5,TimeUnit.SECONDS));
+    String response=IO.toString(socket.getInputStream());
+    Assert.assertEquals(0,response.length());
+    TimeUnit.MILLISECONDS.sleep(200);
+    Assert.assertEquals(2,callbacks.get());
+  }
+ }

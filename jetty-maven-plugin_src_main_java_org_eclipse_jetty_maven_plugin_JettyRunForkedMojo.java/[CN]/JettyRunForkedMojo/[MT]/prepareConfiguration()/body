@@ -6,19 +6,28 @@
     Properties props=new Properties();
     if (webXml != null)     props.put("web.xml",webXml);
     if (contextPath != null)     props.put("context.path",contextPath);
-    if (tmpDirectory != null) {
-      if (!tmpDirectory.exists())       tmpDirectory.mkdirs();
-      props.put("tmp.dir",tmpDirectory.getAbsolutePath());
+    if (tempDirectory != null) {
+      if (!tempDirectory.exists())       tempDirectory.mkdirs();
+      props.put("tmp.dir",tempDirectory.getAbsolutePath());
     }
-    if (webAppSourceDirectory == null || !webAppSourceDirectory.exists()) {
-      webAppSourceDirectory=new File(project.getBasedir(),DEFAULT_WEBAPP_SRC);
-      if (!webAppSourceDirectory.exists()) {
-        File target=new File(project.getBuild().getDirectory());
-        webAppSourceDirectory=new File(target,FAKE_WEBAPP);
-        if (!webAppSourceDirectory.exists())         webAppSourceDirectory.mkdirs();
+    props.put("tmp.dir.persist",Boolean.toString(persistTempDirectory));
+    if (resourceBases == null) {
+      if (webAppSourceDirectory == null || !webAppSourceDirectory.exists()) {
+        webAppSourceDirectory=new File(project.getBasedir(),DEFAULT_WEBAPP_SRC);
+        if (!webAppSourceDirectory.exists()) {
+          File target=new File(project.getBuild().getDirectory());
+          webAppSourceDirectory=new File(target,FAKE_WEBAPP);
+          if (!webAppSourceDirectory.exists())           webAppSourceDirectory.mkdirs();
+        }
       }
+      resourceBases=new String[]{webAppSourceDirectory.getAbsolutePath()};
     }
-    props.put("base.dir",webAppSourceDirectory.getAbsolutePath());
+    StringBuffer rb=new StringBuffer(resourceBases[0]);
+    for (int i=1; i < resourceBases.length; i++) {
+      rb.append(File.pathSeparator);
+      rb.append(resourceBases[i]);
+    }
+    props.put("base.dirs",rb.toString());
     StringBuilder builder=new StringBuilder();
     props.put("base.first",Boolean.toString(baseAppFirst));
     List<File> classDirs=getClassesDirs();

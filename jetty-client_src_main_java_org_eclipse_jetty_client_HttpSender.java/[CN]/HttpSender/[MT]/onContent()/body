@@ -1,32 +1,60 @@
 {
+  HttpExchange exchange=getHttpExchange();
+  if (exchange == null)   return;
   while (true) {
-    SendState current=sendState.get();
+    SenderState current=senderState.get();
 switch (current) {
 case IDLE:
 {
-        if (updateSendState(current,SendState.EXECUTE)) {
-          LOG.debug("Deferred content available, sending");
-          send();
+        SenderState newSenderState=SenderState.SENDING;
+        if (updateSenderState(current,newSenderState)) {
+          LOG.debug("Deferred content available, {} -> {}",current,newSenderState);
+          HttpContent content=this.content;
+          if (content.advance())           sendContent(exchange,content,contentCallback);
+ else           if (content.isConsumed())           sendContent(exchange,content,lastCallback);
+ else           throw new IllegalStateException();
           return;
         }
         break;
       }
-case EXECUTE:
+case SENDING:
 {
-      if (updateSendState(current,SendState.SCHEDULE)) {
-        LOG.debug("Deferred content available, scheduling");
+      SenderState newSenderState=SenderState.SENDING_WITH_CONTENT;
+      if (updateSenderState(current,newSenderState)) {
+        LOG.debug("Deferred content available, {} -> {}",current,newSenderState);
         return;
       }
       break;
     }
-case SCHEDULE:
+case EXPECTING:
 {
-    LOG.debug("Deferred content available, queueing");
+    SenderState newSenderState=SenderState.EXPECTING_WITH_CONTENT;
+    if (updateSenderState(current,newSenderState)) {
+      LOG.debug("Deferred content available, {} -> {}",current,newSenderState);
+      return;
+    }
+    break;
+  }
+case PROCEEDING:
+{
+  SenderState newSenderState=SenderState.PROCEEDING_WITH_CONTENT;
+  if (updateSenderState(current,newSenderState)) {
+    LOG.debug("Deferred content available, {} -> {}",current,newSenderState);
     return;
   }
+  break;
+}
+case SENDING_WITH_CONTENT:
+case EXPECTING_WITH_CONTENT:
+case PROCEEDING_WITH_CONTENT:
+case WAITING:
+{
+LOG.debug("Deferred content available, {}",current);
+return;
+}
 default :
 {
-  throw new IllegalStateException();
+throw new IllegalStateException(current.toString());
 }
 }
 }

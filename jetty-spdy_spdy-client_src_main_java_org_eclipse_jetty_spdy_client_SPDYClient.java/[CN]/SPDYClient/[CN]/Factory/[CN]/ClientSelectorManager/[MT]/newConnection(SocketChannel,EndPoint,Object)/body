@@ -1,21 +1,12 @@
 {
-  SessionPromise sessionPromise=(SessionPromise)attachment;
-  final SPDYClient client=sessionPromise.client;
+  @SuppressWarnings("unchecked") Map<String,Object> context=(Map<String,Object>)attachment;
   try {
-    if (sslContextFactory != null) {
-      final SSLEngine engine=client.newSSLEngine(sslContextFactory,channel);
-      SslConnection sslConnection=new SslConnection(bufferPool,getExecutor(),endPoint,engine);
-      sslConnection.setRenegotiationAllowed(sslContextFactory.isRenegotiationAllowed());
-      DecryptedEndPoint sslEndPoint=sslConnection.getDecryptedEndPoint();
-      NextProtoNegoClientConnection connection=new NextProtoNegoClientConnection(channel,sslEndPoint,attachment,getExecutor(),client);
-      sslEndPoint.setConnection(connection);
-      return sslConnection;
-    }
-    SPDYClientConnectionFactory connectionFactory=new SPDYClientConnectionFactory();
-    return connectionFactory.newConnection(channel,endPoint,attachment);
+    SPDYClient client=(SPDYClient)context.get(SPDYClientConnectionFactory.SPDY_CLIENT_CONTEXT_KEY);
+    return client.getClientConnectionFactory().newConnection(endPoint,context);
   }
- catch (  RuntimeException x) {
-    sessionPromise.failed(x);
+ catch (  Throwable x) {
+    @SuppressWarnings("unchecked") Promise<Session> promise=(Promise<Session>)context.get(SPDYClientConnectionFactory.SPDY_SESSION_PROMISE_CONTEXT_KEY);
+    promise.failed(x);
     throw x;
   }
 }

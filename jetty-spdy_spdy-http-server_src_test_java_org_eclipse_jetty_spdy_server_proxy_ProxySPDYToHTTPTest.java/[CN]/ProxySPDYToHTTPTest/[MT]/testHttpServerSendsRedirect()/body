@@ -8,11 +8,11 @@
   }
 ),30000,30000);
   final CountDownLatch replyLatch=new CountDownLatch(1);
-  Session client=factory.newSPDYClient(version).connect(proxyAddress,null).get(5,TimeUnit.SECONDS);
+  Session client=factory.newSPDYClient(version).connect(proxyAddress,null);
   Fields headers=SPDYTestUtils.createHeaders("localhost",proxyAddress.getPort(),version,"GET","/");
   client.syn(new SynInfo(headers,true),new StreamFrameListener.Adapter(){
     @Override public void onReply(    Stream stream,    ReplyInfo replyInfo){
-      assertThat("Status code is 302",replyInfo.getHeaders().get(HTTPSPDYHeader.STATUS.name(version)).value(),is("302"));
+      assertThat("Status code is 302",replyInfo.getHeaders().get(HTTPSPDYHeader.STATUS.name(version)).getValue(),is("302"));
       assertThat("Location header has been received",replyInfo.getHeaders().get("Location"),is(notNullValue()));
       replyLatch.countDown();
     }

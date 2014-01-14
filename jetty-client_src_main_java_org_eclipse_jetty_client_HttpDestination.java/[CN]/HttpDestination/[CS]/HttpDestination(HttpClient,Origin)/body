@@ -1,0 +1,20 @@
+{
+  this.client=client;
+  this.origin=origin;
+  this.exchanges=new BlockingArrayQueue<>(client.getMaxRequestsQueuedPerDestination());
+  this.requestNotifier=new RequestNotifier(client);
+  this.responseNotifier=new ResponseNotifier(client);
+  ProxyConfiguration proxyConfig=client.getProxyConfiguration();
+  proxy=proxyConfig.match(origin);
+  ClientConnectionFactory connectionFactory=client.getTransport();
+  if (proxy != null) {
+    connectionFactory=proxy.newClientConnectionFactory(connectionFactory);
+  }
+ else {
+    if (HttpScheme.HTTPS.is(getScheme()))     connectionFactory=newSslClientConnectionFactory(connectionFactory);
+  }
+  this.connectionFactory=connectionFactory;
+  String host=getHost();
+  if (!client.isDefaultPort(getScheme(),getPort()))   host+=":" + getPort();
+  hostField=new HttpField(HttpHeader.HOST,host);
+}

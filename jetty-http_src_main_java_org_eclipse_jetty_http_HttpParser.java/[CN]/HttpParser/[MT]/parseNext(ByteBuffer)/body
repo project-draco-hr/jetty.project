@@ -1,139 +1,71 @@
 {
+  if (DEBUG)   LOG.debug("parseNext s={} {}",_state,BufferUtil.toDetailString(buffer));
   try {
-switch (_state) {
-case START:
+    boolean handle=false;
+    if (_state == State.START) {
       _version=null;
-    _method=null;
-  _methodString=null;
-_endOfContent=EndOfContent.UNKNOWN_CONTENT;
-_header=null;
-if (quickStart(buffer)) return true;
-break;
-case CONTENT:
-if (_contentPosition == _contentLength) {
-setState(State.END);
-if (_handler.messageComplete()) return true;
-}
-break;
-case END:
-while (buffer.remaining() > 0 && buffer.get(buffer.position()) <= HttpTokens.SPACE) buffer.get();
-return false;
-case CLOSED:
-if (BufferUtil.hasContent(buffer)) {
-_headerBytes+=buffer.remaining();
-BufferUtil.clear(buffer);
-if (_headerBytes > _maxHeaderBytes) {
-throw new IllegalStateException("too much data after closed");
-}
-}
-return false;
-default :
-break;
-}
-if (_state.ordinal() < State.HEADER.ordinal()) if (parseLine(buffer)) return true;
-if (_state.ordinal() < State.END.ordinal()) if (parseHeaders(buffer)) return true;
-if (_responseStatus > 0 && _headResponse) {
-setState(State.END);
-if (_handler.messageComplete()) return true;
-}
-byte ch;
-while (_state.ordinal() > State.END.ordinal() && buffer.hasRemaining()) {
+      _method=null;
+      _methodString=null;
+      _endOfContent=EndOfContent.UNKNOWN_CONTENT;
+      _header=null;
+      handle=quickStart(buffer);
+    }
+    if (!handle && _state.ordinal() >= State.START.ordinal() && _state.ordinal() < State.HEADER.ordinal())     handle=parseLine(buffer);
+    if (!handle && _state.ordinal() >= State.HEADER.ordinal() && _state.ordinal() < State.CONTENT.ordinal())     handle=parseHeaders(buffer);
+    if (!handle && _state.ordinal() >= State.CONTENT.ordinal() && _state.ordinal() < State.END.ordinal()) {
+      if (_responseStatus > 0 && _headResponse) {
+        setState(State.END);
+        handle=_handler.messageComplete();
+      }
+ else       handle=parseContent(buffer);
+    }
+    if (_state == State.END) {
+      while (buffer.remaining() > 0 && buffer.get(buffer.position()) <= HttpTokens.SPACE)       buffer.get();
+    }
+ else     if (_state == State.CLOSED) {
+      if (BufferUtil.hasContent(buffer)) {
+        _headerBytes+=buffer.remaining();
+        BufferUtil.clear(buffer);
+        if (_headerBytes > _maxHeaderBytes) {
+          throw new IllegalStateException("too much data after closed");
+        }
+      }
+    }
+    if (_eof && !buffer.hasRemaining()) {
 switch (_state) {
+case CLOSED:
+        break;
+case START:
+      _handler.earlyEOF();
+    setState(State.CLOSED);
+  break;
+case END:
+setState(State.CLOSED);
+break;
 case EOF_CONTENT:
-_contentChunk=buffer.asReadOnlyBuffer();
-_contentPosition+=_contentChunk.remaining();
-buffer.position(buffer.position() + _contentChunk.remaining());
-if (_handler.content(_contentChunk)) return true;
+handle=_handler.messageComplete() || handle;
+setState(State.CLOSED);
 break;
 case CONTENT:
-{
-long remaining=_contentLength - _contentPosition;
-if (remaining == 0) {
-setState(State.END);
-if (_handler.messageComplete()) return true;
-}
- else {
-_contentChunk=buffer.asReadOnlyBuffer();
-if (_contentChunk.remaining() > remaining) {
-_contentChunk.limit(_contentChunk.position() + (int)remaining);
-}
-_contentPosition+=_contentChunk.remaining();
-buffer.position(buffer.position() + _contentChunk.remaining());
-if (_handler.content(_contentChunk)) return true;
-if (_contentPosition == _contentLength) {
-setState(State.END);
-if (_handler.messageComplete()) return true;
-}
-}
-break;
-}
 case CHUNKED_CONTENT:
-{
-ch=next(buffer);
-if (ch > HttpTokens.SPACE) {
-_chunkLength=TypeUtil.convertHexDigit(ch);
-_chunkPosition=0;
-setState(State.CHUNK_SIZE);
-}
-break;
-}
 case CHUNK_SIZE:
-{
-ch=next(buffer);
-if (ch == HttpTokens.LINE_FEED) {
-if (_chunkLength == 0) {
-setState(State.END);
-if (_handler.messageComplete()) return true;
-}
- else setState(State.CHUNK);
-}
- else if (ch <= HttpTokens.SPACE || ch == HttpTokens.SEMI_COLON) setState(State.CHUNK_PARAMS);
- else _chunkLength=_chunkLength * 16 + TypeUtil.convertHexDigit(ch);
-break;
-}
 case CHUNK_PARAMS:
-{
-ch=next(buffer);
-if (ch == HttpTokens.LINE_FEED) {
-if (_chunkLength == 0) {
-setState(State.END);
-if (_handler.messageComplete()) return true;
-}
- else setState(State.CHUNK);
-}
-break;
-}
 case CHUNK:
-{
-int remaining=_chunkLength - _chunkPosition;
-if (remaining == 0) {
-setState(State.CHUNKED_CONTENT);
-}
- else {
-_contentChunk=buffer.asReadOnlyBuffer();
-if (_contentChunk.remaining() > remaining) _contentChunk.limit(_contentChunk.position() + remaining);
-remaining=_contentChunk.remaining();
-_contentPosition+=remaining;
-_chunkPosition+=remaining;
-buffer.position(buffer.position() + remaining);
-if (_handler.content(_contentChunk)) return true;
-}
+_handler.earlyEOF();
+setState(State.CLOSED);
 break;
-}
-case CLOSED:
-{
-BufferUtil.clear(buffer);
-return false;
-}
 default :
+if (DEBUG) LOG.debug("{} EOF in {}",this,_state);
+_handler.badMessage(400,null);
+setState(State.CLOSED);
 break;
 }
 }
-return false;
+return handle;
 }
  catch (BadMessage e) {
 BufferUtil.clear(buffer);
-LOG.warn("BadMessage: " + e._code + (e._message != null ? " " + e._message : "")+ " for "+ _handler);
+LOG.warn("badMessage: " + e._code + (e._message != null ? " " + e._message : "")+ " for "+ _handler);
 if (DEBUG) LOG.debug(e);
 setState(State.CLOSED);
 _handler.badMessage(e._code,e._message);
@@ -141,7 +73,7 @@ return false;
 }
 catch (Exception e) {
 BufferUtil.clear(buffer);
-LOG.warn("Parsing Exception: " + e.toString() + " for "+ _handler);
+LOG.warn("badMessage: " + e.toString() + " for "+ _handler);
 if (DEBUG) LOG.debug(e);
 if (_state.ordinal() <= State.END.ordinal()) {
 setState(State.CLOSED);

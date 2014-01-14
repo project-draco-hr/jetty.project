@@ -1,14 +1,7 @@
 {
   baseRequest.setHandled(true);
   response.setContentType("text/plain");
-  HttpOutput out=(HttpOutput)response.getOutputStream();
-  if (_content != null) {
-    response.setContentLength(_content.remaining());
-    if (_content.hasArray())     out.write(_content.array(),_content.arrayOffset() + _content.position(),_content.remaining());
- else     out.sendContent(_content);
-    _content=null;
-    return;
-  }
+  final HttpOutput out=(HttpOutput)response.getOutputStream();
   if (_contentInputStream != null) {
     out.sendContent(_contentInputStream);
     _contentInputStream=null;
@@ -17,6 +10,82 @@
   if (_contentChannel != null) {
     out.sendContent(_contentChannel);
     _contentChannel=null;
+    return;
+  }
+  if (_content != null && _writeLengthIfKnown)   response.setContentLength(_content.remaining());
+  if (_arrayBuffer != null) {
+    if (_async) {
+      final AsyncContext async=request.startAsync();
+      out.setWriteListener(new WriteListener(){
+        @Override public void onWritePossible() throws IOException {
+          while (out.isReady()) {
+            Assert.assertTrue(out.isReady());
+            int len=_content.remaining();
+            if (len > _arrayBuffer.length)             len=_arrayBuffer.length;
+            if (len == 0) {
+              async.complete();
+              break;
+            }
+            _content.get(_arrayBuffer,0,len);
+            if (len == 1)             out.write(_arrayBuffer[0]);
+ else             out.write(_arrayBuffer,0,len);
+          }
+        }
+        @Override public void onError(        Throwable t){
+          t.printStackTrace();
+          async.complete();
+        }
+      }
+);
+      return;
+    }
+    while (BufferUtil.hasContent(_content)) {
+      int len=_content.remaining();
+      if (len > _arrayBuffer.length)       len=_arrayBuffer.length;
+      _content.get(_arrayBuffer,0,len);
+      if (len == 1)       out.write(_arrayBuffer[0]);
+ else       out.write(_arrayBuffer,0,len);
+    }
+    return;
+  }
+  if (_byteBuffer != null) {
+    if (_async) {
+      final AsyncContext async=request.startAsync();
+      out.setWriteListener(new WriteListener(){
+        @Override public void onWritePossible() throws IOException {
+          while (out.isReady()) {
+            Assert.assertTrue(out.isReady());
+            if (BufferUtil.isEmpty(_content)) {
+              async.complete();
+              break;
+            }
+            BufferUtil.clearToFill(_byteBuffer);
+            BufferUtil.put(_content,_byteBuffer);
+            BufferUtil.flipToFlush(_byteBuffer,0);
+            out.write(_byteBuffer);
+          }
+          Assert.assertFalse(out.isReady());
+        }
+        @Override public void onError(        Throwable t){
+          t.printStackTrace();
+          async.complete();
+        }
+      }
+);
+      return;
+    }
+    while (BufferUtil.hasContent(_content)) {
+      BufferUtil.clearToFill(_byteBuffer);
+      BufferUtil.put(_content,_byteBuffer);
+      BufferUtil.flipToFlush(_byteBuffer,0);
+      out.write(_byteBuffer);
+    }
+    return;
+  }
+  if (_content != null) {
+    if (_content.hasArray())     out.write(_content.array(),_content.arrayOffset() + _content.position(),_content.remaining());
+ else     out.sendContent(_content);
+    _content=null;
     return;
   }
 }

@@ -1,0 +1,74 @@
+{
+  if (LOG.isDebugEnabled()) {
+    LOG.debug("{}.onFrame({})",websocket.getClass().getSimpleName(),frame);
+  }
+  try {
+    onFrame(frame);
+    byte opcode=frame.getOpCode();
+switch (opcode) {
+case OpCode.CLOSE:
+{
+        boolean validate=true;
+        CloseFrame closeframe=(CloseFrame)frame;
+        CloseInfo close=new CloseInfo(closeframe,validate);
+        onClose(close);
+        session.getConnection().getIOState().onCloseRemote(close);
+        return;
+      }
+case OpCode.PING:
+{
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("PING: {}",BufferUtil.toDetailString(frame.getPayload()));
+      }
+      ByteBuffer pongBuf;
+      if (frame.hasPayload()) {
+        pongBuf=ByteBuffer.allocate(frame.getPayload().remaining());
+        BufferUtil.put(frame.getPayload().slice(),pongBuf);
+        BufferUtil.flipToFlush(pongBuf,0);
+      }
+ else {
+        pongBuf=ByteBuffer.allocate(0);
+      }
+      onPing(frame.getPayload());
+      session.getRemote().sendPong(pongBuf);
+      break;
+    }
+case OpCode.PONG:
+{
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("PONG: {}",BufferUtil.toDetailString(frame.getPayload()));
+    }
+    onPong(frame.getPayload());
+    break;
+  }
+case OpCode.BINARY:
+{
+  onBinaryFrame(frame.getPayload(),frame.isFin());
+  return;
+}
+case OpCode.TEXT:
+{
+onTextFrame(frame.getPayload(),frame.isFin());
+return;
+}
+case OpCode.CONTINUATION:
+{
+onContinuationFrame(frame.getPayload(),frame.isFin());
+return;
+}
+default :
+{
+LOG.debug("Unhandled OpCode: {}",opcode);
+}
+}
+}
+ catch (NotUtf8Exception e) {
+terminateConnection(StatusCode.BAD_PAYLOAD,e.getMessage());
+}
+catch (CloseException e) {
+terminateConnection(e.getStatusCode(),e.getMessage());
+}
+catch (Throwable t) {
+unhandled(t);
+}
+}

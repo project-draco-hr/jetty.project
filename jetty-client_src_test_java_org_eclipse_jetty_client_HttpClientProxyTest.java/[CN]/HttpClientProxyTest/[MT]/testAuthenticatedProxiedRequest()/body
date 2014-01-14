@@ -1,7 +1,7 @@
 {
   final String user="foo";
   final String password="bar";
-  final String credentials=B64Code.encode(user + ":" + password,"ISO-8859-1");
+  final String credentials=B64Code.encode(user + ":" + password,StandardCharsets.ISO_8859_1);
   final String serverHost="server";
   final String realm="test_realm";
   final int status=HttpStatus.NO_CONTENT_204;
@@ -26,13 +26,13 @@
   String proxyHost="localhost";
   int proxyPort=connector.getLocalPort();
   int serverPort=proxyPort + 1;
-  client.setProxyConfiguration(new ProxyConfiguration(proxyHost,proxyPort));
+  client.getProxyConfiguration().getProxies().add(new HttpProxy(proxyHost,proxyPort));
   ContentResponse response1=client.newRequest(serverHost,serverPort).scheme(scheme).timeout(5,TimeUnit.SECONDS).send();
   Assert.assertEquals(HttpStatus.PROXY_AUTHENTICATION_REQUIRED_407,response1.getStatus());
   URI uri=URI.create(scheme + "://" + proxyHost+ ":"+ proxyPort);
   client.getAuthenticationStore().addAuthentication(new BasicAuthentication(uri,realm,user,password));
   final AtomicInteger requests=new AtomicInteger();
-  client.getRequestListeners().add(new Request.Listener.Empty(){
+  client.getRequestListeners().add(new Request.Listener.Adapter(){
     @Override public void onSuccess(    Request request){
       requests.incrementAndGet();
     }

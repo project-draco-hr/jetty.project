@@ -1,21 +1,20 @@
 {
   String[] classNames=new String[]{"org.eclipse.jetty.annotations.ClassB"};
   AnnotationParser parser=new AnnotationParser();
-class MultiAnnotationHandler implements DiscoverableAnnotationHandler {
-    public void handleClass(    String className,    int version,    int access,    String signature,    String superName,    String[] interfaces,    String annotation,    List<Value> values){
-      assertTrue("org.eclipse.jetty.annotations.ClassB".equals(className));
+class MultiAnnotationHandler extends AnnotationParser.AbstractHandler {
+    public void handle(    ClassInfo info,    String annotation){
+      if (annotation == null || !"org.eclipse.jetty.annotations.Multi".equals(annotation))       return;
+      assertTrue("org.eclipse.jetty.annotations.ClassB".equals(info.getClassName()));
     }
-    public void handleField(    String className,    String fieldName,    int access,    String fieldType,    String signature,    Object value,    String annotation,    List<Value> values){
+    public void handle(    FieldInfo info,    String annotation){
+      if (annotation == null || !"org.eclipse.jetty.annotations.Multi".equals(annotation))       return;
       fail();
     }
-    public void handleMethod(    String className,    String methodName,    int access,    String params,    String signature,    String[] exceptions,    String annotation,    List<Value> values){
-      assertTrue("org.eclipse.jetty.annotations.ClassB".equals(className));
-      assertTrue("a".equals(methodName));
-    }
-    @Override public String getAnnotationName(){
-      return "org.eclipse.jetty.annotations.Multi";
+    public void handle(    MethodInfo info,    String annotation){
+      if (annotation == null || !"org.eclipse.jetty.annotations.Multi".equals(annotation))       return;
+      assertTrue("org.eclipse.jetty.annotations.ClassB".equals(info.getClassInfo().getClassName()));
+      assertTrue("a".equals(info.getMethodName()));
     }
   }
-  parser.registerHandler(new MultiAnnotationHandler());
-  parser.parse(classNames,null);
+  parser.parse(Collections.singleton(new MultiAnnotationHandler()),classNames,null);
 }

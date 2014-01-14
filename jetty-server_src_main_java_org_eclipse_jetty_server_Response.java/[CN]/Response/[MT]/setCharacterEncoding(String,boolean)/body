@@ -1,0 +1,34 @@
+{
+  if (isIncluding() || isWriting())   return;
+  if (_outputType == OutputType.NONE && !isCommitted()) {
+    if (encoding == null) {
+      _explicitEncoding=false;
+      if (_characterEncoding != null) {
+        _characterEncoding=null;
+        if (_mimeType != null) {
+          _mimeType=_mimeType.getBaseType();
+          _contentType=_mimeType.asString();
+          _fields.put(_mimeType.getContentTypeField());
+        }
+ else         if (_contentType != null) {
+          _contentType=MimeTypes.getContentTypeWithoutCharset(_contentType);
+          _fields.put(HttpHeader.CONTENT_TYPE,_contentType);
+        }
+      }
+    }
+ else {
+      _explicitEncoding=explicit;
+      _characterEncoding=HttpGenerator.__STRICT ? encoding : StringUtil.normalizeCharset(encoding);
+      if (_mimeType != null) {
+        _contentType=_mimeType.getBaseType().asString() + "; charset=" + _characterEncoding;
+        _mimeType=MimeTypes.CACHE.get(_contentType);
+        if (_mimeType == null || HttpGenerator.__STRICT)         _fields.put(HttpHeader.CONTENT_TYPE,_contentType);
+ else         _fields.put(_mimeType.getContentTypeField());
+      }
+ else       if (_contentType != null) {
+        _contentType=MimeTypes.getContentTypeWithoutCharset(_contentType) + "; charset=" + _characterEncoding;
+        _fields.put(HttpHeader.CONTENT_TYPE,_contentType);
+      }
+    }
+  }
+}

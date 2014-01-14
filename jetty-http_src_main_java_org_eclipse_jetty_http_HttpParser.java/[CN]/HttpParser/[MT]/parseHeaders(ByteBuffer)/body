@@ -1,8 +1,8 @@
 {
-  boolean return_from_parse=false;
-  while (_state.ordinal() < State.END.ordinal() && buffer.hasRemaining() && !return_from_parse) {
+  boolean handle=false;
+  while (_state.ordinal() < State.CONTENT.ordinal() && buffer.hasRemaining() && !handle) {
     byte ch=next(buffer);
-    if (ch == 0)     continue;
+    if (ch == 0)     break;
     if (_maxHeaderBytes > 0 && ++_headerBytes > _maxHeaderBytes) {
       LOG.warn("Header is too large >" + _maxHeaderBytes);
       throw new BadMessage(HttpStatus.REQUEST_ENTITY_TOO_LARGE_413);
@@ -37,7 +37,7 @@ default :
             _field=null;
             return true;
           }
-          return_from_parse=_handler.parsedHeader(_field != null ? _field : new HttpField(_header,_headerString,_valueString)) || return_from_parse;
+          handle=_handler.parsedHeader(_field != null ? _field : new HttpField(_header,_headerString,_valueString)) || handle;
         }
         _headerString=_valueString=null;
         _header=null;
@@ -56,20 +56,20 @@ default :
 switch (_endOfContent) {
 case EOF_CONTENT:
             setState(State.EOF_CONTENT);
-          return_from_parse=_handler.headerComplete() || return_from_parse;
+          handle=_handler.headerComplete() || handle;
         break;
 case CHUNKED_CONTENT:
       setState(State.CHUNKED_CONTENT);
-    return_from_parse=_handler.headerComplete() || return_from_parse;
+    handle=_handler.headerComplete() || handle;
   break;
 case NO_CONTENT:
-return_from_parse=_handler.headerComplete() || return_from_parse;
+handle=_handler.headerComplete() || handle;
 setState(State.END);
-return_from_parse=_handler.messageComplete() || return_from_parse;
+handle=_handler.messageComplete() || handle;
 break;
 default :
 setState(State.CONTENT);
-return_from_parse=_handler.headerComplete() || return_from_parse;
+handle=_handler.headerComplete() || handle;
 break;
 }
 }
@@ -77,17 +77,17 @@ break;
  else {
 if (buffer.hasRemaining()) {
 HttpField field=_connectionFields == null ? null : _connectionFields.getBest(buffer,-1,buffer.remaining());
-if (field == null) field=HttpField.CACHE.getBest(buffer,-1,buffer.remaining());
+if (field == null) field=CACHE.getBest(buffer,-1,buffer.remaining());
 if (field != null) {
 final String n;
 final String v;
 if (_strict) {
 String fn=field.getName();
 String fv=field.getValue();
-n=BufferUtil.toString(buffer,buffer.position() - 1,fn.length(),StringUtil.__US_ASCII_CHARSET);
+n=BufferUtil.toString(buffer,buffer.position() - 1,fn.length(),StandardCharsets.US_ASCII);
 if (fv == null) v=null;
  else {
-v=BufferUtil.toString(buffer,buffer.position() + fn.length() + 1,fv.length(),StringUtil.__ISO_8859_1_CHARSET);
+v=BufferUtil.toString(buffer,buffer.position() + fn.length() + 1,fv.length(),StandardCharsets.ISO_8859_1);
 field=new HttpField(field.getHeader(),n,v);
 }
 }
@@ -174,7 +174,7 @@ break;
 }
 throw new BadMessage("Illegal character");
 case HEADER_IN_VALUE:
-if (ch >= HttpTokens.SPACE || ch < 0) {
+if (ch >= HttpTokens.SPACE || ch < 0 || ch == HttpTokens.TAB) {
 if (_valueString != null) {
 setString(_valueString);
 _valueString=null;
@@ -198,5 +198,5 @@ default :
 throw new IllegalStateException(_state.toString());
 }
 }
-return return_from_parse;
+return handle;
 }

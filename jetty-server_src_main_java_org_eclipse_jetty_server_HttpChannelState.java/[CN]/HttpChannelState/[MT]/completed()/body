@@ -12,14 +12,15 @@ default :
 throw new IllegalStateException(this.getStatusString());
 }
 }
+if (event != null) {
 if (aListeners != null) {
-for (AsyncListener listener : aListeners) {
-try {
-if (event != null && event.getThrowable() != null) {
+if (event.getThrowable() != null) {
 event.getSuppliedRequest().setAttribute(RequestDispatcher.ERROR_EXCEPTION,event.getThrowable());
 event.getSuppliedRequest().setAttribute(RequestDispatcher.ERROR_MESSAGE,event.getThrowable().getMessage());
-listener.onError(event);
 }
+for (AsyncListener listener : aListeners) {
+try {
+if (event.getThrowable() != null) listener.onError(event);
  else listener.onComplete(event);
 }
  catch (Exception e) {
@@ -27,5 +28,6 @@ LOG.warn(e);
 }
 }
 }
-if (event != null) event.completed();
+event.completed();
+}
 }

@@ -1,0 +1,59 @@
+{
+  LOG.debug("{} doFilter {}",this,req);
+  HttpServletRequest request=(HttpServletRequest)req;
+  HttpServletResponse response=(HttpServletResponse)res;
+  String requestURI=request.getRequestURI();
+  if (!_methods.contains(request.getMethod())) {
+    LOG.debug("{} excluded by method {}",this,request);
+    super.doFilter(request,response,chain);
+    return;
+  }
+  if (isExcludedPath(requestURI)) {
+    LOG.debug("{} excluded by path {}",this,request);
+    super.doFilter(request,response,chain);
+    return;
+  }
+  if (_mimeTypes.size() > 0) {
+    String mimeType=_context.getMimeType(request.getRequestURI());
+    if (mimeType != null && _mimeTypes.contains(mimeType) == _excludeMimeTypes) {
+      LOG.debug("{} excluded by path suffix {}",this,request);
+      super.doFilter(request,response,chain);
+      return;
+    }
+  }
+  if (_checkGzExists && request.getServletContext() != null) {
+    String path=request.getServletContext().getRealPath(URIUtil.addPaths(request.getServletPath(),request.getPathInfo()));
+    if (path != null) {
+      File gz=new File(path + ".gz");
+      if (gz.exists()) {
+        LOG.debug("{} gzip exists {}",this,request);
+        super.doFilter(request,response,chain);
+        return;
+      }
+    }
+  }
+  String etag=request.getHeader("If-None-Match");
+  if (etag != null) {
+    int dd=etag.indexOf("--");
+    if (dd > 0)     request.setAttribute(ETAG,etag.substring(0,dd) + (etag.endsWith("\"") ? "\"" : ""));
+  }
+  HttpChannel<?> channel=HttpChannel.getCurrentHttpChannel();
+  HttpOutput out=channel.getResponse().getHttpOutput();
+  if (!(out instanceof GzipHttpOutput)) {
+    if (out.getClass() != HttpOutput.class)     throw new IllegalStateException();
+    channel.getResponse().setHttpOutput(out=new GzipHttpOutput(channel));
+  }
+  GzipHttpOutput cout=(GzipHttpOutput)out;
+  try {
+    cout.mightCompress(this);
+    super.doFilter(request,response,chain);
+  }
+ catch (  Throwable e) {
+    LOG.debug("{} excepted {}",this,request,e);
+    if (!response.isCommitted()) {
+      cout.resetBuffer();
+      cout.noCompressionIfPossible();
+    }
+    throw e;
+  }
+}

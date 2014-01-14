@@ -1,0 +1,16 @@
+{
+  EchoClientSocket socket=new EchoClientSocket(1);
+  URI toUri=serverUri.resolve("pong-socket");
+  try {
+    client.connectToServer(socket,toUri);
+    socket.waitForConnected(1,TimeUnit.SECONDS);
+    String msg="hello";
+    socket.sendPong(msg);
+    socket.awaitAllEvents(1,TimeUnit.SECONDS);
+    EventQueue<String> received=socket.eventQueue;
+    Assert.assertThat("Received Ping Responses",received,contains("@OnMessage(PongMessage)[/pong-socket]:" + msg));
+  }
+  finally {
+    socket.close();
+  }
+}

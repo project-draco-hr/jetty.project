@@ -6,7 +6,7 @@
   }
   sb.append(". The end.");
   String expectedText=sb.toString();
-  byte utf[]=expectedText.getBytes(StringUtil.__UTF8);
+  byte utf[]=expectedText.getBytes(StandardCharsets.UTF_8);
   Assert.assertThat("Must be a medium length payload",utf.length,allOf(greaterThan(0x7E),lessThan(0xFFFF)));
   ByteBuffer buf=ByteBuffer.allocate(utf.length + 10);
   buf.put((byte)0x81);
@@ -22,6 +22,6 @@
   parser.parse(buf);
   capture.assertNoErrors();
   capture.assertHasFrame(OpCode.TEXT,1);
-  WebSocketFrame txt=capture.getFrames().get(0);
+  WebSocketFrame txt=capture.getFrames().poll();
   Assert.assertThat("TextFrame.data",txt.getPayloadAsUTF8(),is(expectedText));
 }

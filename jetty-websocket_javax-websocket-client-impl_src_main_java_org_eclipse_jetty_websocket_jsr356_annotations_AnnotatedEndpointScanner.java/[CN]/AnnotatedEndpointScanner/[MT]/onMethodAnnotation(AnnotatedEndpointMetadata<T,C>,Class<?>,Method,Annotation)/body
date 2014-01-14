@@ -1,0 +1,59 @@
+{
+  LOG.debug("onMethodAnnotation({}, {}, {}, {})",metadata,pojo,method,annotation);
+  if (isAnnotation(annotation,OnOpen.class)) {
+    assertIsPublicNonStatic(method);
+    assertIsReturn(method,Void.TYPE);
+    assertNotDuplicate(metadata.onOpen,OnOpen.class,pojo,method);
+    OnOpenCallable onopen=new OnOpenCallable(pojo,method);
+    visitMethod(onopen,pojo,method,paramsOnOpen,OnOpen.class);
+    metadata.onOpen=onopen;
+    return;
+  }
+  if (isAnnotation(annotation,OnClose.class)) {
+    assertIsPublicNonStatic(method);
+    assertIsReturn(method,Void.TYPE);
+    assertNotDuplicate(metadata.onClose,OnClose.class,pojo,method);
+    OnCloseCallable onclose=new OnCloseCallable(pojo,method);
+    visitMethod(onclose,pojo,method,paramsOnClose,OnClose.class);
+    metadata.onClose=onclose;
+    return;
+  }
+  if (isAnnotation(annotation,OnError.class)) {
+    assertIsPublicNonStatic(method);
+    assertIsReturn(method,Void.TYPE);
+    assertNotDuplicate(metadata.onError,OnError.class,pojo,method);
+    OnErrorCallable onerror=new OnErrorCallable(pojo,method);
+    visitMethod(onerror,pojo,method,paramsOnError,OnError.class);
+    metadata.onError=onerror;
+    return;
+  }
+  if (isAnnotation(annotation,OnMessage.class)) {
+    assertIsPublicNonStatic(method);
+    OnMessageCallable onmessage=new OnMessageCallable(pojo,method);
+    visitMethod(onmessage,pojo,method,paramsOnMessage,OnMessage.class);
+    Param param=onmessage.getMessageObjectParam();
+switch (param.role) {
+case MESSAGE_BINARY:
+      metadata.onBinary=new OnMessageBinaryCallable(onmessage);
+    break;
+case MESSAGE_BINARY_STREAM:
+  metadata.onBinaryStream=new OnMessageBinaryStreamCallable(onmessage);
+break;
+case MESSAGE_TEXT:
+metadata.onText=new OnMessageTextCallable(onmessage);
+break;
+case MESSAGE_TEXT_STREAM:
+metadata.onTextStream=new OnMessageTextStreamCallable(onmessage);
+break;
+case MESSAGE_PONG:
+metadata.onPong=new OnMessagePongCallable(onmessage);
+break;
+default :
+StringBuilder err=new StringBuilder();
+err.append("An unrecognized message type <");
+err.append(param.type);
+err.append(">: does not meet specified type categories of [TEXT, BINARY, DECODER, or PONG]");
+throw new InvalidSignatureException(err.toString());
+}
+}
+}

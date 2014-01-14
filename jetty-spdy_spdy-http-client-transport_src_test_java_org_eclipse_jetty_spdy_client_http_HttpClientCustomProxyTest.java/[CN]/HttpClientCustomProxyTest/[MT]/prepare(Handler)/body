@@ -1,0 +1,14 @@
+{
+  server=new Server();
+  connector=new ServerConnector(server,new CAFEBABEServerConnectionFactory(new HTTPSPDYServerConnectionFactory(SPDY.V3,new HttpConfiguration(),new PushStrategy.None())));
+  server.addConnector(connector);
+  server.setHandler(handler);
+  server.start();
+  QueuedThreadPool executor=new QueuedThreadPool();
+  executor.setName(executor.getName() + "-client");
+  factory=new SPDYClient.Factory(executor);
+  factory.start();
+  httpClient=new HttpClient(new HttpClientTransportOverSPDY(factory.newSPDYClient(SPDY.V3)),null);
+  httpClient.setExecutor(executor);
+  httpClient.start();
+}

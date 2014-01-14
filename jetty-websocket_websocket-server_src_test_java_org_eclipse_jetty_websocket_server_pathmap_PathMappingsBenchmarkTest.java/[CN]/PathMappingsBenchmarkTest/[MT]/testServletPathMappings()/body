@@ -1,0 +1,25 @@
+{
+  PathMappings<String> p=new PathMappings<>();
+  p.put(new ServletPathSpec("/abs/path"),"path");
+  p.put(new ServletPathSpec("/abs/path/longer"),"longpath");
+  p.put(new ServletPathSpec("/animal/bird/*"),"birds");
+  p.put(new ServletPathSpec("/animal/fish/*"),"fishes");
+  p.put(new ServletPathSpec("/animal/*"),"animals");
+  p.put(new ServletPathSpec("*.tar.gz"),"tarball");
+  p.put(new ServletPathSpec("*.gz"),"gzipped");
+  p.put(new ServletPathSpec("/"),"default");
+  final CyclicBarrier barrier=new CyclicBarrier(threads + 1);
+  for (int r=0; r < runs; r++) {
+    for (int t=0; t < threads; t++) {
+      PathMatchThread thread=new PathMatchThread(p,iters,barrier);
+      thread.start();
+    }
+    await(barrier);
+    long begin=System.nanoTime();
+    await(barrier);
+    long end=System.nanoTime();
+    long elapsed=TimeUnit.NANOSECONDS.toMillis(end - begin);
+    int totalMatches=threads * iters * LOOKUPS.length;
+    LOG.info("jetty-websocket/PathMappings (Servlet only) threads:{}/iters:{}/total-matches:{} => {} ms",threads,iters,totalMatches,elapsed);
+  }
+}

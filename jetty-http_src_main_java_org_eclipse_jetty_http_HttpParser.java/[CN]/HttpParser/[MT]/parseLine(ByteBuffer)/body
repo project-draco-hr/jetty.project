@@ -1,8 +1,8 @@
 {
-  boolean return_from_parse=false;
-  while (_state.ordinal() < State.HEADER.ordinal() && buffer.hasRemaining() && !return_from_parse) {
+  boolean handle=false;
+  while (_state.ordinal() < State.HEADER.ordinal() && buffer.hasRemaining() && !handle) {
     byte ch=next(buffer);
-    if (ch == 0)     continue;
+    if (ch == 0)     break;
     if (_maxHeaderBytes > 0 && ++_headerBytes > _maxHeaderBytes) {
       if (_state == State.URI) {
         LOG.warn("URI is too large >" + _maxHeaderBytes);
@@ -31,19 +31,17 @@ case RESPONSE_VERSION:
     _length=_string.length();
     String version=takeString();
     _version=HttpVersion.CACHE.get(version);
-    if (_version == null) {
-      throw new BadMessage(HttpStatus.BAD_REQUEST_400,"Unknown Version");
-    }
+    if (_version == null)     throw new BadMessage(HttpStatus.BAD_REQUEST_400,"Unknown Version");
     setState(State.SPACE1);
   }
  else   if (ch < HttpTokens.SPACE)   throw new BadMessage(ch < 0 ? "Illegal character" : "No Status");
  else   _string.append((char)ch);
 break;
 case SPACE1:
-if (ch > HttpTokens.SPACE) {
+if (ch > HttpTokens.SPACE || ch < 0) {
 if (_responseHandler != null) {
   setState(State.STATUS);
-  _responseStatus=ch - '0';
+  setResponseStatus(ch - '0');
 }
  else {
   _uri.clear();
@@ -72,7 +70,9 @@ if (_responseHandler != null) {
  else   _uri.put(ch);
 }
 }
- else if (ch < HttpTokens.SPACE) throw new BadMessage(HttpStatus.BAD_REQUEST_400,_requestHandler != null ? "No URI" : "No Status");
+ else if (ch < HttpTokens.SPACE) {
+throw new BadMessage(HttpStatus.BAD_REQUEST_400,_requestHandler != null ? "No URI" : "No Status");
+}
 break;
 case STATUS:
 if (ch == HttpTokens.SPACE) {
@@ -82,7 +82,7 @@ setState(State.SPACE2);
 _responseStatus=_responseStatus * 10 + (ch - '0');
 }
  else if (ch < HttpTokens.SPACE && ch >= 0) {
-return_from_parse=_responseHandler.startResponse(_version,_responseStatus,null) || return_from_parse;
+handle=_responseHandler.startResponse(_version,_responseStatus,null) || handle;
 setState(State.HEADER);
 }
  else {
@@ -95,11 +95,11 @@ setState(State.SPACE2);
 }
  else if (ch < HttpTokens.SPACE && ch >= 0) {
 _uri.flip();
-return_from_parse=_requestHandler.startRequest(_method,_methodString,_uri,null) || return_from_parse;
+handle=_requestHandler.startRequest(_method,_methodString,_uri,null) || handle;
 setState(State.END);
 BufferUtil.clear(buffer);
-return_from_parse=_handler.headerComplete() || return_from_parse;
-return_from_parse=_handler.messageComplete() || return_from_parse;
+handle=_handler.headerComplete() || handle;
+handle=_handler.messageComplete() || handle;
 }
  else {
 if (!_uri.hasRemaining()) {
@@ -121,8 +121,9 @@ setState(State.REASON);
 }
  else {
 setState(State.REQUEST_VERSION);
-if (buffer.position() > 0 && buffer.hasArray()) {
-HttpVersion version=HttpVersion.lookAheadGet(buffer.array(),buffer.arrayOffset() + buffer.position() - 1,buffer.arrayOffset() + buffer.limit());
+HttpVersion version;
+if (buffer.position() > 0 && buffer.hasArray()) version=HttpVersion.lookAheadGet(buffer.array(),buffer.arrayOffset() + buffer.position() - 1,buffer.arrayOffset() + buffer.limit());
+ else version=HttpVersion.CACHE.getBest(buffer,0,buffer.remaining());
 if (version != null) {
 int pos=buffer.position() + version.asString().length() - 1;
 if (pos < buffer.limit()) {
@@ -142,22 +143,21 @@ buffer.position(pos);
 }
 }
 }
-}
  else if (ch == HttpTokens.LINE_FEED) {
 if (_responseHandler != null) {
-return_from_parse=_responseHandler.startResponse(_version,_responseStatus,null) || return_from_parse;
+handle=_responseHandler.startResponse(_version,_responseStatus,null) || handle;
 setState(State.HEADER);
 }
  else {
 _uri.flip();
-return_from_parse=_requestHandler.startRequest(_method,_methodString,_uri,null) || return_from_parse;
+handle=_requestHandler.startRequest(_method,_methodString,_uri,null) || handle;
 setState(State.END);
 BufferUtil.clear(buffer);
-return_from_parse=_handler.headerComplete() || return_from_parse;
-return_from_parse=_handler.messageComplete() || return_from_parse;
+handle=_handler.headerComplete() || handle;
+handle=_handler.messageComplete() || handle;
 }
 }
- else if (ch < HttpTokens.SPACE) throw new BadMessage();
+ else if (ch < 0) throw new BadMessage();
 break;
 case REQUEST_VERSION:
 if (ch == HttpTokens.LINE_FEED) {
@@ -165,26 +165,24 @@ if (_version == null) {
 _length=_string.length();
 _version=HttpVersion.CACHE.get(takeString());
 }
-if (_version == null) {
-throw new BadMessage(HttpStatus.BAD_REQUEST_400,"Unknown Version");
-}
+if (_version == null) throw new BadMessage(HttpStatus.BAD_REQUEST_400,"Unknown Version");
 if (_connectionFields == null && _version.getVersion() >= HttpVersion.HTTP_1_1.getVersion()) {
 int header_cache=_handler.getHeaderCacheSize();
 if (header_cache > 0) _connectionFields=new ArrayTernaryTrie<>(header_cache);
 }
 setState(State.HEADER);
 _uri.flip();
-return_from_parse=_requestHandler.startRequest(_method,_methodString,_uri,_version) || return_from_parse;
+handle=_requestHandler.startRequest(_method,_methodString,_uri,_version) || handle;
 continue;
 }
- else if (ch > HttpTokens.SPACE) _string.append((char)ch);
+ else if (ch >= HttpTokens.SPACE) _string.append((char)ch);
  else throw new BadMessage();
 break;
 case REASON:
 if (ch == HttpTokens.LINE_FEED) {
 String reason=takeString();
 setState(State.HEADER);
-return_from_parse=_responseHandler.startResponse(_version,_responseStatus,reason) || return_from_parse;
+handle=_responseHandler.startResponse(_version,_responseStatus,reason) || handle;
 continue;
 }
  else if (ch >= HttpTokens.SPACE) {
@@ -197,5 +195,5 @@ default :
 throw new IllegalStateException(_state.toString());
 }
 }
-return return_from_parse;
+return handle;
 }

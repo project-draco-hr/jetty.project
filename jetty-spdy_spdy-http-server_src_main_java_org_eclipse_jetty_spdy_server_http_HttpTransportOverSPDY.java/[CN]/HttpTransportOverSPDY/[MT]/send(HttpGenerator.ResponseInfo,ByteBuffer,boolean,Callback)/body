@@ -5,14 +5,14 @@
     callback.failed(exception);
     return;
   }
-  boolean isHeadRequest=HttpMethod.HEAD.name().equalsIgnoreCase(requestHeaders.get(HTTPSPDYHeader.METHOD.name(version)).value());
+  boolean isHeadRequest=HttpMethod.HEAD.name().equalsIgnoreCase(requestHeaders.get(HTTPSPDYHeader.METHOD.name(version)).getValue());
   boolean hasContent=BufferUtil.hasContent(content) && !isHeadRequest;
   boolean close=!hasContent && lastContent;
   if (info != null) {
     if (!committed.compareAndSet(false,true)) {
       StreamException exception=new StreamException(stream.getId(),StreamStatus.PROTOCOL_ERROR,"Stream already committed!");
       callback.failed(exception);
-      LOG.warn("Committed response twice.",exception);
+      LOG.debug("Committed response twice.",exception);
       return;
     }
     sendReply(info,!hasContent ? callback : new Callback.Adapter(){

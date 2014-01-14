@@ -1,0 +1,16 @@
+{
+  WebSocketPolicy policy=WebSocketPolicy.newClientPolicy();
+  DeflateFrameExtension ext=new DeflateFrameExtension();
+  ext.setBufferPool(bufferPool);
+  ext.setPolicy(policy);
+  ExtensionConfig config=ExtensionConfig.parse("deflate-frame");
+  ext.setConfig(config);
+  boolean validating=true;
+  Generator generator=new Generator(policy,bufferPool,validating);
+  generator.configureFromExtensions(Collections.singletonList(ext));
+  OutgoingNetworkBytesCapture capture=new OutgoingNetworkBytesCapture(generator);
+  ext.setNextOutgoingFrames(capture);
+  Frame frame=new TextFrame().setPayload(text);
+  ext.outgoingFrame(frame,null);
+  capture.assertBytes(0,expectedHex);
+}

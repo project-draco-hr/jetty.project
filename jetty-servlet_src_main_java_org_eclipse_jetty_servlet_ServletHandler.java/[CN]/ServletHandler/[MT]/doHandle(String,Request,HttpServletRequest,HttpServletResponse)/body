@@ -13,6 +13,7 @@
     }
   }
   LOG.debug("chain={}",chain);
+  Throwable th=null;
   try {
     if (servlet_holder == null) {
       if (getHandler() == null)       notFound(request,response);
@@ -39,18 +40,13 @@ catch (  Exception e) {
       if (e instanceof RuntimeException)       throw (RuntimeException)e;
       if (e instanceof ServletException)       throw (ServletException)e;
     }
-    Throwable th=e;
+    th=e;
     if (th instanceof ServletException) {
       if (th instanceof QuietServletException) {
         LOG.warn(th.toString());
         LOG.debug(th);
       }
  else       LOG.warn(th);
-      while (th instanceof ServletException) {
-        Throwable cause=((ServletException)th).getRootCause();
-        if (cause == null)         break;
-        th=cause;
-      }
     }
  else     if (th instanceof EofException) {
       throw (EofException)th;
@@ -59,9 +55,10 @@ catch (  Exception e) {
       LOG.warn(request.getRequestURI(),th);
       if (LOG.isDebugEnabled())       LOG.debug(request.toString());
     }
+    request.setAttribute(RequestDispatcher.ERROR_EXCEPTION_TYPE,th.getClass());
+    request.setAttribute(RequestDispatcher.ERROR_EXCEPTION,th);
     if (!response.isCommitted()) {
-      request.setAttribute(RequestDispatcher.ERROR_EXCEPTION_TYPE,th.getClass());
-      request.setAttribute(RequestDispatcher.ERROR_EXCEPTION,th);
+      baseRequest.getResponse().getHttpFields().put(HttpHeader.CONNECTION,HttpHeaderValue.CLOSE);
       if (th instanceof UnavailableException) {
         UnavailableException ue=(UnavailableException)th;
         if (ue.isPermanent())         response.sendError(HttpServletResponse.SC_NOT_FOUND);
@@ -69,21 +66,24 @@ catch (  Exception e) {
       }
  else       response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
     }
- else     LOG.debug("Response already committed for handling " + th);
+ else     LOG.debug("Response already committed",th);
   }
 catch (  Error e) {
     if ("ContinuationThrowable".equals(e.getClass().getSimpleName()))     throw e;
+    th=e;
     if (!(DispatcherType.REQUEST.equals(type) || DispatcherType.ASYNC.equals(type)))     throw e;
     LOG.warn("Error for " + request.getRequestURI(),e);
     if (LOG.isDebugEnabled())     LOG.debug(request.toString());
+    request.setAttribute(RequestDispatcher.ERROR_EXCEPTION_TYPE,e.getClass());
+    request.setAttribute(RequestDispatcher.ERROR_EXCEPTION,e);
     if (!response.isCommitted()) {
-      request.setAttribute(RequestDispatcher.ERROR_EXCEPTION_TYPE,e.getClass());
-      request.setAttribute(RequestDispatcher.ERROR_EXCEPTION,e);
+      baseRequest.getResponse().getHttpFields().put(HttpHeader.CONNECTION,HttpHeaderValue.CLOSE);
       response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
     }
  else     LOG.debug("Response already committed for handling ",e);
   }
  finally {
+    if (th != null && request.isAsyncStarted())     baseRequest.getHttpChannelState().errorComplete();
     if (servlet_holder != null)     baseRequest.setHandled(true);
   }
 }

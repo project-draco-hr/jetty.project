@@ -1,13 +1,15 @@
 {
-  LOG.debug("Scanning classes in WEB-INF/classes");
-  parser.clearHandlers();
-  for (  DiscoverableAnnotationHandler h : _discoverableAnnotationHandlers) {
-    if (h instanceof AbstractDiscoverableAnnotationHandler)     ((AbstractDiscoverableAnnotationHandler)h).setResource(null);
-  }
-  parser.registerHandlers(_discoverableAnnotationHandlers);
-  parser.registerHandler(_classInheritanceHandler);
-  parser.registerHandlers(_containerInitializerAnnotationHandlers);
+  Set<Handler> handlers=new HashSet<Handler>();
+  handlers.addAll(_discoverableAnnotationHandlers);
+  if (_classInheritanceHandler != null)   handlers.add(_classInheritanceHandler);
+  handlers.addAll(_containerInitializerAnnotationHandlers);
+  _webInfClassesStats=new CounterStatistic();
   for (  Resource dir : context.getMetaData().getWebInfClassesDirs()) {
-    parser.parseDir(dir,new WebAppClassNameResolver(context));
+    if (_parserTasks != null) {
+      ParserTask task=new ParserTask(parser,handlers,dir,_webAppClassNameResolver);
+      _parserTasks.add(task);
+      _webInfClassesStats.increment();
+      if (LOG.isDebugEnabled())       task.setStatistic(new TimeStatistic());
+    }
   }
 }

@@ -1,0 +1,39 @@
+{
+  out:   while (true) {
+    ResponseState current=responseState.get();
+switch (current) {
+case BEGIN:
+case HEADER:
+{
+        if (updateResponseState(current,ResponseState.HEADER))         break out;
+        break;
+      }
+default :
+{
+      return false;
+    }
+}
+}
+HttpResponse response=exchange.getResponse();
+ResponseNotifier notifier=getHttpDestination().getResponseNotifier();
+boolean process=notifier.notifyHeader(exchange.getConversation().getResponseListeners(),response,field);
+if (process) {
+response.getHeaders().add(field);
+HttpHeader fieldHeader=field.getHeader();
+if (fieldHeader != null) {
+switch (fieldHeader) {
+case SET_COOKIE:
+case SET_COOKIE2:
+{
+      storeCookie(exchange.getRequest().getURI(),field);
+      break;
+    }
+default :
+{
+    break;
+  }
+}
+}
+}
+return true;
+}

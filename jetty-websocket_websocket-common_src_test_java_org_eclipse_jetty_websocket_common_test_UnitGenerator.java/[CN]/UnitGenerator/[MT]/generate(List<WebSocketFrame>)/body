@@ -1,0 +1,23 @@
+{
+  byte[] MASK={0x11,0x22,0x33,0x44};
+  Generator generator=new UnitGenerator();
+  int buflen=0;
+  for (  Frame f : frames) {
+    buflen+=f.getPayloadLength() + Generator.OVERHEAD;
+  }
+  ByteBuffer completeBuf=ByteBuffer.allocate(buflen);
+  BufferUtil.clearToFill(completeBuf);
+  for (  WebSocketFrame f : frames) {
+    f.setMask(MASK);
+    BufferUtil.put(generator.generateHeaderBytes(f),completeBuf);
+    ByteBuffer window=f.getPayload();
+    if (BufferUtil.hasContent(window)) {
+      BufferUtil.put(window,completeBuf);
+    }
+  }
+  BufferUtil.flipToFlush(completeBuf,0);
+  if (LOG.isDebugEnabled()) {
+    LOG.debug("generate({} frames) - {}",frames.size(),BufferUtil.toDetailString(completeBuf));
+  }
+  return completeBuf;
+}

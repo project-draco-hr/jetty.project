@@ -1,13 +1,14 @@
 {
+  notIdle();
   if (!canSend()) {
-    session.rst(new RstInfo(getId(),StreamStatus.PROTOCOL_ERROR),new Adapter());
+    session.rst(new RstInfo(getId(),StreamStatus.PROTOCOL_ERROR),new StreamCallback());
     throw new IllegalStateException("Protocol violation: cannot send a HEADERS frame before a SYN_REPLY frame");
   }
   if (isLocallyClosed()) {
-    session.rst(new RstInfo(getId(),StreamStatus.PROTOCOL_ERROR),new Adapter());
+    session.rst(new RstInfo(getId(),StreamStatus.PROTOCOL_ERROR),new StreamCallback());
     throw new IllegalStateException("Protocol violation: cannot send a HEADERS frame on a closed stream");
   }
   updateCloseState(headersInfo.isClose(),true);
   HeadersFrame frame=new HeadersFrame(session.getVersion(),headersInfo.getFlags(),getId(),headersInfo.getHeaders());
-  session.control(this,frame,headersInfo.getTimeout(),headersInfo.getUnit(),callback);
+  session.control(this,frame,headersInfo.getTimeout(),headersInfo.getUnit(),new StreamCallback(callback));
 }

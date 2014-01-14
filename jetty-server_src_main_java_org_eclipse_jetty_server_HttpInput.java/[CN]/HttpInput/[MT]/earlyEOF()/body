@@ -1,8 +1,9 @@
 {
 synchronized (lock()) {
-    _earlyEOF=true;
-    _inputEOF=true;
-    lock().notify();
-    LOG.debug("{} early EOF",this);
+    if (_eof == null || !_eof.isEOF()) {
+      LOG.debug("{} early EOF",this);
+      _eof=EARLY_EOF;
+      if (_listener != null)       _channelState.onReadPossible();
+    }
   }
 }

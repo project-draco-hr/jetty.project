@@ -8,13 +8,14 @@
 );
   String host="localhost";
   int port=connector.getLocalPort();
-  HttpDestination destination=(HttpDestination)client.getDestination(scheme,host,port);
-  final BlockingQueue<Connection> idleConnections=destination.getIdleConnections();
+  HttpDestinationOverHTTP destination=(HttpDestinationOverHTTP)client.getDestination(scheme,host,port);
+  ConnectionPool connectionPool=destination.getConnectionPool();
+  final BlockingQueue<Connection> idleConnections=connectionPool.getIdleConnections();
   Assert.assertEquals(0,idleConnections.size());
-  final BlockingQueue<Connection> activeConnections=destination.getActiveConnections();
+  final BlockingQueue<Connection> activeConnections=connectionPool.getActiveConnections();
   Assert.assertEquals(0,activeConnections.size());
   final CountDownLatch latch=new CountDownLatch(1);
-  client.newRequest(host,port).scheme(scheme).send(new Response.Listener.Empty(){
+  client.newRequest(host,port).scheme(scheme).send(new Response.Listener.Adapter(){
     @Override public void onComplete(    Result result){
       Assert.assertFalse(result.isFailed());
       Assert.assertEquals(0,idleConnections.size());

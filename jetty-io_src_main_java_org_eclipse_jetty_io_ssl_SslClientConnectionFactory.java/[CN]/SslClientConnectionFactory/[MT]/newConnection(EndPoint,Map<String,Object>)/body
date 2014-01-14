@@ -1,0 +1,13 @@
+{
+  String host=(String)context.get(SSL_PEER_HOST_CONTEXT_KEY);
+  int port=(Integer)context.get(SSL_PEER_PORT_CONTEXT_KEY);
+  SSLEngine engine=sslContextFactory.newSSLEngine(host,port);
+  engine.setUseClientMode(true);
+  context.put(SSL_ENGINE_CONTEXT_KEY,engine);
+  SslConnection sslConnection=newSslConnection(byteBufferPool,executor,endPoint,engine);
+  sslConnection.setRenegotiationAllowed(sslContextFactory.isRenegotiationAllowed());
+  endPoint.setConnection(sslConnection);
+  EndPoint appEndPoint=sslConnection.getDecryptedEndPoint();
+  appEndPoint.setConnection(connectionFactory.newConnection(appEndPoint,context));
+  return sslConnection;
+}

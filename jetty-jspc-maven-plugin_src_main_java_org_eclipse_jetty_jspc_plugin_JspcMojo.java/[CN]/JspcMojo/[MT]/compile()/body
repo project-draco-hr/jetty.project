@@ -16,41 +16,19 @@
     if (i + 1 < webAppUrls.size())     webAppClassPath.append(System.getProperty("path.separator"));
   }
   Thread.currentThread().setContextClassLoader(webAppClassLoader);
-  JspC jspc=new JspC();
+  if (jspc == null)   jspc=new JspC();
   jspc.setWebXmlFragment(webXmlFragment);
   jspc.setUriroot(webAppSourceDirectory);
-  jspc.setPackage(packageRoot);
   jspc.setOutputDir(generatedClasses);
-  jspc.setValidateXml(validateXml);
   jspc.setClassPath(webAppClassPath.toString());
   jspc.setCompile(true);
-  jspc.setSmapSuppressed(suppressSmap);
-  jspc.setSmapDumped(!suppressSmap);
-  jspc.setJavaEncoding(javaEncoding);
-  jspc.setTrimSpaces(trimSpaces);
   jspc.setSystemClassPath(sysClassPath);
   String jspFiles=getJspFiles(webAppSourceDirectory);
   getLog().info("Compiling " + jspFiles);
   getLog().info("Includes=" + includes);
   getLog().info("Excludes=" + excludes);
   jspc.setJspFiles(jspFiles);
-  if (verbose) {
-    getLog().info("Files selected to precompile: " + jspFiles);
-  }
-  try {
-    jspc.setIgnoreJspFragmentErrors(ignoreJspFragmentErrors);
-  }
- catch (  NoSuchMethodError e) {
-    getLog().debug("Tomcat Jasper does not support configuration option 'ignoreJspFragmentErrors': ignored");
-  }
-  try {
-    if (schemaResourcePrefix != null)     jspc.setSchemaResourcePrefix(schemaResourcePrefix);
-  }
- catch (  NoSuchMethodError e) {
-    getLog().debug("Tomcat Jasper does not support configuration option 'schemaResourcePrefix': ignored");
-  }
-  if (verbose)   jspc.setVerbose(99);
- else   jspc.setVerbose(0);
+  getLog().info("Files selected to precompile: " + jspFiles);
   jspc.execute();
   Thread.currentThread().setContextClassLoader(currentClassLoader);
 }

@@ -1,0 +1,35 @@
+{
+  CommandLineBuilder cmd=new CommandLineBuilder();
+  if (addJavaInit) {
+    cmd.addArg(CommandLineBuilder.findJavaBin());
+    for (    String x : jvmArgs) {
+      cmd.addArg(x);
+    }
+    cmd.addRawArg("-Djetty.home=" + baseHome.getHome());
+    cmd.addRawArg("-Djetty.base=" + baseHome.getBase());
+    for (    String propKey : systemPropertyKeys) {
+      String value=System.getProperty(propKey);
+      cmd.addEqualsArg("-D" + propKey,value);
+    }
+    cmd.addArg("-cp");
+    cmd.addRawArg(classpath.toString());
+    cmd.addRawArg(getMainClassname());
+  }
+  ensureSystemPropertySet("STOP.PORT");
+  ensureSystemPropertySet("STOP.KEY");
+  ensureSystemPropertySet("STOP.WAIT");
+  if (properties.size() > 0) {
+    File prop_file=File.createTempFile("start",".properties");
+    if (!dryRun) {
+      prop_file.deleteOnExit();
+    }
+    try (FileOutputStream out=new FileOutputStream(prop_file)){
+      properties.store(out,"start.jar properties");
+    }
+     cmd.addArg(prop_file.getAbsolutePath());
+  }
+  for (  File xml : xmls) {
+    cmd.addRawArg(xml.getAbsolutePath());
+  }
+  return cmd;
+}

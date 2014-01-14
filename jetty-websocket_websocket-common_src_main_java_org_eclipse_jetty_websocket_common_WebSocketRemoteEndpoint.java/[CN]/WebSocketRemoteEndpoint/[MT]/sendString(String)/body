@@ -1,7 +1,13 @@
 {
-  WebSocketFrame frame=WebSocketFrame.text(text);
-  if (LOG.isDebugEnabled()) {
-    LOG.debug("sendString with {}",BufferUtil.toDetailString(frame.getPayload()));
+  lockMsg(MsgType.BLOCKING);
+  try {
+    WebSocketFrame frame=new TextFrame().setPayload(text);
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("sendString with {}",BufferUtil.toDetailString(frame.getPayload()));
+    }
+    blockingWrite(frame);
   }
-  blockingWrite(WebSocketFrame.text(text));
+  finally {
+    unlockMsg(MsgType.BLOCKING);
+  }
 }

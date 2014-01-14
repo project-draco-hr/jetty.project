@@ -6,11 +6,11 @@
       request.setHandled(true);
       httpResponse.setStatus(HttpServletResponse.SC_OK);
       ServletOutputStream output=httpResponse.getOutputStream();
-      output.write(data.getBytes("UTF-8"));
+      output.write(data.getBytes(StandardCharsets.UTF_8));
       handlerLatch.countDown();
     }
   }
-),null);
+,30000),null);
   Fields headers=SPDYTestUtils.createHeaders("localhost",connector.getPort(),version,"GET","/foo");
   final CountDownLatch replyLatch=new CountDownLatch(1);
   final CountDownLatch dataLatch=new CountDownLatch(1);
@@ -18,12 +18,12 @@
     @Override public void onReply(    Stream stream,    ReplyInfo replyInfo){
       Assert.assertFalse(replyInfo.isClose());
       Fields replyHeaders=replyInfo.getHeaders();
-      assertTrue(replyHeaders.get(HTTPSPDYHeader.STATUS.name(version)).value().contains("200"));
+      assertTrue(replyHeaders.get(HTTPSPDYHeader.STATUS.name(version)).getValue().contains("200"));
       replyLatch.countDown();
     }
     @Override public void onData(    Stream stream,    DataInfo dataInfo){
       assertTrue(dataInfo.isClose());
-      assertEquals(data,dataInfo.asString("UTF-8",true));
+      assertEquals(data,dataInfo.asString(StandardCharsets.UTF_8,true));
       dataLatch.countDown();
     }
   }

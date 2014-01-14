@@ -1,13 +1,13 @@
 {
   Set<String> result=Collections.<String>emptySet();
   short version=stream.getSession().getVersion();
-  if (!isIfModifiedSinceHeaderPresent(requestHeaders) && isValidMethod(requestHeaders.get(HTTPSPDYHeader.METHOD.name(version)).value()) && !isUserAgentBlacklisted(requestHeaders)) {
-    String scheme=requestHeaders.get(HTTPSPDYHeader.SCHEME.name(version)).value();
-    String host=requestHeaders.get(HTTPSPDYHeader.HOST.name(version)).value();
+  if (!isIfModifiedSinceHeaderPresent(requestHeaders) && isValidMethod(requestHeaders.get(HTTPSPDYHeader.METHOD.name(version)).getValue()) && !isUserAgentBlacklisted(requestHeaders)) {
+    String scheme=requestHeaders.get(HTTPSPDYHeader.SCHEME.name(version)).getValue();
+    String host=requestHeaders.get(HTTPSPDYHeader.HOST.name(version)).getValue();
     String origin=scheme + "://" + host;
-    String url=requestHeaders.get(HTTPSPDYHeader.URI.name(version)).value();
+    String url=requestHeaders.get(HTTPSPDYHeader.URI.name(version)).getValue();
     String absoluteURL=origin + url;
-    logger.debug("Applying push strategy for {}",absoluteURL);
+    LOG.debug("Applying push strategy for {}",absoluteURL);
     if (isMainResource(url,responseHeaders)) {
       MainResource mainResource=getOrCreateMainResource(absoluteURL);
       result=mainResource.getResources();
@@ -15,7 +15,7 @@
  else     if (isPushResource(url,responseHeaders)) {
       Fields.Field referrerHeader=requestHeaders.get("referer");
       if (referrerHeader != null) {
-        String referrer=referrerHeader.value();
+        String referrer=referrerHeader.getValue();
         MainResource mainResource=mainResources.get(referrer);
         if (mainResource == null)         mainResource=getOrCreateMainResource(referrer);
         Set<String> pushResources=mainResource.getResources();
@@ -23,7 +23,7 @@
  else         result=getPushResources(absoluteURL);
       }
     }
-    logger.debug("Pushing {} resources for {}: {}",result.size(),absoluteURL,result);
+    LOG.debug("Pushing {} resources for {}: {}",result.size(),absoluteURL,result);
   }
   return result;
 }

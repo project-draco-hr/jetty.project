@@ -1,0 +1,17 @@
+{
+  ByteBuffer muxPayload=bufferPool.acquire(frame.getPayloadLength() + DATA_FRAME_OVERHEAD,false);
+  BufferUtil.flipToFill(muxPayload);
+  writeChannelId(muxPayload,channelId);
+  byte b=(byte)(frame.isFin() ? 0x80 : 0x00);
+  b|=(byte)(frame.isRsv1() ? 0x40 : 0x00);
+  b|=(byte)(frame.isRsv2() ? 0x20 : 0x00);
+  b|=(byte)(frame.isRsv3() ? 0x10 : 0x00);
+  b|=(byte)(frame.getOpCode() & 0x0F);
+  muxPayload.put(b);
+  BufferUtil.put(frame.getPayload(),muxPayload);
+  WebSocketFrame muxFrame=new BinaryFrame();
+  BufferUtil.flipToFlush(muxPayload,0);
+  muxFrame.setPayload(muxPayload);
+  bufferPool.release(frame.getPayload());
+  outgoing.outgoingFrame(muxFrame,callback);
+}

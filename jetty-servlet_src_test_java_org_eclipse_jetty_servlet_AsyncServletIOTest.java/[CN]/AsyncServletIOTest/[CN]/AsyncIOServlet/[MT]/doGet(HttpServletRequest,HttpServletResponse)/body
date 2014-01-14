@@ -1,0 +1,56 @@
+{
+  final AsyncContext async=request.startAsync();
+  final AtomicInteger complete=new AtomicInteger(2);
+  final AtomicBoolean onDataAvailable=new AtomicBoolean(false);
+  if (request.getContentLength() > 0) {
+    final ServletInputStream in=request.getInputStream();
+    in.setReadListener(new ReadListener(){
+      byte[] _buf=new byte[32];
+      @Override public void onError(      Throwable t){
+        if (complete.decrementAndGet() == 0)         async.complete();
+      }
+      @Override public void onDataAvailable() throws IOException {
+        if (!onDataAvailable.compareAndSet(false,true))         throw new IllegalStateException();
+        while (in.isReady()) {
+          _oda.incrementAndGet();
+          int len=in.read(_buf);
+          if (len > 0)           _read.addAndGet(len);
+        }
+        if (!onDataAvailable.compareAndSet(true,false))         throw new IllegalStateException();
+      }
+      @Override public void onAllDataRead() throws IOException {
+        if (onDataAvailable.get()) {
+          System.err.println("OADR too early!");
+          _read.set(-1);
+        }
+        if (complete.decrementAndGet() == 0)         async.complete();
+      }
+    }
+);
+  }
+ else   complete.decrementAndGet();
+  final String[] writes=request.getParameterValues("w");
+  final ServletOutputStream out=response.getOutputStream();
+  out.setWriteListener(new WriteListener(){
+    int _w=0;
+    @Override public void onWritePossible() throws IOException {
+      _owp.incrementAndGet();
+      while (writes != null && _w < writes.length) {
+        int write=Integer.valueOf(writes[_w++]);
+        if (write == 0)         out.flush();
+ else {
+          byte[] buf=new byte[write + 1];
+          Arrays.fill(buf,(byte)('0' + ((_w - 1) % 10)));
+          buf[write]='\n';
+          out.write(buf);
+        }
+        if (!out.isReady())         return;
+      }
+      if (complete.decrementAndGet() == 0)       async.complete();
+    }
+    @Override public void onError(    Throwable t){
+      async.complete();
+    }
+  }
+);
+}

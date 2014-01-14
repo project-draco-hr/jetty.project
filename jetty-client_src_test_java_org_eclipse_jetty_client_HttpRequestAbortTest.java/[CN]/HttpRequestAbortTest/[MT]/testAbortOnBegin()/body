@@ -1,12 +1,14 @@
 {
   start(new EmptyServerHandler());
   final Throwable cause=new Exception();
-  final CountDownLatch aborted=new CountDownLatch(1);
+  final AtomicBoolean aborted=new AtomicBoolean();
+  final CountDownLatch latch=new CountDownLatch(1);
   final CountDownLatch committed=new CountDownLatch(1);
   try {
-    client.newRequest("localhost",connector.getLocalPort()).scheme(scheme).listener(new Request.Listener.Empty(){
+    client.newRequest("localhost",connector.getLocalPort()).scheme(scheme).listener(new Request.Listener.Adapter(){
       @Override public void onBegin(      Request request){
-        if (request.abort(cause))         aborted.countDown();
+        aborted.set(request.abort(cause));
+        latch.countDown();
       }
       @Override public void onCommit(      Request request){
         committed.countDown();
@@ -16,8 +18,8 @@
     Assert.fail();
   }
  catch (  ExecutionException x) {
-    Assert.assertSame(cause,x.getCause());
-    Assert.assertTrue(aborted.await(5,TimeUnit.SECONDS));
+    Assert.assertTrue(latch.await(5,TimeUnit.SECONDS));
+    if (aborted.get())     Assert.assertSame(cause,x.getCause());
     Assert.assertFalse(committed.await(1,TimeUnit.SECONDS));
   }
 }

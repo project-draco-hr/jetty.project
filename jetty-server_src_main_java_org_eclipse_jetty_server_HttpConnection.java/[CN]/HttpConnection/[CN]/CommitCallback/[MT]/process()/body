@@ -6,17 +6,7 @@
 switch (result) {
 case NEED_HEADER:
 {
-        if (_lastContent && _content != null && !_content.isReadOnly() && _content.hasArray() && BufferUtil.space(_content) > _config.getResponseHeaderSize()) {
-          int p=_content.position();
-          int l=_content.limit();
-          _content.position(l);
-          _content.limit(l + _config.getResponseHeaderSize());
-          _header=_content.slice();
-          _header.limit(0);
-          _content.position(p);
-          _content.limit(l);
-        }
- else         _header=_bufferPool.acquire(_config.getResponseHeaderSize(),HEADER_BUFFER_DIRECT);
+        _header=_bufferPool.acquire(_config.getResponseHeaderSize(),HEADER_BUFFER_DIRECT);
         continue;
       }
 case NEED_CHUNK:
@@ -45,7 +35,7 @@ case FLUSH:
       getEndPoint().write(this,_content);
     }
  else     continue;
-    return false;
+    return Action.SCHEDULED;
   }
 case SHUTDOWN_OUT:
 {
@@ -57,7 +47,7 @@ case DONE:
 if (_header != null) {
   if (!_lastContent || _content == null || !_content.hasArray() || !_header.hasArray() || _content.array() != _header.array())   _bufferPool.release(_header);
 }
-return true;
+return Action.SUCCEEDED;
 }
 case CONTINUE:
 {

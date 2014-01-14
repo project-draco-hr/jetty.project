@@ -1,0 +1,32 @@
+{
+  Fields headers=new Fields();
+  headers.add("good","header");
+  headers.add("another","header");
+  SynStreamFrame frame=new SynStreamFrame(SPDY.V2,SynInfo.FLAG_CLOSE,1,0,(byte)0,(short)0,headers);
+  Generator generator=new Generator(new MappedByteBufferPool(),new NoCompressionCompressionFactory.NoCompressionCompressor());
+  ByteBuffer bufferWithBrokenVersion=generator.control(frame);
+  bufferWithBrokenVersion.put(1,(byte)4);
+  ByteBuffer bufferWithValidSynStreamFrame=generator.control(frame);
+  ByteArrayOutputStream outputStream=new ByteArrayOutputStream();
+  outputStream.write(BufferUtil.toArray(bufferWithBrokenVersion));
+  outputStream.write(BufferUtil.toArray(bufferWithValidSynStreamFrame));
+  byte concatenatedFramesByteArray[]=outputStream.toByteArray();
+  ByteBuffer concatenatedBuffer1=BufferUtil.toBuffer(Arrays.copyOfRange(concatenatedFramesByteArray,0,20));
+  ByteBuffer concatenatedBuffer2=BufferUtil.toBuffer(Arrays.copyOfRange(concatenatedFramesByteArray,20,30));
+  ByteBuffer concatenatedBuffer3=BufferUtil.toBuffer(Arrays.copyOfRange(concatenatedFramesByteArray,30,concatenatedFramesByteArray.length));
+  final CountDownLatch latch=new CountDownLatch(2);
+  Parser parser=new Parser(new NoCompressionCompressionFactory.NoCompressionDecompressor());
+  parser.addListener(new Parser.Listener.Adapter(){
+    @Override public void onControlFrame(    ControlFrame frame){
+      latch.countDown();
+    }
+    @Override public void onStreamException(    StreamException x){
+      latch.countDown();
+    }
+  }
+);
+  parser.parse(concatenatedBuffer1);
+  parser.parse(concatenatedBuffer2);
+  parser.parse(concatenatedBuffer3);
+  assertThat(latch.await(5,TimeUnit.SECONDS),is(true));
+}

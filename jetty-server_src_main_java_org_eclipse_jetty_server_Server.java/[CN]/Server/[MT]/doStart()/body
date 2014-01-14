@@ -6,34 +6,30 @@
   LOG.info("jetty-" + getVersion());
   HttpGenerator.setJettyVersion(HttpConfiguration.SERVER_VERSION);
   MultiException mex=new MultiException();
+  SizedThreadPool pool=getBean(SizedThreadPool.class);
+  int max=pool == null ? -1 : pool.getMaxThreads();
+  int needed=1;
+  if (mex.size() == 0) {
+    for (    Connector connector : _connectors) {
+      if (connector instanceof AbstractConnector)       needed+=((AbstractConnector)connector).getAcceptors();
+      if (connector instanceof ServerConnector)       needed+=((ServerConnector)connector).getSelectorManager().getSelectorCount();
+    }
+  }
+  if (max > 0 && needed > max)   throw new IllegalStateException("Insufficient max threads in ThreadPool: max=" + max + " < needed="+ needed);
   try {
     super.doStart();
   }
  catch (  Throwable e) {
     mex.add(e);
   }
-  if (mex.size() == 0) {
-    for (    Connector _connector : _connectors) {
-      try {
-        _connector.start();
-      }
- catch (      Throwable e) {
-        mex.add(e);
-      }
+  for (  Connector connector : _connectors) {
+    try {
+      connector.start();
+    }
+ catch (    Throwable e) {
+      mex.add(e);
     }
   }
   if (isDumpAfterStart())   dumpStdErr();
-  final HttpFields.DateGenerator date=new HttpFields.DateGenerator();
-  long now=System.currentTimeMillis();
-  long tick=1000 * ((now / 1000) + 1) - now;
-  _dateField=new HttpField.CachedHttpField(HttpHeader.DATE,date.formatDate(now));
-  DateCache.getTimer().scheduleAtFixedRate(new TimerTask(){
-    @Override public void run(){
-      long now=System.currentTimeMillis();
-      _dateField=new HttpField.CachedHttpField(HttpHeader.DATE,date.formatDate(now));
-      if (!isRunning())       this.cancel();
-    }
-  }
-,tick,1000);
   mex.ifExceptionThrow();
 }

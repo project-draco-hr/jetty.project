@@ -1,11 +1,12 @@
 {
   byte msg[]=new byte[overallMsgSize];
   Arrays.fill(msg,(byte)'M');
+  ByteBuffer buf=ByteBuffer.wrap(msg);
   List<WebSocketFrame> send=new ArrayList<>();
-  send.add(new WebSocketFrame(opcode).setPayload(msg));
+  send.add(toDataFrame(opcode).setPayload(buf));
   send.add(new CloseInfo(StatusCode.NORMAL).asFrame());
   List<WebSocketFrame> expect=new ArrayList<>();
-  expect.add(new WebSocketFrame(opcode).setPayload(msg));
+  expect.add(toDataFrame(opcode).setPayload(clone(buf)));
   expect.add(new CloseInfo(StatusCode.NORMAL).asFrame());
   Fuzzer fuzzer=new Fuzzer(this);
   try {

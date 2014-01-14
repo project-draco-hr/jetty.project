@@ -1,0 +1,16 @@
+{
+  List<ContainerInitializer> initializers=(List<ContainerInitializer>)_context.getAttribute(AnnotationConfiguration.CONTAINER_INITIALIZERS);
+  if (initializers == null)   return;
+  ConcurrentHashMap<String,ConcurrentHashSet<String>> map=(ConcurrentHashMap<String,ConcurrentHashSet<String>>)_context.getAttribute(AnnotationConfiguration.CLASS_INHERITANCE_MAP);
+  for (  ContainerInitializer i : initializers) {
+    configureHandlesTypes(_context,i,map);
+    try {
+      if (LOG.isDebugEnabled())       LOG.debug("Calling ServletContainerInitializer " + i.getTarget().getClass().getName());
+      i.callStartup(_context);
+    }
+ catch (    Exception e) {
+      LOG.warn(e);
+      throw new RuntimeException(e);
+    }
+  }
+}

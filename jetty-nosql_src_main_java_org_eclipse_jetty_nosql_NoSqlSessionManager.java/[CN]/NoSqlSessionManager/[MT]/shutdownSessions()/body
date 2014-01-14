@@ -1,0 +1,21 @@
+{
+  long gracefulStopMs=getContextHandler().getServer().getStopTimeout();
+  long stopTime=0;
+  if (gracefulStopMs > 0)   stopTime=System.nanoTime() + (TimeUnit.NANOSECONDS.convert(gracefulStopMs,TimeUnit.MILLISECONDS));
+  ArrayList<NoSqlSession> sessions=new ArrayList<NoSqlSession>(_sessions.values());
+  while (sessions.size() > 0 && ((stopTime > 0 && (System.nanoTime() < stopTime)) || (stopTime == 0))) {
+    for (    NoSqlSession session : sessions) {
+      if (isPreserveOnStop()) {
+        session.save(false);
+        _sessions.remove(session.getClusterId());
+      }
+ else {
+        session.invalidate();
+      }
+    }
+    if (stopTime == 0) {
+      break;
+    }
+    sessions=new ArrayList<NoSqlSession>(_sessions.values());
+  }
+}

@@ -1,32 +1,50 @@
 {
 synchronized (this) {
+    if (DEBUG)     LOG.debug("{} handling {}",this,_state);
 switch (_state) {
 case IDLE:
       _initial=true;
     _state=State.DISPATCHED;
-  if (_lastAsyncListeners != null)   _lastAsyncListeners.clear();
-if (_asyncListeners != null) _asyncListeners.clear();
- else {
-  _asyncListeners=_lastAsyncListeners;
-  _lastAsyncListeners=null;
-}
-break;
-case COMPLETECALLED:
-_state=State.COMPLETING;
-return Next.COMPLETE;
+  return Action.REQUEST_DISPATCH;
 case COMPLETING:
-return Next.COMPLETE;
-case ASYNCWAIT:
-return Next.WAIT;
+return Action.COMPLETE;
 case COMPLETED:
-return Next.WAIT;
-case REDISPATCH:
-_state=State.REDISPATCHED;
+return Action.WAIT;
+case ASYNCWAIT:
+if (_asyncRead) {
+_state=State.ASYNCIO;
+_asyncRead=false;
+return Action.READ_CALLBACK;
+}
+if (_asyncWrite) {
+_state=State.ASYNCIO;
+_asyncWrite=false;
+return Action.WRITE_CALLBACK;
+}
+if (_async != null) {
+Async async=_async;
+switch (async) {
+case COMPLETE:
+_state=State.COMPLETING;
+return Action.COMPLETE;
+case DISPATCH:
+_state=State.DISPATCHED;
+_async=null;
+return Action.ASYNC_DISPATCH;
+case EXPIRING:
 break;
+case EXPIRED:
+_state=State.DISPATCHED;
+_async=null;
+return Action.ASYNC_EXPIRED;
+case STARTED:
+if (DEBUG) LOG.debug("TODO Fix this double dispatch",new IllegalStateException(this.getStatusString()));
+return Action.WAIT;
+}
+}
+return Action.WAIT;
 default :
 throw new IllegalStateException(this.getStatusString());
 }
-_responseWrapped=false;
-return Next.CONTINUE;
 }
 }

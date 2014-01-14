@@ -7,13 +7,13 @@
       request.setHandled(true);
       httpResponse.setStatus(HttpServletResponse.SC_OK);
       ServletOutputStream output=httpResponse.getOutputStream();
-      output.write(data1.getBytes("UTF-8"));
+      output.write(data1.getBytes(StandardCharsets.UTF_8));
       output.flush();
-      output.write(data2.getBytes("UTF-8"));
+      output.write(data2.getBytes(StandardCharsets.UTF_8));
       handlerLatch.countDown();
     }
   }
-),null);
+,30000),null);
   Fields headers=SPDYTestUtils.createHeaders("localhost",connector.getPort(),version,"GET","/foo");
   final CountDownLatch replyLatch=new CountDownLatch(1);
   final CountDownLatch dataLatch=new CountDownLatch(2);
@@ -24,14 +24,14 @@
       assertEquals(1,replyFrames.incrementAndGet());
       Assert.assertFalse(replyInfo.isClose());
       Fields replyHeaders=replyInfo.getHeaders();
-      assertTrue(replyHeaders.get(HTTPSPDYHeader.STATUS.name(version)).value().contains("200"));
+      assertTrue(replyHeaders.get(HTTPSPDYHeader.STATUS.name(version)).getValue().contains("200"));
       replyLatch.countDown();
     }
     @Override public void onData(    Stream stream,    DataInfo dataInfo){
       int data=dataFrames.incrementAndGet();
       assertTrue(data >= 1 && data <= 2);
-      if (data == 1)       assertEquals(data1,dataInfo.asString("UTF8",true));
- else       assertEquals(data2,dataInfo.asString("UTF8",true));
+      if (data == 1)       assertEquals(data1,dataInfo.asString(StandardCharsets.UTF_8,true));
+ else       assertEquals(data2,dataInfo.asString(StandardCharsets.UTF_8,true));
       dataLatch.countDown();
     }
   }

@@ -5,11 +5,11 @@
   final int port=connector.getLocalPort();
   client.newRequest(host,port).scheme(scheme).onRequestBegin(new Request.BeginListener(){
     @Override public void onBegin(    Request request){
-      HttpDestination destination=(HttpDestination)client.getDestination(scheme,host,port);
-      destination.getActiveConnections().peek().close();
+      HttpDestinationOverHTTP destination=(HttpDestinationOverHTTP)client.getDestination(scheme,host,port);
+      destination.getConnectionPool().getActiveConnections().peek().close();
     }
   }
-).send(new Response.Listener.Empty(){
+).send(new Response.Listener.Adapter(){
     @Override public void onComplete(    Result result){
       latch.countDown();
     }

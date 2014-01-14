@@ -1,10 +1,11 @@
 {
+  ByteBuffer buf=ByteBuffer.wrap(StringUtil.getUtf8Bytes("bad"));
   List<WebSocketFrame> send=new ArrayList<>();
-  send.add(new BadFrame((byte)12).setPayload("bad"));
+  send.add(new BadFrame((byte)12).setPayload(buf));
   List<WebSocketFrame> expect=new ArrayList<>();
   expect.add(new CloseInfo(StatusCode.PROTOCOL).asFrame());
   Fuzzer fuzzer=new Fuzzer(this);
-  try {
+  try (StacklessLogging logging=new StacklessLogging(Parser.class)){
     fuzzer.connect();
     fuzzer.setSendMode(Fuzzer.SendMode.BULK);
     fuzzer.send(send);

@@ -1,0 +1,15 @@
+{
+  WebSocketContainer container=ContainerProvider.getWebSocketContainer();
+  System.out.printf("WebSocketContainer Impl: %s%n",container.getClass().getName());
+  ExampleSocket socket=new ExampleSocket();
+  URI uri=new URI("ws://echo.websocket.org/");
+  Session session=container.connectToServer(socket,uri);
+  RemoteEndpoint.Basic remote=session.getBasicRemote();
+  String msg="Hello world";
+  System.out.printf("Sending: %s%n",Objects.toString(msg));
+  remote.sendText(msg);
+  socket.messageLatch.await(1,TimeUnit.SECONDS);
+  session.close();
+  socket.closeLatch.await(1,TimeUnit.SECONDS);
+  System.out.println("Socket is closed");
+}

@@ -1,13 +1,29 @@
 {
-synchronized (buf) {
-    byte b=buf.get(readPosition);
-    readPosition++;
-    if (readPosition <= (buf.limit() - COMPACT_THRESHOLD)) {
-      int curPos=buf.position();
-      buf.compact();
-      int offsetPos=buf.position() - curPos;
-      readPosition+=offsetPos;
+  LOG.debug("read()");
+  try {
+    if (closed.get()) {
+      return -1;
     }
-    return b;
+    while (activeBuffer == null || !activeBuffer.hasRemaining()) {
+      if (timeoutMs == -1) {
+        activeBuffer=buffers.take();
+      }
+ else {
+        activeBuffer=buffers.poll(timeoutMs,TimeUnit.MILLISECONDS);
+        if (activeBuffer == null) {
+          throw new IOException(String.format("Read timeout: %,dms expired",timeoutMs));
+        }
+      }
+      if (activeBuffer == EOF) {
+        closed.set(true);
+        return -1;
+      }
+    }
+    return activeBuffer.get();
+  }
+ catch (  InterruptedException e) {
+    LOG.warn(e);
+    closed.set(true);
+    return -1;
   }
 }

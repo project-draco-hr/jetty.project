@@ -1,0 +1,40 @@
+{
+  Assert.assertThat("Client connected",client.isConnected(),is(true));
+  LOG.debug("[{}] Sending {} frames (mode {})",testname,send.size(),sendMode);
+  if ((sendMode == SendMode.BULK) || (sendMode == SendMode.SLOW)) {
+    int buflen=0;
+    for (    Frame f : send) {
+      buflen+=f.getPayloadLength() + Generator.OVERHEAD;
+    }
+    ByteBuffer buf=ByteBuffer.allocate(buflen);
+    for (    WebSocketFrame f : send) {
+      setClientMask(f);
+      buf.put(generator.generateHeaderBytes(f));
+      if (f.hasPayload()) {
+        buf.put(f.getPayload());
+      }
+    }
+    BufferUtil.flipToFlush(buf,0);
+switch (sendMode) {
+case BULK:
+      client.writeRaw(buf);
+    break;
+case SLOW:
+  client.writeRawSlowly(buf,slowSendSegmentSize);
+break;
+default :
+throw new RuntimeException("Whoops, unsupported sendMode: " + sendMode);
+}
+}
+ else if (sendMode == SendMode.PER_FRAME) {
+for (WebSocketFrame f : send) {
+f.setMask(MASK);
+ByteBuffer fullframe=ByteBuffer.allocate(f.getPayloadLength() + Generator.OVERHEAD);
+BufferUtil.clearToFill(fullframe);
+generator.generateWholeFrame(f,fullframe);
+BufferUtil.flipToFlush(fullframe,0);
+client.writeRaw(fullframe);
+client.flush();
+}
+}
+}

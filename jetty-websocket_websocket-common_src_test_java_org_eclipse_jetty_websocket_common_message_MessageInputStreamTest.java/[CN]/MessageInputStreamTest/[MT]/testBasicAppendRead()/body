@@ -1,0 +1,13 @@
+{
+  LocalWebSocketConnection conn=new LocalWebSocketConnection(testname,bufferPool);
+  try (MessageInputStream stream=new MessageInputStream(conn)){
+    ByteBuffer payload=BufferUtil.toBuffer("Hello World",StandardCharsets.UTF_8);
+    System.out.printf("payload = %s%n",BufferUtil.toDetailString(payload));
+    boolean fin=true;
+    stream.appendFrame(payload,fin);
+    byte buf[]=new byte[32];
+    int len=stream.read(buf);
+    String message=new String(buf,0,len,StandardCharsets.UTF_8);
+    Assert.assertThat("Message",message,is("Hello World"));
+  }
+ }

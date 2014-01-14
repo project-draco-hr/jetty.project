@@ -3,20 +3,20 @@
   ArrayList<URI> webInfUris=new ArrayList<URI>();
   List<Resource> jars=context.getMetaData().getOrderedWebInfJars();
   if (jars == null || jars.isEmpty())   jars=context.getMetaData().getWebInfJars();
+  _webInfLibStats=new CounterStatistic();
   for (  Resource r : jars) {
-    parser.clearHandlers();
-    URI uri=r.getURI();
+    final Set<Handler> handlers=new HashSet<Handler>();
     FragmentDescriptor f=getFragmentFromJar(r,frags);
     if (f == null || !isMetaDataComplete(f) || _classInheritanceHandler != null || !_containerInitializerAnnotationHandlers.isEmpty()) {
-      parser.registerHandler(_classInheritanceHandler);
-      parser.registerHandlers(_containerInitializerAnnotationHandlers);
-      if (f == null || !isMetaDataComplete(f)) {
-        for (        DiscoverableAnnotationHandler h : _discoverableAnnotationHandlers) {
-          if (h instanceof AbstractDiscoverableAnnotationHandler)           ((AbstractDiscoverableAnnotationHandler)h).setResource(r);
-        }
-        parser.registerHandlers(_discoverableAnnotationHandlers);
+      if (_classInheritanceHandler != null)       handlers.add(_classInheritanceHandler);
+      handlers.addAll(_containerInitializerAnnotationHandlers);
+      if (f == null || !isMetaDataComplete(f))       handlers.addAll(_discoverableAnnotationHandlers);
+      if (_parserTasks != null) {
+        ParserTask task=new ParserTask(parser,handlers,r,_webAppClassNameResolver);
+        _parserTasks.add(task);
+        _webInfLibStats.increment();
+        if (LOG.isDebugEnabled())         task.setStatistic(new TimeStatistic());
       }
-      parser.parse(uri,new WebAppClassNameResolver(context));
     }
   }
 }

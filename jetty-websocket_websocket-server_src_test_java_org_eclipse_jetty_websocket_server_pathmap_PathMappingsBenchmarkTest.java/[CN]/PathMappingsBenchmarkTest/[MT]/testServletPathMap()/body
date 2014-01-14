@@ -1,0 +1,25 @@
+{
+  PathMap<String> p=new PathMap<>();
+  p.put("/abs/path","path");
+  p.put("/abs/path/longer","longpath");
+  p.put("/animal/bird/*","birds");
+  p.put("/animal/fish/*","fishes");
+  p.put("/animal/*","animals");
+  p.put("*.tar.gz","tarball");
+  p.put("*.gz","gzipped");
+  p.put("/","default");
+  final CyclicBarrier barrier=new CyclicBarrier(threads + 1);
+  for (int r=0; r < runs; r++) {
+    for (int t=0; t < threads; t++) {
+      PathMapMatchThread thread=new PathMapMatchThread(p,iters,barrier);
+      thread.start();
+    }
+    await(barrier);
+    long begin=System.nanoTime();
+    await(barrier);
+    long end=System.nanoTime();
+    long elapsed=TimeUnit.NANOSECONDS.toMillis(end - begin);
+    int totalMatches=threads * iters * LOOKUPS.length;
+    LOG.info("jetty-http/PathMap (Servlet only) threads:{}/iters:{}/total-matches:{} => {} ms",threads,iters,totalMatches,elapsed);
+  }
+}

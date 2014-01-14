@@ -1,0 +1,31 @@
+{
+  final Request request=exchange.getRequest();
+  final long idleTimeout=request.getIdleTimeout();
+  short spdyVersion=getHttpChannel().getSession().getVersion();
+  Fields fields=new Fields();
+  HttpField hostHeader=null;
+  for (  HttpField header : request.getHeaders()) {
+    String name=header.getName();
+    if (HTTPSPDYHeader.from(spdyVersion,name) != HTTPSPDYHeader.HOST)     fields.add(name,header.getValue());
+ else     hostHeader=header;
+  }
+  fields.put(HTTPSPDYHeader.METHOD.name(spdyVersion),request.getMethod());
+  String path=request.getPath();
+  String query=request.getQuery();
+  if (query != null)   path+="?" + query;
+  fields.put(HTTPSPDYHeader.URI.name(spdyVersion),path);
+  fields.put(HTTPSPDYHeader.VERSION.name(spdyVersion),request.getVersion().asString());
+  if (hostHeader != null)   fields.put(HTTPSPDYHeader.HOST.name(spdyVersion),hostHeader.getValue());
+  SynInfo synInfo=new SynInfo(fields,!content.hasContent());
+  getHttpChannel().getSession().syn(synInfo,getHttpChannel().getHttpReceiver(),new Promise<Stream>(){
+    @Override public void succeeded(    Stream stream){
+      stream.setIdleTimeout(idleTimeout);
+      if (content.hasContent())       HttpSenderOverSPDY.this.stream=stream;
+      callback.succeeded();
+    }
+    @Override public void failed(    Throwable failure){
+      callback.failed(failure);
+    }
+  }
+);
+}

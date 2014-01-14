@@ -1,0 +1,159 @@
+{
+  if (rawarg == null) {
+    return;
+  }
+  final String arg=rawarg.trim();
+  if (arg.length() <= 0) {
+    return;
+  }
+  if (arg.startsWith("#")) {
+    return;
+  }
+  if ("--help".equals(arg) || "-?".equals(arg)) {
+    if (!CMD_LINE_SOURCE.equals(source)) {
+      throw new UsageException(ERR_BAD_ARG,"%s not allowed in %s",arg,source);
+    }
+    help=true;
+    run=false;
+    return;
+  }
+  if ("--debug".equals(arg)) {
+    return;
+  }
+  if ("--stop".equals(arg)) {
+    if (!CMD_LINE_SOURCE.equals(source)) {
+      throw new UsageException(ERR_BAD_ARG,"%s not allowed in %s",arg,source);
+    }
+    stopCommand=true;
+    run=false;
+    return;
+  }
+  if (arg.startsWith("--download=")) {
+    addFile(getValue(arg));
+    run=false;
+    download=true;
+    return;
+  }
+  if (arg.equals("--create-files")) {
+    run=false;
+    download=true;
+    return;
+  }
+  if ("--list-classpath".equals(arg) || "--version".equals(arg) || "-v".equals(arg)|| "--info".equals(arg)) {
+    listClasspath=true;
+    run=false;
+    return;
+  }
+  if ("--list-config".equals(arg)) {
+    listConfig=true;
+    run=false;
+    return;
+  }
+  if ("--dry-run".equals(arg) || "--exec-print".equals(arg)) {
+    if (!CMD_LINE_SOURCE.equals(source)) {
+      throw new UsageException(ERR_BAD_ARG,"%s not allowed in %s",arg,source);
+    }
+    dryRun=true;
+    run=false;
+    return;
+  }
+  if ("--exec".equals(arg)) {
+    exec=true;
+    return;
+  }
+  if (arg.startsWith("--lib=")) {
+    String cp=getValue(arg);
+    classpath.addClasspath(cp);
+    return;
+  }
+  if ("--list-modules".equals(arg)) {
+    listModules=true;
+    run=false;
+    return;
+  }
+  if (arg.startsWith("--add-to-startd")) {
+    if (!CMD_LINE_SOURCE.equals(source)) {
+      throw new UsageException(ERR_BAD_ARG,"%s not allowed in %s",arg,source);
+    }
+    moduleStartdIni.addAll(getValues(arg));
+    run=false;
+    return;
+  }
+  if (arg.startsWith("--add-to-start")) {
+    if (!CMD_LINE_SOURCE.equals(source)) {
+      throw new UsageException(ERR_BAD_ARG,"%s not allowed in %s",arg,source);
+    }
+    moduleStartIni.addAll(getValues(arg));
+    run=false;
+    return;
+  }
+  if (arg.startsWith("--module=")) {
+    for (    String moduleName : getValues(arg)) {
+      modules.add(moduleName);
+      List<String> list=sources.get(moduleName);
+      if (list == null) {
+        list=new ArrayList<String>();
+        sources.put(moduleName,list);
+      }
+      list.add(source);
+    }
+    return;
+  }
+  if (arg.startsWith("--write-module-graph=")) {
+    this.moduleGraphFilename=getValue(arg);
+    run=false;
+    return;
+  }
+  if (arg.startsWith("-D")) {
+    String[] assign=arg.substring(2).split("=",2);
+    systemPropertyKeys.add(assign[0]);
+switch (assign.length) {
+case 2:
+      System.setProperty(assign[0],assign[1]);
+    setProperty(assign[0],assign[1],source);
+  break;
+case 1:
+System.setProperty(assign[0],"");
+setProperty(assign[0],"",source);
+break;
+default :
+break;
+}
+return;
+}
+if (arg.startsWith("-")) {
+if (!jvmArgs.contains(arg)) {
+jvmArgs.add(arg);
+}
+return;
+}
+int idx=arg.indexOf('=');
+if (idx >= 0) {
+String key=arg.substring(0,idx);
+String value=arg.substring(idx + 1);
+if (source != CMD_LINE_SOURCE) {
+if (propertySource.containsKey(key)) {
+throw new UsageException(ERR_BAD_ARG,"Property %s in %s already set in %s",key,source,propertySource.get(key));
+}
+propertySource.put(key,source);
+}
+if ("OPTION".equals(key) || "OPTIONS".equals(key)) {
+StringBuilder warn=new StringBuilder();
+warn.append("The behavior of the argument ");
+warn.append(arg).append(" (seen in ").append(source);
+warn.append(") has changed, and is now considered a normal property.  ");
+warn.append(key).append(" no longer controls what libraries are on your classpath,");
+warn.append(" use --module instead. See --help for details.");
+StartLog.warn(warn.toString());
+}
+setProperty(key,value,source);
+return;
+}
+if (FS.isXml(arg)) {
+if (!xmlRefs.contains(arg)) {
+xmlRefs.add(arg);
+}
+return;
+}
+throw new UsageException(ERR_BAD_ARG,"Unrecognized argument: \"%s\" in %s",arg,source);
+}

@@ -1,24 +1,23 @@
 {
   byte ch=buffer.get();
-  if (ch >= HttpTokens.SPACE || ch < 0) {
-    if (_cr)     throw new BadMessage("Bad EOL");
+  if (_cr) {
+    if (ch != HttpTokens.LINE_FEED)     throw new BadMessage("Bad EOL");
+    _cr=false;
     return ch;
   }
-  if (_cr) {
-    _cr=false;
-    if (ch == HttpTokens.LINE_FEED)     return ch;
-    throw new BadMessage("Bad EOL");
-  }
-  if (ch == HttpTokens.CARRIAGE_RETURN) {
-    if (buffer.hasRemaining()) {
-      if (_maxHeaderBytes > 0 && _state.ordinal() < State.END.ordinal())       _headerBytes++;
-      ch=buffer.get();
-      if (ch == HttpTokens.LINE_FEED)       return ch;
-      throw new BadMessage("Bad EOL");
+  if (ch >= 0 && ch < HttpTokens.SPACE) {
+    if (ch == HttpTokens.CARRIAGE_RETURN) {
+      if (buffer.hasRemaining()) {
+        if (_maxHeaderBytes > 0 && _state.ordinal() < State.END.ordinal())         _headerBytes++;
+        ch=buffer.get();
+        if (ch != HttpTokens.LINE_FEED)         throw new BadMessage("Bad EOL");
+      }
+ else {
+        _cr=true;
+        return 0;
+      }
     }
-    _cr=true;
-    return 0;
+ else     if (!(ch == HttpTokens.LINE_FEED || ch == HttpTokens.TAB))     throw new BadMessage("Illegal character");
   }
-  if (ch != HttpTokens.LINE_FEED && ch != HttpTokens.TAB)   throw new BadMessage("Illegal character");
   return ch;
 }

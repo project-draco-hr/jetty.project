@@ -1,0 +1,23 @@
+{
+  LocalWebSocketConnection conn=new LocalWebSocketConnection(testname,bufferPool);
+  try (MessageInputStream stream=new MessageInputStream(conn)){
+    final AtomicBoolean hadError=new AtomicBoolean(false);
+    new Thread(new Runnable(){
+      @Override public void run(){
+        try {
+          boolean fin=true;
+          TimeUnit.MILLISECONDS.sleep(400);
+          stream.appendFrame(BufferUtil.toBuffer("I will conquer",StandardCharsets.UTF_8),fin);
+        }
+ catch (        IOException|InterruptedException e) {
+          hadError.set(true);
+          e.printStackTrace(System.err);
+        }
+      }
+    }
+).start();
+    int b=stream.read();
+    Assert.assertThat("Error when appending",hadError.get(),is(false));
+    Assert.assertThat("Initial byte",b,is((int)'I'));
+  }
+ }

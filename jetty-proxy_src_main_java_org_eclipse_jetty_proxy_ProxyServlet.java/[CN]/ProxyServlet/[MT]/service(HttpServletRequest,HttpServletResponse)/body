@@ -11,32 +11,33 @@
     return;
   }
   final Request proxyRequest=_client.newRequest(rewrittenURI).method(HttpMethod.fromString(request.getMethod())).version(HttpVersion.fromString(request.getProtocol()));
+  boolean hasContent=false;
   for (Enumeration<String> headerNames=request.getHeaderNames(); headerNames.hasMoreElements(); ) {
     String headerName=headerNames.nextElement();
     String lowerHeaderName=headerName.toLowerCase(Locale.ENGLISH);
     if (HOP_HEADERS.contains(lowerHeaderName))     continue;
-    if (_hostHeader != null && lowerHeaderName.equals("host"))     continue;
+    if (_hostHeader != null && HttpHeader.HOST.is(headerName))     continue;
+    if (request.getContentLength() > 0 || request.getContentType() != null || HttpHeader.TRANSFER_ENCODING.is(headerName))     hasContent=true;
     for (Enumeration<String> headerValues=request.getHeaders(headerName); headerValues.hasMoreElements(); ) {
       String headerValue=headerValues.nextElement();
       if (headerValue != null)       proxyRequest.header(headerName,headerValue);
     }
   }
   if (_hostHeader != null)   proxyRequest.header(HttpHeader.HOST,_hostHeader);
-  proxyRequest.header(HttpHeader.VIA,"http/1.1 " + _viaHost);
-  proxyRequest.header(HttpHeader.X_FORWARDED_FOR,request.getRemoteAddr());
-  proxyRequest.header(HttpHeader.X_FORWARDED_PROTO,request.getScheme());
-  proxyRequest.header(HttpHeader.X_FORWARDED_HOST,request.getHeader(HttpHeader.HOST.asString()));
-  proxyRequest.header(HttpHeader.X_FORWARDED_SERVER,request.getLocalName());
-  proxyRequest.content(new InputStreamContentProvider(request.getInputStream()){
-    @Override public long getLength(){
-      return request.getContentLength();
+  addViaHeader(proxyRequest);
+  addXForwardedHeaders(proxyRequest,request);
+  if (hasContent) {
+    proxyRequest.content(new InputStreamContentProvider(request.getInputStream()){
+      @Override public long getLength(){
+        return request.getContentLength();
+      }
+      @Override protected ByteBuffer onRead(      byte[] buffer,      int offset,      int length){
+        _log.debug("{} proxying content to upstream: {} bytes",requestId,length);
+        return super.onRead(buffer,offset,length);
+      }
     }
-    @Override protected ByteBuffer onRead(    byte[] buffer,    int offset,    int length){
-      _log.debug("{} proxying content to upstream: {} bytes",requestId,length);
-      return super.onRead(buffer,offset,length);
-    }
-  }
 );
+  }
   final AsyncContext asyncContext=request.startAsync();
   asyncContext.setTimeout(0);
   request.setAttribute(ASYNC_CONTEXT,asyncContext);

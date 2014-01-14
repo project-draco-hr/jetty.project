@@ -1,0 +1,55 @@
+{
+  if (name == null || name.length() == 0)   throw new IllegalArgumentException("Bad cookie name");
+  StringBuilder buf=__cookieBuilder.get();
+  buf.setLength(0);
+  boolean quote_name=isQuoteNeededForCookie(name);
+  quoteOnlyOrAppend(buf,name,quote_name);
+  buf.append('=');
+  String name_equals=buf.toString();
+  boolean quote_value=isQuoteNeededForCookie(value);
+  quoteOnlyOrAppend(buf,value,quote_value);
+  boolean has_domain=domain != null && domain.length() > 0;
+  boolean quote_domain=has_domain && isQuoteNeededForCookie(domain);
+  boolean has_path=path != null && path.length() > 0;
+  boolean quote_path=has_path && isQuoteNeededForCookie(path);
+  if (version == 0 && (comment != null || quote_name || quote_value || quote_domain || quote_path || isQuoted(name) || isQuoted(value) || isQuoted(path) || isQuoted(domain)))   version=1;
+  if (version == 1)   buf.append(";Version=1");
+ else   if (version > 1)   buf.append(";Version=").append(version);
+  if (has_path) {
+    buf.append(";Path=");
+    quoteOnlyOrAppend(buf,path,quote_path);
+  }
+  if (has_domain) {
+    buf.append(";Domain=");
+    quoteOnlyOrAppend(buf,domain,quote_domain);
+  }
+  if (maxAge >= 0) {
+    buf.append(";Expires=");
+    if (maxAge == 0)     buf.append(__01Jan1970_COOKIE);
+ else     DateGenerator.formatCookieDate(buf,System.currentTimeMillis() + 1000L * maxAge);
+    if (version >= 1) {
+      buf.append(";Max-Age=");
+      buf.append(maxAge);
+    }
+  }
+  if (isSecure)   buf.append(";Secure");
+  if (isHttpOnly)   buf.append(";HttpOnly");
+  if (comment != null) {
+    buf.append(";Comment=");
+    quoteOnlyOrAppend(buf,comment,isQuoteNeededForCookie(comment));
+  }
+  Iterator<HttpField> i=_fields.iterator();
+  while (i.hasNext()) {
+    HttpField field=i.next();
+    if (field.getHeader() == HttpHeader.SET_COOKIE) {
+      String val=field.getValue();
+      if (val != null && val.startsWith(name_equals)) {
+        if (((!has_domain && !val.contains("Domain")) || (has_domain && val.contains(domain))) && ((!has_path && !val.contains("Path")) || (has_path && val.contains(path)))) {
+          i.remove();
+        }
+      }
+    }
+  }
+  _fields.add(HttpHeader.SET_COOKIE.toString(),buf.toString());
+  _fields.put(HttpHeader.EXPIRES.toString(),DateGenerator.__01Jan1970);
+}

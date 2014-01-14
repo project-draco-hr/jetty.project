@@ -1,0 +1,75 @@
+{
+  if ((blocks == null) || (blocks.length <= 0)) {
+    return;
+  }
+  ByteBuffer payload=bufferPool.acquire(CONTROL_BUFFER_SIZE,false);
+  BufferUtil.flipToFill(payload);
+  writeChannelId(payload,0);
+  for (  MuxControlBlock block : blocks) {
+switch (block.getOpCode()) {
+case MuxOp.ADD_CHANNEL_REQUEST:
+{
+        MuxAddChannelRequest op=(MuxAddChannelRequest)block;
+        byte b=(byte)((op.getOpCode() & 0x07) << 5);
+        b|=(byte)((op.getRsv() & 0x07) << 2);
+        b|=(op.getEncoding() & 0x03);
+        payload.put(b);
+        writeChannelId(payload,op.getChannelId());
+        write139Buffer(payload,op.getHandshake());
+        break;
+      }
+case MuxOp.ADD_CHANNEL_RESPONSE:
+{
+      MuxAddChannelResponse op=(MuxAddChannelResponse)block;
+      byte b=(byte)((op.getOpCode() & 0x07) << 5);
+      b|=(op.isFailed() ? 0x10 : 0x00);
+      b|=(byte)((op.getRsv() & 0x03) << 2);
+      b|=(op.getEncoding() & 0x03);
+      payload.put(b);
+      writeChannelId(payload,op.getChannelId());
+      if (op.getHandshake() != null) {
+        write139Buffer(payload,op.getHandshake());
+      }
+ else {
+        write139Size(payload,0);
+      }
+      break;
+    }
+case MuxOp.DROP_CHANNEL:
+{
+    MuxDropChannel op=(MuxDropChannel)block;
+    byte b=(byte)((op.getOpCode() & 0x07) << 5);
+    b|=(byte)(op.getRsv() & 0x1F);
+    payload.put(b);
+    writeChannelId(payload,op.getChannelId());
+    write139Buffer(payload,op.asReasonBuffer());
+    break;
+  }
+case MuxOp.FLOW_CONTROL:
+{
+  MuxFlowControl op=(MuxFlowControl)block;
+  byte b=(byte)((op.getOpCode() & 0x07) << 5);
+  b|=(byte)(op.getRsv() & 0x1F);
+  payload.put(b);
+  writeChannelId(payload,op.getChannelId());
+  write139Size(payload,op.getSendQuotaSize());
+  break;
+}
+case MuxOp.NEW_CHANNEL_SLOT:
+{
+MuxNewChannelSlot op=(MuxNewChannelSlot)block;
+byte b=(byte)((op.getOpCode() & 0x07) << 5);
+b|=(byte)(op.getRsv() & 0x0F) << 1;
+b|=(byte)(op.isFallback() ? 0x01 : 0x00);
+payload.put(b);
+write139Size(payload,op.getNumberOfSlots());
+write139Size(payload,op.getInitialSendQuota());
+break;
+}
+}
+}
+BufferUtil.flipToFlush(payload,0);
+WebSocketFrame frame=new BinaryFrame();
+frame.setPayload(payload);
+outgoing.outgoingFrame(frame,callback);
+}

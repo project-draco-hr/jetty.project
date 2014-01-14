@@ -1,0 +1,33 @@
+{
+  LocalWebSocketConnection conn=new LocalWebSocketConnection(testname,bufferPool);
+  try (MessageInputStream stream=new MessageInputStream(conn)){
+    final AtomicBoolean hadError=new AtomicBoolean(false);
+    final CountDownLatch startLatch=new CountDownLatch(1);
+    new Thread(new Runnable(){
+      @Override public void run(){
+        try {
+          startLatch.countDown();
+          boolean fin=false;
+          TimeUnit.MILLISECONDS.sleep(200);
+          stream.appendFrame(BufferUtil.toBuffer("Saved",StandardCharsets.UTF_8),fin);
+          TimeUnit.MILLISECONDS.sleep(200);
+          stream.appendFrame(BufferUtil.toBuffer(" by ",StandardCharsets.UTF_8),fin);
+          fin=true;
+          TimeUnit.MILLISECONDS.sleep(200);
+          stream.appendFrame(BufferUtil.toBuffer("Zero",StandardCharsets.UTF_8),fin);
+        }
+ catch (        IOException|InterruptedException e) {
+          hadError.set(true);
+          e.printStackTrace(System.err);
+        }
+      }
+    }
+).start();
+    startLatch.await();
+    byte buf[]=new byte[32];
+    int len=stream.read(buf);
+    String message=new String(buf,0,len,StandardCharsets.UTF_8);
+    Assert.assertThat("Error when appending",hadError.get(),is(false));
+    Assert.assertThat("Message",message,is("Saved by Zero"));
+  }
+ }

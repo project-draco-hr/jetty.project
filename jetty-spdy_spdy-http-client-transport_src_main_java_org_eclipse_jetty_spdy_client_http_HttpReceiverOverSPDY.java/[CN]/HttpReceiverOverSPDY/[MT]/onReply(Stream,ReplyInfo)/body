@@ -1,0 +1,32 @@
+{
+  HttpExchange exchange=getHttpExchange();
+  if (exchange == null)   return;
+  try {
+    HttpResponse response=exchange.getResponse();
+    Fields fields=replyInfo.getHeaders();
+    short spdy=stream.getSession().getVersion();
+    HttpVersion version=HttpVersion.fromString(fields.get(HTTPSPDYHeader.VERSION.name(spdy)).getValue());
+    response.version(version);
+    String[] status=fields.get(HTTPSPDYHeader.STATUS.name(spdy)).getValue().split(" ",2);
+    Integer code=Integer.parseInt(status[0]);
+    response.status(code);
+    String reason=status.length < 2 ? HttpStatus.getMessage(code) : status[1];
+    response.reason(reason);
+    if (responseBegin(exchange)) {
+      for (      Fields.Field field : fields) {
+        String name=field.getName();
+        if (HTTPSPDYHeader.from(spdy,name) != null)         continue;
+        HttpField httpField=new HttpField(name,field.getValue());
+        responseHeader(exchange,httpField);
+      }
+      if (responseHeaders(exchange)) {
+        if (replyInfo.isClose()) {
+          responseSuccess(exchange);
+        }
+      }
+    }
+  }
+ catch (  Exception x) {
+    responseFailure(x);
+  }
+}

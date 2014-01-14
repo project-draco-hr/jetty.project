@@ -1,0 +1,16 @@
+{
+  try {
+    _security.setDenyUncoveredHttpMethods(false);
+    _security.setAuthenticator(new BasicAuthenticator());
+    _server.start();
+    String response;
+    response=_connector.getResponses("GET /ctx/index.html HTTP/1.0\r\n\r\n");
+    assertThat(response,startsWith("HTTP/1.1 200 OK"));
+    _security.setDenyUncoveredHttpMethods(true);
+    response=_connector.getResponses("GET /ctx/index.html HTTP/1.0\r\n\r\n");
+    assertTrue(response.startsWith("HTTP/1.1 403 Forbidden"));
+  }
+  finally {
+    _security.setDenyUncoveredHttpMethods(false);
+  }
+}
