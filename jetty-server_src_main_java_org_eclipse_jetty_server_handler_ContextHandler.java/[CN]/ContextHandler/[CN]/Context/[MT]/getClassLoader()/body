@@ -1,4 +1,23 @@
 {
-  AccessController.checkPermission(new RuntimePermission("getClassLoader"));
-  return _classLoader;
+  if (!_enabled)   throw new UnsupportedOperationException();
+  if (System.getSecurityManager() == null)   return _classLoader;
+ else {
+    try {
+      Class reflect=Loader.loadClass(getClass(),"sun.reflect.Reflection");
+      Method getCallerClass=reflect.getMethod("getCallerClass",Integer.TYPE);
+      Class caller=(Class)getCallerClass.invoke(null,2);
+      boolean ok=false;
+      ClassLoader callerLoader=caller.getClassLoader();
+      while (!ok && callerLoader != null) {
+        if (callerLoader == _classLoader)         ok=true;
+ else         callerLoader=callerLoader.getParent();
+      }
+      if (ok)       return _classLoader;
+    }
+ catch (    Exception e) {
+      LOG.warn("Unable to check classloader of caller",e);
+    }
+    AccessController.checkPermission(new RuntimePermission("getClassLoader"));
+    return _classLoader;
+  }
 }
