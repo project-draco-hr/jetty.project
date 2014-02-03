@@ -2,10 +2,11 @@
   if (_onError != null) {
     Throwable th=_onError;
     _onError=null;
-    _writeListener.onError(th);
+    _writeListener.onError(new IOException(th));
     close();
   }
-  if (_state.get() == OutputState.READY) {
+switch (_state.get()) {
+case READY:
     try {
       _writeListener.onWritePossible();
     }
@@ -13,5 +14,15 @@
       _writeListener.onError(e);
       close();
     }
-  }
+  break;
+case CLOSED:
+try {
+  _writeListener.onWritePossible();
+}
+ catch (Throwable e) {
+  _writeListener.onError(e);
+}
+break;
+default :
+}
 }
