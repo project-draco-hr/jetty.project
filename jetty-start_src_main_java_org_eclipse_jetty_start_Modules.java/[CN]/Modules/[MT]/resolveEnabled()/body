@@ -1,12 +1,22 @@
 {
-  Set<Module> active=new HashSet<Module>();
+  Map<String,Module> active=new HashMap<String,Module>();
   for (  Module module : modules.values()) {
     if (module.isEnabled()) {
       findParents(module,active);
     }
   }
+  for (  String missing : missingModules) {
+    for (    String activeModule : active.keySet()) {
+      if (missing.startsWith(activeModule)) {
+        StartLog.warn("** Unable to continue, required dependency missing. [%s]",missing);
+        StartLog.warn("** As configured, Jetty is unable to start due to a missing enabled module dependency.");
+        StartLog.warn("** This may be due to a transitive dependency akin to spdy on npn, which resolves based on the JDK in use.");
+        return Collections.emptyList();
+      }
+    }
+  }
   List<Module> ordered=new ArrayList<>();
-  ordered.addAll(active);
+  ordered.addAll(active.values());
   Collections.sort(ordered,new Module.DepthComparator());
   return ordered;
 }
