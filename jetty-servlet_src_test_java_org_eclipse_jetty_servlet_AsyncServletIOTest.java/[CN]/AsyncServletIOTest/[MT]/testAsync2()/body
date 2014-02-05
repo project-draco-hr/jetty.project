@@ -1,0 +1,25 @@
+{
+  StringBuilder request=new StringBuilder(512);
+  request.append("GET /ctx/path2/info HTTP/1.1\r\n").append("Host: localhost\r\n").append("Connection: close\r\n").append("\r\n");
+  int port=_port;
+  List<String> list=new ArrayList<>();
+  try (Socket socket=new Socket("localhost",port)){
+    socket.setSoTimeout(1000000);
+    OutputStream out=socket.getOutputStream();
+    out.write(request.toString().getBytes("ISO-8859-1"));
+    BufferedReader in=new BufferedReader(new InputStreamReader(socket.getInputStream()),102400);
+    String line=in.readLine();
+    Assert.assertThat(line,Matchers.startsWith("HTTP/1.1 200 OK"));
+    while (line != null) {
+      line=in.readLine();
+      if (line.length() == 0)       break;
+    }
+    while (true) {
+      line=in.readLine();
+      if (line == null)       break;
+      list.add(line);
+    }
+  }
+   Assert.assertEquals(list.get(0),"data");
+  Assert.assertEquals(_servlet2.completed.get(),1);
+}
