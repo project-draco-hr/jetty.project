@@ -1,0 +1,39 @@
+{
+  final String cookieName="name";
+  final String cookieValue="value";
+  final String cookieString=cookieName + "=" + cookieValue;
+  startServer(new EchoHandler(){
+    @Override public Object createWebSocket(    ServletUpgradeRequest request,    ServletUpgradeResponse response){
+      List<HttpCookie> cookies=request.getCookies();
+      Assert.assertNotNull(cookies);
+      Assert.assertEquals(1,cookies.size());
+      HttpCookie cookie=cookies.get(0);
+      Assert.assertEquals(cookieName,cookie.getName());
+      Assert.assertEquals(cookieValue,cookie.getValue());
+      Map<String,List<String>> headers=request.getHeaders();
+      Assert.assertTrue(headers.containsKey("cookie"));
+      List<String> values=headers.get("Cookie");
+      Assert.assertNotNull(values);
+      Assert.assertEquals(1,values.size());
+      Assert.assertEquals(cookieString,values.get(0));
+      return super.createWebSocket(request,response);
+    }
+  }
+);
+  WebSocketContainer container=ContainerProvider.getWebSocketContainer();
+  ClientEndpointConfig.Builder builder=ClientEndpointConfig.Builder.create();
+  builder.configurator(new ClientEndpointConfig.Configurator(){
+    @Override public void beforeRequest(    Map<String,List<String>> headers){
+      headers.put("Cookie",Collections.singletonList(cookieString));
+    }
+  }
+);
+  ClientEndpointConfig config=builder.build();
+  Endpoint endPoint=new Endpoint(){
+    @Override public void onOpen(    Session session,    EndpointConfig config){
+    }
+  }
+;
+  Session session=container.connectToServer(endPoint,config,URI.create("ws://localhost:" + connector.getLocalPort()));
+  session.close();
+}

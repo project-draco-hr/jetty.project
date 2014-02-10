@@ -1,0 +1,62 @@
+{
+  String response="";
+  _connection=connection;
+  _te=te;
+  if (_contentType != null)   _fields.put("Content-Type",_contentType);
+  if (_contentLength >= 0)   _fields.put("Content-Length","" + _contentLength);
+  if (_connection != null)   _fields.put("Connection",_connection);
+  if (_te != null)   _fields.put("Transfer-Encoding",_te);
+  if (_other != null)   _fields.put("Other",_other);
+  ByteBuffer source=_body == null ? null : BufferUtil.toBuffer(_body);
+  ByteBuffer[] chunks=new ByteBuffer[nchunks];
+  ByteBuffer content=null;
+  int c=0;
+  if (source != null) {
+    for (int i=0; i < nchunks; i++) {
+      chunks[i]=source.duplicate();
+      chunks[i].position(i * (source.capacity() / nchunks));
+      if (i > 0)       chunks[i - 1].limit(chunks[i].position());
+    }
+    content=chunks[c++];
+  }
+  ByteBuffer header=null;
+  ByteBuffer chunk=null;
+  HttpGenerator.ResponseInfo info=null;
+  loop:   while (true) {
+    if (source != null && content != null && content.remaining() == 0 && c < nchunks)     content=chunks[c++];
+    boolean last=!BufferUtil.hasContent(content);
+    HttpGenerator.Result result=gen.generateResponse(info,header,chunk,content,last);
+switch (result) {
+case NEED_INFO:
+      info=new HttpGenerator.ResponseInfo(HttpVersion.fromVersion(version),_fields,_contentLength,_code,reason,_head);
+    continue;
+case NEED_HEADER:
+  header=BufferUtil.allocate(2048);
+continue;
+case NEED_CHUNK:
+chunk=BufferUtil.allocate(HttpGenerator.CHUNK_SIZE);
+continue;
+case FLUSH:
+if (BufferUtil.hasContent(header)) {
+response+=BufferUtil.toString(header);
+header.position(header.limit());
+}
+if (BufferUtil.hasContent(chunk)) {
+response+=BufferUtil.toString(chunk);
+chunk.position(chunk.limit());
+}
+if (BufferUtil.hasContent(content)) {
+response+=BufferUtil.toString(content);
+content.position(content.limit());
+}
+break;
+case CONTINUE:
+continue;
+case SHUTDOWN_OUT:
+break;
+case DONE:
+break loop;
+}
+}
+return response;
+}

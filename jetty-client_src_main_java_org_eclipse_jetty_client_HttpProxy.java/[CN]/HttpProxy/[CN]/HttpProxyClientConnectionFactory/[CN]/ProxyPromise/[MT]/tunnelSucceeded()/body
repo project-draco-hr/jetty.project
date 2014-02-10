@@ -4,9 +4,10 @@
     HttpDestination destination=(HttpDestination)context.get(HttpClientTransport.HTTP_DESTINATION_CONTEXT_KEY);
     HttpClient client=destination.getHttpClient();
     ClientConnectionFactory sslConnectionFactory=new SslClientConnectionFactory(client.getSslContextFactory(),client.getByteBufferPool(),client.getExecutor(),connectionFactory);
-    org.eclipse.jetty.io.Connection oldConnection=endPoint.getConnection();
+    HttpConnectionOverHTTP oldConnection=(HttpConnectionOverHTTP)endPoint.getConnection();
     org.eclipse.jetty.io.Connection newConnection=sslConnectionFactory.newConnection(endPoint,context);
     Helper.replaceConnection(oldConnection,newConnection);
+    oldConnection.softClose();
     LOG.debug("HTTP tunnel established: {} over {}",oldConnection,newConnection);
   }
  catch (  Throwable x) {

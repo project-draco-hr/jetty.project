@@ -5,7 +5,7 @@ synchronized (this) {
     long now=System.currentTimeMillis();
     if (LOG.isDebugEnabled()) {
       if (memSession == null)       LOG.debug("getSession(" + idInCluster + "): not in session map,"+ " now="+ now+ " lastSaved="+ (memSession == null ? 0 : memSession._lastSaved)+ " interval="+ (_saveIntervalSec * 1000L));
- else       LOG.debug("getSession(" + idInCluster + "): in session map, "+ " now="+ now+ " lastSaved="+ (memSession == null ? 0 : memSession._lastSaved)+ " interval="+ (_saveIntervalSec * 1000L)+ " lastNode="+ memSession._lastNode+ " thisNode="+ getSessionIdManager().getWorkerName()+ " difference="+ (now - memSession._lastSaved));
+ else       LOG.debug("getSession(" + idInCluster + "): in session map, "+ " hashcode="+ memSession.hashCode()+ " now="+ now+ " lastSaved="+ (memSession == null ? 0 : memSession._lastSaved)+ " interval="+ (_saveIntervalSec * 1000L)+ " lastNode="+ memSession._lastNode+ " thisNode="+ getSessionIdManager().getWorkerName()+ " difference="+ (now - memSession._lastSaved));
     }
     try {
       if (memSession == null) {
@@ -46,7 +46,10 @@ synchronized (this) {
           session=null;
         }
       }
- else       LOG.debug("getSession({}): Session not stale {}",idInCluster,session);
+ else {
+        session=memSession;
+        LOG.debug("getSession({}): Session not stale {}",idInCluster,session);
+      }
     }
  else {
       LOG.debug("getSession({}): No session in database matching id={}",idInCluster,idInCluster);

@@ -6,22 +6,20 @@
     while (parseFrame(buffer)) {
       LOG.debug("{} Parsed Frame: {}",policy.getBehavior(),frame);
       notifyFrame(frame);
-      if (frame.isDataFrame() && frame.isFin()) {
-        priorDataFrame=null;
+      if (frame.isDataFrame()) {
+        priorDataFrame=!frame.isFin();
       }
- else {
-        priorDataFrame=frame;
-      }
+      reset();
     }
   }
  catch (  WebSocketException e) {
     buffer.position(buffer.limit());
-    this.payload=null;
+    reset();
     notifyWebSocketException(e);
   }
 catch (  Throwable t) {
     buffer.position(buffer.limit());
-    this.payload=null;
+    reset();
     notifyWebSocketException(new WebSocketException(t));
   }
 }

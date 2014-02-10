@@ -1,6 +1,6 @@
 {
   final Map<Integer,Integer> counter=new ConcurrentHashMap<>(iterations);
-  final CountDownLatch latch=new CountDownLatch(2 * iterations);
+  final CountDownLatch requestsLatch=new CountDownLatch(2 * iterations);
   for (int i=0; i < iterations; ++i) {
     final AtomicInteger count=new AtomicInteger(2);
     final int index=i;
@@ -8,14 +8,14 @@
     session.syn(new SynInfo(headers,false),new StreamFrameListener.Adapter(){
       @Override public void onReply(      Stream stream,      ReplyInfo replyInfo){
         Assert.assertEquals(2,count.getAndDecrement());
-        latch.countDown();
+        requestsLatch.countDown();
       }
       @Override public void onData(      Stream stream,      DataInfo dataInfo){
         dataInfo.asBytes(true);
         if (dataInfo.isClose()) {
           Assert.assertEquals(1,count.getAndDecrement());
           counter.remove(index);
-          latch.countDown();
+          requestsLatch.countDown();
         }
       }
     }
@@ -26,6 +26,6 @@
     }
 );
   }
-  Assert.assertTrue(latch.await(iterations,TimeUnit.SECONDS));
+  Assert.assertTrue(requestsLatch.await(iterations,TimeUnit.SECONDS));
   Assert.assertTrue(counter.toString(),counter.isEmpty());
 }

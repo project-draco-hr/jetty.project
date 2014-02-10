@@ -1,0 +1,51 @@
+{
+  AbstractTestServer server=new JdbcTestServer(0,INACTIVE,SCAVENGE);
+  ServletContextHandler ctxA=server.addContext("/mod");
+  ServletHolder holder=new ServletHolder();
+  TestSaveIntervalServlet servlet=new TestSaveIntervalServlet();
+  holder.setServlet(servlet);
+  ctxA.addServlet(holder,"/test");
+  ((JDBCSessionManager)ctxA.getSessionHandler().getSessionManager()).setSaveInterval(SAVE);
+  server.start();
+  int port=server.getPort();
+  try {
+    HttpClient client=new HttpClient();
+    client.start();
+    try {
+      ContentResponse response=client.GET("http://localhost:" + port + "/mod/test?action=create");
+      assertEquals(HttpServletResponse.SC_OK,response.getStatus());
+      String sessionCookie=response.getHeaders().getStringField("Set-Cookie");
+      assertTrue(sessionCookie != null);
+      sessionCookie=sessionCookie.replaceFirst("(\\W)(P|p)ath=","$1\\$Path=");
+      long lastSaved=((JDBCSessionManager.Session)servlet._session).getLastSaved();
+      Request request=client.newRequest("http://localhost:" + port + "/mod/test?action=set");
+      request.header("Cookie",sessionCookie);
+      response=request.send();
+      assertEquals(HttpServletResponse.SC_OK,response.getStatus());
+      long tmp=((JDBCSessionManager.Session)servlet._session).getLastSaved();
+      assertNotEquals(lastSaved,tmp);
+      lastSaved=tmp;
+      Thread.currentThread().sleep((SAVE + 2) * 1000);
+      request=client.newRequest("http://localhost:" + port + "/mod/test?action=tickle");
+      request.header("Cookie",sessionCookie);
+      response=request.send();
+      assertEquals(HttpServletResponse.SC_OK,response.getStatus());
+      tmp=((JDBCSessionManager.Session)servlet._session).getLastSaved();
+      assertNotEquals(lastSaved,tmp);
+      lastSaved=tmp;
+      Thread.currentThread().sleep((SAVE / 2) * 1000);
+      request=client.newRequest("http://localhost:" + port + "/mod/test?action=tickle");
+      request.header("Cookie",sessionCookie);
+      response=request.send();
+      assertEquals(HttpServletResponse.SC_OK,response.getStatus());
+      tmp=((JDBCSessionManager.Session)servlet._session).getLastSaved();
+      assertEquals(lastSaved,tmp);
+    }
+  finally {
+      client.stop();
+    }
+  }
+  finally {
+    server.stop();
+  }
+}

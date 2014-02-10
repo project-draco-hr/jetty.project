@@ -1,17 +1,23 @@
 {
-  OutputState state=_state.get();
-  while (state != OutputState.CLOSED) {
-    if (_state.compareAndSet(state,OutputState.CLOSED)) {
-      try {
-        write(BufferUtil.hasContent(_aggregate) ? _aggregate : BufferUtil.EMPTY_BUFFER,!_channel.getResponse().isIncluding());
-      }
- catch (      IOException e) {
-        LOG.debug(e);
-        _channel.failed();
-      }
-      releaseBuffer();
-      return;
+  loop:   while (true) {
+    OutputState state=_state.get();
+switch (state) {
+case CLOSED:
+      break loop;
+case UNREADY:
+    throw new WritePendingException();
+default :
+  if (_state.compareAndSet(state,OutputState.CLOSED)) {
+    try {
+      write(BufferUtil.hasContent(_aggregate) ? _aggregate : BufferUtil.EMPTY_BUFFER,!_channel.getResponse().isIncluding());
     }
-    state=_state.get();
+ catch (    IOException e) {
+      LOG.debug(e);
+      _channel.failed();
+    }
+    releaseBuffer();
+    return;
   }
+}
+}
 }

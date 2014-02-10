@@ -1,21 +1,14 @@
 {
-  if (buffer.remaining() <= 0) {
-    return false;
-  }
   LOG.debug("{} Parsing {} bytes",policy.getBehavior(),buffer.remaining());
   while (buffer.hasRemaining()) {
 switch (state) {
 case START:
 {
-        if ((frame != null) && (frame.isFin())) {
-          frame.reset();
-        }
         byte b=buffer.get();
         boolean fin=((b & 0x80) != 0);
-        byte opc=(byte)(b & 0x0F);
-        byte opcode=opc;
+        byte opcode=(byte)(b & 0x0F);
         if (!OpCode.isKnown(opcode)) {
-          throw new ProtocolException("Unknown opcode: " + opc);
+          throw new ProtocolException("Unknown opcode: " + opcode);
         }
         if (LOG.isDebugEnabled()) {
           LOG.debug("OpCode {}, fin={} rsv={}{}{}",OpCode.name(opcode),fin,(isRsv1InUse() ? '1' : '.'),(isRsv2InUse() ? '1' : '.'),(isRsv3InUse() ? '1' : '.'));
@@ -23,25 +16,21 @@ case START:
 switch (opcode) {
 case OpCode.TEXT:
           frame=new TextFrame();
-        lastDataOpcode=opcode;
-      if ((priorDataFrame != null) && (!priorDataFrame.isFin())) {
-        throw new ProtocolException("Unexpected " + OpCode.name(opcode) + " frame, was expecting CONTINUATION");
-      }
-    break;
+        if (priorDataFrame) {
+          throw new ProtocolException("Unexpected " + OpCode.name(opcode) + " frame, was expecting CONTINUATION");
+        }
+      break;
 case OpCode.BINARY:
-  frame=new BinaryFrame();
-lastDataOpcode=opcode;
-if ((priorDataFrame != null) && (!priorDataFrame.isFin())) {
-throw new ProtocolException("Unexpected " + OpCode.name(opcode) + " frame, was expecting CONTINUATION");
-}
+    frame=new BinaryFrame();
+  if (priorDataFrame) {
+    throw new ProtocolException("Unexpected " + OpCode.name(opcode) + " frame, was expecting CONTINUATION");
+  }
 break;
 case OpCode.CONTINUATION:
 frame=new ContinuationFrame();
-lastDataOpcode=opcode;
-if (priorDataFrame == null) {
+if (!priorDataFrame) {
 throw new ProtocolException("CONTINUATION frame without prior !FIN");
 }
-opcode=lastDataOpcode;
 break;
 case OpCode.CLOSE:
 frame=new CloseFrame();
@@ -173,6 +162,7 @@ break;
 }
 case PAYLOAD:
 {
+frame.assertValid();
 if (parsePayload(buffer)) {
 if (frame.getOpCode() == OpCode.CLOSE) {
 new CloseInfo(frame);

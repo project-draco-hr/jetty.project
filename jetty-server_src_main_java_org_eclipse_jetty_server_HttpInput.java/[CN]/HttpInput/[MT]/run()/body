@@ -1,31 +1,31 @@
 {
-  final boolean available;
+  final Throwable error;
+  final ReadListener listener;
+  boolean available=false;
   final boolean eof;
-  final Throwable x;
 synchronized (lock()) {
     if (!_notReady || _listener == null)     return;
-    x=_onError;
-    T item;
+    error=_onError;
+    listener=_listener;
     try {
-      item=getNextContent();
+      T item=getNextContent();
+      available=item != null && remaining(item) > 0;
     }
  catch (    Exception e) {
-      item=null;
       failed(e);
     }
-    available=item != null && remaining(item) > 0;
-    eof=!available && _state.isEOF();
+    eof=!available && isFinished();
     _notReady=!available && !eof;
   }
   try {
-    if (x != null)     _listener.onError(x);
- else     if (available)     _listener.onDataAvailable();
- else     if (eof)     _listener.onAllDataRead();
+    if (error != null)     listener.onError(error);
+ else     if (available)     listener.onDataAvailable();
+ else     if (eof)     listener.onAllDataRead();
  else     unready();
   }
  catch (  Throwable e) {
     LOG.warn(e.toString());
     LOG.debug(e);
-    _listener.onError(e);
+    listener.onError(e);
   }
 }
