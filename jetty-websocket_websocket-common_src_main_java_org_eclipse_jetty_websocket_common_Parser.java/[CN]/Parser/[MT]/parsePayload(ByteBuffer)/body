@@ -3,12 +3,8 @@
     return true;
   }
   if (buffer.hasRemaining()) {
-    if (payload == null) {
-      frame.assertValid();
-      payload=bufferPool.acquire(payloadLength,false);
-      BufferUtil.clearToFill(payload);
-    }
-    int bytesExpected=payloadLength - payload.position();
+    int bytesSoFar=payload == null ? 0 : payload.position();
+    int bytesExpected=payloadLength - bytesSoFar;
     int bytesAvailable=buffer.remaining();
     int windowBytes=Math.min(bytesAvailable,bytesExpected);
     int limit=buffer.limit();
@@ -20,11 +16,21 @@
       LOG.debug("Window: {}",BufferUtil.toDetailString(window));
     }
     maskProcessor.process(window);
-    payload.put(window);
-    if (payload.position() >= payloadLength) {
-      BufferUtil.flipToFlush(payload,0);
-      frame.setPayload(payload);
+    if (window.remaining() == payloadLength) {
+      frame.setPayload(window);
       return true;
+    }
+ else {
+      if (payload == null) {
+        payload=bufferPool.acquire(payloadLength,false);
+        BufferUtil.clearToFill(payload);
+      }
+      payload.put(window);
+      if (payload.position() == payloadLength) {
+        BufferUtil.flipToFlush(payload,0);
+        frame.setPayload(payload);
+        return true;
+      }
     }
   }
   return false;
