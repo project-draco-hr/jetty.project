@@ -4,7 +4,7 @@
     int timeout=Integer.parseInt(tNode.toString(false,true));
     context.getSessionHandler().getSessionManager().setMaxInactiveInterval(timeout * 60);
   }
-  Iterator iter=node.iterator("tracking-mode");
+  Iterator<Node> iter=node.iterator("tracking-mode");
   if (iter.hasNext()) {
     Set<SessionTrackingMode> modes=null;
     Origin o=context.getMetaData().getOrigin("session.tracking-mode");
@@ -25,11 +25,13 @@ case WebOverride:
       context.getMetaData().setOrigin("session.tracking-mode",descriptor);
       break;
     }
+default :
+  LOG.warn(new Throwable());
 }
 while (iter.hasNext()) {
-  XmlParser.Node mNode=(XmlParser.Node)iter.next();
-  String trackMode=mNode.toString(false,true);
-  modes.add(SessionTrackingMode.valueOf(trackMode));
+XmlParser.Node mNode=(XmlParser.Node)iter.next();
+String trackMode=mNode.toString(false,true);
+modes.add(SessionTrackingMode.valueOf(trackMode));
 }
 context.getSessionHandler().getSessionManager().setSessionTrackingModes(modes);
 }
@@ -40,25 +42,27 @@ if (name != null) {
 switch (context.getMetaData().getOrigin("cookie-config.name")) {
 case NotSet:
 {
-      context.getSessionHandler().getSessionManager().getSessionCookieConfig().setName(name);
-      context.getMetaData().setOrigin("cookie-config.name",descriptor);
-      break;
-    }
+    context.getSessionHandler().getSessionManager().getSessionCookieConfig().setName(name);
+    context.getMetaData().setOrigin("cookie-config.name",descriptor);
+    break;
+  }
 case WebXml:
 case WebDefaults:
 case WebOverride:
 {
-    if (!(descriptor instanceof FragmentDescriptor)) {
-      context.getSessionHandler().getSessionManager().getSessionCookieConfig().setName(name);
-      context.getMetaData().setOrigin("cookie-config.name",descriptor);
-    }
-    break;
+  if (!(descriptor instanceof FragmentDescriptor)) {
+    context.getSessionHandler().getSessionManager().getSessionCookieConfig().setName(name);
+    context.getMetaData().setOrigin("cookie-config.name",descriptor);
   }
-case WebFragment:
-{
-  if (!context.getSessionHandler().getSessionManager().getSessionCookieConfig().getName().equals(name))   throw new IllegalStateException("Conflicting cookie-config name " + name + " in "+ descriptor.getResource());
   break;
 }
+case WebFragment:
+{
+if (!context.getSessionHandler().getSessionManager().getSessionCookieConfig().getName().equals(name)) throw new IllegalStateException("Conflicting cookie-config name " + name + " in "+ descriptor.getResource());
+break;
+}
+default :
+LOG.warn(new Throwable());
 }
 }
 String domain=cookieConfig.getString("domain",false,true);
@@ -85,6 +89,8 @@ case WebFragment:
 if (!context.getSessionHandler().getSessionManager().getSessionCookieConfig().getDomain().equals(domain)) throw new IllegalStateException("Conflicting cookie-config domain " + domain + " in "+ descriptor.getResource());
 break;
 }
+default :
+LOG.warn(new Throwable());
 }
 }
 String path=cookieConfig.getString("path",false,true);
@@ -111,6 +117,8 @@ case WebFragment:
 if (!context.getSessionHandler().getSessionManager().getSessionCookieConfig().getPath().equals(path)) throw new IllegalStateException("Conflicting cookie-config path " + path + " in "+ descriptor.getResource());
 break;
 }
+default :
+LOG.warn(new Throwable());
 }
 }
 String comment=cookieConfig.getString("comment",false,true);
@@ -137,6 +145,8 @@ case WebFragment:
 if (!context.getSessionHandler().getSessionManager().getSessionCookieConfig().getComment().equals(comment)) throw new IllegalStateException("Conflicting cookie-config comment " + comment + " in "+ descriptor.getResource());
 break;
 }
+default :
+LOG.warn(new Throwable());
 }
 }
 tNode=cookieConfig.get("http-only");
@@ -164,6 +174,8 @@ case WebFragment:
 if (context.getSessionHandler().getSessionManager().getSessionCookieConfig().isHttpOnly() != httpOnly) throw new IllegalStateException("Conflicting cookie-config http-only " + httpOnly + " in "+ descriptor.getResource());
 break;
 }
+default :
+LOG.warn(new Throwable());
 }
 }
 tNode=cookieConfig.get("secure");
@@ -191,6 +203,8 @@ case WebFragment:
 if (context.getSessionHandler().getSessionManager().getSessionCookieConfig().isSecure() != secure) throw new IllegalStateException("Conflicting cookie-config secure " + secure + " in "+ descriptor.getResource());
 break;
 }
+default :
+LOG.warn(new Throwable());
 }
 }
 tNode=cookieConfig.get("max-age");
@@ -218,6 +232,8 @@ case WebFragment:
 if (context.getSessionHandler().getSessionManager().getSessionCookieConfig().getMaxAge() != maxAge) throw new IllegalStateException("Conflicting cookie-config max-age " + maxAge + " in "+ descriptor.getResource());
 break;
 }
+default :
+LOG.warn(new Throwable());
 }
 }
 }

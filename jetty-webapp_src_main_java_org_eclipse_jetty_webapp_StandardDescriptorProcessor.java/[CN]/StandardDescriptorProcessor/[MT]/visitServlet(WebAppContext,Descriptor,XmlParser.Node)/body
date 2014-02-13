@@ -36,24 +36,24 @@ case WebFragment:
     if ((descriptor != originDescriptor) && !holder.getInitParameter(pname).equals(pvalue))     throw new IllegalStateException("Mismatching init-param " + pname + "="+ pvalue+ " in "+ descriptor.getResource());
     break;
   }
+default :
+LOG.warn(new Throwable());
 }
 }
 String servlet_class=node.getString("servlet-class",false,true);
-String jspServletClass=null;
 if (id != null && id.equals("jsp")) {
-jspServletClass=servlet_class;
 try {
 Loader.loadClass(this.getClass(),servlet_class);
 if (holder.getInitParameter("scratchdir") == null) {
-  File tmp=context.getTempDirectory();
-  File scratch=new File(tmp,"jsp");
-  if (!scratch.exists())   scratch.mkdir();
-  holder.setInitParameter("scratchdir",scratch.getAbsolutePath());
+File tmp=context.getTempDirectory();
+File scratch=new File(tmp,"jsp");
+if (!scratch.exists()) scratch.mkdir();
+holder.setInitParameter("scratchdir",scratch.getAbsolutePath());
 }
 }
  catch (ClassNotFoundException e) {
 LOG.info("NO JSP Support for {}, did not find {}",context.getContextPath(),servlet_class);
-jspServletClass=servlet_class="org.eclipse.jetty.servlet.NoJspServlet";
+servlet_class="org.eclipse.jetty.servlet.NoJspServlet";
 }
 }
 if (servlet_class != null) {
@@ -61,17 +61,17 @@ if (servlet_class != null) {
 switch (context.getMetaData().getOrigin(servlet_name + ".servlet.servlet-class")) {
 case NotSet:
 {
-  holder.setClassName(servlet_class);
-  context.getMetaData().setOrigin(servlet_name + ".servlet.servlet-class",descriptor);
-  break;
+holder.setClassName(servlet_class);
+context.getMetaData().setOrigin(servlet_name + ".servlet.servlet-class",descriptor);
+break;
 }
 case WebXml:
 case WebDefaults:
 case WebOverride:
 {
 if (!(descriptor instanceof FragmentDescriptor)) {
-  holder.setClassName(servlet_class);
-  context.getMetaData().setOrigin(servlet_name + ".servlet.servlet-class",descriptor);
+holder.setClassName(servlet_class);
+context.getMetaData().setOrigin(servlet_name + ".servlet.servlet-class",descriptor);
 }
 break;
 }
@@ -80,6 +80,8 @@ case WebFragment:
 if (!servlet_class.equals(holder.getClassName())) throw new IllegalStateException("Conflicting servlet-class " + servlet_class + " in "+ descriptor.getResource());
 break;
 }
+default :
+LOG.warn(new Throwable());
 }
 }
 String jsp_file=node.getString("jsp-file",false,true);
@@ -127,9 +129,11 @@ case WebFragment:
 if (order != holder.getInitOrder()) throw new IllegalStateException("Conflicting load-on-startup value in " + descriptor.getResource());
 break;
 }
+default :
+LOG.warn(new Throwable());
 }
 }
-Iterator sRefsIter=node.iterator("security-role-ref");
+Iterator<Node> sRefsIter=node.iterator("security-role-ref");
 while (sRefsIter.hasNext()) {
 XmlParser.Node securityRef=(XmlParser.Node)sRefsIter.next();
 String roleName=securityRef.getString("role-name",false,true);
@@ -158,6 +162,8 @@ case WebFragment:
 if (!holder.getUserRoleLink(roleName).equals(roleLink)) throw new IllegalStateException("Conflicting role-link for role-name " + roleName + " for servlet "+ servlet_name+ " in "+ descriptor.getResource());
 break;
 }
+default :
+LOG.warn(new Throwable());
 }
 }
  else {
@@ -190,6 +196,8 @@ case WebFragment:
 if (!holder.getRunAsRole().equals(roleName)) throw new IllegalStateException("Conflicting run-as role " + roleName + " for servlet "+ servlet_name+ " in "+ descriptor.getResource());
 break;
 }
+default :
+LOG.warn(new Throwable());
 }
 }
 }
@@ -218,6 +226,8 @@ case WebFragment:
 if (holder.isAsyncSupported() != val) throw new IllegalStateException("Conflicting async-supported=" + async + " for servlet "+ servlet_name+ " in "+ descriptor.getResource());
 break;
 }
+default :
+LOG.warn(new Throwable());
 }
 }
 String enabled=node.getString("enabled",false,true);
@@ -245,6 +255,8 @@ case WebFragment:
 if (holder.isEnabled() != is_enabled) throw new IllegalStateException("Conflicting value of servlet enabled for servlet " + servlet_name + " in "+ descriptor.getResource());
 break;
 }
+default :
+LOG.warn(new Throwable());
 }
 }
 XmlParser.Node multipart=node.get("multipart-config");
@@ -280,6 +292,8 @@ if (cfg.getFileSizeThreshold() != element.getFileSizeThreshold()) throw new Ille
 if ((cfg.getLocation() != null && (element.getLocation() == null || element.getLocation().length() == 0)) || (cfg.getLocation() == null && (element.getLocation() != null || element.getLocation().length() > 0))) throw new IllegalStateException("Conflicting multipart-config location for servlet " + servlet_name + " in "+ descriptor.getResource());
 break;
 }
+default :
+LOG.warn(new Throwable());
 }
 }
 }
