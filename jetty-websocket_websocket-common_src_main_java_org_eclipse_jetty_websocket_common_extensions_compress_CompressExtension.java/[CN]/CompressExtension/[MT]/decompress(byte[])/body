@@ -1,0 +1,28 @@
+{
+  int maxSize=Math.max(getPolicy().getMaxTextMessageSize(),getPolicy().getMaxBinaryMessageBufferSize());
+  ByteAccumulator accumulator=new ByteAccumulator(maxSize);
+  decompressor.setInput(input,0,input.length);
+  LOG.debug("Decompressing {} bytes",input.length);
+  try {
+    while (decompressor.getRemaining() > 0 && !decompressor.finished()) {
+      byte[] output=new byte[Math.min(input.length * 2,64 * 1024)];
+      int decompressed=decompressor.inflate(output);
+      if (decompressed == 0) {
+        if (decompressor.needsInput()) {
+          throw new BadPayloadException("Unable to inflate frame, not enough input on frame");
+        }
+        if (decompressor.needsDictionary()) {
+          throw new BadPayloadException("Unable to inflate frame, frame erroneously says it needs a dictionary");
+        }
+      }
+ else {
+        accumulator.addChunk(output,0,decompressed);
+      }
+    }
+    LOG.debug("Decompressed {}->{} bytes",input.length,accumulator.getLength());
+    return accumulator;
+  }
+ catch (  DataFormatException x) {
+    throw new BadPayloadException(x);
+  }
+}

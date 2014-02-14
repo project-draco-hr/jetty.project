@@ -1,9 +1,5 @@
 {
-  if (OpCode.isControlFrame(frame.getOpCode()) || !frame.isRsv1()) {
-    nextIncomingFrame(frame);
-    return;
-  }
-  if (!frame.hasPayload()) {
+  if (OpCode.isControlFrame(frame.getOpCode()) || !frame.isRsv1() || !frame.hasPayload()) {
     nextIncomingFrame(frame);
     return;
   }
@@ -12,39 +8,5 @@
   byte[] input=new byte[remaining + TAIL_BYTES.length];
   payload.get(input,0,remaining);
   System.arraycopy(TAIL_BYTES,0,input,remaining,TAIL_BYTES.length);
-  int maxSize=Math.max(getPolicy().getMaxTextMessageSize(),getPolicy().getMaxBinaryMessageBufferSize());
-  ByteAccumulator accumulator=new ByteAccumulator(maxSize);
-  DataFrame out=new DataFrame(frame);
-  out.setRsv1(false);
-  decompressor.setInput(input,0,input.length);
-  try {
-    while (decompressor.getRemaining() > 0) {
-      byte[] output=new byte[Math.min(remaining * 2,64 * 1024)];
-      int len=decompressor.inflate(output);
-      if (len == 0) {
-        if (decompressor.needsInput()) {
-          throw new BadPayloadException("Unable to inflate frame, not enough input on frame");
-        }
-        if (decompressor.needsDictionary()) {
-          throw new BadPayloadException("Unable to inflate frame, frame erroneously says it needs a dictionary");
-        }
-      }
- else {
-        accumulator.addChunk(output,0,len);
-      }
-    }
-  }
- catch (  DataFormatException x) {
-    throw new BadPayloadException(x);
-  }
-  ByteBuffer buffer=getBufferPool().acquire(accumulator.getLength(),false);
-  try {
-    BufferUtil.flipToFill(buffer);
-    accumulator.transferTo(buffer);
-    out.setPayload(buffer);
-    nextIncomingFrame(out);
-  }
-  finally {
-    getBufferPool().release(buffer);
-  }
+  forwardIncoming(frame,decompress(input));
 }
