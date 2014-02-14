@@ -48,7 +48,7 @@ throw new BadPayloadException("Unable to inflate frame, frame erroneously says i
 }
 }
 if (len > 0) {
-accumulator.addBuffer(outbuf,0,len);
+accumulator.addChunk(outbuf,0,len);
 }
 }
  catch (DataFormatException e) {
@@ -56,6 +56,14 @@ LOG.warn(e);
 throw new BadPayloadException(e);
 }
 }
-out.setPayload(accumulator.getByteBuffer(getBufferPool()));
+ByteBuffer buffer=getBufferPool().acquire(accumulator.getLength(),false);
+try {
+BufferUtil.flipToFill(buffer);
+accumulator.transferTo(buffer);
+out.setPayload(buffer);
 nextIncomingFrame(out);
+}
+  finally {
+getBufferPool().release(buffer);
+}
 }
