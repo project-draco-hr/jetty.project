@@ -1,33 +1,42 @@
 {
   ByteBuffer data=frame.getPayload();
   int remaining=data.remaining();
-  byte[] input=new byte[Math.min(remaining,inputLength)];
-  int length=Math.min(remaining,input.length);
-  LOG.debug("Compressing {}: {} bytes in {} bytes chunk",frame,remaining,length);
-  finished=length == remaining;
-  data.get(input,0,length);
-  compressor.setInput(input,0,length);
-  byte[] output=new byte[length + 64];
-  int offset=0;
-  int total=0;
+  int inputLength=Math.min(remaining,32 * 1024);
+  LOG.debug("Compressing {}: {} bytes in {} bytes chunk",frame,remaining,inputLength);
+  int inputOffset;
+  byte[] input;
+  if (data.hasArray()) {
+    input=data.array();
+    int position=data.position();
+    inputOffset=position + data.arrayOffset();
+    data.position(position + inputLength);
+  }
+ else {
+    input=new byte[inputLength];
+    inputOffset=0;
+    data.get(input,0,inputLength);
+  }
+  finished=inputLength == remaining;
+  compressor.setInput(input,inputOffset,inputLength);
+  byte[] output=new byte[inputLength + 64];
+  int outputOffset=0;
+  int outputLength=0;
   while (true) {
-    int space=output.length - offset;
-    int compressed=compressor.deflate(output,offset,space,Deflater.SYNC_FLUSH);
-    total+=compressed;
+    int space=output.length - outputOffset;
+    int compressed=compressor.deflate(output,outputOffset,space,Deflater.SYNC_FLUSH);
+    outputLength+=compressed;
     if (compressed < space) {
       break;
     }
  else {
       byte[] newOutput=new byte[output.length * 2];
       System.arraycopy(output,0,newOutput,0,output.length);
-      offset+=output.length;
+      outputOffset+=output.length;
       output=newOutput;
     }
   }
-  payload=getBufferPool().acquire(total,true);
-  BufferUtil.flipToFill(payload);
-  payload.put(output,0,total - TAIL_BYTES.length).flip();
-  LOG.debug("Compressed {}: {}->{} chunk bytes",frame,length,total);
+  payload=ByteBuffer.wrap(output,0,outputLength - TAIL_BYTES.length);
+  LOG.debug("Compressed {}: {}->{} chunk bytes",frame,inputLength,outputLength);
   boolean continuation=frame.getType().isContinuation() || !first;
   DataFrame chunk=new DataFrame(frame,continuation);
   chunk.setRsv1(true);
