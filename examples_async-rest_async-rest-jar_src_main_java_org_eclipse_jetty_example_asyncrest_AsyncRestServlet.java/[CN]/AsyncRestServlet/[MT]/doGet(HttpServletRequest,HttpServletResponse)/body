@@ -6,7 +6,7 @@
     request.setAttribute(RESULTS_ATTR,results=resultsQueue);
     final AsyncContext async=request.startAsync();
     async.setTimeout(30000);
-    String[] keywords=request.getParameter(ITEMS_PARAM).split(",");
+    String[] keywords=sanitize(request.getParameter(ITEMS_PARAM)).split(",");
     final AtomicInteger outstanding=new AtomicInteger(keywords.length);
     for (    final String item : keywords) {
       _client.newRequest(restURL(item)).method(HttpMethod.GET).send(new AsyncRestRequest(){
@@ -35,7 +35,7 @@
   long total=now - start0;
   long generate=now - start;
   long thread=initial + generate;
-  out.print("<b>Asynchronous: " + request.getParameter(ITEMS_PARAM) + "</b><br/>");
+  out.print("<b>Asynchronous: " + sanitize(request.getParameter(ITEMS_PARAM)) + "</b><br/>");
   out.print("Total Time: " + ms(total) + "ms<br/>");
   out.print("Thread held (<span class='red'>red</span>): " + ms(thread) + "ms ("+ ms(initial)+ " initial + "+ ms(generate)+ " generate )<br/>");
   out.print("Async wait (<span class='green'>green</span>): " + ms(total - thread) + "ms<br/>");
