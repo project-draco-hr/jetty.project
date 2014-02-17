@@ -10,7 +10,7 @@
   serverExtension.setPolicy(WebSocketPolicy.newServerPolicy());
   serverExtension.setConfig(ExtensionConfig.parse("deflate-frame"));
   clientExtension.setNextOutgoingFrames(new OutgoingFrames(){
-    @Override public void outgoingFrame(    Frame frame,    WriteCallback callback){
+    @Override public void outgoingFrame(    Frame frame,    WriteCallback callback,    FlushMode flushMode){
       serverExtension.incomingFrame(frame);
       callback.writeSuccess();
     }
@@ -33,6 +33,6 @@
   BinaryFrame frame=new BinaryFrame();
   frame.setPayload(input);
   frame.setFin(true);
-  clientExtension.outgoingFrame(frame,null);
+  clientExtension.outgoingFrame(frame,null,OutgoingFrames.FlushMode.FLUSH);
   Assert.assertArrayEquals(input,result.toByteArray());
 }
