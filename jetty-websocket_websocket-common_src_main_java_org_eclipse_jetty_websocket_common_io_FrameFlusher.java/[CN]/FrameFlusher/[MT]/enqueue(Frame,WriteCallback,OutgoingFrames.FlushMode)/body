@@ -1,32 +1,33 @@
 {
-  Objects.requireNonNull(frame);
+  if (closed.get()) {
+    notifyCallbackFailure(callback,new EOFException("Connection has been closed locally"));
+    return;
+  }
+  if (flusher.isFailed()) {
+    notifyCallbackFailure(callback,failure);
+    return;
+  }
   FrameEntry entry=new FrameEntry(frame,callback,flushMode);
-  LOG.debug("enqueue({})",entry);
-  Throwable failure=null;
 synchronized (lock) {
-    if (closed) {
-      LOG.debug("Write is closed: {} {}",frame,callback);
-      failure=new IOException("Write is closed");
-    }
- else     if (this.failure != null) {
-      failure=this.failure;
-    }
 switch (frame.getOpCode()) {
 case OpCode.PING:
-      queue.add(0,entry);
-    break;
+{
+        queue.add(0,entry);
+        break;
+      }
 case OpCode.CLOSE:
-  closed=true;
-queue.add(entry);
-break;
+{
+      closed.set(true);
+      queue.add(entry);
+      break;
+    }
 default :
-queue.add(entry);
+{
+    queue.add(entry);
+    break;
+  }
 }
 }
-if (failure != null) {
-LOG.debug("Write is in failure: {} {}",frame,callback);
-entry.notifyFailed(failure);
-return;
-}
-flush();
+if (LOG.isDebugEnabled()) LOG.debug("{} queued {}",this,entry);
+flusher.iterate();
 }

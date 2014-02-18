@@ -9,7 +9,9 @@
     System.err.printf("Request URI: %s%n",requestUri.toASCIIString());
     Future<Session> fut=client.connect(clientSocket,requestUri);
     Session session=fut.get(5,TimeUnit.SECONDS);
-    session.getRemote().sendString("session.upgradeRequest.requestURI");
+    RemoteEndpoint remote=session.getRemote();
+    remote.sendString("session.upgradeRequest.requestURI");
+    if (remote.isBatching())     remote.flush();
     clientSocket.messages.awaitEventCount(1,500,TimeUnit.MILLISECONDS);
     EventQueue<String> captured=clientSocket.messages;
     String expected=String.format("session.upgradeRequest.requestURI=%s",requestUri.toASCIIString());

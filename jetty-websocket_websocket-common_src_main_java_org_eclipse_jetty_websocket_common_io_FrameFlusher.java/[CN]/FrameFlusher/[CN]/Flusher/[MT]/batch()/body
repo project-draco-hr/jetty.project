@@ -1,0 +1,16 @@
+{
+  if (aggregate == null) {
+    aggregate=bufferPool.acquire(bufferSize,true);
+    BufferUtil.flipToFill(aggregate);
+    if (LOG.isDebugEnabled())     LOG.debug("{} acquired aggregate buffer {}",FrameFlusher.this,aggregate);
+    releaseAggregate=false;
+  }
+  for (  FrameEntry entry : entries) {
+    ByteBuffer header=entry.getHeaderBytes();
+    aggregate.put(header);
+    ByteBuffer payload=entry.frame.getPayload();
+    if (BufferUtil.hasContent(payload))     aggregate.put(payload);
+  }
+  if (LOG.isDebugEnabled())   LOG.debug("{} aggregated {} frames: {}",FrameFlusher.this,entries.size(),entries);
+  succeeded();
+}

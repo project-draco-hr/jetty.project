@@ -1,0 +1,29 @@
+{
+  int space=aggregate == null ? bufferSize : aggregate.remaining();
+  boolean batch=true;
+synchronized (lock) {
+    while (entries.size() <= maxGather && !queue.isEmpty()) {
+      FrameEntry entry=queue.remove(0);
+      batch&=entry.flushMode == OutgoingFrames.FlushMode.AUTO;
+      if (entry.frame == FLUSH_FRAME)       batch=false;
+      int payloadLength=BufferUtil.length(entry.frame.getPayload());
+      int approxFrameLength=Generator.MAX_HEADER_LENGTH + payloadLength;
+      if (approxFrameLength > (bufferSize >> 2))       batch=false;
+      space-=approxFrameLength;
+      if (space <= 0)       batch=false;
+      entries.add(entry);
+    }
+  }
+  if (LOG.isDebugEnabled())   LOG.debug("{} processing {} entries: {}",FrameFlusher.this,entries.size(),entries);
+  if (entries.isEmpty()) {
+    if (releaseAggregate) {
+      bufferPool.release(aggregate);
+      if (LOG.isDebugEnabled())       LOG.debug("{} released aggregate buffer {}",FrameFlusher.this,aggregate);
+      aggregate=null;
+    }
+    return Action.IDLE;
+  }
+  if (batch)   batch();
+ else   flush();
+  return Action.SCHEDULED;
+}

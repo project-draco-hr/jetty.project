@@ -1,0 +1,17 @@
+{
+  if (!BufferUtil.isEmpty(aggregate)) {
+    BufferUtil.flipToFlush(aggregate,0);
+    buffers.add(aggregate);
+    releaseAggregate=true;
+    if (LOG.isDebugEnabled())     LOG.debug("{} flushing aggregate {}",FrameFlusher.this,aggregate);
+  }
+  for (  FrameEntry entry : entries) {
+    if (entry.frame == FLUSH_FRAME)     continue;
+    buffers.add(entry.getHeaderBytes());
+    ByteBuffer payload=entry.frame.getPayload();
+    if (BufferUtil.hasContent(payload))     buffers.add(payload);
+  }
+  if (LOG.isDebugEnabled())   LOG.debug("{} flushing {} frames: {}",FrameFlusher.this,entries.size(),entries);
+  endpoint.write(this,buffers.toArray(new ByteBuffer[buffers.size()]));
+  buffers.clear();
+}

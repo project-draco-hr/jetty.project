@@ -18,7 +18,9 @@
     cliSock.assertWasOpened();
     cliSock.assertNotClosed();
     Assert.assertThat("client.connectionManager.sessions.size",client.getConnectionManager().getSessions().size(),is(1));
-    cliSock.getSession().getRemote().sendStringByFuture("Hello World!");
+    RemoteEndpoint remote=cliSock.getSession().getRemote();
+    remote.sendStringByFuture("Hello World!");
+    if (remote.isBatching())     remote.flush();
     srvSock.echoMessage(1,TimeUnit.MILLISECONDS,500);
     cliSock.waitForMessage(500,TimeUnit.MILLISECONDS);
     Set<WebSocketSession> open=client.getOpenSessions();

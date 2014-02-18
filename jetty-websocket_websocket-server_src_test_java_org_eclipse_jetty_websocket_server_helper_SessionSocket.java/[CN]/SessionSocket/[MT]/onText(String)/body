@@ -10,7 +10,7 @@
       String key=message.substring(idx + 1);
       List<String> values=parameterMap.get(key);
       if (values == null) {
-        session.getRemote().sendString("<null>",null);
+        sendString("<null>");
         return;
       }
       StringBuilder valueStr=new StringBuilder();
@@ -24,24 +24,25 @@
         delim=true;
       }
       valueStr.append(']');
-      session.getRemote().sendString(valueStr.toString(),null);
+      System.err.println("valueStr = " + valueStr);
+      sendString(valueStr.toString());
       return;
     }
     if ("session.isSecure".equals(message)) {
       String issecure=String.format("session.isSecure=%b",session.isSecure());
-      session.getRemote().sendString(issecure,null);
+      sendString(issecure);
       return;
     }
     if ("session.upgradeRequest.requestURI".equals(message)) {
       String response=String.format("session.upgradeRequest.requestURI=%s",session.getUpgradeRequest().getRequestURI().toASCIIString());
-      session.getRemote().sendString(response,null);
+      sendString(response);
       return;
     }
     if ("harsh-disconnect".equals(message)) {
       session.disconnect();
       return;
     }
-    this.session.getRemote().sendString(message,null);
+    sendString(message);
   }
  catch (  Throwable t) {
     LOG.warn(t);
