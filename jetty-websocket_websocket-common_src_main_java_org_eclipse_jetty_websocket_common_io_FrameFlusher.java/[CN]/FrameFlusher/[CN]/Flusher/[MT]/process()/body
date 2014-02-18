@@ -1,16 +1,16 @@
 {
   int space=aggregate == null ? bufferSize : aggregate.remaining();
-  boolean batch=true;
+  BatchMode currentBatchMode=BatchMode.AUTO;
 synchronized (lock) {
     while (entries.size() <= maxGather && !queue.isEmpty()) {
       FrameEntry entry=queue.remove(0);
-      batch&=entry.flushMode == OutgoingFrames.FlushMode.AUTO;
-      if (entry.frame == FLUSH_FRAME)       batch=false;
+      currentBatchMode=BatchMode.max(currentBatchMode,entry.batchMode);
+      if (entry.frame == FLUSH_FRAME)       currentBatchMode=BatchMode.OFF;
       int payloadLength=BufferUtil.length(entry.frame.getPayload());
       int approxFrameLength=Generator.MAX_HEADER_LENGTH + payloadLength;
-      if (approxFrameLength > (bufferSize >> 2))       batch=false;
+      if (approxFrameLength > (bufferSize >> 2))       currentBatchMode=BatchMode.OFF;
       space-=approxFrameLength;
-      if (space <= 0)       batch=false;
+      if (space <= 0)       currentBatchMode=BatchMode.OFF;
       entries.add(entry);
     }
   }
@@ -21,9 +21,10 @@ synchronized (lock) {
       if (LOG.isDebugEnabled())       LOG.debug("{} released aggregate buffer {}",FrameFlusher.this,aggregate);
       aggregate=null;
     }
-    return Action.IDLE;
+    if (batchMode != BatchMode.AUTO)     return Action.IDLE;
+    LOG.debug("{} auto flushing",FrameFlusher.this);
+    return flush();
   }
-  if (batch)   batch();
- else   flush();
-  return Action.SCHEDULED;
+  batchMode=currentBatchMode;
+  return currentBatchMode == BatchMode.OFF ? flush() : batch();
 }
