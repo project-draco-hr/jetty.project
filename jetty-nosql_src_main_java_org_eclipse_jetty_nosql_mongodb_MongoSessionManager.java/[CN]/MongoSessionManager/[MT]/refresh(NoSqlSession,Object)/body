@@ -25,14 +25,16 @@
   }
   session.willPassivate();
   try {
-    session.clearAttributes();
     DBObject attrs=(DBObject)getNestedValue(o,getContextKey());
-    if (attrs != null) {
+    if (attrs == null || attrs.keySet().size() == 0) {
+      session.clearAttributes();
+    }
+ else {
       for (      String name : attrs.keySet()) {
         if (__METADATA.equals(name))         continue;
         String attr=decodeName(name);
         Object value=decodeValue(attrs.get(name));
-        if (attrs.keySet().contains(name)) {
+        if (session.getAttribute(attr) == null) {
           session.doPutOrRemove(attr,value);
           session.bindValue(attr,value);
         }
@@ -40,10 +42,10 @@
           session.doPutOrRemove(attr,value);
         }
       }
-      for (      String name : session.getNames()) {
-        if (!attrs.keySet().contains(name)) {
-          session.doPutOrRemove(name,null);
-          session.unbindValue(name,session.getAttribute(name));
+      for (      String str : session.getNames()) {
+        if (!attrs.keySet().contains(str)) {
+          session.doPutOrRemove(str,null);
+          session.unbindValue(str,session.getAttribute(str));
         }
       }
     }
