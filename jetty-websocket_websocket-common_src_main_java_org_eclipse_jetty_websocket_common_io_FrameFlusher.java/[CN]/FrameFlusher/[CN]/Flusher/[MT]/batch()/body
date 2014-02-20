@@ -1,16 +1,13 @@
 {
   if (aggregate == null) {
     aggregate=bufferPool.acquire(bufferSize,true);
-    BufferUtil.flipToFill(aggregate);
     if (LOG.isDebugEnabled())     LOG.debug("{} acquired aggregate buffer {}",FrameFlusher.this,aggregate);
-    releaseAggregate=false;
   }
   for (int i=0; i < entries.size(); ++i) {
     FrameEntry entry=entries.get(i);
-    ByteBuffer header=entry.getHeaderBytes();
-    aggregate.put(header);
+    entry.genHeaderBytes(aggregate);
     ByteBuffer payload=entry.frame.getPayload();
-    if (BufferUtil.hasContent(payload))     aggregate.put(payload);
+    if (BufferUtil.hasContent(payload))     BufferUtil.append(aggregate,payload);
   }
   if (LOG.isDebugEnabled())   LOG.debug("{} aggregated {} frames: {}",FrameFlusher.this,entries.size(),entries);
   succeeded();

@@ -1,5 +1,5 @@
 {
-  int space=aggregate == null ? bufferSize : aggregate.remaining();
+  int space=aggregate == null ? bufferSize : BufferUtil.space(aggregate);
   BatchMode currentBatchMode=BatchMode.AUTO;
 synchronized (lock) {
     while (entries.size() <= maxGather && !queue.isEmpty()) {
@@ -16,12 +16,13 @@ synchronized (lock) {
   }
   if (LOG.isDebugEnabled())   LOG.debug("{} processing {} entries: {}",FrameFlusher.this,entries.size(),entries);
   if (entries.isEmpty()) {
-    if (releaseAggregate) {
-      bufferPool.release(aggregate);
-      if (LOG.isDebugEnabled())       LOG.debug("{} released aggregate buffer {}",FrameFlusher.this,aggregate);
-      aggregate=null;
+    if (batchMode != BatchMode.AUTO) {
+      if (aggregate != null && BufferUtil.isEmpty(aggregate)) {
+        bufferPool.release(aggregate);
+        aggregate=null;
+      }
+      return Action.IDLE;
     }
-    if (batchMode != BatchMode.AUTO)     return Action.IDLE;
     LOG.debug("{} auto flushing",FrameFlusher.this);
     return flush();
   }

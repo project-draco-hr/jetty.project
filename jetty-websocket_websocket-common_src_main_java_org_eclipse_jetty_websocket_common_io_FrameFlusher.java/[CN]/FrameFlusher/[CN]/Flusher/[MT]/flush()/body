@@ -1,8 +1,6 @@
 {
   if (!BufferUtil.isEmpty(aggregate)) {
-    BufferUtil.flipToFlush(aggregate,0);
     buffers.add(aggregate);
-    releaseAggregate=true;
     if (LOG.isDebugEnabled())     LOG.debug("{} flushing aggregate {}",FrameFlusher.this,aggregate);
   }
   for (int i=0; i < entries.size(); ++i) {
@@ -13,7 +11,13 @@
     if (BufferUtil.hasContent(payload))     buffers.add(payload);
   }
   if (LOG.isDebugEnabled())   LOG.debug("{} flushing {} frames: {}",FrameFlusher.this,entries.size(),entries);
-  if (buffers.isEmpty())   return Action.IDLE;
+  if (buffers.isEmpty()) {
+    if (aggregate != null && BufferUtil.isEmpty(aggregate)) {
+      bufferPool.release(aggregate);
+      aggregate=null;
+    }
+    return Action.IDLE;
+  }
   endpoint.write(this,buffers.toArray(new ByteBuffer[buffers.size()]));
   buffers.clear();
   return Action.SCHEDULED;
