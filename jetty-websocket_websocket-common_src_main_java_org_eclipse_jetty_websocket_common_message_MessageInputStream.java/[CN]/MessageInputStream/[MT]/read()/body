@@ -1,10 +1,11 @@
 {
-  LOG.debug("read()");
   try {
     if (closed.get()) {
+      LOG.debug("Stream closed");
       return -1;
     }
     while (activeBuffer == null || !activeBuffer.hasRemaining()) {
+      if (LOG.isDebugEnabled())       LOG.debug("Waiting {} ms to read",timeoutMs);
       if (timeoutMs < 0) {
         activeBuffer=buffers.take();
       }
@@ -15,14 +16,16 @@
         }
       }
       if (activeBuffer == EOF) {
+        LOG.debug("Reached EOF");
         closed.set(true);
+        buffers.clear();
         return -1;
       }
     }
-    return activeBuffer.get();
+    return activeBuffer.get() & 0xFF;
   }
- catch (  InterruptedException e) {
-    LOG.warn(e);
+ catch (  InterruptedException x) {
+    LOG.debug("Interrupted while waiting to read",x);
     closed.set(true);
     return -1;
   }

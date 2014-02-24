@@ -1,10 +1,12 @@
 {
-  assertNotClosed();
-  flush(true);
-  closed=true;
-  if (callback != null) {
-    callback.writeSuccess();
+  try {
+    flush(true);
+    bufferPool.release(buffer);
+    LOG.debug("Stream closed, {} frames sent",frameCount);
+    notifySuccess();
   }
-  bufferPool.release(buffer);
-  LOG.debug("closed (frame count={})",frameCount);
+ catch (  Throwable x) {
+    notifyFailure(x);
+    throw x;
+  }
 }
