@@ -17,7 +17,17 @@
     if (firstComponent.equals(""))     ctx=this;
  else {
       Binding binding=getBinding(firstComponent);
-      if (binding == null)       throw new NameNotFoundException(firstComponent + " is not bound");
+      if (binding == null) {
+        if (_supportDeepBinding) {
+          Name subname=_parser.parse(firstComponent);
+          Context subctx=new NamingContext((Hashtable)_env.clone(),firstComponent,this,_parser);
+          addBinding(subname,subctx);
+          binding=getBinding(subname);
+        }
+ else {
+          throw new NameNotFoundException(firstComponent + " is not bound");
+        }
+      }
       ctx=binding.getObject();
       if (ctx instanceof Reference) {
         try {

@@ -1,11 +1,13 @@
 {
+  if (closed.compareAndSet(false,true)) {
+    LOG.debug("{} closing {}",this);
+    EOFException eof=new EOFException("Connection has been closed locally");
+    flusher.failed(eof);
+    List<FrameEntry> entries=new ArrayList<>();
 synchronized (lock) {
-    if (!closed) {
-      closed=true;
-      EOFException eof=new EOFException("Connection has been disconnected");
-      flusherCB.failed(eof);
-      for (      FrameEntry frame : queue)       frame.notifyFailed(eof);
+      entries.addAll(queue);
       queue.clear();
     }
+    for (    FrameEntry entry : entries)     notifyCallbackFailure(entry.callback,eof);
   }
 }

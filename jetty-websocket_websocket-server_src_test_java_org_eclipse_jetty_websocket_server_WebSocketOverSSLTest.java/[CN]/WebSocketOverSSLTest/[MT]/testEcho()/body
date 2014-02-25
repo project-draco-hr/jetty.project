@@ -9,7 +9,9 @@
     Future<Session> fut=client.connect(clientSocket,requestUri);
     Session session=fut.get(3,TimeUnit.SECONDS);
     String msg="this is an echo ... cho ... ho ... o";
-    session.getRemote().sendString(msg);
+    RemoteEndpoint remote=session.getRemote();
+    remote.sendString(msg);
+    if (remote.getBatchMode() == BatchMode.ON)     remote.flush();
     clientSocket.messages.awaitEventCount(1,500,TimeUnit.MILLISECONDS);
     EventQueue<String> captured=clientSocket.messages;
     Assert.assertThat("Text Message",captured.poll(),is(msg));

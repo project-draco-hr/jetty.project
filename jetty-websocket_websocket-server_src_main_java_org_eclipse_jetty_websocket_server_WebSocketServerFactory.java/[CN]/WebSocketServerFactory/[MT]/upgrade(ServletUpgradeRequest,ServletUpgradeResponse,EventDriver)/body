@@ -40,31 +40,26 @@
  else {
     extensionStack.negotiate(request.getExtensions());
   }
-  UpgradeContext context=getActiveUpgradeContext();
-  LogicalConnection connection=context.getConnection();
-  if (connection == null) {
-    HttpConnection http=HttpConnection.getCurrentConnection();
-    EndPoint endp=http.getEndPoint();
-    Executor executor=http.getConnector().getExecutor();
-    ByteBufferPool bufferPool=http.getConnector().getByteBufferPool();
-    WebSocketServerConnection wsConnection=new WebSocketServerConnection(endp,executor,scheduler,driver.getPolicy(),bufferPool,this);
-    connection=wsConnection;
-    extensionStack.setPolicy(driver.getPolicy());
-    extensionStack.configure(wsConnection.getParser());
-    extensionStack.configure(wsConnection.getGenerator());
-    LOG.debug("HttpConnection: {}",http);
-    LOG.debug("AsyncWebSocketConnection: {}",connection);
-  }
-  WebSocketSession session=createSession(request.getRequestURI(),driver,connection);
+  HttpConnection http=HttpConnection.getCurrentConnection();
+  EndPoint endp=http.getEndPoint();
+  Executor executor=http.getConnector().getExecutor();
+  ByteBufferPool bufferPool=http.getConnector().getByteBufferPool();
+  WebSocketServerConnection wsConnection=new WebSocketServerConnection(endp,executor,scheduler,driver.getPolicy(),bufferPool);
+  extensionStack.setPolicy(driver.getPolicy());
+  extensionStack.configure(wsConnection.getParser());
+  extensionStack.configure(wsConnection.getGenerator());
+  LOG.debug("HttpConnection: {}",http);
+  LOG.debug("WebSocketConnection: {}",wsConnection);
+  WebSocketSession session=createSession(request.getRequestURI(),driver,wsConnection);
   session.setPolicy(driver.getPolicy());
   session.setUpgradeRequest(request);
   response.setExtensions(extensionStack.getNegotiatedExtensions());
   session.setUpgradeResponse(response);
-  connection.setSession(session);
-  connection.setNextIncomingFrames(extensionStack);
+  wsConnection.setSession(session);
+  wsConnection.setNextIncomingFrames(extensionStack);
   extensionStack.setNextIncoming(session);
   session.setOutgoingHandler(extensionStack);
-  extensionStack.setNextOutgoing(connection);
+  extensionStack.setNextOutgoing(wsConnection);
   try {
     session.start();
   }
@@ -77,9 +72,9 @@
  catch (  Exception e) {
     throw new IOException("Unable to start Extension Stack",e);
   }
-  request.setServletAttribute(HttpConnection.UPGRADE_CONNECTION_ATTRIBUTE,connection);
+  request.setServletAttribute(HttpConnection.UPGRADE_CONNECTION_ATTRIBUTE,wsConnection);
   LOG.debug("Handshake Response: {}",handshaker);
   handshaker.doHandshakeResponse(request,response);
-  LOG.debug("Websocket upgrade {} {} {} {}",request.getRequestURI(),version,response.getAcceptedSubProtocol(),connection);
+  LOG.debug("Websocket upgrade {} {} {} {}",request.getRequestURI(),version,response.getAcceptedSubProtocol(),wsConnection);
   return true;
 }

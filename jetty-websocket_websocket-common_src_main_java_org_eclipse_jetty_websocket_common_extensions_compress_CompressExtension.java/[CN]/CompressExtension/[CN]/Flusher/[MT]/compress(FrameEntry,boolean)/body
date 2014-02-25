@@ -1,0 +1,48 @@
+{
+  Frame frame=entry.frame;
+  ByteBuffer data=frame.getPayload();
+  int remaining=data.remaining();
+  int inputLength=Math.min(remaining,32 * 1024);
+  LOG.debug("Compressing {}: {} bytes in {} bytes chunk",entry,remaining,inputLength);
+  int inputOffset;
+  byte[] input;
+  if (data.hasArray()) {
+    input=data.array();
+    int position=data.position();
+    inputOffset=position + data.arrayOffset();
+    data.position(position + inputLength);
+  }
+ else {
+    input=new byte[inputLength];
+    inputOffset=0;
+    data.get(input,0,inputLength);
+  }
+  finished=inputLength == remaining;
+  compressor.setInput(input,inputOffset,inputLength);
+  byte[] output=new byte[inputLength + 64];
+  int outputOffset=0;
+  int outputLength=0;
+  while (true) {
+    int space=output.length - outputOffset;
+    int compressed=compressor.deflate(output,outputOffset,space,Deflater.SYNC_FLUSH);
+    outputLength+=compressed;
+    if (compressed < space) {
+      break;
+    }
+ else {
+      byte[] newOutput=new byte[output.length * 2];
+      System.arraycopy(output,0,newOutput,0,output.length);
+      outputOffset+=output.length;
+      output=newOutput;
+    }
+  }
+  payload=ByteBuffer.wrap(output,0,outputLength - TAIL_BYTES.length);
+  LOG.debug("Compressed {}: {}->{} chunk bytes",entry,inputLength,outputLength);
+  boolean continuation=frame.getType().isContinuation() || !first;
+  DataFrame chunk=new DataFrame(frame,continuation);
+  chunk.setRsv1(true);
+  chunk.setPayload(payload);
+  boolean fin=frame.isFin() && finished;
+  chunk.setFin(fin);
+  nextOutgoingFrame(chunk,this,entry.batchMode);
+}

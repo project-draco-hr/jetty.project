@@ -1,45 +1,12 @@
 {
-  if (OpCode.isControlFrame(frame.getOpCode()) || !frame.isRsv1()) {
-    nextIncomingFrame(frame);
-    return;
-  }
-  if (!frame.hasPayload()) {
+  if (OpCode.isControlFrame(frame.getOpCode()) || !frame.isRsv1() || !frame.hasPayload()) {
     nextIncomingFrame(frame);
     return;
   }
   ByteBuffer payload=frame.getPayload();
-  int inlen=payload.remaining();
-  byte compressed[]=new byte[inlen + TAIL.length];
-  payload.get(compressed,0,inlen);
-  System.arraycopy(TAIL,0,compressed,inlen,TAIL.length);
-  int maxSize=Math.max(getPolicy().getMaxTextMessageSize(),getPolicy().getMaxBinaryMessageBufferSize());
-  ByteAccumulator accumulator=new ByteAccumulator(maxSize);
-  DataFrame out=new DataFrame(frame);
-  out.setRsv1(false);
-synchronized (decompressor) {
-    decompressor.setInput(compressed,0,compressed.length);
-    while (decompressor.getRemaining() > 0 && !decompressor.finished()) {
-      byte outbuf[]=new byte[Math.min(inlen * 2,bufferSize)];
-      try {
-        int len=decompressor.inflate(outbuf);
-        if (len == 0) {
-          if (decompressor.needsInput()) {
-            throw new BadPayloadException("Unable to inflate frame, not enough input on frame");
-          }
-          if (decompressor.needsDictionary()) {
-            throw new BadPayloadException("Unable to inflate frame, frame erroneously says it needs a dictionary");
-          }
-        }
-        if (len > 0) {
-          accumulator.addBuffer(outbuf,0,len);
-        }
-      }
- catch (      DataFormatException e) {
-        LOG.warn(e);
-        throw new BadPayloadException(e);
-      }
-    }
-  }
-  out.setPayload(accumulator.getByteBuffer(getBufferPool()));
-  nextIncomingFrame(out);
+  int remaining=payload.remaining();
+  byte[] input=new byte[remaining + TAIL_BYTES.length];
+  payload.get(input,0,remaining);
+  System.arraycopy(TAIL_BYTES,0,input,remaining,TAIL_BYTES.length);
+  forwardIncoming(frame,decompress(input));
 }

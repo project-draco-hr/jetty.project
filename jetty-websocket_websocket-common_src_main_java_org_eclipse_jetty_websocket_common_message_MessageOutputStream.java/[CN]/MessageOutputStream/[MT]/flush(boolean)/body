@@ -1,17 +1,15 @@
 {
-  BufferUtil.flipToFlush(buffer,0);
-  LOG.debug("flush({}): {}",fin,BufferUtil.toDetailString(buffer));
-  frame.setPayload(buffer);
-  frame.setFin(fin);
-  try {
-    outgoing.outgoingFrame(frame,blocker);
+synchronized (this) {
+    if (closed)     throw new IOException("Stream is closed");
+    closed=fin;
+    BufferUtil.flipToFlush(buffer,0);
+    LOG.debug("flush({}): {}",fin,BufferUtil.toDetailString(buffer));
+    frame.setPayload(buffer);
+    frame.setFin(fin);
+    outgoing.outgoingFrame(frame,blocker,BatchMode.OFF);
     blocker.block();
-    frameCount++;
+    ++frameCount;
     frame.setIsContinuation();
     BufferUtil.flipToFill(buffer);
-  }
- catch (  IOException e) {
-    notifyFailure(e);
-    throw e;
   }
 }

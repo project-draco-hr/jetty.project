@@ -1,14 +1,20 @@
 {
-  if (!isJSR356EnabledOnContext(context)) {
-    LOG.info("JSR-356 support disabled via attribute on context {} - {}",context.getContextPath(),context);
+  Object enable=context.getAttribute(ENABLE_KEY);
+  if (TypeUtil.isFalse(enable)) {
+    if (c.isEmpty())     LOG.debug("JSR-356 support disabled via attribute on context {} - {}",context.getContextPath(),context);
+ else     LOG.warn("JSR-356 support disabled via attribute on context {} - {}",context.getContextPath(),context);
+    return;
+  }
+  if (!TypeUtil.isTrue(enable) && c.isEmpty()) {
+    LOG.debug("No JSR-356 annotations or interfaces discovered. JSR-356 support disabled",context.getContextPath(),context);
     return;
   }
   ContextHandler handler=ContextHandler.getContextHandler(context);
   if (handler == null) {
-    throw new ServletException("Not running on Jetty, JSR support disabled");
+    throw new ServletException("Not running on Jetty, JSR-356 support disabled");
   }
   if (!(handler instanceof ServletContextHandler)) {
-    throw new ServletException("Not running in Jetty ServletContextHandler, JSR support disabled");
+    throw new ServletException("Not running in Jetty ServletContextHandler, JSR-356 support disabled");
   }
   ServletContextHandler jettyContext=(ServletContextHandler)handler;
   ServerContainer jettyContainer=configureContext(jettyContext);
@@ -27,7 +33,7 @@
   for (  Class<? extends ServerApplicationConfig> clazz : serverAppConfigs) {
     LOG.debug("Found ServerApplicationConfig: {}",clazz);
     try {
-      ServerApplicationConfig config=(ServerApplicationConfig)clazz.newInstance();
+      ServerApplicationConfig config=clazz.newInstance();
       Set<ServerEndpointConfig> seconfigs=config.getEndpointConfigs(discoveredExtendedEndpoints);
       if (seconfigs != null) {
         wasFiltered=true;
