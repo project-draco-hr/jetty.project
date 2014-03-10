@@ -26,26 +26,30 @@
     }
     BufferedReader in=new BufferedReader(new InputStreamReader(socket.getInputStream()),102400);
     String line=in.readLine();
-    Assert.assertThat(line,Matchers.startsWith("HTTP/1.1 200 OK"));
+    LOG.debug("response-line: " + line);
+    Assert.assertThat(line,startsWith("HTTP/1.1 200 OK"));
     while (line != null) {
       line=in.readLine();
+      LOG.debug("header-line:  " + line);
       if (line.length() == 0)       break;
     }
     while (true) {
       line=in.readLine();
       if (line == null)       break;
+      LOG.debug("body:  " + brief(line));
       list.add(line);
-      Thread.sleep(50);
+      Thread.sleep(150);
     }
   }
    int w=0;
   for (  String line : list) {
+    LOG.debug("line:  " + brief(line));
     if ("-".equals(line))     continue;
-    assertEquals(writes[w],line.length());
-    assertEquals(line.charAt(0),'0' + (w % 10));
+    assertEquals("Line Length",writes[w],line.length());
+    assertEquals("Line Contents",line.charAt(0),'0' + (w % 10));
     w++;
     if (w < writes.length && writes[w] <= 0)     w++;
   }
-  if (content != null)   Assert.assertEquals(content.length,_read.get());
+  if (content != null)   Assert.assertEquals("Content Length",content.length,_read.get());
   return list;
 }
