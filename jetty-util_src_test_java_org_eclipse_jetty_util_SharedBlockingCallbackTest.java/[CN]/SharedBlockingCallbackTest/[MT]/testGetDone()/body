@@ -1,22 +1,23 @@
 {
-  fcb.acquire();
-  final CountDownLatch latch=new CountDownLatch(1);
-  new Thread(new Runnable(){
-    @Override public void run(){
-      latch.countDown();
-      try {
-        TimeUnit.MILLISECONDS.sleep(100);
+  long start;
+  try (final Blocker blocker=sbcb.acquire()){
+    final CountDownLatch latch=new CountDownLatch(1);
+    new Thread(new Runnable(){
+      @Override public void run(){
+        latch.countDown();
+        try {
+          TimeUnit.MILLISECONDS.sleep(100);
+        }
+ catch (        Exception e) {
+          e.printStackTrace();
+        }
+        blocker.succeeded();
       }
- catch (      Exception e) {
-        e.printStackTrace();
-      }
-      fcb.succeeded();
     }
-  }
 ).start();
-  latch.await();
-  long start=System.currentTimeMillis();
-  fcb.block();
-  Assert.assertThat(System.currentTimeMillis() - start,Matchers.greaterThan(10L));
+    latch.await();
+    start=System.currentTimeMillis();
+  }
+   Assert.assertThat(System.currentTimeMillis() - start,Matchers.greaterThan(10L));
   Assert.assertThat(System.currentTimeMillis() - start,Matchers.lessThan(1000L));
 }
