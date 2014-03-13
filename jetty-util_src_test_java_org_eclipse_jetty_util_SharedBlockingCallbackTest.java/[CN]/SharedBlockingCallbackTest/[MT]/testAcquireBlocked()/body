@@ -1,0 +1,26 @@
+{
+  final CountDownLatch latch=new CountDownLatch(1);
+  new Thread(new Runnable(){
+    @Override public void run(){
+      try {
+        fcb.acquire();
+        latch.countDown();
+        TimeUnit.MILLISECONDS.sleep(100);
+        fcb.succeeded();
+        fcb.block();
+      }
+ catch (      Exception e) {
+        e.printStackTrace();
+      }
+    }
+  }
+).start();
+  latch.await();
+  long start=System.currentTimeMillis();
+  fcb.acquire();
+  Assert.assertThat(System.currentTimeMillis() - start,Matchers.greaterThan(10L));
+  Assert.assertThat(System.currentTimeMillis() - start,Matchers.lessThan(500L));
+  fcb.succeeded();
+  fcb.block();
+  Assert.assertThat(System.currentTimeMillis() - start,Matchers.lessThan(600L));
+}

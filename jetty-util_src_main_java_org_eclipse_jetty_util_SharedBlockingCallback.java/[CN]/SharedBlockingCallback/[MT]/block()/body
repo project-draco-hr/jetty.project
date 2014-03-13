@@ -1,0 +1,24 @@
+{
+  _lock.lock();
+  try {
+    while (_state == null)     _complete.await();
+    if (_state == SUCCEEDED)     return;
+    if (_state == IDLE)     throw new IllegalStateException("IDLE");
+    if (_state instanceof IOException)     throw (IOException)_state;
+    if (_state instanceof CancellationException)     throw (CancellationException)_state;
+    throw new IOException(_state);
+  }
+ catch (  final InterruptedException e) {
+    throw new InterruptedIOException(){
+{
+        initCause(e);
+      }
+    }
+;
+  }
+ finally {
+    _state=IDLE;
+    _idle.signalAll();
+    _lock.unlock();
+  }
+}

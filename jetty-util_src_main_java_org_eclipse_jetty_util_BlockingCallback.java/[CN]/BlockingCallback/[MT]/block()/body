@@ -1,10 +1,11 @@
 {
   try {
-    _semaphore.acquire();
-    if (_cause == COMPLETED)     return;
-    if (_cause instanceof IOException)     throw (IOException)_cause;
-    if (_cause instanceof CancellationException)     throw (CancellationException)_cause;
-    throw new IOException(_cause);
+    _latch.await();
+    Throwable state=_state.get();
+    if (state == SUCCEEDED)     return;
+    if (state instanceof IOException)     throw (IOException)state;
+    if (state instanceof CancellationException)     throw (CancellationException)state;
+    throw new IOException(state);
   }
  catch (  final InterruptedException e) {
     throw new InterruptedIOException(){
@@ -15,7 +16,6 @@
 ;
   }
  finally {
-    _done.set(false);
-    _cause=null;
+    _state.set(null);
   }
 }
