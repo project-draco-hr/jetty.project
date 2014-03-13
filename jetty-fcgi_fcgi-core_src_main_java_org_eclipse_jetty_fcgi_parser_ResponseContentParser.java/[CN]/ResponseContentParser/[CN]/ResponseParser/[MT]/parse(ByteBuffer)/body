@@ -1,0 +1,36 @@
+{
+  LOG.debug("Response {} {} content {} {}",request,FCGI.StreamType.STD_OUT,state,buffer);
+  int remaining=buffer.remaining();
+  while (remaining > 0) {
+switch (state) {
+case HEADERS:
+{
+        if (httpParser.parseHeaders(buffer))         state=State.CONTENT_MODE;
+        remaining=buffer.remaining();
+        break;
+      }
+case CONTENT_MODE:
+{
+      boolean rawContent=fields.size() == 0 || (fields.get(HttpHeader.CONTENT_LENGTH) == null && fields.get(HttpHeader.TRANSFER_ENCODING) == null);
+      state=rawContent ? State.RAW_CONTENT : State.HTTP_CONTENT;
+      break;
+    }
+case RAW_CONTENT:
+{
+    notifyContent(buffer);
+    remaining=0;
+    break;
+  }
+case HTTP_CONTENT:
+{
+  httpParser.parseContent(buffer);
+  remaining=buffer.remaining();
+  break;
+}
+default :
+{
+throw new IllegalStateException();
+}
+}
+}
+}

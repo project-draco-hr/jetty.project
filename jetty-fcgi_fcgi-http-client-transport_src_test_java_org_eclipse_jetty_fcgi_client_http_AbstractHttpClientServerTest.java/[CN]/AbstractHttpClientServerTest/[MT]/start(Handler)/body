@@ -1,0 +1,39 @@
+{
+  server=new Server();
+  ServerFCGIConnectionFactory fcgiConnectionFactory=new ServerFCGIConnectionFactory(new HttpConfiguration());
+  connector=new ServerConnector(server,null,null,new LeakTrackingByteBufferPool(new ArrayByteBufferPool()){
+    @Override protected void leaked(    LeakDetector.LeakInfo leakInfo){
+      leaks.incrementAndGet();
+    }
+  }
+,1,Math.max(1,Runtime.getRuntime().availableProcessors() / 2),fcgiConnectionFactory);
+  server.addConnector(connector);
+  server.setHandler(handler);
+  server.start();
+  QueuedThreadPool executor=new QueuedThreadPool();
+  executor.setName(executor.getName() + "-client");
+  client=new HttpClient(new HttpClientTransportOverFCGI(1,false,""){
+    @Override public HttpDestination newHttpDestination(    Origin origin){
+      return new HttpDestinationOverFCGI(client,origin){
+        @Override protected ConnectionPool newConnectionPool(        HttpClient client){
+          return new LeakTrackingConnectionPool(this,client.getMaxConnectionsPerDestination(),this){
+            @Override protected void leaked(            LeakDetector.LeakInfo leakInfo){
+              leaks.incrementAndGet();
+            }
+          }
+;
+        }
+      }
+;
+    }
+  }
+,null);
+  client.setExecutor(executor);
+  client.setByteBufferPool(new LeakTrackingByteBufferPool(new MappedByteBufferPool()){
+    @Override protected void leaked(    LeakDetector.LeakInfo leakInfo){
+      leaks.incrementAndGet();
+    }
+  }
+);
+  client.start();
+}
