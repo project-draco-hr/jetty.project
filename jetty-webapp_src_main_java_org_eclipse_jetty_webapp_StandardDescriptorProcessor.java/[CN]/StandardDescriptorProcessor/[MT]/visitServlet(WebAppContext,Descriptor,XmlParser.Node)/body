@@ -1,18 +1,18 @@
 {
   String id=node.getAttribute("id");
-  String servlet_name=node.getString("servlet-name",false,true);
-  ServletHolder holder=context.getServletHandler().getServlet(servlet_name);
+  String name=node.getString("servlet-name",false,true);
+  ServletHolder holder=_servletHolders.get(name);
   if (holder == null) {
     holder=context.getServletHandler().newServletHolder(Source.DESCRIPTOR);
-    holder.setName(servlet_name);
-    context.getServletHandler().addServlet(holder);
+    holder.setName(name);
+    _servletHolders.put(name,holder);
   }
   Iterator<?> iParamsIter=node.iterator("init-param");
   while (iParamsIter.hasNext()) {
     XmlParser.Node paramNode=(XmlParser.Node)iParamsIter.next();
     String pname=paramNode.getString("param-name",false,true);
     String pvalue=paramNode.getString("param-value",false,true);
-    String originName=servlet_name + ".servlet.init-param." + pname;
+    String originName=name + ".servlet.init-param." + pname;
     Descriptor originDescriptor=context.getMetaData().getOriginDescriptor(originName);
 switch (context.getMetaData().getOrigin(originName)) {
 case NotSet:
@@ -58,11 +58,11 @@ servlet_class="org.eclipse.jetty.servlet.NoJspServlet";
 }
 if (servlet_class != null) {
 ((WebDescriptor)descriptor).addClassName(servlet_class);
-switch (context.getMetaData().getOrigin(servlet_name + ".servlet.servlet-class")) {
+switch (context.getMetaData().getOrigin(name + ".servlet.servlet-class")) {
 case NotSet:
 {
 holder.setClassName(servlet_class);
-context.getMetaData().setOrigin(servlet_name + ".servlet.servlet-class",descriptor);
+context.getMetaData().setOrigin(name + ".servlet.servlet-class",descriptor);
 break;
 }
 case WebXml:
@@ -71,7 +71,7 @@ case WebOverride:
 {
 if (!(descriptor instanceof FragmentDescriptor)) {
 holder.setClassName(servlet_class);
-context.getMetaData().setOrigin(servlet_name + ".servlet.servlet-class",descriptor);
+context.getMetaData().setOrigin(name + ".servlet.servlet-class",descriptor);
 }
 break;
 }
@@ -85,11 +85,7 @@ LOG.warn(new Throwable());
 }
 }
 String jsp_file=node.getString("jsp-file",false,true);
-if (jsp_file != null) {
-holder.setForcedPath(jsp_file);
-ServletHolder jsp=context.getServletHandler().getServlet("jsp");
-if (jsp != null) holder.setClassName(jsp.getClassName());
-}
+if (jsp_file != null) holder.setForcedPath(jsp_file);
 XmlParser.Node startup=node.get("load-on-startup");
 if (startup != null) {
 String s=startup.toString(false,true).toLowerCase(Locale.ENGLISH);
@@ -107,11 +103,11 @@ LOG.warn("Cannot parse load-on-startup " + s + ". Please use integer");
 LOG.ignore(e);
 }
 }
-switch (context.getMetaData().getOrigin(servlet_name + ".servlet.load-on-startup")) {
+switch (context.getMetaData().getOrigin(name + ".servlet.load-on-startup")) {
 case NotSet:
 {
 holder.setInitOrder(order);
-context.getMetaData().setOrigin(servlet_name + ".servlet.load-on-startup",descriptor);
+context.getMetaData().setOrigin(name + ".servlet.load-on-startup",descriptor);
 break;
 }
 case WebXml:
@@ -120,7 +116,7 @@ case WebOverride:
 {
 if (!(descriptor instanceof FragmentDescriptor)) {
 holder.setInitOrder(order);
-context.getMetaData().setOrigin(servlet_name + ".servlet.load-on-startup",descriptor);
+context.getMetaData().setOrigin(name + ".servlet.load-on-startup",descriptor);
 }
 break;
 }
@@ -140,11 +136,11 @@ String roleName=securityRef.getString("role-name",false,true);
 String roleLink=securityRef.getString("role-link",false,true);
 if (roleName != null && roleName.length() > 0 && roleLink != null && roleLink.length() > 0) {
 if (LOG.isDebugEnabled()) LOG.debug("link role " + roleName + " to "+ roleLink+ " for "+ this);
-switch (context.getMetaData().getOrigin(servlet_name + ".servlet.role-name." + roleName)) {
+switch (context.getMetaData().getOrigin(name + ".servlet.role-name." + roleName)) {
 case NotSet:
 {
 holder.setUserRoleLink(roleName,roleLink);
-context.getMetaData().setOrigin(servlet_name + ".servlet.role-name." + roleName,descriptor);
+context.getMetaData().setOrigin(name + ".servlet.role-name." + roleName,descriptor);
 break;
 }
 case WebXml:
@@ -153,13 +149,13 @@ case WebOverride:
 {
 if (!(descriptor instanceof FragmentDescriptor)) {
 holder.setUserRoleLink(roleName,roleLink);
-context.getMetaData().setOrigin(servlet_name + ".servlet.role-name." + roleName,descriptor);
+context.getMetaData().setOrigin(name + ".servlet.role-name." + roleName,descriptor);
 }
 break;
 }
 case WebFragment:
 {
-if (!holder.getUserRoleLink(roleName).equals(roleLink)) throw new IllegalStateException("Conflicting role-link for role-name " + roleName + " for servlet "+ servlet_name+ " in "+ descriptor.getResource());
+if (!holder.getUserRoleLink(roleName).equals(roleLink)) throw new IllegalStateException("Conflicting role-link for role-name " + roleName + " for servlet "+ name+ " in "+ descriptor.getResource());
 break;
 }
 default :
@@ -174,11 +170,11 @@ XmlParser.Node run_as=node.get("run-as");
 if (run_as != null) {
 String roleName=run_as.getString("role-name",false,true);
 if (roleName != null) {
-switch (context.getMetaData().getOrigin(servlet_name + ".servlet.run-as")) {
+switch (context.getMetaData().getOrigin(name + ".servlet.run-as")) {
 case NotSet:
 {
 holder.setRunAsRole(roleName);
-context.getMetaData().setOrigin(servlet_name + ".servlet.run-as",descriptor);
+context.getMetaData().setOrigin(name + ".servlet.run-as",descriptor);
 break;
 }
 case WebXml:
@@ -187,13 +183,13 @@ case WebOverride:
 {
 if (!(descriptor instanceof FragmentDescriptor)) {
 holder.setRunAsRole(roleName);
-context.getMetaData().setOrigin(servlet_name + ".servlet.run-as",descriptor);
+context.getMetaData().setOrigin(name + ".servlet.run-as",descriptor);
 }
 break;
 }
 case WebFragment:
 {
-if (!holder.getRunAsRole().equals(roleName)) throw new IllegalStateException("Conflicting run-as role " + roleName + " for servlet "+ servlet_name+ " in "+ descriptor.getResource());
+if (!holder.getRunAsRole().equals(roleName)) throw new IllegalStateException("Conflicting run-as role " + roleName + " for servlet "+ name+ " in "+ descriptor.getResource());
 break;
 }
 default :
@@ -204,11 +200,11 @@ LOG.warn(new Throwable());
 String async=node.getString("async-supported",false,true);
 if (async != null) {
 boolean val=async.length() == 0 || Boolean.valueOf(async);
-switch (context.getMetaData().getOrigin(servlet_name + ".servlet.async-supported")) {
+switch (context.getMetaData().getOrigin(name + ".servlet.async-supported")) {
 case NotSet:
 {
 holder.setAsyncSupported(val);
-context.getMetaData().setOrigin(servlet_name + ".servlet.async-supported",descriptor);
+context.getMetaData().setOrigin(name + ".servlet.async-supported",descriptor);
 break;
 }
 case WebXml:
@@ -217,13 +213,13 @@ case WebOverride:
 {
 if (!(descriptor instanceof FragmentDescriptor)) {
 holder.setAsyncSupported(val);
-context.getMetaData().setOrigin(servlet_name + ".servlet.async-supported",descriptor);
+context.getMetaData().setOrigin(name + ".servlet.async-supported",descriptor);
 }
 break;
 }
 case WebFragment:
 {
-if (holder.isAsyncSupported() != val) throw new IllegalStateException("Conflicting async-supported=" + async + " for servlet "+ servlet_name+ " in "+ descriptor.getResource());
+if (holder.isAsyncSupported() != val) throw new IllegalStateException("Conflicting async-supported=" + async + " for servlet "+ name+ " in "+ descriptor.getResource());
 break;
 }
 default :
@@ -233,11 +229,11 @@ LOG.warn(new Throwable());
 String enabled=node.getString("enabled",false,true);
 if (enabled != null) {
 boolean is_enabled=enabled.length() == 0 || Boolean.valueOf(enabled);
-switch (context.getMetaData().getOrigin(servlet_name + ".servlet.enabled")) {
+switch (context.getMetaData().getOrigin(name + ".servlet.enabled")) {
 case NotSet:
 {
 holder.setEnabled(is_enabled);
-context.getMetaData().setOrigin(servlet_name + ".servlet.enabled",descriptor);
+context.getMetaData().setOrigin(name + ".servlet.enabled",descriptor);
 break;
 }
 case WebXml:
@@ -246,13 +242,13 @@ case WebOverride:
 {
 if (!(descriptor instanceof FragmentDescriptor)) {
 holder.setEnabled(is_enabled);
-context.getMetaData().setOrigin(servlet_name + ".servlet.enabled",descriptor);
+context.getMetaData().setOrigin(name + ".servlet.enabled",descriptor);
 }
 break;
 }
 case WebFragment:
 {
-if (holder.isEnabled() != is_enabled) throw new IllegalStateException("Conflicting value of servlet enabled for servlet " + servlet_name + " in "+ descriptor.getResource());
+if (holder.isEnabled() != is_enabled) throw new IllegalStateException("Conflicting value of servlet enabled for servlet " + name + " in "+ descriptor.getResource());
 break;
 }
 default :
@@ -266,11 +262,11 @@ String maxFile=multipart.getString("max-file-size",false,true);
 String maxRequest=multipart.getString("max-request-size",false,true);
 String threshold=multipart.getString("file-size-threshold",false,true);
 MultipartConfigElement element=new MultipartConfigElement(location,(maxFile == null || "".equals(maxFile) ? -1L : Long.parseLong(maxFile)),(maxRequest == null || "".equals(maxRequest) ? -1L : Long.parseLong(maxRequest)),(threshold == null || "".equals(threshold) ? 0 : Integer.parseInt(threshold)));
-switch (context.getMetaData().getOrigin(servlet_name + ".servlet.multipart-config")) {
+switch (context.getMetaData().getOrigin(name + ".servlet.multipart-config")) {
 case NotSet:
 {
 holder.getRegistration().setMultipartConfig(element);
-context.getMetaData().setOrigin(servlet_name + ".servlet.multipart-config",descriptor);
+context.getMetaData().setOrigin(name + ".servlet.multipart-config",descriptor);
 break;
 }
 case WebXml:
@@ -279,17 +275,17 @@ case WebOverride:
 {
 if (!(descriptor instanceof FragmentDescriptor)) {
 holder.getRegistration().setMultipartConfig(element);
-context.getMetaData().setOrigin(servlet_name + ".servlet.multipart-config",descriptor);
+context.getMetaData().setOrigin(name + ".servlet.multipart-config",descriptor);
 }
 break;
 }
 case WebFragment:
 {
 MultipartConfigElement cfg=((ServletHolder.Registration)holder.getRegistration()).getMultipartConfig();
-if (cfg.getMaxFileSize() != element.getMaxFileSize()) throw new IllegalStateException("Conflicting multipart-config max-file-size for servlet " + servlet_name + " in "+ descriptor.getResource());
-if (cfg.getMaxRequestSize() != element.getMaxRequestSize()) throw new IllegalStateException("Conflicting multipart-config max-request-size for servlet " + servlet_name + " in "+ descriptor.getResource());
-if (cfg.getFileSizeThreshold() != element.getFileSizeThreshold()) throw new IllegalStateException("Conflicting multipart-config file-size-threshold for servlet " + servlet_name + " in "+ descriptor.getResource());
-if ((cfg.getLocation() != null && (element.getLocation() == null || element.getLocation().length() == 0)) || (cfg.getLocation() == null && (element.getLocation() != null || element.getLocation().length() > 0))) throw new IllegalStateException("Conflicting multipart-config location for servlet " + servlet_name + " in "+ descriptor.getResource());
+if (cfg.getMaxFileSize() != element.getMaxFileSize()) throw new IllegalStateException("Conflicting multipart-config max-file-size for servlet " + name + " in "+ descriptor.getResource());
+if (cfg.getMaxRequestSize() != element.getMaxRequestSize()) throw new IllegalStateException("Conflicting multipart-config max-request-size for servlet " + name + " in "+ descriptor.getResource());
+if (cfg.getFileSizeThreshold() != element.getFileSizeThreshold()) throw new IllegalStateException("Conflicting multipart-config file-size-threshold for servlet " + name + " in "+ descriptor.getResource());
+if ((cfg.getLocation() != null && (element.getLocation() == null || element.getLocation().length() == 0)) || (cfg.getLocation() == null && (element.getLocation() != null || element.getLocation().length() > 0))) throw new IllegalStateException("Conflicting multipart-config location for servlet " + name + " in "+ descriptor.getResource());
 break;
 }
 default :

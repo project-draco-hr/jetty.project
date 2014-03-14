@@ -1,28 +1,8 @@
 {
-  ArrayList<Resource> jars=new ArrayList<Resource>();
-  jars.addAll(context.getMetaData().getContainerResources());
-  jars.addAll(context.getMetaData().getWebInfJars());
-  if (jars != null) {
-    for (    Resource r : jars) {
-      URI uri=r.getURI();
-      Resource fragXml=Resource.newResource("jar:" + uri + "!/META-INF/web-fragment.xml");
-      if (fragXml.exists()) {
-        Map<Resource,Resource> fragments=(Map<Resource,Resource>)context.getAttribute(METAINF_FRAGMENTS);
-        if (fragments == null) {
-          fragments=new HashMap<Resource,Resource>();
-          context.setAttribute(METAINF_FRAGMENTS,fragments);
-        }
-        fragments.put(r,fragXml);
-      }
-      Resource resourcesDir=Resource.newResource("jar:" + uri + "!/META-INF/resources");
-      if (resourcesDir.exists()) {
-        Set<Resource> dirs=(Set<Resource>)context.getAttribute(METAINF_RESOURCES);
-        if (dirs == null) {
-          dirs=new HashSet<Resource>();
-          context.setAttribute(METAINF_RESOURCES,dirs);
-        }
-        dirs.add(resourcesDir);
-      }
-    }
-  }
+  boolean useContainerCache=DEFAULT_USE_CONTAINER_METAINF_CACHE;
+  Boolean attr=(Boolean)context.getServer().getAttribute(USE_CONTAINER_METAINF_CACHE);
+  if (attr != null)   useContainerCache=attr.booleanValue();
+  if (LOG.isDebugEnabled())   LOG.debug("{} = {}",USE_CONTAINER_METAINF_CACHE,useContainerCache);
+  scanJars(context,context.getMetaData().getContainerResources(),useContainerCache);
+  scanJars(context,context.getMetaData().getWebInfJars(),false);
 }

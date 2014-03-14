@@ -1,0 +1,30 @@
+{
+  Resource webFrag=null;
+  if (cache != null && cache.containsKey(jar)) {
+    webFrag=cache.get(jar);
+    if (webFrag == EmptyResource.INSTANCE) {
+      if (LOG.isDebugEnabled())       LOG.debug(jar + " cached as containing no META-INF/web-fragment.xml");
+      return;
+    }
+ else     if (LOG.isDebugEnabled())     LOG.debug(jar + " META-INF/web-fragment.xml found in cache ");
+  }
+ else {
+    if (LOG.isDebugEnabled())     LOG.debug(jar + " META-INF/web-fragment.xml checked");
+    URI uri=jar.getURI();
+    webFrag=Resource.newResource("jar:" + uri + "!/META-INF/web-fragment.xml");
+    if (!webFrag.exists() || webFrag.isDirectory())     webFrag=EmptyResource.INSTANCE;
+    if (cache != null) {
+      Resource old=cache.putIfAbsent(jar,webFrag);
+      if (old != null)       webFrag=old;
+ else       if (LOG.isDebugEnabled())       LOG.debug(jar + " META-INF/web-fragment.xml cache updated");
+    }
+    if (webFrag == EmptyResource.INSTANCE)     return;
+  }
+  Map<Resource,Resource> fragments=(Map<Resource,Resource>)context.getAttribute(METAINF_FRAGMENTS);
+  if (fragments == null) {
+    fragments=new HashMap<Resource,Resource>();
+    context.setAttribute(METAINF_FRAGMENTS,fragments);
+  }
+  fragments.put(jar,webFrag);
+  if (LOG.isDebugEnabled())   LOG.debug(webFrag + " added to context");
+}
