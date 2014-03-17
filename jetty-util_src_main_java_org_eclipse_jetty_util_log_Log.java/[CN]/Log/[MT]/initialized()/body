@@ -1,13 +1,9 @@
 {
-  if (LOG != null) {
-    return true;
-  }
 synchronized (Log.class) {
-    if (__initialized) {
-      return LOG != null;
-    }
+    if (__initialized)     return;
     __initialized=true;
   }
+  final long uptime=ManagementFactory.getRuntimeMXBean().getUptime();
   try {
     Class<?> log_class=Loader.loadClass(Log.class,__logClass);
     if (LOG == null || !LOG.getClass().equals(log_class)) {
@@ -18,6 +14,5 @@ synchronized (Log.class) {
  catch (  Throwable e) {
     initStandardLogging(e);
   }
-  if (LOG != null)   LOG.info(String.format("Logging initialized @%dms",ManagementFactory.getRuntimeMXBean().getUptime()));
-  return LOG != null;
+  if (LOG != null)   LOG.info(String.format("Logging initialized @%dms",uptime));
 }
