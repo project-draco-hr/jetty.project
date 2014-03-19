@@ -1,0 +1,19 @@
+{
+  List<String> protocols=_protocols;
+  if (protocols == null || protocols.size() == 0) {
+    protocols=connector.getProtocols();
+    for (Iterator<String> i=protocols.iterator(); i.hasNext(); ) {
+      String protocol=i.next();
+      if (protocol.startsWith("SSL-") || protocol.equals("NPN"))       i.remove();
+    }
+  }
+  String dft=_defaultProtocol;
+  if (dft == null)   dft=_protocols.get(0);
+  SSLEngine engine=null;
+  EndPoint ep=endPoint;
+  while (engine == null && ep != null) {
+    if (ep instanceof SslConnection.DecryptedEndPoint)     engine=((SslConnection.DecryptedEndPoint)ep).getSslConnection().getSSLEngine();
+ else     ep=null;
+  }
+  return configure(new NPNServerConnection(endPoint,engine,connector,protocols,_defaultProtocol),connector,endPoint);
+}

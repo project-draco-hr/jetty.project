@@ -1,0 +1,37 @@
+{
+  int filled=fill();
+  if (filled == 0) {
+    if (nextProtocol == null) {
+      if (engine.getHandshakeStatus() == SSLEngineResult.HandshakeStatus.NOT_HANDSHAKING) {
+        LOG.debug("{} missing next protocol. SSLEngine: {}",this,engine);
+        close();
+      }
+ else {
+        fillInterested();
+      }
+    }
+ else {
+      ConnectionFactory connectionFactory=connector.getConnectionFactory(nextProtocol);
+      if (connectionFactory == null) {
+        LOG.debug("{} application selected protocol '{}', but no correspondent {} has been configured",this,nextProtocol,ConnectionFactory.class.getName());
+        close();
+      }
+ else {
+        EndPoint endPoint=getEndPoint();
+        Connection oldConnection=endPoint.getConnection();
+        Connection newConnection=connectionFactory.newConnection(connector,endPoint);
+        LOG.debug("{} switching from {} to {}",this,oldConnection,newConnection);
+        oldConnection.onClose();
+        endPoint.setConnection(newConnection);
+        getEndPoint().getConnection().onOpen();
+      }
+    }
+  }
+ else   if (filled < 0) {
+    LOG.debug("{} closing on client close",this);
+    close();
+  }
+ else {
+    throw new IllegalStateException();
+  }
+}
