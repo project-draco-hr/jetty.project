@@ -1,10 +1,10 @@
 {
   while (true) {
-    try (Blocker blocker=_readBlocker.acquire()){
-      _httpConnection.fillInterested(blocker);
-      LOG.debug("{} block readable on {}",this,blocker);
-    }
-     Object content=getNextContent();
+    _readBlocker.acquire();
+    _httpConnection.fillInterested(_readBlocker);
+    LOG.debug("{} block readable on {}",this,_readBlocker);
+    _readBlocker.block();
+    Object content=getNextContent();
     if (content != null || isFinished())     break;
   }
 }

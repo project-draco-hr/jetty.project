@@ -1,14 +1,13 @@
 {
-  final Exception ex=new Exception("FAILED");
-  long start=Long.MIN_VALUE;
+  fcb.acquire();
+  Exception ex=new Exception("FAILED");
+  fcb.failed(ex);
+  long start=System.currentTimeMillis();
   try {
-    try (final Blocker blocker=sbcb.acquire()){
-      blocker.failed(ex);
-    }
-     Assert.fail();
+    fcb.block();
+    Assert.fail();
   }
  catch (  IOException ee) {
-    start=System.currentTimeMillis();
     Assert.assertEquals(ex,ee.getCause());
   }
   Assert.assertThat(System.currentTimeMillis() - start,Matchers.lessThan(100L));
