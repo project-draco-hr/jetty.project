@@ -6,10 +6,10 @@ synchronized (this) {
     LOG.debug("flush({}): {}",fin,BufferUtil.toDetailString(buffer));
     frame.setPayload(buffer);
     frame.setFin(fin);
-    try (WriteBlocker b=blocker.acquireWriteBlocker()){
-      outgoing.outgoingFrame(frame,b,BatchMode.OFF);
-    }
-     ++frameCount;
+    blocker.acquire();
+    outgoing.outgoingFrame(frame,blocker,BatchMode.OFF);
+    blocker.block();
+    ++frameCount;
     frame.setIsContinuation();
     BufferUtil.flipToFill(buffer);
   }

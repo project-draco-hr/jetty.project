@@ -1,5 +1,6 @@
 {
-  try (Blocker blocker=_response.getHttpOutput().acquireWriteBlockingCallback()){
-    return sendResponse(info,content,complete,blocker);
-  }
- }
+  BlockingCallback writeBlock=_response.getHttpOutput().acquireWriteBlockingCallback();
+  boolean committing=sendResponse(info,content,complete,writeBlock);
+  writeBlock.block();
+  return committing;
+}
