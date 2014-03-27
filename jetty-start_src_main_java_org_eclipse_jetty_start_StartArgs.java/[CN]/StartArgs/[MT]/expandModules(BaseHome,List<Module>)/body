@@ -4,57 +4,17 @@
       StartLog.debug("rawlibref = " + rawlibref);
       String libref=properties.expand(rawlibref);
       StartLog.debug("expanded = " + libref);
-      if (libref.startsWith("regex:")) {
-        String regex=libref.substring("regex:".length());
-        for (        File libfile : baseHome.listFilesRegex(regex)) {
-          classpath.addComponent(libfile);
-        }
-        continue;
+      for (      Path libpath : baseHome.getPaths(libref)) {
+        classpath.addComponent(libpath.toFile());
       }
-      libref=FS.separators(libref);
-      if (libref.contains("*")) {
-        int idx=libref.lastIndexOf(File.separatorChar);
-        String relativePath="/";
-        String filenameRef=libref;
-        if (idx >= 0) {
-          relativePath=libref.substring(0,idx);
-          filenameRef=libref.substring(idx + 1);
-        }
-        StringBuilder regex=new StringBuilder();
-        regex.append('^');
-        for (        char c : filenameRef.toCharArray()) {
-switch (c) {
-case '*':
-            regex.append(".*");
-          break;
-case '.':
-        regex.append("\\.");
-      break;
-default :
-    regex.append(c);
-}
-}
-regex.append('$');
-StartLog.debug("regex = " + regex);
-FileFilter filter=new FS.FilenameRegexFilter(regex.toString());
-List<File> libs=baseHome.listFiles(relativePath,filter);
-StartLog.debug("found " + libs.size() + " libs");
-for (File libfile : libs) {
-classpath.addComponent(libfile);
-}
-}
- else {
-File libfile=baseHome.getFile(libref);
-classpath.addComponent(libfile);
-}
-}
-for (String xmlRef : module.getXmls()) {
-File xmlfile=baseHome.getFile(xmlRef);
-addUniqueXmlFile(xmlRef,xmlfile);
-}
-for (String file : module.getFiles()) {
-StartLog.debug("Adding module specified file: %s",file);
-addFile(file);
-}
-}
+    }
+    for (    String xmlRef : module.getXmls()) {
+      File xmlfile=baseHome.getFile(xmlRef);
+      addUniqueXmlFile(xmlRef,xmlfile);
+    }
+    for (    String file : module.getFiles()) {
+      StartLog.debug("Adding module specified file: %s",file);
+      addFile(file);
+    }
+  }
 }
