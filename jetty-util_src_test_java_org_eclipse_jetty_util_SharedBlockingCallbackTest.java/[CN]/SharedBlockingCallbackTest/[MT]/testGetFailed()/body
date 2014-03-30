@@ -1,25 +1,27 @@
 {
-  fcb.acquire();
   final Exception ex=new Exception("FAILED");
+  long start=Long.MIN_VALUE;
   final CountDownLatch latch=new CountDownLatch(1);
-  new Thread(new Runnable(){
-    @Override public void run(){
-      latch.countDown();
-      try {
-        TimeUnit.MILLISECONDS.sleep(100);
-      }
- catch (      Exception e) {
-        e.printStackTrace();
-      }
-      fcb.failed(ex);
-    }
-  }
-).start();
-  latch.await();
-  long start=System.currentTimeMillis();
   try {
-    fcb.block();
-    Assert.fail();
+    try (final Blocker blocker=sbcb.acquire()){
+      new Thread(new Runnable(){
+        @Override public void run(){
+          latch.countDown();
+          try {
+            TimeUnit.MILLISECONDS.sleep(100);
+          }
+ catch (          Exception e) {
+            e.printStackTrace();
+          }
+          blocker.failed(ex);
+        }
+      }
+).start();
+      latch.await();
+      start=System.currentTimeMillis();
+      blocker.block();
+    }
+     Assert.fail();
   }
  catch (  IOException ee) {
     Assert.assertEquals(ex,ee.getCause());
