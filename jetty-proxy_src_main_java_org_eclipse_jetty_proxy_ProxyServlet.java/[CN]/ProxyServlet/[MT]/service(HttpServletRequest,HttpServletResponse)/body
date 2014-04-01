@@ -7,7 +7,7 @@
     _log.debug("{} rewriting: {} -> {}",requestId,uri,rewrittenURI);
   }
   if (rewrittenURI == null) {
-    response.sendError(HttpServletResponse.SC_FORBIDDEN);
+    onRewriteFailed(request,response);
     return;
   }
   final Request proxyRequest=_client.newRequest(rewrittenURI).method(HttpMethod.fromString(request.getMethod())).version(HttpVersion.fromString(request.getProtocol()));
@@ -26,22 +26,11 @@
   if (_hostHeader != null)   proxyRequest.header(HttpHeader.HOST,_hostHeader);
   addViaHeader(proxyRequest);
   addXForwardedHeaders(proxyRequest,request);
-  if (hasContent) {
-    proxyRequest.content(new InputStreamContentProvider(request.getInputStream()){
-      @Override public long getLength(){
-        return request.getContentLength();
-      }
-      @Override protected ByteBuffer onRead(      byte[] buffer,      int offset,      int length){
-        _log.debug("{} proxying content to upstream: {} bytes",requestId,length);
-        return super.onRead(buffer,offset,length);
-      }
-    }
-);
-  }
   final AsyncContext asyncContext=request.startAsync();
   asyncContext.setTimeout(0);
   request.setAttribute(ASYNC_CONTEXT,asyncContext);
   customizeProxyRequest(proxyRequest,request);
+  if (hasContent)   proxyRequest.content(proxyRequestContent(asyncContext,requestId));
   if (_log.isDebugEnabled()) {
     StringBuilder builder=new StringBuilder(request.getMethod());
     builder.append(" ").append(request.getRequestURI());
