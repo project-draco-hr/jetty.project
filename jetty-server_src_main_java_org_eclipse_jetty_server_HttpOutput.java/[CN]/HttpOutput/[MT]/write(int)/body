@@ -7,9 +7,11 @@ case OPEN:
       if (_aggregate == null)       _aggregate=_channel.getByteBufferPool().acquire(getBufferSize(),false);
     BufferUtil.append(_aggregate,(byte)b);
   if (complete || BufferUtil.isFull(_aggregate)) {
-    write(_aggregate,complete,_writeblock);
-    _writeblock.block();
-    if (complete)     closed();
+    try (Blocker blocker=_writeblock.acquire()){
+      write(_aggregate,complete,blocker);
+      blocker.block();
+    }
+     if (complete)     closed();
   }
 break;
 case ASYNC:

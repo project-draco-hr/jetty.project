@@ -1,0 +1,40 @@
+{
+  Collection<URL> tlds=null;
+  if (cache != null && cache.containsKey(jar)) {
+    Collection<URL> tmp=cache.get(jar);
+    if (tmp.isEmpty()) {
+      if (LOG.isDebugEnabled())       LOG.debug(jar + " cached as containing no tlds");
+      return;
+    }
+ else {
+      tlds=tmp;
+      if (LOG.isDebugEnabled())       LOG.debug(jar + " tlds found in cache ");
+    }
+  }
+ else {
+    URI uri=jar.getURI();
+    Resource metaInfDir=Resource.newResource("jar:" + uri + "!/META-INF/");
+    tlds=new HashSet<URL>();
+    Collection<Resource> resources=metaInfDir.getAllResources();
+    for (    Resource t : resources) {
+      String name=t.toString();
+      if (name.endsWith(".tld")) {
+        if (LOG.isDebugEnabled())         LOG.debug(t + " tld discovered");
+        tlds.add(t.getURL());
+      }
+    }
+    if (cache != null) {
+      if (LOG.isDebugEnabled())       LOG.debug(jar + " tld cache updated");
+      Collection<URL> old=(Collection<URL>)cache.putIfAbsent(jar,tlds);
+      if (old != null)       tlds=old;
+    }
+    if (tlds.isEmpty())     return;
+  }
+  Collection<URL> tld_resources=(Collection<URL>)context.getAttribute(METAINF_TLDS);
+  if (tld_resources == null) {
+    tld_resources=new HashSet<URL>();
+    context.setAttribute(METAINF_TLDS,tld_resources);
+  }
+  tld_resources.addAll(tlds);
+  if (LOG.isDebugEnabled())   LOG.debug("tlds added to context");
+}

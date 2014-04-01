@@ -1,0 +1,37 @@
+{
+  final int id=13;
+  HttpFields fields=new HttpFields();
+  ByteBuffer content=ByteBuffer.wrap(new byte[128 * 1024]);
+  final int contentLength=content.remaining();
+  final int code=200;
+  final String contentTypeName="Content-Length";
+  final String contentTypeValue=String.valueOf(contentLength);
+  fields.put(contentTypeName,contentTypeValue);
+  ByteBufferPool byteBufferPool=new MappedByteBufferPool();
+  ServerGenerator generator=new ServerGenerator(byteBufferPool);
+  Generator.Result result1=generator.generateResponseHeaders(id,code,"OK",fields,null);
+  Generator.Result result2=generator.generateResponseContent(id,content,true,null);
+  final AtomicInteger totalLength=new AtomicInteger();
+  final AtomicBoolean verifier=new AtomicBoolean();
+  ClientParser parser=new ClientParser(new ClientParser.Listener.Adapter(){
+    @Override public void onContent(    int request,    FCGI.StreamType stream,    ByteBuffer buffer){
+      Assert.assertEquals(id,request);
+      totalLength.addAndGet(buffer.remaining());
+    }
+    @Override public void onEnd(    int request){
+      Assert.assertEquals(id,request);
+      Assert.assertEquals(contentLength,totalLength.get());
+      verifier.set(true);
+    }
+  }
+);
+  for (  ByteBuffer buffer : result1.getByteBuffers()) {
+    parser.parse(buffer);
+    Assert.assertFalse(buffer.hasRemaining());
+  }
+  for (  ByteBuffer buffer : result2.getByteBuffers()) {
+    parser.parse(buffer);
+    Assert.assertFalse(buffer.hasRemaining());
+  }
+  Assert.assertTrue(verifier.get());
+}

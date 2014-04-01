@@ -16,10 +16,9 @@ switch (action) {
 case REQUEST_DISPATCH:
           _request.setHandled(false);
         _response.getHttpOutput().reopen();
-      _request.setTimeStamp(System.currentTimeMillis());
-    _request.setDispatcherType(DispatcherType.REQUEST);
-  for (  HttpConfiguration.Customizer customizer : _configuration.getCustomizers())   customizer.customize(getConnector(),_configuration,_request);
-getServer().handle(this);
+      _request.setDispatcherType(DispatcherType.REQUEST);
+    for (    HttpConfiguration.Customizer customizer : _configuration.getCustomizers())     customizer.customize(getConnector(),_configuration,_request);
+  getServer().handle(this);
 break;
 case ASYNC_DISPATCH:
 _request.setHandled(false);
@@ -41,7 +40,7 @@ _request.setAttribute(RequestDispatcher.ERROR_STATUS_CODE,new Integer(500));
 _request.setAttribute(RequestDispatcher.ERROR_MESSAGE,reason);
 _request.setAttribute(RequestDispatcher.ERROR_REQUEST_URI,_request.getRequestURI());
 _response.setStatusWithReason(500,reason);
-ErrorHandler eh=_state.getContextHandler().getErrorHandler();
+ErrorHandler eh=ErrorHandler.getErrorHandler(getServer(),_state.getContextHandler());
 if (eh instanceof ErrorHandler.ErrorPageMapper) {
 String error_page=((ErrorHandler.ErrorPageMapper)eh).getErrorPage((HttpServletRequest)_state.getAsyncContextEvent().getSuppliedRequest());
 if (error_page != null) _state.getAsyncContextEvent().setDispatchPath(error_page);

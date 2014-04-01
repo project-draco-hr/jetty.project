@@ -14,7 +14,7 @@
   try (Socket socket=new Socket("localhost",port)){
     socket.setSoTimeout(1000000);
     OutputStream out=socket.getOutputStream();
-    out.write(request.toString().getBytes("ISO-8859-1"));
+    out.write(request.toString().getBytes(StandardCharsets.ISO_8859_1));
     if (content != null && content.length > 0) {
       Thread.sleep(100);
       out.write(content[0]);
@@ -26,26 +26,30 @@
     }
     BufferedReader in=new BufferedReader(new InputStreamReader(socket.getInputStream()),102400);
     String line=in.readLine();
-    Assert.assertThat(line,Matchers.startsWith("HTTP/1.1 200 OK"));
+    LOG.debug("response-line: " + line);
+    Assert.assertThat(line,startsWith("HTTP/1.1 200 OK"));
     while (line != null) {
       line=in.readLine();
+      LOG.debug("header-line:  " + line);
       if (line.length() == 0)       break;
     }
     while (true) {
       line=in.readLine();
       if (line == null)       break;
+      LOG.debug("body:  " + brief(line));
       list.add(line);
       Thread.sleep(50);
     }
   }
    int w=0;
   for (  String line : list) {
+    LOG.debug("line:  " + brief(line));
     if ("-".equals(line))     continue;
-    assertEquals(writes[w],line.length());
-    assertEquals(line.charAt(0),'0' + (w % 10));
+    assertEquals("Line Length",writes[w],line.length());
+    assertEquals("Line Contents",line.charAt(0),'0' + (w % 10));
     w++;
     if (w < writes.length && writes[w] <= 0)     w++;
   }
-  if (content != null)   Assert.assertEquals(content.length,_read.get());
+  if (content != null)   Assert.assertEquals("Content Length",content.length,_read.get());
   return list;
 }

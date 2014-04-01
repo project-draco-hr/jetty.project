@@ -1,5 +1,7 @@
 {
-  response.addHeader("history",request.getDispatcherType().toString());
+  response.addHeader("history",request.getDispatcherType() + " " + request.getServletPath());
+  if (request instanceof ServletRequestWrapper || response instanceof ServletResponseWrapper)   response.addHeader("history","wrapped" + ((request instanceof ServletRequestWrapper) ? " REQ" : "") + ((response instanceof ServletResponseWrapper) ? " RSP" : ""));
+  boolean wrap="true".equals(request.getParameter("wrap"));
   int read_before=0;
   long sleep_for=-1;
   long suspend_for=-1;
@@ -13,10 +15,12 @@
   if (request.getParameter("suspend") != null)   suspend_for=Integer.parseInt(request.getParameter("suspend"));
   if (request.getParameter("suspend2") != null)   suspend2_for=Integer.parseInt(request.getParameter("suspend2"));
   if (request.getParameter("resume") != null)   resume_after=Integer.parseInt(request.getParameter("resume"));
+  final String path=request.getParameter("path");
   if (request.getParameter("resume2") != null)   resume2_after=Integer.parseInt(request.getParameter("resume2"));
   if (request.getParameter("complete") != null)   complete_after=Integer.parseInt(request.getParameter("complete"));
   if (request.getParameter("complete2") != null)   complete2_after=Integer.parseInt(request.getParameter("complete2"));
-  if (request.getDispatcherType() == DispatcherType.REQUEST) {
+  if (request.getAttribute("State") == null) {
+    request.setAttribute("State",new Integer(1));
     response.addHeader("history","initial");
     if (read_before > 0) {
       byte[] buf=new byte[read_before];
@@ -45,7 +49,7 @@
 .start();
     }
     if (suspend_for >= 0) {
-      final AsyncContext async=request.startAsync();
+      final AsyncContext async=wrap ? request.startAsync(new HttpServletRequestWrapper(request),new HttpServletResponseWrapper(response)) : request.startAsync();
       if (suspend_for > 0)       async.setTimeout(suspend_for);
       async.addListener(__listener);
       response.addHeader("history","suspend");
@@ -78,7 +82,8 @@ synchronized (_timer) {
         TimerTask resume=new TimerTask(){
           @Override public void run(){
             ((HttpServletResponse)async.getResponse()).addHeader("history","resume");
-            async.dispatch();
+            if (path != null)             async.dispatch(path);
+ else             async.dispatch();
           }
         }
 ;
@@ -88,7 +93,8 @@ synchronized (_timer) {
       }
  else       if (resume_after == 0) {
         ((HttpServletResponse)async.getResponse()).addHeader("history","resume");
-        async.dispatch();
+        if (path != null)         async.dispatch(path);
+ else         async.dispatch();
       }
     }
  else     if (sleep_for >= 0) {
@@ -109,7 +115,7 @@ synchronized (_timer) {
  else {
     response.addHeader("history","!initial");
     if (suspend2_for >= 0 && request.getAttribute("2nd") == null) {
-      final AsyncContext async=request.startAsync();
+      final AsyncContext async=wrap ? request.startAsync(new HttpServletRequestWrapper(request),new HttpServletResponseWrapper(response)) : request.startAsync();
       async.addListener(__listener);
       request.setAttribute("2nd","cycle");
       if (suspend2_for > 0) {

@@ -1,10 +1,18 @@
 {
-  if (LOG.isDebugEnabled())   LOG.debug("Appending {} chunk: {}",fin ? "final" : "non-final",BufferUtil.toDetailString(framePayload));
+  if (LOG.isDebugEnabled()) {
+    LOG.debug("Appending {} chunk: {}",fin ? "final" : "non-final",BufferUtil.toDetailString(framePayload));
+  }
   if (closed.get()) {
     return;
   }
   try {
+    if (framePayload == null) {
+      return;
+    }
     int capacity=framePayload.remaining();
+    if (capacity <= 0) {
+      return;
+    }
     ByteBuffer copy=framePayload.isDirect() ? ByteBuffer.allocateDirect(capacity) : ByteBuffer.allocate(capacity);
     copy.put(framePayload).flip();
     buffers.put(copy);

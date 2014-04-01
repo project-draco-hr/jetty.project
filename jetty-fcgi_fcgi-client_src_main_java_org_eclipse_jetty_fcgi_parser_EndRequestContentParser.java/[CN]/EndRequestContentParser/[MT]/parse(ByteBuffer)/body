@@ -1,0 +1,60 @@
+{
+  while (buffer.hasRemaining()) {
+switch (state) {
+case APPLICATION:
+{
+        if (buffer.remaining() >= 4) {
+          application=buffer.getInt();
+          state=State.PROTOCOL;
+        }
+ else {
+          state=State.APPLICATION_BYTES;
+          cursor=0;
+        }
+        break;
+      }
+case APPLICATION_BYTES:
+{
+      int quarterInt=buffer.get() & 0xFF;
+      application=(application << 8) + quarterInt;
+      if (++cursor == 4)       state=State.PROTOCOL;
+      break;
+    }
+case PROTOCOL:
+{
+    protocol=buffer.get() & 0xFF;
+    state=State.RESERVED;
+    break;
+  }
+case RESERVED:
+{
+  if (buffer.remaining() >= 3) {
+    buffer.position(buffer.position() + 3);
+    onEnd();
+    reset();
+    return true;
+  }
+ else {
+    state=State.APPLICATION_BYTES;
+    cursor=0;
+    break;
+  }
+}
+case RESERVED_BYTES:
+{
+buffer.get();
+if (++cursor == 0) {
+  onEnd();
+  reset();
+  return true;
+}
+break;
+}
+default :
+{
+throw new IllegalStateException();
+}
+}
+}
+return false;
+}

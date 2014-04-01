@@ -6,9 +6,11 @@ synchronized (this) {
     LOG.debug("flush({}): {}",fin,BufferUtil.toDetailString(buffer));
     frame.setPayload(data);
     frame.setFin(fin);
-    outgoing.outgoingFrame(frame,blocker,BatchMode.OFF);
-    blocker.block();
-    ++frameCount;
+    try (WriteBlocker b=blocker.acquireWriteBlocker()){
+      outgoing.outgoingFrame(frame,b,BatchMode.OFF);
+      b.block();
+    }
+     ++frameCount;
     frame.setIsContinuation();
     utf.clear();
   }
