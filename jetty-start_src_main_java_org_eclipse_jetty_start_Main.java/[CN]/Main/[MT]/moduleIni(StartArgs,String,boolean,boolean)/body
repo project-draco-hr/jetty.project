@@ -89,6 +89,7 @@
  else   if (ini.exists()) {
     StartLog.info("%-15s initialised in %s",name,short_ini);
   }
+ else   StartLog.info("%-15s initialised transitively",name);
   for (  String source : module.getSources()) {
     if (!short_ini.equals(source)) {
       StartLog.info("%-15s enabled in     %s",name,baseHome.toShortForm(source));
@@ -97,18 +98,39 @@
   for (  String file : module.getFiles()) {
     initFile(new FileArg(file));
   }
+  module.expandProperties(args.getProperties());
+  modules.registerParentsIfMissing(baseHome,args,module);
+  modules.buildGraph();
   if (topLevel) {
-    List<Module> parents=new ArrayList<>();
-    for (    String parent : modules.resolveParentModulesOf(name)) {
-      if (!name.equals(parent)) {
-        Module m=modules.get(parent);
+    List<Module> depends=new ArrayList<>();
+    for (    String depend : modules.resolveParentModulesOf(name)) {
+      if (!name.equals(depend)) {
+        Module m=modules.get(depend);
         m.setEnabled(true);
-        parents.add(m);
+        depends.add(m);
       }
     }
-    Collections.sort(parents,Collections.reverseOrder(new Module.DepthComparator()));
-    for (    Module m : parents) {
-      moduleIni(args,m.getName(),false,appendStartIni);
+    Collections.sort(depends,Collections.reverseOrder(new Module.DepthComparator()));
+    Set<String> done=new HashSet<>(0);
+    while (true) {
+      boolean complete=true;
+      for (      Module m : depends) {
+        if (!done.contains(m.getName())) {
+          complete=false;
+          moduleIni(args,m.getName(),false,appendStartIni);
+          done.add(m.getName());
+        }
+      }
+      if (complete)       break;
+      depends.clear();
+      for (      String depend : modules.resolveParentModulesOf(name)) {
+        if (!name.equals(depend)) {
+          Module m=modules.get(depend);
+          m.setEnabled(true);
+          depends.add(m);
+        }
+      }
+      Collections.sort(depends,Collections.reverseOrder(new Module.DepthComparator()));
     }
   }
 }
