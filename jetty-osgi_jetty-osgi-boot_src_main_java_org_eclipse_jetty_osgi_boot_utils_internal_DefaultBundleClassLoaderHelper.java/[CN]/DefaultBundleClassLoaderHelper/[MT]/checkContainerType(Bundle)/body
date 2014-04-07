@@ -1,0 +1,35 @@
+{
+  if (osgiContainer != null)   return;
+  try {
+    Equinox_BundleHost_Class=bundle.getClass().getClassLoader().loadClass("org.eclipse.osgi.framework.internal.core.BundleHost");
+    osgiContainer=OSGiContainerType.EquinoxOld;
+    return;
+  }
+ catch (  ClassNotFoundException e) {
+    LOG.ignore(e);
+  }
+  try {
+    Equinox_EquinoxBundle_Class=bundle.getClass().getClassLoader().loadClass("org.eclipse.osgi.internal.framework.EquinoxBundle");
+    osgiContainer=OSGiContainerType.EquinoxLuna;
+    return;
+  }
+ catch (  ClassNotFoundException e) {
+    LOG.ignore(e);
+  }
+  try {
+    Felix_BundleImpl_Class=bundle.getClass().getClassLoader().loadClass("org.apache.felix.framework.BundleImpl");
+    try {
+      Felix_BundleImpl_Adapt_Method=Felix_BundleImpl_Class.getDeclaredMethod("adapt",new Class[]{Class.class});
+      osgiContainer=OSGiContainerType.Felix403;
+      return;
+    }
+ catch (    NoSuchMethodException e) {
+      osgiContainer=OSGiContainerType.FelixOld;
+      return;
+    }
+  }
+ catch (  ClassNotFoundException e) {
+    LOG.warn("Unknown OSGi container type");
+    return;
+  }
+}

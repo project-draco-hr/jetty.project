@@ -1,0 +1,17 @@
+{
+  ByteArrayEndPoint endPoint=new ByteArrayEndPoint("",16);
+  HttpDestinationOverHTTP destination=new HttpDestinationOverHTTP(client,new Origin("http","localhost",8080));
+  HttpConnectionOverHTTP connection=new HttpConnectionOverHTTP(endPoint,destination);
+  Request request=client.newRequest(URI.create("http://localhost/"));
+  connection.send(request,null);
+  StringBuilder builder=new StringBuilder(endPoint.takeOutputString());
+  TimeUnit.SECONDS.sleep(1);
+  String chunk=endPoint.takeOutputString();
+  while (chunk.length() > 0) {
+    builder.append(chunk);
+    chunk=endPoint.takeOutputString();
+  }
+  String requestString=builder.toString();
+  Assert.assertTrue(requestString.startsWith("GET "));
+  Assert.assertTrue(requestString.endsWith("\r\n\r\n"));
+}
