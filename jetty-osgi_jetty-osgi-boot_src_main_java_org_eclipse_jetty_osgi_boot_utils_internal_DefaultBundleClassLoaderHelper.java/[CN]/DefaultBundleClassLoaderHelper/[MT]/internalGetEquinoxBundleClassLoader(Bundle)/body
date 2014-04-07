@@ -1,18 +1,36 @@
 {
-  try {
-    if (Equinox_BundleHost_getBundleLoader_method == null) {
-      Equinox_BundleHost_getBundleLoader_method=bundle.getClass().getClassLoader().loadClass("org.eclipse.osgi.framework.internal.core.BundleHost").getDeclaredMethod("getBundleLoader",new Class[]{});
-      Equinox_BundleHost_getBundleLoader_method.setAccessible(true);
+  if (osgiContainer == OSGiContainerType.EquinoxOld) {
+    try {
+      if (Equinox_BundleHost_getBundleLoader_method == null) {
+        Equinox_BundleHost_getBundleLoader_method=Equinox_BundleHost_Class.getDeclaredMethod("getBundleLoader",new Class[]{});
+        Equinox_BundleHost_getBundleLoader_method.setAccessible(true);
+      }
+      Object bundleLoader=Equinox_BundleHost_getBundleLoader_method.invoke(bundle,new Object[]{});
+      if (Equinox_BundleLoader_createClassLoader_method == null && bundleLoader != null) {
+        Equinox_BundleLoader_createClassLoader_method=bundleLoader.getClass().getClassLoader().loadClass("org.eclipse.osgi.internal.loader.BundleLoader").getDeclaredMethod("createClassLoader",new Class[]{});
+        Equinox_BundleLoader_createClassLoader_method.setAccessible(true);
+      }
+      return (ClassLoader)Equinox_BundleLoader_createClassLoader_method.invoke(bundleLoader,new Object[]{});
     }
-    Object bundleLoader=Equinox_BundleHost_getBundleLoader_method.invoke(bundle,new Object[]{});
-    if (Equinox_BundleLoader_createClassLoader_method == null && bundleLoader != null) {
-      Equinox_BundleLoader_createClassLoader_method=bundleLoader.getClass().getClassLoader().loadClass("org.eclipse.osgi.internal.loader.BundleLoader").getDeclaredMethod("createClassLoader",new Class[]{});
-      Equinox_BundleLoader_createClassLoader_method.setAccessible(true);
+ catch (    ClassNotFoundException t) {
+      LOG.warn(t);
+      return null;
     }
-    return (ClassLoader)Equinox_BundleLoader_createClassLoader_method.invoke(bundleLoader,new Object[]{});
+catch (    Throwable t) {
+      LOG.warn(t);
+      return null;
+    }
   }
- catch (  Throwable t) {
-    LOG.warn(t);
+  if (osgiContainer == OSGiContainerType.EquinoxLuna) {
+    try {
+      if (Equinox_EquinoxBundle_getModuleClassLoader_Method == null)       Equinox_EquinoxBundle_getModuleClassLoader_Method=Equinox_EquinoxBundle_Class.getDeclaredMethod("getModuleClassLoader",new Class[]{Boolean.TYPE});
+      Equinox_EquinoxBundle_getModuleClassLoader_Method.setAccessible(true);
+      return (ClassLoader)Equinox_EquinoxBundle_getModuleClassLoader_Method.invoke(bundle,new Object[]{Boolean.FALSE});
+    }
+ catch (    Exception e) {
+      LOG.warn(e);
+      return null;
+    }
   }
   LOG.warn("No classloader for equinox platform for bundle " + bundle.getSymbolicName());
   return null;
