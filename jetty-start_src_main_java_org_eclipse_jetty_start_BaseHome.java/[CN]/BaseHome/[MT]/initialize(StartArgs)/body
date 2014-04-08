@@ -1,31 +1,34 @@
 {
   Pattern jetty_home=Pattern.compile("(-D)?jetty.home=(.*)");
   Pattern jetty_base=Pattern.compile("(-D)?jetty.base=(.*)");
-  File homePath=null;
-  File basePath=null;
+  Path homePath=null;
+  Path basePath=null;
+  FileSystem fs=FileSystems.getDefault();
   for (  String arg : args.getCommandLine()) {
     Matcher home_match=jetty_home.matcher(arg);
     if (home_match.matches()) {
-      homePath=new File(home_match.group(2));
+      homePath=fs.getPath(home_match.group(2));
     }
     Matcher base_match=jetty_base.matcher(arg);
     if (base_match.matches()) {
-      basePath=new File(base_match.group(2));
+      basePath=fs.getPath(base_match.group(2));
     }
   }
   if (homePath != null) {
-    this.homeDir=homePath.getAbsoluteFile();
+    this.homeDir=homePath;
     if (basePath == null) {
-      this.baseDir=homePath.getAbsoluteFile();
+      this.baseDir=homePath;
       args.getProperties().setProperty("jetty.base",this.baseDir.toString(),"<internal-fallback>");
     }
  else {
-      this.baseDir=basePath.getAbsoluteFile();
+      this.baseDir=basePath;
     }
   }
  else   if (basePath != null) {
-    this.baseDir=basePath.getAbsoluteFile();
+    this.baseDir=basePath;
   }
-  args.addSystemProperty("jetty.home",this.homeDir.getAbsolutePath());
-  args.addSystemProperty("jetty.base",this.baseDir.getAbsolutePath());
+  baseDir=baseDir.toAbsolutePath();
+  homeDir=homeDir.toAbsolutePath();
+  args.addSystemProperty("jetty.home",this.homeDir.toString());
+  args.addSystemProperty("jetty.base",this.baseDir.toString());
 }
