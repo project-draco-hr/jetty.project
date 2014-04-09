@@ -1,0 +1,14 @@
+{
+  server=new Server();
+  connector=new SPDYServerConnector(server,newSslContextFactory(),null,new ALPNServerConnectionFactory("spdy/3","spdy/2","http/1.1"));
+  connector.setPort(0);
+  connector.setIdleTimeout(30000);
+  server.addConnector(connector);
+  server.start();
+  QueuedThreadPool threadPool=new QueuedThreadPool();
+  threadPool.setName(threadPool.getName() + "-client");
+  clientFactory=new SPDYClient.Factory(threadPool);
+  clientFactory.start();
+  ALPN.debug=true;
+  return new InetSocketAddress("localhost",connector.getLocalPort());
+}

@@ -11,14 +11,11 @@
   }
   File start_d=baseHome.getBaseFile("start.d");
   if (FS.canReadDirectory(start_d)) {
-    List<File> files=new ArrayList<>();
-    for (    File file : start_d.listFiles(new FS.IniFilter())) {
-      files.add(file);
-    }
-    Collections.sort(files,new NaturalSort.Files());
-    for (    File file : files) {
-      StartLog.debug("Reading ${jetty.base}/start.d/%s - %s",file.getName(),file);
-      args.parse(baseHome,new StartIni(file));
+    List<Path> paths=baseHome.getPaths(start_d.toPath(),1,"*.ini");
+    Collections.sort(paths,new NaturalSort.Paths());
+    for (    Path path : paths) {
+      StartLog.debug("Reading ${jetty.base}/start.d/%s - %s",path.getFileName(),path);
+      args.parse(baseHome,new StartIni(path));
     }
   }
   StartLog.debug("Parsing collected arguments");
@@ -34,6 +31,7 @@
   modules.buildGraph();
   args.setAllModules(modules);
   List<Module> activeModules=modules.resolveEnabled();
+  args.expandLibs(baseHome);
   args.expandModules(baseHome,activeModules);
   args.resolveExtraXmls(baseHome);
   return args;

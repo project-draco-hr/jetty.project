@@ -1,0 +1,58 @@
+{
+  String name=node.getString("param-name",false,true);
+  String value=node.getString("param-value",false,true);
+  List<String> values=new ArrayList<>();
+switch (name) {
+case ServletContext.ORDERED_LIBS:
+case AnnotationConfiguration.CONTAINER_INITIALIZERS:
+case MetaInfConfiguration.METAINF_TLDS:
+case MetaInfConfiguration.METAINF_RESOURCES:
+    context.removeAttribute(name);
+  QuotedStringTokenizer tok=new QuotedStringTokenizer(value,",");
+while (tok.hasMoreElements()) values.add(tok.nextToken().trim());
+break;
+default :
+values.add(value);
+}
+switch (name) {
+case ServletContext.ORDERED_LIBS:
+{
+List<Object> libs=new ArrayList<>();
+Object o=context.getAttribute(ServletContext.ORDERED_LIBS);
+if (o instanceof Collection<?>) libs.addAll((Collection<?>)o);
+libs.addAll(values);
+if (libs.size() > 0) context.setAttribute(ServletContext.ORDERED_LIBS,libs);
+break;
+}
+case AnnotationConfiguration.CONTAINER_INITIALIZERS:
+{
+for (String i : values) visitContainerInitializer(context,new ContainerInitializer(Thread.currentThread().getContextClassLoader(),i));
+break;
+}
+case MetaInfConfiguration.METAINF_TLDS:
+{
+List<Object> tlds=new ArrayList<>();
+String war=context.getBaseResource().getURI().toString();
+Object o=context.getAttribute(MetaInfConfiguration.METAINF_TLDS);
+if (o instanceof Collection<?>) tlds.addAll((Collection<?>)o);
+for (String i : values) {
+Resource r=Resource.newResource(i.replace("${WAR}/",war));
+if (r.exists()) tlds.add(r.getURL());
+ else throw new IllegalArgumentException("TLD not found: " + r);
+}
+if (tlds.size() > 0) context.setAttribute(MetaInfConfiguration.METAINF_TLDS,tlds);
+break;
+}
+case MetaInfConfiguration.METAINF_RESOURCES:
+{
+String war=context.getBaseResource().getURI().toString();
+for (String i : values) {
+Resource r=Resource.newResource(i.replace("${WAR}/",war));
+if (r.exists()) visitMetaInfResource(context,r);
+ else throw new IllegalArgumentException("Resource not found: " + r);
+}
+break;
+}
+default :
+}
+}

@@ -1,0 +1,23 @@
+{
+  LOG.debug("configure {}",this);
+  if (context.isStarted()) {
+    LOG.warn("Cannot configure webapp after it is started");
+    return;
+  }
+  Resource webInf=context.getWebInf();
+  if (webInf != null && webInf.isDirectory() && context.getClassLoader() instanceof WebAppClassLoader) {
+    Resource classes=webInf.addPath("classes/");
+    if (classes.exists())     ((WebAppClassLoader)context.getClassLoader()).addClassPath(classes);
+    Resource lib=webInf.addPath("lib/");
+    if (lib.exists() || lib.isDirectory())     ((WebAppClassLoader)context.getClassLoader()).addJars(lib);
+  }
+  context.getMetaData().addDescriptorProcessor(new StandardDescriptorProcessor());
+  context.getMetaData().addDescriptorProcessor(new QuickStartDescriptorProcessor());
+  context.addDecorator(new AnnotationDecorator(context));
+  ServletContainerInitializersStarter starter=(ServletContainerInitializersStarter)context.getAttribute(AnnotationConfiguration.CONTAINER_INITIALIZER_STARTER);
+  if (starter != null)   throw new IllegalStateException("ServletContainerInitializersStarter already exists");
+  starter=new ServletContainerInitializersStarter(context);
+  context.setAttribute(AnnotationConfiguration.CONTAINER_INITIALIZER_STARTER,starter);
+  context.addBean(starter,true);
+  LOG.debug("configured {}",this);
+}
