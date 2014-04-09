@@ -1,0 +1,35 @@
+{
+  out.open(tag,Collections.singletonMap("source",holder.getSource().toString()));
+  String n=holder.getName();
+  out.tag(tag + "-name",n);
+  String ot=n + "." + tag+ ".";
+  out.tag(tag + "-class",origin(md,ot + tag + "-class"),holder.getClassName());
+  for (  String p : holder.getInitParameters().keySet()) {
+    if ("scratchdir".equalsIgnoreCase(p))     continue;
+    out.open("init-param",origin(md,ot + "init-param." + p)).tag("param-name",p).tag("param-value",holder.getInitParameter(p)).close();
+  }
+  if (holder instanceof ServletHolder) {
+    ServletHolder s=(ServletHolder)holder;
+    if (s.getForcedPath() != null)     out.tag("jsp-file",s.getForcedPath());
+    if (s.getInitOrder() != 0)     out.tag("load-on-startup",Integer.toString(s.getInitOrder()));
+    if (s.getRunAsRole() != null)     out.open("run-as",origin(md,ot + "run-as")).tag("role-name",s.getRunAsRole()).close();
+    Map<String,String> roles=s.getRoleRefMap();
+    if (roles != null) {
+      for (      Map.Entry<String,String> e : roles.entrySet()) {
+        out.open("security-role-ref",origin(md,ot + "role-name." + e.getKey())).tag("role-name",e.getKey()).tag("role-link",e.getValue()).close();
+      }
+    }
+    if (!s.isEnabled())     out.tag("enabled",origin(md,ot + "enabled"),"false");
+    MultipartConfigElement multipartConfig=((ServletHolder.Registration)s.getRegistration()).getMultipartConfig();
+    if (multipartConfig != null) {
+      out.open("multipart-config",origin(md,s.getName() + ".servlet.multipart-config"));
+      if (multipartConfig.getLocation() != null)       out.tag("location",multipartConfig.getLocation());
+      out.tag("max-file-size",Long.toString(multipartConfig.getMaxFileSize()));
+      out.tag("max-request-size",Long.toString(multipartConfig.getMaxRequestSize()));
+      out.tag("file-size-threshold",Long.toString(multipartConfig.getFileSizeThreshold()));
+      out.close();
+    }
+  }
+  out.tag("async-supported",origin(md,ot + "async-supported"),holder.isAsyncSupported() ? "true" : "false");
+  out.close();
+}

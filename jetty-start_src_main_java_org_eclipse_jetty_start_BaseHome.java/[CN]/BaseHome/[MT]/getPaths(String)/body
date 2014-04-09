@@ -1,0 +1,37 @@
+{
+  List<Path> hits=new ArrayList<>();
+  if (PathMatchers.isAbsolute(pattern)) {
+    Path root=PathMatchers.getSearchRoot(pattern);
+    PathMatcher matcher=PathMatchers.getMatcher(pattern);
+    if (FS.isValidDirectory(root)) {
+      PathFinder finder=new PathFinder();
+      finder.setIncludeDirsInResults(true);
+      finder.setFileMatcher(matcher);
+      finder.setBase(root);
+      Files.walkFileTree(root,SEARCH_VISIT_OPTIONS,MAX_SEARCH_DEPTH,finder);
+      hits.addAll(finder.getHits());
+    }
+  }
+ else {
+    Path relativePath=PathMatchers.getSearchRoot(pattern);
+    PathMatcher matcher=PathMatchers.getMatcher(pattern);
+    PathFinder finder=new PathFinder();
+    finder.setIncludeDirsInResults(true);
+    finder.setFileMatcher(matcher);
+    Path homePath=homeDir.toPath().resolve(relativePath);
+    if (FS.isValidDirectory(homePath)) {
+      finder.setBase(homePath);
+      Files.walkFileTree(homePath,SEARCH_VISIT_OPTIONS,MAX_SEARCH_DEPTH,finder);
+    }
+    if (isBaseDifferent()) {
+      Path basePath=baseDir.toPath().resolve(relativePath);
+      if (FS.isValidDirectory(basePath)) {
+        finder.setBase(basePath);
+        Files.walkFileTree(basePath,SEARCH_VISIT_OPTIONS,MAX_SEARCH_DEPTH,finder);
+      }
+    }
+    hits.addAll(finder.getHits());
+  }
+  Collections.sort(hits,new NaturalSort.Paths());
+  return hits;
+}

@@ -124,7 +124,24 @@ setState(State.REQUEST_VERSION);
 HttpVersion version;
 if (buffer.position() > 0 && buffer.hasArray()) version=HttpVersion.lookAheadGet(buffer.array(),buffer.arrayOffset() + buffer.position() - 1,buffer.arrayOffset() + buffer.limit());
  else version=HttpVersion.CACHE.getBest(buffer,0,buffer.remaining());
-if (version != null) {
+if (version == null) {
+if (_method == HttpMethod.PROXY) {
+if (!(_requestHandler instanceof ProxyHandler)) throw new BadMessage();
+_uri.flip();
+String protocol=BufferUtil.toString(_uri);
+buffer.position(buffer.position() - 1);
+String sAddr=getProxyField(buffer);
+String dAddr=getProxyField(buffer);
+int sPort=BufferUtil.takeInt(buffer);
+next(buffer);
+int dPort=BufferUtil.takeInt(buffer);
+next(buffer);
+_state=State.START;
+((ProxyHandler)_requestHandler).proxied(protocol,sAddr,dAddr,sPort,dPort);
+return false;
+}
+}
+ else {
 int pos=buffer.position() + version.asString().length() - 1;
 if (pos < buffer.limit()) {
 byte n=buffer.get(pos);
@@ -168,7 +185,7 @@ _version=HttpVersion.CACHE.get(takeString());
 if (_version == null) throw new BadMessage(HttpStatus.BAD_REQUEST_400,"Unknown Version");
 if (_connectionFields == null && _version.getVersion() >= HttpVersion.HTTP_1_1.getVersion()) {
 int header_cache=_handler.getHeaderCacheSize();
-if (header_cache > 0) _connectionFields=new ArrayTernaryTrie<>(header_cache);
+_connectionFields=new ArrayTernaryTrie<>(header_cache);
 }
 setState(State.HEADER);
 _uri.flip();
