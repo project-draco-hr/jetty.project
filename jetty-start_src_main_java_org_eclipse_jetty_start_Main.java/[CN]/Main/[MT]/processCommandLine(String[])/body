@@ -1,31 +1,22 @@
 {
-  StartArgs args=new StartArgs(cmdLine);
-  baseHome.initialize(args);
-  StartLog.getInstance().initialize(baseHome,args);
+  ConfigSources sources=new ConfigSources();
+  CommandLineConfigSource cmdLineSource=new CommandLineConfigSource(cmdLine);
+  sources.add(cmdLineSource);
+  sources.add(new JettyBaseConfigSource(cmdLineSource.getBasePath()));
+  sources.add(new JettyHomeConfigSource(cmdLineSource.getHomePath()));
+  baseHome.initialize(sources);
+  StartLog.getInstance().initialize(baseHome,cmdLineSource);
   StartLog.debug("jetty.home=%s",baseHome.getHome());
   StartLog.debug("jetty.base=%s",baseHome.getBase());
-  File start_ini=baseHome.getBaseFile("start.ini");
-  if (FS.canReadFile(start_ini)) {
-    StartLog.debug("Reading ${jetty.base}/start.ini - %s",start_ini);
-    args.parse(baseHome,new StartIni(start_ini));
-  }
-  File start_d=baseHome.getBaseFile("start.d");
-  if (FS.canReadDirectory(start_d)) {
-    List<Path> paths=baseHome.getPaths(start_d.toPath(),1,"*.ini");
-    Collections.sort(paths,new NaturalSort.Paths());
-    for (    Path path : paths) {
-      StartLog.debug("Reading ${jetty.base}/start.d/%s - %s",path.getFileName(),path);
-      args.parse(baseHome,new StartIni(path));
-    }
-  }
   StartLog.debug("Parsing collected arguments");
-  args.parseCommandLine();
+  StartArgs args=new StartArgs();
+  args.parse(sources);
   Modules modules=new Modules();
   StartLog.debug("Registering all modules");
   modules.registerAll(baseHome,args);
   for (  String enabledModule : args.getEnabledModules()) {
-    List<String> sources=args.getSources(enabledModule);
-    modules.enable(enabledModule,sources);
+    List<String> msources=args.getSources(enabledModule);
+    modules.enable(enabledModule,msources);
   }
   StartLog.debug("Building Module Graph");
   modules.buildGraph();

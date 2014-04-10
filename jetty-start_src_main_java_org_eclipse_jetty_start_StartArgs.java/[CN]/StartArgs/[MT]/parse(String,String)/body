@@ -10,26 +10,23 @@
     return;
   }
   if ("--help".equals(arg) || "-?".equals(arg)) {
-    if (!CMD_LINE_SOURCE.equals(source)) {
-      throw new UsageException(ERR_BAD_ARG,"%s not allowed in %s",arg,source);
-    }
     help=true;
     run=false;
     return;
   }
-  if ("--debug".equals(arg)) {
+  if ("--debug".equals(arg) || arg.startsWith("--start-log-file")) {
+    return;
+  }
+  if (arg.startsWith("--extra-start-dir=")) {
     return;
   }
   if ("--stop".equals(arg)) {
-    if (!CMD_LINE_SOURCE.equals(source)) {
-      throw new UsageException(ERR_BAD_ARG,"%s not allowed in %s",arg,source);
-    }
     stopCommand=true;
     run=false;
     return;
   }
   if (arg.startsWith("--download=")) {
-    addFile(getValue(arg));
+    addFile(Props.getValue(arg));
     run=false;
     download=true;
     return;
@@ -50,9 +47,6 @@
     return;
   }
   if ("--dry-run".equals(arg) || "--exec-print".equals(arg)) {
-    if (!CMD_LINE_SOURCE.equals(source)) {
-      throw new UsageException(ERR_BAD_ARG,"%s not allowed in %s",arg,source);
-    }
     dryRun=true;
     run=false;
     return;
@@ -61,13 +55,8 @@
     exec=true;
     return;
   }
-  if (arg.startsWith("--extra-start-dir=")) {
-    String dirRef=getValue(arg);
-    extraStartRefs.add(dirRef);
-    return;
-  }
   if (arg.startsWith("--lib=")) {
-    String cp=getValue(arg);
+    String cp=Props.getValue(arg);
     if (cp != null) {
       StringTokenizer t=new StringTokenizer(cp,File.pathSeparator);
       while (t.hasMoreTokens()) {
@@ -82,25 +71,19 @@
     return;
   }
   if (arg.startsWith("--add-to-startd=")) {
-    if (!CMD_LINE_SOURCE.equals(source)) {
-      throw new UsageException(ERR_BAD_ARG,"%s not allowed in %s",arg,source);
-    }
-    addToStartdIni.addAll(getValues(arg));
+    addToStartdIni.addAll(Props.getValues(arg));
     run=false;
     download=true;
     return;
   }
   if (arg.startsWith("--add-to-start=")) {
-    if (!CMD_LINE_SOURCE.equals(source)) {
-      throw new UsageException(ERR_BAD_ARG,"%s not allowed in %s",arg,source);
-    }
-    addToStartIni.addAll(getValues(arg));
+    addToStartIni.addAll(Props.getValues(arg));
     run=false;
     download=true;
     return;
   }
   if (arg.startsWith("--module=")) {
-    for (    String moduleName : getValues(arg)) {
+    for (    String moduleName : Props.getValues(arg)) {
       modules.add(moduleName);
       List<String> list=sources.get(moduleName);
       if (list == null) {
@@ -112,7 +95,7 @@
     return;
   }
   if (arg.startsWith("--write-module-graph=")) {
-    this.moduleGraphFilename=getValue(arg);
+    this.moduleGraphFilename=Props.getValue(arg);
     run=false;
     return;
   }
@@ -143,12 +126,10 @@ int idx=arg.indexOf('=');
 if (idx >= 0) {
 String key=arg.substring(0,idx);
 String value=arg.substring(idx + 1);
-if (source != CMD_LINE_SOURCE) {
 if (propertySource.containsKey(key)) {
-throw new UsageException(ERR_BAD_ARG,"Property %s in %s already set in %s",key,source,propertySource.get(key));
+StartLog.warn("Property %s in %s already set in %s",key,source,propertySource.get(key));
 }
 propertySource.put(key,source);
-}
 if ("OPTION".equals(key) || "OPTIONS".equals(key)) {
 StringBuilder warn=new StringBuilder();
 warn.append("The behavior of the argument ");

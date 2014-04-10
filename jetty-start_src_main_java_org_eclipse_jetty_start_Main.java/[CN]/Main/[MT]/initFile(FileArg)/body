@@ -1,16 +1,16 @@
 {
   try {
-    File file=baseHome.getBaseFile(arg.location);
-    StartLog.debug("Module file %s %s",file.getAbsolutePath(),(file.exists() ? "[Exists!]" : ""));
-    if (file.exists()) {
+    Path file=baseHome.getBasePath(arg.location);
+    StartLog.debug("Module file %s %s",file.toAbsolutePath(),(FS.exists(file) ? "[Exists!]" : ""));
+    if (FS.exists(file)) {
       return;
     }
     if (arg.uri != null) {
       URL url=new URL(arg.uri);
       System.err.println("DOWNLOAD: " + url + " to "+ arg.location);
-      FS.ensureDirectoryExists(file.getParentFile());
+      FS.ensureDirectoryExists(file.getParent());
       byte[] buf=new byte[8192];
-      try (InputStream in=url.openStream();OutputStream out=new FileOutputStream(file)){
+      try (InputStream in=url.openStream();OutputStream out=Files.newOutputStream(file,StandardOpenOption.CREATE_NEW,StandardOpenOption.WRITE)){
         while (true) {
           int len=in.read(buf);
           if (len > 0) {
@@ -24,9 +24,11 @@
      }
  else     if (arg.location.endsWith("/")) {
       System.err.println("MKDIR: " + baseHome.toShortForm(file));
-      file.mkdirs();
+      FS.ensureDirectoryExists(file);
     }
- else     StartLog.warn("MISSING: required file " + baseHome.toShortForm(file));
+ else {
+      StartLog.warn("MISSING: required file " + baseHome.toShortForm(file));
+    }
   }
  catch (  Exception e) {
     StartLog.warn("ERROR: processing %s%n%s",arg,e);

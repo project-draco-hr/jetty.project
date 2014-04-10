@@ -1,17 +1,19 @@
 {
   Path apath=path.toAbsolutePath();
-  if (isBaseDifferent()) {
-    if (apath.startsWith(baseDir.getDir())) {
-      return baseDir.toShortForm(apath);
+  for (  ConfigSource source : sources) {
+    if (source instanceof DirConfigSource) {
+      DirConfigSource dirsource=(DirConfigSource)source;
+      Path dir=dirsource.getDir();
+      if (apath.startsWith(dir)) {
+        if (dirsource.isPropertyBased()) {
+          Path relative=dir.relativize(apath);
+          return String.format("%s%c%s",dirsource.getId(),File.separatorChar,relative.toString());
+        }
+ else {
+          return apath.toString();
+        }
+      }
     }
-  }
-  for (  SearchDir search : searchDirs) {
-    if (apath.startsWith(search.getDir())) {
-      return search.toShortForm(apath);
-    }
-  }
-  if (apath.startsWith(homeDir.getDir())) {
-    return homeDir.toShortForm(apath);
   }
   return apath.toString();
 }

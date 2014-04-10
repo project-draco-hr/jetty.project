@@ -1,8 +1,18 @@
 {
   File homeDir=MavenTestingUtils.getTestResourceDir("usecases/home");
-  BaseHome basehome=new BaseHome(homeDir,homeDir);
+  File baseDir=testdir.getEmptyDir();
+  String cmdLine[]=new String[]{"jetty.version=TEST"};
+  CommandLineConfigSource cmdLineSource=new CommandLineConfigSource(cmdLine);
+  ConfigSources config=new ConfigSources();
+  config.add(cmdLineSource);
+  config.add(new JettyHomeConfigSource(homeDir.toPath()));
+  config.add(new JettyBaseConfigSource(baseDir.toPath()));
+  BaseHome basehome=new BaseHome();
+  basehome.initialize(config);
+  StartArgs args=new StartArgs();
+  args.parse(config);
   Modules modules=new Modules();
-  modules.registerAll(basehome,DEFAULT_ARGS);
+  modules.registerAll(basehome,args);
   List<String> moduleNames=new ArrayList<>();
   for (  Module mod : modules) {
     if (mod.getName().equals("npn-boot")) {

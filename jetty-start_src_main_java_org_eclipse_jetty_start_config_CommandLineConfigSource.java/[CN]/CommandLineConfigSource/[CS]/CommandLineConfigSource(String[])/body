@@ -1,5 +1,19 @@
 {
   this.args=Arrays.asList(rawargs);
   this.props=new Props();
-  this.props.addAllProperties(args,CMD_LINE_SOURCE);
+  for (  String arg : args) {
+    this.props.addPossibleProperty(arg,CMD_LINE_SOURCE);
+  }
+  Path home=FS.toOptionalPath(getProperty("jetty.home"));
+  Path base=FS.toOptionalPath(getProperty("jetty.base"));
+  if (home != null) {
+    if (base == null) {
+      base=home;
+      setProperty("jetty.base",base.toString(),"<internal-fallback>");
+    }
+  }
+  this.homePath=home;
+  this.basePath=base;
+  setSystemProperty("jetty.home",homePath.toAbsolutePath().toString());
+  setSystemProperty("jetty.base",basePath.toAbsolutePath().toString());
 }

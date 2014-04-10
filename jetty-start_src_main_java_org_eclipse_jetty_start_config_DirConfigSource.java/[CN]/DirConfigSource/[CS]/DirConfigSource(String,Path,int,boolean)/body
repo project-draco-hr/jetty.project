@@ -1,6 +1,6 @@
 {
   this.id=id;
-  this.dir=dir;
+  this.dir=dir.toAbsolutePath();
   this.weight=weight;
   this.props=new Props();
   this.args=new ArrayList<>();
@@ -9,7 +9,7 @@
     if (FS.canReadFile(iniFile)) {
       StartIni ini=new StartIni(iniFile);
       args.addAll(ini.getLines());
-      this.props.addAllProperties(ini.getLines(),iniFile.toString());
+      parseAllArgs(ini.getLines(),iniFile.toString());
     }
     Path startDdir=dir.resolve("start.d");
     if (FS.canReadDirectory(startDdir)) {
@@ -20,12 +20,18 @@
         }
       }
 ;
+      List<Path> paths=new ArrayList<>();
       for (      Path diniFile : Files.newDirectoryStream(startDdir,filter)) {
         if (FS.canReadFile(diniFile)) {
-          StartIni ini=new StartIni(diniFile);
-          args.addAll(ini.getLines());
-          this.props.addAllProperties(ini.getLines(),diniFile.toString());
+          paths.add(diniFile);
         }
+      }
+      Collections.sort(paths,new NaturalSort.Paths());
+      for (      Path diniFile : paths) {
+        StartLog.debug("Reading %s/start.d/%s - %s",id,diniFile.getFileName(),diniFile);
+        StartIni ini=new StartIni(diniFile);
+        args.addAll(ini.getLines());
+        parseAllArgs(ini.getLines(),diniFile.toString());
       }
     }
   }

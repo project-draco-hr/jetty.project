@@ -1,24 +1,26 @@
 {
   try {
-    this.baseDir=new SearchDir(JETTY_BASE);
-    this.baseDir.setDir(System.getProperty("user.dir","."));
+    this.baseDir=FS.toPath(System.getProperty("user.dir","."));
     String jettyBase=System.getProperty(JETTY_BASE);
     if (jettyBase != null) {
-      this.baseDir.setDir(jettyBase);
+      this.baseDir=FS.toPath(jettyBase);
     }
-    this.homeDir=new SearchDir(JETTY_HOME);
     URL jarfile=this.getClass().getClassLoader().getResource("org/eclipse/jetty/start/BaseHome.class");
     if (jarfile != null) {
       Matcher m=Pattern.compile("jar:(file:.*)!/org/eclipse/jetty/start/BaseHome.class").matcher(jarfile.toString());
       if (m.matches()) {
-        this.homeDir.setDir(new File(new URI(m.group(1))).getParentFile());
+        this.homeDir=new File(new URI(m.group(1))).getParentFile().toPath();
       }
     }
-    this.homeDir.setDir(baseDir.getDir());
+    if (this.homeDir == null) {
+      this.homeDir=baseDir.toAbsolutePath();
+    }
     String jettyHome=System.getProperty(JETTY_HOME);
     if (jettyHome != null) {
-      this.homeDir.setDir(jettyHome);
+      this.homeDir=FS.toPath(jettyHome);
     }
+    this.homeDir=this.homeDir.toAbsolutePath();
+    this.baseDir=this.baseDir.toAbsolutePath();
   }
  catch (  URISyntaxException e) {
     throw new RuntimeException(e);
