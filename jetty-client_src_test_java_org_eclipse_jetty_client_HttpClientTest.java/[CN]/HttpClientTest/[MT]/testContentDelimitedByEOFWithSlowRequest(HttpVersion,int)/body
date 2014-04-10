@@ -1,17 +1,17 @@
 {
   Assume.assumeTrue(sslContextFactory == null);
-  final byte[] data=new byte[8 * 1024];
+  final byte[] data=new byte[length];
   new Random().nextBytes(data);
   start(new AbstractHandler(){
     @Override public void handle(    String target,    org.eclipse.jetty.server.Request baseRequest,    HttpServletRequest request,    HttpServletResponse response) throws IOException, ServletException {
       baseRequest.setHandled(true);
-      response.setHeader("Connection","close");
+      if (version.compareTo(HttpVersion.HTTP_1_0) > 0)       response.setHeader("Connection","close");
       response.getOutputStream().write(data);
     }
   }
 );
   DeferredContentProvider content=new DeferredContentProvider(ByteBuffer.wrap(new byte[]{0}));
-  Request request=client.newRequest("localhost",connector.getLocalPort()).scheme(scheme).content(content);
+  Request request=client.newRequest("localhost",connector.getLocalPort()).scheme(scheme).version(version).content(content);
   FutureResponseListener listener=new FutureResponseListener(request);
   request.send(listener);
   Thread.sleep(1000);
