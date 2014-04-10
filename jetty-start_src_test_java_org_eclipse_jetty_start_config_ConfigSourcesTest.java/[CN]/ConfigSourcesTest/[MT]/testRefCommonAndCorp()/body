@@ -1,0 +1,22 @@
+{
+  File home=testdir.getFile("home");
+  FS.ensureEmpty(home);
+  TestEnv.copyTestDir("usecases/home",home);
+  File common=testdir.getFile("common");
+  FS.ensureEmpty(common);
+  TestEnv.makeFile(common,"start.ini","jetty.port=8080");
+  File corp=testdir.getFile("corp");
+  FS.ensureEmpty(corp);
+  File base=testdir.getFile("base");
+  FS.ensureEmpty(base);
+  TestEnv.makeFile(base,"start.ini","jetty.host=127.0.0.1","--extra-start-dir=" + common.getAbsolutePath(),"--extra-start-dir=" + corp.getAbsolutePath());
+  ConfigSources sources=new ConfigSources();
+  String cmdLine[]=new String[0];
+  sources.add(new CommandLineConfigSource(cmdLine));
+  sources.add(new JettyHomeConfigSource(home.toPath()));
+  sources.add(new JettyBaseConfigSource(base.toPath()));
+  assertIdOrder(sources,"<command-line>","${jetty.base}",common.getAbsolutePath(),corp.getAbsolutePath(),"${jetty.home}");
+  assertDirOrder(sources,base,common,corp,home);
+  assertProperty(sources,"jetty.host","127.0.0.1");
+  assertProperty(sources,"jetty.port","8080");
+}
