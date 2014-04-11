@@ -1,6 +1,7 @@
 {
   List<String> cmdLineArgs=new ArrayList<>();
-  addUseCasesHome(cmdLineArgs);
+  File homePath=MavenTestingUtils.getTestResourceDir("usecases/home");
+  cmdLineArgs.add("jetty.home=" + homePath);
   cmdLineArgs.add("--exec");
   cmdLineArgs.add("-Xms1024m");
   cmdLineArgs.add("-Xmx1024m");
@@ -13,6 +14,7 @@
   Main main=new Main();
   StartArgs args=main.processCommandLine(cmdLineArgs.toArray(new String[cmdLineArgs.size()]));
   BaseHome baseHome=main.getBaseHome();
-  System.err.println(args);
+  Assert.assertThat("jetty.home",baseHome.getHome(),is(homePath.getAbsolutePath()));
+  Assert.assertThat("jetty.base",baseHome.getBase(),is(homePath.getAbsolutePath()));
   ConfigurationAssert.assertConfiguration(baseHome,args,"assert-home-with-jvm.txt");
 }
