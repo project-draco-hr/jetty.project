@@ -1,9 +1,10 @@
 {
   boolean head=this.head=info.isHead();
+  boolean shutdown=this.shutdown=info.getHttpFields().contains(HttpHeader.CONNECTION,HttpHeaderValue.CLOSE.asString());
   if (head) {
     if (lastContent) {
       Generator.Result headersResult=generator.generateResponseHeaders(request,info.getStatus(),info.getReason(),info.getHttpFields(),new Callback.Adapter());
-      Generator.Result contentResult=generator.generateResponseContent(request,BufferUtil.EMPTY_BUFFER,lastContent,callback);
+      Generator.Result contentResult=generator.generateResponseContent(request,BufferUtil.EMPTY_BUFFER,lastContent,aborted,callback);
       flusher.flush(headersResult,contentResult);
     }
  else {
@@ -13,7 +14,8 @@
   }
  else {
     Generator.Result headersResult=generator.generateResponseHeaders(request,info.getStatus(),info.getReason(),info.getHttpFields(),new Callback.Adapter());
-    Generator.Result contentResult=generator.generateResponseContent(request,content,lastContent,callback);
+    Generator.Result contentResult=generator.generateResponseContent(request,content,lastContent,aborted,callback);
     flusher.flush(headersResult,contentResult);
   }
+  if (lastContent && shutdown)   flusher.shutdown();
 }
