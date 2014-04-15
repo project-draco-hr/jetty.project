@@ -1,0 +1,24 @@
+{
+  if (logfile != null) {
+    try {
+      Path logDir=logfile.getParent();
+      FS.ensureDirectoryWritable(logDir);
+      Path startLog=logfile;
+      if (!FS.exists(startLog) && !FS.createNewFile(startLog)) {
+        throw new UsageException(UsageException.ERR_LOGGING,new IOException("Unable to create: " + startLog.toAbsolutePath()));
+      }
+      if (!FS.canWrite(startLog)) {
+        throw new UsageException(UsageException.ERR_LOGGING,new IOException("Unable to write to: " + startLog.toAbsolutePath()));
+      }
+      System.out.println("Logging to " + logfile);
+      OutputStream out=Files.newOutputStream(startLog,StandardOpenOption.CREATE,StandardOpenOption.APPEND);
+      PrintStream logger=new PrintStream(out);
+      System.setOut(logger);
+      System.setErr(logger);
+      System.out.println("Establishing " + logfile + " on "+ new Date());
+    }
+ catch (    IOException e) {
+      throw new UsageException(UsageException.ERR_LOGGING,e);
+    }
+  }
+}

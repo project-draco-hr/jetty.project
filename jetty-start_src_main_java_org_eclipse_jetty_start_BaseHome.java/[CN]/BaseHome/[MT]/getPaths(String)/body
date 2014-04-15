@@ -1,4 +1,5 @@
 {
+  StartLog.debug("getPaths('%s')",pattern);
   List<Path> hits=new ArrayList<>();
   if (PathMatchers.isAbsolute(pattern)) {
     Path root=PathMatchers.getSearchRoot(pattern);
@@ -18,16 +19,17 @@
     PathFinder finder=new PathFinder();
     finder.setIncludeDirsInResults(true);
     finder.setFileMatcher(matcher);
-    Path homePath=homeDir.toPath().resolve(relativePath);
-    if (FS.isValidDirectory(homePath)) {
-      finder.setBase(homePath);
-      Files.walkFileTree(homePath,SEARCH_VISIT_OPTIONS,MAX_SEARCH_DEPTH,finder);
-    }
-    if (isBaseDifferent()) {
-      Path basePath=baseDir.toPath().resolve(relativePath);
-      if (FS.isValidDirectory(basePath)) {
-        finder.setBase(basePath);
-        Files.walkFileTree(basePath,SEARCH_VISIT_OPTIONS,MAX_SEARCH_DEPTH,finder);
+    ListIterator<ConfigSource> iter=sources.reverseListIterator();
+    while (iter.hasPrevious()) {
+      ConfigSource source=iter.previous();
+      if (source instanceof DirConfigSource) {
+        DirConfigSource dirsource=(DirConfigSource)source;
+        Path dir=dirsource.getDir();
+        Path deepDir=dir.resolve(relativePath);
+        if (FS.isValidDirectory(deepDir)) {
+          finder.setBase(dir);
+          Files.walkFileTree(deepDir,SEARCH_VISIT_OPTIONS,MAX_SEARCH_DEPTH,finder);
+        }
       }
     }
     hits.addAll(finder.getHits());

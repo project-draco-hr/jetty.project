@@ -1,0 +1,38 @@
+{
+  this.id=id;
+  this.dir=dir.toAbsolutePath();
+  this.weight=weight;
+  this.props=new Props();
+  this.args=new ArrayList<>();
+  if (canHaveArgs) {
+    Path iniFile=dir.resolve("start.ini");
+    if (FS.canReadFile(iniFile)) {
+      StartIni ini=new StartIni(iniFile);
+      args.addAll(ini.getLines());
+      parseAllArgs(ini.getLines(),iniFile.toString());
+    }
+    Path startDdir=dir.resolve("start.d");
+    if (FS.canReadDirectory(startDdir)) {
+      DirectoryStream.Filter<Path> filter=new DirectoryStream.Filter<Path>(){
+        PathMatcher iniMatcher=PathMatchers.getMatcher("glob:**/start.d/*.ini");
+        @Override public boolean accept(        Path entry) throws IOException {
+          return iniMatcher.matches(entry);
+        }
+      }
+;
+      List<Path> paths=new ArrayList<>();
+      for (      Path diniFile : Files.newDirectoryStream(startDdir,filter)) {
+        if (FS.canReadFile(diniFile)) {
+          paths.add(diniFile);
+        }
+      }
+      Collections.sort(paths,new NaturalSort.Paths());
+      for (      Path diniFile : paths) {
+        StartLog.debug("Reading %s/start.d/%s - %s",id,diniFile.getFileName(),diniFile);
+        StartIni ini=new StartIni(diniFile);
+        args.addAll(ini.getLines());
+        parseAllArgs(ini.getLines(),diniFile.toString());
+      }
+    }
+  }
+}
