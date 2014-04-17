@@ -25,7 +25,7 @@
     assertThat(t.getCause(),instanceOf(TimeoutException.class));
   }
   assertThat(System.currentTimeMillis() - start,greaterThan(idleTimeout / 2));
-  assertTrue(endp.isOpen());
+  assertThat("Endpoint open",endp.isOpen(),is(true));
   Thread.sleep(idleTimeout / 2);
   fcb=new FutureCallback();
   endp.write(fcb,BufferUtil.toBuffer("This is too long"));
@@ -38,10 +38,11 @@
     assertThat(t.getCause(),instanceOf(TimeoutException.class));
   }
   assertThat(System.currentTimeMillis() - start,greaterThan(idleTimeout / 2));
-  assertTrue(endp.isOpen());
-  Thread.sleep(idleTimeout * 2);
-  assertTrue(endp.isOpen());
+  assertThat("Endpoint open",endp.isOpen(),is(true));
+  endp.fillInterested(new Closer(endp));
+  Thread.sleep(idleTimeout / 2);
+  assertThat("Endpoint open",endp.isOpen(),is(true));
   endp.shutdownOutput();
   Thread.sleep(idleTimeout * 2);
-  assertFalse(endp.isOpen());
+  assertThat("Endpoint open",endp.isOpen(),is(false));
 }
