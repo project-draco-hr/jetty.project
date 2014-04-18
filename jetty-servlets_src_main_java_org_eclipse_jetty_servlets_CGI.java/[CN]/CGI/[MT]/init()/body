@@ -1,13 +1,16 @@
 {
   _env=new EnvList();
   _cmdPrefix=getInitParameter("commandPrefix");
+  _useFullPath=Boolean.parseBoolean(getInitParameter("useFullPath"));
   _relative=Boolean.parseBoolean(getInitParameter("cgibinResourceBaseIsRelative"));
   String tmp=getInitParameter("cgibinResourceBase");
-  if (tmp == null) {
+  if (tmp != null)   _cgiBinProvided=true;
+ else {
     tmp=getInitParameter("resourceBase");
-    if (tmp == null)     tmp=getServletContext().getRealPath("/");
+    if (tmp != null)     _cgiBinProvided=true;
+ else     tmp=getServletContext().getRealPath("/");
   }
- else   if (_relative) {
+  if (_relative && _cgiBinProvided) {
     tmp=getServletContext().getRealPath(tmp);
   }
   if (tmp == null) {
@@ -37,9 +40,9 @@
   _path=getInitParameter("Path");
   if (_path != null)   _env.set("PATH",_path);
   _ignoreExitState="true".equalsIgnoreCase(getInitParameter("ignoreExitState"));
-  Enumeration e=getInitParameterNames();
+  Enumeration<String> e=getInitParameterNames();
   while (e.hasMoreElements()) {
-    String n=(String)e.nextElement();
+    String n=e.nextElement();
     if (n != null && n.startsWith("ENV_"))     _env.set(n.substring(4),getInitParameter(n));
   }
   if (!_env.envMap.containsKey("SystemRoot")) {

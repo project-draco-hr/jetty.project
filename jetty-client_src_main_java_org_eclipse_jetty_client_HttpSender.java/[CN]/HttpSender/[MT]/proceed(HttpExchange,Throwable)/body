@@ -25,22 +25,14 @@ case EXPECTING_WITH_CONTENT:
     }
 case WAITING:
 {
-    HttpContent content=this.content;
-    if (content.advance()) {
-      if (!updateSenderState(current,SenderState.SENDING))       throw new IllegalStateException();
-      LOG.debug("Proceeding while waiting");
-      sendContent(exchange,content,contentCallback);
-      return;
-    }
- else {
-      if (!updateSenderState(current,SenderState.IDLE))       throw new IllegalStateException();
-      LOG.debug("Proceeding deferred");
-      return;
-    }
+    if (!updateSenderState(current,SenderState.SENDING))     throw illegalSenderState(current);
+    LOG.debug("Proceeding while waiting");
+    contentCallback.iterate();
+    return;
   }
 default :
 {
-  throw new IllegalStateException(current.toString());
+  throw illegalSenderState(current);
 }
 }
 }

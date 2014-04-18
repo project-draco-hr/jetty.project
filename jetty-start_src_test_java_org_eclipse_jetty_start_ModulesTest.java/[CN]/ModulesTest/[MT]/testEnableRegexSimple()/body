@@ -1,8 +1,17 @@
 {
   File homeDir=MavenTestingUtils.getTestResourceDir("usecases/home");
-  BaseHome basehome=new BaseHome(homeDir,homeDir);
+  File baseDir=testdir.getEmptyDir();
+  String cmdLine[]=new String[]{"jetty.version=TEST"};
+  CommandLineConfigSource cmdLineSource=new CommandLineConfigSource(cmdLine);
+  ConfigSources config=new ConfigSources();
+  config.add(cmdLineSource);
+  config.add(new JettyHomeConfigSource(homeDir.toPath()));
+  config.add(new JettyBaseConfigSource(baseDir.toPath()));
+  BaseHome basehome=new BaseHome(config);
+  StartArgs args=new StartArgs();
+  args.parse(config);
   Modules modules=new Modules();
-  modules.registerAll(basehome,DEFAULT_ARGS);
+  modules.registerAll(basehome,args);
   modules.enable("[sj]{1}.*",TEST_SOURCE);
   String expected[]={"jmx","stats","spdy","security","jndi","jsp","servlet","jaas","server"};
   Assert.assertThat("Enabled Module count",modules.resolveEnabled().size(),is(expected.length));

@@ -3,7 +3,6 @@
     res.sendError(HttpServletResponse.SC_SERVICE_UNAVAILABLE);
     return;
   }
-  String pathInContext=(_relative ? "" : StringUtil.nonNull(req.getServletPath())) + StringUtil.nonNull(req.getPathInfo());
   if (LOG.isDebugEnabled()) {
     LOG.debug("CGI: ContextPath : " + req.getContextPath());
     LOG.debug("CGI: ServletPath : " + req.getServletPath());
@@ -12,24 +11,23 @@
     LOG.debug("CGI: _path       : " + _path);
     LOG.debug("CGI: _ignoreExitState: " + _ignoreExitState);
   }
-  String both=pathInContext;
-  String first=both;
-  String last="";
-  File exe=new File(_docRoot,first);
-  while ((first.endsWith("/") || !exe.exists()) && first.length() >= 0) {
-    int index=first.lastIndexOf('/');
-    first=first.substring(0,index);
-    last=both.substring(index,both.length());
-    exe=new File(_docRoot,first);
-  }
-  if (first.length() == 0 || !exe.exists() || exe.isDirectory() || !exe.getCanonicalPath().equals(exe.getAbsolutePath())) {
-    res.sendError(404);
-  }
- else {
-    if (LOG.isDebugEnabled()) {
-      LOG.debug("CGI: script is " + exe);
-      LOG.debug("CGI: pathInfo is " + last);
+  String pathInContext=(_relative ? "" : StringUtil.nonNull(req.getServletPath())) + StringUtil.nonNull(req.getPathInfo());
+  File execCmd=new File(_docRoot,pathInContext);
+  String pathInfo=pathInContext;
+  if (!_useFullPath) {
+    String path=pathInContext;
+    String info="";
+    while (path.endsWith("/") && path.length() >= 0) {
+      if (!execCmd.exists())       break;
+      int index=path.lastIndexOf('/');
+      path=path.substring(0,index);
+      info=pathInContext.substring(index,pathInContext.length());
+      execCmd=new File(_docRoot,path);
     }
-    exec(exe,last,req,res);
+    if (path.length() == 0 || !execCmd.exists() || execCmd.isDirectory() || !execCmd.getCanonicalPath().equals(execCmd.getAbsolutePath())) {
+      res.sendError(404);
+    }
+    pathInfo=info;
   }
+  exec(execCmd,pathInfo,req,res);
 }

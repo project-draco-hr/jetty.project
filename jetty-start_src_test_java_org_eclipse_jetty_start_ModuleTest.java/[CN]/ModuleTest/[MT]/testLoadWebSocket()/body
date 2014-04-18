@@ -1,10 +1,20 @@
 {
-  Module Module=loadTestHomeModule("websocket.mod");
-  Assert.assertThat("Module Name",Module.getName(),is("websocket"));
-  Assert.assertThat("Module Parents Size",Module.getParentNames().size(),is(2));
-  Assert.assertThat("Module Parents",Module.getParentNames(),containsInAnyOrder("annotations","server"));
-  Assert.assertThat("Module Xmls Size",Module.getXmls().size(),is(1));
-  Assert.assertThat("Module Xmls",Module.getXmls(),contains("etc/jetty-websockets.xml"));
-  Assert.assertThat("Module Options Size",Module.getLibs().size(),is(1));
-  Assert.assertThat("Module Options",Module.getLibs(),contains("lib/websocket/*.jar"));
+  File homeDir=MavenTestingUtils.getTestResourceDir("usecases/home");
+  File baseDir=testdir.getEmptyDir();
+  String cmdLine[]=new String[]{"jetty.version=TEST"};
+  CommandLineConfigSource cmdLineSource=new CommandLineConfigSource(cmdLine);
+  ConfigSources config=new ConfigSources();
+  config.add(cmdLineSource);
+  config.add(new JettyHomeConfigSource(homeDir.toPath()));
+  config.add(new JettyBaseConfigSource(baseDir.toPath()));
+  BaseHome basehome=new BaseHome(config);
+  File file=MavenTestingUtils.getTestResourceFile("usecases/home/modules/websocket.mod");
+  Module module=new Module(basehome,file.toPath());
+  Assert.assertThat("Module Name",module.getName(),is("websocket"));
+  Assert.assertThat("Module Parents Size",module.getParentNames().size(),is(2));
+  Assert.assertThat("Module Parents",module.getParentNames(),containsInAnyOrder("annotations","server"));
+  Assert.assertThat("Module Xmls Size",module.getXmls().size(),is(1));
+  Assert.assertThat("Module Xmls",module.getXmls(),contains("etc/jetty-websockets.xml"));
+  Assert.assertThat("Module Options Size",module.getLibs().size(),is(1));
+  Assert.assertThat("Module Options",module.getLibs(),contains("lib/websocket/*.jar"));
 }
