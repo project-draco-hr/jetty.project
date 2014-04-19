@@ -1,0 +1,45 @@
+{
+  start(new AbstractHandler(){
+    @Override public void handle(    String target,    Request baseRequest,    HttpServletRequest request,    HttpServletResponse response) throws IOException, ServletException {
+      ServletOutputStream output=response.getOutputStream();
+      output.write(65);
+      output.flush();
+      output.write(66);
+    }
+  }
+);
+  final AtomicInteger contentCount=new AtomicInteger();
+  final AtomicReference<Callback> callbackRef=new AtomicReference<>();
+  final AtomicReference<CountDownLatch> contentLatch=new AtomicReference<>(new CountDownLatch(1));
+  final CountDownLatch completeLatch=new CountDownLatch(1);
+  client.newRequest("localhost",connector.getLocalPort()).scheme(scheme).onResponseContentAsync(new Response.AsyncContentListener(){
+    @Override public void onContent(    Response response,    ByteBuffer content,    Callback callback){
+      contentCount.incrementAndGet();
+      callbackRef.set(callback);
+      contentLatch.get().countDown();
+    }
+  }
+).send(new Response.CompleteListener(){
+    @Override public void onComplete(    Result result){
+      completeLatch.countDown();
+    }
+  }
+);
+  Assert.assertTrue(contentLatch.get().await(555,TimeUnit.SECONDS));
+  Callback callback=callbackRef.get();
+  TimeUnit.MILLISECONDS.sleep(1000);
+  Assert.assertEquals(1,contentCount.get());
+  callbackRef.set(null);
+  contentLatch.set(new CountDownLatch(1));
+  callback.succeeded();
+  Assert.assertTrue(contentLatch.get().await(555,TimeUnit.SECONDS));
+  callback=callbackRef.get();
+  TimeUnit.MILLISECONDS.sleep(1000);
+  Assert.assertEquals(2,contentCount.get());
+  Assert.assertEquals(1,completeLatch.getCount());
+  callbackRef.set(null);
+  contentLatch.set(new CountDownLatch(1));
+  callback.succeeded();
+  Assert.assertTrue(completeLatch.await(5,TimeUnit.SECONDS));
+  Assert.assertEquals(2,contentCount.get());
+}
