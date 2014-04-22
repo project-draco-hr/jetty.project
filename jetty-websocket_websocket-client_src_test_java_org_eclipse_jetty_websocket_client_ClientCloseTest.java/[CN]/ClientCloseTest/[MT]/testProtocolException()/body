@@ -1,0 +1,23 @@
+{
+  final int timeout=1000;
+  client.setMaxIdleTimeout(timeout);
+  CloseTrackingSocket clientSocket=new CloseTrackingSocket();
+  Future<Session> clientConnectFuture=client.connect(clientSocket,server.getWsUri());
+  ServerConnection serverConn=server.accept();
+  serverConn.upgrade();
+  confirmConnection(clientSocket,clientConnectFuture,serverConn);
+  clientSocket.assertNoCloseEvent();
+  byte msg[]=new byte[400];
+  Arrays.fill(msg,(byte)'x');
+  ByteBuffer bad=ByteBuffer.allocate(500);
+  RawFrameBuilder.putOpFin(bad,OpCode.CLOSE,true);
+  RawFrameBuilder.putLength(bad,msg.length + 2,false);
+  bad.putShort((short)StatusCode.NORMAL);
+  bad.put(msg);
+  BufferUtil.flipToFlush(bad,0);
+  serverConn.write(bad);
+  clientSocket.assertReceivedError(ProtocolException.class,containsString("Invalid control frame"));
+  confirmServerReceivedCloseFrame(serverConn,StatusCode.PROTOCOL,allOf(containsString("Invalid control frame"),containsString("length")));
+  serverConn.disconnect();
+  clientSocket.assertReceivedCloseEvent(timeout,is(StatusCode.PROTOCOL),allOf(containsString("Invalid control frame"),containsString("length")));
+}

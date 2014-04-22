@@ -1,0 +1,23 @@
+{
+  clientFuture.get(500,TimeUnit.MILLISECONDS);
+  Assert.assertThat("Client WebSocket is Open",clientSocket.openLatch.await(500,TimeUnit.MILLISECONDS),is(true));
+  try {
+    final String echoMsg="echo-test";
+    Future<Void> testFut=clientSocket.getRemote().sendStringByFuture(echoMsg);
+    testFut.get(500,TimeUnit.MILLISECONDS);
+    IncomingFramesCapture serverCapture=serverConn.readFrames(1,500,TimeUnit.MILLISECONDS);
+    serverCapture.assertNoErrors();
+    serverCapture.assertFrameCount(1);
+    WebSocketFrame frame=serverCapture.getFrames().poll();
+    Assert.assertThat("Server received frame",frame.getOpCode(),is(OpCode.TEXT));
+    Assert.assertThat("Server received frame payload",frame.getPayloadAsUTF8(),is(echoMsg));
+    serverConn.write(new TextFrame().setPayload(echoMsg));
+    clientSocket.messageQueue.awaitEventCount(1,1,TimeUnit.SECONDS);
+    String recvMsg=clientSocket.messageQueue.poll();
+    Assert.assertThat("Received message",recvMsg,is(echoMsg));
+    Assert.assertThat("Error events",clientSocket.errorQueue,empty());
+  }
+  finally {
+    clientSocket.clearQueues();
+  }
+}

@@ -1,0 +1,23 @@
+{
+  final int timeout=1000;
+  client.setMaxIdleTimeout(timeout);
+  CloseTrackingSocket clientSocket=new CloseTrackingSocket();
+  Future<Session> clientConnectFuture=client.connect(clientSocket,server.getWsUri());
+  ServerConnection serverConn=server.accept();
+  serverConn.upgrade();
+  confirmConnection(clientSocket,clientConnectFuture,serverConn);
+  final String origCloseReason="Normal Close";
+  clientSocket.getSession().close(StatusCode.NORMAL,origCloseReason);
+  confirmServerReceivedCloseFrame(serverConn,StatusCode.NORMAL,is(origCloseReason));
+  serverConn.write(new TextFrame().setPayload("Hello"));
+  serverConn.write(new TextFrame().setPayload("World"));
+  CloseInfo sclose=new CloseInfo(StatusCode.NORMAL,"From Server");
+  serverConn.write(sclose.asFrame());
+  clientSocket.messageQueue.awaitEventCount(2,1,TimeUnit.SECONDS);
+  String recvMsg=clientSocket.messageQueue.poll();
+  Assert.assertThat("Received message 1",recvMsg,is("Hello"));
+  recvMsg=clientSocket.messageQueue.poll();
+  Assert.assertThat("Received message 2",recvMsg,is("World"));
+  Assert.assertThat("Error events",clientSocket.errorQueue,empty());
+  clientSocket.assertReceivedCloseEvent(timeout,is(StatusCode.NORMAL),containsString("From Server"));
+}
