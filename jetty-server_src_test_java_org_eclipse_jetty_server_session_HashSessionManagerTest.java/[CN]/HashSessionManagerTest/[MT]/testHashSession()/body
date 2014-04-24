@@ -1,5 +1,6 @@
 {
   File testDir=MavenTestingUtils.getTargetTestingDir("saved");
+  IO.delete(testDir);
   testDir.mkdirs();
   Server server=new Server();
   SessionHandler handler=new SessionHandler();
@@ -13,17 +14,16 @@
   AbstractSessionIdManager idManager=new HashSessionIdManager();
   idManager.setWorkerName("foo");
   manager.setSessionIdManager(idManager);
-  idManager.start();
+  server.setSessionIdManager(idManager);
+  server.start();
   manager.start();
   HashedSession session=(HashedSession)manager.newHttpSession(new Request(null,null));
   String sessionId=session.getId();
   session.setAttribute("one",new Integer(1));
   session.setAttribute("two",new Integer(2));
-  idManager.stop();
   manager.setMaxInactiveInterval(30);
   manager.stop();
   Assert.assertTrue("File should exist!",new File(testDir,session.getId()).exists());
-  idManager.start();
   manager.start();
   HashedSession restoredSession=(HashedSession)manager.getSession(sessionId);
   Assert.assertNotNull(restoredSession);
@@ -31,4 +31,5 @@
   Assert.assertNotNull(o);
   Assert.assertEquals(1,((Integer)o).intValue());
   Assert.assertEquals(5,restoredSession.getMaxInactiveInterval());
+  server.stop();
 }
