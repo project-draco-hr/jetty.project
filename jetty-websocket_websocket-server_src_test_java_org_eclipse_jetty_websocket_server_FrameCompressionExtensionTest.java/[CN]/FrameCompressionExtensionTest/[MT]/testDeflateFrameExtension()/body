@@ -4,21 +4,21 @@
   client.addExtensions("x-webkit-deflate-frame");
   client.setProtocols("echo");
   try {
-    client.setTimeout(TimeUnit.SECONDS,1);
+    client.setTimeout(1,TimeUnit.SECONDS);
     client.connect();
     client.sendStandardRequest();
     HttpResponse resp=client.expectUpgradeResponse();
     Assert.assertThat("Response",resp.getExtensionsHeader(),containsString("x-webkit-deflate-frame"));
     String msg="Hello";
     client.write(new TextFrame().setPayload(msg));
-    IncomingFramesCapture capture=client.readFrames(1,TimeUnit.MILLISECONDS,1000);
-    WebSocketFrame frame=capture.getFrames().poll();
+    EventQueue<WebSocketFrame> frames=client.readFrames(1,1000,TimeUnit.MILLISECONDS);
+    WebSocketFrame frame=frames.poll();
     Assert.assertThat("TEXT.payload",frame.getPayloadAsUTF8(),is(msg.toString()));
     client.clearCaptured();
     msg="There";
     client.write(new TextFrame().setPayload(msg));
-    capture=client.readFrames(1,TimeUnit.SECONDS,1);
-    frame=capture.getFrames().poll();
+    frames=client.readFrames(1,1,TimeUnit.SECONDS);
+    frame=frames.poll();
     Assert.assertThat("TEXT.payload",frame.getPayloadAsUTF8(),is(msg.toString()));
   }
   finally {

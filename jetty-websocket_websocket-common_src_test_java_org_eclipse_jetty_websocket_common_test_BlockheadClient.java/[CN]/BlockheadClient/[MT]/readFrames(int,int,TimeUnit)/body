@@ -1,41 +1,4 @@
 {
-  LOG.debug("Read: waiting for {} frame(s) from server",expectedCount);
-  ByteBuffer buf=bufferPool.acquire(BUFFER_SIZE,false);
-  BufferUtil.clearToFill(buf);
-  try {
-    long msDur=TimeUnit.MILLISECONDS.convert(timeoutDuration,timeoutUnit);
-    long now=System.currentTimeMillis();
-    long expireOn=now + msDur;
-    LOG.debug("Now: {} - expireOn: {} ({} ms)",now,expireOn,msDur);
-    long iter=0;
-    int len=0;
-    while (incomingFrames.size() < expectedCount) {
-      BufferUtil.clearToFill(buf);
-      len=read(buf);
-      if (len > 0) {
-        BufferUtil.flipToFlush(buf,0);
-        if (LOG.isDebugEnabled()) {
-          LOG.debug("Read {} bytes: {}",len,BufferUtil.toDetailString(buf));
-        }
-        parser.parse(buf);
-      }
- else {
-        if (LOG.isDebugEnabled()) {
-          iter++;
-          if ((iter % 10000000) == 0) {
-            LOG.debug("10,000,000 reads of zero length");
-            iter=0;
-          }
-        }
-      }
-      if (!debug && (System.currentTimeMillis() > expireOn)) {
-        incomingFrames.dump();
-        throw new TimeoutException(String.format("Timeout reading all %d expected frames. (managed to only read %d frame(s))",expectedCount,incomingFrames.size()));
-      }
-    }
-  }
-  finally {
-    bufferPool.release(buf);
-  }
-  return incomingFrames;
+  frameReader.frames.awaitEventCount(expectedFrameCount,timeoutDuration,timeoutUnit);
+  return frameReader.frames;
 }

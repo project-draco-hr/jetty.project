@@ -1,14 +1,11 @@
 {
   int expectedCount=expect.size();
   LOG.debug("expect() {} frame(s)",expect.size());
-  IncomingFramesCapture capture=client.readFrames(expect.size(),unit,duration);
-  if (LOG.isDebugEnabled()) {
-    capture.dump();
-  }
+  EventQueue<WebSocketFrame> frames=client.readFrames(expect.size(),duration,unit);
   String prefix="";
   for (int i=0; i < expectedCount; i++) {
     WebSocketFrame expected=expect.get(i);
-    WebSocketFrame actual=capture.getFrames().poll();
+    WebSocketFrame actual=frames.poll();
     prefix="Frame[" + i + "]";
     LOG.debug("{} {}",prefix,actual);
     Assert.assertThat(prefix + ".opcode",OpCode.name(actual.getOpCode()),is(OpCode.name(expected.getOpCode())));
