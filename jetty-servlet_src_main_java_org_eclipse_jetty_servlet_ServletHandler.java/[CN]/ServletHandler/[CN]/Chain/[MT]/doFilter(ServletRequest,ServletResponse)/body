@@ -19,13 +19,9 @@
     return;
   }
   HttpServletRequest srequest=(HttpServletRequest)request;
-  if (_servletHolder != null) {
-    if (LOG.isDebugEnabled())     LOG.debug("call servlet " + _servletHolder);
-    _servletHolder.handle(_baseRequest,request,response);
-  }
- else   if (getHandler() == null)   notFound(srequest,(HttpServletResponse)response);
+  if (_servletHolder == null)   notFound((request instanceof Request) ? ((Request)request) : HttpChannel.getCurrentHttpChannel().getRequest(),srequest,(HttpServletResponse)response);
  else {
-    Request baseRequest=(request instanceof Request) ? ((Request)request) : HttpChannel.getCurrentHttpChannel().getRequest();
-    nextHandle(URIUtil.addPaths(srequest.getServletPath(),srequest.getPathInfo()),baseRequest,srequest,(HttpServletResponse)response);
+    LOG.debug("call servlet {}",_servletHolder);
+    _servletHolder.handle(_baseRequest,request,response);
   }
 }
