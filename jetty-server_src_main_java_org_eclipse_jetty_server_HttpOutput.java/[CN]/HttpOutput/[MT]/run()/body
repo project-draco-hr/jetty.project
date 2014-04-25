@@ -1,29 +1,35 @@
 {
-  if (_onError != null) {
-    Throwable th=_onError;
-    _onError=null;
-    _writeListener.onError(new IOException(th));
-    close();
-  }
+  loop:   while (true) {
+    OutputState state=_state.get();
+    if (_onError != null) {
+switch (state) {
+case CLOSED:
+case ERROR:
+        _onError=null;
+      break loop;
+default :
+    if (_state.compareAndSet(state,OutputState.ERROR)) {
+      Throwable th=_onError;
+      _onError=null;
+      _writeListener.onError(new IOException(th));
+      close();
+      break loop;
+    }
+}
+continue loop;
+}
 switch (_state.get()) {
 case READY:
-    try {
-      _writeListener.onWritePossible();
-    }
- catch (    Throwable e) {
-      _writeListener.onError(e);
-      close();
-    }
-  break;
 case CLOSED:
 try {
-  new Throwable().printStackTrace();
   _writeListener.onWritePossible();
+  break loop;
 }
  catch (Throwable e) {
-  _writeListener.onError(e);
+  _onError=e;
 }
 break;
 default :
+}
 }
 }
