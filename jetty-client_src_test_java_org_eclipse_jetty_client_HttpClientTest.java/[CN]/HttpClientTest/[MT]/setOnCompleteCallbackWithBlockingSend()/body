@@ -8,16 +8,20 @@
     }
   }
 );
-  final AtomicInteger complete=new AtomicInteger();
+  final Exchanger<Response> ex=new Exchanger<Response>();
   BufferingResponseListener listener=new BufferingResponseListener(){
     @Override public void onComplete(    Result result){
-      complete.incrementAndGet();
+      try {
+        ex.exchange(result.getResponse());
+      }
+ catch (      InterruptedException e) {
+        e.printStackTrace();
+      }
     }
   }
 ;
-  ContentResponse response=client.newRequest("localhost",connector.getLocalPort()).scheme(scheme).onResponseContent(listener).onComplete(listener).send();
+  client.newRequest("localhost",connector.getLocalPort()).scheme(scheme).send(listener);
+  Response response=ex.exchange(null);
   Assert.assertEquals(200,response.getStatus());
-  Assert.assertEquals(1,complete.get());
   Assert.assertArrayEquals(content,listener.getContent());
-  Assert.assertArrayEquals(content,response.getContent());
 }
