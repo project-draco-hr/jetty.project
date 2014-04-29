@@ -1,12 +1,18 @@
 {
+  LOG.debug("CLIENT onConnectionStateChange() - {}",state);
 switch (state) {
 case CLOSED:
     break;
 case CLOSING:
-  if (ioState.wasRemoteCloseInitiated()) {
-    CloseInfo close=ioState.getCloseInfo();
-    close(close.getStatusCode(),close.getReason());
-  }
+  CloseInfo close=ioState.getCloseInfo();
+WebSocketFrame frame=close.asFrame();
+LOG.debug("Issuing: {}",frame);
+try {
+write(frame);
+}
+ catch (IOException e) {
+LOG.debug(e);
+}
 break;
 default :
 break;

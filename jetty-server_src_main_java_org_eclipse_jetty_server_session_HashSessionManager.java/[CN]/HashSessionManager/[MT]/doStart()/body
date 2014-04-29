@@ -1,16 +1,15 @@
 {
-  super.doStart();
-  _timerStop=false;
   _timer=getSessionHandler().getServer().getBean(Scheduler.class);
   if (_timer == null) {
     ServletContext context=ContextHandler.getCurrentContext();
     if (context != null)     _timer=(Scheduler)context.getAttribute("org.eclipse.jetty.server.session.timer");
   }
   if (_timer == null) {
-    _timerStop=true;
-    _timer=new ScheduledExecutorScheduler();
-    _timer.start();
+    _timer=new ScheduledExecutorScheduler(toString() + "Timer",true);
+    addBean(_timer,true);
   }
+ else   addBean(_timer,false);
+  super.doStart();
   setScavengePeriod(getScavengePeriod());
   if (_storeDir != null) {
     if (!_storeDir.exists())     _storeDir.mkdirs();

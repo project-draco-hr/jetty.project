@@ -1,0 +1,14 @@
+{
+  final int timeout=1000;
+  client.setMaxIdleTimeout(timeout);
+  CloseTrackingSocket clientSocket=new CloseTrackingSocket();
+  Future<Session> clientConnectFuture=client.connect(clientSocket,server.getWsUri());
+  ServerConnection serverConn=server.accept();
+  serverConn.upgrade();
+  confirmConnection(clientSocket,clientConnectFuture,serverConn);
+  final String origCloseReason="Normal Close";
+  clientSocket.getSession().close(StatusCode.NORMAL,origCloseReason);
+  confirmServerReceivedCloseFrame(serverConn,StatusCode.NORMAL,is(origCloseReason));
+  clientSocket.assertNoCloseEvent();
+  clientSocket.assertReceivedCloseEvent(timeout,is(StatusCode.SHUTDOWN),containsString("Timeout"));
+}

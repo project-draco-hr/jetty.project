@@ -1,13 +1,24 @@
 {
   HttpResponse response=new HttpResponse();
-  HttpResponseHeaderParser parser=new HttpResponseHeaderParser(response);
-  ByteBuffer buf=BufferUtil.allocate(512);
-  do {
-    BufferUtil.flipToFill(buf);
-    read(buf);
-    BufferUtil.flipToFlush(buf,0);
+  HttpResponseHeaderParser respParser=new HttpResponseHeaderParser(response);
+  byte buf[]=new byte[512];
+  while (!eof) {
+    int available=in.available();
+    int len=in.read(buf,0,Math.min(available,buf.length));
+    if (len < 0) {
+      eof=true;
+      break;
+    }
+ else     if (len > 0) {
+      ByteBuffer bbuf=ByteBuffer.wrap(buf,0,len);
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("Read {} bytes: {}",len,BufferUtil.toDetailString(bbuf));
+      }
+      if (respParser.parse(bbuf) != null) {
+        break;
+      }
+    }
   }
- while (parser.parse(buf) == null);
   remainingBuffer=response.getRemainingBuffer();
   return response;
 }

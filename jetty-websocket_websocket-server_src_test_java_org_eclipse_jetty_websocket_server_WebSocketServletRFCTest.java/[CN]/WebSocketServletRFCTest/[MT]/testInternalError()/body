@@ -7,8 +7,8 @@
     client.expectUpgradeResponse();
     try (StacklessLogging context=new StacklessLogging(EventDriver.class)){
       client.write(new TextFrame().setPayload("CRASH"));
-      IncomingFramesCapture capture=client.readFrames(1,TimeUnit.MILLISECONDS,500);
-      Frame cf=capture.getFrames().poll();
+      EventQueue<WebSocketFrame> frames=client.readFrames(1,500,TimeUnit.MILLISECONDS);
+      Frame cf=frames.poll();
       CloseInfo close=new CloseInfo(cf);
       Assert.assertThat("Close Frame.status code",close.getStatusCode(),is(StatusCode.SERVER_ERROR));
     }

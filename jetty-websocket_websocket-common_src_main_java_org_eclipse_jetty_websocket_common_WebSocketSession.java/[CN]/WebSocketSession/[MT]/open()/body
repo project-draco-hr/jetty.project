@@ -4,9 +4,18 @@
   }
   connection.getIOState().onConnected();
   remote=new WebSocketRemoteEndpoint(connection,outgoingHandler,getBatchMode());
-  websocket.openSession(this);
-  connection.getIOState().onOpened();
-  if (LOG.isDebugEnabled()) {
-    LOG.debug("open -> {}",dump());
+  try {
+    websocket.openSession(this);
+    connection.getIOState().onOpened();
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("open -> {}",dump());
+    }
+  }
+ catch (  Throwable t) {
+    int statusCode=StatusCode.SERVER_ERROR;
+    if (policy.getBehavior() == WebSocketBehavior.CLIENT) {
+      statusCode=StatusCode.POLICY_VIOLATION;
+    }
+    close(statusCode,t.getMessage());
   }
 }

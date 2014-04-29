@@ -1,13 +1,12 @@
 {
-  BlockheadClient client=new BlockheadClient(server.getServerUri());
-  client.setProtocols("fastclose");
-  client.setTimeout(TimeUnit.SECONDS,1);
-  try {
+  try (BlockheadClient client=new BlockheadClient(server.getServerUri())){
+    client.setProtocols("fastclose");
+    client.setTimeout(1,TimeUnit.SECONDS);
     client.connect();
     client.sendStandardRequest();
     client.expectUpgradeResponse();
-    IncomingFramesCapture capture=client.readFrames(1,TimeUnit.SECONDS,1);
-    WebSocketFrame frame=capture.getFrames().poll();
+    EventQueue<WebSocketFrame> frames=client.readFrames(1,1,TimeUnit.SECONDS);
+    WebSocketFrame frame=frames.poll();
     Assert.assertThat("frames[0].opcode",frame.getOpCode(),is(OpCode.CLOSE));
     CloseInfo close=new CloseInfo(frame);
     Assert.assertThat("Close Status Code",close.getStatusCode(),is(StatusCode.NORMAL));
@@ -15,7 +14,4 @@
     Assert.assertThat("Fast Close Latch",closeSocket.closeLatch.await(1,TimeUnit.SECONDS),is(true));
     Assert.assertThat("Fast Close.statusCode",closeSocket.closeStatusCode,is(StatusCode.NORMAL));
   }
-  finally {
-    client.close();
-  }
-}
+ }

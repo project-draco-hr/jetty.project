@@ -5,19 +5,20 @@ switch (state) {
 case CLOSED:
       break loop;
 case UNREADY:
-    throw new WritePendingException();
+    if (_state.compareAndSet(state,OutputState.ERROR))     _writeListener.onError(_onError == null ? new EofException("Async closed") : _onError);
+  continue;
 default :
-  if (_state.compareAndSet(state,OutputState.CLOSED)) {
-    try {
-      _channel.getResponse().closeOutput();
-    }
- catch (    IOException e) {
-      LOG.debug(e);
-      _channel.failed();
-    }
-    releaseBuffer();
-    return;
+if (_state.compareAndSet(state,OutputState.CLOSED)) {
+  try {
+    _channel.getResponse().closeOutput();
   }
+ catch (  IOException e) {
+    LOG.debug(e);
+    _channel.failed();
+  }
+  releaseBuffer();
+  return;
+}
 }
 }
 }

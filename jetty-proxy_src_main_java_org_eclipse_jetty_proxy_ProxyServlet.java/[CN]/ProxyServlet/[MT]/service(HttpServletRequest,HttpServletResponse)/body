@@ -10,7 +10,7 @@
     onRewriteFailed(request,response);
     return;
   }
-  final Request proxyRequest=_client.newRequest(rewrittenURI).method(HttpMethod.fromString(request.getMethod())).version(HttpVersion.fromString(request.getProtocol()));
+  final Request proxyRequest=_client.newRequest(rewrittenURI).method(request.getMethod()).version(HttpVersion.fromString(request.getProtocol()));
   boolean hasContent=false;
   for (Enumeration<String> headerNames=request.getHeaderNames(); headerNames.hasMoreElements(); ) {
     String headerName=headerNames.nextElement();
@@ -29,8 +29,8 @@
   final AsyncContext asyncContext=request.startAsync();
   asyncContext.setTimeout(0);
   request.setAttribute(ASYNC_CONTEXT,asyncContext);
+  if (hasContent)   proxyRequest.content(proxyRequestContent(proxyRequest,request));
   customizeProxyRequest(proxyRequest,request);
-  if (hasContent)   proxyRequest.content(proxyRequestContent(asyncContext,requestId));
   if (_log.isDebugEnabled()) {
     StringBuilder builder=new StringBuilder(request.getMethod());
     builder.append(" ").append(request.getRequestURI());

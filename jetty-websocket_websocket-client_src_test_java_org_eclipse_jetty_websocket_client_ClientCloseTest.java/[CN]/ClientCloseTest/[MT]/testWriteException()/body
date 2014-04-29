@@ -1,0 +1,15 @@
+{
+  final int timeout=1000;
+  client.setMaxIdleTimeout(timeout);
+  CloseTrackingSocket clientSocket=new CloseTrackingSocket();
+  Future<Session> clientConnectFuture=client.connect(clientSocket,server.getWsUri());
+  ServerConnection serverConn=server.accept();
+  serverConn.upgrade();
+  confirmConnection(clientSocket,clientConnectFuture,serverConn);
+  EndPoint endp=clientSocket.getEndPoint();
+  endp.shutdownOutput();
+  final String origCloseReason="Normal Close";
+  clientSocket.getSession().close(StatusCode.NORMAL,origCloseReason);
+  clientSocket.assertReceivedError(EofException.class,null);
+  clientSocket.assertReceivedCloseEvent(timeout,is(StatusCode.ABNORMAL),containsString("EOF"));
+}
