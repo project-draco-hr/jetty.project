@@ -1,32 +1,8 @@
 {
-  HttpConnectionOverHTTP connection=getHttpConnection();
-  EndPoint endPoint=connection.getEndPoint();
-  ByteBuffer buffer=this.buffer;
-  while (true) {
-    try {
-      if (connection.isClosed()) {
-        if (LOG.isDebugEnabled())         LOG.debug("{} closed",connection);
-        return true;
-      }
-      if (!parse(buffer))       return false;
-      int read=endPoint.fill(buffer);
-      if (LOG.isDebugEnabled())       LOG.debug("Read {} bytes from {}",read,endPoint);
-      if (read > 0) {
-        if (!parse(buffer))         return false;
-      }
- else       if (read == 0) {
-        fillInterested();
-        return true;
-      }
- else {
-        shutdown();
-        return true;
-      }
-    }
- catch (    Throwable x) {
-      LOG.debug(x);
-      failAndClose(x);
-      return true;
-    }
+  if (readAndParse()) {
+    HttpClient client=getHttpDestination().getHttpClient();
+    ByteBufferPool bufferPool=client.getByteBufferPool();
+    bufferPool.release(buffer);
+    buffer=null;
   }
 }

@@ -11,10 +11,14 @@
     content.get(buffer);
     offset=0;
   }
-  try {
-    onResponseContent(request,response,proxyResponse,buffer,offset,length,callback);
+  onResponseContent(request,response,proxyResponse,buffer,offset,length,new Callback(){
+    @Override public void succeeded(){
+      callback.succeeded();
+    }
+    @Override public void failed(    Throwable x){
+      callback.failed(x);
+      proxyResponse.abort(x);
+    }
   }
- catch (  IOException x) {
-    proxyResponse.abort(x);
-  }
+);
 }

@@ -1,11 +1,20 @@
 {
-  StreamWriter writeListener=(StreamWriter)request.getAttribute(WRITE_LISTENER_ATTRIBUTE);
-  if (writeListener == null) {
-    writeListener=new StreamWriter(request.getAsyncContext());
-    request.setAttribute(WRITE_LISTENER_ATTRIBUTE,writeListener);
-    response.getOutputStream().setWriteListener(writeListener);
+  try {
+    int requestId=getRequestId(request);
+    _log.debug("{} proxying content to downstream: {} bytes",requestId,length);
+    StreamWriter writeListener=(StreamWriter)request.getAttribute(WRITE_LISTENER_ATTRIBUTE);
+    if (writeListener == null) {
+      writeListener=new StreamWriter(request.getAsyncContext(),requestId);
+      request.setAttribute(WRITE_LISTENER_ATTRIBUTE,writeListener);
+      writeListener.data(buffer,offset,length,callback);
+      response.getOutputStream().setWriteListener(writeListener);
+    }
+ else {
+      writeListener.data(buffer,offset,length,callback);
+      writeListener.onWritePossible();
+    }
   }
-  _log.debug("{} proxying content to downstream: {} bytes",getRequestId(request),length);
-  if (writeListener.data(buffer,offset,length,callback))   writeListener.onWritePossible();
- else   ;
+ catch (  Throwable x) {
+    callback.failed(x);
+  }
 }
