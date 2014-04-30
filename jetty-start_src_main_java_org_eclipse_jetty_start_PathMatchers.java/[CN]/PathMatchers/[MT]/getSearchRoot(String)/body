@@ -1,25 +1,47 @@
 {
-  Path path=asPath(pattern);
-  Path test=path.getRoot();
-  boolean isSyntaxed=pattern.startsWith("glob:") || pattern.startsWith("regex:");
-  int len=path.getNameCount();
-  for (int i=0; i < len; i++) {
-    Path part=path.getName(i);
-    if (isGlob(part.toString(),isSyntaxed)) {
-      break;
-    }
-    if (i == (len - 1)) {
-      break;
-    }
-    if (test == null) {
-      test=part;
+  StringBuilder root=new StringBuilder();
+  int start=0;
+  boolean syntaxed=false;
+  if (pattern.startsWith("glob:")) {
+    start="glob:".length();
+    syntaxed=true;
+  }
+ else   if (pattern.startsWith("regex:")) {
+    start="regex:".length();
+    syntaxed=true;
+  }
+  int len=pattern.length();
+  int lastSep=0;
+  for (int i=start; i < len; i++) {
+    int cp=pattern.codePointAt(i);
+    if (cp < 127) {
+      char c=(char)cp;
+      if (c == '/') {
+        root.append(c);
+        lastSep=root.length();
+      }
+ else       if (c == '\\') {
+        root.append("\\");
+        lastSep=root.length();
+        int count=countChars(pattern,i + 1,'\\');
+        if (count > 0) {
+          i+=count;
+        }
+      }
+ else {
+        if (isGlob(c,syntaxed)) {
+          break;
+        }
+        root.append(c);
+      }
     }
  else {
-      test=test.resolve(part);
+      root.appendCodePoint(cp);
     }
   }
-  if (test == null) {
+  String rootPath=root.substring(0,lastSep);
+  if (rootPath.length() <= 0) {
     return EMPTY_PATH;
   }
-  return test;
+  return asPath(rootPath);
 }
