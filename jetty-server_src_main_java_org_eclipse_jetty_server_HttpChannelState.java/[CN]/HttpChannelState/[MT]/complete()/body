@@ -1,9 +1,12 @@
 {
-  boolean handle;
+  boolean handle=false;
 synchronized (this) {
     if (_async != Async.STARTED && _async != Async.EXPIRING)     throw new IllegalStateException(this.getStatusString());
     _async=Async.COMPLETE;
-    handle=_state == State.ASYNCWAIT;
+    if (_state == State.ASYNC_WAIT) {
+      handle=true;
+      _state=State.ASYNC_WOKEN;
+    }
   }
   cancelTimeout();
   if (handle) {
