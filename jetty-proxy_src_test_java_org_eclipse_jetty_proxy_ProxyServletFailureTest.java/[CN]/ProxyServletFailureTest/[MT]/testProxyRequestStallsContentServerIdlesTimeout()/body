@@ -1,0 +1,35 @@
+{
+  final byte[] content=new byte[]{'C','0','F','F','E','E'};
+  if (proxyServlet instanceof AsyncProxyServlet) {
+    proxyServlet=new AsyncProxyServlet(){
+      @Override protected ContentProvider proxyRequestContent(      Request proxyRequest,      HttpServletRequest request) throws IOException {
+        return new DeferredContentProvider(){
+          @Override public boolean offer(          ByteBuffer buffer,          Callback callback){
+            return true;
+          }
+        }
+;
+      }
+    }
+;
+  }
+ else {
+    proxyServlet=new ProxyServlet(){
+      @Override protected ContentProvider proxyRequestContent(      Request proxyRequest,      HttpServletRequest request) throws IOException {
+        return new BytesContentProvider(content){
+          @Override public long getLength(){
+            return content.length + 1;
+          }
+        }
+;
+      }
+    }
+;
+  }
+  prepareProxy();
+  prepareServer(new EchoHttpServlet());
+  long idleTimeout=1000;
+  serverConnector.setIdleTimeout(idleTimeout);
+  ContentResponse response=client.newRequest("localhost",serverConnector.getLocalPort()).content(new BytesContentProvider(content)).send();
+  Assert.assertEquals(500,response.getStatus());
+}
