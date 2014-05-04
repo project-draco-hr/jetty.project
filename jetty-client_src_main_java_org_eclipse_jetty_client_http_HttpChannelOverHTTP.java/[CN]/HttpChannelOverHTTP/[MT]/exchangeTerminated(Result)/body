@@ -2,9 +2,15 @@
   super.exchangeTerminated(result);
   Response response=result.getResponse();
   HttpFields responseHeaders=response.getHeaders();
-  boolean implicitClose=response.getVersion().compareTo(HttpVersion.HTTP_1_1) < 0 && !responseHeaders.contains(HttpHeader.CONNECTION,HttpHeaderValue.KEEP_ALIVE.asString());
-  boolean explicitClose=responseHeaders.contains(HttpHeader.CONNECTION,HttpHeaderValue.CLOSE.asString());
-  boolean close=result.isFailed() || implicitClose || explicitClose|| receiver.isShutdown();
+  boolean close=result.isFailed() || receiver.isShutdown();
+  if (!close) {
+    if (response.getVersion().compareTo(HttpVersion.HTTP_1_1) < 0) {
+      close=!responseHeaders.contains(HttpHeader.CONNECTION,HttpHeaderValue.KEEP_ALIVE.asString());
+    }
+ else {
+      close=responseHeaders.contains(HttpHeader.CONNECTION,HttpHeaderValue.CLOSE.asString());
+    }
+  }
   if (close)   connection.close();
  else   connection.release();
 }
