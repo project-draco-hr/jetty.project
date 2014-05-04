@@ -3,7 +3,20 @@ switch (stream) {
 case STD_OUT:
 {
       HttpChannelOverFCGI channel=channels.get(request);
-      if (channel != null)       channel.content(buffer);
+      if (channel != null) {
+        CompletableCallback callback=new CompletableCallback(){
+          @Override public void resume(){
+            LOG.debug("Content consumed asynchronously, resuming processing");
+            process();
+          }
+          @Override public void abort(          Throwable x){
+            close(x);
+          }
+        }
+;
+        channel.content(buffer,callback);
+        return callback.tryComplete();
+      }
  else       noChannel(request);
       break;
     }
@@ -17,4 +30,5 @@ default :
   throw new IllegalArgumentException();
 }
 }
+return false;
 }

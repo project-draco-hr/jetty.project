@@ -3,7 +3,7 @@
 switch (state) {
 case HEADER:
 {
-        if (!headerParser.parse(buffer))         return;
+        if (!headerParser.parse(buffer))         return false;
         state=State.CONTENT;
         break;
       }
@@ -14,7 +14,9 @@ case CONTENT:
         contentParser.noContent();
       }
  else {
-        if (!contentParser.parse(buffer))         return;
+        ContentParser.Result result=contentParser.parse(buffer);
+        if (result == ContentParser.Result.PENDING)         return false;
+ else         if (result == ContentParser.Result.ASYNC)         return true;
       }
       padding=headerParser.getPaddingLength();
       state=State.PADDING;
@@ -30,7 +32,7 @@ case PADDING:
  else {
       padding-=buffer.remaining();
       buffer.position(buffer.limit());
-      return;
+      return false;
     }
   }
 default :
