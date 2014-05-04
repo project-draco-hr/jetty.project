@@ -1,0 +1,21 @@
+{
+  start(new EmptyServerHandler());
+  String host="localhost";
+  int port=connector.getLocalPort();
+  HttpDestinationOverHTTP destination=(HttpDestinationOverHTTP)client.getDestination(scheme,host,port);
+  ConnectionPool connectionPool=destination.getConnectionPool();
+  final BlockingQueue<Connection> idleConnections=connectionPool.getIdleConnections();
+  Assert.assertEquals(0,idleConnections.size());
+  final BlockingQueue<Connection> activeConnections=connectionPool.getActiveConnections();
+  Assert.assertEquals(0,activeConnections.size());
+  client.setStrictEventOrdering(false);
+  ContentResponse response=client.newRequest(host,port).scheme(scheme).onResponseBegin(new Response.BeginListener(){
+    @Override public void onBegin(    Response response){
+      ((HttpResponse)response).version(HttpVersion.HTTP_1_0);
+    }
+  }
+).send();
+  Assert.assertEquals(200,response.getStatus());
+  Assert.assertEquals(0,idleConnections.size());
+  Assert.assertEquals(0,activeConnections.size());
+}
