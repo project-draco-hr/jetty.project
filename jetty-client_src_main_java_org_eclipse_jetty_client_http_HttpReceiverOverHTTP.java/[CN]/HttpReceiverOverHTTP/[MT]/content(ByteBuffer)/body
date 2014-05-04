@@ -1,19 +1,16 @@
 {
   HttpExchange exchange=getHttpExchange();
   if (exchange == null)   return false;
-  final AtomicBoolean completed=new AtomicBoolean();
-  Callback callback=new Callback(){
-    @Override public void succeeded(){
-      if (!completed.compareAndSet(false,true)) {
-        LOG.debug("Content consumed asynchronously, resuming processing");
-        process();
-      }
+  CompletableCallback callback=new CompletableCallback(){
+    @Override public void resume(){
+      LOG.debug("Content consumed asynchronously, resuming processing");
+      process();
     }
-    @Override public void failed(    Throwable x){
+    public void abort(    Throwable x){
       failAndClose(x);
     }
   }
 ;
   responseContent(exchange,buffer,callback);
-  return completed.compareAndSet(false,true);
+  return callback.tryComplete();
 }
