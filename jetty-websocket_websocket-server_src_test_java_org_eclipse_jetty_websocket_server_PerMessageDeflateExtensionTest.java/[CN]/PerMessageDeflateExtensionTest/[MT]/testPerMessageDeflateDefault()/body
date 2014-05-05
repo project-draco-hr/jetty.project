@@ -1,4 +1,5 @@
 {
+  Assume.assumeTrue("Server has x-webkit-deflate-frame registered",server.getWebSocketServletFactory().getExtensionFactory().isAvailable("permessage-deflate"));
   BlockheadClient client=new BlockheadClient(server.getServerUri());
   client.clearExtensions();
   client.addExtensions("permessage-deflate");
@@ -8,7 +9,7 @@
     client.connect();
     client.sendStandardRequest();
     HttpResponse resp=client.expectUpgradeResponse();
-    Assume.assumeThat("Response",resp.getExtensionsHeader(),containsString("permessage-deflate"));
+    Assert.assertThat("Response",resp.getExtensionsHeader(),containsString("permessage-deflate"));
     String msg="Hello";
     client.write(new TextFrame().setPayload(msg));
     EventQueue<WebSocketFrame> frames=client.readFrames(1,1000,TimeUnit.MILLISECONDS);
