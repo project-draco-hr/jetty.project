@@ -15,9 +15,11 @@
   bad.putShort((short)StatusCode.NORMAL);
   bad.put(msg);
   BufferUtil.flipToFlush(bad,0);
-  serverConn.write(bad);
-  clientSocket.assertReceivedError(ProtocolException.class,containsString("Invalid control frame"));
-  confirmServerReceivedCloseFrame(serverConn,StatusCode.PROTOCOL,allOf(containsString("Invalid control frame"),containsString("length")));
-  serverConn.disconnect();
+  try (StacklessLogging quiet=new StacklessLogging(Parser.class)){
+    serverConn.write(bad);
+    clientSocket.assertReceivedError(ProtocolException.class,containsString("Invalid control frame"));
+    confirmServerReceivedCloseFrame(serverConn,StatusCode.PROTOCOL,allOf(containsString("Invalid control frame"),containsString("length")));
+  }
+   serverConn.disconnect();
   clientSocket.assertReceivedCloseEvent(timeout,is(StatusCode.PROTOCOL),allOf(containsString("Invalid control frame"),containsString("length")));
 }
