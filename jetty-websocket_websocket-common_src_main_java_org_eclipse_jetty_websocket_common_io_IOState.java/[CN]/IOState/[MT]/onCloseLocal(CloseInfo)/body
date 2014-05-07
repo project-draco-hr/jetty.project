@@ -1,5 +1,6 @@
 {
   ConnectionState event=null;
+  ConnectionState abnormalEvent=null;
   ConnectionState initialState=this.state;
   LOG.debug("onCloseLocal({}) : {}",close,initialState);
   if (initialState == ConnectionState.CLOSED) {
@@ -25,28 +26,26 @@ synchronized (this) {
       LOG.debug("Close Handshake satisfied, disconnecting");
       cleanClose=true;
       this.state=ConnectionState.CLOSED;
+      finalClose.compareAndSet(null,close);
       event=this.state;
     }
  else     if (this.state == ConnectionState.OPEN) {
       this.state=ConnectionState.CLOSING;
       event=this.state;
-    }
-  }
-  if (event != null) {
-    LOG.debug("notifying state listeners: {}",event);
-    notifyStateListeners(event);
-    if (close.isAbnormal()) {
-      LOG.debug("Abnormal close, disconnecting");
-synchronized (this) {
-        state=ConnectionState.CLOSED;
+      if (close.isAbnormal()) {
+        abnormalEvent=ConnectionState.CLOSED;
+        finalClose.compareAndSet(null,close);
         cleanClose=false;
         outputAvailable=false;
         inputAvailable=false;
         closeHandshakeSource=CloseHandshakeSource.ABNORMAL;
-        event=this.state;
       }
-      notifyStateListeners(event);
-      return;
+    }
+  }
+  if (event != null) {
+    notifyStateListeners(event);
+    if (abnormalEvent != null) {
+      notifyStateListeners(abnormalEvent);
     }
   }
 }
