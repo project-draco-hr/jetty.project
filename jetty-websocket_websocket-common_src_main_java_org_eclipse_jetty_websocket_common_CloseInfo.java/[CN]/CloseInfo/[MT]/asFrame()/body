@@ -1,6 +1,11 @@
 {
   CloseFrame frame=new CloseFrame();
   frame.setFin(true);
-  frame.setPayload(asByteBuffer());
+  if ((statusCode >= 1000) && (statusCode != StatusCode.NO_CLOSE) && (statusCode != StatusCode.NO_CODE)) {
+    if (statusCode == StatusCode.FAILED_TLS_HANDSHAKE) {
+      throw new ProtocolException("Close Frame with status code " + statusCode + " not allowed (per RFC6455)");
+    }
+    frame.setPayload(asByteBuffer());
+  }
   return frame;
 }

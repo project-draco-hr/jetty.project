@@ -1,0 +1,20 @@
+{
+  try {
+    _log.debug("{} proxying content to downstream: {} bytes",getRequestId(request),length);
+    StreamWriter writeListener=(StreamWriter)request.getAttribute(WRITE_LISTENER_ATTRIBUTE);
+    if (writeListener == null) {
+      writeListener=new StreamWriter(request,proxyResponse);
+      request.setAttribute(WRITE_LISTENER_ATTRIBUTE,writeListener);
+      writeListener.data(buffer,offset,length,callback);
+      response.getOutputStream().setWriteListener(writeListener);
+    }
+ else {
+      writeListener.data(buffer,offset,length,callback);
+      writeListener.onWritePossible();
+    }
+  }
+ catch (  Throwable x) {
+    callback.failed(x);
+    onResponseFailure(request,response,proxyResponse,x);
+  }
+}

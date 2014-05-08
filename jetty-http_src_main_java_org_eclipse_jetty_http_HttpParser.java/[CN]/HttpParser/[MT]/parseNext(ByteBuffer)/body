@@ -1,23 +1,28 @@
 {
   if (DEBUG)   LOG.debug("parseNext s={} {}",_state,BufferUtil.toDetailString(buffer));
   try {
-    boolean handle=false;
     if (_state == State.START) {
       _version=null;
       _method=null;
       _methodString=null;
       _endOfContent=EndOfContent.UNKNOWN_CONTENT;
       _header=null;
-      handle=quickStart(buffer);
+      if (quickStart(buffer))       return true;
     }
-    if (!handle && _state.ordinal() >= State.START.ordinal() && _state.ordinal() < State.HEADER.ordinal())     handle=parseLine(buffer);
-    if (!handle && _state.ordinal() >= State.HEADER.ordinal() && _state.ordinal() < State.CONTENT.ordinal())     handle=parseHeaders(buffer);
-    if (!handle && _state.ordinal() >= State.CONTENT.ordinal() && _state.ordinal() < State.END.ordinal()) {
+    if (_state.ordinal() >= State.START.ordinal() && _state.ordinal() < State.HEADER.ordinal()) {
+      if (parseLine(buffer))       return true;
+    }
+    if (_state.ordinal() >= State.HEADER.ordinal() && _state.ordinal() < State.CONTENT.ordinal()) {
+      if (parseHeaders(buffer))       return true;
+    }
+    if (_state.ordinal() >= State.CONTENT.ordinal() && _state.ordinal() < State.END.ordinal()) {
       if (_responseStatus > 0 && _headResponse) {
         setState(State.END);
-        handle=_handler.messageComplete();
+        if (_handler.messageComplete())         return true;
       }
- else       handle=parseContent(buffer);
+ else {
+        if (parseContent(buffer))         return true;
+      }
     }
     if (_state == State.END) {
       while (buffer.remaining() > 0 && buffer.get(buffer.position()) <= HttpTokens.SPACE)       buffer.get();
@@ -36,32 +41,31 @@ switch (_state) {
 case CLOSED:
         break;
 case START:
-      _handler.earlyEOF();
-    setState(State.CLOSED);
+      setState(State.CLOSED);
+    _handler.earlyEOF();
   break;
 case END:
 setState(State.CLOSED);
 break;
 case EOF_CONTENT:
-handle=_handler.messageComplete() || handle;
 setState(State.CLOSED);
-break;
+return _handler.messageComplete();
 case CONTENT:
 case CHUNKED_CONTENT:
 case CHUNK_SIZE:
 case CHUNK_PARAMS:
 case CHUNK:
-_handler.earlyEOF();
 setState(State.CLOSED);
+_handler.earlyEOF();
 break;
 default :
 if (DEBUG) LOG.debug("{} EOF in {}",this,_state);
-_handler.badMessage(400,null);
 setState(State.CLOSED);
+_handler.badMessage(400,null);
 break;
 }
 }
-return handle;
+return false;
 }
  catch (BadMessage e) {
 BufferUtil.clear(buffer);

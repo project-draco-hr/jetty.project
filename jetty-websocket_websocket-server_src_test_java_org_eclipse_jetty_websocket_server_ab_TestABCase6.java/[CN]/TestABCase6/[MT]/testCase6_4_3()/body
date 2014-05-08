@@ -11,8 +11,7 @@
     send.add(new CloseInfo(StatusCode.NORMAL).asFrame());
     List<WebSocketFrame> expect=new ArrayList<>();
     expect.add(new CloseInfo(StatusCode.BAD_PAYLOAD).asFrame());
-    Fuzzer fuzzer=new Fuzzer(this);
-    try {
+    try (Fuzzer fuzzer=new Fuzzer(this)){
       fuzzer.connect();
       ByteBuffer net=fuzzer.asNetworkBuffer(send);
       int splits[]={17,21,net.limit()};
@@ -30,10 +29,6 @@
       TimeUnit.MILLISECONDS.sleep(500);
       fuzzer.send(part3);
       fuzzer.expect(expect);
-      fuzzer.expectServerDisconnect(Fuzzer.DisconnectMode.UNCLEAN);
     }
-  finally {
-      fuzzer.close();
-    }
-  }
+   }
  }

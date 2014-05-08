@@ -1,0 +1,24 @@
+{
+  byte[] buffer;
+  int offset;
+  int length=content.remaining();
+  if (content.hasArray()) {
+    buffer=content.array();
+    offset=content.arrayOffset();
+  }
+ else {
+    buffer=new byte[length];
+    content.get(buffer);
+    offset=0;
+  }
+  onResponseContent(request,response,proxyResponse,buffer,offset,length,new Callback(){
+    @Override public void succeeded(){
+      callback.succeeded();
+    }
+    @Override public void failed(    Throwable x){
+      callback.failed(x);
+      proxyResponse.abort(x);
+    }
+  }
+);
+}

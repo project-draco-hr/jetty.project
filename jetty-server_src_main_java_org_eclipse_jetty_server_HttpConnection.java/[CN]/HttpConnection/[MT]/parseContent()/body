@@ -1,0 +1,21 @@
+{
+  ByteBuffer requestBuffer=getRequestBuffer();
+  while (_parser.inContentState()) {
+    boolean parsed=_parser.parseNext(requestBuffer == null ? BufferUtil.EMPTY_BUFFER : requestBuffer);
+    if (BufferUtil.isEmpty(requestBuffer) && getEndPoint().isInputShutdown()) {
+      _parser.atEOF();
+      if (parsed)       break;
+      continue;
+    }
+    if (parsed)     break;
+    int filled=getEndPoint().fill(requestBuffer);
+    if (LOG.isDebugEnabled())     LOG.debug("{} filled {}",this,filled);
+    if (filled <= 0) {
+      if (filled < 0) {
+        _parser.atEOF();
+        continue;
+      }
+      break;
+    }
+  }
+}

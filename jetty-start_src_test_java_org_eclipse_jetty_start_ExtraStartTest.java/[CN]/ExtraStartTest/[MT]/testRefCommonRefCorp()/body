@@ -1,0 +1,23 @@
+{
+  File home=testdir.getFile("home");
+  FS.ensureEmpty(home);
+  TestEnv.copyTestDir("usecases/home",home);
+  File corp=testdir.getFile("corp");
+  FS.ensureEmpty(corp);
+  TestEnv.makeFile(corp,"start.ini","jetty.port=9090");
+  File common=testdir.getFile("common");
+  FS.ensureEmpty(common);
+  TestEnv.makeFile(common,"start.ini","--extra-start-dir=" + corp.getAbsolutePath(),"jetty.port=8080");
+  File base=testdir.getFile("base");
+  FS.ensureEmpty(base);
+  TestEnv.makeFile(base,"start.ini","jetty.host=127.0.0.1","--extra-start-dir=" + common.getAbsolutePath());
+  MainResult result=runMain(base,home);
+  List<String> expectedSearchOrder=new ArrayList<>();
+  expectedSearchOrder.add("${jetty.base}");
+  expectedSearchOrder.add(common.getAbsolutePath());
+  expectedSearchOrder.add(corp.getAbsolutePath());
+  expectedSearchOrder.add("${jetty.home}");
+  result.assertSearchOrder(expectedSearchOrder);
+  result.assertProperty("jetty.host","127.0.0.1");
+  result.assertProperty("jetty.port","8080");
+}

@@ -1,5 +1,6 @@
 {
   ConnectionState event=null;
+  ConnectionState abnormalEvent=null;
   ConnectionState initialState=this.state;
   LOG.debug("onCloseLocal({}) : {}",close,initialState);
   if (initialState == ConnectionState.CLOSED) {
@@ -9,9 +10,10 @@
   if (initialState == ConnectionState.CONNECTED) {
     LOG.debug("FastClose in CONNECTED detected");
     onOpened();
+    LOG.debug("FastClose continuing with Closure");
   }
 synchronized (this) {
-    if (closeInfo == null)     closeInfo=close;
+    closeInfo=close;
     boolean in=inputAvailable;
     boolean out=outputAvailable;
     if (closeHandshakeSource == CloseHandshakeSource.NONE) {
@@ -24,15 +26,26 @@ synchronized (this) {
       LOG.debug("Close Handshake satisfied, disconnecting");
       cleanClose=true;
       this.state=ConnectionState.CLOSED;
+      finalClose.compareAndSet(null,close);
       event=this.state;
     }
  else     if (this.state == ConnectionState.OPEN) {
       this.state=ConnectionState.CLOSING;
       event=this.state;
+      if (close.isAbnormal()) {
+        abnormalEvent=ConnectionState.CLOSED;
+        finalClose.compareAndSet(null,close);
+        cleanClose=false;
+        outputAvailable=false;
+        inputAvailable=false;
+        closeHandshakeSource=CloseHandshakeSource.ABNORMAL;
+      }
     }
   }
   if (event != null) {
-    LOG.debug("notifying state listeners: {}",event);
     notifyStateListeners(event);
+    if (abnormalEvent != null) {
+      notifyStateListeners(abnormalEvent);
+    }
   }
 }

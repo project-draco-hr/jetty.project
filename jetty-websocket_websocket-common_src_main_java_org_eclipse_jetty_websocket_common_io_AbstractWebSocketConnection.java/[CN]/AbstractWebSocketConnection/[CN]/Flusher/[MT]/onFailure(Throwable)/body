@@ -1,24 +1,9 @@
 {
+  session.notifyError(x);
   if (ioState.wasAbnormalClose()) {
     LOG.ignore(x);
     return;
   }
   LOG.debug("Write flush failure",x);
-  String reason="Websocket write failure";
-  if (x instanceof EOFException) {
-    reason="EOF";
-    Throwable cause=x.getCause();
-    if ((cause != null) && (StringUtil.isNotBlank(cause.getMessage()))) {
-      reason="EOF: " + cause.getMessage();
-    }
-  }
- else {
-    if (StringUtil.isNotBlank(x.getMessage())) {
-      reason=x.getMessage();
-    }
-  }
-  reason=CloseStatus.trimMaxReasonLength(reason);
-  session.notifyError(x);
-  session.notifyClose(StatusCode.NO_CLOSE,reason);
-  disconnect();
+  ioState.onWriteFailure(x);
 }

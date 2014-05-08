@@ -1,6 +1,16 @@
 {
   HttpExchange exchange=getHttpExchange();
   if (exchange == null)   return false;
-  responseContent(exchange,buffer);
-  return false;
+  CompletableCallback callback=new CompletableCallback(){
+    @Override public void resume(){
+      LOG.debug("Content consumed asynchronously, resuming processing");
+      process();
+    }
+    public void abort(    Throwable x){
+      failAndClose(x);
+    }
+  }
+;
+  responseContent(exchange,buffer,callback);
+  return callback.tryComplete();
 }

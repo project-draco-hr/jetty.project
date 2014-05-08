@@ -11,7 +11,7 @@ case UNMANAGED:
     break;
 case MANAGED:
   manage(new_bean);
-if (_started) {
+if (isStarting() && _doStarted) {
   LifeCycle l=(LifeCycle)o;
   if (!l.isRunning())   start(l);
 }
@@ -19,13 +19,15 @@ break;
 case AUTO:
 if (o instanceof LifeCycle) {
 LifeCycle l=(LifeCycle)o;
-if (_started) {
+if (isStarting()) {
 if (l.isRunning()) unmanage(new_bean);
- else {
+ else if (_doStarted) {
   manage(new_bean);
   start(l);
 }
+ else new_bean._managed=Managed.AUTO;
 }
+ else if (isStarted()) unmanage(new_bean);
  else new_bean._managed=Managed.AUTO;
 }
  else new_bean._managed=Managed.POJO;

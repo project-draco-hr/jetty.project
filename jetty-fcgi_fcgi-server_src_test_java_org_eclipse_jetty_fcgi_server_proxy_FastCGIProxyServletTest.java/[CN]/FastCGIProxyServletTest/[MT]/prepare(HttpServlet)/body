@@ -1,0 +1,25 @@
+{
+  server=new Server();
+  httpConnector=new ServerConnector(server);
+  server.addConnector(httpConnector);
+  fcgiConnector=new ServerConnector(server,new ServerFCGIConnectionFactory(new HttpConfiguration()));
+  server.addConnector(fcgiConnector);
+  final String contextPath="/";
+  ServletContextHandler context=new ServletContextHandler(server,contextPath);
+  final String servletPath="/script";
+  FastCGIProxyServlet fcgiServlet=new FastCGIProxyServlet(){
+    @Override protected URI rewriteURI(    HttpServletRequest request){
+      return URI.create("http://localhost:" + fcgiConnector.getLocalPort() + servletPath+ request.getServletPath());
+    }
+  }
+;
+  ServletHolder fcgiServletHolder=new ServletHolder(fcgiServlet);
+  context.addServlet(fcgiServletHolder,"*.php");
+  fcgiServletHolder.setInitParameter(FastCGIProxyServlet.SCRIPT_ROOT_INIT_PARAM,"/scriptRoot");
+  fcgiServletHolder.setInitParameter("proxyTo","http://localhost");
+  fcgiServletHolder.setInitParameter(FastCGIProxyServlet.SCRIPT_PATTERN_INIT_PARAM,"(.+?\\.php)");
+  context.addServlet(new ServletHolder(servlet),servletPath + "/*");
+  client=new HttpClient();
+  server.addBean(client);
+  server.start();
+}

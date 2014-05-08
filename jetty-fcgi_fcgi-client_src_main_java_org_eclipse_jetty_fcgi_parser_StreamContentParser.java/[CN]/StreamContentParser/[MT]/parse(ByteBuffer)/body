@@ -13,13 +13,13 @@ case CONTENT:
       int limit=buffer.limit();
       buffer.limit(buffer.position() + length);
       ByteBuffer slice=buffer.slice();
-      onContent(slice);
       buffer.position(buffer.limit());
       buffer.limit(limit);
       contentLength-=length;
+      if (onContent(slice))       return Result.ASYNC;
       if (contentLength > 0)       break;
       state=State.LENGTH;
-      return true;
+      return Result.COMPLETE;
     }
 default :
 {
@@ -27,5 +27,5 @@ default :
   }
 }
 }
-return false;
+return Result.PENDING;
 }

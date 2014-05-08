@@ -4,9 +4,11 @@
   server.addConnector(connector);
   ServletContextHandler context=new ServletContextHandler(server,"/",true,false);
   ServerContainer container=WebSocketServerContainerInitializer.configureContext(context);
+  WebSocketUpgradeFilter filter=(WebSocketUpgradeFilter)context.getAttribute(WebSocketUpgradeFilter.class.getName());
+  serverExtensionFactory=filter.getFactory().getExtensionFactory();
   ServerEndpointConfig config=ServerEndpointConfig.Builder.create(BasicEchoEndpoint.class,"/").build();
   container.addEndpoint(config);
-  server.start();
   client=ContainerProvider.getWebSocketContainer();
   server.addBean(client,true);
+  server.start();
 }

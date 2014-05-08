@@ -1,14 +1,19 @@
 {
   BlockheadClient client=new BlockheadClient(server.getServerUri());
   client.setProtocols("onConnect");
-  client.setTimeout(TimeUnit.MILLISECONDS,2500);
+  client.setTimeout(2500,TimeUnit.MILLISECONDS);
   try {
     client.connect();
     client.sendStandardRequest();
     client.expectUpgradeResponse();
     client.sleep(TimeUnit.MILLISECONDS,1000);
     client.write(new TextFrame().setPayload("Hello"));
-    client.expectServerDisconnect();
+    EventQueue<WebSocketFrame> frames=client.readFrames(1,500,TimeUnit.MILLISECONDS);
+    WebSocketFrame frame=frames.poll();
+    Assert.assertThat("frame opcode",frame.getOpCode(),is(OpCode.CLOSE));
+    CloseInfo close=new CloseInfo(frame);
+    Assert.assertThat("close code",close.getStatusCode(),is(StatusCode.SHUTDOWN));
+    Assert.assertThat("close reason",close.getReason(),containsString("Timeout"));
   }
   finally {
     client.close();

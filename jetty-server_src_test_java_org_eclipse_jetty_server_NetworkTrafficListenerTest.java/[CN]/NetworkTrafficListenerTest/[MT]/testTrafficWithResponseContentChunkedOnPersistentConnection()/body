@@ -3,7 +3,7 @@
   final String responseChunk1="response_content".substring(0,responseContent.length() / 2);
   final String responseChunk2="response_content".substring(responseContent.length() / 2,responseContent.length());
   initConnector(new AbstractHandler(){
-    public void handle(    String uri,    Request request,    HttpServletRequest servletRequest,    HttpServletResponse servletResponse) throws IOException, ServletException {
+    @Override public void handle(    String uri,    Request request,    HttpServletRequest servletRequest,    HttpServletResponse servletResponse) throws IOException, ServletException {
       request.setHandled(true);
       ServletOutputStream output=servletResponse.getOutputStream();
       output.write(responseChunk1.getBytes(StandardCharsets.UTF_8));
@@ -16,15 +16,15 @@
   final AtomicReference<String> incomingData=new AtomicReference<>();
   final CountDownLatch incomingLatch=new CountDownLatch(1);
   final AtomicReference<String> outgoingData=new AtomicReference<>("");
-  final CountDownLatch outgoingLatch=new CountDownLatch(4);
+  final CountDownLatch outgoingLatch=new CountDownLatch(1);
   connector.addNetworkTrafficListener(new NetworkTrafficListener.Adapter(){
-    public void incoming(    Socket socket,    ByteBuffer bytes){
+    @Override public void incoming(    Socket socket,    ByteBuffer bytes){
       incomingData.set(BufferUtil.toString(bytes,StandardCharsets.UTF_8));
       incomingLatch.countDown();
     }
-    public void outgoing(    Socket socket,    ByteBuffer bytes){
+    @Override public void outgoing(    Socket socket,    ByteBuffer bytes){
       outgoingData.set(outgoingData.get() + BufferUtil.toString(bytes,StandardCharsets.UTF_8));
-      outgoingLatch.countDown();
+      if (outgoingData.get().endsWith("\r\n0\r\n\r\n"))       outgoingLatch.countDown();
     }
   }
 );

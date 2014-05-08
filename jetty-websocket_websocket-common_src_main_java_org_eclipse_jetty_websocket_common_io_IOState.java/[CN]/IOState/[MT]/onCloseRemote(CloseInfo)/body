@@ -5,7 +5,7 @@ synchronized (this) {
     if (this.state == ConnectionState.CLOSED) {
       return;
     }
-    if (closeInfo == null)     closeInfo=close;
+    closeInfo=close;
     boolean in=inputAvailable;
     boolean out=outputAvailable;
     if (closeHandshakeSource == CloseHandshakeSource.NONE) {
@@ -18,6 +18,7 @@ synchronized (this) {
       LOG.debug("Close Handshake satisfied, disconnecting");
       cleanClose=true;
       state=ConnectionState.CLOSED;
+      finalClose.compareAndSet(null,close);
       event=this.state;
     }
  else     if (this.state == ConnectionState.OPEN) {

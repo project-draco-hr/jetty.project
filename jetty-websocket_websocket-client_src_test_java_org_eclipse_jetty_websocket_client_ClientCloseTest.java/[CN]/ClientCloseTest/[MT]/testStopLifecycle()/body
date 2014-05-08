@@ -1,0 +1,21 @@
+{
+  final int timeout=1000;
+  client.setMaxIdleTimeout(timeout);
+  int clientCount=3;
+  CloseTrackingSocket clientSockets[]=new CloseTrackingSocket[clientCount];
+  ServerConnection serverConns[]=new ServerConnection[clientCount];
+  for (int i=0; i < clientCount; i++) {
+    clientSockets[i]=new CloseTrackingSocket();
+    Future<Session> clientConnectFuture=client.connect(clientSockets[i],server.getWsUri());
+    serverConns[i]=server.accept();
+    serverConns[i].upgrade();
+    confirmConnection(clientSockets[i],clientConnectFuture,serverConns[i]);
+  }
+  client.stop();
+  for (int i=0; i < clientCount; i++) {
+    confirmServerReceivedCloseFrame(serverConns[i],StatusCode.SHUTDOWN,containsString("Shutdown"));
+  }
+  for (int i=0; i < clientCount; i++) {
+    clientSockets[i].assertReceivedCloseEvent(timeout,is(StatusCode.SHUTDOWN),containsString("Shutdown"));
+  }
+}

@@ -4,15 +4,12 @@
   send.add(new CloseInfo(StatusCode.NORMAL).asFrame());
   List<WebSocketFrame> expect=new ArrayList<>();
   expect.add(new CloseInfo(StatusCode.BAD_PAYLOAD).asFrame());
-  Fuzzer fuzzer=new Fuzzer(this);
-  try (StacklessLogging supress=new StacklessLogging(Parser.class)){
-    fuzzer.connect();
-    fuzzer.setSendMode(Fuzzer.SendMode.BULK);
-    fuzzer.send(send);
-    fuzzer.expect(expect);
-    fuzzer.expectServerDisconnect(Fuzzer.DisconnectMode.UNCLEAN);
-  }
-  finally {
-    fuzzer.close();
-  }
-}
+  try (Fuzzer fuzzer=new Fuzzer(this)){
+    try (StacklessLogging supress=new StacklessLogging(Parser.class)){
+      fuzzer.connect();
+      fuzzer.setSendMode(Fuzzer.SendMode.BULK);
+      fuzzer.send(send);
+      fuzzer.expect(expect);
+    }
+   }
+ }

@@ -10,14 +10,14 @@
     onRewriteFailed(request,response);
     return;
   }
-  final Request proxyRequest=_client.newRequest(rewrittenURI).method(HttpMethod.fromString(request.getMethod())).version(HttpVersion.fromString(request.getProtocol()));
-  boolean hasContent=false;
+  final Request proxyRequest=_client.newRequest(rewrittenURI).method(request.getMethod()).version(HttpVersion.fromString(request.getProtocol()));
+  boolean hasContent=request.getContentLength() > 0 || request.getContentType() != null;
   for (Enumeration<String> headerNames=request.getHeaderNames(); headerNames.hasMoreElements(); ) {
     String headerName=headerNames.nextElement();
     String lowerHeaderName=headerName.toLowerCase(Locale.ENGLISH);
-    if (HOP_HEADERS.contains(lowerHeaderName))     continue;
+    if (HttpHeader.TRANSFER_ENCODING.is(headerName))     hasContent=true;
     if (_hostHeader != null && HttpHeader.HOST.is(headerName))     continue;
-    if (request.getContentLength() > 0 || request.getContentType() != null || HttpHeader.TRANSFER_ENCODING.is(headerName))     hasContent=true;
+    if (HOP_HEADERS.contains(lowerHeaderName))     continue;
     for (Enumeration<String> headerValues=request.getHeaders(headerName); headerValues.hasMoreElements(); ) {
       String headerValue=headerValues.nextElement();
       if (headerValue != null)       proxyRequest.header(headerName,headerValue);
@@ -26,21 +26,10 @@
   if (_hostHeader != null)   proxyRequest.header(HttpHeader.HOST,_hostHeader);
   addViaHeader(proxyRequest);
   addXForwardedHeaders(proxyRequest,request);
-  if (hasContent) {
-    proxyRequest.content(new InputStreamContentProvider(request.getInputStream()){
-      @Override public long getLength(){
-        return request.getContentLength();
-      }
-      @Override protected ByteBuffer onRead(      byte[] buffer,      int offset,      int length){
-        _log.debug("{} proxying content to upstream: {} bytes",requestId,length);
-        return super.onRead(buffer,offset,length);
-      }
-    }
-);
-  }
   final AsyncContext asyncContext=request.startAsync();
   asyncContext.setTimeout(0);
-  request.setAttribute(ASYNC_CONTEXT,asyncContext);
+  proxyRequest.timeout(getTimeout(),TimeUnit.MILLISECONDS);
+  if (hasContent)   proxyRequest.content(proxyRequestContent(proxyRequest,request));
   customizeProxyRequest(proxyRequest,request);
   if (_log.isDebugEnabled()) {
     StringBuilder builder=new StringBuilder(request.getMethod());
@@ -61,6 +50,5 @@
     builder.append("\r\n");
     _log.debug("{} proxying to upstream:{}{}{}{}",requestId,System.lineSeparator(),builder,proxyRequest,System.lineSeparator(),proxyRequest.getHeaders().toString().trim());
   }
-  proxyRequest.timeout(getTimeout(),TimeUnit.MILLISECONDS);
   proxyRequest.send(new ProxyResponseListener(request,response));
 }

@@ -8,7 +8,7 @@
       }
  else       if (filled < 0) {
         LOG.debug("read - EOF Reached (remote: {})",getRemoteAddress());
-        ioState.onReadEOF();
+        ioState.onReadFailure(new EOFException("Remote Read EOF"));
         return -1;
       }
  else {
@@ -25,8 +25,13 @@
     return -1;
   }
 catch (  CloseException e) {
-    LOG.warn(e);
+    LOG.debug(e);
     close(e.getStatusCode(),e.getMessage());
+    return -1;
+  }
+catch (  Throwable t) {
+    LOG.warn(t);
+    close(StatusCode.ABNORMAL,t.getMessage());
     return -1;
   }
 }
