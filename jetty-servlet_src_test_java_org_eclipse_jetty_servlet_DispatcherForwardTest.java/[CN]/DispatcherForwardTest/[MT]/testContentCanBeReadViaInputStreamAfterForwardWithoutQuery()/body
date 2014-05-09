@@ -1,0 +1,25 @@
+{
+  final String query1="a=1";
+  final String form="c=3";
+  servlet1=new HttpServlet(){
+    @Override protected void doPost(    HttpServletRequest req,    HttpServletResponse resp) throws ServletException, IOException {
+      checkThat(query1,Matchers.equalTo(req.getQueryString()));
+      req.getRequestDispatcher("/two").forward(req,resp);
+      checkThat(query1,Matchers.equalTo(req.getQueryString()));
+      checkThat(req.getParameter("c"),Matchers.nullValue());
+    }
+  }
+;
+  servlet2=new HttpServlet(){
+    @Override protected void doPost(    HttpServletRequest req,    HttpServletResponse resp) throws ServletException, IOException {
+      checkThat(query1,Matchers.equalTo(req.getQueryString()));
+      ServletInputStream input=req.getInputStream();
+      for (int i=0; i < form.length(); ++i)       checkThat(form.charAt(i) & 0xFFFF,Matchers.equalTo(input.read()));
+    }
+  }
+;
+  prepare();
+  String request="" + "POST /one?" + query1 + " HTTP/1.1\r\n"+ "Host: localhost\r\n"+ "Content-Type: application/x-www-form-urlencoded\r\n"+ "Content-Length: "+ form.length()+ "\r\n"+ "Connection: close\r\n"+ "\r\n"+ form;
+  String response=connector.getResponses(request);
+  Assert.assertTrue(response,response.startsWith("HTTP/1.1 200"));
+}

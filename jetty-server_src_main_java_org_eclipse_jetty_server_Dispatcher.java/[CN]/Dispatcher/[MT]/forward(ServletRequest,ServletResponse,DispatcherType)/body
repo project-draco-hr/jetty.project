@@ -10,22 +10,16 @@
   final String old_servlet_path=baseRequest.getServletPath();
   final String old_path_info=baseRequest.getPathInfo();
   final String old_query=baseRequest.getQueryString();
+  final MultiMap<String> old_query_params=baseRequest.getQueryParameters();
   final Attributes old_attr=baseRequest.getAttributes();
   final DispatcherType old_type=baseRequest.getDispatcherType();
-  MultiMap<String> old_params=baseRequest.getParameters();
   try {
     baseRequest.setHandled(false);
     baseRequest.setDispatcherType(dispatch);
-    if (_named != null)     _contextHandler.handle(_named,baseRequest,(HttpServletRequest)request,(HttpServletResponse)response);
+    if (_named != null) {
+      _contextHandler.handle(_named,baseRequest,(HttpServletRequest)request,(HttpServletResponse)response);
+    }
  else {
-      String query=_dQuery;
-      if (query != null) {
-        if (old_params == null) {
-          baseRequest.extractParameters();
-          old_params=baseRequest.getParameters();
-        }
-        baseRequest.mergeQueryString(query);
-      }
       ForwardAttributes attr=new ForwardAttributes(old_attr);
       if (old_attr.getAttribute(FORWARD_REQUEST_URI) != null) {
         attr._pathInfo=(String)old_attr.getAttribute(FORWARD_PATH_INFO);
@@ -45,6 +39,7 @@
       baseRequest.setContextPath(_contextHandler.getContextPath());
       baseRequest.setServletPath(null);
       baseRequest.setPathInfo(_uri);
+      if (_query != null)       baseRequest.mergeQueryParameters(_query,true);
       baseRequest.setAttributes(attr);
       _contextHandler.handle(_path,baseRequest,(HttpServletRequest)request,(HttpServletResponse)response);
       if (!baseRequest.getHttpChannelState().isAsync())       commitResponse(response,baseRequest);
@@ -56,9 +51,10 @@
     baseRequest.setContextPath(old_context_path);
     baseRequest.setServletPath(old_servlet_path);
     baseRequest.setPathInfo(old_path_info);
-    baseRequest.setAttributes(old_attr);
-    baseRequest.setParameters(old_params);
     baseRequest.setQueryString(old_query);
+    baseRequest.setQueryParameters(old_query_params);
+    baseRequest.resetParameters();
+    baseRequest.setAttributes(old_attr);
     baseRequest.setDispatcherType(old_type);
   }
 }
