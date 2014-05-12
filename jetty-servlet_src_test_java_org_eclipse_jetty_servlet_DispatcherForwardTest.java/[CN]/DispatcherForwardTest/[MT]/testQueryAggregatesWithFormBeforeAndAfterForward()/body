@@ -1,0 +1,32 @@
+{
+  final String query1="a=1";
+  final String query2="c=3";
+  final String query3="c=3&a=1";
+  final String form="b=2";
+  servlet1=new HttpServlet(){
+    @Override protected void doPost(    HttpServletRequest req,    HttpServletResponse resp) throws ServletException, IOException {
+      checkThat(query1,Matchers.equalTo(req.getQueryString()));
+      checkThat("1",Matchers.equalTo(req.getParameter("a")));
+      checkThat("2",Matchers.equalTo(req.getParameter("b")));
+      req.getRequestDispatcher("/two?" + query2).forward(req,resp);
+      checkThat(query1,Matchers.equalTo(req.getQueryString()));
+      checkThat("1",Matchers.equalTo(req.getParameter("a")));
+      checkThat("2",Matchers.equalTo(req.getParameter("b")));
+      checkThat(req.getParameter("c"),Matchers.nullValue());
+    }
+  }
+;
+  servlet2=new HttpServlet(){
+    @Override protected void doPost(    HttpServletRequest req,    HttpServletResponse resp) throws ServletException, IOException {
+      checkThat(query3,Matchers.equalTo(req.getQueryString()));
+      checkThat("1",Matchers.equalTo(req.getParameter("a")));
+      checkThat("2",Matchers.equalTo(req.getParameter("b")));
+      checkThat("3",Matchers.equalTo(req.getParameter("c")));
+    }
+  }
+;
+  prepare();
+  String request="" + "POST /one?" + query1 + " HTTP/1.1\r\n"+ "Host: localhost\r\n"+ "Content-Type: application/x-www-form-urlencoded\r\n"+ "Content-Length: "+ form.length()+ "\r\n"+ "Connection: close\r\n"+ "\r\n"+ form;
+  String response=connector.getResponses(request);
+  Assert.assertTrue(response,response.startsWith("HTTP/1.1 200"));
+}
