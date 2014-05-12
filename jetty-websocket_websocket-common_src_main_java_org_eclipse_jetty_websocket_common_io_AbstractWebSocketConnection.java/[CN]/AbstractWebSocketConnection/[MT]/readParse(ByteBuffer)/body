@@ -4,12 +4,12 @@
     while (true) {
       int filled=endPoint.fill(buffer);
       if (filled == 0) {
-        return 0;
+        return ReadMode.PARSE;
       }
  else       if (filled < 0) {
         LOG.debug("read - EOF Reached (remote: {})",getRemoteAddress());
         ioState.onReadFailure(new EOFException("Remote Read EOF"));
-        return -1;
+        return ReadMode.EOF;
       }
  else {
         if (LOG.isDebugEnabled()) {
@@ -22,16 +22,16 @@
  catch (  IOException e) {
     LOG.warn(e);
     close(StatusCode.PROTOCOL,e.getMessage());
-    return -1;
+    return ReadMode.DISCARD;
   }
 catch (  CloseException e) {
     LOG.debug(e);
     close(e.getStatusCode(),e.getMessage());
-    return -1;
+    return ReadMode.DISCARD;
   }
 catch (  Throwable t) {
     LOG.warn(t);
     close(StatusCode.ABNORMAL,t.getMessage());
-    return -1;
+    return ReadMode.DISCARD;
   }
 }
