@@ -1,7 +1,12 @@
 {
   super.close(oldConnection);
   connectionPool.remove(oldConnection);
-  if (!getHttpExchanges().isEmpty()) {
+  if (getHttpExchanges().isEmpty()) {
+    if (getHttpClient().isRemoveIdleDestinations() && connectionPool.isEmpty()) {
+      getHttpClient().removeDestination(this);
+    }
+  }
+ else {
     C newConnection=acquire();
     if (newConnection != null)     process(newConnection,false);
   }
