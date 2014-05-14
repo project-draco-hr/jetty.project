@@ -36,13 +36,28 @@
       output=newOutput;
     }
   }
-  payload=ByteBuffer.wrap(output,0,outputLength - TAIL_BYTES.length);
-  LOG.debug("Compressed {}: {}->{} chunk bytes",entry,inputLength,outputLength);
+  boolean fin=frame.isFin() && finished;
+  if (tailDrop == TAIL_DROP_ALWAYS) {
+    payload=ByteBuffer.wrap(output,0,outputLength - TAIL_BYTES.length);
+  }
+ else   if (tailDrop == TAIL_DROP_FIN_ONLY) {
+    payload=ByteBuffer.wrap(output,0,outputLength - (fin ? TAIL_BYTES.length : 0));
+  }
+ else {
+    payload=ByteBuffer.wrap(output,0,outputLength);
+  }
+  if (LOG.isDebugEnabled()) {
+    LOG.debug("Compressed {}: {}->{} chunk bytes",entry,inputLength,outputLength);
+  }
   boolean continuation=frame.getType().isContinuation() || !first;
   DataFrame chunk=new DataFrame(frame,continuation);
-  chunk.setRsv1(true);
+  if (rsvUse == RSV_USE_ONLY_FIRST) {
+    chunk.setRsv1(!continuation);
+  }
+ else {
+    chunk.setRsv1(true);
+  }
   chunk.setPayload(payload);
-  boolean fin=frame.isFin() && finished;
   chunk.setFin(fin);
   nextOutgoingFrame(chunk,this,entry.batchMode);
 }
