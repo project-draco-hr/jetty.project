@@ -32,15 +32,12 @@
       if (!headers.containsKey(HttpHeader.TRANSFER_ENCODING.asString()))       headers.put(CHUNKED_FIELD);
     }
   }
-  List<HttpCookie> cookies=getHttpClient().getCookieStore().get(request.getURI());
-  StringBuilder cookieString=null;
-  for (int i=0; i < cookies.size(); ++i) {
-    if (cookieString == null)     cookieString=new StringBuilder();
-    if (i > 0)     cookieString.append("; ");
-    HttpCookie cookie=cookies.get(i);
-    cookieString.append(cookie.getName()).append("=").append(cookie.getValue());
+  CookieStore cookieStore=getHttpClient().getCookieStore();
+  if (cookieStore != null) {
+    StringBuilder cookies=convertCookies(cookieStore.get(request.getURI()),null);
+    cookies=convertCookies(request.getCookies(),cookies);
+    if (cookies != null)     request.header(HttpHeader.COOKIE.asString(),cookies.toString());
   }
-  if (cookieString != null)   request.header(HttpHeader.COOKIE.asString(),cookieString.toString());
   URI authenticationURI=proxy != null ? proxy.getURI() : request.getURI();
   if (authenticationURI != null) {
     Authentication.Result authnResult=getHttpClient().getAuthenticationStore().findAuthenticationResult(authenticationURI);
