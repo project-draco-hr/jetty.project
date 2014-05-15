@@ -1,0 +1,50 @@
+{
+  Integer depth=(Integer)request.getAttribute("depth");
+  if (depth == null)   depth=1;
+ else   depth=depth + 1;
+  request.setAttribute("depth",depth);
+  String path=request.getServletPath();
+  String info=request.getPathInfo();
+  String query=request.getQueryString();
+  boolean include=request.getAttribute(INCLUDE_REQUEST_URI) != null;
+  String tpath=include ? (String)request.getAttribute(INCLUDE_SERVLET_PATH) : path;
+  String tinfo=include ? (String)request.getAttribute(INCLUDE_PATH_INFO) : info;
+  if ("/forward".equals(tpath)) {
+    getServletContext().getRequestDispatcher(tinfo + "?depth=" + depth+ "&p"+ depth+ "="+ "ABCDEFGHI".charAt(depth)).forward(request,response);
+  }
+ else   if ("/include".equals(tpath)) {
+    response.setContentType("text/html");
+    PrintWriter out=response.getWriter();
+    out.println("<h1>Dispatch Depth=" + depth + "</h1><pre>");
+    out.printf("            %30s%30s%30s%n","REQUEST","FORWARD","INCLUDE");
+    out.printf("servletPath:%30s%30s%30s%n",path,request.getAttribute(FORWARD_SERVLET_PATH),request.getAttribute(INCLUDE_SERVLET_PATH));
+    out.printf("   pathInfo:%30s%30s%30s%n",info,request.getAttribute(FORWARD_PATH_INFO),request.getAttribute(INCLUDE_PATH_INFO));
+    out.printf("      query:%30s%30s%30s%n",query,request.getAttribute(FORWARD_QUERY_STRING),request.getAttribute(INCLUDE_QUERY_STRING));
+    out.println();
+    printParameters(out,request.getParameterMap());
+    out.println("</pre>");
+    out.println("<hr/>");
+    getServletContext().getRequestDispatcher(tinfo + "?depth=" + depth+ "&p"+ depth+ "="+ "BCDEFGHI".charAt(depth)).include(request,response);
+    out.println("<hr/>");
+    out.println("<h1>Dispatch Depth=" + depth + "</h1><pre>");
+    out.printf("            %30s%30s%30s%n","REQUEST","FORWARD","INCLUDE");
+    out.printf("servletPath:%30s%30s%30s%n",path,request.getAttribute(FORWARD_SERVLET_PATH),request.getAttribute(INCLUDE_SERVLET_PATH));
+    out.printf("   pathInfo:%30s%30s%30s%n",info,request.getAttribute(FORWARD_PATH_INFO),request.getAttribute(INCLUDE_PATH_INFO));
+    out.printf("      query:%30s%30s%30s%n",query,request.getAttribute(FORWARD_QUERY_STRING),request.getAttribute(INCLUDE_QUERY_STRING));
+    out.println();
+    printParameters(out,request.getParameterMap());
+    out.println("</pre>");
+  }
+ else {
+    response.setContentType("text/html");
+    PrintWriter out=response.getWriter();
+    out.println("<h1>Dispatch Depth=" + depth + "</h1><pre>");
+    out.printf("            %30s%30s%30s%n","REQUEST","FORWARD","INCLUDE");
+    out.printf("servletPath:%30s%30s%30s%n",path,request.getAttribute(FORWARD_SERVLET_PATH),request.getAttribute(INCLUDE_SERVLET_PATH));
+    out.printf("   pathInfo:%30s%30s%30s%n",info,request.getAttribute(FORWARD_PATH_INFO),request.getAttribute(INCLUDE_PATH_INFO));
+    out.printf("      query:%30s%30s%30s%n",query,request.getAttribute(FORWARD_QUERY_STRING),request.getAttribute(INCLUDE_QUERY_STRING));
+    out.println();
+    printParameters(out,request.getParameterMap());
+    out.println("</pre>");
+  }
+}

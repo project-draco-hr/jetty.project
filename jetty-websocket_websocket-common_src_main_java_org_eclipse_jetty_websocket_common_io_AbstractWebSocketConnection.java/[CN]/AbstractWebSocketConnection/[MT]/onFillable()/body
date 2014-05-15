@@ -2,15 +2,19 @@
   LOG.debug("{} onFillable()",policy.getBehavior());
   stats.countOnFillableEvents.incrementAndGet();
   ByteBuffer buffer=bufferPool.acquire(getInputBufferSize(),true);
-  boolean readMore=false;
   try {
     isFilling=true;
-    readMore=(read(buffer) != -1);
+    if (readMode == ReadMode.PARSE) {
+      readMode=readParse(buffer);
+    }
+ else {
+      readMode=readDiscard(buffer);
+    }
   }
   finally {
     bufferPool.release(buffer);
   }
-  if (readMore && (suspendToken.get() == false)) {
+  if ((readMode != ReadMode.EOF) && (suspendToken.get() == false)) {
     fillInterested();
   }
  else {

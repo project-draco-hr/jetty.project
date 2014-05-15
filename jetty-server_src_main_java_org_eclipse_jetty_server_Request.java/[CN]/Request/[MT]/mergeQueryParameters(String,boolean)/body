@@ -1,0 +1,24 @@
+{
+  MultiMap<String> newQueryParams=new MultiMap<>();
+  UrlEncoded.decodeTo(newQuery,newQueryParams,UrlEncoded.ENCODING,-1);
+  MultiMap<String> oldQueryParams=_queryParameters;
+  if (oldQueryParams == null && _queryString != null) {
+    oldQueryParams=new MultiMap<>();
+    UrlEncoded.decodeTo(_queryString,oldQueryParams,getQueryEncoding(),-1);
+  }
+  MultiMap<String> mergedQueryParams=newQueryParams;
+  if (oldQueryParams != null) {
+    mergedQueryParams=new MultiMap<>(newQueryParams);
+    mergedQueryParams.addAllValues(oldQueryParams);
+  }
+  setQueryParameters(mergedQueryParams);
+  resetParameters();
+  if (updateQueryString) {
+    StringBuilder mergedQuery=new StringBuilder(newQuery);
+    for (    Map.Entry<String,List<String>> entry : mergedQueryParams.entrySet()) {
+      if (newQueryParams.containsKey(entry.getKey()))       continue;
+      for (      String value : entry.getValue())       mergedQuery.append("&").append(entry.getKey()).append("=").append(value);
+    }
+    setQueryString(mergedQuery.toString());
+  }
+}

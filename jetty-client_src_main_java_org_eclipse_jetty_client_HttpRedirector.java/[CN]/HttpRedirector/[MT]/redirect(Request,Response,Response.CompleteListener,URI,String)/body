@@ -5,18 +5,8 @@
   if (redirects == null)   redirects=0;
   if (redirects < client.getMaxRedirects()) {
     ++redirects;
-    if (conversation != null)     conversation.setAttribute(ATTRIBUTE,redirects);
-    Request redirect=client.copyRequest(httpRequest,location);
-    redirect.method(method);
-    redirect.onRequestBegin(new Request.BeginListener(){
-      @Override public void onBegin(      Request redirect){
-        Throwable cause=request.getAbortCause();
-        if (cause != null)         redirect.abort(cause);
-      }
-    }
-);
-    redirect.send(listener);
-    return redirect;
+    conversation.setAttribute(ATTRIBUTE,redirects);
+    return sendRedirect(httpRequest,response,listener,location,method);
   }
  else {
     fail(request,response,new HttpResponseException("Max redirects exceeded " + redirects,response));
