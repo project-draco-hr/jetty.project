@@ -8,7 +8,17 @@
   }
   String ua=req.getHeader("User-Agent");
   String rexts=req.getHeader("Sec-WebSocket-Extensions");
+  List<ExtensionConfig> negotiated=new ArrayList<>();
+  negotiated.add(new ExtensionConfig("@frame-debug; output-dir=target"));
+  for (  ExtensionConfig config : req.getExtensions()) {
+    if (config.getName().equals("permessage-deflate")) {
+      negotiated.add(config);
+      continue;
+    }
+  }
+  resp.setExtensions(negotiated);
   LOG.debug("User-Agent: {}",ua);
   LOG.debug("Sec-WebSocket-Extensions (Request) : {}",rexts);
+  req.getExtensions();
   return new BrowserSocket(ua,rexts);
 }
