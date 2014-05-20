@@ -1,0 +1,14 @@
+{
+  List<String> upgradeRequestLines=serverConn.upgrade();
+  List<String> upgradeRequestCookies=serverConn.regexFind(upgradeRequestLines,"^Cookie: (.*)$");
+  TextFrame serverCookieFrame=new TextFrame();
+  serverCookieFrame.setFin(true);
+  serverCookieFrame.setPayload(QuoteUtil.join(upgradeRequestCookies,","));
+  serverConn.write(serverCookieFrame);
+  serverConn.close(StatusCode.NORMAL);
+  clientConnectFuture.get(500,TimeUnit.MILLISECONDS);
+  clientSocket.messageQueue.awaitEventCount(1,2,TimeUnit.SECONDS);
+  String cookies=clientSocket.messageQueue.poll();
+  LOG.debug("Cookies seen at server: {}",cookies);
+  return cookies;
+}
