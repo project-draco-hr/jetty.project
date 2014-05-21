@@ -32,7 +32,7 @@
         _headerBytes+=buffer.remaining();
         BufferUtil.clear(buffer);
         if (_headerBytes > _maxHeaderBytes) {
-          throw new IllegalStateException("too much data after closed");
+          throw new BadMessage(-1,"too much data after closed");
         }
       }
     }
@@ -69,11 +69,12 @@ return false;
 }
  catch (BadMessage e) {
 BufferUtil.clear(buffer);
-LOG.warn("badMessage: " + e._code + (e._message != null ? " " + e._message : "")+ " for "+ _handler);
+if (e._code > 0) LOG.warn("badMessage: " + e._code + (e._message != null ? " " + e._message : "")+ " for "+ _handler);
+ else LOG.warn("badMessage: " + (e._message != null ? e._message + " " : "") + "for "+ _handler);
 if (DEBUG) LOG.debug(e);
 setState(State.CLOSED);
 _handler.badMessage(e._code,e._message);
-return false;
+return true;
 }
 catch (Exception e) {
 BufferUtil.clear(buffer);
@@ -87,6 +88,6 @@ _handler.badMessage(400,null);
 _handler.earlyEOF();
 setState(State.CLOSED);
 }
-return false;
+return true;
 }
 }
