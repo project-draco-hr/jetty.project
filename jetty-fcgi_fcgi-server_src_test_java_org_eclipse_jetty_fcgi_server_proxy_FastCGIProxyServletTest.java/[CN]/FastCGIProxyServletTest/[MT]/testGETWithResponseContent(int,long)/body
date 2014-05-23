@@ -1,0 +1,30 @@
+{
+  final byte[] data=new byte[length];
+  new Random().nextBytes(data);
+  final String path="/foo/index.php";
+  prepare(new HttpServlet(){
+    @Override protected void doGet(    HttpServletRequest req,    HttpServletResponse resp) throws ServletException, IOException {
+      Assert.assertTrue(req.getRequestURI().endsWith(path));
+      resp.setContentLength(data.length);
+      resp.getOutputStream().write(data);
+    }
+  }
+);
+  Request request=client.newRequest("localhost",httpConnector.getLocalPort()).onResponseContentAsync(new Response.AsyncContentListener(){
+    @Override public void onContent(    Response response,    ByteBuffer content,    Callback callback){
+      try {
+        if (delay > 0)         TimeUnit.MILLISECONDS.sleep(delay);
+        callback.succeeded();
+      }
+ catch (      InterruptedException x) {
+        callback.failed(x);
+      }
+    }
+  }
+).path(path);
+  FutureResponseListener listener=new FutureResponseListener(request,length);
+  request.send(listener);
+  ContentResponse response=listener.get(30,TimeUnit.SECONDS);
+  Assert.assertEquals(200,response.getStatus());
+  Assert.assertArrayEquals(data,response.getContent());
+}

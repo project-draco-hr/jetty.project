@@ -6,6 +6,27 @@
  else {
     LOG.info("onTextMessage({})",message);
   }
+  if (message.contains("\n")) {
+    writeMessage(message);
+    return;
+  }
+  if (message.charAt(0) == '@') {
+    String name=message.substring(1);
+    URL url=Loader.getResource(BrowserSocket.class,name);
+    if (url == null) {
+      writeMessage("Unable to find resource: " + name);
+      return;
+    }
+    try (InputStream in=url.openStream()){
+      String data=IO.toString(in);
+      writeMessage(data);
+    }
+ catch (    IOException e) {
+      writeMessage("Unable to read resource: " + name);
+      LOG.warn("Unable to read resource: " + name,e);
+    }
+    return;
+  }
   int idx=message.indexOf(':');
   if (idx > 0) {
     String key=message.substring(0,idx).toLowerCase(Locale.ENGLISH);
@@ -63,8 +84,7 @@ default :
 writeMessage("key[%s] val[%s]",key,val);
 }
 }
+return;
 }
- else {
 writeMessage(message);
-}
 }

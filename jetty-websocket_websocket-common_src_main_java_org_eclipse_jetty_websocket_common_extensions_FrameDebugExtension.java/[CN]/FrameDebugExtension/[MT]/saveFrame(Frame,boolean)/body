@@ -1,0 +1,30 @@
+{
+  if (outputDir == null || generator == null) {
+    return;
+  }
+  StringBuilder filename=new StringBuilder();
+  filename.append(prefix);
+  if (outgoing) {
+    filename.append(String.format("-outgoing-%05d",outgoingId.getAndIncrement()));
+  }
+ else {
+    filename.append(String.format("-incoming-%05d",incomingId.getAndIncrement()));
+  }
+  filename.append(".dat");
+  Path outputFile=outputDir.resolve(filename.toString());
+  ByteBuffer buf=getBufferPool().acquire(BUFSIZE,false);
+  try (SeekableByteChannel channel=Files.newByteChannel(outputFile,StandardOpenOption.CREATE,StandardOpenOption.WRITE)){
+    generator.generateHeaderBytes(frame,buf);
+    channel.write(buf);
+    if (frame.hasPayload()) {
+      channel.write(frame.getPayload().slice());
+    }
+    LOG.debug("Saved raw frame: {}",outputFile.toString());
+  }
+ catch (  IOException e) {
+    LOG.warn("Unable to save frame: " + filename.toString(),e);
+  }
+ finally {
+    getBufferPool().release(buf);
+  }
+}
