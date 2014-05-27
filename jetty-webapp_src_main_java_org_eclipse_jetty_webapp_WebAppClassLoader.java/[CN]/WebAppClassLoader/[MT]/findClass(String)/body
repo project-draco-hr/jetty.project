@@ -1,0 +1,33 @@
+{
+  Class<?> clazz=null;
+  if (_transformers.isEmpty())   clazz=super.findClass(name);
+ else {
+    String path=name.replace('.','/').concat(".class");
+    URL url=getResource(path);
+    if (url == null)     throw new ClassNotFoundException(name);
+    InputStream content=null;
+    try {
+      content=url.openStream();
+      byte[] bytes=IO.readBytes(content);
+      for (      ClassFileTransformer transformer : _transformers)       bytes=transformer.transform(this,name,null,null,bytes);
+      clazz=defineClass(name,bytes,0,bytes.length);
+    }
+ catch (    IOException e) {
+      throw new ClassNotFoundException(name,e);
+    }
+catch (    IllegalClassFormatException e) {
+      throw new ClassNotFoundException(name,e);
+    }
+ finally {
+      if (content != null) {
+        try {
+          content.close();
+        }
+ catch (        IOException e) {
+          throw new ClassNotFoundException(name,e);
+        }
+      }
+    }
+  }
+  return clazz;
+}
