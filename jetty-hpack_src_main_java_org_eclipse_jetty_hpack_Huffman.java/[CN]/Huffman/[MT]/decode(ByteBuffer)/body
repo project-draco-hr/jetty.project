@@ -1,17 +1,17 @@
 {
-  ByteArrayOutputStream baos=new ByteArrayOutputStream();
+  StringBuilder out=new StringBuilder(buf.remaining() * 2);
   int node=0;
   int current=0;
   int bits=0;
-  for (int i=0; i < buf.length; i++) {
-    int b=buf[i] & 0xFF;
+  while (buf.hasRemaining()) {
+    int b=buf.get() & 0xFF;
     current=(current << 8) | b;
     bits+=8;
     while (bits >= 8) {
       int c=(current >>> (bits - 8)) & 0xFF;
       node=tree[node * 256 + c];
       if (rowbits[node] != 0) {
-        baos.write(rowsym[node]);
+        out.append(rowsym[node]);
         bits-=rowbits[node];
         node=0;
       }
@@ -25,9 +25,9 @@
     node=tree[node * 256 + c];
     if (rowbits[node] == 0 || rowbits[node] > bits)     break;
     if (rowbits[node] == 0)     throw new IllegalStateException();
-    baos.write(rowsym[node]);
+    out.append(rowsym[node]);
     bits-=rowbits[node];
     node=0;
   }
-  return baos.toByteArray();
+  return out.toString();
 }
