@@ -1,0 +1,25 @@
+{
+  if (streamId < 0)   throw new IllegalArgumentException("Invalid stream id: " + streamId);
+  if (paddingLength > DataFrame.MAX_LENGTH - 3)   throw new IllegalArgumentException("Invalid padding length: " + paddingLength);
+  int paddingBytes=paddingLength > 0xFF ? 2 : paddingLength > 0 ? 1 : 0;
+  int dataLength=data.remaining();
+  Result result=new Result(byteBufferPool);
+  if (dataLength + paddingBytes + paddingLength <= DataFrame.MAX_LENGTH) {
+    generateFrame(result,streamId,paddingBytes,paddingLength,data,last,compress);
+  }
+ else {
+    int dataBytesPerFrame=DataFrame.MAX_LENGTH - paddingBytes - paddingLength;
+    int frames=dataLength / dataBytesPerFrame;
+    if (frames * dataBytesPerFrame != dataLength) {
+      ++frames;
+    }
+    int limit=data.limit();
+    for (int i=1; i <= frames; ++i) {
+      data.limit(Math.min(dataBytesPerFrame * i,limit));
+      ByteBuffer slice=data.slice();
+      data.position(data.limit());
+      generateFrame(result,streamId,paddingBytes,paddingLength,slice,i == frames && last,compress);
+    }
+  }
+  return result;
+}

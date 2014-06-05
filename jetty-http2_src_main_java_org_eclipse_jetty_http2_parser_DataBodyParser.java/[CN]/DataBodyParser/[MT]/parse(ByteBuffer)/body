@@ -1,0 +1,70 @@
+{
+  while (buffer.hasRemaining()) {
+switch (state) {
+case PREPARE:
+{
+        length=headerParser.getLength();
+        if (headerParser.isPaddingHigh()) {
+          state=State.PADDING_HIGH;
+        }
+ else         if (headerParser.isPaddingLow()) {
+          state=State.PADDING_LOW;
+        }
+ else {
+          state=State.DATA;
+        }
+        break;
+      }
+case PADDING_HIGH:
+{
+      paddingLength=(buffer.get() & 0xFF) << 8;
+      length-=1;
+      state=State.PADDING_LOW;
+      break;
+    }
+case PADDING_LOW:
+{
+    paddingLength+=buffer.get() & 0xFF;
+    length-=1;
+    length-=paddingLength;
+    state=State.DATA;
+    break;
+  }
+case DATA:
+{
+  int size=Math.min(buffer.remaining(),length);
+  int position=buffer.position();
+  int limit=buffer.limit();
+  buffer.limit(position + size);
+  ByteBuffer slice=buffer.slice();
+  buffer.limit(limit);
+  buffer.position(position + size);
+  length-=size;
+  if (length == 0) {
+    state=State.PADDING;
+    if (onData(slice,false)) {
+      return Result.ASYNC;
+    }
+  }
+ else {
+    if (onData(slice,true)) {
+      return Result.ASYNC;
+    }
+  }
+  break;
+}
+case PADDING:
+{
+int size=Math.min(buffer.remaining(),paddingLength);
+buffer.position(buffer.position() + size);
+paddingLength-=size;
+if (paddingLength == 0) {
+  reset();
+  return Result.COMPLETE;
+}
+break;
+}
+}
+}
+return Result.PENDING;
+}

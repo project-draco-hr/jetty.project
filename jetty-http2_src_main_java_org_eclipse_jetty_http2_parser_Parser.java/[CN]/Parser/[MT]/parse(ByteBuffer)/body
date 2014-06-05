@@ -1,0 +1,27 @@
+{
+  while (buffer.hasRemaining()) {
+switch (state) {
+case HEADER:
+{
+        if (headerParser.parse(buffer)) {
+          int type=headerParser.getFrameType();
+          bodyParser=bodyParsers[type];
+          state=State.BODY;
+        }
+        break;
+      }
+case BODY:
+{
+      BodyParser.Result result=bodyParser.parse(buffer);
+      if (result == BodyParser.Result.ASYNC) {
+        return true;
+      }
+ else       if (result == BodyParser.Result.COMPLETE) {
+        reset();
+      }
+      break;
+    }
+}
+}
+return false;
+}

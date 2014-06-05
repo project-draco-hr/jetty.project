@@ -1,0 +1,22 @@
+{
+  Generator generator=new Generator(byteBufferPool);
+  final List<DataFrame> frames=new ArrayList<>();
+  for (int i=0; i < 2; ++i) {
+    Generator.Result result=new Generator.Result(byteBufferPool);
+    for (int j=1; j <= data.length; ++j) {
+      result=result.merge(generator.generateContent(13,paddingLength,data[j - 1].slice(),j == data.length,false));
+    }
+    Parser parser=new Parser(new Parser.Listener.Adapter(){
+      @Override public boolean onDataFrame(      DataFrame frame){
+        frames.add(frame);
+        return false;
+      }
+    }
+);
+    frames.clear();
+    for (    ByteBuffer buffer : result.getByteBuffers()) {
+      parser.parse(buffer);
+    }
+  }
+  return frames;
+}

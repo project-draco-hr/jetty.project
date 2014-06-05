@@ -1,0 +1,26 @@
+{
+  ByteBuffer header=byteBufferPool.acquire(8 + paddingBytes,true);
+  BufferUtil.clearToFill(header);
+  int length=paddingBytes + data.remaining() + paddingLength;
+  header.putShort((short)length);
+  header.put((byte)0);
+  int flags=0;
+  if (last)   flags|=0x01;
+  if (paddingBytes > 0)   flags|=0x08;
+  if (paddingBytes > 1)   flags|=0x10;
+  if (compress)   flags|=0x20;
+  header.put((byte)flags);
+  header.putInt(streamId);
+  if (paddingBytes == 2)   header.putShort((short)paddingLength);
+ else   if (paddingBytes == 1)   header.put((byte)paddingLength);
+  BufferUtil.flipToFlush(header,0);
+  result.add(header,true);
+  result.add(data,false);
+  if (paddingBytes > 0) {
+    ByteBuffer padding=byteBufferPool.acquire(paddingLength,true);
+    BufferUtil.clearToFill(padding);
+    padding.position(paddingLength);
+    BufferUtil.flipToFlush(padding,0);
+    result.add(padding,true);
+  }
+}
