@@ -1,11 +1,11 @@
 {
   Generator generator=new Generator(byteBufferPool);
-  int streamId=13;
-  int error=17;
-  final List<ResetFrame> frames=new ArrayList<>();
-  Generator.Result result=generator.generateReset(streamId,error);
+  byte[] payload=new byte[8];
+  new Random().nextBytes(payload);
+  final List<PingFrame> frames=new ArrayList<>();
+  Generator.Result result=generator.generatePing(payload,true);
   Parser parser=new Parser(new Parser.Listener.Adapter(){
-    @Override public boolean onReset(    ResetFrame frame){
+    @Override public boolean onPing(    PingFrame frame){
       frames.add(frame);
       return false;
     }
@@ -17,7 +17,7 @@
     }
   }
   Assert.assertEquals(1,frames.size());
-  ResetFrame frame=frames.get(0);
-  Assert.assertEquals(streamId,frame.getStreamId());
-  Assert.assertEquals(error,frame.getError());
+  PingFrame frame=frames.get(0);
+  Assert.assertArrayEquals(payload,frame.getPayload());
+  Assert.assertTrue(frame.isReply());
 }
