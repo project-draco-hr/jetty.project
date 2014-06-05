@@ -1,0 +1,23 @@
+{
+  Generator generator=new Generator(byteBufferPool);
+  int streamId=13;
+  int error=17;
+  final List<ResetFrame> frames=new ArrayList<>();
+  Generator.Result result=generator.generateReset(streamId,error);
+  Parser parser=new Parser(new Parser.Listener.Adapter(){
+    @Override public boolean onResetFrame(    ResetFrame frame){
+      frames.add(frame);
+      return false;
+    }
+  }
+);
+  for (  ByteBuffer buffer : result.getByteBuffers()) {
+    while (buffer.hasRemaining()) {
+      parser.parse(ByteBuffer.wrap(new byte[]{buffer.get()}));
+    }
+  }
+  Assert.assertEquals(1,frames.size());
+  ResetFrame frame=frames.get(0);
+  Assert.assertEquals(streamId,frame.getStreamId());
+  Assert.assertEquals(error,frame.getError());
+}
