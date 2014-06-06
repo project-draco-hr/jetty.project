@@ -1,31 +1,54 @@
 {
-  while (buffer.hasRemaining()) {
+  while (true) {
 switch (state) {
 case HEADER:
 {
-        if (headerParser.parse(buffer)) {
-          int type=headerParser.getFrameType();
-          bodyParser=bodyParsers[type];
-          state=State.BODY;
-        }
+        if (!headerParser.parse(buffer))         return false;
+        state=State.BODY;
         break;
       }
 case BODY:
 {
-      BodyParser.Result result=bodyParser.parse(buffer);
-      if (result == BodyParser.Result.ASYNC) {
-        return true;
+      int type=headerParser.getFrameType();
+      if (type < 0 || type >= bodyParsers.length) {
+        notifyConnectionFailure(ErrorCode.PROTOCOL_ERROR,"unknown_frame_type_" + type);
+        return false;
       }
- else       if (result == BodyParser.Result.COMPLETE) {
+      BodyParser bodyParser=bodyParsers[type];
+      if (headerParser.getLength() == 0) {
+        boolean async=bodyParser.emptyBody();
         reset();
+        if (async)         return true;
+        if (!buffer.hasRemaining())         return false;
       }
-      break;
-    }
+ else {
+        BodyParser.Result result=bodyParser.parse(buffer);
+switch (result) {
+case PENDING:
+{
+            return false;
+          }
+case ASYNC:
+{
+          return true;
+        }
+case COMPLETE:
+{
+        reset();
+        break;
+      }
 default :
 {
-    throw new IllegalStateException();
-  }
+      throw new IllegalStateException();
+    }
 }
 }
-return false;
+break;
+}
+default :
+{
+throw new IllegalStateException();
+}
+}
+}
 }
