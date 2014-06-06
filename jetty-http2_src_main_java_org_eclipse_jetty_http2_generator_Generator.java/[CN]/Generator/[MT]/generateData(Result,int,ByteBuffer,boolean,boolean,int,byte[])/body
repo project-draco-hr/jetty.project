@@ -1,0 +1,18 @@
+{
+  int paddingLength=paddingBytes == null ? 0 : paddingBytes.length;
+  int length=extraPaddingBytes + data.remaining() + paddingLength;
+  int flags=0;
+  if (last)   flags|=0x01;
+  if (extraPaddingBytes > 0)   flags|=0x08;
+  if (extraPaddingBytes > 1)   flags|=0x10;
+  if (compress)   flags|=0x20;
+  ByteBuffer header=generateHeader(FrameType.DATA,8 + extraPaddingBytes,length,flags,streamId);
+  if (extraPaddingBytes == 2)   header.putShort((short)paddingLength);
+ else   if (extraPaddingBytes == 1)   header.put((byte)paddingLength);
+  BufferUtil.flipToFlush(header,0);
+  result.add(header,true);
+  result.add(data,false);
+  if (paddingBytes != null) {
+    result.add(ByteBuffer.wrap(paddingBytes),false);
+  }
+}
