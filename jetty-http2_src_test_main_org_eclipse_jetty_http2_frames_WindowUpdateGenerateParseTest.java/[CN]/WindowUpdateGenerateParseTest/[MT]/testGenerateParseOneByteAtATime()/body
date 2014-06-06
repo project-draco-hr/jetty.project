@@ -1,0 +1,23 @@
+{
+  Generator generator=new Generator(byteBufferPool);
+  int streamId=13;
+  int windowUpdate=17;
+  final List<WindowUpdateFrame> frames=new ArrayList<>();
+  Generator.Result result=generator.generateWindowUpdate(streamId,windowUpdate);
+  Parser parser=new Parser(new Parser.Listener.Adapter(){
+    @Override public boolean onWindowUpdate(    WindowUpdateFrame frame){
+      frames.add(frame);
+      return false;
+    }
+  }
+);
+  for (  ByteBuffer buffer : result.getByteBuffers()) {
+    while (buffer.hasRemaining()) {
+      parser.parse(ByteBuffer.wrap(new byte[]{buffer.get()}));
+    }
+  }
+  Assert.assertEquals(1,frames.size());
+  WindowUpdateFrame frame=frames.get(0);
+  Assert.assertEquals(streamId,frame.getStreamId());
+  Assert.assertEquals(windowUpdate,frame.getWindowDelta());
+}
