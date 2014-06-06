@@ -6,9 +6,6 @@ case PREPARE:
         length=getBodyLength();
         settings=new HashMap<>();
         state=State.SETTING_ID;
-        if (length == 0) {
-          return onSettings(settings);
-        }
         break;
       }
 case SETTING_ID:
@@ -16,8 +13,8 @@ case SETTING_ID:
       settingId=buffer.get() & 0xFF;
       state=State.SETTING_VALUE;
       --length;
-      if (length == 0) {
-        return notifyConnectionFailure(ErrorCode.PROTOCOL_ERROR,"invalid_settings");
+      if (length <= 0) {
+        return notifyConnectionFailure(ErrorCode.PROTOCOL_ERROR,"invalid_settings_frame");
       }
       break;
     }
@@ -45,8 +42,8 @@ case SETTING_VALUE_BYTES:
   --cursor;
   settingValue+=currByte << (8 * cursor);
   --length;
-  if (cursor > 0 && length == 0) {
-    return notifyConnectionFailure(ErrorCode.PROTOCOL_ERROR,"invalid_settings");
+  if (cursor > 0 && length <= 0) {
+    return notifyConnectionFailure(ErrorCode.PROTOCOL_ERROR,"invalid_settings_frame");
   }
   if (cursor == 0) {
     settings.put(settingId,settingValue);
