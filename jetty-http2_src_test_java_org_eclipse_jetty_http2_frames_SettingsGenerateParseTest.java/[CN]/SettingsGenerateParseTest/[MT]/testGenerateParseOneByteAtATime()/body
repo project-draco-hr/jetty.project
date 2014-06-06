@@ -5,7 +5,7 @@
   Integer value=17;
   settings1.put(key,value);
   final List<SettingsFrame> frames=new ArrayList<>();
-  Generator.Result result=generator.generateSettings(settings1,true);
+  ByteBufferPool.Lease lease=generator.generateSettings(settings1,true);
   Parser parser=new Parser(new Parser.Listener.Adapter(){
     @Override public boolean onSettings(    SettingsFrame frame){
       frames.add(frame);
@@ -13,7 +13,7 @@
     }
   }
 );
-  for (  ByteBuffer buffer : result.getByteBuffers()) {
+  for (  ByteBuffer buffer : lease.getByteBuffers()) {
     while (buffer.hasRemaining()) {
       parser.parse(ByteBuffer.wrap(new byte[]{buffer.get()}));
     }

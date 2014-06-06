@@ -1,6 +1,6 @@
 {
   Generator generator=new Generator(byteBufferPool);
-  Generator.Result result=generator.generateData(13,ByteBuffer.wrap(largeContent).slice(),true,false,new byte[1024]);
+  ByteBufferPool.Lease lease=generator.generateData(13,ByteBuffer.wrap(largeContent).slice(),true,false,new byte[1024]);
   final List<DataFrame> frames=new ArrayList<>();
   Parser parser=new Parser(new Parser.Listener.Adapter(){
     @Override public boolean onData(    DataFrame frame){
@@ -9,7 +9,7 @@
     }
   }
 );
-  for (  ByteBuffer buffer : result.getByteBuffers()) {
+  for (  ByteBuffer buffer : lease.getByteBuffers()) {
     while (buffer.hasRemaining()) {
       parser.parse(ByteBuffer.wrap(new byte[]{buffer.get()}));
     }

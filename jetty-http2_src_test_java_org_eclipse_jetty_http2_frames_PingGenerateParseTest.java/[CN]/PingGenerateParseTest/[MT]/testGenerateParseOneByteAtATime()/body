@@ -3,7 +3,7 @@
   byte[] payload=new byte[8];
   new Random().nextBytes(payload);
   final List<PingFrame> frames=new ArrayList<>();
-  Generator.Result result=generator.generatePing(payload,true);
+  ByteBufferPool.Lease lease=generator.generatePing(payload,true);
   Parser parser=new Parser(new Parser.Listener.Adapter(){
     @Override public boolean onPing(    PingFrame frame){
       frames.add(frame);
@@ -11,7 +11,7 @@
     }
   }
 );
-  for (  ByteBuffer buffer : result.getByteBuffers()) {
+  for (  ByteBuffer buffer : lease.getByteBuffers()) {
     while (buffer.hasRemaining()) {
       parser.parse(ByteBuffer.wrap(new byte[]{buffer.get()}));
     }

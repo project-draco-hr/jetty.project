@@ -6,7 +6,7 @@
   boolean exclusive=true;
   final List<PriorityFrame> frames=new ArrayList<>();
   for (int i=0; i < 2; ++i) {
-    Generator.Result result=generator.generatePriority(streamId,dependentStreamId,weight,exclusive);
+    ByteBufferPool.Lease lease=generator.generatePriority(streamId,dependentStreamId,weight,exclusive);
     Parser parser=new Parser(new Parser.Listener.Adapter(){
       @Override public boolean onPriority(      PriorityFrame frame){
         frames.add(frame);
@@ -15,7 +15,7 @@
     }
 );
     frames.clear();
-    for (    ByteBuffer buffer : result.getByteBuffers()) {
+    for (    ByteBuffer buffer : lease.getByteBuffers()) {
       while (buffer.hasRemaining()) {
         parser.parse(buffer);
       }

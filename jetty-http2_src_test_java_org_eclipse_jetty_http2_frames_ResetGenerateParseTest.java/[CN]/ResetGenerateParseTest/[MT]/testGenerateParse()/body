@@ -4,7 +4,7 @@
   int error=17;
   final List<ResetFrame> frames=new ArrayList<>();
   for (int i=0; i < 2; ++i) {
-    Generator.Result result=generator.generateReset(streamId,error);
+    ByteBufferPool.Lease lease=generator.generateReset(streamId,error);
     Parser parser=new Parser(new Parser.Listener.Adapter(){
       @Override public boolean onReset(      ResetFrame frame){
         frames.add(frame);
@@ -13,7 +13,7 @@
     }
 );
     frames.clear();
-    for (    ByteBuffer buffer : result.getByteBuffers()) {
+    for (    ByteBuffer buffer : lease.getByteBuffers()) {
       while (buffer.hasRemaining()) {
         parser.parse(buffer);
       }

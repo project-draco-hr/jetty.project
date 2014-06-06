@@ -5,7 +5,7 @@
   byte[] payload=new byte[16];
   new Random().nextBytes(payload);
   final List<GoAwayFrame> frames=new ArrayList<>();
-  Generator.Result result=generator.generateGoAway(lastStreamId,error,payload);
+  ByteBufferPool.Lease lease=generator.generateGoAway(lastStreamId,error,payload);
   Parser parser=new Parser(new Parser.Listener.Adapter(){
     @Override public boolean onGoAway(    GoAwayFrame frame){
       frames.add(frame);
@@ -13,7 +13,7 @@
     }
   }
 );
-  for (  ByteBuffer buffer : result.getByteBuffers()) {
+  for (  ByteBuffer buffer : lease.getByteBuffers()) {
     while (buffer.hasRemaining()) {
       parser.parse(ByteBuffer.wrap(new byte[]{buffer.get()}));
     }

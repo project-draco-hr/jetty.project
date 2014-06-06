@@ -1,6 +1,6 @@
 {
   if (lastStreamId < 0)   throw new IllegalArgumentException("Invalid last stream id: " + lastStreamId);
-  Result result=new Result(byteBufferPool);
+  ByteBufferPool.Lease lease=new ByteBufferPool.Lease(byteBufferPool);
   int length=4 + 4 + (payload != null ? payload.length : 0);
   ByteBuffer header=generateHeader(FrameType.GO_AWAY,length,0,0);
   header.putInt(lastStreamId);
@@ -9,6 +9,6 @@
     header.put(payload);
   }
   BufferUtil.flipToFlush(header,0);
-  result.add(header,true);
-  return result;
+  lease.add(header,true);
+  return lease;
 }
