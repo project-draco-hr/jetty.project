@@ -1,0 +1,66 @@
+{
+  HpackContext ctx=new HpackContext(38 * 5);
+  HttpField methodPost=new HttpField(":method","POST");
+  HttpField[] field={new HttpField("fo0","b0r"),new HttpField("fo1","b1r"),new HttpField("fo2","b2r"),new HttpField("fo3","b3r"),new HttpField("fo4","b4r"),new HttpField("fo5","b5r"),new HttpField("fo6","b6r"),new HttpField("fo7","b7r"),new HttpField("fo8","b8r"),new HttpField("fo9","b9r"),new HttpField("foA","bAr")};
+  Entry[] entry=new Entry[100];
+  assertEquals(0,ctx.size());
+  assertEquals(":authority",ctx.get(1).getHttpField().getName());
+  assertEquals(3,ctx.index(ctx.get(methodPost)));
+  assertEquals(methodPost,ctx.get(3).getHttpField());
+  assertEquals("www-authenticate",ctx.get(61).getHttpField().getName());
+  assertEquals(null,ctx.get(62));
+  entry[0]=ctx.add(field[0]);
+  assertEquals(1,ctx.size());
+  assertEquals(1,ctx.index(entry[0]));
+  assertEquals(entry[0],ctx.get(1));
+  assertEquals(":authority",ctx.get(1 + 1).getHttpField().getName());
+  assertEquals(3 + 1,ctx.index(ctx.get(methodPost)));
+  assertEquals(methodPost,ctx.get(3 + 1).getHttpField());
+  assertEquals("www-authenticate",ctx.get(61 + 1).getHttpField().getName());
+  assertEquals(null,ctx.get(62 + 1));
+  for (int i=1; i <= 4; i++)   entry[i]=ctx.add(field[i]);
+  assertEquals(5,ctx.size());
+  int index=5;
+  for (int i=0; i <= 4; i++) {
+    assertEquals(index,ctx.index(entry[i]));
+    assertEquals(entry[i],ctx.get(index));
+    index--;
+  }
+  assertEquals(":authority",ctx.get(1 + 5).getHttpField().getName());
+  assertEquals(3 + 5,ctx.index(ctx.get(methodPost)));
+  assertEquals(methodPost,ctx.get(3 + 5).getHttpField());
+  assertEquals("www-authenticate",ctx.get(61 + 5).getHttpField().getName());
+  assertEquals(null,ctx.get(62 + 5));
+  entry[5]=ctx.add(field[5]);
+  index=5;
+  for (int i=1; i <= 5; i++) {
+    assertEquals(index,ctx.index(entry[i]));
+    assertEquals(entry[i],ctx.get(index));
+    index--;
+  }
+  assertNull(ctx.get(field[0]));
+  assertEquals(0,ctx.index(entry[0]));
+  assertEquals(":authority",ctx.get(1 + 5).getHttpField().getName());
+  assertEquals(3 + 5,ctx.index(ctx.get(methodPost)));
+  assertEquals(methodPost,ctx.get(3 + 5).getHttpField());
+  assertEquals("www-authenticate",ctx.get(61 + 5).getHttpField().getName());
+  assertEquals(null,ctx.get(62 + 5));
+  for (int i=6; i <= 9; i++)   entry[i]=ctx.add(field[i]);
+  index=5;
+  for (int i=5; i <= 9; i++) {
+    assertEquals(index,ctx.index(entry[i]));
+    assertEquals(entry[i],ctx.get(index));
+    index--;
+  }
+  for (int i=0; i <= 4; i++) {
+    assertNull(ctx.get(field[i]));
+    assertEquals(0,ctx.index(entry[i]));
+  }
+  for (int i=10; i <= 52; i++)   entry[i]=ctx.add(new HttpField("n" + i,"v" + i));
+  index=5;
+  for (int i=48; i <= 52; i++) {
+    assertEquals(index,ctx.index(entry[i]));
+    assertEquals(entry[i],ctx.get(index));
+    index--;
+  }
+}
