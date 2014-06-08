@@ -1,0 +1,42 @@
+{
+  final HttpFields fields=new HttpFields();
+  Listener listener=new Listener(){
+    @Override public void endHeaders(){
+      System.err.println("===");
+    }
+    @Override public void emit(    HttpField field){
+      System.err.println(field);
+      fields.add(field);
+    }
+  }
+;
+  HpackDecoder decoder=new HpackDecoder(listener);
+  String encoded="828786448ce7cf9bebe89b6fb16fa9b6ff";
+  ByteBuffer buffer=ByteBuffer.wrap(TypeUtil.fromHexString(encoded));
+  decoder.decode(buffer);
+  assertEquals(4,fields.size());
+  assertEquals("GET",fields.get(":method"));
+  assertEquals("http",fields.get(":scheme"));
+  assertEquals("/",fields.get(":path"));
+  assertEquals("www.example.com",fields.get(":authority"));
+  fields.clear();
+  encoded="5c86b9b9949556bf";
+  buffer=ByteBuffer.wrap(TypeUtil.fromHexString(encoded));
+  decoder.decode(buffer);
+  assertEquals(5,fields.size());
+  assertEquals("GET",fields.get(":method"));
+  assertEquals("http",fields.get(":scheme"));
+  assertEquals("/",fields.get(":path"));
+  assertEquals("www.example.com",fields.get(":authority"));
+  assertEquals("no-cache",fields.get("cache-control"));
+  fields.clear();
+  encoded="30858c8b844088571c5cdb737b2faf89571c5cdb73724d9c57";
+  buffer=ByteBuffer.wrap(TypeUtil.fromHexString(encoded));
+  decoder.decode(buffer);
+  assertEquals(5,fields.size());
+  assertEquals("GET",fields.get(":method"));
+  assertEquals("https",fields.get(":scheme"));
+  assertEquals("/index.html",fields.get(":path"));
+  assertEquals("www.example.com",fields.get(":authority"));
+  assertEquals("custom-value",fields.get("custom-key"));
+}

@@ -1,0 +1,37 @@
+{
+  StringBuilder out=new StringBuilder(length * 2);
+  int node=0;
+  int current=0;
+  int bits=0;
+  byte[] array=buffer.array();
+  int start=buffer.arrayOffset() + buffer.position();
+  int end=start + length;
+  buffer.position(end);
+  for (int i=start; i < end; i++) {
+    int b=array[i] & 0xFF;
+    current=(current << 8) | b;
+    bits+=8;
+    while (bits >= 8) {
+      int c=(current >>> (bits - 8)) & 0xFF;
+      node=tree[node * 256 + c];
+      if (rowbits[node] != 0) {
+        out.append(rowsym[node]);
+        bits-=rowbits[node];
+        node=0;
+      }
+ else {
+        bits-=8;
+      }
+    }
+  }
+  while (bits > 0) {
+    int c=(current << (8 - bits)) & 0xFF;
+    node=tree[node * 256 + c];
+    if (rowbits[node] == 0 || rowbits[node] > bits)     break;
+    if (rowbits[node] == 0)     throw new IllegalStateException();
+    out.append(rowsym[node]);
+    bits-=rowbits[node];
+    node=0;
+  }
+  return out.toString();
+}
