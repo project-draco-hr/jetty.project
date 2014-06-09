@@ -95,11 +95,7 @@ setState(State.SPACE2);
 }
  else if (ch < HttpTokens.SPACE && ch >= 0) {
 _uri.flip();
-handle=_requestHandler.startRequest(_method,_methodString,_uri,null) || handle;
-setState(State.END);
-BufferUtil.clear(buffer);
-handle=_handler.headerComplete() || handle;
-handle=_handler.messageComplete() || handle;
+throw new BadMessage("HTTP/0.9 not supported");
 }
  else {
 if (!_uri.hasRemaining()) {
@@ -167,11 +163,7 @@ setState(State.HEADER);
 }
  else {
 _uri.flip();
-handle=_requestHandler.startRequest(_method,_methodString,_uri,null) || handle;
-setState(State.END);
-BufferUtil.clear(buffer);
-handle=_handler.headerComplete() || handle;
-handle=_handler.messageComplete() || handle;
+throw new BadMessage("HTTP/0.9 not supported");
 }
 }
  else if (ch < 0) throw new BadMessage();
@@ -189,7 +181,9 @@ _connectionFields=new ArrayTernaryTrie<>(header_cache);
 }
 setState(State.HEADER);
 _uri.flip();
-handle=_requestHandler.startRequest(_method,_methodString,_uri,_version) || handle;
+if (_method == HttpMethod.CONNECT) _httpURI.parseConnect(_uri.array(),_uri.arrayOffset() + _uri.position(),_uri.remaining());
+ else _httpURI.parse(_uri.array(),_uri.arrayOffset() + _uri.position(),_uri.remaining());
+handle=_requestHandler.startRequest(_methodString,_httpURI,_version) || handle;
 continue;
 }
  else if (ch >= HttpTokens.SPACE) _string.append((char)ch);
