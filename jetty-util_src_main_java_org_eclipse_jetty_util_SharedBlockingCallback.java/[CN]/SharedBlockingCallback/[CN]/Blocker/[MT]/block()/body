@@ -2,7 +2,13 @@
   if (NonBlockingThread.isNonBlockingThread())   LOG.warn("Blocking a NonBlockingThread: ",new Throwable());
   _lock.lock();
   try {
-    while (_state == null)     _complete.await();
+    while (_state == null) {
+      if (!_complete.await(10,TimeUnit.MINUTES)) {
+        IOException x=new IOException("DEBUG timeout");
+        LOG.warn("Blocked too long (please report!!!) " + this,x);
+        _state=x;
+      }
+    }
     if (_state == SUCCEEDED)     return;
     if (_state == IDLE)     throw new IllegalStateException("IDLE");
     if (_state instanceof IOException)     throw (IOException)_state;
