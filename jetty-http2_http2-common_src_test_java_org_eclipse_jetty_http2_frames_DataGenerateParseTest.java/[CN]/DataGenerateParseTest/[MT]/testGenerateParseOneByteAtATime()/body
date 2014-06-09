@@ -1,0 +1,18 @@
+{
+  Generator generator=new Generator(byteBufferPool);
+  ByteBufferPool.Lease lease=generator.generateData(13,ByteBuffer.wrap(largeContent).slice(),true,false,new byte[1024]);
+  final List<DataFrame> frames=new ArrayList<>();
+  Parser parser=new Parser(byteBufferPool,new Parser.Listener.Adapter(){
+    @Override public boolean onData(    DataFrame frame){
+      frames.add(frame);
+      return false;
+    }
+  }
+);
+  for (  ByteBuffer buffer : lease.getByteBuffers()) {
+    while (buffer.hasRemaining()) {
+      parser.parse(ByteBuffer.wrap(new byte[]{buffer.get()}));
+    }
+  }
+  Assert.assertEquals(largeContent.length,frames.size());
+}

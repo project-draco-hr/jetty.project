@@ -1,0 +1,26 @@
+{
+  Generator generator=new Generator(byteBufferPool);
+  byte[] payload=new byte[8];
+  new Random().nextBytes(payload);
+  final List<PingFrame> frames=new ArrayList<>();
+  for (int i=0; i < 2; ++i) {
+    ByteBufferPool.Lease lease=generator.generatePing(payload,true);
+    Parser parser=new Parser(byteBufferPool,new Parser.Listener.Adapter(){
+      @Override public boolean onPing(      PingFrame frame){
+        frames.add(frame);
+        return false;
+      }
+    }
+);
+    frames.clear();
+    for (    ByteBuffer buffer : lease.getByteBuffers()) {
+      while (buffer.hasRemaining()) {
+        parser.parse(buffer);
+      }
+    }
+  }
+  Assert.assertEquals(1,frames.size());
+  PingFrame frame=frames.get(0);
+  Assert.assertArrayEquals(payload,frame.getPayload());
+  Assert.assertTrue(frame.isReply());
+}

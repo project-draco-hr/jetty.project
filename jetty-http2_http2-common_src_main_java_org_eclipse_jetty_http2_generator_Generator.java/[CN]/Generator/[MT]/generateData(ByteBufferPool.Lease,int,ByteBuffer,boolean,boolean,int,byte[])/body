@@ -1,0 +1,18 @@
+{
+  int paddingLength=paddingBytes == null ? 0 : paddingBytes.length;
+  int length=extraPaddingBytes + data.remaining() + paddingLength;
+  int flags=0;
+  if (last)   flags|=Flag.END_STREAM;
+  if (extraPaddingBytes > 0)   flags|=Flag.PADDING_LOW;
+  if (extraPaddingBytes > 1)   flags|=Flag.PADDING_HIGH;
+  if (compress)   flags|=Flag.COMPRESS;
+  ByteBuffer header=generateHeader(FrameType.DATA,Frame.HEADER_LENGTH + extraPaddingBytes,length,flags,streamId);
+  if (extraPaddingBytes == 2)   header.putShort((short)paddingLength);
+ else   if (extraPaddingBytes == 1)   header.put((byte)paddingLength);
+  BufferUtil.flipToFlush(header,0);
+  lease.append(header,true);
+  lease.append(data,false);
+  if (paddingBytes != null) {
+    lease.append(ByteBuffer.wrap(paddingBytes),false);
+  }
+}

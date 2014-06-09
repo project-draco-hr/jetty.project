@@ -1,0 +1,26 @@
+{
+  Generator generator=new Generator(byteBufferPool);
+  int lastStreamId=13;
+  int error=17;
+  byte[] payload=new byte[16];
+  new Random().nextBytes(payload);
+  final List<GoAwayFrame> frames=new ArrayList<>();
+  ByteBufferPool.Lease lease=generator.generateGoAway(lastStreamId,error,payload);
+  Parser parser=new Parser(byteBufferPool,new Parser.Listener.Adapter(){
+    @Override public boolean onGoAway(    GoAwayFrame frame){
+      frames.add(frame);
+      return false;
+    }
+  }
+);
+  for (  ByteBuffer buffer : lease.getByteBuffers()) {
+    while (buffer.hasRemaining()) {
+      parser.parse(ByteBuffer.wrap(new byte[]{buffer.get()}));
+    }
+  }
+  Assert.assertEquals(1,frames.size());
+  GoAwayFrame frame=frames.get(0);
+  Assert.assertEquals(lastStreamId,frame.getLastStreamId());
+  Assert.assertEquals(error,frame.getError());
+  Assert.assertArrayEquals(payload,frame.getPayload());
+}
