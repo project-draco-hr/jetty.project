@@ -17,6 +17,13 @@
       return;
     }
   }
+  String ce=getHttpChannel().getResponse().getHeader("Content-Encoding");
+  if (ce != null) {
+    LOG.debug("{} exclude by content-encoding {}",this,ce);
+    noCompression();
+    super.write(content,complete,callback);
+    return;
+  }
   if (_state.compareAndSet(GZState.MIGHT_COMPRESS,GZState.COMMITTING)) {
     HttpFields fields=response.getHttpFields();
     fields.add(_factory.getVaryField());
