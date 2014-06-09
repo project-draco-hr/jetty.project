@@ -1,11 +1,11 @@
 {
-  HpackEncoder encoder=new HpackEncoder(null,38 * 5);
+  HpackEncoder encoder=new HpackEncoder(38 * 5);
   HttpFields fields=new HttpFields();
   HttpField[] field={new HttpField("fo0","b0r"),new HttpField("fo1","b1r"),new HttpField("fo2","b2r"),new HttpField("fo3","b3r"),new HttpField("fo4","b4r"),new HttpField("fo5","b5r"),new HttpField("fo6","b6r"),new HttpField("fo7","b7r"),new HttpField("fo8","b8r"),new HttpField("fo9","b9r"),new HttpField("foA","bAr")};
   for (int i=0; i <= 3; i++)   fields.add(field[i]);
   ByteBuffer buffer=BufferUtil.allocate(4096);
   int pos=BufferUtil.flipToFill(buffer);
-  encoder.encode(buffer,fields);
+  encoder.encode(buffer,new MetaData(fields));
   BufferUtil.flipToFlush(buffer,pos);
   assertThat(buffer.remaining(),Matchers.greaterThan(0));
   Assert.assertEquals(4,encoder.getContext().size());
@@ -14,7 +14,7 @@
   Assert.assertEquals(4,refSet.size());
   for (int i=0; i <= 3; i++)   Assert.assertTrue(refSet.contains(field[i]));
   BufferUtil.clearToFill(buffer);
-  encoder.encode(buffer,fields);
+  encoder.encode(buffer,new MetaData(fields));
   BufferUtil.flipToFlush(buffer,0);
   assertThat(buffer.remaining(),Matchers.is(0));
   Assert.assertEquals(4,encoder.getContext().size());
@@ -24,7 +24,7 @@
   for (int i=0; i <= 3; i++)   Assert.assertTrue(refSet.contains(field[i]));
   for (int i=4; i <= 7; i++)   fields.add(field[i]);
   BufferUtil.clearToFill(buffer);
-  encoder.encode(buffer,fields);
+  encoder.encode(buffer,new MetaData(fields));
   BufferUtil.flipToFlush(buffer,0);
   assertThat(buffer.remaining(),Matchers.greaterThan(0));
   Assert.assertEquals(5,encoder.getContext().size());
@@ -34,7 +34,7 @@
   for (int i=3; i <= 7; i++)   Assert.assertTrue(refSet.contains(field[i]));
   for (int i=0; i <= 7; i+=2)   fields.remove(field[i].getName());
   BufferUtil.clearToFill(buffer);
-  encoder.encode(buffer,fields);
+  encoder.encode(buffer,new MetaData(fields));
   BufferUtil.flipToFlush(buffer,0);
   assertThat(buffer.remaining(),Matchers.greaterThan(0));
   Assert.assertEquals(5,encoder.getContext().size());
@@ -47,7 +47,7 @@
   }
   fields.remove(field[1].getName());
   BufferUtil.clearToFill(buffer);
-  encoder.encode(buffer,fields);
+  encoder.encode(buffer,new MetaData(fields));
   BufferUtil.flipToFlush(buffer,0);
   assertThat(buffer.remaining(),Matchers.greaterThan(0));
   Assert.assertEquals(5,encoder.getContext().size());
@@ -60,7 +60,7 @@
   }
   fields.add(field[1]);
   BufferUtil.clearToFill(buffer);
-  encoder.encode(buffer,fields);
+  encoder.encode(buffer,new MetaData(fields));
   BufferUtil.flipToFlush(buffer,0);
   assertThat(buffer.remaining(),Matchers.greaterThan(0));
   Assert.assertEquals(5,encoder.getContext().size());

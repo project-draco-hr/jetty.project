@@ -1,0 +1,20 @@
+{
+  if (metadata.isRequest()) {
+    MetaData.Request request=(MetaData.Request)metadata;
+    encode(buffer,new HttpField(":scheme",request.getScheme().asString()));
+    encode(buffer,new HttpField(":method",request.getMethodString()));
+    encode(buffer,new HttpField(":authority",request.getAuthority()));
+    encode(buffer,new HttpField(":path",request.getPath()));
+  }
+ else   if (metadata.isResponse()) {
+    MetaData.Response response=(MetaData.Response)metadata;
+    int code=response.getStatus();
+    HttpField status=code < __status.length ? __status[code] : null;
+    if (status == null)     status=new HttpField(":status",Integer.toString(code));
+    encode(buffer,status);
+  }
+  for (  HttpField field : metadata) {
+    encode(buffer,field);
+  }
+  _context.removedUnusedReferences(buffer);
+}
