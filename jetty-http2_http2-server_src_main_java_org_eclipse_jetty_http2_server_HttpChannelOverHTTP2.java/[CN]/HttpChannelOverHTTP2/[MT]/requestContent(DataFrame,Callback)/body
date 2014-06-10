@@ -1,0 +1,11 @@
+{
+  ByteBufferPool byteBufferPool=getByteBufferPool();
+  ByteBuffer original=frame.getData();
+  final ByteBuffer copy=byteBufferPool.acquire(original.remaining(),original.isDirect());
+  BufferUtil.clearToFill(copy);
+  copy.put(original).flip();
+  content(new ByteBufferCallback(byteBufferPool,copy,callback));
+  if (frame.isEndStream()) {
+    messageComplete();
+  }
+}

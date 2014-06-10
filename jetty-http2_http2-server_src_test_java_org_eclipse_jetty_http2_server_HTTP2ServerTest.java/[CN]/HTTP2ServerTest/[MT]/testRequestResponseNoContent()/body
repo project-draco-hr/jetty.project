@@ -1,0 +1,32 @@
+{
+  startServer(new HttpServlet(){
+    @Override protected void service(    HttpServletRequest req,    HttpServletResponse resp) throws ServletException, IOException {
+    }
+  }
+);
+  String host="localhost";
+  int port=connector.getLocalPort();
+  HttpFields fields=new HttpFields();
+  MetaData.Request metaData=new MetaData.Request(HttpScheme.HTTP,HttpMethod.GET.asString(),host + ":" + port,host,port,path,fields);
+  HeadersFrame request=new HeadersFrame(1,metaData,null,true);
+  Generator.LeaseCallback lease=generator.generate(request,Callback.Adapter.INSTANCE);
+  try (SocketChannel client=SocketChannel.open(new InetSocketAddress(host,port))){
+    for (    ByteBuffer buffer : lease.getByteBuffers()) {
+      client.write(buffer);
+    }
+    ByteBuffer buffer=ByteBuffer.allocate(2048);
+    client.read(buffer);
+    buffer.flip();
+    final AtomicReference<HeadersFrame> frameRef=new AtomicReference<>();
+    Parser parser=new Parser(byteBufferPool,new Parser.Listener.Adapter(){
+      @Override public boolean onHeaders(      HeadersFrame frame){
+        frameRef.set(frame);
+        return false;
+      }
+    }
+);
+    parser.parse(buffer);
+    HeadersFrame response=frameRef.get();
+    Assert.assertNotNull(response);
+  }
+ }
