@@ -1,0 +1,34 @@
+{
+  HttpHeader header=field.getHeader();
+  String value=field.getValue();
+  if (getRequest().getHttpVersion().getVersion() == HttpVersion.HTTP_1_1.getVersion() && header == HttpHeader.EXPECT) {
+    HttpHeaderValue expect=HttpHeaderValue.CACHE.get(value);
+switch (expect == null ? HttpHeaderValue.UNKNOWN : expect) {
+case CONTINUE:
+      _expect100Continue=true;
+    break;
+case PROCESSING:
+  _expect102Processing=true;
+break;
+default :
+String[] values=value.split(",");
+for (int i=0; values != null && i < values.length; i++) {
+expect=HttpHeaderValue.CACHE.get(values[i].trim());
+if (expect == null) _expect=true;
+ else {
+switch (expect) {
+case CONTINUE:
+  _expect100Continue=true;
+break;
+case PROCESSING:
+_expect102Processing=true;
+break;
+default :
+_expect=true;
+}
+}
+}
+}
+}
+return super.parsedHeader(field);
+}
