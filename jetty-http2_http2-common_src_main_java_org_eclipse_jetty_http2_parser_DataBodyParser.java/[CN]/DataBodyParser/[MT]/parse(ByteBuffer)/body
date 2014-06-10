@@ -1,5 +1,6 @@
 {
-  while (buffer.hasRemaining()) {
+  boolean loop=false;
+  while (buffer.hasRemaining() || loop) {
 switch (state) {
 case PREPARE:
 {
@@ -18,7 +19,7 @@ case PREPARE:
 case PADDING_HIGH:
 {
       paddingLength=(buffer.get() & 0xFF) << 8;
-      length-=1;
+      --length;
       if (length < 1 + 256) {
         return notifyConnectionFailure(ErrorCode.PROTOCOL_ERROR,"invalid_data_frame_padding");
       }
@@ -28,12 +29,13 @@ case PADDING_HIGH:
 case PADDING_LOW:
 {
     paddingLength+=buffer.get() & 0xFF;
-    length-=1;
-    if (length < paddingLength) {
-      return notifyConnectionFailure(ErrorCode.PROTOCOL_ERROR,"invalid_data_frame_padding");
-    }
+    --length;
     length-=paddingLength;
     state=State.DATA;
+    loop=length == 0;
+    if (length < 0) {
+      return notifyConnectionFailure(ErrorCode.PROTOCOL_ERROR,"invalid_data_frame_padding");
+    }
     break;
   }
 case DATA:
@@ -46,6 +48,7 @@ case DATA:
   buffer.limit(limit);
   buffer.position(position + size);
   length-=size;
+  loop=paddingLength == 0;
   if (length == 0) {
     state=State.PADDING;
     if (onData(slice,false)) {
