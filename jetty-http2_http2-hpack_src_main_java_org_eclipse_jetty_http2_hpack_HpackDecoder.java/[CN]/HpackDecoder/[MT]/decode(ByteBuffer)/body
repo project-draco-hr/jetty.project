@@ -41,23 +41,43 @@
         if (huffman)         value=Huffman.decode(buffer,length);
  else         value=toASCIIString(buffer,length);
         HttpField field;
-        if (":authority".equals(header))         field=new AuthorityHttpField(value);
- else         field=new HttpField(header,name,value);
-        _builder.emit(field);
-        if (indexed) {
-          Entry new_entry=_context.add(field);
-          if (new_entry != null)           _context.addToRefSet(new_entry);
-        }
-      }
- else       if (f == 2) {
-        int size=NBitInteger.decode(buffer,4);
-        _context.resize(size);
-      }
- else       if (f == 3) {
-        _context.clearReferenceSet();
-      }
-    }
-  }
-  _context.emitUnusedReferences(_builder);
-  return _builder.build();
+switch (name) {
+case ":method":
+          HttpMethod method=HttpMethod.CACHE.get(value);
+        if (method != null)         field=new StaticValueHttpField(header,name,method.asString(),method);
+ else         field=new AuthorityHttpField(value);
+      break;
+case ":status":
+    Integer code=Integer.getInteger(value);
+  field=new StaticValueHttpField(header,name,value,code);
+break;
+case ":scheme":
+HttpScheme scheme=HttpScheme.CACHE.get(value);
+if (scheme != null) field=new StaticValueHttpField(header,name,scheme.asString(),scheme);
+ else field=new AuthorityHttpField(value);
+break;
+case ":authority":
+field=new AuthorityHttpField(value);
+break;
+default :
+field=new HttpField(header,name,value);
+break;
+}
+_builder.emit(field);
+if (indexed) {
+Entry new_entry=_context.add(field);
+if (new_entry != null) _context.addToRefSet(new_entry);
+}
+}
+ else if (f == 2) {
+int size=NBitInteger.decode(buffer,4);
+_context.resize(size);
+}
+ else if (f == 3) {
+_context.clearReferenceSet();
+}
+}
+}
+_context.emitUnusedReferences(_builder);
+return _builder.build();
 }
