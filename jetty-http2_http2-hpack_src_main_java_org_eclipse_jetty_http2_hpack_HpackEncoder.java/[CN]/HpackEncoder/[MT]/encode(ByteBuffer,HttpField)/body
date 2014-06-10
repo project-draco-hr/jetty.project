@@ -1,75 +1,87 @@
 {
+  final int p=LOG.isDebugEnabled() ? buffer.position() : -1;
+  String encoding=null;
   Entry entry=_context.get(field);
   if (entry != null) {
     if (entry.isInReferenceSet()) {
       entry.used();
-      return;
+      encoding="InRefSet";
     }
-    if (entry.isStatic()) {
+ else     if (entry.isStatic()) {
       buffer.put((byte)0x00);
       NBitInteger.encode(buffer,4,_context.index(entry));
       buffer.put(entry.getStaticHuffmanValue());
-      return;
+      encoding="LiteralStaticIdxNameHuffmanValue";
     }
-    _context.addToRefSet(entry);
-    int index=_context.index(entry);
-    buffer.put((byte)0x80);
-    NBitInteger.encode(buffer,7,index);
-    return;
-  }
-  HttpHeader header=field.getHeader();
-  final boolean never_index;
-  final boolean huffman;
-  final boolean reference;
-  final int name_bits;
-  final byte mask;
-  if (header == null) {
-    never_index=false;
-    huffman=true;
-    reference=true;
-    name_bits=6;
-    mask=(byte)0x40;
-  }
- else   if (__USE_REFERENCE_SET.contains(header)) {
-    reference=true;
-    never_index=false;
-    huffman=!__DO_NOT_HUFFMAN.contains(header);
-    name_bits=6;
-    mask=(byte)0x40;
-  }
  else {
-    reference=false;
-    never_index=__NEVER_INDEX.contains(header);
-    huffman=!__DO_NOT_HUFFMAN.contains(header);
-    name_bits=4;
-    mask=never_index ? (byte)0x01 : (byte)0x00;
-  }
-  buffer.put(mask);
-  Entry name_entry=_context.get(field.getName());
-  if (name_entry != null)   NBitInteger.encode(buffer,name_bits,_context.index(name_entry));
- else {
-    buffer.put((byte)0x80);
-    NBitInteger.encode(buffer,7,Huffman.octetsNeeded(field.getName()));
-    Huffman.encode(buffer,field.getName());
-  }
-  String value=field.getValue();
-  if (huffman) {
-    buffer.put((byte)0x80);
-    NBitInteger.encode(buffer,7,Huffman.octetsNeeded(value));
-    Huffman.encode(buffer,field.getValue());
-  }
- else {
-    buffer.put((byte)0x00);
-    NBitInteger.encode(buffer,7,value.length());
-    for (int i=0; i < value.length(); i++) {
-      char c=value.charAt(i);
-      if (c < ' ' || c > 127)       throw new IllegalArgumentException();
-      buffer.put((byte)c);
+      encoding="IdxField";
+      _context.addToRefSet(entry);
+      int index=_context.index(entry);
+      buffer.put((byte)0x80);
+      NBitInteger.encode(buffer,7,index);
     }
   }
-  if (reference) {
-    Entry new_entry=_context.add(field);
-    if (new_entry != null)     _context.addToRefSet(new_entry);
+ else {
+    HttpHeader header=field.getHeader();
+    final boolean never_index;
+    final boolean huffman;
+    final boolean reference;
+    final int name_bits;
+    final byte mask;
+    if (header == null) {
+      never_index=false;
+      huffman=true;
+      reference=true;
+      name_bits=6;
+      mask=(byte)0x40;
+    }
+ else     if (__USE_REFERENCE_SET.contains(header)) {
+      reference=true;
+      never_index=false;
+      huffman=!__DO_NOT_HUFFMAN.contains(header);
+      name_bits=6;
+      mask=(byte)0x40;
+    }
+ else {
+      reference=false;
+      never_index=__NEVER_INDEX.contains(header);
+      huffman=!__DO_NOT_HUFFMAN.contains(header);
+      name_bits=4;
+      mask=never_index ? (byte)0x01 : (byte)0x00;
+    }
+    buffer.put(mask);
+    Entry name_entry=_context.get(field.getName());
+    if (p >= 0) {
+      encoding="Literal" + ((name_entry == null) ? "IdxName" : "HuffName") + (huffman ? "HuffName" : "LitName")+ (reference ? "Idx" : (never_index ? "NeverIdx" : ""));
+    }
+    if (name_entry != null)     NBitInteger.encode(buffer,name_bits,_context.index(name_entry));
+ else {
+      buffer.put((byte)0x80);
+      NBitInteger.encode(buffer,7,Huffman.octetsNeeded(field.getName()));
+      Huffman.encode(buffer,field.getName());
+    }
+    String value=field.getValue();
+    if (huffman) {
+      buffer.put((byte)0x80);
+      NBitInteger.encode(buffer,7,Huffman.octetsNeeded(value));
+      Huffman.encode(buffer,field.getValue());
+    }
+ else {
+      buffer.put((byte)0x00);
+      NBitInteger.encode(buffer,7,value.length());
+      for (int i=0; i < value.length(); i++) {
+        char c=value.charAt(i);
+        if (c < ' ' || c > 127)         throw new IllegalArgumentException();
+        buffer.put((byte)c);
+      }
+    }
+    if (reference) {
+      Entry new_entry=_context.add(field);
+      if (new_entry != null)       _context.addToRefSet(new_entry);
+    }
   }
-  return;
+  if (p >= 0) {
+    int e=buffer.position();
+    LOG.debug("encoded '{}' by {} to '{}'",field,encoding,TypeUtil.toHexString(buffer.array(),buffer.arrayOffset() + p,e - p));
+  }
 }

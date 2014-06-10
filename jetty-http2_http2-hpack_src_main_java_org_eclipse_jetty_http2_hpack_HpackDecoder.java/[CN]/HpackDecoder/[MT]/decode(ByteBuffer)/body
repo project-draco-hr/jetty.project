@@ -1,16 +1,22 @@
 {
   while (buffer.hasRemaining()) {
+    if (LOG.isDebugEnabled()) {
+      int l=Math.min(buffer.remaining(),16);
+      LOG.debug("decode  " + TypeUtil.toHexString(buffer.array(),buffer.arrayOffset() + buffer.position(),l) + (l < buffer.remaining() ? "..." : ""));
+    }
     byte b=buffer.get();
     if (b < 0) {
       int index=NBitInteger.decode(buffer,7);
       Entry entry=_context.get(index);
       if (entry.isInReferenceSet())       _context.get(index).removeFromRefSet();
  else       if (entry.isStatic()) {
+        LOG.debug("decode IdxStatic {}",entry);
         _builder.emit(entry.getHttpField());
         Entry new_entry=_context.add(entry.getHttpField());
         if (new_entry != null)         _context.addToRefSet(new_entry);
       }
  else {
+        LOG.debug("decode Idx {}",entry);
         _builder.emit(entry.getHttpField());
         _context.addToRefSet(entry);
       }
@@ -23,6 +29,7 @@
       if (f <= 1 || f >= 4) {
         boolean indexed=f >= 4;
         int bits=indexed ? 6 : 4;
+        boolean huffmanName=false;
         int name_index=NBitInteger.decode(buffer,bits);
         if (name_index > 0) {
           Entry name_entry=_context.get(name_index);
@@ -30,15 +37,15 @@
           header=name_entry.getHttpField().getHeader();
         }
  else {
-          boolean huffman=(buffer.get() & 0x80) == 0x80;
+          huffmanName=(buffer.get() & 0x80) == 0x80;
           int length=NBitInteger.decode(buffer,7);
-          if (huffman)           name=Huffman.decode(buffer,length);
+          if (huffmanName)           name=Huffman.decode(buffer,length);
  else           name=toASCIIString(buffer,length);
           header=HttpHeader.CACHE.get(name);
         }
-        boolean huffman=(buffer.get() & 0x80) == 0x80;
+        boolean huffmanValue=(buffer.get() & 0x80) == 0x80;
         int length=NBitInteger.decode(buffer,7);
-        if (huffman)         value=Huffman.decode(buffer,length);
+        if (huffmanValue)         value=Huffman.decode(buffer,length);
  else         value=toASCIIString(buffer,length);
         HttpField field;
 switch (name) {
@@ -48,7 +55,7 @@ case ":method":
  else         field=new AuthorityHttpField(value);
       break;
 case ":status":
-    Integer code=Integer.getInteger(value);
+    Integer code=Integer.valueOf(value);
   field=new StaticValueHttpField(header,name,value,code);
 break;
 case ":scheme":
@@ -63,6 +70,7 @@ default :
 field=new HttpField(header,name,value);
 break;
 }
+if (LOG.isDebugEnabled()) LOG.debug("decoded '" + field + "' by Lit"+ (name_index > 0 ? "IdxName" : (huffmanName ? "HuffName" : "LitName"))+ (huffmanValue ? "HuffVal" : "LitVal")+ (indexed ? "Idx" : ""));
 _builder.emit(field);
 if (indexed) {
 Entry new_entry=_context.add(field);
@@ -71,9 +79,11 @@ if (new_entry != null) _context.addToRefSet(new_entry);
 }
  else if (f == 2) {
 int size=NBitInteger.decode(buffer,4);
+if (LOG.isDebugEnabled()) LOG.debug("decode resize=" + size);
 _context.resize(size);
 }
  else if (f == 3) {
+LOG.debug("decode clear");
 _context.clearReferenceSet();
 }
 }
