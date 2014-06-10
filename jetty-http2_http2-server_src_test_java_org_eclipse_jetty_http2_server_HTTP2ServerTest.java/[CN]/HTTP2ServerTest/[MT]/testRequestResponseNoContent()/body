@@ -1,6 +1,8 @@
 {
+  final CountDownLatch latch=new CountDownLatch(1);
   startServer(new HttpServlet(){
     @Override protected void service(    HttpServletRequest req,    HttpServletResponse resp) throws ServletException, IOException {
+      latch.countDown();
     }
   }
 );
@@ -26,7 +28,10 @@
     }
 );
     parser.parse(buffer);
+    Assert.assertTrue(latch.await(5,TimeUnit.SECONDS));
     HeadersFrame response=frameRef.get();
     Assert.assertNotNull(response);
+    MetaData.Response responseMetaData=(MetaData.Response)response.getMetaData();
+    Assert.assertEquals(200,responseMetaData.getStatus());
   }
  }
