@@ -1,11 +1,10 @@
 {
+  Generator.LeaseCallback current=null;
 synchronized (queue) {
-    active=queue.poll();
+    if (!closed)     current=active=queue.poll();
   }
-  if (active == null) {
-    return Action.IDLE;
-  }
-  List<ByteBuffer> byteBuffers=active.getByteBuffers();
+  if (current == null)   return Action.IDLE;
+  List<ByteBuffer> byteBuffers=current.getByteBuffers();
   endPoint.write(this,byteBuffers.toArray(new ByteBuffer[byteBuffers.size()]));
   return Action.SCHEDULED;
 }
