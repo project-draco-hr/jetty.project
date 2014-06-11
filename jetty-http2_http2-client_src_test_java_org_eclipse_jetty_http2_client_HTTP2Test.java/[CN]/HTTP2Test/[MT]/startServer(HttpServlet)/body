@@ -1,0 +1,15 @@
+{
+  QueuedThreadPool serverExecutor=new QueuedThreadPool();
+  serverExecutor.setName("server");
+  server=new Server(serverExecutor);
+  connector=new ServerConnector(server,new HTTP2ServerConnectionFactory(new HttpConfiguration()));
+  server.addConnector(connector);
+  ServletContextHandler context=new ServletContextHandler(server,"/");
+  path="/test";
+  context.addServlet(new ServletHolder(servlet),path);
+  QueuedThreadPool clientExecutor=new QueuedThreadPool();
+  clientExecutor.setName("client");
+  client=new HTTP2Client(clientExecutor);
+  server.addBean(client);
+  server.start();
+}

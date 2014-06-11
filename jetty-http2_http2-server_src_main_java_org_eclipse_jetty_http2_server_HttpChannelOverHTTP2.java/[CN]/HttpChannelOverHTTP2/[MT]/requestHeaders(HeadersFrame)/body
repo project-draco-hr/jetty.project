@@ -14,11 +14,14 @@
     getRequest().setScheme(scheme.asString());
   }
   parsedHostHeader(requestMetaData.getHost(),requestMetaData.getPort());
+  boolean hasAcceptEncodingGzip=false;
   HttpFields fields=requestMetaData.getFields();
   for (int i=0; i < fields.size(); ++i) {
     HttpField field=fields.getField(i);
+    if (HttpHeader.ACCEPT_ENCODING.is(field.getName()))     hasAcceptEncodingGzip=field.getValue().contains("gzip");
     parsedHeader(field);
   }
+  if (!hasAcceptEncodingGzip)   parsedHeader(new HttpField(HttpHeader.ACCEPT_ENCODING,"gzip"));
   headerComplete();
   if (frame.isEndStream()) {
     messageComplete();

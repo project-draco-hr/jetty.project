@@ -1,4 +1,13 @@
 {
-  IStream stream=streams.get(frame.getStreamId());
-  return stream.process(frame);
+  int streamId=frame.getStreamId();
+  IStream stream=getStream(streamId);
+  if (stream != null) {
+    stream.updateClose(frame.isEndStream(),false);
+    return stream.process(frame);
+  }
+ else {
+    ResetFrame resetFrame=new ResetFrame(streamId,ErrorCode.STREAM_CLOSED_ERROR);
+    reset(resetFrame,disconnectCallback);
+    return false;
+  }
 }
