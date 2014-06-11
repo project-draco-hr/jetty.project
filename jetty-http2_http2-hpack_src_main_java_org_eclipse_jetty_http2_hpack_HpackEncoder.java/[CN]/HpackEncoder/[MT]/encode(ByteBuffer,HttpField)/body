@@ -8,17 +8,26 @@
       encoding="InRefSet";
     }
  else     if (entry.isStatic()) {
-      buffer.put((byte)0x00);
-      NBitInteger.encode(buffer,4,_context.index(entry));
-      buffer.put(entry.getStaticHuffmanValue());
-      encoding="LiteralStaticIdxNameHuffmanValue";
+      if (entry == HpackContext.METHOD_GET || entry == HpackContext.STATUS_200) {
+        int index=_context.index(entry);
+        buffer.put((byte)0x80);
+        NBitInteger.encode(buffer,7,index);
+        entry=_context.add(entry.getHttpField());
+        if (entry != null)         _context.addToRefSet(entry);
+      }
+ else {
+        buffer.put((byte)0x00);
+        NBitInteger.encode(buffer,4,_context.index(entry));
+        buffer.put(entry.getStaticHuffmanValue());
+        encoding="LiteralStaticIdxNameHuffmanValue";
+      }
     }
  else {
       encoding="IdxField";
-      _context.addToRefSet(entry);
       int index=_context.index(entry);
       buffer.put((byte)0x80);
       NBitInteger.encode(buffer,7,index);
+      _context.addToRefSet(entry);
     }
   }
  else {
