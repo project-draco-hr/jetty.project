@@ -1,0 +1,32 @@
+{
+  super(header,name,authority);
+  try {
+    if (authority.charAt(0) == '[') {
+      int close=authority.lastIndexOf(']');
+      if (close < 0)       throw new BadMessage(HttpStatus.BAD_REQUEST_400,"Bad ipv6");
+      _host=authority.substring(1,close);
+      if (authority.length() > close + 1) {
+        if (authority.charAt(close + 1) != ':')         throw new BadMessage(HttpStatus.BAD_REQUEST_400,"Bad ipv6 port");
+        _port=StringUtil.toInt(authority,close + 2);
+      }
+ else       _port=0;
+    }
+ else {
+      int c=authority.lastIndexOf(':');
+      if (c >= 0) {
+        _host=authority.substring(0,c);
+        _port=StringUtil.toInt(authority,c + 1);
+      }
+ else {
+        _host=authority;
+        _port=0;
+      }
+    }
+  }
+ catch (  BadMessage bm) {
+    throw bm;
+  }
+catch (  Exception e) {
+    throw new BadMessage(HttpStatus.BAD_REQUEST_400,"Bad HostPort",e);
+  }
+}
