@@ -1,10 +1,53 @@
 {
-  Generator.LeaseCallback current=null;
 synchronized (queue) {
-    if (!closed)     current=active=queue.poll();
+    if (closed)     return Action.IDLE;
+    int nonStalledIndex=0;
+    int size=queue.size();
+    while (nonStalledIndex < size) {
+      FlusherEntry entry=queue.get(nonStalledIndex);
+      IStream stream=entry.getStream();
+      boolean flowControlled=entry.getFrame().getFlowControlledLength() > 0;
+      if (flowControlled) {
+        if (getWindowSize() <= 0) {
+          LOG.debug("Flow control: session stalled {}",HTTP2Session.this);
+          ++nonStalledIndex;
+          continue;
+        }
+        if (stream != null) {
+          if (stalled.contains(stream)) {
+            ++nonStalledIndex;
+            continue;
+          }
+          if (stream.getWindowSize() <= 0) {
+            LOG.debug("Flow control: stream stalled {}",stream);
+            stalled.add(stream);
+            ++nonStalledIndex;
+            continue;
+          }
+        }
+      }
+      queue.remove(nonStalledIndex);
+      --size;
+      if (stream != null && stream.isReset() && flowControlled) {
+        reset.add(entry);
+        continue;
+      }
+      active.add(entry);
+      if (active.size() == maxGather)       break;
+    }
+    stalled.clear();
   }
-  if (current == null)   return Action.IDLE;
-  List<ByteBuffer> byteBuffers=current.getByteBuffers();
+  for (int i=0; i < reset.size(); ++i) {
+    FlusherEntry entry=reset.get(i);
+    entry.failed(new IllegalStateException());
+  }
+  reset.clear();
+  if (active.isEmpty())   return Action.IDLE;
+  for (int i=0; i < active.size(); ++i) {
+    FlusherEntry entry=active.get(i);
+    generator.generate(lease,entry.getFrame());
+  }
+  List<ByteBuffer> byteBuffers=lease.getByteBuffers();
   endPoint.write(this,byteBuffers.toArray(new ByteBuffer[byteBuffers.size()]));
   return Action.SCHEDULED;
 }

@@ -1,9 +1,17 @@
 {
   int streamId=frame.getStreamId();
-  IStream stream=getStream(streamId);
+  final IStream stream=getStream(streamId);
   if (stream != null) {
     stream.updateClose(frame.isEndStream(),false);
-    return stream.process(frame);
+    flowControl.onDataReceived(this,stream,frame.getFlowControlledLength());
+    return stream.process(frame,new Callback.Adapter(){
+      @Override public void succeeded(){
+        int consumed=frame.getFlowControlledLength();
+        LOG.debug("Flow control: {} consumed on {}",consumed,stream);
+        flowControl.onDataConsumed(HTTP2Session.this,stream,consumed);
+      }
+    }
+);
   }
  else {
     ResetFrame resetFrame=new ResetFrame(streamId,ErrorCode.STREAM_CLOSED_ERROR);

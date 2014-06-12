@@ -6,18 +6,12 @@
     }
   }
 );
-  String host="localhost";
-  int port=connector.getLocalPort();
-  String authority=host + ":" + port;
-  InetSocketAddress address=new InetSocketAddress(host,port);
-  FuturePromise<Session> promise=new FuturePromise<>();
-  client.connect(address,new Session.Listener.Adapter(),promise);
-  Session session=promise.get();
+  Session client=newClient(new Session.Listener.Adapter());
   HttpFields fields=new HttpFields();
-  MetaData.Request metaData=new MetaData.Request(HttpScheme.HTTP,"GET",authority,host,port,path,fields);
+  MetaData.Request metaData=newRequest("GET",fields);
   HeadersFrame frame=new HeadersFrame(1,metaData,null,true);
   final CountDownLatch latch=new CountDownLatch(2);
-  session.newStream(frame,new Promise.Adapter<Stream>(),new Stream.Listener.Adapter(){
+  client.newStream(frame,new Promise.Adapter<Stream>(),new Stream.Listener.Adapter(){
     @Override public void onHeaders(    Stream stream,    HeadersFrame frame){
       Assert.assertFalse(stream.isClosed());
       Assert.assertTrue(stream.getId() > 0);
@@ -32,6 +26,7 @@
       Assert.assertTrue(stream.isClosed());
       Assert.assertTrue(frame.isEndStream());
       Assert.assertEquals(ByteBuffer.wrap(content),frame.getData());
+      callback.succeeded();
       latch.countDown();
     }
   }
