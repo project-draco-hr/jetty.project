@@ -3,11 +3,11 @@
   final IStream stream=getStream(streamId);
   if (stream != null) {
     stream.updateClose(frame.isEndStream(),false);
-    flowControl.onDataReceived(this,stream,frame.getFlowControlledLength());
+    final int length=frame.remaining();
+    flowControl.onDataReceived(this,stream,length);
     return stream.process(frame,new Callback.Adapter(){
       @Override public void succeeded(){
-        int consumed=frame.getFlowControlledLength();
-        flowControl.onDataConsumed(HTTP2Session.this,stream,consumed);
+        flowControl.onDataConsumed(HTTP2Session.this,stream,length);
       }
     }
 );
