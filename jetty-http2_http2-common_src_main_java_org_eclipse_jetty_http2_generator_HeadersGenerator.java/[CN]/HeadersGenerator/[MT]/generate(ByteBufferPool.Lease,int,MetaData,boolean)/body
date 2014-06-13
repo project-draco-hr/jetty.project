@@ -1,0 +1,11 @@
+{
+  if (streamId < 0)   throw new IllegalArgumentException("Invalid stream id: " + streamId);
+  encoder.encode(metaData,lease);
+  long length=lease.getTotalLength();
+  if (length > Frame.MAX_LENGTH)   throw new IllegalArgumentException("Invalid headers, too big");
+  int flags=Flag.END_HEADERS;
+  if (!contentFollows)   flags|=Flag.END_STREAM;
+  ByteBuffer header=generateHeader(lease,FrameType.HEADERS,(int)length,flags,streamId);
+  BufferUtil.flipToFlush(header,0);
+  lease.prepend(header,true);
+}

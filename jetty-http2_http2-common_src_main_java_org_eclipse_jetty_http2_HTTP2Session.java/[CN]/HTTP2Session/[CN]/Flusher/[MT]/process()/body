@@ -1,26 +1,27 @@
 {
 synchronized (queue) {
     if (closed)     return Action.IDLE;
+    int sessionWindow=getWindowSize();
     int nonStalledIndex=0;
     int size=queue.size();
     while (nonStalledIndex < size) {
       FlusherEntry entry=queue.get(nonStalledIndex);
-      IStream stream=entry.getStream();
-      boolean flowControlled=entry.getFrame().getFlowControlledLength() > 0;
-      if (flowControlled) {
-        if (getWindowSize() <= 0) {
-          LOG.debug("Flow control: session stalled {}",HTTP2Session.this);
+      IStream stream=entry.stream;
+      int frameWindow=entry.frame.getFlowControlledLength();
+      if (frameWindow > 0) {
+        if (sessionWindow <= 0) {
+          HTTP2FlowControl.LOG.debug("Session stalled {}",HTTP2Session.this);
           ++nonStalledIndex;
           continue;
         }
         if (stream != null) {
-          if (stalled.contains(stream)) {
-            ++nonStalledIndex;
-            continue;
+          Integer streamWindow=streams.get(stream);
+          if (streamWindow == null) {
+            streamWindow=stream.getWindowSize();
+            streams.put(stream,streamWindow);
           }
-          if (stream.getWindowSize() <= 0) {
-            LOG.debug("Flow control: stream stalled {}",stream);
-            stalled.add(stream);
+          if (streamWindow <= 0) {
+            HTTP2FlowControl.LOG.debug("Stream stalled {}",stream);
             ++nonStalledIndex;
             continue;
           }
@@ -28,14 +29,16 @@ synchronized (queue) {
       }
       queue.remove(nonStalledIndex);
       --size;
-      if (stream != null && stream.isReset() && flowControlled) {
+      if (stream != null && stream.isReset() && frameWindow > 0) {
         reset.add(entry);
         continue;
       }
+      sessionWindow-=frameWindow;
+      if (stream != null && frameWindow > 0)       streams.put(stream,streams.get(stream) - frameWindow);
       active.add(entry);
       if (active.size() == maxGather)       break;
     }
-    stalled.clear();
+    streams.clear();
   }
   for (int i=0; i < reset.size(); ++i) {
     FlusherEntry entry=reset.get(i);
@@ -45,7 +48,7 @@ synchronized (queue) {
   if (active.isEmpty())   return Action.IDLE;
   for (int i=0; i < active.size(); ++i) {
     FlusherEntry entry=active.get(i);
-    generator.generate(lease,entry.getFrame());
+    entry.generate(lease);
   }
   List<ByteBuffer> byteBuffers=lease.getByteBuffers();
   endPoint.write(this,byteBuffers.toArray(new ByteBuffer[byteBuffers.size()]));

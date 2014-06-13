@@ -1,8 +1,8 @@
 {
   final int size=512;
-  final CountDownLatch dataLatch=new CountDownLatch(1);
+  final CountDownLatch dataLatch=new CountDownLatch(3);
   final AtomicReference<Callback> callbackRef=new AtomicReference<>();
-  startServer(new Session.Listener.Adapter(){
+  startServer(new ServerSessionListener.Adapter(){
     @Override public Stream.Listener onNewStream(    Stream stream,    HeadersFrame requestFrame){
       HttpFields fields=new HttpFields();
       MetaData.Response response=new MetaData.Response(200,fields);
@@ -11,6 +11,7 @@
       return new Stream.Listener.Adapter(){
         private final AtomicInteger dataFrames=new AtomicInteger();
         @Override public void onData(        Stream stream,        DataFrame frame,        Callback callback){
+          dataLatch.countDown();
           int dataFrameCount=dataFrames.incrementAndGet();
           if (dataFrameCount == 1) {
             callbackRef.set(callback);
@@ -20,7 +21,6 @@
           }
  else           if (dataFrameCount > 1) {
             callback.succeeded();
-            dataLatch.countDown();
           }
         }
       }
@@ -41,7 +41,7 @@
   Stream stream=promise.get(5,TimeUnit.SECONDS);
   stream.data(new DataFrame(stream.getId(),ByteBuffer.allocate(size * 2),false),Callback.Adapter.INSTANCE);
   settingsLatch.await(5,TimeUnit.SECONDS);
-  stream.data(new DataFrame(stream.getId(),ByteBuffer.allocate(size * 2),false),Callback.Adapter.INSTANCE);
+  stream.data(new DataFrame(stream.getId(),ByteBuffer.allocate(size * 2),true),Callback.Adapter.INSTANCE);
   Assert.assertFalse(dataLatch.await(1,TimeUnit.SECONDS));
   callbackRef.get().succeeded();
   Assert.assertTrue(dataLatch.await(5,TimeUnit.SECONDS));
