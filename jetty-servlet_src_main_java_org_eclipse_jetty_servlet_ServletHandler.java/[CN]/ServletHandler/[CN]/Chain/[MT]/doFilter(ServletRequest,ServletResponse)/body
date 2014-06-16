@@ -4,17 +4,13 @@
     FilterHolder holder=_chain.get(_filter++);
     if (LOG.isDebugEnabled())     LOG.debug("call filter " + holder);
     Filter filter=holder.getFilter();
-    if (holder.isAsyncSupported() || !_baseRequest.isAsyncSupported()) {
+    boolean requestAsyncSupported=_baseRequest.isAsyncSupported();
+    try {
+      if (!holder.isAsyncSupported() && requestAsyncSupported)       _baseRequest.setAsyncSupported(false);
       filter.doFilter(request,response,this);
     }
- else {
-      try {
-        _baseRequest.setAsyncSupported(false);
-        filter.doFilter(request,response,this);
-      }
   finally {
-        _baseRequest.setAsyncSupported(true);
-      }
+      _baseRequest.setAsyncSupported(requestAsyncSupported);
     }
     return;
   }
