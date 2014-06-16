@@ -1,0 +1,16 @@
+{
+  if (files == null || files.isEmpty())   return;
+  Map<String,Object> lastMap=Collections.singletonMap("Server",(Object)this);
+  for (  File xmlFile : files) {
+    if (PluginLog.getLog() != null)     PluginLog.getLog().info("Configuring Jetty from xml configuration file = " + xmlFile.getCanonicalPath());
+    XmlConfiguration xmlConfiguration=new XmlConfiguration(Resource.toURL(xmlFile));
+    if (lastMap != null)     xmlConfiguration.getIdMap().putAll(lastMap);
+    Enumeration<?> ensysprop=System.getProperties().propertyNames();
+    while (ensysprop.hasMoreElements()) {
+      String name=(String)ensysprop.nextElement();
+      xmlConfiguration.getProperties().put(name,System.getProperty(name));
+    }
+    xmlConfiguration.configure();
+    lastMap=xmlConfiguration.getIdMap();
+  }
+}
