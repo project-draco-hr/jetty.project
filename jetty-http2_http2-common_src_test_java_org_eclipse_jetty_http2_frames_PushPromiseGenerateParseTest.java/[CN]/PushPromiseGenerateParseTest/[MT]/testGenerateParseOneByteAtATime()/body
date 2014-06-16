@@ -1,0 +1,39 @@
+{
+  PushPromiseGenerator generator=new PushPromiseGenerator(new HeaderGenerator(),new HpackEncoder());
+  int streamId=13;
+  int promisedStreamId=17;
+  HttpFields fields=new HttpFields();
+  fields.put("Accept","text/html");
+  fields.put("User-Agent","Jetty");
+  MetaData.Request metaData=new MetaData.Request(HttpScheme.HTTP,"GET","localhost:8080","localhost",8080,"/path",fields);
+  final List<PushPromiseFrame> frames=new ArrayList<>();
+  ByteBufferPool.Lease lease=new ByteBufferPool.Lease(byteBufferPool);
+  generator.generatePushPromise(lease,streamId,promisedStreamId,metaData);
+  Parser parser=new Parser(byteBufferPool,new Parser.Listener.Adapter(){
+    @Override public boolean onPushPromise(    PushPromiseFrame frame){
+      frames.add(frame);
+      return false;
+    }
+  }
+);
+  for (  ByteBuffer buffer : lease.getByteBuffers()) {
+    while (buffer.hasRemaining()) {
+      parser.parse(ByteBuffer.wrap(new byte[]{buffer.get()}));
+    }
+  }
+  Assert.assertEquals(1,frames.size());
+  PushPromiseFrame frame=frames.get(0);
+  Assert.assertEquals(streamId,frame.getStreamId());
+  Assert.assertEquals(promisedStreamId,frame.getPromisedStreamId());
+  MetaData.Request request=(MetaData.Request)frame.getMetaData();
+  Assert.assertSame(metaData.getScheme(),request.getScheme());
+  Assert.assertEquals(metaData.getMethod(),request.getMethod());
+  Assert.assertEquals(metaData.getAuthority(),request.getAuthority());
+  Assert.assertEquals(metaData.getHost(),request.getHost());
+  Assert.assertEquals(metaData.getPort(),request.getPort());
+  Assert.assertEquals(metaData.getPath(),request.getPath());
+  for (int j=0; j < fields.size(); ++j) {
+    HttpField field=fields.getField(j);
+    Assert.assertTrue(request.getFields().contains(field));
+  }
+}

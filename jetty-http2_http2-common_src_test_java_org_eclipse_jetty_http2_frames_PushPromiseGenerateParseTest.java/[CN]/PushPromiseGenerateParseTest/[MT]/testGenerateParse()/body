@@ -1,16 +1,17 @@
 {
-  HeadersGenerator generator=new HeadersGenerator(new HeaderGenerator(),new HpackEncoder());
+  PushPromiseGenerator generator=new PushPromiseGenerator(new HeaderGenerator(),new HpackEncoder());
   int streamId=13;
+  int promisedStreamId=17;
   HttpFields fields=new HttpFields();
   fields.put("Accept","text/html");
   fields.put("User-Agent","Jetty");
   MetaData.Request metaData=new MetaData.Request(HttpScheme.HTTP,"GET","localhost:8080","localhost",8080,"/path",fields);
-  final List<HeadersFrame> frames=new ArrayList<>();
+  final List<PushPromiseFrame> frames=new ArrayList<>();
   for (int i=0; i < 2; ++i) {
     ByteBufferPool.Lease lease=new ByteBufferPool.Lease(byteBufferPool);
-    generator.generateHeaders(lease,streamId,metaData,false);
+    generator.generatePushPromise(lease,streamId,promisedStreamId,metaData);
     Parser parser=new Parser(byteBufferPool,new Parser.Listener.Adapter(){
-      @Override public boolean onHeaders(      HeadersFrame frame){
+      @Override public boolean onPushPromise(      PushPromiseFrame frame){
         frames.add(frame);
         return false;
       }
@@ -23,9 +24,9 @@
       }
     }
     Assert.assertEquals(1,frames.size());
-    HeadersFrame frame=frames.get(0);
+    PushPromiseFrame frame=frames.get(0);
     Assert.assertEquals(streamId,frame.getStreamId());
-    Assert.assertTrue(frame.isEndStream());
+    Assert.assertEquals(promisedStreamId,frame.getPromisedStreamId());
     MetaData.Request request=(MetaData.Request)frame.getMetaData();
     Assert.assertSame(metaData.getScheme(),request.getScheme());
     Assert.assertEquals(metaData.getMethod(),request.getMethod());
