@@ -1,7 +1,7 @@
 {
   File homeDir=MavenTestingUtils.getTestResourceDir("usecases/home");
   File baseDir=testdir.getEmptyDir();
-  String cmdLine[]=new String[]{"jetty.version=TEST"};
+  String cmdLine[]=new String[]{"jetty.version=TEST","java.version=1.7.0_21"};
   CommandLineConfigSource cmdLineSource=new CommandLineConfigSource(cmdLine);
   ConfigSources config=new ConfigSources();
   config.add(cmdLineSource);
@@ -10,9 +10,28 @@
   BaseHome basehome=new BaseHome(config);
   StartArgs args=new StartArgs();
   args.parse(config);
-  Modules modules=new Modules();
-  modules.registerAll(basehome,args);
+  Modules modules=new Modules(basehome,args);
+  modules.registerAll();
   modules.enable("[sj]{1}.*",TEST_SOURCE);
-  String expected[]={"jmx","stats","spdy","security","jndi","jsp","servlet","jaas","server"};
-  Assert.assertThat("Enabled Module count",modules.resolveEnabled().size(),is(expected.length));
+  modules.buildGraph();
+  List<String> expected=new ArrayList<>();
+  expected.add("jmx");
+  expected.add("stats");
+  expected.add("spdy");
+  expected.add("security");
+  expected.add("jndi");
+  expected.add("jsp");
+  expected.add("servlet");
+  expected.add("jaas");
+  expected.add("server");
+  expected.add("base");
+  expected.add("npn");
+  expected.add("npn-boot");
+  expected.add("xml");
+  expected.add("jsp-impl");
+  List<String> resolved=new ArrayList<>();
+  for (  Module module : modules.resolveEnabled()) {
+    resolved.add(module.getName());
+  }
+  ConfigurationAssert.assertContainsUnordered("Enabled Modules",expected,resolved);
 }
