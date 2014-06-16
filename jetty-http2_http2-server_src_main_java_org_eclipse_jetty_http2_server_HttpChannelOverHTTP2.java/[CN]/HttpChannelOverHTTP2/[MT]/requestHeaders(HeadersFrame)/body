@@ -1,37 +1,18 @@
 {
   MetaData metaData=frame.getMetaData();
   if (!metaData.isRequest()) {
-    badMessage(400,null);
+    onBadMessage(400,null);
     return;
   }
-  MetaData.Request requestMetaData=(MetaData.Request)metaData;
-  String method=requestMetaData.getMethod();
-  HttpURI uri=new HttpURI(requestMetaData.getPath());
-  HttpVersion version=HttpVersion.HTTP_2_0;
-  startRequest(method,uri,version);
-  HttpScheme scheme=requestMetaData.getScheme();
-  if (scheme != null) {
-    getRequest().setScheme(scheme.asString());
-  }
-  parsedHostHeader(requestMetaData.getHost(),requestMetaData.getPort());
-  boolean hasAcceptEncodingGzip=false;
-  HttpFields fields=requestMetaData.getFields();
-  for (int i=0; i < fields.size(); ++i) {
-    HttpField field=fields.getField(i);
-    if (HttpHeader.ACCEPT_ENCODING.is(field.getName()))     hasAcceptEncodingGzip=field.getValue().contains("gzip");
-    parsedHeader(field);
-  }
-  if (!hasAcceptEncodingGzip)   parsedHeader(new HttpField(HttpHeader.ACCEPT_ENCODING,"gzip"));
-  headerComplete();
+  MetaData.Request request=(MetaData.Request)metaData;
+  HttpFields fields=request.getFields();
+  if (!fields.contains(ACCEPT_ENCODING_GZIP))   fields.add(ACCEPT_ENCODING_GZIP);
+  onRequest(request);
   if (frame.isEndStream()) {
-    messageComplete();
+    onRequestComplete();
   }
   if (LOG.isDebugEnabled()) {
-    StringBuilder headers=new StringBuilder();
-    for (    HttpField field : fields) {
-      headers.append(field).append(System.lineSeparator());
-    }
-    LOG.debug("HTTP2 Request #{}:{}{} {} {}{}{}",stream.getId(),System.lineSeparator(),method,uri,version,System.lineSeparator(),headers);
+    LOG.debug("HTTP2 Request #{}:{}{} {} {}{}{}",stream.getId(),System.lineSeparator(),request.getMethod(),request.getURI(),request.getHttpVersion(),System.lineSeparator(),fields);
   }
   execute(this);
 }

@@ -8,28 +8,28 @@
   }
 ;
   response=_connector.getResponses("GET / HTTP/1.1\n" + "Host: whatever\n" + "\n",200,TimeUnit.MILLISECONDS);
-  assertTrue(response.indexOf("200") > 0);
-  assertFalse(response.indexOf("Connection: close") > 0);
-  assertTrue(response.indexOf("Hello World") > 0);
+  assertThat(response,containsString("200"));
+  assertThat(response,Matchers.not(containsString("Connection: close")));
+  assertThat(response,containsString("Hello World"));
   response=_connector.getResponses("GET / HTTP/1.1\n" + "Host: whatever\n" + "Connection: close\n"+ "\n");
-  assertTrue(response.indexOf("200") > 0);
-  assertTrue(response.indexOf("Connection: close") > 0);
-  assertTrue(response.indexOf("Hello World") > 0);
+  assertThat(response,containsString("200"));
+  assertThat(response,containsString("Connection: close"));
+  assertThat(response,containsString("Hello World"));
   response=_connector.getResponses("GET / HTTP/1.1\n" + "Host: whatever\n" + "Connection: Other, close\n"+ "\n");
-  assertTrue(response.indexOf("200") > 0);
-  assertTrue(response.indexOf("Connection: close") > 0);
-  assertTrue(response.indexOf("Hello World") > 0);
+  assertThat(response,containsString("200"));
+  assertThat(response,containsString("Connection: close"));
+  assertThat(response,containsString("Hello World"));
   response=_connector.getResponses("GET / HTTP/1.0\n" + "Host: whatever\n" + "\n");
-  assertTrue(response.indexOf("200") > 0);
-  assertFalse(response.indexOf("Connection: close") > 0);
-  assertTrue(response.indexOf("Hello World") > 0);
+  assertThat(response,containsString("200"));
+  assertThat(response,not(containsString("Connection: close")));
+  assertThat(response,containsString("Hello World"));
   response=_connector.getResponses("GET / HTTP/1.0\n" + "Host: whatever\n" + "Connection: Other, close\n"+ "\n");
-  assertTrue(response.indexOf("200") > 0);
-  assertTrue(response.indexOf("Hello World") > 0);
+  assertThat(response,containsString("200"));
+  assertThat(response,containsString("Hello World"));
   response=_connector.getResponses("GET / HTTP/1.0\n" + "Host: whatever\n" + "Connection: Other,,keep-alive\n"+ "\n",200,TimeUnit.MILLISECONDS);
-  assertTrue(response.indexOf("200") > 0);
-  assertTrue(response.indexOf("Connection: keep-alive") > 0);
-  assertTrue(response.indexOf("Hello World") > 0);
+  assertThat(response,containsString("200"));
+  assertThat(response,Matchers.containsString("Connection: keep-alive"));
+  assertThat(response,containsString("Hello World"));
   _handler._checker=new RequestTester(){
     @Override public boolean check(    HttpServletRequest request,    HttpServletResponse response) throws IOException {
       response.setHeader("Connection","TE");
@@ -40,9 +40,9 @@
   }
 ;
   response=_connector.getResponses("GET / HTTP/1.1\n" + "Host: whatever\n" + "\n",200,TimeUnit.MILLISECONDS);
-  assertTrue(response.indexOf("200") > 0);
-  assertTrue(response.indexOf("Connection: TE,Other") > 0);
-  assertTrue(response.indexOf("Hello World") > 0);
+  assertThat(response,containsString("200"));
+  assertThat(response,containsString("Connection: TE,Other"));
+  assertThat(response,containsString("Hello World"));
   response=_connector.getResponses("GET / HTTP/1.1\n" + "Host: whatever\n" + "Connection: close\n"+ "\n");
   assertThat(response,Matchers.containsString("200 OK"));
   assertThat(response,Matchers.containsString("Connection: close"));

@@ -1,11 +1,21 @@
 {
-  ByteBufferPool byteBufferPool=getByteBufferPool();
+  final ByteBufferPool byteBufferPool=getByteBufferPool();
   ByteBuffer original=frame.getData();
   final ByteBuffer copy=byteBufferPool.acquire(original.remaining(),original.isDirect());
   BufferUtil.clearToFill(copy);
   copy.put(original).flip();
-  content(new ByteBufferCallback(byteBufferPool,copy,callback));
+  onContent(new HttpInput.Content(copy){
+    @Override public void succeeded(){
+      byteBufferPool.release(copy);
+      callback.succeeded();
+    }
+    @Override public void failed(    Throwable x){
+      byteBufferPool.release(copy);
+      callback.failed(x);
+    }
+  }
+);
   if (frame.isEndStream()) {
-    messageComplete();
+    onRequestComplete();
   }
 }

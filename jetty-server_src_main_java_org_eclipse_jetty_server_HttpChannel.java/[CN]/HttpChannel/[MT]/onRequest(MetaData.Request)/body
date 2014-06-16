@@ -1,0 +1,53 @@
+{
+  _requests.incrementAndGet();
+  _request.setTimeStamp(System.currentTimeMillis());
+  _request.setHttpVersion(_version=request.getHttpVersion());
+  _request.setMethod(request.getMethod());
+  _request.setScheme(request.getScheme().asString());
+  HttpURI uri=request.getURI();
+  String uriHost=uri.getHost();
+  if (uriHost != null) {
+    _request.setServerName(uriHost);
+    _request.setServerPort(uri.getPort());
+  }
+ else {
+    _request.setServerName(request.getHost());
+    _request.setServerPort(request.getPort());
+  }
+  _request.setUri(request.getURI());
+  String path;
+  try {
+    path=uri.getDecodedPath();
+  }
+ catch (  Exception e) {
+    LOG.warn("Failed UTF-8 decode for request path, trying ISO-8859-1");
+    LOG.ignore(e);
+    path=uri.getDecodedPath(StandardCharsets.ISO_8859_1);
+  }
+  String info=URIUtil.canonicalPath(path);
+  if (info == null) {
+    if (path == null && uri.getScheme() != null && uri.getHost() != null) {
+      info="/";
+      _request.setRequestURI("");
+    }
+ else     throw new BadMessage(400,"Bad URI");
+  }
+  _request.setPathInfo(info);
+  for (  HttpField field : request.getFields()) {
+    HttpHeader header=field.getHeader();
+    String value=field.getValue();
+    if (value == null)     value="";
+    if (header != null) {
+switch (header) {
+case CONTENT_TYPE:
+        MimeTypes.Type mime=MimeTypes.CACHE.get(value);
+      String charset=(mime == null || mime.getCharset() == null) ? MimeTypes.getCharsetFromContentType(value) : mime.getCharset().toString();
+    if (charset != null)     _request.setCharacterEncodingUnchecked(charset);
+  break;
+default :
+}
+}
+if (field.getName() != null) _request.getHttpFields().add(field);
+}
+if (_configuration.getSendDateHeader()) _response.getHttpFields().put(_connector.getServer().getDateField());
+}
