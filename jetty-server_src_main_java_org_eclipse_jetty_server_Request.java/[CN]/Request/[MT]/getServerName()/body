@@ -3,55 +3,26 @@
   if (_uri == null)   throw new IllegalStateException("No uri");
   _serverName=_uri.getHost();
   if (_serverName != null) {
-    _port=_uri.getPort();
+    _serverPort=_uri.getPort();
     return _serverName;
   }
-  String hostPort=_fields.getStringField(HttpHeader.HOST);
-  _port=0;
-  if (hostPort != null) {
-    int len=hostPort.length();
-    loop:     for (int i=len; i-- > 0; ) {
-      char c2=(char)(0xff & hostPort.charAt(i));
-switch (c2) {
-case ']':
-        break loop;
-case ':':
-      try {
-        len=i;
-        _port=StringUtil.toInt(hostPort,i + 1);
-      }
- catch (      NumberFormatException e) {
-        LOG.warn(e);
-        _serverName=hostPort;
-        _port=0;
-        return _serverName;
-      }
-    break loop;
-}
-}
-if (hostPort.charAt(0) == '[') {
-if (hostPort.charAt(len - 1) != ']') {
-  LOG.warn("Bad IPv6 " + hostPort);
-  _serverName=hostPort;
-  _port=0;
+  HttpField host=_fields.getField(HttpHeader.HOST);
+  if (host != null) {
+    HostPortHttpField authority=(host instanceof HostPortHttpField) ? ((HostPortHttpField)host) : new HostPortHttpField(host.getValue());
+    _serverName=authority.getHost();
+    _serverPort=authority.getPort();
+    return _serverName;
+  }
+  if (_channel != null) {
+    _serverName=getLocalName();
+    _serverPort=getLocalPort();
+    if (_serverName != null && !StringUtil.ALL_INTERFACES.equals(_serverName))     return _serverName;
+  }
+  try {
+    _serverName=InetAddress.getLocalHost().getHostAddress();
+  }
+ catch (  java.net.UnknownHostException e) {
+    LOG.ignore(e);
+  }
   return _serverName;
-}
-_serverName=hostPort.substring(1,len - 1);
-}
- else if (len == hostPort.length()) _serverName=hostPort;
- else _serverName=hostPort.substring(0,len);
-return _serverName;
-}
-if (_channel != null) {
-_serverName=getLocalName();
-_port=getLocalPort();
-if (_serverName != null && !StringUtil.ALL_INTERFACES.equals(_serverName)) return _serverName;
-}
-try {
-_serverName=InetAddress.getLocalHost().getHostAddress();
-}
- catch (java.net.UnknownHostException e) {
-LOG.ignore(e);
-}
-return _serverName;
 }
