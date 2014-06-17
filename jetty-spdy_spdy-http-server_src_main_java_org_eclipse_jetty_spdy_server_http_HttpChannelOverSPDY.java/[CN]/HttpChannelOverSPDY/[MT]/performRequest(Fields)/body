@@ -1,0 +1,63 @@
+{
+  short version=stream.getSession().getVersion();
+  Fields.Field methodHeader=headers.get(HTTPSPDYHeader.METHOD.name(version));
+  Fields.Field uriHeader=headers.get(HTTPSPDYHeader.URI.name(version));
+  Fields.Field versionHeader=headers.get(HTTPSPDYHeader.VERSION.name(version));
+  if (methodHeader == null || uriHeader == null || versionHeader == null) {
+    onBadMessage(400,"Missing required request line elements");
+    return false;
+  }
+  HttpMethod httpMethod=HttpMethod.fromString(methodHeader.getValue());
+  HttpVersion httpVersion=HttpVersion.fromString(versionHeader.getValue());
+  HttpURI uri=new HttpURI(uriHeader.getValue());
+  LOG.debug("HTTP > {} {} {}",httpMethod,uriHeader.getValue(),httpVersion);
+  String scheme="http";
+  Fields.Field schemeHeader=headers.get(HTTPSPDYHeader.SCHEME.name(version));
+  if (schemeHeader != null) {
+    scheme=schemeHeader.getValue();
+    getRequest().setScheme(scheme);
+  }
+  String authority=null;
+  HttpFields fields=new HttpFields();
+  for (  Fields.Field header : headers) {
+    String name=header.getName();
+    HTTPSPDYHeader specialHeader=HTTPSPDYHeader.from(stream.getSession().getVersion(),name);
+    if (specialHeader != null) {
+      if (specialHeader != HTTPSPDYHeader.HOST)       continue;
+      name="host";
+      authority=header.getValue();
+    }
+switch (name) {
+case "connection":
+case "keep-alive":
+case "proxy-connection":
+case "transfer-encoding":
+{
+        continue;
+      }
+default :
+{
+      String value=header.getValue();
+      LOG.debug("HTTP > {}: {}",name,value);
+      fields.add(new HttpField(name,value));
+      break;
+    }
+}
+}
+String host=null;
+int port=0;
+if (authority != null) {
+int colon=authority.indexOf(':');
+if (colon > 0) {
+  host=authority.substring(0,colon);
+  port=Integer.valueOf(authority.substring(colon + 1));
+}
+ else {
+  host=authority;
+  port=HttpScheme.HTTPS.is(scheme) ? 443 : 80;
+}
+}
+MetaData.Request request=new MetaData.Request(httpVersion,httpMethod.asString(),uri,fields,host,port);
+onRequest(request);
+return true;
+}

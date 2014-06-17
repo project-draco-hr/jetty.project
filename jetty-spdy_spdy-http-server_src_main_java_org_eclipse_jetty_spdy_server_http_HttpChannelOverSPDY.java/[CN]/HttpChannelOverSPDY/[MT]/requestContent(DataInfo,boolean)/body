@@ -1,17 +1,7 @@
 {
-  boolean dispatch=false;
-  if (!headersComplete && headerComplete())   dispatch=true;
   LOG.debug("HTTP > {} bytes of content",dataInfo.length());
   ByteBuffer copyByteBuffer=dataInfo.asByteBuffer(false);
-  ByteBufferDataInfo copyDataInfo=new ByteBufferDataInfo(copyByteBuffer,dataInfo.isClose()){
-    @Override public void consume(    int delta){
-      super.consume(delta);
-      dataInfo.consume(delta);
-    }
-  }
-;
-  LOG.debug("Queuing last={} content {}",endRequest,copyDataInfo);
-  if (content(copyDataInfo))   dispatch=true;
-  if (endRequest && messageComplete())   dispatch=true;
-  if (dispatch)   dispatch();
+  HttpInputOverSPDY.ContentOverSPDY content=new HttpInputOverSPDY.ContentOverSPDY(copyByteBuffer,dataInfo);
+  onContent(content);
+  if (endRequest)   onRequestComplete();
 }
