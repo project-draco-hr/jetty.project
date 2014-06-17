@@ -16,5 +16,11 @@
     if (originalQuery != null)     originalURI+="?" + originalQuery;
     proxyRequest.attribute(REQUEST_URI_ATTRIBUTE,originalURI);
   }
+  if (!proxyRequest.getHeaders().containsKey(HttpHeader.HOST.asString())) {
+    String host=request.getServerName();
+    int port=request.getServerPort();
+    if (!getHttpClient().isDefaultPort(request.getScheme(),port))     host+=":" + port;
+    proxyRequest.header(HttpHeader.HOST,host);
+  }
   super.customizeProxyRequest(proxyRequest,request);
 }
