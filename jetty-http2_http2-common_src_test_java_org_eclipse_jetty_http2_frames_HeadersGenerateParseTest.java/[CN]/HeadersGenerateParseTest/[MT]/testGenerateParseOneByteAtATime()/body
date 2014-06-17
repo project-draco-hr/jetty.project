@@ -1,13 +1,6 @@
 {
   HeadersGenerator generator=new HeadersGenerator(new HeaderGenerator(),new HpackEncoder());
-  int streamId=13;
-  HttpFields fields=new HttpFields();
-  fields.put("Accept","text/html");
-  fields.put("User-Agent","Jetty");
-  MetaData.Request metaData=new MetaData.Request(HttpVersion.HTTP_2,HttpScheme.HTTP,"GET","localhost:8080","localhost",8080,"/path",fields);
   final List<HeadersFrame> frames=new ArrayList<>();
-  ByteBufferPool.Lease lease=new ByteBufferPool.Lease(byteBufferPool);
-  generator.generateHeaders(lease,streamId,metaData,false);
   Parser parser=new Parser(byteBufferPool,new Parser.Listener.Adapter(){
     @Override public boolean onHeaders(    HeadersFrame frame){
       frames.add(frame);
@@ -15,6 +8,13 @@
     }
   }
 );
+  int streamId=13;
+  HttpFields fields=new HttpFields();
+  fields.put("Accept","text/html");
+  fields.put("User-Agent","Jetty");
+  MetaData.Request metaData=new MetaData.Request(HttpVersion.HTTP_2,HttpScheme.HTTP,"GET","localhost:8080","localhost",8080,"/path",fields);
+  ByteBufferPool.Lease lease=new ByteBufferPool.Lease(byteBufferPool);
+  generator.generateHeaders(lease,streamId,metaData,false);
   for (  ByteBuffer buffer : lease.getByteBuffers()) {
     while (buffer.hasRemaining()) {
       parser.parse(ByteBuffer.wrap(new byte[]{buffer.get()}));

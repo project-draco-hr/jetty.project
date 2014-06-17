@@ -1,10 +1,6 @@
 {
   PingGenerator generator=new PingGenerator(new HeaderGenerator());
-  byte[] payload=new byte[8];
-  new Random().nextBytes(payload);
   final List<PingFrame> frames=new ArrayList<>();
-  ByteBufferPool.Lease lease=new ByteBufferPool.Lease(byteBufferPool);
-  generator.generatePing(lease,payload,true);
   Parser parser=new Parser(byteBufferPool,new Parser.Listener.Adapter(){
     @Override public boolean onPing(    PingFrame frame){
       frames.add(frame);
@@ -12,6 +8,10 @@
     }
   }
 );
+  byte[] payload=new byte[8];
+  new Random().nextBytes(payload);
+  ByteBufferPool.Lease lease=new ByteBufferPool.Lease(byteBufferPool);
+  generator.generatePing(lease,payload,true);
   for (  ByteBuffer buffer : lease.getByteBuffers()) {
     while (buffer.hasRemaining()) {
       parser.parse(ByteBuffer.wrap(new byte[]{buffer.get()}));

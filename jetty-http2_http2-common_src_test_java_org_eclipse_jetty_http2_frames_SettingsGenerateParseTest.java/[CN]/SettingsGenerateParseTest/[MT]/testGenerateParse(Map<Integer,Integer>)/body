@@ -1,16 +1,16 @@
 {
   SettingsGenerator generator=new SettingsGenerator(new HeaderGenerator());
   final List<SettingsFrame> frames=new ArrayList<>();
+  Parser parser=new Parser(byteBufferPool,new Parser.Listener.Adapter(){
+    @Override public boolean onSettings(    SettingsFrame frame){
+      frames.add(frame);
+      return false;
+    }
+  }
+);
   for (int i=0; i < 2; ++i) {
     ByteBufferPool.Lease lease=new ByteBufferPool.Lease(byteBufferPool);
     generator.generateSettings(lease,settings,true);
-    Parser parser=new Parser(byteBufferPool,new Parser.Listener.Adapter(){
-      @Override public boolean onSettings(      SettingsFrame frame){
-        frames.add(frame);
-        return false;
-      }
-    }
-);
     frames.clear();
     for (    ByteBuffer buffer : lease.getByteBuffers()) {
       while (buffer.hasRemaining()) {
