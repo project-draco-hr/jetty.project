@@ -33,21 +33,6 @@
  else     throw new BadMessage(400,"Bad URI");
   }
   _request.setPathInfo(info);
-  for (  HttpField field : request.getFields()) {
-    HttpHeader header=field.getHeader();
-    String value=field.getValue();
-    if (value == null)     value="";
-    if (header != null) {
-switch (header) {
-case CONTENT_TYPE:
-        MimeTypes.Type mime=MimeTypes.CACHE.get(value);
-      String charset=(mime == null || mime.getCharset() == null) ? MimeTypes.getCharsetFromContentType(value) : mime.getCharset().toString();
-    if (charset != null)     _request.setCharacterEncodingUnchecked(charset);
-  break;
-default :
-}
-}
-if (field.getName() != null) _request.getHttpFields().add(field);
-}
-if (_configuration.getSendDateHeader()) _response.getHttpFields().put(_connector.getServer().getDateField());
+  _request.getHttpFields().addAll(request.getFields());
+  if (_configuration.getSendDateHeader())   _response.getHttpFields().put(_connector.getServer().getDateField());
 }
