@@ -1,5 +1,6 @@
 {
-  if (LOG.isDebugEnabled())   LOG.debug(String.format("CtxTbl[%x] decoding",_context.hashCode()));
+  if (LOG.isDebugEnabled())   LOG.debug(String.format("CtxTbl[%x] decoding %d octets",_context.hashCode(),buffer.remaining()));
+  if (buffer.remaining() > _builder.getMaxSize())   throw new BadMessageException(HttpStatus.REQUEST_ENTITY_TOO_LARGE_413,"Header frame size " + buffer.remaining() + ">"+ _builder.getMaxSize());
   while (buffer.hasRemaining()) {
     if (LOG.isDebugEnabled()) {
       int l=Math.min(buffer.remaining(),16);
@@ -40,6 +41,7 @@
  else {
           huffmanName=(buffer.get() & 0x80) == 0x80;
           int length=NBitInteger.decode(buffer,7);
+          _builder.checkSize(length,huffmanName);
           if (huffmanName)           name=Huffman.decode(buffer,length);
  else           name=toASCIIString(buffer,length);
           for (int i=0; i < name.length(); i++) {
@@ -52,6 +54,7 @@
         }
         boolean huffmanValue=(buffer.get() & 0x80) == 0x80;
         int length=NBitInteger.decode(buffer,7);
+        _builder.checkSize(length,huffmanValue);
         if (huffmanValue)         value=Huffman.decode(buffer,length);
  else         value=toASCIIString(buffer,length);
         HttpField field;
