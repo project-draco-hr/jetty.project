@@ -2,6 +2,7 @@
   final CountDownLatch closeLatch=new CountDownLatch(1);
   startServer(new ServerSessionListener.Adapter(){
     @Override public Stream.Listener onNewStream(    Stream stream,    HeadersFrame frame){
+      stream.setIdleTimeout(10 * idleTimeout);
       MetaData.Response metaData=new MetaData.Response(HttpVersion.HTTP_2,200,new HttpFields());
       HeadersFrame responseFrame=new HeadersFrame(stream.getId(),metaData,null,true);
       stream.headers(responseFrame,Callback.Adapter.INSTANCE);
@@ -17,7 +18,12 @@
   final CountDownLatch replyLatch=new CountDownLatch(1);
   MetaData.Request metaData=newRequest("GET",new HttpFields());
   HeadersFrame requestFrame=new HeadersFrame(0,metaData,null,true);
-  session.newStream(requestFrame,new Promise.Adapter<Stream>(),new Stream.Listener.Adapter(){
+  session.newStream(requestFrame,new Promise.Adapter<Stream>(){
+    @Override public void succeeded(    Stream stream){
+      stream.setIdleTimeout(10 * idleTimeout);
+    }
+  }
+,new Stream.Listener.Adapter(){
     @Override public void onHeaders(    Stream stream,    HeadersFrame frame){
       try {
         Thread.sleep(2 * idleTimeout);
