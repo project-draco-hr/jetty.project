@@ -1,6 +1,8 @@
 {
-  byte[] payload=reason == null ? null : reason.getBytes(StandardCharsets.UTF_8);
-  GoAwayFrame frame=new GoAwayFrame(lastStreamId.get(),error,payload);
-  if (LOG.isDebugEnabled())   LOG.debug("Sending {}: {}",frame.getType(),reason);
-  control(null,frame,callback);
+  if (closed.compareAndSet(false,true)) {
+    byte[] payload=reason == null ? null : reason.getBytes(StandardCharsets.UTF_8);
+    GoAwayFrame frame=new GoAwayFrame(lastStreamId.get(),error,payload);
+    if (LOG.isDebugEnabled())     LOG.debug("Sending {}: {}",frame.getType(),reason);
+    control(null,frame,callback);
+  }
 }
