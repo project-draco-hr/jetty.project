@@ -1,22 +1,29 @@
 {
-  if (LOG.isDebugEnabled())   LOG.debug("Parsing {}",buffer);
-  while (true) {
+  try {
+    if (LOG.isDebugEnabled())     LOG.debug("Parsing {}",buffer);
+    while (true) {
 switch (state) {
 case PREFACE:
 {
-        if (!prefaceParser.parse(buffer))         return false;
-        if (onPreface())         return true;
-        state=State.FRAMES;
-        break;
-      }
+          if (!prefaceParser.parse(buffer))           return false;
+          if (onPreface())           return true;
+          state=State.FRAMES;
+          break;
+        }
 case FRAMES:
 {
-      return super.parse(buffer);
-    }
+        return super.parse(buffer);
+      }
 default :
 {
-    throw new IllegalStateException();
-  }
+      throw new IllegalStateException();
+    }
 }
+}
+}
+ catch (Throwable x) {
+LOG.debug(x);
+notifyConnectionFailure(ErrorCode.PROTOCOL_ERROR,"parser_error");
+return false;
 }
 }
