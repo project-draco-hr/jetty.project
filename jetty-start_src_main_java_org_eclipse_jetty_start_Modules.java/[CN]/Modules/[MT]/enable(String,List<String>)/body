@@ -1,11 +1,21 @@
 {
   if (name.contains("*")) {
     Pattern pat=Pattern.compile(name);
-    for (    Map.Entry<String,Module> entry : modules.entrySet()) {
-      if (pat.matcher(entry.getKey()).matches()) {
-        enableModule(entry.getValue(),sources);
+    List<Module> matching=new ArrayList<>();
+    do {
+      matching.clear();
+      for (      Map.Entry<String,Module> entry : modules.entrySet()) {
+        if (pat.matcher(entry.getKey()).matches()) {
+          if (!entry.getValue().isEnabled()) {
+            matching.add(entry.getValue());
+          }
+        }
+      }
+      for (      Module module : matching) {
+        enableModule(module,sources);
       }
     }
+ while (!matching.isEmpty());
   }
  else {
     Module module=modules.get(name);
