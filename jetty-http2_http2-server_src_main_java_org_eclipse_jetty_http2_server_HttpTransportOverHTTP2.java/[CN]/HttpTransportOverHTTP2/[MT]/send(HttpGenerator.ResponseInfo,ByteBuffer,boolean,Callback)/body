@@ -3,13 +3,11 @@
   boolean isHeadRequest=HttpMethod.HEAD.is(metaData.getMethod());
   boolean hasContent=BufferUtil.hasContent(content) && !isHeadRequest;
   if (commit.compareAndSet(false,true)) {
-    commit(info,!hasContent,!hasContent ? callback : new Callback.Adapter(){
-      @Override public void failed(      Throwable x){
-      }
-    }
-);
+    boolean endStream=!hasContent && lastContent;
+    commit(info,endStream,!hasContent ? callback : commitCallback);
   }
  else {
+    callback.failed(new IllegalStateException());
   }
   if (hasContent) {
     send(content,lastContent,callback);
