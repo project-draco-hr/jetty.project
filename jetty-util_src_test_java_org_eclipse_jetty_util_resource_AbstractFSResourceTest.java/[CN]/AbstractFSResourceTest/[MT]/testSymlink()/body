@@ -1,0 +1,19 @@
+{
+  File dir=testdir.getDir();
+  Path foo=new File(dir,"foo").toPath();
+  Path bar=new File(dir,"bar").toPath();
+  try {
+    Files.createFile(foo);
+    Files.createSymbolicLink(bar,foo);
+  }
+ catch (  UnsupportedOperationException e) {
+    assumeNoException(e);
+  }
+  try (Resource base=newResource(testdir.getDir())){
+    Resource resFoo=base.addPath("foo");
+    Resource resBar=base.addPath("bar");
+    assertThat("foo.equals(bar)",resFoo.equals(resBar),is(false));
+    assertThat("foo.alias",resFoo.getAlias(),nullValue());
+    assertThat("bar.alias",resBar.getAlias(),is(foo.toUri()));
+  }
+ }
