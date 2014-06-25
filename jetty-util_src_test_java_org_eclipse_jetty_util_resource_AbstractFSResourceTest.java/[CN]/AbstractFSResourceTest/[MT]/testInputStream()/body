@@ -1,0 +1,15 @@
+{
+  File file=testdir.getFile("foo");
+  file.createNewFile();
+  String content="Foo is here";
+  try (StringReader reader=new StringReader(content);FileWriter writer=new FileWriter(file)){
+    IO.copy(reader,writer);
+  }
+   try (Resource base=newResource(testdir.getDir())){
+    Resource foo=base.addPath("foo");
+    try (InputStream stream=foo.getInputStream();InputStreamReader reader=new InputStreamReader(stream);StringWriter writer=new StringWriter()){
+      IO.copy(reader,writer);
+      assertThat("Stream",writer.toString(),is(content));
+    }
+   }
+ }
