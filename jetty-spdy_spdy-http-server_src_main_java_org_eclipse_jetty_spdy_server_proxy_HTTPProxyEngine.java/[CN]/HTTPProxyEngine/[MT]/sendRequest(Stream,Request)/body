@@ -2,7 +2,7 @@
   request.send(new Response.Listener.Adapter(){
     private volatile boolean committed;
     @Override public void onHeaders(    final Response response){
-      LOG.debug("onHeaders called with response: {}. Sending replyInfo to client.",response);
+      if (LOG.isDebugEnabled())       LOG.debug("onHeaders called with response: {}. Sending replyInfo to client.",response);
       Fields responseHeaders=createResponseHeaders(clientStream,response);
       removeHopHeaders(responseHeaders);
       ReplyInfo replyInfo=new ReplyInfo(responseHeaders,false);
@@ -18,7 +18,7 @@
 );
     }
     @Override public void onContent(    final Response response,    ByteBuffer content){
-      LOG.debug("onContent called with response: {} and content: {}. Sending response content to client.",response,content);
+      if (LOG.isDebugEnabled())       LOG.debug("onContent called with response: {} and content: {}. Sending response content to client.",response,content);
       final ByteBuffer contentCopy=httpClient.getByteBufferPool().acquire(content.remaining(),true);
       BufferUtil.flipPutFlip(content,contentCopy);
       ByteBufferDataInfo dataInfo=new ByteBufferDataInfo(contentCopy,false);
@@ -38,7 +38,7 @@
 );
     }
     @Override public void onSuccess(    Response response){
-      LOG.debug("onSuccess called. Closing client stream.");
+      if (LOG.isDebugEnabled())       LOG.debug("onSuccess called. Closing client stream.");
       clientStream.data(new ByteBufferDataInfo(BufferUtil.EMPTY_BUFFER,true),LOGGING_CALLBACK);
     }
     @Override public void onFailure(    Response response,    Throwable failure){

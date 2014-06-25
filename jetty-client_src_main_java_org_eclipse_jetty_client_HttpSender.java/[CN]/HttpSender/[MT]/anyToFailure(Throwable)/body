@@ -6,20 +6,20 @@
   RequestState requestState=dispose();
   Result result=exchange.terminateRequest(failure);
   Request request=exchange.getRequest();
-  LOG.debug("Request failure {} {}",exchange,failure);
+  if (LOG.isDebugEnabled())   LOG.debug("Request failure {} {}",exchange,failure);
   HttpDestination destination=getHttpChannel().getHttpDestination();
   destination.getRequestNotifier().notifyFailure(request,failure);
   boolean notCommitted=isBeforeCommit(requestState);
   if (result == null && notCommitted && request.getAbortCause() == null) {
     if (exchange.responseComplete()) {
       result=exchange.terminateResponse(failure);
-      LOG.debug("Failed response from request {}",exchange);
+      if (LOG.isDebugEnabled())       LOG.debug("Failed response from request {}",exchange);
     }
   }
   if (result != null) {
     boolean ordered=destination.getHttpClient().isStrictEventOrdering();
     if (!ordered)     channel.exchangeTerminated(result);
-    LOG.debug("Request/Response failed {}",request);
+    if (LOG.isDebugEnabled())     LOG.debug("Request/Response failed {}",request);
     HttpConversation conversation=exchange.getConversation();
     destination.getResponseNotifier().notifyComplete(conversation.getResponseListeners(),result);
     if (ordered)     channel.exchangeTerminated(result);
