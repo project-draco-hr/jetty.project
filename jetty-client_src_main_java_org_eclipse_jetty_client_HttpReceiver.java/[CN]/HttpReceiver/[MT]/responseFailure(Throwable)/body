@@ -6,14 +6,14 @@
   dispose();
   Result result=exchange.terminateResponse(failure);
   HttpResponse response=exchange.getResponse();
-  LOG.debug("Response failure {} {}",response,failure);
+  if (LOG.isDebugEnabled())   LOG.debug("Response failure {} {}",response,failure);
   List<Response.ResponseListener> listeners=exchange.getConversation().getResponseListeners();
   ResponseNotifier notifier=getHttpDestination().getResponseNotifier();
   notifier.notifyFailure(listeners,response,failure);
   if (result != null) {
     boolean ordered=getHttpDestination().getHttpClient().isStrictEventOrdering();
     if (!ordered)     channel.exchangeTerminated(result);
-    LOG.debug("Request/Response failed {}",response);
+    if (LOG.isDebugEnabled())     LOG.debug("Request/Response failed {}",response);
     notifier.notifyComplete(listeners,result);
     if (ordered)     channel.exchangeTerminated(result);
   }

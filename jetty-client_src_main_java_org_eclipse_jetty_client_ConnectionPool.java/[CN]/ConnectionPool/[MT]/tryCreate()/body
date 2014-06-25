@@ -3,18 +3,18 @@
     int current=connectionCount.get();
     final int next=current + 1;
     if (next > maxConnections) {
-      LOG.debug("Max connections {}/{} reached",current,maxConnections);
+      if (LOG.isDebugEnabled())       LOG.debug("Max connections {}/{} reached",current,maxConnections);
       return acquireIdleConnection();
     }
     if (connectionCount.compareAndSet(current,next)) {
-      LOG.debug("Connection {}/{} creation",next,maxConnections);
+      if (LOG.isDebugEnabled())       LOG.debug("Connection {}/{} creation",next,maxConnections);
       destination.newConnection(new Promise<Connection>(){
         @Override public void succeeded(        Connection connection){
-          LOG.debug("Connection {}/{} creation succeeded {}",next,maxConnections,connection);
+          if (LOG.isDebugEnabled())           LOG.debug("Connection {}/{} creation succeeded {}",next,maxConnections,connection);
           if (activate(connection))           connectionPromise.succeeded(connection);
         }
         @Override public void failed(        Throwable x){
-          LOG.debug("Connection " + next + "/"+ maxConnections+ " creation failed",x);
+          if (LOG.isDebugEnabled())           LOG.debug("Connection " + next + "/"+ maxConnections+ " creation failed",x);
           connectionCount.decrementAndGet();
           connectionPromise.failed(x);
         }

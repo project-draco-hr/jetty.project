@@ -12,7 +12,7 @@
     if (!committed.compareAndSet(false,true)) {
       StreamException exception=new StreamException(stream.getId(),StreamStatus.PROTOCOL_ERROR,"Stream already committed!");
       callback.failed(exception);
-      LOG.debug("Committed response twice.",exception);
+      if (LOG.isDebugEnabled())       LOG.debug("Committed response twice.",exception);
       return;
     }
     sendReply(info,!hasContent ? callback : new Callback.Adapter(){
@@ -23,11 +23,11 @@
 ,close);
   }
   if (hasContent) {
-    LOG.debug("Send content: {} on stream: {} lastContent={}",BufferUtil.toDetailString(content),stream,lastContent);
+    if (LOG.isDebugEnabled())     LOG.debug("Send content: {} on stream: {} lastContent={}",BufferUtil.toDetailString(content),stream,lastContent);
     stream.data(new ByteBufferDataInfo(endPoint.getIdleTimeout(),TimeUnit.MILLISECONDS,content,lastContent),callback);
   }
  else   if (lastContent && info == null) {
-    LOG.debug("No content and lastContent=true. Sending empty ByteBuffer to close stream: {}",stream);
+    if (LOG.isDebugEnabled())     LOG.debug("No content and lastContent=true. Sending empty ByteBuffer to close stream: {}",stream);
     stream.data(new ByteBufferDataInfo(endPoint.getIdleTimeout(),TimeUnit.MILLISECONDS,BufferUtil.EMPTY_BUFFER,lastContent),callback);
   }
  else   if (!lastContent && !hasContent && info == null)   throw new IllegalStateException("not lastContent, no content and no responseInfo!");
