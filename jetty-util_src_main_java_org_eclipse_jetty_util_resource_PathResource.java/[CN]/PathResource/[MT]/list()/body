@@ -1,20 +1,21 @@
 {
-  try {
+  try (DirectoryStream<Path> dir=Files.newDirectoryStream(path)){
     List<String> entries=new ArrayList<>();
-    try (DirectoryStream<Path> dir=Files.newDirectoryStream(path)){
-      for (      Path entry : dir) {
-        String name=entry.getFileName().toString();
-        if (Files.isDirectory(entry)) {
-          name+="/";
-        }
-        entries.add(name);
+    for (    Path entry : dir) {
+      String name=entry.getFileName().toString();
+      if (Files.isDirectory(entry)) {
+        name+="/";
       }
+      entries.add(name);
     }
-     int size=entries.size();
+    int size=entries.size();
     return entries.toArray(new String[size]);
   }
- catch (  IOException e) {
-    LOG.ignore(e);
+ catch (  DirectoryIteratorException e) {
+    LOG.debug(e);
+  }
+catch (  IOException e) {
+    LOG.debug(e);
   }
   return null;
 }

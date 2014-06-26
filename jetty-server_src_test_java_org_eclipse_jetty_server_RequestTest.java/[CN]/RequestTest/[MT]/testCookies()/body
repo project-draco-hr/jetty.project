@@ -1,5 +1,5 @@
 {
-  final ArrayList<Cookie> cookies=new ArrayList<Cookie>();
+  final ArrayList<Cookie> cookies=new ArrayList<>();
   _handler._checker=new RequestTester(){
     @Override public boolean check(    HttpServletRequest request,    HttpServletResponse response) throws IOException {
       javax.servlet.http.Cookie[] ca=request.getCookies();
@@ -30,7 +30,8 @@
   assertEquals("quoted=;value",cookies.get(1).getValue());
   cookies.clear();
   response=_connector.getResponses("GET /other HTTP/1.1\n" + "Host: whatever\n" + "Other: header\n"+ "Cookie: name=value; other=\"quoted=;value\"\n"+ "\n"+ "GET /other HTTP/1.1\n"+ "Host: whatever\n"+ "Other: header\n"+ "Cookie: name=value; other=\"quoted=;value\"\n"+ "Connection: close\n"+ "\n");
-  assertTrue(response.startsWith("HTTP/1.1 200 OK"));
+  assertThat(response,Matchers.startsWith("HTTP/1.1 200 OK"));
+  assertThat(response.substring(15),Matchers.containsString("HTTP/1.1 200 OK"));
   assertEquals(4,cookies.size());
   assertEquals("name",cookies.get(0).getName());
   assertEquals("value",cookies.get(0).getValue());
@@ -40,7 +41,8 @@
   assertSame(cookies.get(1),cookies.get(3));
   cookies.clear();
   response=_connector.getResponses("GET /other HTTP/1.1\n" + "Host: whatever\n" + "Other: header\n"+ "Cookie: name=value; other=\"quoted=;value\"\n"+ "\n"+ "GET /other HTTP/1.1\n"+ "Host: whatever\n"+ "Other: header\n"+ "Cookie: name=value; other=\"othervalue\"\n"+ "Connection: close\n"+ "\n");
-  assertTrue(response.startsWith("HTTP/1.1 200 OK"));
+  assertThat(response,Matchers.startsWith("HTTP/1.1 200 OK"));
+  assertThat(response.substring(15),Matchers.containsString("HTTP/1.1 200 OK"));
   assertEquals(4,cookies.size());
   assertEquals("name",cookies.get(0).getName());
   assertEquals("value",cookies.get(0).getValue());
