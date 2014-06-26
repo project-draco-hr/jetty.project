@@ -1,0 +1,36 @@
+{
+  server=new Server();
+  connector=new LocalConnector(server);
+  server.setConnectors(new Connector[]{connector});
+  ContextHandler context=new ContextHandler();
+  SessionHandler session=new SessionHandler();
+  HashLoginService loginService=new HashLoginService(TEST_REALM);
+  loginService.putUser("user0",new Password("password"),new String[]{});
+  loginService.putUser("user",new Password("password"),new String[]{"user"});
+  loginService.putUser("user2",new Password("password"),new String[]{"user"});
+  loginService.putUser("admin",new Password("password"),new String[]{"user","administrator"});
+  loginService.putUser("user3",new Password("password"),new String[]{"foo"});
+  context.setContextPath("/ctx");
+  server.setHandler(context);
+  context.setHandler(session);
+  server.addBean(loginService);
+  security=new ConstraintSecurityHandler();
+  session.setHandler(security);
+  ResourceHandler handler=new ResourceHandler();
+  String resourceBase=MavenTestingUtils.getTestResourceDir("docroot").getAbsolutePath();
+  handler.setResourceBase(resourceBase);
+  security.setHandler(handler);
+  List<ConstraintMapping> constraints=new ArrayList<>();
+  Constraint constraint0=new Constraint();
+  constraint0.setAuthenticate(true);
+  constraint0.setName("forbid");
+  ConstraintMapping mapping0=new ConstraintMapping();
+  mapping0.setPathSpec("/forbid/*");
+  mapping0.setConstraint(constraint0);
+  constraints.add(mapping0);
+  Set<String> knownRoles=new HashSet<>();
+  knownRoles.add("user");
+  knownRoles.add("administrator");
+  security.setConstraintMappings(constraints,knownRoles);
+  server.start();
+}
