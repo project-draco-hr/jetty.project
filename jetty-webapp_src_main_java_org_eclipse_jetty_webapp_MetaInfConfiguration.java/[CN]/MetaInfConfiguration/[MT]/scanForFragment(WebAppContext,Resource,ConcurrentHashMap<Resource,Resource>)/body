@@ -10,8 +10,13 @@
   }
  else {
     if (LOG.isDebugEnabled())     LOG.debug(jar + " META-INF/web-fragment.xml checked");
-    URI uri=jar.getURI();
-    webFrag=Resource.newResource("jar:" + uri + "!/META-INF/web-fragment.xml");
+    if (jar.isDirectory()) {
+      webFrag=jar.addPath("/META-INF/web-fragment.xml");
+    }
+ else {
+      URI uri=jar.getURI();
+      webFrag=Resource.newResource("jar:" + uri + "!/META-INF/web-fragment.xml");
+    }
     if (!webFrag.exists() || webFrag.isDirectory())     webFrag=EmptyResource.INSTANCE;
     if (cache != null) {
       Resource old=cache.putIfAbsent(jar,webFrag);
