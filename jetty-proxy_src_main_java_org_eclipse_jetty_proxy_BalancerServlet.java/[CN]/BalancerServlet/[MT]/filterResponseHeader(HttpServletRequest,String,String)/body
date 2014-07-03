@@ -2,14 +2,14 @@
   if (_proxyPassReverse && REVERSE_PROXY_HEADERS.contains(headerName)) {
     URI locationURI=URI.create(headerValue).normalize();
     if (locationURI.isAbsolute() && isBackendLocation(locationURI)) {
-      String newURI=request.getScheme() + "://" + request.getServerName()+ ":"+ request.getServerPort();
+      StringBuilder newURI=URIUtil.newURIBuilder(request.getScheme(),request.getServerName(),request.getServerPort());
       String component=locationURI.getRawPath();
-      if (component != null)       newURI+=component;
+      if (component != null)       newURI.append(component);
       component=locationURI.getRawQuery();
-      if (component != null)       newURI+="?" + component;
+      if (component != null)       newURI.append('?').append(component);
       component=locationURI.getRawFragment();
-      if (component != null)       newURI+="#" + component;
-      return URI.create(newURI).normalize().toString();
+      if (component != null)       newURI.append('#').append(component);
+      return URI.create(newURI.toString()).normalize().toString();
     }
   }
   return headerValue;
