@@ -1,8 +1,10 @@
 {
   if (isGenerateQuickStart()) {
-    QuickStartDescriptorGenerator generator=new QuickStartDescriptorGenerator(this,(getQuickStartDir() == null ? getTempDirectory() : getQuickStartDir()),_preconfigProcessor.getXML());
-    File f=generator.generateQuickStartWebXml();
-    setQuickStartWebDescriptor(Resource.newResource(f));
-  }
+    if (getQuickStartWebDescriptor() == null)     throw new IllegalStateException("No location to generate quickstart descriptor");
+    QuickStartDescriptorGenerator generator=new QuickStartDescriptorGenerator(this,_preconfigProcessor.getXML());
+    try (FileOutputStream fos=new FileOutputStream(getQuickStartWebDescriptor().getFile())){
+      generator.generateQuickStartWebXml(fos);
+    }
+   }
  else   super.startWebapp();
 }

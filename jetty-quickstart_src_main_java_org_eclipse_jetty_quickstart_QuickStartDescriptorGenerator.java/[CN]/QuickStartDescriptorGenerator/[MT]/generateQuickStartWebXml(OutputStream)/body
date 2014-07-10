@@ -1,92 +1,89 @@
 {
-  if (_webApp == null)   throw new IllegalStateException("No webapp for quickstart-web.xml");
-  if (_descriptorDir == null)   throw new IllegalStateException("No location for quickstart-web.xml");
+  if (_webApp == null)   throw new IllegalStateException("No webapp for quickstart generation");
+  if (stream == null)   throw new IllegalStateException("No output for quickstart generation");
   _webApp.getMetaData().getOrigins();
   if (_webApp.getBaseResource() == null)   throw new IllegalArgumentException("No base resource for " + this);
-  if (!_descriptorDir.exists())   _descriptorDir.mkdirs();
-  File webXml=new File(_descriptorDir,"quickstart-web.xml");
-  LOG.info("Quickstart generate {}",webXml);
-  try (FileOutputStream fos=new FileOutputStream(webXml)){
-    XmlAppendable out=new XmlAppendable(fos,"UTF-8");
-    MetaData md=_webApp.getMetaData();
-    Map<String,String> webappAttr=new HashMap<>();
-    webappAttr.put("xmlns","http://xmlns.jcp.org/xml/ns/javaee");
-    webappAttr.put("xmlns:xsi","http://www.w3.org/2001/XMLSchema-instance");
-    webappAttr.put("xsi:schemaLocation","http://xmlns.jcp.org/xml/ns/javaee http://xmlns.jcp.org/xml/ns/javaee/web-app_3_1.xsd");
-    webappAttr.put("metadata-complete","true");
-    webappAttr.put("version","3.1");
-    out.openTag("web-app",webappAttr);
-    if (_webApp.getDisplayName() != null)     out.tag("display-name",_webApp.getDisplayName());
-    String resourceBase=_webApp.getBaseResource().getFile().getCanonicalFile().getAbsoluteFile().toURI().toString();
-    addContextParamFromAttribute(out,ServletContext.ORDERED_LIBS);
-    addContextParamFromAttribute(out,AnnotationConfiguration.CONTAINER_INITIALIZERS);
-    addContextParamFromAttribute(out,MetaInfConfiguration.METAINF_TLDS,resourceBase);
-    addContextParamFromAttribute(out,MetaInfConfiguration.METAINF_RESOURCES,resourceBase);
-    for (    String p : _webApp.getInitParams().keySet())     out.openTag("context-param",origin(md,"context-param." + p)).tag("param-name",p).tag("param-value",_webApp.getInitParameter(p)).closeTag();
-    if (_webApp.getEventListeners() != null)     for (    EventListener e : _webApp.getEventListeners())     out.openTag("listener",origin(md,e.getClass().getCanonicalName() + ".listener")).tag("listener-class",e.getClass().getCanonicalName()).closeTag();
-    ServletHandler servlets=_webApp.getServletHandler();
-    if (servlets.getFilters() != null) {
-      for (      FilterHolder holder : servlets.getFilters())       outholder(out,md,"filter",holder);
-    }
-    if (servlets.getFilterMappings() != null) {
-      for (      FilterMapping mapping : servlets.getFilterMappings()) {
-        out.openTag("filter-mapping");
-        out.tag("filter-name",mapping.getFilterName());
-        if (mapping.getPathSpecs() != null)         for (        String s : mapping.getPathSpecs())         out.tag("url-pattern",s);
-        if (mapping.getServletNames() != null)         for (        String n : mapping.getServletNames())         out.tag("servlet-name",n);
-        if (!mapping.isDefaultDispatches()) {
-          if (mapping.appliesTo(DispatcherType.REQUEST))           out.tag("dispatcher","REQUEST");
-          if (mapping.appliesTo(DispatcherType.ASYNC))           out.tag("dispatcher","ASYNC");
-          if (mapping.appliesTo(DispatcherType.ERROR))           out.tag("dispatcher","ERROR");
-          if (mapping.appliesTo(DispatcherType.FORWARD))           out.tag("dispatcher","FORWARD");
-          if (mapping.appliesTo(DispatcherType.INCLUDE))           out.tag("dispatcher","INCLUDE");
-        }
-        out.closeTag();
-      }
-    }
-    if (servlets.getServlets() != null) {
-      for (      ServletHolder holder : servlets.getServlets())       outholder(out,md,"servlet",holder);
-    }
-    if (servlets.getServletMappings() != null) {
-      for (      ServletMapping mapping : servlets.getServletMappings()) {
-        out.openTag("servlet-mapping",origin(md,mapping.getServletName() + ".servlet.mappings"));
-        out.tag("servlet-name",mapping.getServletName());
-        if (mapping.getPathSpecs() != null)         for (        String s : mapping.getPathSpecs())         out.tag("url-pattern",s);
-        out.closeTag();
-      }
-    }
-    SecurityHandler security=_webApp.getSecurityHandler();
-    if (security != null && (security.getRealmName() != null || security.getAuthMethod() != null)) {
-      out.openTag("login-config");
-      if (security.getAuthMethod() != null)       out.tag("auth-method",origin(md,"auth-method"),security.getAuthMethod());
-      if (security.getRealmName() != null)       out.tag("realm-name",origin(md,"realm-name"),security.getRealmName());
-      if (Constraint.__FORM_AUTH.equalsIgnoreCase(security.getAuthMethod())) {
-        out.openTag("form-login-config");
-        out.tag("form-login-page",origin(md,"form-login-page"),security.getInitParameter(FormAuthenticator.__FORM_LOGIN_PAGE));
-        out.tag("form-error-page",origin(md,"form-error-page"),security.getInitParameter(FormAuthenticator.__FORM_ERROR_PAGE));
-        out.closeTag();
+  LOG.info("Quickstart generating");
+  XmlAppendable out=new XmlAppendable(stream,"UTF-8");
+  MetaData md=_webApp.getMetaData();
+  Map<String,String> webappAttr=new HashMap<>();
+  webappAttr.put("xmlns","http://xmlns.jcp.org/xml/ns/javaee");
+  webappAttr.put("xmlns:xsi","http://www.w3.org/2001/XMLSchema-instance");
+  webappAttr.put("xsi:schemaLocation","http://xmlns.jcp.org/xml/ns/javaee http://xmlns.jcp.org/xml/ns/javaee/web-app_3_1.xsd");
+  webappAttr.put("metadata-complete","true");
+  webappAttr.put("version","3.1");
+  out.openTag("web-app",webappAttr);
+  if (_webApp.getDisplayName() != null)   out.tag("display-name",_webApp.getDisplayName());
+  String resourceBase=_webApp.getBaseResource().getFile().getCanonicalFile().getAbsoluteFile().toURI().toString();
+  addContextParamFromAttribute(out,ServletContext.ORDERED_LIBS);
+  addContextParamFromAttribute(out,AnnotationConfiguration.CONTAINER_INITIALIZERS);
+  addContextParamFromAttribute(out,MetaInfConfiguration.METAINF_TLDS,resourceBase);
+  addContextParamFromAttribute(out,MetaInfConfiguration.METAINF_RESOURCES,resourceBase);
+  for (  String p : _webApp.getInitParams().keySet())   out.openTag("context-param",origin(md,"context-param." + p)).tag("param-name",p).tag("param-value",_webApp.getInitParameter(p)).closeTag();
+  if (_webApp.getEventListeners() != null)   for (  EventListener e : _webApp.getEventListeners())   out.openTag("listener",origin(md,e.getClass().getCanonicalName() + ".listener")).tag("listener-class",e.getClass().getCanonicalName()).closeTag();
+  ServletHandler servlets=_webApp.getServletHandler();
+  if (servlets.getFilters() != null) {
+    for (    FilterHolder holder : servlets.getFilters())     outholder(out,md,"filter",holder);
+  }
+  if (servlets.getFilterMappings() != null) {
+    for (    FilterMapping mapping : servlets.getFilterMappings()) {
+      out.openTag("filter-mapping");
+      out.tag("filter-name",mapping.getFilterName());
+      if (mapping.getPathSpecs() != null)       for (      String s : mapping.getPathSpecs())       out.tag("url-pattern",s);
+      if (mapping.getServletNames() != null)       for (      String n : mapping.getServletNames())       out.tag("servlet-name",n);
+      if (!mapping.isDefaultDispatches()) {
+        if (mapping.appliesTo(DispatcherType.REQUEST))         out.tag("dispatcher","REQUEST");
+        if (mapping.appliesTo(DispatcherType.ASYNC))         out.tag("dispatcher","ASYNC");
+        if (mapping.appliesTo(DispatcherType.ERROR))         out.tag("dispatcher","ERROR");
+        if (mapping.appliesTo(DispatcherType.FORWARD))         out.tag("dispatcher","FORWARD");
+        if (mapping.appliesTo(DispatcherType.INCLUDE))         out.tag("dispatcher","INCLUDE");
       }
       out.closeTag();
     }
-    if (security instanceof ConstraintAware) {
-      ConstraintAware ca=(ConstraintAware)security;
-      for (      String r : ca.getRoles())       out.openTag("security-role").tag("role-name",r).closeTag();
-      for (      ConstraintMapping m : ca.getConstraintMappings()) {
-        out.openTag("security-constraint");
-        if (m.getConstraint().getAuthenticate()) {
-          out.openTag("auth-constraint");
-          if (m.getConstraint().getRoles() != null)           for (          String r : m.getConstraint().getRoles())           out.tag("role-name",r);
-          out.closeTag();
-        }
+  }
+  if (servlets.getServlets() != null) {
+    for (    ServletHolder holder : servlets.getServlets())     outholder(out,md,"servlet",holder);
+  }
+  if (servlets.getServletMappings() != null) {
+    for (    ServletMapping mapping : servlets.getServletMappings()) {
+      out.openTag("servlet-mapping",origin(md,mapping.getServletName() + ".servlet.mappings"));
+      out.tag("servlet-name",mapping.getServletName());
+      if (mapping.getPathSpecs() != null)       for (      String s : mapping.getPathSpecs())       out.tag("url-pattern",s);
+      out.closeTag();
+    }
+  }
+  SecurityHandler security=_webApp.getSecurityHandler();
+  if (security != null && (security.getRealmName() != null || security.getAuthMethod() != null)) {
+    out.openTag("login-config");
+    if (security.getAuthMethod() != null)     out.tag("auth-method",origin(md,"auth-method"),security.getAuthMethod());
+    if (security.getRealmName() != null)     out.tag("realm-name",origin(md,"realm-name"),security.getRealmName());
+    if (Constraint.__FORM_AUTH.equalsIgnoreCase(security.getAuthMethod())) {
+      out.openTag("form-login-config");
+      out.tag("form-login-page",origin(md,"form-login-page"),security.getInitParameter(FormAuthenticator.__FORM_LOGIN_PAGE));
+      out.tag("form-error-page",origin(md,"form-error-page"),security.getInitParameter(FormAuthenticator.__FORM_ERROR_PAGE));
+      out.closeTag();
+    }
+    out.closeTag();
+  }
+  if (security instanceof ConstraintAware) {
+    ConstraintAware ca=(ConstraintAware)security;
+    for (    String r : ca.getRoles())     out.openTag("security-role").tag("role-name",r).closeTag();
+    for (    ConstraintMapping m : ca.getConstraintMappings()) {
+      out.openTag("security-constraint");
+      if (m.getConstraint().getAuthenticate()) {
+        out.openTag("auth-constraint");
+        if (m.getConstraint().getRoles() != null)         for (        String r : m.getConstraint().getRoles())         out.tag("role-name",r);
+        out.closeTag();
+      }
 switch (m.getConstraint().getDataConstraint()) {
 case Constraint.DC_NONE:
-          out.openTag("user-data-constraint").tag("transport-guarantee","NONE").closeTag();
-        break;
+        out.openTag("user-data-constraint").tag("transport-guarantee","NONE").closeTag();
+      break;
 case Constraint.DC_INTEGRAL:
-      out.openTag("user-data-constraint").tag("transport-guarantee","INTEGRAL").closeTag();
-    break;
+    out.openTag("user-data-constraint").tag("transport-guarantee","INTEGRAL").closeTag();
+  break;
 case Constraint.DC_CONFIDENTIAL:
-  out.openTag("user-data-constraint").tag("transport-guarantee","CONFIDENTIAL").closeTag();
+out.openTag("user-data-constraint").tag("transport-guarantee","CONFIDENTIAL").closeTag();
 break;
 default :
 break;
@@ -224,11 +221,4 @@ out.closeTag();
 }
 out.literal(_extraXML);
 out.closeTag();
-}
- catch (Exception e) {
-if (e.getSuppressed() != null) {
-for (Throwable t : e.getSuppressed()) t.printStackTrace();
-}
-}
-return webXml;
 }
