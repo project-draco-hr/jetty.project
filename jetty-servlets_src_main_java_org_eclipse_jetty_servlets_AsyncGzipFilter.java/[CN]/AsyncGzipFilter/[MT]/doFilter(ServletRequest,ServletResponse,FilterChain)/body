@@ -15,10 +15,13 @@
   }
   if (_mimeTypes.size() > 0 && _excludeMimeTypes) {
     String mimeType=_context.getMimeType(request.getRequestURI());
-    if (mimeType != null && _mimeTypes.contains(mimeType)) {
-      LOG.debug("{} excluded by path suffix {}",this,request);
-      super.doFilter(request,response,chain);
-      return;
+    if (mimeType != null) {
+      mimeType=MimeTypes.getContentTypeWithoutCharset(mimeType);
+      if (_mimeTypes.contains(mimeType)) {
+        LOG.debug("{} excluded by path suffix {}",this,request);
+        super.doFilter(request,response,chain);
+        return;
+      }
     }
   }
   if (response.getHeader("Content-Encoding") != null) {

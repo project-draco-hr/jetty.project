@@ -1,4 +1,16 @@
 {
+  if (getQuickStartWebDescriptor() == null) {
+    setConfigurations(_defaultConfigurations);
+    if (isGenerateQuickStart()) {
+      _preconfigProcessor=new PreconfigureDescriptorProcessor();
+      getMetaData().addDescriptorProcessor(_preconfigProcessor);
+    }
+  }
+ else   setConfigurations(_quickStartConfigurations);
+  for (  Configuration c : getConfigurations()) {
+    if (c instanceof EnvConfiguration && getJettyEnvXml() != null)     ((EnvConfiguration)c).setJettyEnvXml(Resource.toURL(new File(getJettyEnvXml())));
+ else     if (c instanceof MavenQuickStartConfiguration && getQuickStartWebDescriptor() != null)     ((MavenQuickStartConfiguration)c).setQuickStartWebXml(getQuickStartWebDescriptor());
+  }
   String tmp=_containerIncludeJarPattern;
   if (tmp == null || "".equals(tmp))   tmp=(String)getAttribute(WebInfConfiguration.CONTAINER_JAR_PATTERN);
   tmp=addPattern(tmp,DEFAULT_CONTAINER_INCLUDE_JAR_PATTERN);
@@ -14,6 +26,5 @@
     String fileName=file.getName();
     if (fileName.endsWith(".jar"))     _webInfJarMap.put(fileName,file);
   }
-  if (this._jettyEnvXml != null)   _envConfig.setJettyEnvXml(Resource.toURL(new File(this._jettyEnvXml)));
   super.doStart();
 }
