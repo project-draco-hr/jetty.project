@@ -1,0 +1,34 @@
+{
+  _metadata=request;
+  setMethod(request.getMethod());
+  setScheme(request.getScheme().asString());
+  HttpURI uri=request.getURI();
+  String uriHost=uri.getHost();
+  if (uriHost != null) {
+    setServerName(uriHost);
+    setServerPort(uri.getPort());
+  }
+ else {
+    setServerName(request.getHost());
+    setServerPort(request.getPort());
+  }
+  setUri(request.getURI());
+  String path;
+  try {
+    path=uri.getDecodedPath();
+  }
+ catch (  Exception e) {
+    LOG.warn("Failed UTF-8 decode for request path, trying ISO-8859-1");
+    LOG.ignore(e);
+    path=uri.getDecodedPath(StandardCharsets.ISO_8859_1);
+  }
+  String info=URIUtil.canonicalPath(path);
+  if (info == null) {
+    if (path == null && uri.getScheme() != null && uri.getHost() != null) {
+      info="/";
+      setRequestURI("");
+    }
+ else     throw new BadMessageException(400,"Bad URI");
+  }
+  setPathInfo(info);
+}
