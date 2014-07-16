@@ -3,32 +3,17 @@
   String encoding=null;
   Entry entry=_context.get(field);
   if (entry != null) {
-    if (entry.isInReferenceSet()) {
-      entry.used();
-      encoding="InRefSet";
-    }
- else     if (entry.isStatic()) {
-      if (((StaticEntry)entry).useRefSet()) {
-        encoding="StaticIndexed";
-        int index=_context.index(entry);
-        buffer.put((byte)0x80);
-        NBitInteger.encode(buffer,7,index);
-        entry=_context.add(entry.getHttpField());
-        if (entry != null)         _context.addToRefSet(entry);
-      }
- else {
-        buffer.put((byte)0x00);
-        NBitInteger.encode(buffer,4,_context.index(entry));
-        buffer.put(entry.getStaticHuffmanValue());
-        encoding="LiteralStaticIdxNameHuffmanValue";
-      }
+    if (entry.isStatic()) {
+      encoding="StaticIndexed";
+      int index=_context.index(entry);
+      buffer.put((byte)0x80);
+      NBitInteger.encode(buffer,7,index);
     }
  else {
       encoding="IdxField";
       int index=_context.index(entry);
       buffer.put((byte)0x80);
       NBitInteger.encode(buffer,7,index);
-      _context.addToRefSet(entry);
     }
   }
  else {
@@ -85,10 +70,7 @@
         buffer.put((byte)c);
       }
     }
-    if (reference) {
-      Entry new_entry=_context.add(field);
-      if (new_entry != null)       _context.addToRefSet(new_entry);
-    }
+    if (reference)     _context.add(field);
   }
   if (p >= 0) {
     int e=buffer.position();

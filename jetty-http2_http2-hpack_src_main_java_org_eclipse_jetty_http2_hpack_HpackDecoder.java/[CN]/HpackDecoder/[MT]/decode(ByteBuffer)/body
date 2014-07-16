@@ -10,17 +10,13 @@
     if (b < 0) {
       int index=NBitInteger.decode(buffer,7);
       Entry entry=_context.get(index);
-      if (entry.isInReferenceSet())       _context.get(index).removeFromRefSet();
- else       if (entry.isStatic()) {
+      if (entry.isStatic()) {
         if (LOG.isDebugEnabled())         LOG.debug("decode IdxStatic {}",entry);
         _builder.emit(entry.getHttpField());
-        Entry new_entry=_context.add(entry.getHttpField());
-        if (new_entry != null)         _context.addToRefSet(new_entry);
       }
  else {
         if (LOG.isDebugEnabled())         LOG.debug("decode Idx {}",entry);
         _builder.emit(entry.getHttpField());
-        _context.addToRefSet(entry);
       }
     }
  else {
@@ -87,8 +83,7 @@ break;
 if (LOG.isDebugEnabled()) LOG.debug("decoded '" + field + "' by Lit"+ (name_index > 0 ? "IdxName" : (huffmanName ? "HuffName" : "LitName"))+ (huffmanValue ? "HuffVal" : "LitVal")+ (indexed ? "Idx" : ""));
 _builder.emit(field);
 if (indexed) {
-Entry new_entry=_context.add(field);
-if (new_entry != null) _context.addToRefSet(new_entry);
+_context.add(field);
 }
 }
  else if (f == 2) {
@@ -98,11 +93,9 @@ if (size > _localMaxHeaderTableSize) throw new IllegalArgumentException();
 _context.resize(size);
 }
  else if (f == 3) {
-if (LOG.isDebugEnabled()) LOG.debug("decode clear");
-_context.clearReferenceSet();
+if (LOG.isDebugEnabled()) LOG.debug("unused");
 }
 }
 }
-_context.emitUnusedReferences(_builder);
 return _builder.build();
 }
