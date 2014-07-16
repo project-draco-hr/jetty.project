@@ -20,34 +20,38 @@
     HttpHeader header=field.getHeader();
     final boolean never_index;
     final boolean huffman;
-    final boolean reference;
+    final boolean indexed;
+    final boolean date;
     final int name_bits;
     final byte mask;
     if (header == null) {
       never_index=false;
       huffman=true;
-      reference=true;
+      indexed=true;
+      date=false;
       name_bits=6;
       mask=(byte)0x40;
     }
- else     if (__USE_REFERENCE_SET.contains(header)) {
-      reference=true;
-      never_index=false;
-      huffman=!__DO_NOT_HUFFMAN.contains(header);
-      name_bits=6;
-      mask=(byte)0x40;
-    }
- else {
-      reference=false;
+ else     if (__DO_NOT_INDEX.contains(header)) {
+      indexed=false;
       never_index=__NEVER_INDEX.contains(header);
+      date=__DATE_HEADER.contains(header);
       huffman=!__DO_NOT_HUFFMAN.contains(header);
       name_bits=4;
       mask=never_index ? (byte)0x01 : (byte)0x00;
     }
+ else {
+      indexed=true;
+      never_index=false;
+      huffman=!__DO_NOT_HUFFMAN.contains(header);
+      date=__DATE_HEADER.contains(header);
+      name_bits=6;
+      mask=(byte)0x40;
+    }
     buffer.put(mask);
     Entry name_entry=_context.get(field.getName());
     if (p >= 0) {
-      encoding="Lit" + ((name_entry == null) ? "HuffName" : "IdxName") + (huffman ? "HuffVal" : "LitVal")+ (reference ? "Idxd" : (never_index ? "NeverIdx" : ""));
+      encoding="Lit" + ((name_entry == null) ? "HuffName" : "IdxName") + (huffman ? "HuffVal" : "LitVal")+ (indexed ? "Idxd" : (never_index ? "NeverIdx" : ""));
     }
     if (name_entry != null)     NBitInteger.encode(buffer,name_bits,_context.index(name_entry));
  else {
@@ -70,7 +74,7 @@
         buffer.put((byte)c);
       }
     }
-    if (reference)     _context.add(field);
+    if (indexed)     _context.add(field);
   }
   if (p >= 0) {
     int e=buffer.position();
