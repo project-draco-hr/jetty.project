@@ -6,16 +6,15 @@
   FileOutputStream out=new FileOutputStream(content);
   out.write(_content.getBytes("utf-8"));
   out.close();
-  File dbRoot=new File("target/test-output/derby");
-  String dbPath=dbRoot.getAbsolutePath();
+  _dbRoot=new File("target/test-output/derby");
+  String dbPath=_dbRoot.getAbsolutePath();
   System.setProperty("derby.system.home",dbPath);
-  if (dbRoot.exists())   IO.delete(dbRoot);
-  dbRoot.mkdirs();
-  DatabaseLoginServiceTestServer.createDB(dbPath,"src/test/resources/createdb.sql","jdbc:derby:jdbcrealm;create=true");
-  LoginService loginService=new JDBCLoginService(__realm,"./src/test/resources/jdbcrealm.properties");
+  if (_dbRoot.exists())   IO.delete(_dbRoot);
+  _dbRoot.mkdirs();
+  DatabaseLoginServiceTestServer.createDB(dbPath,"src/test/resources/createdb.sql","jdbc:derby:dstest;create=true");
   _testServer=new DatabaseLoginServiceTestServer();
   _testServer.setResourceBase(_docRoot.getAbsolutePath());
-  _testServer.setLoginService(loginService);
+  _testServer.setLoginService(configureLoginService());
   _testServer.start();
   _baseUrl=_testServer.getBaseUrl();
 }

@@ -1,6 +1,5 @@
 {
   try {
-    initDb();
     try (Connection connection=getConnection();PreparedStatement statement1=connection.prepareStatement(_userSql)){
       statement1.setObject(1,userName);
       try (ResultSet rs1=statement1.executeQuery()){
@@ -11,10 +10,12 @@
           try (PreparedStatement statement2=connection.prepareStatement(_roleSql)){
             statement2.setInt(1,key);
             try (ResultSet rs2=statement2.executeQuery()){
-              while (rs2.next())               roles.add(rs2.getString(_roleTableRoleField));
+              while (rs2.next()) {
+                roles.add(rs2.getString(_roleTableRoleField));
+              }
             }
            }
-           return putUser(userName,new Password(credentials),roles.toArray(new String[roles.size()]));
+           return putUser(userName,Credential.getCredential(credentials),roles.toArray(new String[roles.size()]));
         }
       }
      }
