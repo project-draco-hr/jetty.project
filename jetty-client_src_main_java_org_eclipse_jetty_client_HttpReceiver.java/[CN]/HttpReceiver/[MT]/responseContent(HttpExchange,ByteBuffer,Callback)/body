@@ -5,7 +5,7 @@ switch (current) {
 case HEADERS:
 case CONTENT:
 {
-        if (updateResponseState(current,ResponseState.CONTENT))         break out;
+        if (updateResponseState(current,ResponseState.TRANSIENT))         break out;
         break;
       }
 default :
@@ -23,5 +23,6 @@ if (LOG.isDebugEnabled()) LOG.debug("Response content decoded ({}) {}{}{}",decod
 }
 ResponseNotifier notifier=getHttpDestination().getResponseNotifier();
 notifier.notifyContent(exchange.getConversation().getResponseListeners(),response,buffer,callback);
+if (!updateResponseState(ResponseState.TRANSIENT,ResponseState.CONTENT)) terminateResponse(exchange,failure);
 return true;
 }

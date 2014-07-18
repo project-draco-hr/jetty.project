@@ -4,19 +4,16 @@ switch (current) {
 case COMMIT:
 case CONTENT:
 {
-      if (!updateRequestState(current,RequestState.CONTENT))       return false;
+      if (!updateRequestState(current,RequestState.TRANSIENT_CONTENT))       return false;
       if (LOG.isDebugEnabled())       LOG.debug("Request content {}{}{}",request,System.getProperty("line.separator"),BufferUtil.toDetailString(content));
       RequestNotifier notifier=getHttpChannel().getHttpDestination().getRequestNotifier();
       notifier.notifyContent(request,content);
+      if (!updateRequestState(RequestState.TRANSIENT_CONTENT,RequestState.CONTENT))       terminateRequest(getHttpExchange(),failure,true);
       return true;
     }
-case FAILURE:
+default :
 {
     return false;
   }
-default :
-{
-  throw new IllegalStateException(current.toString());
-}
 }
 }
