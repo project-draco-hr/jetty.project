@@ -1,0 +1,18 @@
+{
+  if (commonDerbySystemHome == null) {
+    commonDerbySystemHome=MavenTestingUtils.getTargetTestingDir("derby-system-common");
+    FS.ensureEmpty(commonDerbySystemHome);
+    System.setProperty("derby.system.home",commonDerbySystemHome.getAbsolutePath());
+  }
+  String dbUrl="jdbc:derby:directory:" + dbName + ";create=true";
+  try (FileInputStream fileStream=new FileInputStream(scriptFile)){
+    Loader.loadClass(fileStream.getClass(),"org.apache.derby.jdbc.EmbeddedDriver").newInstance();
+    Connection connection=DriverManager.getConnection(dbUrl,"","");
+    OutputStream out=new ByteArrayOutputStream();
+    int result=ij.runScript(connection,fileStream,"UTF-8",out,"UTF-8");
+    assertThat("runScript result",result,is(0));
+    File dbRoot=new File(commonDerbySystemHome,dbName);
+    assertThat("exists: " + dbRoot,dbRoot.exists(),is(true));
+    return dbRoot;
+  }
+ }
