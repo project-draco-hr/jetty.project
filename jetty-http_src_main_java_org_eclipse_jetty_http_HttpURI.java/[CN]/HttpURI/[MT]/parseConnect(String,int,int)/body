@@ -1,0 +1,57 @@
+{
+  _uri=authority;
+  _encoded=false;
+  int i=offset;
+  int e=offset + length;
+  int state=AUTH;
+  _end=offset + length;
+  _scheme=offset;
+  _authority=offset;
+  _host=offset;
+  _port=_end;
+  _portValue=-1;
+  _path=_end;
+  _param=_end;
+  _query=_end;
+  _fragment=_end;
+  loop:   while (i < e) {
+    char c=authority.charAt(i);
+    int s=i++;
+switch (state) {
+case AUTH:
+{
+switch (c) {
+case ':':
+{
+            _port=s;
+            break loop;
+          }
+case '[':
+{
+          state=IPV6;
+          break;
+        }
+    }
+    continue;
+  }
+case IPV6:
+{
+switch (c) {
+case '/':
+{
+      throw new IllegalArgumentException("No closing ']' for " + _uri.substring(offset,length));
+    }
+case ']':
+{
+    state=AUTH;
+    break;
+  }
+}
+continue;
+}
+}
+}
+if (_port < _path) _portValue=TypeUtil.parseInt(_uri,_port + 1,_path - _port - 1,10);
+ else throw new IllegalArgumentException("No port");
+_path=offset;
+}

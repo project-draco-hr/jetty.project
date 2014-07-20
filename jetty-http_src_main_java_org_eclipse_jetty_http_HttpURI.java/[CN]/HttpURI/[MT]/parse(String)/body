@@ -1,5 +1,239 @@
 {
-  byte[] b=StringUtil.getUtf8Bytes(raw);
-  parse2(b,0,b.length);
-  _rawString=raw;
+  _uri=uri;
+  _encoded=false;
+  int i=0;
+  int e=uri.length();
+  int state=START;
+  int m=i;
+  _end=e;
+  _scheme=i;
+  _authority=i;
+  _host=i;
+  _port=i;
+  _portValue=-1;
+  _path=i;
+  _param=_end;
+  _query=_end;
+  _fragment=_end;
+  while (i < e) {
+    char c=uri.charAt(i);
+    int s=i++;
+    state: switch (state) {
+case START:
+{
+        m=s;
+switch (c) {
+case '/':
+          state=AUTH_OR_PATH;
+        break;
+case ';':
+      _param=s;
+    state=PARAM;
+  break;
+case '?':
+_param=s;
+_query=s;
+state=QUERY;
+break;
+case '#':
+_param=s;
+_query=s;
+_fragment=s;
+break;
+case '*':
+_path=s;
+state=ASTERISK;
+break;
+default :
+state=SCHEME_OR_PATH;
+}
+continue;
+}
+case AUTH_OR_PATH:
+{
+if ((_partial || _scheme != _authority) && c == '/') {
+_host=i;
+_port=_end;
+_path=_end;
+state=AUTH;
+}
+ else if (c == ';' || c == '?' || c == '#') {
+i--;
+state=PATH;
+}
+ else {
+_host=m;
+_port=m;
+state=PATH;
+}
+continue;
+}
+case SCHEME_OR_PATH:
+{
+switch (c) {
+case ':':
+{
+m=i++;
+_authority=m;
+_path=m;
+c=uri.charAt(i);
+if (c == '/') state=AUTH_OR_PATH;
+ else {
+_host=m;
+_port=m;
+state=PATH;
+}
+break;
+}
+case '/':
+{
+state=PATH;
+break;
+}
+case ';':
+{
+_param=s;
+state=PARAM;
+break;
+}
+case '?':
+{
+_param=s;
+_query=s;
+state=QUERY;
+break;
+}
+case '#':
+{
+_param=s;
+_query=s;
+_fragment=s;
+break;
+}
+}
+continue;
+}
+case AUTH:
+{
+switch (c) {
+case '/':
+{
+m=s;
+_path=m;
+_port=_path;
+state=PATH;
+break;
+}
+case '@':
+{
+_host=i;
+break;
+}
+case ':':
+{
+_port=s;
+state=PORT;
+break;
+}
+case '[':
+{
+state=IPV6;
+break;
+}
+}
+continue;
+}
+case IPV6:
+{
+switch (c) {
+case '/':
+{
+throw new IllegalArgumentException("No closing ']' for ipv6 in " + uri);
+}
+case ']':
+{
+state=AUTH;
+break;
+}
+}
+continue;
+}
+case PORT:
+{
+if (c == '/') {
+m=s;
+_path=m;
+if (_port <= _authority) _port=_path;
+state=PATH;
+}
+continue;
+}
+case PATH:
+{
+switch (c) {
+case ';':
+{
+_param=s;
+state=PARAM;
+break;
+}
+case '?':
+{
+_param=s;
+_query=s;
+state=QUERY;
+break;
+}
+case '#':
+{
+_param=s;
+_query=s;
+_fragment=s;
+break state;
+}
+case '%':
+{
+_encoded=true;
+}
+}
+continue;
+}
+case PARAM:
+{
+switch (c) {
+case '?':
+{
+_query=s;
+state=QUERY;
+break;
+}
+case '#':
+{
+_query=s;
+_fragment=s;
+break state;
+}
+case '/':
+{
+state=PATH;
+break state;
+}
+}
+continue;
+}
+case QUERY:
+{
+if (c == '#') {
+_fragment=s;
+break state;
+}
+continue;
+}
+case ASTERISK:
+{
+throw new IllegalArgumentException("only '*'");
+}
+}
+}
+if (_port < _path) _portValue=TypeUtil.parseInt(_uri,_port + 1,_path - _port - 1,10);
 }
