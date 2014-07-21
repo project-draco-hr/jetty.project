@@ -1,14 +1,16 @@
 {
   proxy=new Server();
   HttpConfiguration configuration=new HttpConfiguration();
+  configuration.setSendDateHeader(false);
+  configuration.setSendServerVersion(false);
   String value=initParams.get("outputBufferSize");
   if (value != null)   configuration.setOutputBufferSize(Integer.valueOf(value));
   proxyConnector=new ServerConnector(proxy,new HttpConnectionFactory(configuration));
   proxy.addConnector(proxyConnector);
-  ServletContextHandler proxyCtx=new ServletContextHandler(proxy,"/",true,false);
+  proxyContext=new ServletContextHandler(proxy,"/",true,false);
   ServletHolder proxyServletHolder=new ServletHolder(proxyServlet);
   proxyServletHolder.setInitParameters(initParams);
-  proxyCtx.addServlet(proxyServletHolder,"/*");
+  proxyContext.addServlet(proxyServletHolder,"/*");
   proxy.start();
   client=prepareClient();
 }
