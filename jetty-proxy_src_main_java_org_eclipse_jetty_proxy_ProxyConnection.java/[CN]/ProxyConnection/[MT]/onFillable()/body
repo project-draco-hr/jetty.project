@@ -1,36 +1,3 @@
 {
-  final ByteBuffer buffer=getByteBufferPool().acquire(getInputBufferSize(),true);
-  try {
-    final int filled=read(getEndPoint(),buffer);
-    if (LOG.isDebugEnabled())     LOG.debug("{} filled {} bytes",this,filled);
-    if (filled > 0) {
-      write(getConnection().getEndPoint(),buffer,new Callback(){
-        @Override public void succeeded(){
-          if (LOG.isDebugEnabled())           LOG.debug("{} wrote {} bytes",this,filled);
-          bufferPool.release(buffer);
-          invoker.invoke(null);
-        }
-        @Override public void failed(        Throwable x){
-          LOG.debug(this + " failed to write " + filled+ " bytes",x);
-          bufferPool.release(buffer);
-          connection.close();
-        }
-      }
-);
-    }
- else     if (filled == 0) {
-      bufferPool.release(buffer);
-      fillInterested();
-    }
- else {
-      bufferPool.release(buffer);
-      connection.getEndPoint().shutdownOutput();
-    }
-  }
- catch (  IOException x) {
-    LOG.debug(this + " could not fill",x);
-    bufferPool.release(buffer);
-    close();
-    connection.close();
-  }
+  pipe.iterate();
 }
