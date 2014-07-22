@@ -1,6 +1,7 @@
 {
   boolean completed=exchange.responseComplete();
   if (!completed)   return false;
+  responseState.set(ResponseState.IDLE);
   reset();
   Result result=exchange.terminateResponse(null);
   HttpResponse response=exchange.getResponse();
@@ -8,12 +9,6 @@
   List<Response.ResponseListener> listeners=exchange.getConversation().getResponseListeners();
   ResponseNotifier notifier=getHttpDestination().getResponseNotifier();
   notifier.notifySuccess(listeners,response);
-  if (result != null) {
-    boolean ordered=getHttpDestination().getHttpClient().isStrictEventOrdering();
-    if (!ordered)     channel.exchangeTerminated(result);
-    if (LOG.isDebugEnabled())     LOG.debug("Request/Response succeeded {}",response);
-    notifier.notifyComplete(listeners,result);
-    if (ordered)     channel.exchangeTerminated(result);
-  }
+  terminateResponse(exchange,result);
   return true;
 }

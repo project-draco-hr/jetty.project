@@ -1,0 +1,13 @@
+{
+  HttpResponse response=exchange.getResponse();
+  if (LOG.isDebugEnabled())   LOG.debug("Response complete {}",response);
+  if (result != null) {
+    boolean ordered=getHttpDestination().getHttpClient().isStrictEventOrdering();
+    if (!ordered)     channel.exchangeTerminated(result);
+    if (LOG.isDebugEnabled())     LOG.debug("Request/Response {} {}",failure == null ? "succeeded" : "failed",response);
+    List<Response.ResponseListener> listeners=exchange.getConversation().getResponseListeners();
+    ResponseNotifier notifier=getHttpDestination().getResponseNotifier();
+    notifier.notifyComplete(listeners,result);
+    if (ordered)     channel.exchangeTerminated(result);
+  }
+}
