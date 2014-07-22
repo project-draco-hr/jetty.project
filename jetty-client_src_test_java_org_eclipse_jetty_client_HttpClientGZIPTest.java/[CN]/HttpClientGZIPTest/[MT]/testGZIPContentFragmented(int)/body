@@ -8,13 +8,15 @@
       GZIPOutputStream gzipOutput=new GZIPOutputStream(gzipData);
       gzipOutput.write(data);
       gzipOutput.finish();
-      ServletOutputStream output=response.getOutputStream();
       byte[] gzipBytes=gzipData.toByteArray();
-      for (      byte gzipByte : gzipBytes) {
-        output.write(gzipByte);
-        output.flush();
-        sleep(100);
-      }
+      byte[] chunk1=Arrays.copyOfRange(gzipBytes,0,gzipBytes.length - fragment);
+      byte[] chunk2=Arrays.copyOfRange(gzipBytes,gzipBytes.length - fragment,gzipBytes.length);
+      ServletOutputStream output=response.getOutputStream();
+      output.write(chunk1);
+      output.flush();
+      sleep(500);
+      output.write(chunk2);
+      output.flush();
     }
   }
 );
