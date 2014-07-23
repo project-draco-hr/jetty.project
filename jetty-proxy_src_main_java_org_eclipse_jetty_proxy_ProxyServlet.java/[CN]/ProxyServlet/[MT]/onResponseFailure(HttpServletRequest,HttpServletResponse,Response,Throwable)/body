@@ -1,7 +1,12 @@
 {
   _log.debug(getRequestId(request) + " proxying failed",failure);
   if (response.isCommitted()) {
-    request.setAttribute("org.eclipse.jetty.server.Response.failure",failure);
+    try {
+      response.sendError(-1);
+    }
+ catch (    IOException e) {
+      getServletContext().log("close failed",e);
+    }
     AsyncContext asyncContext=request.getAsyncContext();
     asyncContext.complete();
   }
