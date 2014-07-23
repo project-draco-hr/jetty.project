@@ -15,12 +15,14 @@
     if (getLog().isDebugEnabled())     getLog().debug("added to classpath: " + ((URL)webAppUrls.get(i)).getFile());
     if (i + 1 < webAppUrls.size())     webAppClassPath.append(System.getProperty("path.separator"));
   }
-  Thread.currentThread().setContextClassLoader(webAppClassLoader);
-  if (jspc == null)   jspc=new JspC();
+  URLClassLoader fakeWebAppClassLoader=new URLClassLoader(new URL[0],webAppClassLoader);
+  Thread.currentThread().setContextClassLoader(fakeWebAppClassLoader);
+  if (jspc == null)   jspc=new JettyJspC();
   jspc.setWebXmlFragment(webXmlFragment);
   jspc.setUriroot(webAppSourceDirectory);
   jspc.setOutputDir(generatedClasses);
   jspc.setClassPath(sysClassPath + System.getProperty("path.separator") + webAppClassPath.toString());
+  jspc.setClassLoader(fakeWebAppClassLoader);
   jspc.setCompile(true);
   String jspFiles=getJspFiles(webAppSourceDirectory);
   getLog().info("Compiling " + jspFiles);

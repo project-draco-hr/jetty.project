@@ -30,9 +30,9 @@
   c.addHandler(contextB);
   c.addHandler(contextC);
   HandlerList list=new HandlerList();
-  list.addHandler(contextD);
   list.addHandler(contextE);
   list.addHandler(contextF);
+  list.addHandler(contextD);
   c.addHandler(list);
   server.setHandler(c);
   try {
@@ -50,14 +50,18 @@
       handlerD.reset();
       handlerE.reset();
       handlerF.reset();
+      String t=String.format("test   %d %s@%s --> %s | %s%n",i,uri,host,connector.getName(),handler);
       String response=connector.getResponses("GET " + uri + " HTTP/1.0\nHost: "+ host+ "\n\n");
       if (handler == null) {
-        Assert.assertThat(response,Matchers.containsString(" 302 "));
+        Assert.assertThat(t,response,Matchers.containsString(" 302 "));
       }
- else       if (!handler.isHandled()) {
-        System.err.printf("FAILED %d %s@%s --> %s | %s%n",i,uri,host,connector.getName(),handler);
-        System.err.println(response);
-        Assert.fail();
+ else {
+        assertThat(t,response,endsWith(handler.toString()));
+        if (!handler.isHandled()) {
+          System.err.printf("FAILED %s",t);
+          System.err.println(response);
+          Assert.fail();
+        }
       }
     }
   }
