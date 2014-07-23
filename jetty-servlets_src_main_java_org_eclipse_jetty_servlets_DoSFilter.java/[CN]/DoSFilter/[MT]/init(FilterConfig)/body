@@ -1,18 +1,9 @@
 {
-  _context=filterConfig.getServletContext();
-  _queue=new Queue[getMaxPriority() + 1];
-  _listeners=new ContinuationListener[getMaxPriority() + 1];
-  for (int p=0; p < _queue.length; p++) {
-    _queue[p]=new ConcurrentLinkedQueue<>();
-    final int priority=p;
-    _listeners[p]=new ContinuationListener(){
-      public void onComplete(      Continuation continuation){
-      }
-      public void onTimeout(      Continuation continuation){
-        _queue[priority].remove(continuation);
-      }
-    }
-;
+  _queues=new Queue[getMaxPriority() + 1];
+  _listeners=new AsyncListener[_queues.length];
+  for (int p=0; p < _queues.length; p++) {
+    _queues[p]=new ConcurrentLinkedQueue<>();
+    _listeners[p]=new DoSAsyncListener(p);
   }
   _rateTrackers.clear();
   int maxRequests=__DEFAULT_MAX_REQUESTS_PER_SEC;
@@ -56,5 +47,6 @@
   parameter=filterConfig.getInitParameter(ENABLED_INIT_PARAM);
   setEnabled(parameter == null || Boolean.parseBoolean(parameter));
   _scheduler=startScheduler();
-  if (_context != null && Boolean.parseBoolean(filterConfig.getInitParameter(MANAGED_ATTR_INIT_PARAM)))   _context.setAttribute(filterConfig.getFilterName(),this);
+  ServletContext context=filterConfig.getServletContext();
+  if (context != null && Boolean.parseBoolean(filterConfig.getInitParameter(MANAGED_ATTR_INIT_PARAM)))   context.setAttribute(filterConfig.getFilterName(),this);
 }

@@ -17,21 +17,21 @@ synchronized (map) {
     String value=null;
     int c;
     int totalLength=0;
-    ByteArrayOutputStream2 output=new ByteArrayOutputStream2();
-    int size=0;
-    while ((c=in.read()) > 0) {
+    try (ByteArrayOutputStream2 output=new ByteArrayOutputStream2()){
+      int size=0;
+      while ((c=in.read()) > 0) {
 switch ((char)c) {
 case '&':
-        size=output.size();
-      value=size == 0 ? "" : output.toString(charset);
-    output.setCount(0);
-  if (key != null) {
-    map.add(key,value);
-  }
- else   if (value != null && value.length() > 0) {
-    map.add(value,"");
-  }
-key=null;
+          size=output.size();
+        value=size == 0 ? "" : output.toString(charset);
+      output.setCount(0);
+    if (key != null) {
+      map.add(key,value);
+    }
+ else     if (value != null && value.length() > 0) {
+      map.add(value,"");
+    }
+  key=null;
 value=null;
 if (maxKeys > 0 && map.size() > maxKeys) throw new IllegalStateException("Form too many keys");
 break;
@@ -79,4 +79,5 @@ map.add(key,value);
 }
  else if (size > 0) map.add(output.toString(charset),"");
 }
+ }
 }

@@ -1,0 +1,51 @@
+{
+  if (effectiveWebXml == null) {
+    deleteOnExit=true;
+    effectiveWebXml=new File(target,"effective-web.xml");
+    effectiveWebXml.deleteOnExit();
+  }
+  Resource descriptor=Resource.newResource(effectiveWebXml);
+  QueuedThreadPool tpool=null;
+  try {
+    printSystemProperties();
+    applyJettyXml();
+    server.configureHandlers();
+    configureWebApplication();
+    webApp.setCopyWebDir(false);
+    webApp.setCopyWebInf(false);
+    webApp.setGenerateQuickStart(true);
+    if (!effectiveWebXml.getParentFile().exists())     effectiveWebXml.getParentFile().mkdirs();
+    if (!effectiveWebXml.exists())     effectiveWebXml.createNewFile();
+    webApp.setQuickStartWebDescriptor(descriptor);
+    server.addWebApplication(webApp);
+    tpool=server.getBean(QueuedThreadPool.class);
+    if (tpool != null)     tpool.start();
+ else     webApp.setAttribute(AnnotationConfiguration.MULTI_THREADED,Boolean.FALSE.toString());
+    webApp.start();
+  }
+ catch (  Exception e) {
+    throw new MojoExecutionException("Effective web.xml generation failed",e);
+  }
+ finally {
+    try {
+      webApp.stop();
+    }
+ catch (    Exception x) {
+    }
+    ;
+    try {
+      if (tpool != null)       tpool.stop();
+    }
+ catch (    Exception x) {
+    }
+    ;
+  }
+  if (deleteOnExit) {
+    try {
+      getLog().info(IO.toString(descriptor.getInputStream()));
+    }
+ catch (    IOException e) {
+      throw new MojoExecutionException("Unable to output effective web.xml",e);
+    }
+  }
+}

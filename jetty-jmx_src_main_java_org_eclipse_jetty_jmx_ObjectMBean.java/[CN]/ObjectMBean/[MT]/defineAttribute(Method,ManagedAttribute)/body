@@ -18,11 +18,11 @@
   convert=isAnnotationPresent(component_type,ManagedObject.class);
   String uName=name.substring(0,1).toUpperCase(Locale.ENGLISH) + name.substring(1);
   Class<?> oClass=onMBean ? this.getClass() : _managed.getClass();
-  LOG.debug("defineAttribute {} {}:{}:{}:{}",name,onMBean,readonly,oClass,description);
+  if (LOG.isDebugEnabled())   LOG.debug("defineAttribute {} {}:{}:{}:{}",name,onMBean,readonly,oClass,description);
   Method setter=null;
   if (!readonly) {
     String declaredSetter=attributeAnnotation.setter();
-    LOG.debug("DeclaredSetter: {}",declaredSetter);
+    if (LOG.isDebugEnabled())     LOG.debug("DeclaredSetter: {}",declaredSetter);
     Method[] methods=oClass.getMethods();
     for (int m=0; m < methods.length; m++) {
       if ((methods[m].getModifiers() & Modifier.PUBLIC) == 0)       continue;
@@ -37,7 +37,7 @@
             LOG.warn("Type conflict for mbean attr {} in {}",name,oClass);
             continue;
           }
-          LOG.debug("Declared Setter: " + declaredSetter);
+          if (LOG.isDebugEnabled())           LOG.debug("Declared Setter: " + declaredSetter);
         }
       }
       if (methods[m].getName().equals("set" + uName) && methods[m].getParameterTypes().length == 1) {
@@ -62,7 +62,7 @@
       LOG.warn("Cannot convert mbean primative {}",name);
       return null;
     }
-    LOG.debug("passed convert checks {} for type {}",name,component_type);
+    if (LOG.isDebugEnabled())     LOG.debug("passed convert checks {} for type {}",name,component_type);
   }
   try {
     _getters.put(name,method);

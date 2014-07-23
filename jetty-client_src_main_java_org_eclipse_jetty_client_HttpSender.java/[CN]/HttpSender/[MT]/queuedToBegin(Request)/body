@@ -1,7 +1,8 @@
 {
-  if (!updateRequestState(RequestState.QUEUED,RequestState.BEGIN))   return false;
-  LOG.debug("Request begin {}",request);
+  if (!updateRequestState(RequestState.QUEUED,RequestState.TRANSIENT))   return false;
+  if (LOG.isDebugEnabled())   LOG.debug("Request begin {}",request);
   RequestNotifier notifier=getHttpChannel().getHttpDestination().getRequestNotifier();
   notifier.notifyBegin(request);
+  if (!updateRequestState(RequestState.TRANSIENT,RequestState.BEGIN))   terminateRequest(getHttpExchange(),failure,false);
   return true;
 }

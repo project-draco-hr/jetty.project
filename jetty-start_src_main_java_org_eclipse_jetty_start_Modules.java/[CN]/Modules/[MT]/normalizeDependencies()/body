@@ -1,0 +1,27 @@
+{
+  boolean done=false;
+  while (!done) {
+    done=true;
+    Set<String> missingParents=new HashSet<>();
+    for (    Module m : modules.values()) {
+      for (      String parent : m.getParentNames()) {
+        if (modules.containsKey(parent) || missingModules.contains(parent)) {
+          continue;
+        }
+        done=false;
+        missingParents.add(parent);
+      }
+    }
+    for (    String missingParent : missingParents) {
+      Path file=baseHome.getPath("modules/" + missingParent + ".mod");
+      if (FS.canReadFile(file)) {
+        Module module=registerModule(file);
+        updateParentReferencesTo(module);
+      }
+ else {
+        StartLog.debug("Missing module definition: [ Mod: %s | File: %s ]",missingParent,file);
+        missingModules.add(missingParent);
+      }
+    }
+  }
+}

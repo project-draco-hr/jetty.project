@@ -1,0 +1,23 @@
+{
+  try {
+    String abs=file.getAbsolutePath();
+    String can=file.getCanonicalPath();
+    if (!abs.equals(can)) {
+      if (LOG.isDebugEnabled())       LOG.debug("ALIAS abs={} can={}",abs,can);
+      URI alias=new File(can).toURI();
+      return new URI("file://" + URIUtil.encodePath(alias.getPath()));
+    }
+  }
+ catch (  Exception e) {
+    LOG.warn("bad alias for {}: {}",file,e.toString());
+    LOG.debug(e);
+    try {
+      return new URI("http://eclipse.org/bad/canonical/alias");
+    }
+ catch (    Exception e2) {
+      LOG.ignore(e2);
+      throw new RuntimeException(e);
+    }
+  }
+  return null;
+}

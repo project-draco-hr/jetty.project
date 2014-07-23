@@ -1,0 +1,16 @@
+{
+  List<String> cmdLineArgs=new ArrayList<>();
+  File homePath=MavenTestingUtils.getTestResourceDir("usecases/home").getAbsoluteFile();
+  cmdLineArgs.add("jetty.home=" + homePath);
+  cmdLineArgs.add("user.dir=" + homePath);
+  cmdLineArgs.add("java.version=1.7.0_60");
+  cmdLineArgs.add("--module=server");
+  cmdLineArgs.add("--module=deploy");
+  cmdLineArgs.add("--module=spdy");
+  Main main=new Main();
+  StartArgs args=main.processCommandLine(cmdLineArgs.toArray(new String[cmdLineArgs.size()]));
+  BaseHome baseHome=main.getBaseHome();
+  assertThat("jetty.home",baseHome.getHome(),is(homePath.getAbsolutePath()));
+  assertThat("jetty.base",baseHome.getBase(),is(homePath.getAbsolutePath()));
+  ConfigurationAssert.assertConfiguration(baseHome,args,"assert-home-with-spdy.txt");
+}

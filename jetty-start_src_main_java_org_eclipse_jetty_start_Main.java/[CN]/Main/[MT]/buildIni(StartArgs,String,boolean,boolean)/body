@@ -19,8 +19,8 @@
     }
   }
   boolean transitive=module.isEnabled() && (module.getSources().size() == 0);
-  boolean has_ini_lines=module.getInitialise().size() > 0;
-  if (!module.isEnabled() || (transitive && has_ini_lines) || (topLevel && !FS.exists(startd_ini) && !appendStartIni)) {
+  boolean hasDefinedDefaults=module.getDefaultConfig().size() > 0;
+  if (!module.isEnabled() || (transitive && hasDefinedDefaults) || (topLevel && !FS.exists(startd_ini) && !appendStartIni)) {
     BufferedWriter writer=null;
     String source=null;
     PrintWriter out=null;
@@ -49,7 +49,7 @@
       out.println("--module=" + name);
       args.parse("--module=" + name,source);
       modules.enable(name,Collections.singletonList(source));
-      for (      String line : module.getInitialise()) {
+      for (      String line : module.getDefaultConfig()) {
         out.println(line);
         args.parse(line,source);
         Matcher m=p.matcher(line);
@@ -90,7 +90,7 @@
     initFile(new FileArg(file));
   }
   module.expandProperties(args.getProperties());
-  modules.registerParentsIfMissing(baseHome,args,module);
+  modules.registerParentsIfMissing(module);
   modules.buildGraph();
   if (topLevel) {
     List<Module> depends=new ArrayList<>();

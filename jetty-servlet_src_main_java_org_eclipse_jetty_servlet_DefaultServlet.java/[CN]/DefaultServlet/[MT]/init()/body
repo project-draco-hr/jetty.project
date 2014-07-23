@@ -54,13 +54,13 @@
     if (max_cache_size != -1 || max_cached_file_size != -2 || max_cached_files != -2)     LOG.debug("ignoring resource cache configuration, using resourceCache attribute");
     if (_relativeResourceBase != null || _resourceBase != null)     throw new UnavailableException("resourceCache specified with resource bases");
     _cache=(ResourceCache)_servletContext.getAttribute(resourceCache);
-    LOG.debug("Cache {}={}",resourceCache,_cache);
+    if (LOG.isDebugEnabled())     LOG.debug("Cache {}={}",resourceCache,_cache);
   }
   _etags=getInitBoolean("etags",_etags);
   try {
-    if (_cache == null && max_cached_files > 0) {
+    if (_cache == null && (max_cached_files != -2 || max_cache_size != -2 || max_cached_file_size != -2)) {
       _cache=new ResourceCache(null,this,_mimeTypes,_useFileMappedBuffer,_etags);
-      if (max_cache_size > 0)       _cache.setMaxCacheSize(max_cache_size);
+      if (max_cache_size >= 0)       _cache.setMaxCacheSize(max_cache_size);
       if (max_cached_file_size >= -1)       _cache.setMaxCachedFileSize(max_cached_file_size);
       if (max_cached_files >= -1)       _cache.setMaxCachedFiles(max_cached_files);
     }
@@ -68,6 +68,18 @@
  catch (  Exception e) {
     LOG.warn(Log.EXCEPTION,e);
     throw new UnavailableException(e.toString());
+  }
+  _gzipEquivalentFileExtensions=new ArrayList<String>();
+  String otherGzipExtensions=getInitParameter("otherGzipFileExtensions");
+  if (otherGzipExtensions != null) {
+    StringTokenizer tok=new StringTokenizer(otherGzipExtensions,",",false);
+    while (tok.hasMoreTokens()) {
+      String s=tok.nextToken().trim();
+      _gzipEquivalentFileExtensions.add((s.charAt(0) == '.' ? s : "." + s));
+    }
+  }
+ else {
+    _gzipEquivalentFileExtensions.add(".svgz");
   }
   _servletHandler=_contextHandler.getChildHandlerByClass(ServletHandler.class);
   for (  ServletHolder h : _servletHandler.getServlets())   if (h.getServletInstance() == this)   _defaultHolder=h;

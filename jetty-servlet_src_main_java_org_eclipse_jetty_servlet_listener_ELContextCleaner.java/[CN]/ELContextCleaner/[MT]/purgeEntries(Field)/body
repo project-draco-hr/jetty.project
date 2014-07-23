@@ -1,16 +1,18 @@
 {
   if (properties == null)   return;
   if (!properties.isAccessible())   properties.setAccessible(true);
-  ConcurrentHashMap map=(ConcurrentHashMap)properties.get(null);
+  ConcurrentHashMap<Class<?>,Object> map=(ConcurrentHashMap<Class<?>,Object>)properties.get(null);
   if (map == null)   return;
-  Iterator<Class> itor=map.keySet().iterator();
+  Iterator<Class<?>> itor=map.keySet().iterator();
   while (itor.hasNext()) {
-    Class clazz=itor.next();
-    LOG.debug("Clazz: " + clazz + " loaded by "+ clazz.getClassLoader());
+    Class<?> clazz=itor.next();
+    if (LOG.isDebugEnabled())     LOG.debug("Clazz: " + clazz + " loaded by "+ clazz.getClassLoader());
     if (Thread.currentThread().getContextClassLoader().equals(clazz.getClassLoader())) {
       itor.remove();
-      LOG.debug("removed");
+      if (LOG.isDebugEnabled())       LOG.debug("removed");
     }
- else     LOG.debug("not removed: " + "contextclassloader=" + Thread.currentThread().getContextClassLoader() + "clazz's classloader="+ clazz.getClassLoader());
+ else {
+      if (LOG.isDebugEnabled())       LOG.debug("not removed: " + "contextclassloader=" + Thread.currentThread().getContextClassLoader() + "clazz's classloader="+ clazz.getClassLoader());
+    }
   }
 }

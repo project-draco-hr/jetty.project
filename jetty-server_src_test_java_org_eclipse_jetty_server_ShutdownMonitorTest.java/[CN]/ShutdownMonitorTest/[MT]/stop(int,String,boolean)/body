@@ -1,21 +1,18 @@
 {
-  Socket s=null;
-  try {
-    s=new Socket(InetAddress.getByName("127.0.0.1"),port);
-    OutputStream out=s.getOutputStream();
-    out.write((key + "\r\nstop\r\n").getBytes());
-    out.flush();
-    if (check) {
-      Thread.currentThread().sleep(600);
-      LineNumberReader lin=new LineNumberReader(new InputStreamReader(s.getInputStream()));
-      String response;
-      if ((response=lin.readLine()) != null) {
-        assertEquals("Stopped",response);
+  System.out.printf("Attempting stop to localhost:%d (%b)%n",port,check);
+  try (Socket s=new Socket(InetAddress.getByName("127.0.0.1"),port)){
+    try (OutputStream out=s.getOutputStream()){
+      out.write((key + "\r\nstop\r\n").getBytes());
+      out.flush();
+      if (check) {
+        TimeUnit.MILLISECONDS.sleep(600);
+        LineNumberReader lin=new LineNumberReader(new InputStreamReader(s.getInputStream()));
+        String response;
+        if ((response=lin.readLine()) != null) {
+          assertEquals("Stopped",response);
+        }
+ else         throw new IllegalStateException("No stop confirmation");
       }
- else       throw new IllegalStateException("No stop confirmation");
     }
-  }
-  finally {
-    if (s != null)     s.close();
-  }
-}
+   }
+ }

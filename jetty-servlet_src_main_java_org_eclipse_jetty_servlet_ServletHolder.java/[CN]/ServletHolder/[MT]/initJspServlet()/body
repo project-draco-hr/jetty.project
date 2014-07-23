@@ -4,7 +4,15 @@
   setInitParameter("com.sun.appserv.jsp.classpath",Loader.getClassPath(ch.getClassLoader().getParent()));
   if ("?".equals(getInitParameter("classpath"))) {
     String classpath=ch.getClassPath();
-    LOG.debug("classpath=" + classpath);
+    if (LOG.isDebugEnabled())     LOG.debug("classpath=" + classpath);
     if (classpath != null)     setInitParameter("classpath",classpath);
   }
+  File scratch=null;
+  if (getInitParameter("scratchdir") == null) {
+    File tmp=(File)getServletHandler().getServletContext().getAttribute(ServletContext.TEMPDIR);
+    scratch=new File(tmp,"jsp");
+    setInitParameter("scratchdir",scratch.getAbsolutePath());
+  }
+  scratch=new File(getInitParameter("scratchdir"));
+  if (!scratch.exists())   scratch.mkdir();
 }

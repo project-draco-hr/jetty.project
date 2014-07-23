@@ -5,19 +5,21 @@
   if (async.isAsync()) {
     ContextHandler context=async.getContextHandler();
     if (context != null) {
-      context.handle(target,baseRequest,request,response);
+      Handler branch=_contextBranches.get(context);
+      if (branch == null)       context.handle(target,baseRequest,request,response);
+ else       branch.handle(target,baseRequest,request,response);
       return;
     }
   }
   if (target.startsWith("/")) {
     int limit=target.length() - 1;
     while (limit >= 0) {
-      ContextHandler[] contexts=_contexts.getBest(target,1,limit);
-      if (contexts == null)       break;
-      int l=contexts[0].getContextPath().length();
+      Map.Entry<String,Branch[]> branches=_pathBranches.getBest(target,1,limit);
+      if (branches == null)       break;
+      int l=branches.getKey().length();
       if (l == 1 || target.length() == l || target.charAt(l) == '/') {
-        for (        ContextHandler handler : contexts) {
-          handler.handle(target,baseRequest,request,response);
+        for (        Branch branch : branches.getValue()) {
+          branch.getHandler().handle(target,baseRequest,request,response);
           if (baseRequest.isHandled())           return;
         }
       }

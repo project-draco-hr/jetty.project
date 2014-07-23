@@ -1,5 +1,5 @@
 {
-  LOG.debug("{} handle enter",this);
+  if (LOG.isDebugEnabled())   LOG.debug("{} handle enter",this);
   final HttpChannel<?> last=setCurrentHttpChannel(this);
   String threadName=null;
   if (LOG.isDebugEnabled()) {
@@ -11,14 +11,17 @@
     loop:     while (action.ordinal() < HttpChannelState.Action.WAIT.ordinal() && getServer().isRunning()) {
       boolean error=false;
       try {
-        LOG.debug("{} action {}",this,action);
+        if (LOG.isDebugEnabled())         LOG.debug("{} action {}",this,action);
 switch (action) {
 case REQUEST_DISPATCH:
           _request.setHandled(false);
         _response.getHttpOutput().reopen();
       _request.setDispatcherType(DispatcherType.REQUEST);
-    for (    HttpConfiguration.Customizer customizer : _configuration.getCustomizers())     customizer.customize(getConnector(),_configuration,_request);
-  getServer().handle(this);
+    List<HttpConfiguration.Customizer> customizers=_configuration.getCustomizers();
+  if (!customizers.isEmpty()) {
+    for (    HttpConfiguration.Customizer customizer : customizers)     customizer.customize(getConnector(),_configuration,_request);
+  }
+getServer().handle(this);
 break;
 case ASYNC_DISPATCH:
 _request.setHandled(false);
@@ -93,8 +96,12 @@ if (threadName != null && LOG.isDebugEnabled()) Thread.currentThread().setName(t
 if (action == Action.COMPLETE) {
 try {
 _state.completed();
-if (!_response.isCommitted() && !_request.isHandled()) _response.sendError(404);
- else _response.closeOutput();
+if (!_response.isCommitted() && !_request.isHandled()) {
+_response.sendError(404);
+}
+ else {
+_response.closeOutput();
+}
 }
  catch (EofException|ClosedChannelException e) {
 LOG.debug(e);
@@ -107,6 +114,6 @@ _request.setHandled(true);
 _transport.completed();
 }
 }
-LOG.debug("{} handle exit, result {}",this,action);
+if (LOG.isDebugEnabled()) LOG.debug("{} handle exit, result {}",this,action);
 return action != Action.WAIT;
 }

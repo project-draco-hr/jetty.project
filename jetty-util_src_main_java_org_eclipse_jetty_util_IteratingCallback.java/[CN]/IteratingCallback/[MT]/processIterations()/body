@@ -15,13 +15,21 @@ case SCHEDULED:
     }
 case SUCCEEDED:
 {
-    if (completeSuccess())     completed();
-    return true;
-  }
+    while (true) {
+      State current=_state.get();
+switch (current) {
+case SUCCEEDED:
 case FAILED:
-{
-  completeFailure();
-  return true;
+        return true;
+case CLOSED:
+      throw new IllegalStateException();
+default :
+    if (_state.compareAndSet(current,State.SUCCEEDED)) {
+      onCompleteSuccess();
+      return true;
+    }
+}
+}
 }
 default :
 {
