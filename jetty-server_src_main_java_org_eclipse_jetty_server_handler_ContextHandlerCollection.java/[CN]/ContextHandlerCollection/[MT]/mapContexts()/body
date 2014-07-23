@@ -1,37 +1,40 @@
 {
+  _contextBranches.clear();
+  if (getHandlers() == null) {
+    _pathBranches=new ArrayTernaryTrie<>(false,16);
+    return;
+  }
+  Map<String,Branch[]> map=new HashMap<>();
+  for (  Handler handler : getHandlers()) {
+    Branch branch=new Branch(handler);
+    for (    String contextPath : branch.getContextPaths()) {
+      Branch[] branches=map.get(contextPath);
+      map.put(contextPath,ArrayUtil.addToArray(branches,branch,Branch.class));
+    }
+    for (    ContextHandler context : branch.getContextHandlers())     _contextBranches.putIfAbsent(context,branch.getHandler());
+  }
+  for (  Map.Entry<String,Branch[]> entry : map.entrySet()) {
+    Branch[] branches=entry.getValue();
+    Branch[] sorted=new Branch[branches.length];
+    int i=0;
+    for (    Branch branch : branches)     if (branch.hasVirtualHost())     sorted[i++]=branch;
+    for (    Branch branch : branches)     if (!branch.hasVirtualHost())     sorted[i++]=branch;
+    entry.setValue(sorted);
+  }
   int capacity=512;
-  Trie<ContextHandler[]> trie;
+  Trie<Map.Entry<String,Branch[]>> trie;
   loop:   while (true) {
     trie=new ArrayTernaryTrie<>(false,capacity);
-    Handler[] branches=getHandlers();
-    for (int b=0; branches != null && b < branches.length; b++) {
-      Handler[] handlers=null;
-      if (branches[b] instanceof ContextHandler) {
-        handlers=new Handler[]{branches[b]};
-      }
- else       if (branches[b] instanceof HandlerContainer) {
-        handlers=((HandlerContainer)branches[b]).getChildHandlersByClass(ContextHandler.class);
-      }
- else       continue;
-      for (int i=0; handlers != null && i < handlers.length; i++) {
-        ContextHandler handler=(ContextHandler)handlers[i];
-        String contextPath=handler.getContextPath().substring(1);
-        ContextHandler[] contexts=trie.get(contextPath);
-        if (!trie.put(contextPath,ArrayUtil.addToArray(contexts,handler,ContextHandler.class))) {
-          capacity+=512;
-          continue loop;
-        }
+    for (    Map.Entry<String,Branch[]> entry : map.entrySet()) {
+      if (!trie.put(entry.getKey().substring(1),entry)) {
+        capacity+=512;
+        continue loop;
       }
     }
-    break;
+    break loop;
   }
-  for (  String ctx : trie.keySet()) {
-    ContextHandler[] contexts=trie.get(ctx);
-    ContextHandler[] sorted=new ContextHandler[contexts.length];
-    int i=0;
-    for (    ContextHandler handler : contexts)     if (handler.getVirtualHosts() != null && handler.getVirtualHosts().length > 0)     sorted[i++]=handler;
-    for (    ContextHandler handler : contexts)     if (handler.getVirtualHosts() == null || handler.getVirtualHosts().length == 0)     sorted[i++]=handler;
-    trie.put(ctx,sorted);
+  if (LOG.isDebugEnabled()) {
+    for (    String ctx : trie.keySet())     LOG.debug("{}->{}",ctx,Arrays.asList(trie.get(ctx).getValue()));
   }
-  _contexts=trie;
+  _pathBranches=trie;
 }
