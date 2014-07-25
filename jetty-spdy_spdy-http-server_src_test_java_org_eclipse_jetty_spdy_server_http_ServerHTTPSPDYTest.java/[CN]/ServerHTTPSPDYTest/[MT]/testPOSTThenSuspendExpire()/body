@@ -3,13 +3,14 @@
   Session session=startClient(version,startHTTPServer(version,new AbstractHandler(){
     @Override public void handle(    String target,    final Request request,    HttpServletRequest httpRequest,    HttpServletResponse httpResponse) throws IOException, ServletException {
       request.setHandled(true);
-      final Continuation continuation=ContinuationSupport.getContinuation(request);
-      if (continuation.isInitial()) {
-        continuation.setTimeout(1000);
-        continuation.suspend();
+      if (request.getAttribute(SUSPENDED_ATTRIBUTE) == Boolean.TRUE) {
+        dispatchedAgainAfterExpire.countDown();
       }
  else {
-        dispatchedAgainAfterExpire.countDown();
+        AsyncContext asyncContext=request.startAsync();
+        asyncContext.setTimeout(1000);
+        asyncContext.addListener(new AsyncListenerAdapter());
+        request.setAttribute(SUSPENDED_ATTRIBUTE,Boolean.TRUE);
       }
     }
   }

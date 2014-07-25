@@ -1,14 +1,14 @@
 {
-  _log.debug(getRequestId(request) + " proxying failed",failure);
+  if (_log.isDebugEnabled())   _log.debug(getRequestId(request) + " proxying failed",failure);
   if (response.isCommitted()) {
     try {
       response.sendError(-1);
+      AsyncContext asyncContext=request.getAsyncContext();
+      asyncContext.complete();
     }
- catch (    IOException e) {
-      getServletContext().log("close failed",e);
+ catch (    IOException x) {
+      if (_log.isDebugEnabled())       _log.debug(getRequestId(request) + " could not close the connection",failure);
     }
-    AsyncContext asyncContext=request.getAsyncContext();
-    asyncContext.complete();
   }
  else {
     response.resetBuffer();

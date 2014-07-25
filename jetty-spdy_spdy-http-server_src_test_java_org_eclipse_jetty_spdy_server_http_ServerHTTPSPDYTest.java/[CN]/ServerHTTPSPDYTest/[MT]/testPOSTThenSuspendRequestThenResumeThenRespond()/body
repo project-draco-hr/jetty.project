@@ -4,18 +4,22 @@
   Session session=startClient(version,startHTTPServer(version,new AbstractHandler(){
     @Override public void handle(    String target,    final Request request,    HttpServletRequest httpRequest,    HttpServletResponse httpResponse) throws IOException, ServletException {
       request.setHandled(true);
-      final Continuation continuation=ContinuationSupport.getContinuation(request);
-      if (continuation.isInitial()) {
+      if (request.getAttribute(SUSPENDED_ATTRIBUTE) == Boolean.TRUE) {
+        OutputStream output=httpResponse.getOutputStream();
+        output.write(data);
+      }
+ else {
+        final AsyncContext asyncContext=request.startAsync();
+        request.setAttribute(SUSPENDED_ATTRIBUTE,Boolean.TRUE);
         InputStream input=request.getInputStream();
         byte[] buffer=new byte[256];
         int read=0;
         while (read < data.length)         read+=input.read(buffer);
-        continuation.suspend();
         new Thread(){
           @Override public void run(){
             try {
               TimeUnit.SECONDS.sleep(1);
-              continuation.resume();
+              asyncContext.dispatch();
               latch.countDown();
             }
  catch (            InterruptedException x) {
@@ -24,10 +28,6 @@
           }
         }
 .start();
-      }
- else {
-        OutputStream output=httpResponse.getOutputStream();
-        output.write(data);
       }
     }
   }

@@ -4,13 +4,12 @@
   Session session=startClient(version,startHTTPServer(version,new AbstractHandler(){
     @Override public void handle(    String target,    final Request request,    HttpServletRequest httpRequest,    HttpServletResponse httpResponse) throws IOException, ServletException {
       request.setHandled(true);
-      final Continuation continuation=ContinuationSupport.getContinuation(request);
-      continuation.suspend();
+      final AsyncContext asyncContext=request.startAsync();
       new Thread(){
         @Override public void run(){
           try {
             readRequestData(request,data.length);
-            continuation.complete();
+            asyncContext.complete();
             latch.countDown();
           }
  catch (          IOException x) {

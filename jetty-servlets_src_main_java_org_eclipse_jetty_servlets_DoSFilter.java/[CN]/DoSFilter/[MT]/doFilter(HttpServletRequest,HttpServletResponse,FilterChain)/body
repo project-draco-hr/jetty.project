@@ -5,9 +5,11 @@
   }
   RateTracker tracker=(RateTracker)request.getAttribute(__TRACKER);
   if (tracker == null) {
+    if (LOG.isDebugEnabled())     LOG.debug("Filtering {}",request);
     tracker=getRateTracker(request);
     final boolean overRateLimit=tracker.isRateExceeded(System.currentTimeMillis());
     if (!overRateLimit) {
+      if (LOG.isDebugEnabled())       LOG.debug("Allowing {}",request);
       doFilterChain(filterChain,request,response);
       return;
     }
@@ -16,68 +18,80 @@
 switch ((int)delayMs) {
 case -1:
 {
-        LOG.warn("DOS ALERT: Request rejected ip=" + request.getRemoteAddr() + ",session="+ request.getRequestedSessionId()+ ",user="+ request.getUserPrincipal());
+        LOG.warn("DOS ALERT: Request rejected ip={}, session={}, user={}",request.getRemoteAddr(),request.getRequestedSessionId(),request.getUserPrincipal());
         if (insertHeaders)         response.addHeader("DoSFilter","unavailable");
         response.sendError(HttpServletResponse.SC_SERVICE_UNAVAILABLE);
         return;
       }
 case 0:
 {
-      LOG.warn("DOS ALERT: Request throttled ip=" + request.getRemoteAddr() + ",session="+ request.getRequestedSessionId()+ ",user="+ request.getUserPrincipal());
+      LOG.warn("DOS ALERT: Request throttled ip={}, session={}, user={}",request.getRemoteAddr(),request.getRequestedSessionId(),request.getUserPrincipal());
       request.setAttribute(__TRACKER,tracker);
       break;
     }
 default :
 {
-    LOG.warn("DOS ALERT: Request delayed=" + delayMs + "ms ip="+ request.getRemoteAddr()+ ",session="+ request.getRequestedSessionId()+ ",user="+ request.getUserPrincipal());
+    LOG.warn("DOS ALERT: Request delayed={}ms, ip={}, session={}, user={}",delayMs,request.getRemoteAddr(),request.getRequestedSessionId(),request.getUserPrincipal());
     if (insertHeaders)     response.addHeader("DoSFilter","delayed");
-    Continuation continuation=ContinuationSupport.getContinuation(request);
     request.setAttribute(__TRACKER,tracker);
-    if (delayMs > 0)     continuation.setTimeout(delayMs);
-    continuation.suspend();
+    AsyncContext asyncContext=request.startAsync();
+    if (delayMs > 0)     asyncContext.setTimeout(delayMs);
+    asyncContext.addListener(new DoSTimeoutAsyncListener());
     return;
   }
 }
 }
+if (LOG.isDebugEnabled()) LOG.debug("Throttling {}",request);
 boolean accepted=false;
 try {
 accepted=_passes.tryAcquire(getMaxWaitMs(),TimeUnit.MILLISECONDS);
 if (!accepted) {
-final Continuation continuation=ContinuationSupport.getContinuation(request);
 Boolean throttled=(Boolean)request.getAttribute(__THROTTLED);
 long throttleMs=getThrottleMs();
 if (throttled != Boolean.TRUE && throttleMs > 0) {
   int priority=getPriority(request,tracker);
   request.setAttribute(__THROTTLED,Boolean.TRUE);
   if (isInsertHeaders())   response.addHeader("DoSFilter","throttled");
-  if (throttleMs > 0)   continuation.setTimeout(throttleMs);
-  continuation.suspend();
-  continuation.addContinuationListener(_listeners[priority]);
-  _queue[priority].add(continuation);
+  AsyncContext asyncContext=request.startAsync();
+  request.setAttribute(_suspended,Boolean.TRUE);
+  if (throttleMs > 0)   asyncContext.setTimeout(throttleMs);
+  asyncContext.addListener(_listeners[priority]);
+  _queues[priority].add(asyncContext);
+  if (LOG.isDebugEnabled())   LOG.debug("Throttled {}, {}ms",request,throttleMs);
   return;
 }
- else if (request.getAttribute("javax.servlet.resumed") == Boolean.TRUE) {
+Boolean resumed=(Boolean)request.getAttribute(_resumed);
+if (resumed == Boolean.TRUE) {
   _passes.acquire();
   accepted=true;
 }
 }
-if (accepted) doFilterChain(filterChain,request,response);
+if (accepted) {
+if (LOG.isDebugEnabled()) LOG.debug("Allowing {}",request);
+doFilterChain(filterChain,request,response);
+}
  else {
+if (LOG.isDebugEnabled()) LOG.debug("Rejecting {}",request);
 if (isInsertHeaders()) response.addHeader("DoSFilter","unavailable");
 response.sendError(HttpServletResponse.SC_SERVICE_UNAVAILABLE);
 }
 }
  catch (InterruptedException e) {
-_context.log("DoS",e);
 response.sendError(HttpServletResponse.SC_SERVICE_UNAVAILABLE);
 }
  finally {
 if (accepted) {
-for (int p=_queue.length; p-- > 0; ) {
-  Continuation continuation=_queue[p].poll();
-  if (continuation != null && continuation.isSuspended()) {
-    continuation.resume();
-    break;
+for (int p=_queues.length - 1; p >= 0; --p) {
+  AsyncContext asyncContext=_queues[p].poll();
+  if (asyncContext != null) {
+    ServletRequest candidate=asyncContext.getRequest();
+    Boolean suspended=(Boolean)candidate.getAttribute(_suspended);
+    if (suspended == Boolean.TRUE) {
+      if (LOG.isDebugEnabled())       LOG.debug("Resuming {}",request);
+      candidate.setAttribute(_resumed,Boolean.TRUE);
+      asyncContext.dispatch();
+      break;
+    }
   }
 }
 _passes.release();
