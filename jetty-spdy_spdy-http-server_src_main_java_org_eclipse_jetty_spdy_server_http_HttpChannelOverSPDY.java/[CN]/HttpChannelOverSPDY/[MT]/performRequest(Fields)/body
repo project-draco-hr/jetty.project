@@ -10,8 +10,6 @@
   HttpMethod httpMethod=HttpMethod.fromString(methodHeader.getValue());
   HttpVersion httpVersion=HttpVersion.fromString(versionHeader.getValue());
   if (LOG.isDebugEnabled())   LOG.debug("HTTP > {} {} {}",httpMethod,uriHeader.getValue(),httpVersion);
-  Fields.Field schemeHeader=headers.get(HTTPSPDYHeader.SCHEME.name(version));
-  if (schemeHeader != null)   getRequest().setScheme(schemeHeader.getValue());
   HostPortHttpField hostPort=null;
   HttpFields fields=new HttpFields();
   for (  Fields.Field header : headers) {
@@ -47,8 +45,12 @@ if (hostPort == null) {
 onBadMessage(400,"Missing Host header");
 return false;
 }
-fields.add(hostPort);
-MetaData.Request request=new MetaData.Request(httpMethod == null ? methodHeader.getValue() : httpMethod.asString(),HttpScheme.HTTP.asString(),hostPort,uriHeader.getValue(),httpVersion,fields);
+if (hostPort != null) fields.add(hostPort);
+Fields.Field schemeHeader=headers.get(HTTPSPDYHeader.SCHEME.name(version));
+HttpURI uri=new HttpURI(uriHeader.getValue());
+if (uri.getScheme() == null && schemeHeader != null) uri.setScheme(schemeHeader.getValue());
+if (uri.getHost() == null && hostPort != null) uri.setAuthority(hostPort.getHost(),hostPort.getPort());
+MetaData.Request request=new MetaData.Request(httpMethod == null ? methodHeader.getValue() : httpMethod.asString(),uri,httpVersion,fields);
 onRequest(request);
 return true;
 }

@@ -1,28 +1,5 @@
 {
-  if (_serverName != null)   return _serverName;
-  if (_uri == null)   throw new IllegalStateException("No uri");
-  _serverName=_uri.getHost();
-  if (_serverName != null) {
-    _serverPort=_uri.getPort();
-    return _serverName;
-  }
-  HttpField host=_metadata.getFields().getField(HttpHeader.HOST);
-  if (host != null) {
-    HostPortHttpField authority=(host instanceof HostPortHttpField) ? ((HostPortHttpField)host) : new HostPortHttpField(host.getValue());
-    _serverName=authority.getHost();
-    _serverPort=authority.getPort();
-    return _serverName;
-  }
-  if (_channel != null) {
-    _serverName=getLocalName();
-    _serverPort=getLocalPort();
-    if (_serverName != null && !StringUtil.ALL_INTERFACES.equals(_serverName))     return _serverName;
-  }
-  try {
-    _serverName=InetAddress.getLocalHost().getHostAddress();
-  }
- catch (  java.net.UnknownHostException e) {
-    LOG.ignore(e);
-  }
-  return _serverName;
+  String name=_metadata.getURI().getHost();
+  if (name != null)   return name;
+  return findServerName();
 }
