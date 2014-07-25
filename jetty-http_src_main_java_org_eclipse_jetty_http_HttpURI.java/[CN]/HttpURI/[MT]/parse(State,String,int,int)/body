@@ -1,0 +1,280 @@
+{
+  boolean encoded=false;
+  int m=offset;
+  int p=0;
+  for (int i=offset; i < end; i++) {
+    char c=uri.charAt(i);
+switch (state) {
+case START:
+{
+switch (c) {
+case '/':
+          p=m=i;
+        state=State.PATH;
+      break;
+case ';':
+    m=i + 1;
+  state=State.PARAM;
+break;
+case '?':
+m=i + 1;
+state=State.QUERY;
+break;
+case '#':
+m=i + 1;
+state=State.FRAGMENT;
+break;
+case '*':
+_path="*";
+state=State.ASTERISK;
+break;
+default :
+m=i;
+state=State.SCHEME_OR_PATH;
+}
+continue;
+}
+case SCHEME_OR_PATH:
+{
+switch (c) {
+case ':':
+{
+_scheme=uri.substring(m,i);
+c=uri.charAt(++i);
+m=i;
+if (c == '/') state=State.HOST_OR_PATH;
+ else state=State.PATH;
+break;
+}
+case '/':
+{
+state=State.PATH;
+break;
+}
+case ';':
+{
+p=m;
+state=State.PARAM;
+break;
+}
+case '?':
+{
+_path=uri.substring(m,i);
+state=State.QUERY;
+break;
+}
+case '%':
+{
+encoded=true;
+}
+case '#':
+{
+_path=uri.substring(m,i);
+state=State.FRAGMENT;
+break;
+}
+}
+continue;
+}
+case HOST_OR_PATH:
+{
+switch (c) {
+case '/':
+m=i + 1;
+state=State.HOST;
+break;
+case ';':
+case '?':
+case '#':
+i--;
+p=m;
+state=State.PATH;
+break;
+default :
+p=m;
+state=State.PATH;
+}
+continue;
+}
+case HOST:
+{
+switch (c) {
+case '/':
+{
+_host=uri.substring(m,i);
+p=m=i;
+state=State.PATH;
+break;
+}
+case ':':
+{
+_host=uri.substring(m,i);
+m=i + 1;
+state=State.PORT;
+break;
+}
+case '@':
+m=i + 1;
+break;
+case '[':
+{
+state=State.IPV6;
+break;
+}
+}
+continue;
+}
+case IPV6:
+{
+switch (c) {
+case '/':
+{
+throw new IllegalArgumentException("No closing ']' for ipv6 in " + uri);
+}
+case ']':
+{
+c=uri.charAt(++i);
+_host=uri.substring(m,i);
+if (c == ':') {
+m=i + 1;
+state=State.PORT;
+}
+ else {
+p=m=i;
+state=State.PATH;
+}
+break;
+}
+}
+continue;
+}
+case PORT:
+{
+if (c == '/') {
+_port=TypeUtil.parseInt(uri,m,i - m,10);
+p=m=i;
+state=State.PATH;
+}
+continue;
+}
+case PATH:
+{
+switch (c) {
+case ';':
+{
+m=i + 1;
+state=State.PARAM;
+break;
+}
+case '?':
+{
+_path=uri.substring(p,i);
+m=i + 1;
+state=State.QUERY;
+break;
+}
+case '#':
+{
+_path=uri.substring(p,i);
+m=i + 1;
+state=State.FRAGMENT;
+break;
+}
+case '%':
+{
+encoded=true;
+}
+}
+continue;
+}
+case PARAM:
+{
+switch (c) {
+case '?':
+{
+_path=uri.substring(p,i);
+_param=uri.substring(m,i);
+m=i + 1;
+state=State.QUERY;
+break;
+}
+case '#':
+{
+_path=uri.substring(p,i);
+_param=uri.substring(m,i);
+m=i + 1;
+state=State.FRAGMENT;
+break;
+}
+case '/':
+{
+encoded=true;
+state=State.PATH;
+break;
+}
+case ';':
+{
+m=i + 1;
+break;
+}
+}
+continue;
+}
+case QUERY:
+{
+if (c == '#') {
+_query=uri.substring(m,i);
+m=i + 1;
+state=State.FRAGMENT;
+}
+continue;
+}
+case ASTERISK:
+{
+throw new IllegalArgumentException("only '*'");
+}
+case FRAGMENT:
+{
+_fragment=uri.substring(m,end);
+i=end;
+}
+}
+}
+switch (state) {
+case START:
+break;
+case SCHEME_OR_PATH:
+_path=uri.substring(m,end);
+break;
+case HOST_OR_PATH:
+_path=uri.substring(m,end);
+break;
+case HOST:
+_host=uri.substring(m,end);
+break;
+case IPV6:
+throw new IllegalArgumentException("No closing ']' for ipv6 in " + uri);
+case PORT:
+_port=TypeUtil.parseInt(uri,m,end - m,10);
+break;
+case ASTERISK:
+break;
+case FRAGMENT:
+_fragment=uri.substring(m,end);
+break;
+case PARAM:
+_path=uri.substring(p,end);
+_param=uri.substring(m,end);
+break;
+case PATH:
+_path=uri.substring(p,end);
+break;
+case QUERY:
+_query=uri.substring(m,end);
+break;
+}
+if (!encoded) {
+if (_param == null) _decodedPath=_path;
+ else _decodedPath=_path.substring(0,_path.length() - _param.length() - 1);
+}
+}

@@ -1,0 +1,21 @@
+{
+  Logger logger=Log.getLogger(getClass());
+  new Thread("abort"){
+    @Override public void run(){
+      response.abort(new Exception());
+    }
+  }
+.start();
+  try {
+    boolean latched=failureLatch.await(4,TimeUnit.SECONDS);
+    success.set(latched);
+    logger.info("SIMON - STEP 1");
+    latched=completeLatch.await(1,TimeUnit.SECONDS);
+    success.set(!latched);
+    logger.info("SIMON - STEP 2");
+    callbackLatch.countDown();
+  }
+ catch (  InterruptedException x) {
+    throw new RuntimeException(x);
+  }
+}

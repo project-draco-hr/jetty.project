@@ -44,7 +44,7 @@ if (_responseHandler != null) {
   setResponseStatus(ch - '0');
 }
  else {
-  _uri.clear();
+  _uri.reset();
   setState(State.URI);
   if (buffer.hasArray()) {
     byte[] array=buffer.array();
@@ -58,16 +58,10 @@ if (_responseHandler != null) {
       LOG.warn("URI is too large >" + _maxHeaderBytes);
       throw new BadMessageException(HttpStatus.REQUEST_URI_TOO_LONG_414);
     }
-    if (_uri.remaining() <= len) {
-      ByteBuffer uri=ByteBuffer.allocate(_uri.capacity() + 2 * len);
-      _uri.flip();
-      uri.put(_uri);
-      _uri=uri;
-    }
-    _uri.put(array,p - 1,len + 1);
+    _uri.append(array,p - 1,len + 1);
     buffer.position(i - buffer.arrayOffset());
   }
- else   _uri.put(ch);
+ else   _uri.append(ch);
 }
 }
  else if (ch < HttpTokens.SPACE) {
@@ -94,17 +88,10 @@ if (ch == HttpTokens.SPACE) {
 setState(State.SPACE2);
 }
  else if (ch < HttpTokens.SPACE && ch >= 0) {
-_uri.flip();
 throw new BadMessageException("HTTP/0.9 not supported");
 }
  else {
-if (!_uri.hasRemaining()) {
-ByteBuffer uri=ByteBuffer.allocate(_uri.capacity() * 2);
-_uri.flip();
-uri.put(_uri);
-_uri=uri;
-}
-_uri.put(ch);
+_uri.append(ch);
 }
 break;
 case SPACE2:
@@ -123,8 +110,7 @@ if (buffer.position() > 0 && buffer.hasArray()) version=HttpVersion.lookAheadGet
 if (version == null) {
 if (_method == HttpMethod.PROXY) {
 if (!(_requestHandler instanceof ProxyHandler)) throw new BadMessageException();
-_uri.flip();
-String protocol=BufferUtil.toString(_uri);
+String protocol=_uri.toString();
 buffer.position(buffer.position() - 1);
 String sAddr=getProxyField(buffer);
 String dAddr=getProxyField(buffer);
@@ -162,7 +148,6 @@ handle=_responseHandler.startResponse(_version,_responseStatus,null) || handle;
 setState(State.HEADER);
 }
  else {
-_uri.flip();
 throw new BadMessageException("HTTP/0.9 not supported");
 }
 }
@@ -180,10 +165,7 @@ int header_cache=_handler.getHeaderCacheSize();
 _connectionFields=new ArrayTernaryTrie<>(header_cache);
 }
 setState(State.HEADER);
-_uri.flip();
-if (_method == HttpMethod.CONNECT) _httpURI.parseConnect(_uri.array(),_uri.arrayOffset() + _uri.position(),_uri.remaining());
- else _httpURI.parse(_uri.array(),_uri.arrayOffset() + _uri.position(),_uri.remaining());
-handle=_requestHandler.startRequest(_methodString,_httpURI,_version) || handle;
+handle=_requestHandler.startRequest(_methodString,_uri.toString(),_version) || handle;
 continue;
 }
  else if (ch >= HttpTokens.SPACE) _string.append((char)ch);

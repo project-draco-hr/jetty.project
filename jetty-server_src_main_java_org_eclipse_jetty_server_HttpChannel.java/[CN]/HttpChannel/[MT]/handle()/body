@@ -1,10 +1,10 @@
 {
-  if (LOG.isDebugEnabled())   LOG.debug("{} handle enter",this);
   final HttpChannel last=setCurrentHttpChannel(this);
   String threadName=null;
   if (LOG.isDebugEnabled()) {
     threadName=Thread.currentThread().getName();
-    Thread.currentThread().setName(threadName + " - " + _request.getUri());
+    Thread.currentThread().setName(threadName + " - " + _request.getHttpURI());
+    LOG.debug("{} handle enter",this);
   }
   HttpChannelState.Action action=_state.handling();
   try {
@@ -78,7 +78,7 @@ throw e;
 catch (Exception e) {
 error=true;
 if (e instanceof EofException) LOG.debug(e);
- else LOG.warn(String.valueOf(_request.getUri()),e);
+ else LOG.warn(String.valueOf(_request.getHttpURI()),e);
 _state.error(e);
 _request.setHandled(true);
 handleException(e);
@@ -96,8 +96,12 @@ if (threadName != null && LOG.isDebugEnabled()) Thread.currentThread().setName(t
 if (action == Action.COMPLETE) {
 try {
 _state.completed();
-if (!_response.isCommitted() && !_request.isHandled()) _response.sendError(404);
- else _response.closeOutput();
+if (!_response.isCommitted() && !_request.isHandled()) {
+_response.sendError(404);
+}
+ else {
+_response.closeOutput();
+}
 }
  catch (EofException|ClosedChannelException e) {
 LOG.debug(e);

@@ -3,26 +3,27 @@
   if (exchange == null)   return false;
   boolean completed=exchange.requestComplete();
   if (!completed)   return false;
-  RequestState requestState=dispose();
+  this.failure=failure;
+  RequestState current;
+  boolean fail;
+  while (true) {
+    current=requestState.get();
+    if (updateRequestState(current,RequestState.FAILURE)) {
+      fail=current != RequestState.TRANSIENT && current != RequestState.TRANSIENT_CONTENT;
+      break;
+    }
+  }
+  dispose();
   Result result=exchange.terminateRequest(failure);
   Request request=exchange.getRequest();
   if (LOG.isDebugEnabled())   LOG.debug("Request failure {} {}",exchange,failure);
   HttpDestination destination=getHttpChannel().getHttpDestination();
   destination.getRequestNotifier().notifyFailure(request,failure);
-  boolean notCommitted=isBeforeCommit(requestState);
-  if (result == null && notCommitted && request.getAbortCause() == null) {
-    if (exchange.responseComplete()) {
-      result=exchange.terminateResponse(failure);
-      if (LOG.isDebugEnabled())       LOG.debug("Failed response from request {}",exchange);
-    }
+  if (fail) {
+    terminateRequest(exchange,failure,!isBeforeCommit(current),result);
   }
-  if (result != null) {
-    boolean ordered=destination.getHttpClient().isStrictEventOrdering();
-    if (!ordered)     channel.exchangeTerminated(result);
-    if (LOG.isDebugEnabled())     LOG.debug("Request/Response failed {}",request);
-    HttpConversation conversation=exchange.getConversation();
-    destination.getResponseNotifier().notifyComplete(conversation.getResponseListeners(),result);
-    if (ordered)     channel.exchangeTerminated(result);
+ else {
+    if (LOG.isDebugEnabled())     LOG.debug("Concurrent failure: request termination skipped, performed by helpers");
   }
   return true;
 }

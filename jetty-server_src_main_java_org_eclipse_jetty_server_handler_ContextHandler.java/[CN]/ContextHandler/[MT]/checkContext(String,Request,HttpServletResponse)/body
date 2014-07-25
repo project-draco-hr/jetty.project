@@ -1,5 +1,13 @@
 {
   DispatcherType dispatch=baseRequest.getDispatcherType();
+  if (!checkVirtualHost(baseRequest))   return false;
+  if (!checkContextPath(target))   return false;
+  if (!_allowNullPathInfo && _contextPath.length() == target.length() && _contextPath.length() > 1) {
+    baseRequest.setHandled(true);
+    if (baseRequest.getQueryString() != null)     response.sendRedirect(URIUtil.addPaths(baseRequest.getRequestURI(),URIUtil.SLASH) + "?" + baseRequest.getQueryString());
+ else     response.sendRedirect(URIUtil.addPaths(baseRequest.getRequestURI(),URIUtil.SLASH));
+    return false;
+  }
 switch (_availability) {
 case SHUTDOWN:
 case UNAVAILABLE:
@@ -8,41 +16,6 @@ case UNAVAILABLE:
 return false;
 default :
 if ((DispatcherType.REQUEST.equals(dispatch) && baseRequest.isHandled())) return false;
-}
-if (_vhosts != null && _vhosts.length > 0) {
-String vhost=normalizeHostname(baseRequest.getServerName());
-boolean match=false;
-boolean connectorName=false;
-boolean connectorMatch=false;
-for (String contextVhost : _vhosts) {
-if (contextVhost == null || contextVhost.length() == 0) continue;
-char c=contextVhost.charAt(0);
-switch (c) {
-case '*':
-if (contextVhost.startsWith("*.")) match=match || contextVhost.regionMatches(true,2,vhost,vhost.indexOf(".") + 1,contextVhost.length() - 2);
-break;
-case '@':
-connectorName=true;
-String name=baseRequest.getHttpChannel().getConnector().getName();
-boolean m=name != null && contextVhost.length() == name.length() + 1 && contextVhost.endsWith(name);
-match=match || m;
-connectorMatch=connectorMatch || m;
-break;
-default :
-match=match || contextVhost.equalsIgnoreCase(vhost);
-}
-}
-if (!match || connectorName && !connectorMatch) return false;
-}
-if (_contextPath.length() > 1) {
-if (!target.startsWith(_contextPath)) return false;
-if (target.length() > _contextPath.length() && target.charAt(_contextPath.length()) != '/') return false;
-if (!_allowNullPathInfo && _contextPath.length() == target.length()) {
-baseRequest.setHandled(true);
-if (baseRequest.getQueryString() != null) response.sendRedirect(URIUtil.addPaths(baseRequest.getRequestURI(),URIUtil.SLASH) + "?" + baseRequest.getQueryString());
- else response.sendRedirect(URIUtil.addPaths(baseRequest.getRequestURI(),URIUtil.SLASH));
-return false;
-}
 }
 return true;
 }

@@ -7,11 +7,14 @@ case CONNECTION:
       _connection=field;
     break;
 case HOST:
-  _hostPort=(HostPortHttpField)field;
+  if (!_metadata.getURI().isAbsolute() && field instanceof HostPortHttpField) {
+    HostPortHttpField hp=(HostPortHttpField)field;
+    _metadata.getURI().setAuthority(hp.getHost(),hp.getPort());
+  }
 break;
 case EXPECT:
 {
-if (_version == HttpVersion.HTTP_1_1) {
+if (_metadata.getVersion() == HttpVersion.HTTP_1_1) {
   HttpHeaderValue expect=HttpHeaderValue.CACHE.get(value);
 switch (expect == null ? HttpHeaderValue.UNKNOWN : expect) {
 case CONTINUE:

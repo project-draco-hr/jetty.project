@@ -1,6 +1,17 @@
 {
-  _log.debug(getRequestId(request) + " proxying failed",failure);
-  if (!response.isCommitted()) {
+  if (_log.isDebugEnabled())   _log.debug(getRequestId(request) + " proxying failed",failure);
+  if (response.isCommitted()) {
+    try {
+      response.sendError(-1);
+      AsyncContext asyncContext=request.getAsyncContext();
+      asyncContext.complete();
+    }
+ catch (    IOException x) {
+      if (_log.isDebugEnabled())       _log.debug(getRequestId(request) + " could not close the connection",failure);
+    }
+  }
+ else {
+    response.resetBuffer();
     if (failure instanceof TimeoutException)     response.setStatus(HttpServletResponse.SC_GATEWAY_TIMEOUT);
  else     response.setStatus(HttpServletResponse.SC_BAD_GATEWAY);
     response.setHeader(HttpHeader.CONNECTION.asString(),HttpHeaderValue.CLOSE.asString());

@@ -4,10 +4,11 @@
   if (maxHeaderTableSize != _context.getMaxHeaderTableSize())   encodeMaxHeaderTableSize(buffer,maxHeaderTableSize);
   if (metadata.isRequest()) {
     MetaData.Request request=(MetaData.Request)metadata;
-    encode(buffer,new HttpField(":scheme",request.getScheme().asString()));
+    String scheme=request.getURI().getScheme();
+    encode(buffer,new HttpField(":scheme",scheme == null ? HttpScheme.HTTP.asString() : scheme));
     encode(buffer,new HttpField(":method",request.getMethod()));
-    encode(buffer,new HttpField(":authority",request.getPort() > 0 ? (request.getHost() + ':' + request.getPort()) : request.getHost()));
-    encode(buffer,new HttpField(":path",request.getURI().getPath()));
+    encode(buffer,new HttpField(":authority",request.getURI().getAuthority()));
+    encode(buffer,new HttpField(":path",request.getURI().getPathQuery()));
   }
  else   if (metadata.isResponse()) {
     MetaData.Response response=(MetaData.Response)metadata;

@@ -1,34 +1,23 @@
 {
   _metadata=request;
   setMethod(request.getMethod());
-  setScheme(request.getScheme().asString());
   HttpURI uri=request.getURI();
-  String uriHost=uri.getHost();
-  if (uriHost != null) {
-    setServerName(uriHost);
-    setServerPort(uri.getPort());
-  }
- else {
-    setServerName(request.getHost());
-    setServerPort(request.getPort());
-  }
-  setUri(request.getURI());
-  String path;
-  try {
-    path=uri.getDecodedPath();
-  }
- catch (  Exception e) {
-    LOG.warn("Failed UTF-8 decode for request path, trying ISO-8859-1");
-    LOG.ignore(e);
-    path=uri.getDecodedPath(StandardCharsets.ISO_8859_1);
-  }
-  String info=URIUtil.canonicalPath(path);
-  if (info == null) {
-    if (path == null && uri.getScheme() != null && uri.getHost() != null) {
-      info="/";
-      setRequestURI("");
+  String path=uri.getDecodedPath();
+  String info;
+  if (path == null || path.length() == 0) {
+    if (uri.isAbsolute()) {
+      path="/";
+      uri.setPath(path);
     }
  else     throw new BadMessageException(400,"Bad URI");
+    info=path;
   }
+ else   if (!path.startsWith("/")) {
+    System.err.println(request);
+    if (!"*".equals(path) && !HttpMethod.CONNECT.is(getMethod()))     throw new BadMessageException(400,"Bad URI");
+    info=path;
+  }
+ else   info=URIUtil.canonicalPath(path);
+  if (info == null)   throw new BadMessageException(400,"Bad URI");
   setPathInfo(info);
 }
