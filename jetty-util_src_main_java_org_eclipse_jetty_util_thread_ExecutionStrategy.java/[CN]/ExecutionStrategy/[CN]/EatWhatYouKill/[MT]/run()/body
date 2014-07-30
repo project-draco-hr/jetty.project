@@ -1,0 +1,22 @@
+{
+  _threads.incrementAndGet();
+  try {
+    boolean complete=false;
+    loop:     while (!complete) {
+      if (!_producing.compareAndSet(false,true))       break loop;
+      Runnable task=null;
+      try {
+        task=_producer.produce();
+        complete=task == null || _producer.isMoreToProduce();
+      }
+  finally {
+        _producing.set(false);
+      }
+      if (!complete)       _executor.execute(this);
+      if (task != null)       task.run();
+    }
+  }
+  finally {
+    if (_threads.decrementAndGet() == 0)     _producer.onCompleted();
+  }
+}
