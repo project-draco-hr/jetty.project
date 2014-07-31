@@ -23,49 +23,70 @@
       }
     }
  else {
-      int f=(b & 0xF0) >> 4;
+      byte f=(byte)((b & 0xF0) >> 4);
       String name;
       HttpHeader header;
       String value;
-      if (f <= 1 || f >= 4) {
-        boolean indexed=f >= 4;
-        int bits=indexed ? 6 : 4;
-        boolean huffmanName=false;
-        int name_index=NBitInteger.decode(buffer,bits);
-        if (name_index > 0) {
-          Entry name_entry=_context.get(name_index);
-          name=name_entry.getHttpField().getName();
-          header=name_entry.getHttpField().getHeader();
-        }
+      boolean indexed;
+      int name_index;
+switch (f) {
+case 2:
+case 3:
+        int size=NBitInteger.decode(buffer,5);
+      if (LOG.isDebugEnabled())       LOG.debug("decode resize=" + size);
+    if (size > _localMaxHeaderTableSize)     throw new IllegalArgumentException();
+  _context.resize(size);
+continue;
+case 0:
+case 1:
+indexed=false;
+name_index=NBitInteger.decode(buffer,4);
+break;
+case 4:
+case 5:
+case 6:
+case 7:
+indexed=true;
+name_index=NBitInteger.decode(buffer,6);
+break;
+default :
+throw new IllegalStateException();
+}
+boolean huffmanName=false;
+if (name_index > 0) {
+Entry name_entry=_context.get(name_index);
+name=name_entry.getHttpField().getName();
+header=name_entry.getHttpField().getHeader();
+}
  else {
-          huffmanName=(buffer.get() & 0x80) == 0x80;
-          int length=NBitInteger.decode(buffer,7);
-          _builder.checkSize(length,huffmanName);
-          if (huffmanName)           name=Huffman.decode(buffer,length);
- else           name=toASCIIString(buffer,length);
-          for (int i=0; i < name.length(); i++) {
-            char c=name.charAt(i);
-            if (c >= 'A' && c <= 'Z') {
-              throw new BadMessageException(400,"Uppercase header name");
-            }
-          }
-          header=HttpHeader.CACHE.get(name);
-        }
-        boolean huffmanValue=(buffer.get() & 0x80) == 0x80;
-        int length=NBitInteger.decode(buffer,7);
-        _builder.checkSize(length,huffmanValue);
-        if (huffmanValue)         value=Huffman.decode(buffer,length);
- else         value=toASCIIString(buffer,length);
-        HttpField field;
+huffmanName=(buffer.get() & 0x80) == 0x80;
+int length=NBitInteger.decode(buffer,7);
+_builder.checkSize(length,huffmanName);
+if (huffmanName) name=Huffman.decode(buffer,length);
+ else name=toASCIIString(buffer,length);
+for (int i=0; i < name.length(); i++) {
+char c=name.charAt(i);
+if (c >= 'A' && c <= 'Z') {
+throw new BadMessageException(400,"Uppercase header name");
+}
+}
+header=HttpHeader.CACHE.get(name);
+}
+boolean huffmanValue=(buffer.get() & 0x80) == 0x80;
+int length=NBitInteger.decode(buffer,7);
+_builder.checkSize(length,huffmanValue);
+if (huffmanValue) value=Huffman.decode(buffer,length);
+ else value=toASCIIString(buffer,length);
+HttpField field;
 switch (name) {
 case ":method":
-          HttpMethod method=HttpMethod.CACHE.get(value);
-        if (method != null)         field=new StaticValueHttpField(header,name,method.asString(),method);
- else         field=new AuthorityHttpField(value);
-      break;
+HttpMethod method=HttpMethod.CACHE.get(value);
+if (method != null) field=new StaticValueHttpField(header,name,method.asString(),method);
+ else field=new AuthorityHttpField(value);
+break;
 case ":status":
-    Integer code=Integer.valueOf(value);
-  field=new StaticValueHttpField(header,name,value,code);
+Integer code=Integer.valueOf(value);
+field=new StaticValueHttpField(header,name,value,code);
 break;
 case ":scheme":
 HttpScheme scheme=HttpScheme.CACHE.get(value);
@@ -78,6 +99,10 @@ break;
 case ":path":
 field=new HttpField(header,name,value);
 break;
+case "content-length":
+if ("0".equals(value)) field=CONTENT_LENGTH_0;
+ else field=new HttpField.LongValueHttpField(header,value);
+break;
 default :
 field=new HttpField(header,name,value);
 break;
@@ -86,16 +111,6 @@ if (LOG.isDebugEnabled()) LOG.debug("decoded '" + field + "' by Lit"+ (name_inde
 _builder.emit(field);
 if (indexed) {
 _context.add(field);
-}
-}
- else if (f == 2) {
-int size=NBitInteger.decode(buffer,4);
-if (LOG.isDebugEnabled()) LOG.debug("decode resize=" + size);
-if (size > _localMaxHeaderTableSize) throw new IllegalArgumentException();
-_context.resize(size);
-}
- else if (f == 3) {
-if (LOG.isDebugEnabled()) LOG.debug("unused");
 }
 }
 }
