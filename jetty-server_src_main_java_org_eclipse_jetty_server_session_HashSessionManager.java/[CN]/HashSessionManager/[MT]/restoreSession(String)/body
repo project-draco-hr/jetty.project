@@ -1,21 +1,22 @@
 {
   File file=new File(_storeDir,idInCuster);
-  FileInputStream in=null;
   Exception error=null;
-  try {
-    if (file.exists()) {
-      in=new FileInputStream(file);
-      HashedSession session=restoreSession(in,null);
-      addSession(session,false);
-      session.didActivate();
-      return session;
+  if (!file.exists()) {
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("Not loading: {}",file);
     }
+    return null;
+  }
+  try (FileInputStream in=new FileInputStream(file)){
+    HashedSession session=restoreSession(in,null);
+    addSession(session,false);
+    session.didActivate();
+    return session;
   }
  catch (  Exception e) {
     error=e;
   }
  finally {
-    if (in != null)     IO.close(in);
     if (error != null) {
       if (isDeleteUnrestorableSessions() && file.exists() && file.getParentFile().equals(_storeDir)) {
         file.delete();
@@ -25,7 +26,9 @@
         __log.warn("Problem restoring session " + idInCuster,error);
       }
     }
- else     file.delete();
+ else {
+      file.delete();
+    }
   }
   return null;
 }

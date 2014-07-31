@@ -1,5 +1,5 @@
 {
-  if (!updateResponseState(ResponseState.IDLE,ResponseState.BEGIN))   return false;
+  if (!updateResponseState(ResponseState.IDLE,ResponseState.TRANSIENT))   return false;
   HttpConversation conversation=exchange.getConversation();
   HttpResponse response=exchange.getResponse();
   HttpDestination destination=getHttpDestination();
@@ -14,5 +14,6 @@
   if (LOG.isDebugEnabled())   LOG.debug("Response begin {}",response);
   ResponseNotifier notifier=destination.getResponseNotifier();
   notifier.notifyBegin(conversation.getResponseListeners(),response);
+  if (!updateResponseState(ResponseState.TRANSIENT,ResponseState.BEGIN))   terminateResponse(exchange,failure);
   return true;
 }

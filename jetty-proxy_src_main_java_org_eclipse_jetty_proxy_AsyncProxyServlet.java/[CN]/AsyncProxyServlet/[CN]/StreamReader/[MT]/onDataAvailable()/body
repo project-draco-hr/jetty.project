@@ -1,15 +1,17 @@
 {
   int requestId=getRequestId(request);
   ServletInputStream input=request.getInputStream();
-  _log.debug("{} asynchronous read start on {}",requestId,input);
+  if (_log.isDebugEnabled())   _log.debug("{} asynchronous read start on {}",requestId,input);
   while (input.isReady() && !input.isFinished()) {
     int read=input.read(buffer);
-    _log.debug("{} asynchronous read {} bytes on {}",requestId,read,input);
+    if (_log.isDebugEnabled())     _log.debug("{} asynchronous read {} bytes on {}",requestId,read,input);
     if (read > 0) {
-      _log.debug("{} proxying content to upstream: {} bytes",requestId,read);
+      if (_log.isDebugEnabled())       _log.debug("{} proxying content to upstream: {} bytes",requestId,read);
       onRequestContent(proxyRequest,request,provider,buffer,0,read,this);
       break;
     }
   }
-  if (!input.isFinished())   _log.debug("{} asynchronous read pending on {}",requestId,input);
+  if (!input.isFinished()) {
+    if (_log.isDebugEnabled())     _log.debug("{} asynchronous read pending on {}",requestId,input);
+  }
 }
