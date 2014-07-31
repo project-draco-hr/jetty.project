@@ -4,13 +4,11 @@
   try {
     boolean flushed=_endPoint.flush(buffers);
     if (DEBUG)     LOG.debug("flushed {}",flushed);
-    for (    ByteBuffer b : buffers) {
-      if (!flushed || BufferUtil.hasContent(b)) {
-        PendingState pending=new PendingState(buffers,callback);
-        if (updateState(__WRITING,pending))         onIncompleteFlushed();
- else         fail(pending);
-        return;
-      }
+    if (!flushed) {
+      PendingState pending=new PendingState(buffers,callback);
+      if (updateState(__WRITING,pending))       onIncompleteFlushed();
+ else       fail(pending);
+      return;
     }
     if (!updateState(__WRITING,__IDLE))     ignoreFail();
     if (callback != null)     callback.succeeded();
