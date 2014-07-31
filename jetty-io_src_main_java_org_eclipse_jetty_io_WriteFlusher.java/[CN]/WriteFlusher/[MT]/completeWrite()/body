@@ -8,12 +8,10 @@
     ByteBuffer[] buffers=pending.getBuffers();
     boolean flushed=_endPoint.flush(buffers);
     if (DEBUG)     LOG.debug("flushed {}",flushed);
-    for (    ByteBuffer b : buffers) {
-      if (!flushed || BufferUtil.hasContent(b)) {
-        if (updateState(__COMPLETING,pending))         onIncompleteFlushed();
- else         fail(pending);
-        return;
-      }
+    if (!flushed) {
+      if (updateState(__COMPLETING,pending))       onIncompleteFlushed();
+ else       fail(pending);
+      return;
     }
     if (!updateState(__COMPLETING,__IDLE))     ignoreFail();
     pending.complete();
