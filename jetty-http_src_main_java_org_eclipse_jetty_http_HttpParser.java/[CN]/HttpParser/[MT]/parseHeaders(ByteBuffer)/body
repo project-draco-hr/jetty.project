@@ -5,7 +5,7 @@
     if (ch == 0)     break;
     if (_maxHeaderBytes > 0 && ++_headerBytes > _maxHeaderBytes) {
       LOG.warn("Header is too large >" + _maxHeaderBytes);
-      throw new BadMessage(HttpStatus.REQUEST_ENTITY_TOO_LARGE_413);
+      throw new BadMessageException(HttpStatus.REQUEST_ENTITY_TOO_LARGE_413);
     }
 switch (_state) {
 case HEADER:
@@ -13,55 +13,27 @@ switch (ch) {
 case HttpTokens.COLON:
 case HttpTokens.SPACE:
 case HttpTokens.TAB:
+        throw new BadMessageException(HttpStatus.BAD_REQUEST_400,"Bad Continuation");
+case HttpTokens.LINE_FEED:
 {
-          if (_valueString == null) {
-            _string.setLength(0);
-            _length=0;
-          }
- else {
-            setString(_valueString);
-            _string.append(' ');
-            _length++;
-            _valueString=null;
-          }
-          setState(State.HEADER_VALUE);
-          break;
+        _contentPosition=0;
+        if (!_host && _version != HttpVersion.HTTP_1_0 && _requestHandler != null) {
+          throw new BadMessageException(HttpStatus.BAD_REQUEST_400,"No Host");
         }
-default :
-{
-        if (_headerString != null || _valueString != null) {
-          if (_header != null && handleKnownHeaders(buffer)) {
-            _headerString=_valueString=null;
-            _header=null;
-            _value=null;
-            _field=null;
-            return true;
-          }
-          handle=_handler.parsedHeader(_field != null ? _field : new HttpField(_header,_headerString,_valueString)) || handle;
+        if (_responseHandler != null && (_responseStatus == 304 || _responseStatus == 204 || _responseStatus < 200))         _endOfContent=EndOfContent.NO_CONTENT;
+ else         if (_endOfContent == EndOfContent.UNKNOWN_CONTENT) {
+          if (_responseStatus == 0 || _responseStatus == 304 || _responseStatus == 204 || _responseStatus < 200)           _endOfContent=EndOfContent.NO_CONTENT;
+ else           _endOfContent=EndOfContent.EOF_CONTENT;
         }
-        _headerString=_valueString=null;
-        _header=null;
-        _value=null;
-        _field=null;
-        if (ch == HttpTokens.LINE_FEED) {
-          _contentPosition=0;
-          if (!_host && _version != HttpVersion.HTTP_1_0 && _requestHandler != null) {
-            throw new BadMessage(HttpStatus.BAD_REQUEST_400,"No Host");
-          }
-          if (_responseHandler != null && (_responseStatus == 304 || _responseStatus == 204 || _responseStatus < 200))           _endOfContent=EndOfContent.NO_CONTENT;
- else           if (_endOfContent == EndOfContent.UNKNOWN_CONTENT) {
-            if (_responseStatus == 0 || _responseStatus == 304 || _responseStatus == 204 || _responseStatus < 200)             _endOfContent=EndOfContent.NO_CONTENT;
- else             _endOfContent=EndOfContent.EOF_CONTENT;
-          }
 switch (_endOfContent) {
 case EOF_CONTENT:
-            setState(State.EOF_CONTENT);
-          handle=_handler.headerComplete() || handle;
-        break;
+          setState(State.EOF_CONTENT);
+        handle=_handler.headerComplete() || handle;
+      break;
 case CHUNKED_CONTENT:
-      setState(State.CHUNKED_CONTENT);
-    handle=_handler.headerComplete() || handle;
-  break;
+    setState(State.CHUNKED_CONTENT);
+  handle=_handler.headerComplete() || handle;
+break;
 case NO_CONTENT:
 handle=_handler.headerComplete() || handle;
 setState(State.END);
@@ -72,9 +44,11 @@ setState(State.CONTENT);
 handle=_handler.headerComplete() || handle;
 break;
 }
+break;
 }
- else if (ch <= HttpTokens.SPACE) throw new BadMessage();
- else {
+default :
+{
+if (ch <= HttpTokens.SPACE) throw new BadMessageException();
 if (buffer.hasRemaining()) {
 HttpField field=_connectionFields == null ? null : _connectionFields.getBest(buffer,-1,buffer.remaining());
 if (field == null) field=CACHE.getBest(buffer,-1,buffer.remaining());
@@ -133,19 +107,18 @@ _string.append((char)ch);
 _length=1;
 }
 }
-}
 break;
 case HEADER_IN_NAME:
-if (ch == HttpTokens.COLON || ch == HttpTokens.LINE_FEED) {
+if (ch == HttpTokens.COLON) {
 if (_headerString == null) {
 _headerString=takeString();
 _header=HttpHeader.CACHE.get(_headerString);
 }
 _length=-1;
-setState(ch == HttpTokens.LINE_FEED ? State.HEADER : State.HEADER_VALUE);
+setState(State.HEADER_VALUE);
 break;
 }
-if (ch >= HttpTokens.SPACE || ch == HttpTokens.TAB) {
+if (ch > HttpTokens.SPACE) {
 if (_header != null) {
 setString(_header.asString());
 _header=null;
@@ -155,7 +128,8 @@ _string.append((char)ch);
 if (ch > HttpTokens.SPACE) _length=_string.length();
 break;
 }
-throw new BadMessage("Illegal character");
+if (LOG.isDebugEnabled()) LOG.debug("Illegal character '{}' in {}",ch,BufferUtil.toDetailString(buffer));
+throw new BadMessageException("Illegal character");
 case HEADER_VALUE:
 if (ch > HttpTokens.SPACE || ch < 0) {
 _string.append((char)(0xff & ch));
@@ -164,15 +138,7 @@ setState(State.HEADER_IN_VALUE);
 break;
 }
 if (ch == HttpTokens.SPACE || ch == HttpTokens.TAB) break;
-if (ch == HttpTokens.LINE_FEED) {
-if (_length > 0) {
-_value=null;
-_valueString=(_valueString == null) ? takeString() : (_valueString + " " + takeString());
-}
-setState(State.HEADER);
-break;
-}
-throw new BadMessage("Illegal character");
+throw new BadMessageException();
 case HEADER_IN_VALUE:
 if (ch >= HttpTokens.SPACE || ch < 0 || ch == HttpTokens.TAB) {
 if (_valueString != null) {
@@ -190,10 +156,11 @@ _value=null;
 _valueString=takeString();
 _length=-1;
 }
+parsedHeader();
 setState(State.HEADER);
 break;
 }
-throw new BadMessage("Illegal character");
+throw new BadMessageException("Illegal character");
 default :
 throw new IllegalStateException(_state.toString());
 }

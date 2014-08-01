@@ -6,12 +6,12 @@
     if (_maxHeaderBytes > 0 && ++_headerBytes > _maxHeaderBytes) {
       if (_state == State.URI) {
         LOG.warn("URI is too large >" + _maxHeaderBytes);
-        throw new BadMessage(HttpStatus.REQUEST_URI_TOO_LONG_414);
+        throw new BadMessageException(HttpStatus.REQUEST_URI_TOO_LONG_414);
       }
  else {
         if (_requestHandler != null)         LOG.warn("request is too large >" + _maxHeaderBytes);
  else         LOG.warn("response is too large >" + _maxHeaderBytes);
-        throw new BadMessage(HttpStatus.REQUEST_ENTITY_TOO_LARGE_413);
+        throw new BadMessageException(HttpStatus.REQUEST_ENTITY_TOO_LARGE_413);
       }
     }
 switch (_state) {
@@ -23,7 +23,7 @@ case METHOD:
         if (method != null && !_strict)         _methodString=method.asString();
         setState(State.SPACE1);
       }
- else       if (ch < HttpTokens.SPACE)       throw new BadMessage(ch < 0 ? "Illegal character" : "No URI");
+ else       if (ch < HttpTokens.SPACE)       throw new BadMessageException(ch < 0 ? "Illegal character" : "No URI");
  else       _string.append((char)ch);
     break;
 case RESPONSE_VERSION:
@@ -31,10 +31,10 @@ case RESPONSE_VERSION:
     _length=_string.length();
     String version=takeString();
     _version=HttpVersion.CACHE.get(version);
-    if (_version == null)     throw new BadMessage(HttpStatus.BAD_REQUEST_400,"Unknown Version");
+    if (_version == null)     throw new BadMessageException(HttpStatus.BAD_REQUEST_400,"Unknown Version");
     setState(State.SPACE1);
   }
- else   if (ch < HttpTokens.SPACE)   throw new BadMessage(ch < 0 ? "Illegal character" : "No Status");
+ else   if (ch < HttpTokens.SPACE)   throw new BadMessageException(ch < 0 ? "Illegal character" : "No Status");
  else   _string.append((char)ch);
 break;
 case SPACE1:
@@ -44,7 +44,7 @@ if (_responseHandler != null) {
   setResponseStatus(ch - '0');
 }
  else {
-  _uri.clear();
+  _uri.reset();
   setState(State.URI);
   if (buffer.hasArray()) {
     byte[] array=buffer.array();
@@ -56,22 +56,16 @@ if (_responseHandler != null) {
     _headerBytes+=len;
     if (_maxHeaderBytes > 0 && ++_headerBytes > _maxHeaderBytes) {
       LOG.warn("URI is too large >" + _maxHeaderBytes);
-      throw new BadMessage(HttpStatus.REQUEST_URI_TOO_LONG_414);
+      throw new BadMessageException(HttpStatus.REQUEST_URI_TOO_LONG_414);
     }
-    if (_uri.remaining() <= len) {
-      ByteBuffer uri=ByteBuffer.allocate(_uri.capacity() + 2 * len);
-      _uri.flip();
-      uri.put(_uri);
-      _uri=uri;
-    }
-    _uri.put(array,p - 1,len + 1);
+    _uri.append(array,p - 1,len + 1);
     buffer.position(i - buffer.arrayOffset());
   }
- else   _uri.put(ch);
+ else   _uri.append(ch);
 }
 }
  else if (ch < HttpTokens.SPACE) {
-throw new BadMessage(HttpStatus.BAD_REQUEST_400,_requestHandler != null ? "No URI" : "No Status");
+throw new BadMessageException(HttpStatus.BAD_REQUEST_400,_requestHandler != null ? "No URI" : "No Status");
 }
 break;
 case STATUS:
@@ -86,7 +80,7 @@ handle=_responseHandler.startResponse(_version,_responseStatus,null) || handle;
 setState(State.HEADER);
 }
  else {
-throw new BadMessage();
+throw new BadMessageException();
 }
 break;
 case URI:
@@ -94,21 +88,10 @@ if (ch == HttpTokens.SPACE) {
 setState(State.SPACE2);
 }
  else if (ch < HttpTokens.SPACE && ch >= 0) {
-_uri.flip();
-handle=_requestHandler.startRequest(_method,_methodString,_uri,null) || handle;
-setState(State.END);
-BufferUtil.clear(buffer);
-handle=_handler.headerComplete() || handle;
-handle=_handler.messageComplete() || handle;
+throw new BadMessageException("HTTP/0.9 not supported");
 }
  else {
-if (!_uri.hasRemaining()) {
-ByteBuffer uri=ByteBuffer.allocate(_uri.capacity() * 2);
-_uri.flip();
-uri.put(_uri);
-_uri=uri;
-}
-_uri.put(ch);
+_uri.append(ch);
 }
 break;
 case SPACE2:
@@ -126,9 +109,8 @@ if (buffer.position() > 0 && buffer.hasArray()) version=HttpVersion.lookAheadGet
  else version=HttpVersion.CACHE.getBest(buffer,0,buffer.remaining());
 if (version == null) {
 if (_method == HttpMethod.PROXY) {
-if (!(_requestHandler instanceof ProxyHandler)) throw new BadMessage();
-_uri.flip();
-String protocol=BufferUtil.toString(_uri);
+if (!(_requestHandler instanceof ProxyHandler)) throw new BadMessageException();
+String protocol=_uri.toString();
 buffer.position(buffer.position() - 1);
 String sAddr=getProxyField(buffer);
 String dAddr=getProxyField(buffer);
@@ -166,15 +148,10 @@ handle=_responseHandler.startResponse(_version,_responseStatus,null) || handle;
 setState(State.HEADER);
 }
  else {
-_uri.flip();
-handle=_requestHandler.startRequest(_method,_methodString,_uri,null) || handle;
-setState(State.END);
-BufferUtil.clear(buffer);
-handle=_handler.headerComplete() || handle;
-handle=_handler.messageComplete() || handle;
+throw new BadMessageException("HTTP/0.9 not supported");
 }
 }
- else if (ch < 0) throw new BadMessage();
+ else if (ch < 0) throw new BadMessageException();
 break;
 case REQUEST_VERSION:
 if (ch == HttpTokens.LINE_FEED) {
@@ -182,18 +159,17 @@ if (_version == null) {
 _length=_string.length();
 _version=HttpVersion.CACHE.get(takeString());
 }
-if (_version == null) throw new BadMessage(HttpStatus.BAD_REQUEST_400,"Unknown Version");
+if (_version == null) throw new BadMessageException(HttpStatus.BAD_REQUEST_400,"Unknown Version");
 if (_connectionFields == null && _version.getVersion() >= HttpVersion.HTTP_1_1.getVersion()) {
 int header_cache=_handler.getHeaderCacheSize();
 _connectionFields=new ArrayTernaryTrie<>(header_cache);
 }
 setState(State.HEADER);
-_uri.flip();
-handle=_requestHandler.startRequest(_method,_methodString,_uri,_version) || handle;
+handle=_requestHandler.startRequest(_methodString,_uri.toString(),_version) || handle;
 continue;
 }
  else if (ch >= HttpTokens.SPACE) _string.append((char)ch);
- else throw new BadMessage();
+ else throw new BadMessageException();
 break;
 case REASON:
 if (ch == HttpTokens.LINE_FEED) {
@@ -206,7 +182,7 @@ continue;
 _string.append((char)ch);
 if (ch != ' ' && ch != '\t') _length=_string.length();
 }
- else throw new BadMessage();
+ else throw new BadMessageException();
 break;
 default :
 throw new IllegalStateException(_state.toString());

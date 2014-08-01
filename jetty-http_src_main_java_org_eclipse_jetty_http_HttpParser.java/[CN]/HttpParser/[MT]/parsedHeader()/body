@@ -1,0 +1,65 @@
+{
+  if (_headerString != null || _valueString != null) {
+    if (_header != null) {
+      boolean add_to_connection_trie=false;
+switch (_header) {
+case CONTENT_LENGTH:
+        if (_endOfContent != EndOfContent.CHUNKED_CONTENT) {
+          try {
+            _contentLength=Long.parseLong(_valueString);
+          }
+ catch (          NumberFormatException e) {
+            LOG.ignore(e);
+            throw new BadMessageException(HttpStatus.BAD_REQUEST_400,"Bad Content-Length");
+          }
+          if (_contentLength <= 0)           _endOfContent=EndOfContent.NO_CONTENT;
+ else           _endOfContent=EndOfContent.CONTENT_LENGTH;
+        }
+      break;
+case TRANSFER_ENCODING:
+    if (_value == HttpHeaderValue.CHUNKED)     _endOfContent=EndOfContent.CHUNKED_CONTENT;
+ else {
+      if (_valueString.endsWith(HttpHeaderValue.CHUNKED.toString()))       _endOfContent=EndOfContent.CHUNKED_CONTENT;
+ else       if (_valueString.contains(HttpHeaderValue.CHUNKED.toString())) {
+        throw new BadMessageException(HttpStatus.BAD_REQUEST_400,"Bad chunking");
+      }
+    }
+  break;
+case HOST:
+_host=true;
+if (!(_field instanceof HostPortHttpField)) {
+_field=new HostPortHttpField(_header,_strict ? _headerString : _header.asString(),_valueString);
+add_to_connection_trie=_connectionFields != null;
+}
+break;
+case CONNECTION:
+if (_valueString != null && _valueString.contains("close")) {
+_closed=true;
+_connectionFields=null;
+}
+break;
+case AUTHORIZATION:
+case ACCEPT:
+case ACCEPT_CHARSET:
+case ACCEPT_ENCODING:
+case ACCEPT_LANGUAGE:
+case COOKIE:
+case CACHE_CONTROL:
+case USER_AGENT:
+add_to_connection_trie=_connectionFields != null && _field == null;
+break;
+default :
+break;
+}
+if (add_to_connection_trie && !_connectionFields.isFull() && _header != null && _valueString != null) {
+if (_field == null) _field=new HttpField(_header,_strict ? _headerString : _header.asString(),_valueString);
+_connectionFields.put(_field);
+}
+}
+_handler.parsedHeader(_field != null ? _field : new HttpField(_header,_headerString,_valueString));
+}
+_headerString=_valueString=null;
+_header=null;
+_value=null;
+_field=null;
+}

@@ -1,0 +1,22 @@
+{
+  SettingsGenerator generator=new SettingsGenerator(new HeaderGenerator());
+  final AtomicInteger errorRef=new AtomicInteger();
+  Parser parser=new Parser(byteBufferPool,new Parser.Listener.Adapter(){
+    @Override public void onConnectionFailure(    int error,    String reason){
+      errorRef.set(error);
+    }
+  }
+,4096,8192);
+  Map<Integer,Integer> settings1=new HashMap<>();
+  settings1.put(13,17);
+  ByteBufferPool.Lease lease=new ByteBufferPool.Lease(byteBufferPool);
+  generator.generateSettings(lease,settings1,true);
+  ByteBuffer bytes=lease.getByteBuffers().get(0);
+  bytes.putShort(0,(short)(bytes.getShort(0) - 1));
+  for (  ByteBuffer buffer : lease.getByteBuffers()) {
+    while (buffer.hasRemaining()) {
+      parser.parse(ByteBuffer.wrap(new byte[]{buffer.get()}));
+    }
+  }
+  Assert.assertEquals(ErrorCode.PROTOCOL_ERROR,errorRef.get());
+}

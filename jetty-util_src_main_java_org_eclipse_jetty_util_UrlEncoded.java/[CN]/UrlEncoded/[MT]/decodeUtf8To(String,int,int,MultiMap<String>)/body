@@ -1,0 +1,85 @@
+{
+  Utf8StringBuilder buffer=new Utf8StringBuilder();
+synchronized (map) {
+    String key=null;
+    String value=null;
+    int end=offset + length;
+    for (int i=offset; i < end; i++) {
+      char c=query.charAt(i);
+      try {
+switch (c) {
+case '&':
+          value=buffer.toReplacedString();
+        buffer.reset();
+      if (key != null) {
+        map.add(key,value);
+      }
+ else       if (value != null && value.length() > 0) {
+        map.add(value,"");
+      }
+    key=null;
+  value=null;
+break;
+case '=':
+if (key != null) {
+buffer.append(c);
+break;
+}
+key=buffer.toReplacedString();
+buffer.reset();
+break;
+case '+':
+buffer.append((byte)' ');
+break;
+case '%':
+if (i + 2 < end) {
+if ('u' == query.charAt(i + 1)) {
+i++;
+if (i + 4 < end) {
+char top=query.charAt(++i);
+char hi=query.charAt(++i);
+char lo=query.charAt(++i);
+char bot=query.charAt(++i);
+buffer.getStringBuilder().append(Character.toChars((convertHexDigit(top) << 12) + (convertHexDigit(hi) << 8) + (convertHexDigit(lo) << 4)+ convertHexDigit(bot)));
+}
+ else {
+buffer.getStringBuilder().append(Utf8Appendable.REPLACEMENT);
+i=end;
+}
+}
+ else {
+char hi=query.charAt(++i);
+char lo=query.charAt(++i);
+buffer.append((byte)((convertHexDigit(hi) << 4) + convertHexDigit(lo)));
+}
+}
+ else {
+buffer.getStringBuilder().append(Utf8Appendable.REPLACEMENT);
+i=end;
+}
+break;
+default :
+buffer.append(c);
+break;
+}
+}
+ catch (NotUtf8Exception e) {
+LOG.warn(e.toString());
+LOG.debug(e);
+}
+catch (NumberFormatException e) {
+buffer.append(Utf8Appendable.REPLACEMENT_UTF8,0,3);
+LOG.warn(e.toString());
+LOG.debug(e);
+}
+}
+if (key != null) {
+value=buffer.toReplacedString();
+buffer.reset();
+map.add(key,value);
+}
+ else if (buffer.length() > 0) {
+map.add(buffer.toReplacedString(),"");
+}
+}
+}

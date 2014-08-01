@@ -1,0 +1,23 @@
+{
+  if (LOG.isDebugEnabled())   LOG.debug("Received {}",frame);
+  int streamId=frame.getStreamId();
+  final IStream stream=getStream(streamId);
+  if (stream != null) {
+    stream.updateClose(frame.isEndStream(),false);
+    final int length=frame.remaining();
+    flowControl.onDataReceived(this,stream,length);
+    boolean result=stream.process(frame,new Callback.Adapter(){
+      @Override public void succeeded(){
+        flowControl.onDataConsumed(HTTP2Session.this,stream,length);
+      }
+    }
+);
+    if (stream.isClosed())     removeStream(stream,false);
+    return result;
+  }
+ else {
+    ResetFrame resetFrame=new ResetFrame(streamId,ErrorCode.STREAM_CLOSED_ERROR);
+    reset(resetFrame,disconnectOnFailure());
+    return false;
+  }
+}

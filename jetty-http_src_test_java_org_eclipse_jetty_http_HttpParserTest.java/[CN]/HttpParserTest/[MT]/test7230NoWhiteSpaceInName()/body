@@ -1,0 +1,20 @@
+{
+  ByteBuffer buffer=BufferUtil.toBuffer("GET / HTTP/1.0\015\012" + "Host: localhost\015\012" + " Name: value\015\012"+ "\015\012");
+  HttpParser.RequestHandler handler=new Handler();
+  HttpParser parser=new HttpParser(handler);
+  parseAll(parser,buffer);
+  Assert.assertThat(_bad,Matchers.notNullValue());
+  Assert.assertThat(_bad,Matchers.containsString("Bad"));
+  init();
+  buffer=BufferUtil.toBuffer("GET / HTTP/1.0\015\012" + "Host: localhost\015\012" + "N ame: value\015\012"+ "\015\012");
+  handler=new Handler();
+  parser=new HttpParser(handler);
+  parseAll(parser,buffer);
+  Assert.assertThat(_bad,Matchers.containsString("Illegal character"));
+  init();
+  buffer=BufferUtil.toBuffer("GET / HTTP/1.0\015\012" + "Host: localhost\015\012" + "Name : value\015\012"+ "\015\012");
+  handler=new Handler();
+  parser=new HttpParser(handler);
+  parseAll(parser,buffer);
+  Assert.assertThat(_bad,Matchers.containsString("Illegal character"));
+}

@@ -1,0 +1,17 @@
+{
+  if (LOG.isDebugEnabled())   LOG.debug("Received {}",frame);
+  if (frame.isReply())   return false;
+  Map<Integer,Integer> settings=frame.getSettings();
+  if (settings.containsKey(SettingsFrame.MAX_CONCURRENT_STREAMS)) {
+    maxStreamCount=settings.get(SettingsFrame.MAX_CONCURRENT_STREAMS);
+    if (LOG.isDebugEnabled())     LOG.debug("Updated max concurrent streams to {}",maxStreamCount);
+  }
+  if (settings.containsKey(SettingsFrame.INITIAL_WINDOW_SIZE)) {
+    int windowSize=settings.get(SettingsFrame.INITIAL_WINDOW_SIZE);
+    flowControl.updateInitialWindowSize(this,windowSize);
+  }
+  notifySettings(this,frame);
+  SettingsFrame reply=new SettingsFrame(Collections.<Integer,Integer>emptyMap(),true);
+  settings(reply,disconnectOnFailure());
+  return false;
+}

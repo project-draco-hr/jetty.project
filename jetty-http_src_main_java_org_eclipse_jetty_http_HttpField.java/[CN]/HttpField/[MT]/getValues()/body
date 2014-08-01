@@ -1,0 +1,83 @@
+{
+  ArrayList<String> list=new ArrayList<>();
+  int state=0;
+  int start=0;
+  int end=0;
+  StringBuilder builder=new StringBuilder();
+  for (int i=0; i < _value.length(); i++) {
+    char c=_value.charAt(i);
+switch (state) {
+case 0:
+switch (c) {
+case '"':
+        state=2;
+      break;
+case ',':
+    break;
+case ' ':
+case '\t':
+  break;
+default :
+start=i;
+end=i;
+state=1;
+}
+break;
+case 1:
+switch (c) {
+case ',':
+list.add(_value.substring(start,end + 1));
+state=0;
+break;
+case ' ':
+case '\t':
+break;
+default :
+end=i;
+}
+break;
+case 2:
+switch (c) {
+case '\\':
+state=3;
+break;
+case '"':
+list.add(builder.toString());
+builder.setLength(0);
+state=4;
+break;
+default :
+builder.append(c);
+}
+break;
+case 3:
+builder.append(c);
+state=2;
+break;
+case 4:
+switch (c) {
+case ' ':
+case '\t':
+break;
+case ',':
+state=0;
+break;
+default :
+throw new IllegalArgumentException("c=" + (int)c);
+}
+break;
+}
+}
+switch (state) {
+case 0:
+break;
+case 1:
+list.add(_value.substring(start,end + 1));
+break;
+case 4:
+break;
+default :
+throw new IllegalArgumentException("state=" + state);
+}
+return list.toArray(new String[list.size()]);
+}

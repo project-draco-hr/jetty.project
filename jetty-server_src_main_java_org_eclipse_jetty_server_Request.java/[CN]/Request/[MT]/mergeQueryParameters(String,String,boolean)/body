@@ -1,0 +1,33 @@
+{
+  MultiMap<String> newQueryParams=null;
+  if (newQuery != null) {
+    newQueryParams=new MultiMap<>();
+    UrlEncoded.decodeTo(newQuery,newQueryParams,UrlEncoded.ENCODING);
+  }
+  MultiMap<String> oldQueryParams=_queryParameters;
+  if (oldQueryParams == null && oldQuery != null) {
+    oldQueryParams=new MultiMap<>();
+    UrlEncoded.decodeTo(oldQuery,oldQueryParams,getQueryEncoding());
+  }
+  MultiMap<String> mergedQueryParams;
+  if (newQueryParams == null || newQueryParams.size() == 0)   mergedQueryParams=oldQueryParams == null ? NO_PARAMS : oldQueryParams;
+ else   if (oldQueryParams == null || oldQueryParams.size() == 0)   mergedQueryParams=newQueryParams == null ? NO_PARAMS : newQueryParams;
+ else {
+    mergedQueryParams=new MultiMap<>(newQueryParams);
+    mergedQueryParams.addAllValues(oldQueryParams);
+  }
+  setQueryParameters(mergedQueryParams);
+  resetParameters();
+  if (updateQueryString) {
+    StringBuilder mergedQuery=new StringBuilder();
+    if (newQuery != null)     mergedQuery.append(newQuery);
+    for (    Map.Entry<String,List<String>> entry : mergedQueryParams.entrySet()) {
+      if (newQueryParams != null && newQueryParams.containsKey(entry.getKey()))       continue;
+      for (      String value : entry.getValue()) {
+        if (mergedQuery.length() > 0)         mergedQuery.append("&");
+        mergedQuery.append(entry.getKey()).append("=").append(value);
+      }
+    }
+    setQueryString(mergedQuery.toString());
+  }
+}

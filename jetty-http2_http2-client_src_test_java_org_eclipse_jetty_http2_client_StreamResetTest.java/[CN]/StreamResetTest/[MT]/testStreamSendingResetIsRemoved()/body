@@ -1,0 +1,12 @@
+{
+  startServer(new ServerSessionListener.Adapter());
+  Session client=newClient(new Session.Listener.Adapter());
+  MetaData.Request request=newRequest("GET",new HttpFields());
+  HeadersFrame requestFrame=new HeadersFrame(0,request,null,false);
+  FuturePromise<Stream> promise=new FuturePromise<>();
+  client.newStream(requestFrame,promise,new Stream.Listener.Adapter());
+  Stream stream=promise.get(5,TimeUnit.SECONDS);
+  ResetFrame resetFrame=new ResetFrame(stream.getId(),ErrorCode.CANCEL_STREAM_ERROR);
+  stream.getSession().reset(resetFrame,Callback.Adapter.INSTANCE);
+  Assert.assertEquals(0,client.getStreams().size());
+}

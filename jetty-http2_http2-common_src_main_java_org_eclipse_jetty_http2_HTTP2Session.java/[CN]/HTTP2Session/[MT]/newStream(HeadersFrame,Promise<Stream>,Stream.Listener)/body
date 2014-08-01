@@ -1,0 +1,18 @@
+{
+synchronized (this) {
+    int streamId=streamIds.getAndAdd(2);
+    PriorityFrame priority=frame.getPriority();
+    priority=priority == null ? null : new PriorityFrame(streamId,priority.getDependentStreamId(),priority.getWeight(),priority.isExclusive());
+    frame=new HeadersFrame(streamId,frame.getMetaData(),priority,frame.isEndStream());
+    final IStream stream=createLocalStream(frame);
+    if (stream == null) {
+      promise.failed(new IllegalStateException());
+      return;
+    }
+    stream.updateClose(frame.isEndStream(),true);
+    stream.setListener(listener);
+    FlusherEntry entry=new FlusherEntry(stream,frame,new PromiseCallback<>(promise,stream));
+    flusher.append(entry);
+  }
+  flusher.iterate();
+}

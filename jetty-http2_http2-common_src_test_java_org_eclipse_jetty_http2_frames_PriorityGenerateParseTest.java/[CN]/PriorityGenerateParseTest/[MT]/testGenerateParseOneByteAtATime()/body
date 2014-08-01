@@ -1,0 +1,28 @@
+{
+  PriorityGenerator generator=new PriorityGenerator(new HeaderGenerator());
+  final List<PriorityFrame> frames=new ArrayList<>();
+  Parser parser=new Parser(byteBufferPool,new Parser.Listener.Adapter(){
+    @Override public boolean onPriority(    PriorityFrame frame){
+      frames.add(frame);
+      return false;
+    }
+  }
+,4096,8192);
+  int streamId=13;
+  int dependentStreamId=17;
+  int weight=3;
+  boolean exclusive=true;
+  ByteBufferPool.Lease lease=new ByteBufferPool.Lease(byteBufferPool);
+  generator.generatePriority(lease,streamId,dependentStreamId,weight,exclusive);
+  for (  ByteBuffer buffer : lease.getByteBuffers()) {
+    while (buffer.hasRemaining()) {
+      parser.parse(ByteBuffer.wrap(new byte[]{buffer.get()}));
+    }
+  }
+  Assert.assertEquals(1,frames.size());
+  PriorityFrame frame=frames.get(0);
+  Assert.assertEquals(streamId,frame.getStreamId());
+  Assert.assertEquals(dependentStreamId,frame.getDependentStreamId());
+  Assert.assertEquals(weight,frame.getWeight());
+  Assert.assertEquals(exclusive,frame.isExclusive());
+}

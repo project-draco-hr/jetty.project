@@ -1,0 +1,42 @@
+{
+  int field_size=field.getName().length() + field.getValue().length();
+  _size+=field_size;
+  if (_size > _maxSize)   throw new BadMessageException(HttpStatus.REQUEST_ENTITY_TOO_LARGE_413,"Header size " + _size + ">"+ _maxSize);
+  if (field instanceof StaticValueHttpField) {
+    StaticValueHttpField value=(StaticValueHttpField)field;
+switch (field.getName()) {
+case ":status":
+      _status=(Integer)value.getStaticValue();
+    break;
+case ":method":
+  _method=field.getValue();
+break;
+case ":scheme":
+_scheme=(HttpScheme)value.getStaticValue();
+break;
+default :
+throw new IllegalArgumentException(field.getName());
+}
+}
+ else {
+switch (field.getName()) {
+case ":status":
+_status=Integer.parseInt(field.getValue());
+break;
+case ":method":
+_method=field.getValue();
+break;
+case ":scheme":
+_scheme=HttpScheme.CACHE.get(field.getValue());
+break;
+case ":authority":
+_authority=(field instanceof HostPortHttpField) ? ((HostPortHttpField)field) : new AuthorityHttpField(field.getValue());
+break;
+case ":path":
+_path=field.getValue();
+break;
+default :
+if (field.getName().charAt(0) != ':') _fields.add(field);
+}
+}
+}

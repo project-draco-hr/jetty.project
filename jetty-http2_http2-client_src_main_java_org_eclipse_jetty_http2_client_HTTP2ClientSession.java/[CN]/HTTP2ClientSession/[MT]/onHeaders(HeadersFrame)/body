@@ -1,0 +1,15 @@
+{
+  int streamId=frame.getStreamId();
+  IStream stream=getStream(streamId);
+  if (stream == null) {
+    ResetFrame reset=new ResetFrame(streamId,ErrorCode.STREAM_CLOSED_ERROR);
+    reset(reset,disconnectOnFailure());
+  }
+ else {
+    stream.updateClose(frame.isEndStream(),false);
+    stream.process(frame,Callback.Adapter.INSTANCE);
+    notifyHeaders(stream,frame);
+    if (stream.isClosed())     removeStream(stream,false);
+  }
+  return false;
+}

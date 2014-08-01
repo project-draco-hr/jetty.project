@@ -1,0 +1,110 @@
+{
+  if (_value == null || search == null)   return _value == search;
+  if (search.length() == 0)   return false;
+  int state=0;
+  int match=0;
+  int param=0;
+  for (int i=0; i < _value.length(); i++) {
+    char c=_value.charAt(i);
+switch (state) {
+case 0:
+switch (c) {
+case '"':
+        match=0;
+      state=2;
+    break;
+case ',':
+  break;
+case ';':
+param=-1;
+match=-1;
+state=5;
+break;
+case ' ':
+case '\t':
+break;
+default :
+match=c == search.charAt(0) ? 1 : -1;
+state=1;
+break;
+}
+break;
+case 1:
+switch (c) {
+case ',':
+if (match == search.length()) return true;
+state=0;
+break;
+case ';':
+param=match >= 0 ? 0 : -1;
+state=5;
+break;
+default :
+if (match > 0) {
+if (match < search.length()) match=c == search.charAt(match) ? (match + 1) : -1;
+ else if (c != ' ' && c != '\t') match=-1;
+}
+break;
+}
+break;
+case 2:
+switch (c) {
+case '\\':
+state=3;
+break;
+case '"':
+state=4;
+break;
+default :
+if (match >= 0) {
+if (match < search.length()) match=c == search.charAt(match) ? (match + 1) : -1;
+ else match=-1;
+}
+}
+break;
+case 3:
+if (match >= 0) {
+if (match < search.length()) match=c == search.charAt(match) ? (match + 1) : -1;
+ else match=-1;
+}
+state=2;
+break;
+case 4:
+switch (c) {
+case ' ':
+case '\t':
+break;
+case ';':
+state=5;
+break;
+case ',':
+if (match == search.length()) return true;
+state=0;
+break;
+default :
+match=-1;
+}
+break;
+case 5:
+switch (c) {
+case ',':
+if (param != __zeroquality.length() && match == search.length()) return true;
+param=0;
+state=0;
+break;
+case ' ':
+case '\t':
+break;
+default :
+if (param >= 0) {
+if (param < __zeroquality.length()) param=c == __zeroquality.charAt(param) ? (param + 1) : -1;
+ else if (c != '0' && c != '.' && c != ' ') param=-1;
+}
+}
+break;
+default :
+throw new IllegalStateException();
+}
+}
+return param != __zeroquality.length() && match == search.length();
+}

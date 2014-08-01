@@ -1,0 +1,23 @@
+{
+  _metadata=request;
+  setMethod(request.getMethod());
+  HttpURI uri=request.getURI();
+  String path=uri.getDecodedPath();
+  String info;
+  if (path == null || path.length() == 0) {
+    if (uri.isAbsolute()) {
+      path="/";
+      uri.setPath(path);
+    }
+ else     throw new BadMessageException(400,"Bad URI");
+    info=path;
+  }
+ else   if (!path.startsWith("/")) {
+    System.err.println(request);
+    if (!"*".equals(path) && !HttpMethod.CONNECT.is(getMethod()))     throw new BadMessageException(400,"Bad URI");
+    info=path;
+  }
+ else   info=URIUtil.canonicalPath(path);
+  if (info == null)   throw new BadMessageException(400,"Bad URI");
+  setPathInfo(info);
+}

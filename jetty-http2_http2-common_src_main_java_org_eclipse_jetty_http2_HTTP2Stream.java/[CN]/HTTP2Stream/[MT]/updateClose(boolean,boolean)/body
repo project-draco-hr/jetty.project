@@ -1,0 +1,29 @@
+{
+  if (LOG.isDebugEnabled())   LOG.debug("Update close for {} close={} local={}",this,update,local);
+  if (!update)   return;
+  while (true) {
+    CloseState current=closeState.get();
+switch (current) {
+case NOT_CLOSED:
+{
+        CloseState newValue=local ? CloseState.LOCALLY_CLOSED : CloseState.REMOTELY_CLOSED;
+        if (closeState.compareAndSet(current,newValue))         return;
+        break;
+      }
+case LOCALLY_CLOSED:
+{
+      if (!local)       close();
+      return;
+    }
+case REMOTELY_CLOSED:
+{
+    if (local)     close();
+    return;
+  }
+default :
+{
+  return;
+}
+}
+}
+}
