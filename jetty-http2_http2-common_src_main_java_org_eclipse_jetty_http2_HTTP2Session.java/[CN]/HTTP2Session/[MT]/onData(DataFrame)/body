@@ -4,11 +4,11 @@
   final IStream stream=getStream(streamId);
   if (stream != null) {
     stream.updateClose(frame.isEndStream(),false);
-    final int length=frame.remaining();
-    flowControl.onDataReceived(this,stream,length);
+    final int flowControlLength=frame.remaining() + frame.padding();
+    flowControl.onDataReceived(this,stream,flowControlLength);
     boolean result=stream.process(frame,new Callback.Adapter(){
       @Override public void succeeded(){
-        flowControl.onDataConsumed(HTTP2Session.this,stream,length);
+        flowControl.onDataConsumed(HTTP2Session.this,stream,flowControlLength);
       }
     }
 );
