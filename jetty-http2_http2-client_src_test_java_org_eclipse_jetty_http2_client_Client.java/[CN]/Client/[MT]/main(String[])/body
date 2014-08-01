@@ -1,0 +1,24 @@
+{
+  HTTP2Client client=new HTTP2Client();
+  SslContextFactory sslContextFactory=new SslContextFactory();
+  sslContextFactory.setIncludeProtocols("TLSv1.2","TLSv1.1","TLSv1");
+  client.addBean(sslContextFactory);
+  client.start();
+  FuturePromise<Session> sessionPromise=new FuturePromise<>();
+  client.connect(sslContextFactory,new InetSocketAddress("testsite.webtide.com",443),new ServerSessionListener.Adapter(),sessionPromise);
+  Session session=sessionPromise.get(5,TimeUnit.SECONDS);
+  HttpFields requestFields=new HttpFields();
+  requestFields.put("User-Agent",client.getClass().getName() + "/" + Jetty.VERSION);
+  MetaData.Request metaData=new MetaData.Request("GET",new HttpURI("https://testsite.webtide.com/"),HttpVersion.HTTP_2,requestFields);
+  HeadersFrame headersFrame=new HeadersFrame(0,metaData,null,true);
+  final CountDownLatch latch=new CountDownLatch(1);
+  session.newStream(headersFrame,new Promise.Adapter<Stream>(),new Stream.Listener.Adapter(){
+    @Override public void onHeaders(    Stream stream,    HeadersFrame frame){
+      System.err.println(frame.getMetaData());
+      latch.countDown();
+    }
+  }
+);
+  latch.await(5,TimeUnit.SECONDS);
+  client.stop();
+}
