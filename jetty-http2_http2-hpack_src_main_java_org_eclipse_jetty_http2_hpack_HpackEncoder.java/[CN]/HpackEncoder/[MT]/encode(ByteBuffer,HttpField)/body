@@ -4,58 +4,62 @@
   Entry entry=_context.get(field);
   if (entry != null) {
     int index=_context.index(entry);
-    if (p >= 0)     encoding="Indexed" + index;
+    if (p >= 0)     encoding="IdxField" + (entry.isStatic() ? "S" : "") + (1 + NBitInteger.octectsNeeded(7,index));
     buffer.put((byte)0x80);
     NBitInteger.encode(buffer,7,index);
   }
  else {
-    Entry name_entry=_context.get(field.getName());
-    HttpHeader header=field.getHeader();
+    final Entry name;
+    final boolean indexed;
     final boolean never_index;
     final boolean huffman;
-    final boolean indexed;
-    final int name_bits;
+    final int bits;
+    HttpHeader header=field.getHeader();
     if (header == null) {
-      if (name_entry == null) {
+      name=_context.get(field.getName());
+      if (name == null) {
         indexed=true;
         never_index=false;
         huffman=true;
-        name_bits=6;
+        bits=6;
         buffer.put((byte)0x40);
       }
  else {
         indexed=false;
         never_index=false;
         huffman=true;
-        name_bits=4;
+        bits=4;
         buffer.put((byte)0x00);
       }
     }
- else     if (__DO_NOT_INDEX.contains(header)) {
-      indexed=false;
-      never_index=__NEVER_INDEX.contains(header);
-      huffman=!__DO_NOT_HUFFMAN.contains(header);
-      name_bits=4;
-      buffer.put(never_index ? (byte)0x10 : (byte)0x00);
-    }
- else     if (header == HttpHeader.CONTENT_LENGTH && field.getValue().length() > 1) {
-      indexed=false;
-      never_index=false;
-      huffman=true;
-      name_bits=4;
-      buffer.put((byte)0x00);
-    }
  else {
-      indexed=true;
-      never_index=false;
-      huffman=!__DO_NOT_HUFFMAN.contains(header);
-      name_bits=6;
-      buffer.put((byte)0x40);
+      name=_context.get(header);
+      if (__DO_NOT_INDEX.contains(header)) {
+        indexed=false;
+        never_index=__NEVER_INDEX.contains(header);
+        huffman=!__DO_NOT_HUFFMAN.contains(header);
+        bits=4;
+        buffer.put(never_index ? (byte)0x10 : (byte)0x00);
+      }
+ else       if (header == HttpHeader.CONTENT_LENGTH && field.getValue().length() > 1) {
+        indexed=false;
+        never_index=false;
+        huffman=true;
+        bits=4;
+        buffer.put((byte)0x00);
+      }
+ else {
+        indexed=true;
+        never_index=false;
+        huffman=!__DO_NOT_HUFFMAN.contains(header);
+        bits=6;
+        buffer.put((byte)0x40);
+      }
     }
     if (p >= 0) {
-      encoding="Lit" + ((name_entry == null) ? "HuffN" : "IdxN") + (huffman ? "HuffV" : "LitV")+ (indexed ? "Idx" : (never_index ? "!!Idx" : "!Idx"));
+      encoding="Lit" + ((name == null) ? "HuffN" : ("IdxN" + (name.isStatic() ? "S" : "") + (1 + NBitInteger.octectsNeeded(bits,_context.index(name))))) + (huffman ? "HuffV" : "LitV")+ (indexed ? "Idx" : (never_index ? "!!Idx" : "!Idx"));
     }
-    if (name_entry != null)     NBitInteger.encode(buffer,name_bits,_context.index(name_entry));
+    if (name != null)     NBitInteger.encode(buffer,bits,_context.index(name));
  else {
       buffer.put((byte)0x80);
       NBitInteger.encode(buffer,7,Huffman.octetsNeededLC(field.getName()));
