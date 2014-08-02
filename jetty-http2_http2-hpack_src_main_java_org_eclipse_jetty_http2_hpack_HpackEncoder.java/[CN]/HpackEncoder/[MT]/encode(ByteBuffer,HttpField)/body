@@ -9,17 +9,27 @@
     NBitInteger.encode(buffer,7,index);
   }
  else {
+    Entry name_entry=_context.get(field.getName());
     HttpHeader header=field.getHeader();
     final boolean never_index;
     final boolean huffman;
     final boolean indexed;
     final int name_bits;
     if (header == null) {
-      never_index=false;
-      huffman=true;
-      indexed=true;
-      name_bits=6;
-      buffer.put((byte)0x40);
+      if (name_entry == null) {
+        indexed=true;
+        never_index=false;
+        huffman=true;
+        name_bits=6;
+        buffer.put((byte)0x40);
+      }
+ else {
+        indexed=false;
+        never_index=false;
+        huffman=true;
+        name_bits=4;
+        buffer.put((byte)0x00);
+      }
     }
  else     if (__DO_NOT_INDEX.contains(header)) {
       indexed=false;
@@ -42,7 +52,6 @@
       name_bits=6;
       buffer.put((byte)0x40);
     }
-    Entry name_entry=_context.get(field.getName());
     if (p >= 0) {
       encoding="Lit" + ((name_entry == null) ? "HuffN" : "IdxN") + (huffman ? "HuffV" : "LitV")+ (indexed ? "Idx" : (never_index ? "!!Idx" : "!Idx"));
     }
