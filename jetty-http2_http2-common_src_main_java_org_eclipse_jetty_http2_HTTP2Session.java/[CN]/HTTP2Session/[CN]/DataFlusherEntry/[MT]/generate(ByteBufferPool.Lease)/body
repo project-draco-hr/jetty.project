@@ -1,8 +1,10 @@
 {
   DataFrame dataFrame=(DataFrame)frame;
-  int windowSize=stream.getWindowSize();
-  int frameLength=dataFrame.remaining();
-  this.length=Math.min(frameLength,windowSize);
-  generator.data(lease,dataFrame,length);
+  int flowControlLength=dataFrame.remaining() + dataFrame.padding();
+  int streamWindowSize=stream.getWindowSize();
+  int sessionWindowSize=getWindowSize();
+  int windowSize=Math.min(streamWindowSize,sessionWindowSize);
+  length=Math.min(flowControlLength,windowSize);
   if (LOG.isDebugEnabled())   LOG.debug("Generated {}, maxLength={}",dataFrame,length);
+  generator.data(lease,dataFrame,length);
 }
