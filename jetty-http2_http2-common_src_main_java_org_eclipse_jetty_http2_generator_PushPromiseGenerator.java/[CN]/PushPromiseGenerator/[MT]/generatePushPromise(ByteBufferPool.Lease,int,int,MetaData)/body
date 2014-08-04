@@ -4,6 +4,7 @@
   int maxFrameSize=getMaxFrameSize();
   int fixedLength=4;
   maxFrameSize-=fixedLength;
+  int leaseSize=lease.getSize();
   long leaseLength=lease.getTotalLength();
   encoder.encode(metaData,lease,maxFrameSize);
   long headersLength=lease.getTotalLength() - leaseLength;
@@ -13,5 +14,5 @@
   ByteBuffer header=generateHeader(lease,FrameType.PUSH_PROMISE,(int)headersLength,flags,streamId);
   header.putInt(promisedStreamId);
   BufferUtil.flipToFlush(header,0);
-  lease.prepend(header,true);
+  lease.insert(leaseSize,header,true);
 }
