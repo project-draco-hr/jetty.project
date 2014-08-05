@@ -1,0 +1,53 @@
+{
+  startServer(new ServerSessionListener.Adapter(){
+    @Override public Map<Integer,Integer> onPreface(    Session session){
+      Map<Integer,Integer> settings=new HashMap<>();
+      settings.put(SettingsFrame.MAX_CONCURRENT_STREAMS,1);
+      return settings;
+    }
+    @Override public Stream.Listener onNewStream(    Stream stream,    HeadersFrame frame){
+      return new Stream.Listener.Adapter(){
+        @Override public void onData(        Stream stream,        DataFrame frame,        Callback callback){
+          if (frame.isEndStream()) {
+            HttpFields fields=new HttpFields();
+            MetaData.Response metaData=new MetaData.Response(HttpVersion.HTTP_2,200,fields);
+            stream.headers(new HeadersFrame(stream.getId(),metaData,null,true),callback);
+          }
+        }
+      }
+;
+    }
+  }
+);
+  final CountDownLatch settingsLatch=new CountDownLatch(1);
+  Session session=newClient(new Session.Listener.Adapter(){
+    @Override public void onSettings(    Session session,    SettingsFrame frame){
+      settingsLatch.countDown();
+    }
+  }
+);
+  Assert.assertTrue(settingsLatch.await(5,TimeUnit.SECONDS));
+  HttpFields fields=new HttpFields();
+  MetaData.Request metaData=newRequest("GET",fields);
+  HeadersFrame frame1=new HeadersFrame(1,metaData,null,false);
+  FuturePromise<Stream> streamPromise1=new FuturePromise<>();
+  final CountDownLatch responseLatch=new CountDownLatch(1);
+  session.newStream(frame1,streamPromise1,new Stream.Listener.Adapter(){
+    @Override public void onHeaders(    Stream stream,    HeadersFrame frame){
+      if (frame.isEndStream())       responseLatch.countDown();
+    }
+  }
+);
+  Stream stream1=streamPromise1.get(5,TimeUnit.SECONDS);
+  HeadersFrame frame2=new HeadersFrame(3,metaData,null,false);
+  FuturePromise<Stream> streamPromise2=new FuturePromise<>();
+  session.newStream(frame2,streamPromise2,new Stream.Listener.Adapter());
+  try {
+    streamPromise2.get(5,TimeUnit.SECONDS);
+    Assert.fail();
+  }
+ catch (  ExecutionException x) {
+  }
+  stream1.data(new DataFrame(stream1.getId(),BufferUtil.EMPTY_BUFFER,true),new Callback.Adapter());
+  Assert.assertTrue(responseLatch.await(5,TimeUnit.SECONDS));
+}

@@ -1,0 +1,23 @@
+{
+  while (true) {
+    int localCount=localStreamCount.get();
+    int maxCount=maxLocalStreams;
+    if (maxCount >= 0 && localCount >= maxCount) {
+      promise.failed(new IllegalStateException("Max local stream count " + maxCount + " exceeded"));
+      return null;
+    }
+    if (localStreamCount.compareAndSet(localCount,localCount + 1))     break;
+  }
+  IStream stream=newStream(frame);
+  int streamId=stream.getId();
+  if (streams.putIfAbsent(streamId,stream) == null) {
+    stream.setIdleTimeout(endPoint.getIdleTimeout());
+    flowControl.onNewStream(stream);
+    if (LOG.isDebugEnabled())     LOG.debug("Created local {}",stream);
+    return stream;
+  }
+ else {
+    promise.failed(new IllegalStateException("Duplicate stream " + streamId));
+    return null;
+  }
+}
