@@ -1,12 +1,18 @@
 {
-  final int p=LOG.isDebugEnabled() ? buffer.position() : -1;
+  final int p=_debug ? buffer.position() : -1;
   String encoding=null;
   Entry entry=_context.get(field);
   if (entry != null) {
-    int index=_context.index(entry);
-    if (p >= 0)     encoding="IdxField" + (entry.isStatic() ? "S" : "") + (1 + NBitInteger.octectsNeeded(7,index));
-    buffer.put((byte)0x80);
-    NBitInteger.encode(buffer,7,index);
+    if (entry.isStatic()) {
+      buffer.put(((StaticEntry)entry).getEncodedField());
+      if (_debug)       encoding="IdxFieldS1";
+    }
+ else {
+      int index=_context.index(entry);
+      buffer.put((byte)0x80);
+      NBitInteger.encode(buffer,7,index);
+      if (_debug)       encoding="IdxField" + (entry.isStatic() ? "S" : "") + (1 + NBitInteger.octectsNeeded(7,index));
+    }
   }
  else {
     final Entry name;
@@ -56,7 +62,7 @@
         buffer.put((byte)0x40);
       }
     }
-    if (p >= 0) {
+    if (_debug) {
       encoding="Lit" + ((name == null) ? "HuffN" : ("IdxN" + (name.isStatic() ? "S" : "") + (1 + NBitInteger.octectsNeeded(bits,_context.index(name))))) + (huffman ? "HuffV" : "LitV")+ (indexed ? "Idx" : (never_index ? "!!Idx" : "!Idx"));
     }
     if (name != null)     NBitInteger.encode(buffer,bits,_context.index(name));
@@ -82,7 +88,7 @@
     }
     if (indexed)     _context.add(field);
   }
-  if (p >= 0) {
+  if (_debug) {
     int e=buffer.position();
     if (LOG.isDebugEnabled())     LOG.debug("encode {}:'{}' to '{}'",encoding,field,TypeUtil.toHexString(buffer.array(),buffer.arrayOffset() + p,e - p));
   }
