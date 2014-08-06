@@ -2,10 +2,6 @@
   int windowSize=this.initialWindowSize;
   this.initialWindowSize=initialWindowSize;
   int delta=initialWindowSize - windowSize;
-  int oldSize=session.updateWindowSize(delta);
-  if (LOG.isDebugEnabled())   LOG.debug("Updated session initial window {} -> {} for {}",oldSize,oldSize + delta,session);
-  for (  Stream stream : session.getStreams()) {
-    oldSize=((IStream)stream).updateWindowSize(delta);
-    if (LOG.isDebugEnabled())     LOG.debug("Updated stream initial window {} -> {} for {}",oldSize,oldSize + delta,stream);
-  }
+  session.onUpdateWindowSize(null,new WindowUpdateFrame(0,delta));
+  for (  Stream stream : session.getStreams())   session.onUpdateWindowSize((IStream)stream,new WindowUpdateFrame(stream.getId(),delta));
 }
