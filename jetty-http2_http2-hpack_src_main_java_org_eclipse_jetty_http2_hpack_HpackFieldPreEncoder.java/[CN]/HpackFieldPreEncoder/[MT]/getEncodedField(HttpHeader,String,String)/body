@@ -1,0 +1,19 @@
+{
+  ByteBuffer buffer=BufferUtil.allocate(name.length() + value.length() + 10);
+  BufferUtil.clearToFill(buffer);
+  buffer.put((byte)0x40);
+  Entry entry=header == null ? null : HpackContext.getStatic(header);
+  if (entry == null) {
+    buffer.put((byte)0x80);
+    NBitInteger.encode(buffer,7,Huffman.octetsNeededLC(name));
+    Huffman.encodeLC(buffer,name);
+  }
+ else {
+    NBitInteger.encode(buffer,6,entry.getSlot());
+  }
+  buffer.put((byte)0x80);
+  NBitInteger.encode(buffer,7,Huffman.octetsNeeded(value));
+  Huffman.encode(buffer,value);
+  BufferUtil.flipToFlush(buffer,0);
+  return BufferUtil.toArray(buffer);
+}
