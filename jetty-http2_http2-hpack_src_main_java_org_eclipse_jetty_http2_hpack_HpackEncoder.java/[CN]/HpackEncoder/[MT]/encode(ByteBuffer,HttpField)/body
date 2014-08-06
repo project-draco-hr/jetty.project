@@ -15,75 +15,50 @@
     }
   }
  else {
-    final Entry name;
     final boolean indexed;
-    final boolean never_index;
-    final boolean huffman;
-    final int bits;
     HttpHeader header=field.getHeader();
     if (header == null) {
-      name=_context.get(field.getName());
+      Entry name=_context.get(field.getName());
       if (name == null) {
         indexed=true;
-        never_index=false;
-        huffman=true;
-        bits=6;
-        buffer.put((byte)0x40);
+        encodeName(buffer,(byte)0x40,6,field.getName(),null);
+        encodeValue(buffer,true,field.getValue());
+        if (_debug)         encoding="LitHuffNHuffVIdx";
       }
  else {
         indexed=false;
-        never_index=false;
-        huffman=true;
-        bits=4;
-        buffer.put((byte)0x00);
+        encodeName(buffer,(byte)0x00,4,field.getName(),null);
+        encodeValue(buffer,true,field.getValue());
+        if (_debug)         encoding="LitHuffNHuffV!Idx";
       }
     }
  else {
-      name=_context.get(header);
+      Entry name=_context.get(header);
       if (__DO_NOT_INDEX.contains(header)) {
         indexed=false;
-        never_index=__NEVER_INDEX.contains(header);
-        huffman=!__DO_NOT_HUFFMAN.contains(header);
-        bits=4;
-        buffer.put(never_index ? (byte)0x10 : (byte)0x00);
+        boolean never_index=__NEVER_INDEX.contains(header);
+        boolean huffman=!__DO_NOT_HUFFMAN.contains(header);
+        encodeName(buffer,never_index ? (byte)0x10 : (byte)0x00,4,header.asString(),name);
+        encodeValue(buffer,huffman,field.getValue());
+        if (_debug)         encoding="Lit" + ((name == null) ? "HuffN" : ("IdxN" + (name.isStatic() ? "S" : "") + (1 + NBitInteger.octectsNeeded(4,_context.index(name))))) + (huffman ? "HuffV" : "LitV")+ (indexed ? "Idx" : (never_index ? "!!Idx" : "!Idx"));
       }
  else       if (header == HttpHeader.CONTENT_LENGTH && field.getValue().length() > 1) {
         indexed=false;
-        never_index=false;
-        huffman=true;
-        bits=4;
-        buffer.put((byte)0x00);
+        encodeName(buffer,(byte)0x00,4,header.asString(),name);
+        encodeValue(buffer,true,field.getValue());
+        if (_debug)         encoding="LitIdxNS" + (1 + NBitInteger.octectsNeeded(4,_context.index(name))) + "HuffV!Idx";
+      }
+ else       if (field instanceof PreEncodedHttpField) {
+        indexed=true;
+        ((PreEncodedHttpField)field).putTo(buffer,HttpVersion.HTTP_2);
+        if (_debug)         encoding=((name == null) ? "LitHuffN" : ("LitIdxN" + (name.isStatic() ? "S" : "") + (1 + NBitInteger.octectsNeeded(6,_context.index(name))))) + "HuffVIdx";
       }
  else {
         indexed=true;
-        never_index=false;
-        huffman=!__DO_NOT_HUFFMAN.contains(header);
-        bits=6;
-        buffer.put((byte)0x40);
-      }
-    }
-    if (_debug) {
-      encoding="Lit" + ((name == null) ? "HuffN" : ("IdxN" + (name.isStatic() ? "S" : "") + (1 + NBitInteger.octectsNeeded(bits,_context.index(name))))) + (huffman ? "HuffV" : "LitV")+ (indexed ? "Idx" : (never_index ? "!!Idx" : "!Idx"));
-    }
-    if (name != null)     NBitInteger.encode(buffer,bits,_context.index(name));
- else {
-      buffer.put((byte)0x80);
-      NBitInteger.encode(buffer,7,Huffman.octetsNeededLC(field.getName()));
-      Huffman.encodeLC(buffer,field.getName());
-    }
-    String value=field.getValue();
-    if (huffman) {
-      buffer.put((byte)0x80);
-      NBitInteger.encode(buffer,7,Huffman.octetsNeeded(value));
-      Huffman.encode(buffer,field.getValue());
-    }
- else {
-      buffer.put((byte)0x00);
-      NBitInteger.encode(buffer,7,value.length());
-      for (int i=0; i < value.length(); i++) {
-        char c=value.charAt(i);
-        if (c < ' ' || c > 127)         throw new IllegalArgumentException();
-        buffer.put((byte)c);
+        boolean huffman=!__DO_NOT_HUFFMAN.contains(header);
+        encodeName(buffer,(byte)0x40,6,header.asString(),name);
+        encodeValue(buffer,huffman,field.getValue());
+        if (_debug)         encoding=((name == null) ? "LitHuffN" : ("LitIdxN" + (name.isStatic() ? "S" : "") + (1 + NBitInteger.octectsNeeded(6,_context.index(name))))) + (huffman ? "HuffVIdx" : "LitVIdx");
       }
     }
     if (indexed)     _context.add(field);
