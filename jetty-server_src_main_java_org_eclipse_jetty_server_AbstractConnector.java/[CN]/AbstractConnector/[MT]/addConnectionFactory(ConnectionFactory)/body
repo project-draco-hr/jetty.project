@@ -1,9 +1,15 @@
 {
 synchronized (_factories) {
-    ConnectionFactory old=_factories.remove(factory.getProtocol());
-    if (old != null)     removeBean(old);
-    _factories.put(factory.getProtocol().toLowerCase(Locale.ENGLISH),factory);
+    String key=factory.getProtocol();
+    ConnectionFactory old=_factories.remove(key);
+    if (old != null) {
+      if (old.getProtocol().equals(_defaultProtocol))       _defaultProtocol=null;
+      removeBean(old);
+      LOG.info("{} removed {}",this,old);
+    }
+    _factories.put(key,factory);
     addBean(factory);
     if (_defaultProtocol == null)     _defaultProtocol=factory.getProtocol();
+    LOG.info("{} added {}",this,factory);
   }
 }
