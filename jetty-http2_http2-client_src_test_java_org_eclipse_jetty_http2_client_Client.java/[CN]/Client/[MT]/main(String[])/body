@@ -15,7 +15,11 @@
   session.newStream(headersFrame,new Promise.Adapter<Stream>(),new Stream.Listener.Adapter(){
     @Override public void onHeaders(    Stream stream,    HeadersFrame frame){
       System.err.println(frame.getMetaData());
-      latch.countDown();
+      if (frame.isEndStream())       latch.countDown();
+    }
+    @Override public void onData(    Stream stream,    DataFrame frame,    Callback callback){
+      callback.succeeded();
+      if (frame.isEndStream())       latch.countDown();
     }
   }
 );
