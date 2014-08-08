@@ -1,0 +1,61 @@
+{
+  Request baseRequest=Request.getBaseRequest(request);
+  HttpFields fields=baseRequest.getHttpFields();
+  boolean conditional=false;
+  String referer=null;
+  loop:   for (int i=0; i < fields.size(); i++) {
+    HttpField field=fields.getField(i);
+    HttpHeader header=field.getHeader();
+    if (header == null)     continue;
+switch (header) {
+case IF_MATCH:
+case IF_MODIFIED_SINCE:
+case IF_NONE_MATCH:
+case IF_UNMODIFIED_SINCE:
+      conditional=true;
+    break loop;
+case REFERER:
+  referer=field.getValue();
+break;
+default :
+break;
+}
+}
+if (LOG.isDebugEnabled()) LOG.debug("{} {} referer={} conditional={}%n",baseRequest.getMethod(),baseRequest.getRequestURI(),referer,conditional);
+HttpURI uri=null;
+if (!conditional) {
+String session=baseRequest.getSession(true).getId();
+String path=URIUtil.addPaths(baseRequest.getServletPath(),baseRequest.getPathInfo());
+if (referer != null) {
+uri=new HttpURI(referer);
+if (request.getServerName().equals(uri.getHost())) {
+String from=uri.getPath();
+if (from.startsWith(baseRequest.getContextPath())) {
+String from_in_ctx=from.substring(baseRequest.getContextPath().length());
+Target target=_cache.get(from_in_ctx);
+if (target != null) {
+  Long last=target._timestamp.get(session);
+  if (last != null && (System.currentTimeMillis() - last) < _associateDelay && !target._associated.containsKey(path)) {
+    RequestDispatcher dispatcher=baseRequest.getServletContext().getRequestDispatcher(path);
+    if (target._associated.putIfAbsent(path,dispatcher) == null)     LOG.info("ASSOCIATE {}->{}",from_in_ctx,dispatcher);
+  }
+}
+}
+}
+}
+Target target=_cache.get(path);
+if (target == null) {
+Target t=new Target();
+target=_cache.putIfAbsent(path,t);
+target=target == null ? t : target;
+}
+target._timestamp.put(session,System.currentTimeMillis());
+if (target._associated.size() > 0) {
+for (RequestDispatcher dispatcher : target._associated.values()) {
+LOG.info("PUSH {}->{}",path,dispatcher);
+((Dispatcher)dispatcher).push(request);
+}
+}
+}
+chain.doFilter(request,response);
+}
