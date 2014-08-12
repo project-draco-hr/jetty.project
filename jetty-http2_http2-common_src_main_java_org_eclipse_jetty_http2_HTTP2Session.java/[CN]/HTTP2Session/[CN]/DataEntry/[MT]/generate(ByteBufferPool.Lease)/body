@@ -1,13 +1,13 @@
 {
   try {
     int flowControlLength=dataRemaining();
-    int sessionWindowSize=getWindowSize();
-    if (sessionWindowSize < 0)     throw new IllegalStateException();
-    int streamWindowSize=stream.getWindowSize();
-    if (streamWindowSize < 0)     throw new IllegalStateException();
-    int windowSize=Math.min(streamWindowSize,sessionWindowSize);
-    int length=this.length=Math.min(flowControlLength,windowSize);
-    if (LOG.isDebugEnabled())     LOG.debug("Generated {}, length/window={}/{}",frame,length,windowSize);
+    int sessionSendWindow=getSendWindow();
+    if (sessionSendWindow < 0)     throw new IllegalStateException();
+    int streamSendWindow=stream.getSendWindow();
+    if (streamSendWindow < 0)     throw new IllegalStateException();
+    int window=Math.min(streamSendWindow,sessionSendWindow);
+    int length=this.length=Math.min(flowControlLength,window);
+    if (LOG.isDebugEnabled())     LOG.debug("Generated {}, length/window={}/{}",frame,length,window);
     generator.data(lease,(DataFrame)frame,length);
     flowControl.onDataSending(stream,length);
     return null;

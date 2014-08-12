@@ -1,7 +1,10 @@
 {
-  if (LOG.isDebugEnabled())   LOG.debug("Data consumed, increasing window by {} for {}",length,stream);
+  if (LOG.isDebugEnabled())   LOG.debug("Data consumed, increasing windows by {} for {}",length,stream);
   if (length > 0) {
+    ISession session=stream.getSession();
+    session.updateRecvWindow(length);
+    stream.updateRecvWindow(length);
     WindowUpdateFrame frame=new WindowUpdateFrame(-stream.getId(),length);
-    stream.getSession().control(stream,frame,Callback.Adapter.INSTANCE);
+    session.control(stream,Callback.Adapter.INSTANCE,frame,Frame.EMPTY_ARRAY);
   }
 }
