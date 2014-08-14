@@ -36,12 +36,12 @@
   LOG.info("Configuring the default jetty server with {}",configURLs);
   String home=properties.get(OSGiServerConstants.JETTY_HOME);
   String base=properties.get(OSGiServerConstants.JETTY_BASE);
+  if (base == null)   base=home;
   LOG.info("JETTY.HOME=" + home);
   LOG.info("JETTY.BASE=" + base);
   ClassLoader contextCl=Thread.currentThread().getContextClassLoader();
   try {
     Thread.currentThread().setContextClassLoader(JettyBootstrapActivator.class.getClassLoader());
-    if (base == null)     base=home;
     properties.put(OSGiServerConstants.MANAGED_JETTY_SERVER_NAME,OSGiServerConstants.MANAGED_JETTY_SERVER_DEFAULT_NAME);
     Util.setProperty(properties,OSGiServerConstants.JETTY_HOST,System.getProperty(OSGiServerConstants.JETTY_HOST));
     Util.setProperty(properties,OSGiServerConstants.JETTY_PORT,System.getProperty(OSGiServerConstants.JETTY_PORT));
@@ -53,7 +53,11 @@
     LOG.info("Default jetty server configured");
     return server;
   }
-  finally {
+ catch (  Exception e) {
+    LOG.warn(e);
+    throw e;
+  }
+ finally {
     Thread.currentThread().setContextClassLoader(contextCl);
   }
 }
