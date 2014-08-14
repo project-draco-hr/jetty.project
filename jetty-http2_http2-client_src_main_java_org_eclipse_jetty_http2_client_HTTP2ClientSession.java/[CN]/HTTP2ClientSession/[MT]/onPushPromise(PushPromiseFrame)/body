@@ -1,0 +1,19 @@
+{
+  if (LOG.isDebugEnabled())   LOG.debug("Received {}",frame);
+  int streamId=frame.getStreamId();
+  int pushStreamId=frame.getPromisedStreamId();
+  IStream stream=getStream(streamId);
+  if (stream == null) {
+    ResetFrame reset=new ResetFrame(pushStreamId,ErrorCodes.STREAM_CLOSED_ERROR);
+    reset(reset,disconnectOnFailure());
+  }
+ else {
+    IStream pushStream=createRemoteStream(pushStreamId);
+    pushStream.updateClose(true,true);
+    pushStream.process(frame,Callback.Adapter.INSTANCE);
+    Stream.Listener listener=notifyPush(stream,pushStream,frame);
+    pushStream.setListener(listener);
+    if (pushStream.isClosed())     removeStream(pushStream,false);
+  }
+  return false;
+}
