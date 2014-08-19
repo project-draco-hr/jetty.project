@@ -2,10 +2,10 @@
   if (LOG.isDebugEnabled())   LOG.debug("Received {}",frame);
   int streamId=frame.getStreamId();
   final IStream stream=getStream(streamId);
+  final int flowControlLength=frame.remaining() + frame.padding();
+  flowControl.onDataReceived(this,stream,flowControlLength);
   if (stream != null) {
     stream.updateClose(frame.isEndStream(),false);
-    final int flowControlLength=frame.remaining() + frame.padding();
-    flowControl.onDataReceived(stream,flowControlLength);
     if (getRecvWindow() < 0) {
       close(ErrorCodes.FLOW_CONTROL_ERROR,"session_window_exceeded",disconnectOnFailure);
       return false;
