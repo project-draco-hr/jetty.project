@@ -2,15 +2,12 @@
   startServer(new HttpServlet(){
   }
 );
-  String host="localhost";
-  int port=connector.getLocalPort();
-  PingFrame frame=new PingFrame(new byte[8],false);
   ByteBufferPool.Lease lease=new ByteBufferPool.Lease(byteBufferPool);
-  generator.control(lease,frame);
-  lease.getByteBuffers().get(0).putShort(0,(short)7);
-  lease.prepend(ByteBuffer.wrap(PrefaceFrame.PREFACE_BYTES),false);
+  generator.control(lease,new PrefaceFrame());
+  generator.control(lease,new PingFrame(new byte[8],false));
+  lease.getByteBuffers().get(1).putShort(0,(short)7);
   final CountDownLatch latch=new CountDownLatch(1);
-  try (Socket client=new Socket(host,port)){
+  try (Socket client=new Socket("localhost",connector.getLocalPort())){
     OutputStream output=client.getOutputStream();
     for (    ByteBuffer buffer : lease.getByteBuffers()) {
       output.write(BufferUtil.toArray(buffer));

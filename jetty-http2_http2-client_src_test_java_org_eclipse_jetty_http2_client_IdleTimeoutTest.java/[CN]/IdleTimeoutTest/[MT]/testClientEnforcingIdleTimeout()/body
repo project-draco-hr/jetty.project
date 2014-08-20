@@ -9,7 +9,7 @@
       return null;
     }
     @Override public void onClose(    Session session,    GoAwayFrame frame){
-      closeLatch.countDown();
+      if (session.isClosed() && ((HTTP2Session)session).isDisconnected())       closeLatch.countDown();
     }
   }
 );
@@ -24,4 +24,5 @@
   }
 ,new Stream.Listener.Adapter());
   Assert.assertTrue(closeLatch.await(2 * idleTimeout,TimeUnit.MILLISECONDS));
+  Assert.assertTrue(session.isClosed());
 }

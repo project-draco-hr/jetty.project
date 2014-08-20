@@ -1,9 +1,29 @@
 {
-  if (LOG.isDebugEnabled()) {
-    String reason=frame.tryConvertPayload();
-    if (LOG.isDebugEnabled())     LOG.debug("Received {}: {}/'{}'",frame.getType(),frame.getError(),reason);
-  }
-  flusher.close();
-  notifyClose(this,frame);
-  return false;
+  if (LOG.isDebugEnabled())   LOG.debug("Received {}",frame);
+  while (true) {
+    CloseState current=closed.get();
+switch (current) {
+case NOT_CLOSED:
+{
+        if (closed.compareAndSet(current,CloseState.REMOTELY_CLOSED)) {
+          control(null,new Callback(){
+            @Override public void succeeded(){
+              notifyClose(HTTP2Session.this,frame);
+            }
+            @Override public void failed(            Throwable x){
+              notifyClose(HTTP2Session.this,frame);
+            }
+          }
+,new DisconnectFrame());
+          return false;
+        }
+        break;
+      }
+default :
+{
+      if (LOG.isDebugEnabled())       LOG.debug("Ignored {}, already closed",frame);
+      return false;
+    }
+}
+}
 }

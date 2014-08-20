@@ -13,7 +13,7 @@
   final CountDownLatch latch=new CountDownLatch(1);
   Session session=newClient(new Session.Listener.Adapter(){
     @Override public void onClose(    Session session,    GoAwayFrame frame){
-      latch.countDown();
+      if (session.isClosed() && ((HTTP2Session)session).isDisconnected())       latch.countDown();
     }
   }
 );
@@ -26,4 +26,5 @@
   }
 ,new Stream.Listener.Adapter());
   Assert.assertTrue(latch.await(2 * idleTimeout,TimeUnit.MILLISECONDS));
+  Thread.sleep(1000);
 }
