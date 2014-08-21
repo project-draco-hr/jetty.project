@@ -1,12 +1,7 @@
 {
   try {
     getLog().debug("Starting Jetty Server ...");
-    if (stopPort > 0 && stopKey != null) {
-      ShutdownMonitor monitor=ShutdownMonitor.getInstance();
-      monitor.setPort(stopPort);
-      monitor.setKey(stopKey);
-      monitor.setExitVm(!daemon);
-    }
+    configureMonitor();
     printSystemProperties();
     applyJettyXml();
     if (httpConnector != null) {
@@ -44,7 +39,7 @@
     configureScanner();
     startScanner();
     startConsoleScanner();
-    if (!daemon) {
+    if (!nonblocking) {
       server.join();
     }
   }
@@ -52,7 +47,7 @@
     throw new MojoExecutionException("Failure",e);
   }
  finally {
-    if (!daemon) {
+    if (!nonblocking) {
       getLog().info("Jetty server exiting.");
     }
   }

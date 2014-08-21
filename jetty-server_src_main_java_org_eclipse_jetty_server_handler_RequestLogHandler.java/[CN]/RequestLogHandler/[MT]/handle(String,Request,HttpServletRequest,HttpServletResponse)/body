@@ -2,7 +2,11 @@
   try {
     super.handle(target,baseRequest,request,response);
   }
-  finally {
+ catch (  Error|IOException|ServletException|RuntimeException e) {
+    if (!response.isCommitted() && !baseRequest.getHttpChannelState().isAsync())     response.setStatus(500);
+    throw e;
+  }
+ finally {
     if (_requestLog != null && baseRequest.getDispatcherType().equals(DispatcherType.REQUEST)) {
       if (baseRequest.getHttpChannelState().isAsync()) {
         if (baseRequest.getHttpChannelState().isInitial())         baseRequest.getAsyncContext().addListener(_listener);

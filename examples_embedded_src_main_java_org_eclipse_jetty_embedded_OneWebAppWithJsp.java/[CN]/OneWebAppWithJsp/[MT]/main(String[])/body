@@ -1,0 +1,18 @@
+{
+  Server server=new Server(8080);
+  MBeanContainer mbContainer=new MBeanContainer(ManagementFactory.getPlatformMBeanServer());
+  server.addBean(mbContainer);
+  WebAppContext webapp=new WebAppContext();
+  webapp.setContextPath("/");
+  webapp.setWar("../../jetty-distribution/target/distribution/demo-base/webapps/test.war");
+  org.eclipse.jetty.webapp.Configuration.ClassList classlist=org.eclipse.jetty.webapp.Configuration.ClassList.setServerDefault(server);
+  classlist.addBefore("org.eclipse.jetty.webapp.JettyWebXmlConfiguration","org.eclipse.jetty.annotations.AnnotationConfiguration");
+  webapp.setAttribute("org.eclipse.jetty.server.webapp.ContainerIncludeJarPattern",".*/[^/]*servlet-api-[^/]*\\.jar$|.*/javax.servlet.jsp.jstl-.*\\.jar$|.*/[^/]*taglibs.*\\.jar$");
+  server.setHandler(webapp);
+  HashLoginService loginService=new HashLoginService();
+  loginService.setName("Test Realm");
+  loginService.setConfig("src/test/resources/realm.properties");
+  server.addBean(loginService);
+  server.start();
+  server.join();
+}

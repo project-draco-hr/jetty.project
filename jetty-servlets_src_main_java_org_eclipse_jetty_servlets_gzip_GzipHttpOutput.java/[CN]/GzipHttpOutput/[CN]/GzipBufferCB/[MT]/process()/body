@@ -8,27 +8,31 @@
         _buffer=null;
         return Action.SUCCEEDED;
       }
-      if (!_complete)       return Action.SUCCEEDED;
+      if (!_last) {
+        return Action.SUCCEEDED;
+      }
+      _deflater.finish();
     }
  else {
       BufferUtil.clearToFill(_input);
-      BufferUtil.put(_content,_input);
+      int took=BufferUtil.put(_content,_input);
       BufferUtil.flipToFlush(_input,0);
+      if (took == 0)       throw new IllegalStateException();
       byte[] array=_input.array();
       int off=_input.arrayOffset() + _input.position();
       int len=_input.remaining();
       _crc.update(array,off,len);
       _deflater.setInput(array,off,len);
-      if (_complete && BufferUtil.isEmpty(_content))       _deflater.finish();
+      if (_last && BufferUtil.isEmpty(_content))       _deflater.finish();
     }
   }
   BufferUtil.compact(_buffer);
   int off=_buffer.arrayOffset() + _buffer.limit();
-  int len=_buffer.capacity() - _buffer.limit() - (_complete ? 8 : 0);
+  int len=_buffer.capacity() - _buffer.limit() - (_last ? 8 : 0);
   int produced=_deflater.deflate(_buffer.array(),off,len,Deflater.NO_FLUSH);
   _buffer.limit(_buffer.limit() + produced);
-  boolean complete=_deflater.finished();
-  if (complete)   addTrailer();
-  superWrite(_buffer,complete,this);
+  boolean finished=_deflater.finished();
+  if (finished)   addTrailer();
+  superWrite(_buffer,finished,this);
   return Action.SCHEDULED;
 }
