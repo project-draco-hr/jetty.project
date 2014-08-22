@@ -20,7 +20,18 @@
   }
   boolean transitive=module.isEnabled() && (module.getSources().size() == 0);
   boolean hasDefinedDefaults=module.getDefaultConfig().size() > 0;
-  if (!module.isEnabled() || (transitive && hasDefinedDefaults) || (topLevel && !FS.exists(startd_ini) && !appendStartIni)) {
+  if (!module.isEnabled() || (transitive && (hasDefinedDefaults || module.hasLicense())) || (topLevel && !FS.exists(startd_ini) && !appendStartIni)) {
+    if (module.hasLicense()) {
+      System.err.printf("%nModule %s LICENSE%n",module.getName());
+      System.err.printf("This module is not provided by the Eclipse Foundation!%n");
+      System.err.printf("It contains software not covered by the Eclipse Public License%n");
+      System.err.printf("The software has not been audited for compliance with its license%n");
+      System.err.printf("%n");
+      for (      String l : module.getLicense())       System.err.printf("    %s%n",l);
+      System.err.printf("%nProceed (y/N)? ");
+      String line=input.readLine();
+      if (line == null || line.length() == 0 || !line.toLowerCase().startsWith("y"))       System.exit(1);
+    }
     BufferedWriter writer=null;
     String source=null;
     PrintWriter out=null;
