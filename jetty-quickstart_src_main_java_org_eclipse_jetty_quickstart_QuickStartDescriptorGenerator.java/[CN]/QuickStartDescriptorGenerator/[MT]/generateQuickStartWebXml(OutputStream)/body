@@ -23,7 +23,7 @@
   if (_webApp.getEventListeners() != null)   for (  EventListener e : _webApp.getEventListeners())   out.openTag("listener",origin(md,e.getClass().getCanonicalName() + ".listener")).tag("listener-class",e.getClass().getCanonicalName()).closeTag();
   ServletHandler servlets=_webApp.getServletHandler();
   if (servlets.getFilters() != null) {
-    for (    FilterHolder holder : servlets.getFilters())     outholder(out,md,"filter",holder);
+    for (    FilterHolder holder : servlets.getFilters())     outholder(out,md,holder);
   }
   if (servlets.getFilterMappings() != null) {
     for (    FilterMapping mapping : servlets.getFilterMappings()) {
@@ -42,7 +42,7 @@
     }
   }
   if (servlets.getServlets() != null) {
-    for (    ServletHolder holder : servlets.getServlets())     outholder(out,md,"servlet",holder);
+    for (    ServletHolder holder : servlets.getServlets())     outholder(out,md,holder);
   }
   if (servlets.getServletMappings() != null) {
     for (    ServletMapping mapping : servlets.getServletMappings()) {
@@ -70,10 +70,22 @@
     for (    String r : ca.getRoles())     out.openTag("security-role").tag("role-name",r).closeTag();
     for (    ConstraintMapping m : ca.getConstraintMappings()) {
       out.openTag("security-constraint");
-      if (m.getConstraint().getAuthenticate()) {
-        out.openTag("auth-constraint");
-        if (m.getConstraint().getRoles() != null)         for (        String r : m.getConstraint().getRoles())         out.tag("role-name",r);
+      out.openTag("web-resource-collection");
+{
+        if (m.getConstraint().getName() != null)         out.tag("web-resource-name",m.getConstraint().getName());
+        if (m.getPathSpec() != null)         out.tag("url-pattern",origin(md,"constraint.url." + m.getPathSpec()),m.getPathSpec());
+        if (m.getMethod() != null)         out.tag("http-method",m.getMethod());
+        if (m.getMethodOmissions() != null)         for (        String o : m.getMethodOmissions())         out.tag("http-method-omission",o);
         out.closeTag();
+      }
+      if (m.getConstraint().getAuthenticate()) {
+        String[] roles=m.getConstraint().getRoles();
+        if (roles != null && roles.length > 0) {
+          out.openTag("auth-constraint");
+          if (m.getConstraint().getRoles() != null)           for (          String r : m.getConstraint().getRoles())           out.tag("role-name",r);
+          out.closeTag();
+        }
+ else         out.tag("auth-constraint");
       }
 switch (m.getConstraint().getDataConstraint()) {
 case Constraint.DC_NONE:
@@ -87,14 +99,6 @@ out.openTag("user-data-constraint").tag("transport-guarantee","CONFIDENTIAL").cl
 break;
 default :
 break;
-}
-out.openTag("web-resource-collection");
-{
-if (m.getConstraint().getName() != null) out.tag("web-resource-name",m.getConstraint().getName());
-if (m.getPathSpec() != null) out.tag("url-pattern",origin(md,"constraint.url." + m.getPathSpec()),m.getPathSpec());
-if (m.getMethod() != null) out.tag("http-method",m.getMethod());
-if (m.getMethodOmissions() != null) for (String o : m.getMethodOmissions()) out.tag("http-method-omission",o);
-out.closeTag();
 }
 out.closeTag();
 }
@@ -121,10 +125,6 @@ if (_webApp.getSessionHandler().getSessionManager() != null) {
 out.openTag("session-config");
 int maxInactiveSec=_webApp.getSessionHandler().getSessionManager().getMaxInactiveInterval();
 out.tag("session-timeout",(maxInactiveSec == 0 ? "0" : Integer.toString(maxInactiveSec / 60)));
-Set<SessionTrackingMode> modes=_webApp.getSessionHandler().getSessionManager().getEffectiveSessionTrackingModes();
-if (modes != null) {
-for (SessionTrackingMode mode : modes) out.tag("tracking-mode",mode.toString());
-}
 SessionCookieConfig cookieConfig=_webApp.getSessionHandler().getSessionManager().getSessionCookieConfig();
 if (cookieConfig != null) {
 out.openTag("cookie-config");
@@ -136,6 +136,10 @@ out.tag("http-only",origin(md,"cookie-config.http-only"),Boolean.toString(cookie
 out.tag("secure",origin(md,"cookie-config.secure"),Boolean.toString(cookieConfig.isSecure()));
 out.tag("max-age",origin(md,"cookie-config.max-age"),Integer.toString(cookieConfig.getMaxAge()));
 out.closeTag();
+}
+Set<SessionTrackingMode> modes=_webApp.getSessionHandler().getSessionManager().getEffectiveSessionTrackingModes();
+if (modes != null) {
+for (SessionTrackingMode mode : modes) out.tag("tracking-mode",mode.toString());
 }
 out.closeTag();
 }
