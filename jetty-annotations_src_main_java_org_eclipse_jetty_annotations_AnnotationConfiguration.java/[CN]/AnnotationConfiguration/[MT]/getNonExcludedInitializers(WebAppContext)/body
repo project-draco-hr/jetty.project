@@ -12,43 +12,51 @@
     Thread.currentThread().setContextClassLoader(old);
   }
   if (LOG.isDebugEnabled())   LOG.debug("Service loaders found in {}ms",(TimeUnit.MILLISECONDS.convert((System.nanoTime() - start),TimeUnit.NANOSECONDS)));
+  Map<ServletContainerInitializer,Resource> sciResourceMap=new HashMap<ServletContainerInitializer,Resource>();
   ServletContainerInitializerOrdering initializerOrdering=getInitializerOrdering(context);
+  for (  ServletContainerInitializer sci : loadedInitializers) {
+    if (matchesExclusionPattern(sci)) {
+      if (LOG.isDebugEnabled())       LOG.debug("{} excluded by pattern",sci);
+      continue;
+    }
+    Resource sciResource=getJarFor(sci);
+    if (isFromExcludedJar(context,sci,sciResource)) {
+      if (LOG.isDebugEnabled())       LOG.debug("{} is from excluded jar",sci);
+      continue;
+    }
+    String name=sci.getClass().getName();
+    if (initializerOrdering != null && (!initializerOrdering.hasWildcard() && initializerOrdering.getIndexOf(name) < 0)) {
+      if (LOG.isDebugEnabled())       LOG.debug("{} is excluded by ordering",sci);
+      continue;
+    }
+    sciResourceMap.put(sci,sciResource);
+  }
   if (initializerOrdering != null && !initializerOrdering.isDefaultOrder()) {
     if (LOG.isDebugEnabled())     LOG.debug("Ordering ServletContainerInitializers with " + initializerOrdering);
-    for (    ServletContainerInitializer sci : loadedInitializers) {
-      Resource sciResource=getJarFor(sci);
-      if (!isFromExcludedJar(context,sci,sciResource)) {
-        String name=sci.getClass().getName();
-        if (initializerOrdering.getIndexOf(name) >= 0 || initializerOrdering.hasWildcard())         nonExcludedInitializers.add(sci);
-      }
-    }
+    nonExcludedInitializers.addAll(sciResourceMap.keySet());
     Collections.sort(nonExcludedInitializers,new ServletContainerInitializerComparator(initializerOrdering));
   }
  else {
-    if (LOG.isDebugEnabled())     LOG.debug("Ordering ServletContainerInitializers as container path, webapp path");
-    Map<ServletContainerInitializer,Resource> webappPathInitializerResourceMap=new HashMap<ServletContainerInitializer,Resource>();
-    for (    ServletContainerInitializer sci : loadedInitializers) {
-      if (sci.getClass().getClassLoader() == context.getClassLoader().getParent()) {
-        nonExcludedInitializers.add(sci);
-      }
- else {
-        Resource sciResource=getJarFor(sci);
-        if (!isFromExcludedJar(context,sci,sciResource)) {
-          webappPathInitializerResourceMap.put(sci,sciResource);
-        }
-      }
+    if (context.getMetaData().getOrdering() == null) {
+      if (LOG.isDebugEnabled())       LOG.debug("No web.xml ordering, ServletContainerInitializers in random order");
+      nonExcludedInitializers.addAll(sciResourceMap.keySet());
     }
-    if (context.getMetaData().getOrdering() == null)     nonExcludedInitializers.addAll(webappPathInitializerResourceMap.keySet());
  else {
-      for (      Map.Entry<ServletContainerInitializer,Resource> entry : webappPathInitializerResourceMap.entrySet()) {
-        if (entry.getValue() == null)         nonExcludedInitializers.add(entry.getKey());
+      if (LOG.isDebugEnabled())       LOG.debug("Ordering ServletContainerInitializers with ordering {}",context.getMetaData().getOrdering());
+      for (      Map.Entry<ServletContainerInitializer,Resource> entry : sciResourceMap.entrySet()) {
+        if (entry.getKey().getClass().getClassLoader() == context.getClassLoader().getParent())         nonExcludedInitializers.add(entry.getKey());
+ else         if (entry.getValue() == null)         nonExcludedInitializers.add(entry.getKey());
       }
       for (      Resource webInfJar : context.getMetaData().getOrderedWebInfJars()) {
-        for (        Map.Entry<ServletContainerInitializer,Resource> entry : webappPathInitializerResourceMap.entrySet()) {
+        for (        Map.Entry<ServletContainerInitializer,Resource> entry : sciResourceMap.entrySet()) {
           if (webInfJar.equals(entry.getValue()))           nonExcludedInitializers.add(entry.getKey());
         }
       }
     }
+  }
+  if (LOG.isDebugEnabled()) {
+    int i=0;
+    for (    ServletContainerInitializer sci : nonExcludedInitializers)     LOG.debug("ServletContainerInitializer: {} {}",(++i),sci.getClass().getName());
   }
   return nonExcludedInitializers;
 }
