@@ -1,10 +1,12 @@
 {
-  Thread current=Thread.currentThread();
-  String name=current.getName();
+  final Thread thread=Thread.currentThread();
+  String name=thread.getName();
   _name=String.format("%s-acceptor-%d@%x-%s",name,_acceptor,hashCode(),AbstractConnector.this.toString());
-  current.setName(_name);
+  thread.setName(_name);
+  int priority=thread.getPriority();
+  if (_acceptorPriorityDelta != 0)   thread.setPriority(Math.max(Thread.MIN_PRIORITY,Math.min(Thread.MAX_PRIORITY,priority + _acceptorPriorityDelta)));
 synchronized (AbstractConnector.this) {
-    _acceptors[_acceptor]=current;
+    _acceptors[_acceptor]=thread;
   }
   try {
     while (isAccepting()) {
@@ -18,7 +20,8 @@ synchronized (AbstractConnector.this) {
     }
   }
   finally {
-    current.setName(name);
+    thread.setName(name);
+    if (_acceptorPriorityDelta != 0)     thread.setPriority(priority);
 synchronized (AbstractConnector.this) {
       _acceptors[_acceptor]=null;
     }
