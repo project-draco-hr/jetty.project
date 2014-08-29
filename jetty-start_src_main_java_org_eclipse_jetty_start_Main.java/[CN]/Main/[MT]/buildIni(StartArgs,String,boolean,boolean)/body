@@ -19,13 +19,26 @@
     }
   }
   boolean transitive=module.isEnabled() && (module.getSources().size() == 0);
-  boolean hasDefinedDefaults=module.getDefaultConfig().size() > 0;
-  if (!module.isEnabled() || (transitive && (hasDefinedDefaults || module.hasLicense())) || (topLevel && !FS.exists(startd_ini) && !appendStartIni)) {
+  boolean buildIni=false;
+  if (module.isEnabled()) {
+    if (topLevel && !FS.exists(startd_ini) && !appendStartIni)     buildIni=true;
+ else     if (transitive) {
+      if (module.hasDefaultConfig() || module.hasLicense())       buildIni=true;
+ else       StartLog.info("%-15s initialised transitively",name);
+    }
+ else {
+      for (      String source : module.getSources())       StartLog.info("%-15s initialised in %s",name,baseHome.toShortForm(source));
+    }
+  }
+ else {
+    buildIni=true;
+  }
+  if (buildIni) {
     if (module.hasLicense()) {
-      System.err.printf("%nModule %s LICENSE%n",module.getName());
-      System.err.printf("This module is not provided by the Eclipse Foundation!%n");
-      System.err.printf("It contains software not covered by the Eclipse Public License%n");
-      System.err.printf("The software has not been audited for compliance with its license%n");
+      System.err.printf("%nModule %s:%n",module.getName());
+      System.err.printf(" + contains software not provided by the Eclipse Foundation!%n");
+      System.err.printf(" + contains software not covered by the Eclipse Public License!%n");
+      System.err.printf(" + has not been audited for compliance with its license%n");
       System.err.printf("%n");
       for (      String l : module.getLicense())       System.err.printf("    %s%n",l);
       System.err.printf("%nProceed (y/N)? ");
@@ -84,12 +97,6 @@
         out.close();
       }
     }
-  }
- else   if (FS.exists(startd_ini)) {
-    StartLog.info("%-15s initialised in %s",name,short_startd_ini);
-  }
- else {
-    StartLog.info("%-15s initialised transitively",name);
   }
   for (  String source : module.getSources()) {
     StartLog.debug("also enabled in: %s",source);
