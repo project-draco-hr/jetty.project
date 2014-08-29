@@ -1,8 +1,18 @@
 {
   if (NonBlockingThread.isNonBlockingThread())   LOG.warn("Blocking a NonBlockingThread: ",new Throwable());
   _lock.lock();
+  long idle=getIdleTimeout();
   try {
-    while (_state == null)     _complete.await();
+    while (_state == null) {
+      if (idle > 0) {
+        if (!_complete.await(idle,TimeUnit.MILLISECONDS)) {
+          _state=new TimeoutException("No Blocker CB");
+          LOG.warn(_state);
+          _blocker=new Blocker();
+        }
+      }
+ else       _complete.await();
+    }
     if (_state == SUCCEEDED)     return;
     if (_state == IDLE)     throw new IllegalStateException("IDLE");
     if (_state instanceof IOException)     throw (IOException)_state;
