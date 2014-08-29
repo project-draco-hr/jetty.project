@@ -1,7 +1,13 @@
 {
-  _blocker._lock.lock();
+  _lock.lock();
+  long idle=getIdleTimeout();
   try {
-    while (_blocker._state != IDLE)     _blocker._idle.await();
+    while (_blocker._state != IDLE) {
+      if (idle > 0) {
+        if (!_idle.await(idle,TimeUnit.MILLISECONDS))         throw new IOException(new TimeoutException());
+      }
+ else       _idle.await();
+    }
     _blocker._state=null;
   }
  catch (  final InterruptedException e) {
@@ -13,7 +19,7 @@
 ;
   }
  finally {
-    _blocker._lock.unlock();
+    _lock.unlock();
   }
   return _blocker;
 }
