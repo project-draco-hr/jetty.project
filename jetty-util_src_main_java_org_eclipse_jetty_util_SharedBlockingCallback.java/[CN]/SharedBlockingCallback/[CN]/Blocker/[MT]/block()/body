@@ -5,7 +5,7 @@
   try {
     while (_state == null) {
       if (idle > 0) {
-        if (!_complete.await(idle,TimeUnit.MILLISECONDS))         _state=new BlockerTimeoutException();
+        if (!_complete.await(idle + idle / 2,TimeUnit.MILLISECONDS))         _state=new BlockerTimeoutException();
       }
  else       _complete.await();
     }
@@ -18,12 +18,7 @@
     throw new IOException(_state);
   }
  catch (  final InterruptedException e) {
-    throw new InterruptedIOException(){
-{
-        initCause(e);
-      }
-    }
-;
+    throw new InterruptedIOException();
   }
  finally {
     _lock.unlock();
