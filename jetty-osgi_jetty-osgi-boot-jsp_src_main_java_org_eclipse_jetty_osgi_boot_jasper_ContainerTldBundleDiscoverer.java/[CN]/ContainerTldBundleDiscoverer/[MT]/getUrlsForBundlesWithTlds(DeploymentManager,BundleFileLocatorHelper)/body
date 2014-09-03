@@ -1,7 +1,11 @@
 {
+  if (!isJspAvailable()) {
+    return new URL[0];
+  }
+  if (jstlBundle == null)   jstlBundle=findJstlBundle();
   Bundle[] bundles=FrameworkUtil.getBundle(ContainerTldBundleDiscoverer.class).getBundleContext().getBundles();
   HashSet<URL> urls=new HashSet<URL>();
-  String tmp=System.getProperty(SYS_PROP_TLD_BUNDLES);
+  String tmp=System.getProperty(OSGiWebInfConfiguration.SYS_PROP_TLD_BUNDLES);
   List<String> sysNames=new ArrayList<String>();
   if (tmp != null) {
     StringTokenizer tokenizer=new StringTokenizer(tmp,", \n\r\t",false);
@@ -9,9 +13,20 @@
   }
   tmp=(String)deploymentManager.getContextAttribute(OSGiWebInfConfiguration.CONTAINER_BUNDLE_PATTERN);
   Pattern pattern=(tmp == null ? null : Pattern.compile(tmp));
+  if (jstlBundle != null) {
+    if (pattern == null) {
+      pattern=Pattern.compile(jstlBundle.getSymbolicName());
+      deploymentManager.setContextAttribute(OSGiWebInfConfiguration.CONTAINER_BUNDLE_PATTERN,jstlBundle.getSymbolicName());
+    }
+ else     if (!(pattern.matcher(jstlBundle.getSymbolicName()).matches())) {
+      String s=tmp + "|" + jstlBundle.getSymbolicName();
+      pattern=Pattern.compile(s);
+      deploymentManager.setContextAttribute(OSGiWebInfConfiguration.CONTAINER_BUNDLE_PATTERN,s);
+    }
+  }
   for (  Bundle bundle : bundles) {
     if (sysNames.contains(bundle.getSymbolicName()))     convertBundleLocationToURL(locatorHelper,bundle,urls);
-    if (pattern != null && pattern.matcher(bundle.getSymbolicName()).matches())     convertBundleLocationToURL(locatorHelper,bundle,urls);
+ else     if (pattern != null && pattern.matcher(bundle.getSymbolicName()).matches())     convertBundleLocationToURL(locatorHelper,bundle,urls);
   }
   return urls.toArray(new URL[urls.size()]);
 }

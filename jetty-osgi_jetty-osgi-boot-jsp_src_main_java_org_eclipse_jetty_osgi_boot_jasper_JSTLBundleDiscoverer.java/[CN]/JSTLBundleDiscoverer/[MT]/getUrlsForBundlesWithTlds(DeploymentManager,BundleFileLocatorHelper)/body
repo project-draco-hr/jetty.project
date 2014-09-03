@@ -1,24 +1,27 @@
 {
   ArrayList<URL> urls=new ArrayList<URL>();
-  HashSet<Class<?>> classesToAddToTheTldBundles=new HashSet<Class<?>>();
+  Class<?> jstlClass=null;
   try {
-    Class<?> jstlClass=JSTLBundleDiscoverer.class.getClassLoader().loadClass(DEFAULT_JSTL_BUNDLE_CLASS);
-    classesToAddToTheTldBundles.add(jstlClass);
+    jstlClass=JSTLBundleDiscoverer.class.getClassLoader().loadClass(DEFAULT_JSTL_BUNDLE_CLASS);
   }
  catch (  ClassNotFoundException e) {
     LOG.info("jstl not on classpath",e);
   }
-  for (  Class<?> cl : classesToAddToTheTldBundles) {
-    Bundle tldBundle=FrameworkUtil.getBundle(cl);
+  if (jstlClass != null) {
+    Bundle tldBundle=FrameworkUtil.getBundle(jstlClass);
     File tldBundleLocation=locatorHelper.getBundleInstallLocation(tldBundle);
+    System.err.println("jstl bundle: " + tldBundle);
+    System.err.println("jstl bundle location: " + tldBundleLocation);
     if (tldBundleLocation != null && tldBundleLocation.isDirectory()) {
       for (      File f : tldBundleLocation.listFiles()) {
         if (f.getName().endsWith(".jar") && f.isFile()) {
+          System.err.println("Tld jar in dir: " + f.toURI());
           urls.add(f.toURI().toURL());
         }
  else         if (f.isDirectory() && f.getName().equals("lib")) {
           for (          File f2 : tldBundleLocation.listFiles()) {
             if (f2.getName().endsWith(".jar") && f2.isFile()) {
+              System.err.println("Tld jar in lib dir: " + f2.toURI());
               urls.add(f2.toURI().toURL());
             }
           }
@@ -26,7 +29,15 @@
       }
     }
  else     if (tldBundleLocation != null) {
+      System.err.println("Tld bundle uri: " + tldBundleLocation.toURI());
       urls.add(tldBundleLocation.toURI().toURL());
+      String pattern=(String)deployer.getContextAttribute("org.eclipse.jetty.server.webapp.containerIncludeBundlePattern");
+      pattern=(pattern == null ? "" : pattern);
+      if (!pattern.contains(tldBundle.getSymbolicName())) {
+        pattern+="|" + tldBundle.getSymbolicName();
+        deployer.setContextAttribute("org.eclipse.jetty.server.webapp.containerIncludeBundlePattern",pattern);
+      }
+      System.err.println("PATTERN: " + pattern);
     }
   }
   return urls.toArray(new URL[urls.size()]);
