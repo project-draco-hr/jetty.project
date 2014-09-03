@@ -2,14 +2,12 @@
   _lock.lock();
   try {
     if (_state == IDLE)     throw new IllegalStateException("IDLE");
-    if (_state == null) {
-      LOG.warn("Blocker not complete {}",this);
-      if (LOG.isDebugEnabled())       LOG.debug(new Throwable());
-    }
+    if (_state == null)     notComplete(this);
   }
   finally {
     try {
-      _state=IDLE;
+      if (_state instanceof BlockerTimeoutException)       _blocker=new Blocker();
+ else       _state=IDLE;
       _idle.signalAll();
       _complete.signalAll();
     }
