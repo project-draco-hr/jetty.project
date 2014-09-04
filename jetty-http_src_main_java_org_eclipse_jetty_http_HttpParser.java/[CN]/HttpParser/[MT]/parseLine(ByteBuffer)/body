@@ -16,14 +16,17 @@
     }
 switch (_state) {
 case METHOD:
-      if (ch == HttpTokens.SPACE) {
+      if (ch == SPACE) {
         _length=_string.length();
         _methodString=takeString();
         HttpMethod method=HttpMethod.CACHE.get(_methodString);
         if (method != null && !_strict)         _methodString=method.asString();
         setState(State.SPACE1);
       }
- else       if (ch < HttpTokens.SPACE)       throw new BadMessageException(ch < 0 ? "Illegal character" : "No URI");
+ else       if (ch < SPACE) {
+        if (ch == LINE_FEED)         throw new BadMessageException("No URI");
+ else         throw new IllegalCharacter(ch,buffer);
+      }
  else       _string.append((char)ch);
     break;
 case RESPONSE_VERSION:
@@ -34,7 +37,7 @@ case RESPONSE_VERSION:
     if (_version == null)     throw new BadMessageException(HttpStatus.BAD_REQUEST_400,"Unknown Version");
     setState(State.SPACE1);
   }
- else   if (ch < HttpTokens.SPACE)   throw new BadMessageException(ch < 0 ? "Illegal character" : "No Status");
+ else   if (ch < HttpTokens.SPACE)   throw new IllegalCharacter(ch,buffer);
  else   _string.append((char)ch);
 break;
 case SPACE1:

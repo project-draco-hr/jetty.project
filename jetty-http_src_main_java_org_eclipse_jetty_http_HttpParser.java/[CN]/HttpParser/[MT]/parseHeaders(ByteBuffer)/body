@@ -128,8 +128,7 @@ _string.append((char)ch);
 if (ch > HttpTokens.SPACE) _length=_string.length();
 break;
 }
-if (LOG.isDebugEnabled()) LOG.debug("Illegal character '{}' in {}",ch,BufferUtil.toDetailString(buffer));
-throw new BadMessageException("Illegal character");
+throw new IllegalCharacter(ch,buffer);
 case HEADER_VALUE:
 if (ch > HttpTokens.SPACE || ch < 0) {
 _string.append((char)(0xff & ch));
@@ -138,7 +137,7 @@ setState(State.HEADER_IN_VALUE);
 break;
 }
 if (ch == HttpTokens.SPACE || ch == HttpTokens.TAB) break;
-throw new BadMessageException();
+throw new IllegalCharacter(ch,buffer);
 case HEADER_IN_VALUE:
 if (ch >= HttpTokens.SPACE || ch < 0 || ch == HttpTokens.TAB) {
 if (_valueString != null) {
@@ -160,7 +159,7 @@ parsedHeader();
 setState(State.HEADER);
 break;
 }
-throw new BadMessageException("Illegal character");
+throw new IllegalCharacter(ch,buffer);
 default :
 throw new IllegalStateException(_state.toString());
 }
