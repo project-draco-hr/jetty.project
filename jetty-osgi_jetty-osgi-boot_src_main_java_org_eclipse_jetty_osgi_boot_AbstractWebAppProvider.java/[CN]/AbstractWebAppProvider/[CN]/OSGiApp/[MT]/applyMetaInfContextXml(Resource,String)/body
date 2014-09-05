@@ -1,0 +1,37 @@
+{
+  if (_bundle == null)   return;
+  if (_webApp == null)   return;
+  ClassLoader cl=Thread.currentThread().getContextClassLoader();
+  LOG.debug("Context classloader = " + cl);
+  try {
+    Thread.currentThread().setContextClassLoader(_webApp.getClassLoader());
+    URL contextXmlUrl=_bundle.getEntry("/META-INF/jetty-webapp-context.xml");
+    if (contextXmlUrl == null) {
+      if (_properties != null) {
+        String tmp=(String)_properties.get(OSGiWebappConstants.JETTY_CONTEXT_FILE_PATH);
+        if (tmp != null) {
+          String[] filenames=tmp.split(",;");
+          if (filenames != null && filenames.length > 0) {
+            String filename=filenames[0];
+            String jettyHome=(String)getServerInstanceWrapper().getServer().getAttribute(OSGiServerConstants.JETTY_HOME);
+            if (jettyHome == null)             jettyHome=System.getProperty(OSGiServerConstants.JETTY_HOME);
+            Resource res=findFile(filename,jettyHome,overrideBundleInstallLocation,_bundle);
+            if (res != null)             contextXmlUrl=res.getURL();
+          }
+        }
+      }
+    }
+    if (contextXmlUrl == null)     return;
+    LOG.info("Applying " + contextXmlUrl + " to "+ _webApp);
+    XmlConfiguration xmlConfiguration=new XmlConfiguration(contextXmlUrl);
+    HashMap properties=new HashMap();
+    properties.put("Server",getDeploymentManager().getServer());
+    properties.put(OSGiWebappConstants.JETTY_BUNDLE_ROOT,rootResource.toString());
+    properties.put(OSGiServerConstants.JETTY_HOME,getDeploymentManager().getServer().getAttribute(OSGiServerConstants.JETTY_HOME));
+    xmlConfiguration.getProperties().putAll(properties);
+    xmlConfiguration.configure(_webApp);
+  }
+  finally {
+    Thread.currentThread().setContextClassLoader(cl);
+  }
+}
