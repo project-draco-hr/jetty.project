@@ -1,8 +1,10 @@
 {
   _thread=Thread.currentThread();
   String name=_thread.getName();
+  int priority=_thread.getPriority();
   try {
-    _thread.setName(name + "-selector-" + SelectorManager.this.getClass().getSimpleName()+ "@"+ Integer.toHexString(SelectorManager.this.hashCode())+ "/"+ _id);
+    if (_priorityDelta != 0)     _thread.setPriority(Math.max(Thread.MIN_PRIORITY,Math.min(Thread.MAX_PRIORITY,priority + _priorityDelta)));
+    _thread.setName(String.format("%s-selector-%s@%h/%d",name,SelectorManager.this.getClass().getSimpleName(),SelectorManager.this.hashCode(),_id));
     if (LOG.isDebugEnabled())     LOG.debug("Starting {} on {}",_thread,this);
     while (isRunning())     select();
     while (isStopping())     runChanges();
@@ -10,5 +12,6 @@
   finally {
     if (LOG.isDebugEnabled())     LOG.debug("Stopped {} on {}",_thread,this);
     _thread.setName(name);
+    if (_priorityDelta != 0)     _thread.setPriority(priority);
   }
 }

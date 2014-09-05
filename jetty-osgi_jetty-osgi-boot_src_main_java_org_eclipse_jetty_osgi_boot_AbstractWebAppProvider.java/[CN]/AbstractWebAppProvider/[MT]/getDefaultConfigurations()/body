@@ -1,10 +1,13 @@
 {
+  List<String> configs=ArrayUtil.asMutableList(__defaultConfigurations);
   if (annotationsAvailable()) {
-    String[] configs=new String[__defaultConfigurations.length + 1];
-    System.arraycopy(__defaultConfigurations,0,configs,0,4);
-    configs[4]="org.eclipse.jetty.osgi.annotations.AnnotationConfiguration";
-    configs[5]=__defaultConfigurations[__defaultConfigurations.length - 1];
-    return configs;
+    int i=configs.indexOf("org.eclipse.jetty.webapp.JettyWebXmlConfiguration");
+    configs.add(i,"org.eclipse.jetty.osgi.annotations.AnnotationConfiguration");
   }
-  return Arrays.copyOf(__defaultConfigurations,__defaultConfigurations.length);
+  if (jndiAvailable()) {
+    int i=configs.indexOf("org.eclipse.jetty.webapp.FragmentConfiguration");
+    configs.add(++i,"org.eclipse.jetty.plus.webapp.EnvConfiguration");
+    configs.add(++i,"org.eclipse.jetty.plus.webapp.PlusConfiguration");
+  }
+  return configs.toArray(new String[configs.size()]);
 }

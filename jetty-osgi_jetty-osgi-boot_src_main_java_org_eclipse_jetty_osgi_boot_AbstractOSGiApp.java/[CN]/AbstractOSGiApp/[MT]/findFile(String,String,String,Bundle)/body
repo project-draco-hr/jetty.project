@@ -1,0 +1,27 @@
+{
+  Resource res=null;
+  if (fileName.startsWith("/"))   res=getFileAsResource(fileName);
+  if (res != null)   return res;
+  if (jettyHome != null) {
+    if (jettyHome.startsWith("\"") || jettyHome.startsWith("'"))     jettyHome=jettyHome.substring(1);
+    if (jettyHome.endsWith("\"") || (jettyHome.endsWith("'")))     jettyHome=jettyHome.substring(0,jettyHome.length() - 1);
+    res=getFileAsResource(jettyHome,fileName);
+  }
+  if (res != null)   return res;
+  if (bundleOverrideLocation != null) {
+    try (Resource location=Resource.newResource(bundleOverrideLocation)){
+      res=location.addPath(fileName);
+    }
+ catch (    Exception e) {
+      LOG.warn(e);
+    }
+  }
+  if (res != null)   return res;
+  if (containingBundle != null) {
+    if (fileName.startsWith("./"))     fileName=fileName.substring(1);
+    if (!fileName.startsWith("/"))     fileName="/" + fileName;
+    URL entry=_bundle.getEntry(fileName);
+    if (entry != null)     res=Resource.newResource(entry);
+  }
+  return res;
+}
