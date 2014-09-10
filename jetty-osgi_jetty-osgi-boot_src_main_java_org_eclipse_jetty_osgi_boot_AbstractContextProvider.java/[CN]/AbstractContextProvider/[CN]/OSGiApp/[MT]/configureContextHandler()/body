@@ -17,34 +17,9 @@
   if (_contextFile == null && _contextHandler == null)   throw new IllegalStateException("No context file or ContextHandler");
   if (_contextFile != null) {
     Resource res=null;
-    if (_contextFile.startsWith("/"))     res=getFileAsResource(_contextFile);
-    if (res == null) {
-      String jettyHome=(String)getServerInstanceWrapper().getServer().getAttribute(OSGiServerConstants.JETTY_HOME);
-      if (jettyHome != null)       res=getFileAsResource(jettyHome,_contextFile);
-      if (res == null) {
-        jettyHome=System.getProperty(OSGiServerConstants.JETTY_HOME);
-        if (jettyHome != null) {
-          if (jettyHome.startsWith("\"") || jettyHome.startsWith("'"))           jettyHome=jettyHome.substring(1);
-          if (jettyHome.endsWith("\"") || (jettyHome.endsWith("'")))           jettyHome=jettyHome.substring(0,jettyHome.length() - 1);
-          res=getFileAsResource(jettyHome,_contextFile);
-          LOG.debug("jetty home context file: {}",res);
-        }
-      }
-    }
-    if (res == null) {
-      if (bundleOverrideLocation != null) {
-        try (Resource location=Resource.newResource(bundleOverrideLocation)){
-          res=location.addPath(_contextFile);
-        }
-         LOG.debug("Bundle override location context file: {}",res);
-      }
-    }
-    if (res == null) {
-      if (_contextFile.startsWith("./"))       _contextFile=_contextFile.substring(1);
-      if (!_contextFile.startsWith("/"))       _contextFile="/" + _contextFile;
-      URL contextURL=_bundle.getEntry(_contextFile);
-      if (contextURL != null)       res=Resource.newResource(contextURL);
-    }
+    String jettyHome=(String)getServerInstanceWrapper().getServer().getAttribute(OSGiServerConstants.JETTY_HOME);
+    if (jettyHome == null)     jettyHome=System.getProperty(OSGiServerConstants.JETTY_HOME);
+    res=findFile(_contextFile,jettyHome,bundleOverrideLocation,_bundle);
     if (res != null) {
       ClassLoader cl=Thread.currentThread().getContextClassLoader();
       LOG.debug("Context classloader = " + cl);
