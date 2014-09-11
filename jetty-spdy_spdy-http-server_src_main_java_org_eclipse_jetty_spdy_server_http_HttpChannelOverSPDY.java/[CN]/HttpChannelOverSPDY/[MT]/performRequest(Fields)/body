@@ -1,0 +1,56 @@
+{
+  short version=stream.getSession().getVersion();
+  Fields.Field methodHeader=headers.get(HTTPSPDYHeader.METHOD.name(version));
+  Fields.Field uriHeader=headers.get(HTTPSPDYHeader.URI.name(version));
+  Fields.Field versionHeader=headers.get(HTTPSPDYHeader.VERSION.name(version));
+  if (methodHeader == null || uriHeader == null || versionHeader == null) {
+    onBadMessage(400,"Missing required request line elements");
+    return false;
+  }
+  HttpMethod httpMethod=HttpMethod.fromString(methodHeader.getValue());
+  HttpVersion httpVersion=HttpVersion.fromString(versionHeader.getValue());
+  if (LOG.isDebugEnabled())   LOG.debug("HTTP > {} {} {}",httpMethod,uriHeader.getValue(),httpVersion);
+  HostPortHttpField hostPort=null;
+  HttpFields fields=new HttpFields();
+  for (  Fields.Field header : headers) {
+    String name=header.getName();
+    HTTPSPDYHeader specialHeader=HTTPSPDYHeader.from(stream.getSession().getVersion(),name);
+    if (specialHeader != null) {
+      if (specialHeader != HTTPSPDYHeader.HOST)       continue;
+      name="host";
+    }
+switch (name) {
+case "connection":
+case "keep-alive":
+case "proxy-connection":
+case "transfer-encoding":
+{
+        break;
+      }
+case "host":
+{
+      hostPort=new HostPortHttpField(header.getValue());
+      break;
+    }
+default :
+{
+    String value=header.getValue();
+    if (LOG.isDebugEnabled())     LOG.debug("HTTP > {}: {}",name,value);
+    fields.add(new HttpField(name,value));
+    break;
+  }
+}
+}
+if (hostPort == null) {
+onBadMessage(400,"Missing Host header");
+return false;
+}
+if (hostPort != null) fields.add(hostPort);
+Fields.Field schemeHeader=headers.get(HTTPSPDYHeader.SCHEME.name(version));
+HttpURI uri=new HttpURI(uriHeader.getValue());
+if (uri.getScheme() == null && schemeHeader != null) uri.setScheme(schemeHeader.getValue());
+if (uri.getHost() == null && hostPort != null) uri.setAuthority(hostPort.getHost(),hostPort.getPort());
+MetaData.Request request=new MetaData.Request(httpMethod == null ? methodHeader.getValue() : httpMethod.asString(),uri,httpVersion,fields);
+onRequest(request);
+return true;
+}

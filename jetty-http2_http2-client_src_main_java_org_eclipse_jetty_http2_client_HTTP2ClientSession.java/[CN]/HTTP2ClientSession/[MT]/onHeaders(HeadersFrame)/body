@@ -1,0 +1,15 @@
+{
+  if (LOG.isDebugEnabled())   LOG.debug("Received {}",frame);
+  int streamId=frame.getStreamId();
+  IStream stream=getStream(streamId);
+  if (stream == null) {
+    if (LOG.isDebugEnabled())     LOG.debug("Ignoring {}, stream #{} not found",frame,streamId);
+  }
+ else {
+    stream.updateClose(frame.isEndStream(),false);
+    stream.process(frame,Callback.Adapter.INSTANCE);
+    notifyHeaders(stream,frame);
+    if (stream.isClosed())     removeStream(stream,false);
+  }
+  return false;
+}

@@ -1,0 +1,17 @@
+{
+  File dir=testdir.getDir();
+  Path path=new File(dir,"TextFile.Long.txt").toPath();
+  Files.createFile(path);
+  try (Resource base=newResource(testdir.getDir())){
+    Resource resource=base.addPath("TextFile.Long.txt");
+    assertThat("resource.alias",resource,hasNoAlias());
+    assertThat("resource.uri.alias",newResource(resource.getURI()),hasNoAlias());
+    assertThat("resource.file.alias",newResource(resource.getFile()),hasNoAlias());
+    Resource alias=base.addPath("TEXTFI~1.TXT");
+    if (alias.exists()) {
+      assertThat("alias",alias,isAliasFor(resource));
+      assertThat("alias.uri",newResource(alias.getURI()),isAliasFor(resource));
+      assertThat("alias.file",newResource(alias.getFile()),isAliasFor(resource));
+    }
+  }
+ }

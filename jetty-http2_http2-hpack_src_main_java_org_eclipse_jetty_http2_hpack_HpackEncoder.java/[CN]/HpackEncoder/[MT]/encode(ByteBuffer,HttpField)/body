@@ -1,0 +1,70 @@
+{
+  final int p=_debug ? buffer.position() : -1;
+  String encoding=null;
+  Entry entry=_context.get(field);
+  if (entry != null) {
+    if (entry.isStatic()) {
+      buffer.put(((StaticEntry)entry).getEncodedField());
+      if (_debug)       encoding="IdxFieldS1";
+    }
+ else {
+      int index=_context.index(entry);
+      buffer.put((byte)0x80);
+      NBitInteger.encode(buffer,7,index);
+      if (_debug)       encoding="IdxField" + (entry.isStatic() ? "S" : "") + (1 + NBitInteger.octectsNeeded(7,index));
+    }
+  }
+ else {
+    final boolean indexed;
+    HttpHeader header=field.getHeader();
+    if (header == null) {
+      Entry name=_context.get(field.getName());
+      if (name == null) {
+        indexed=true;
+        encodeName(buffer,(byte)0x40,6,field.getName(),null);
+        encodeValue(buffer,true,field.getValue());
+        if (_debug)         encoding="LitHuffNHuffVIdx";
+      }
+ else {
+        indexed=false;
+        encodeName(buffer,(byte)0x00,4,field.getName(),null);
+        encodeValue(buffer,true,field.getValue());
+        if (_debug)         encoding="LitHuffNHuffV!Idx";
+      }
+    }
+ else {
+      Entry name=_context.get(header);
+      if (__DO_NOT_INDEX.contains(header)) {
+        indexed=false;
+        boolean never_index=__NEVER_INDEX.contains(header);
+        boolean huffman=!__DO_NOT_HUFFMAN.contains(header);
+        encodeName(buffer,never_index ? (byte)0x10 : (byte)0x00,4,header.asString(),name);
+        encodeValue(buffer,huffman,field.getValue());
+        if (_debug)         encoding="Lit" + ((name == null) ? "HuffN" : ("IdxN" + (name.isStatic() ? "S" : "") + (1 + NBitInteger.octectsNeeded(4,_context.index(name))))) + (huffman ? "HuffV" : "LitV")+ (indexed ? "Idx" : (never_index ? "!!Idx" : "!Idx"));
+      }
+ else       if (header == HttpHeader.CONTENT_LENGTH && field.getValue().length() > 1) {
+        indexed=false;
+        encodeName(buffer,(byte)0x00,4,header.asString(),name);
+        encodeValue(buffer,true,field.getValue());
+        if (_debug)         encoding="LitIdxNS" + (1 + NBitInteger.octectsNeeded(4,_context.index(name))) + "HuffV!Idx";
+      }
+ else       if (field instanceof PreEncodedHttpField) {
+        indexed=true;
+        ((PreEncodedHttpField)field).putTo(buffer,HttpVersion.HTTP_2);
+        if (_debug)         encoding=((name == null) ? "LitHuffN" : ("LitIdxN" + (name.isStatic() ? "S" : "") + (1 + NBitInteger.octectsNeeded(6,_context.index(name))))) + "HuffVIdx";
+      }
+ else {
+        indexed=true;
+        boolean huffman=!__DO_NOT_HUFFMAN.contains(header);
+        encodeName(buffer,(byte)0x40,6,header.asString(),name);
+        encodeValue(buffer,huffman,field.getValue());
+        if (_debug)         encoding=((name == null) ? "LitHuffN" : ("LitIdxN" + (name.isStatic() ? "S" : "") + (1 + NBitInteger.octectsNeeded(6,_context.index(name))))) + (huffman ? "HuffVIdx" : "LitVIdx");
+      }
+    }
+    if (indexed)     _context.add(field);
+  }
+  if (_debug) {
+    int e=buffer.position();
+    if (LOG.isDebugEnabled())     LOG.debug("encode {}:'{}' to '{}'",encoding,field,TypeUtil.toHexString(buffer.array(),buffer.arrayOffset() + p,e - p));
+  }
+}

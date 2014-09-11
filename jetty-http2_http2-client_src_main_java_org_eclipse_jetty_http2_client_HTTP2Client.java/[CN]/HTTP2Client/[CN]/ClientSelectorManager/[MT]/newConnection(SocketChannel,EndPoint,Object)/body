@@ -1,0 +1,13 @@
+{
+  @SuppressWarnings("unchecked") Map<String,Object> context=(Map<String,Object>)attachment;
+  context.put(HTTP2ClientConnectionFactory.BYTE_BUFFER_POOL_CONTEXT_KEY,byteBufferPool);
+  context.put(HTTP2ClientConnectionFactory.EXECUTOR_CONTEXT_KEY,getExecutor());
+  context.put(HTTP2ClientConnectionFactory.SCHEDULER_CONTEXT_KEY,getScheduler());
+  ClientConnectionFactory factory=new HTTP2ClientConnectionFactory();
+  SslContextFactory sslContextFactory=(SslContextFactory)context.get(SslClientConnectionFactory.SSL_CONTEXT_FACTORY_CONTEXT_KEY);
+  if (sslContextFactory != null) {
+    ALPNClientConnectionFactory alpn=new ALPNClientConnectionFactory(getExecutor(),factory,"h2-14");
+    factory=new SslClientConnectionFactory(sslContextFactory,byteBufferPool,getExecutor(),alpn);
+  }
+  return factory.newConnection(endpoint,context);
+}

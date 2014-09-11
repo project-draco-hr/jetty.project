@@ -1,0 +1,23 @@
+{
+  while (true) {
+    CloseState current=closed.get();
+switch (current) {
+case NOT_CLOSED:
+{
+        if (closed.compareAndSet(current,CloseState.LOCALLY_CLOSED)) {
+          byte[] payload=reason == null ? null : reason.getBytes(StandardCharsets.UTF_8);
+          GoAwayFrame frame=new GoAwayFrame(lastStreamId.get(),error,payload);
+          if (LOG.isDebugEnabled())           LOG.debug("Sending {}",frame);
+          control(null,callback,frame);
+          return;
+        }
+        break;
+      }
+default :
+{
+      if (LOG.isDebugEnabled())       LOG.debug("Ignoring close {}/{}, already closed",error,reason);
+      return;
+    }
+}
+}
+}

@@ -1,6 +1,7 @@
 {
-  if (DEBUG)   LOG.debug("{} flush enter {}",SslConnection.this,Arrays.toString(appOuts));
-  int consumed=0;
+  if (DEBUG) {
+    for (    ByteBuffer b : appOuts)     LOG.debug("{} flush {}",SslConnection.this,BufferUtil.toHexSummary(b));
+  }
   try {
     if (_cannotAcceptMoreAppDataToFlush) {
       if (_sslEngine.isOutboundDone())       throw new EofException(new ClosedChannelException());
@@ -11,9 +12,8 @@
       BufferUtil.compact(_encryptedOutput);
       int pos=BufferUtil.flipToFill(_encryptedOutput);
       SSLEngineResult wrapResult=_sslEngine.wrap(appOuts,_encryptedOutput);
-      if (DEBUG)       LOG.debug("{} wrap {}",SslConnection.this,wrapResult);
+      if (DEBUG)       LOG.debug("{} wrap {}",SslConnection.this,wrapResult.toString().replace('\n',' '));
       BufferUtil.flipToFlush(_encryptedOutput,pos);
-      if (wrapResult.bytesConsumed() > 0)       consumed+=wrapResult.bytesConsumed();
       boolean allConsumed=true;
       for (      ByteBuffer b : appOuts) {
         if (BufferUtil.isEmpty(b))         BufferUtil.clear(b);
@@ -35,10 +35,10 @@ case CLOSED:
 case BUFFER_UNDERFLOW:
     throw new IllegalStateException();
 default :
-  if (DEBUG)   LOG.debug("{} {} {}",this,wrapResultStatus,BufferUtil.toDetailString(_encryptedOutput));
+  if (DEBUG)   LOG.debug("{} wrap {} {}",SslConnection.this,wrapResultStatus,BufferUtil.toHexSummary(_encryptedOutput));
 if (wrapResult.getHandshakeStatus() == HandshakeStatus.FINISHED && !_handshaken) {
   _handshaken=true;
-  if (DEBUG)   LOG.debug("{} {} handshake completed",SslConnection.this,"server-side");
+  if (DEBUG)   LOG.debug("{} server handshook complete {}/{}",SslConnection.this,_sslEngine.getSession().getProtocol(),_sslEngine.getSession().getCipherSuite());
 }
 HandshakeStatus handshakeStatus=_sslEngine.getHandshakeStatus();
 if (_handshaken && handshakeStatus != HandshakeStatus.NOT_HANDSHAKING && !isRenegotiationAllowed()) {
@@ -72,7 +72,6 @@ throw new IllegalStateException();
 throw e;
 }
  finally {
-if (DEBUG) LOG.debug("{} flush exit, consumed {}",SslConnection.this,consumed);
 releaseEncryptedOutputBuffer();
 }
 }

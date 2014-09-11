@@ -1,10 +1,10 @@
 {
-  if (LOG.isDebugEnabled())   LOG.debug("{} handle enter",this);
-  final HttpChannel<?> last=setCurrentHttpChannel(this);
+  final HttpChannel last=setCurrentHttpChannel(this);
   String threadName=null;
   if (LOG.isDebugEnabled()) {
     threadName=Thread.currentThread().getName();
-    Thread.currentThread().setName(threadName + " - " + _uri);
+    Thread.currentThread().setName(threadName + " - " + _request.getHttpURI());
+    LOG.debug("{} handle enter",this);
   }
   HttpChannelState.Action action=_state.handling();
   try {
@@ -72,7 +72,7 @@ break loop;
 if ("ContinuationThrowable".equals(e.getClass().getSimpleName())) LOG.ignore(e);
  else {
 error=true;
-LOG.warn(String.valueOf(_uri),e);
+LOG.warn(String.valueOf(_request.getHttpURI()),e);
 _state.error(e);
 _request.setHandled(true);
 handleException(e);
@@ -81,7 +81,7 @@ handleException(e);
 catch (Exception e) {
 error=true;
 if (e instanceof EofException) LOG.debug(e);
- else LOG.warn(String.valueOf(_uri),e);
+ else LOG.warn(String.valueOf(_request.getHttpURI()),e);
 _state.error(e);
 _request.setHandled(true);
 handleException(e);

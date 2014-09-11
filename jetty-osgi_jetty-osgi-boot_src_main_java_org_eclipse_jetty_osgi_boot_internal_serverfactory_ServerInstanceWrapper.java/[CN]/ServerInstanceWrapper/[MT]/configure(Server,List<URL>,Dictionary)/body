@@ -20,15 +20,12 @@
     }
   }
   for (  URL jettyConfiguration : jettyConfigurations) {
-    InputStream is=null;
-    try {
-      Resource r=Resource.newResource(jettyConfiguration);
+    try (Resource r=Resource.newResource(jettyConfiguration)){
       if (!r.exists()) {
         LOG.warn("File does not exist " + r);
         throw new IllegalStateException("No such jetty server config file: " + r);
       }
-      is=r.getInputStream();
-      XmlConfiguration config=new XmlConfiguration(is);
+      XmlConfiguration config=new XmlConfiguration(r.getURL());
       config.getIdMap().putAll(id_map);
       config.getProperties().putAll(properties);
       String urlPath=jettyConfiguration.toString();
@@ -41,12 +38,9 @@
       if (server == null)       server=(Server)o;
       id_map=config.getIdMap();
     }
- catch (    SAXParseException saxparse) {
-      LOG.warn("Unable to configure the jetty/etc file " + jettyConfiguration,saxparse);
-      throw saxparse;
-    }
- finally {
-      IO.close(is);
+ catch (    Exception e) {
+      LOG.warn("Configuration error in " + jettyConfiguration);
+      throw e;
     }
   }
   return server;

@@ -1,0 +1,74 @@
+{
+  boolean loop=false;
+  while (buffer.hasRemaining() || loop) {
+switch (state) {
+case PREPARE:
+{
+        if (getStreamId() == 0) {
+          return notifyConnectionFailure(ErrorCodes.PROTOCOL_ERROR,"invalid_data_frame");
+        }
+        length=getBodyLength();
+        if (isPadding()) {
+          state=State.PADDING_LENGTH;
+        }
+ else {
+          state=State.DATA;
+        }
+        break;
+      }
+case PADDING_LENGTH:
+{
+      padding=1;
+      paddingLength=buffer.get() & 0xFF;
+      --length;
+      length-=paddingLength;
+      state=State.DATA;
+      loop=length == 0;
+      if (length < 0) {
+        return notifyConnectionFailure(ErrorCodes.FRAME_SIZE_ERROR,"invalid_data_frame_padding");
+      }
+      break;
+    }
+case DATA:
+{
+    int size=Math.min(buffer.remaining(),length);
+    int position=buffer.position();
+    int limit=buffer.limit();
+    buffer.limit(position + size);
+    ByteBuffer slice=buffer.slice();
+    buffer.limit(limit);
+    buffer.position(position + size);
+    length-=size;
+    if (length == 0) {
+      state=State.PADDING;
+      loop=paddingLength == 0;
+      if (onData(slice,false,padding + paddingLength)) {
+        return Result.ASYNC;
+      }
+    }
+ else {
+      if (onData(slice,true,0)) {
+        return Result.ASYNC;
+      }
+    }
+    break;
+  }
+case PADDING:
+{
+  int size=Math.min(buffer.remaining(),paddingLength);
+  buffer.position(buffer.position() + size);
+  paddingLength-=size;
+  if (paddingLength == 0) {
+    reset();
+    return Result.COMPLETE;
+  }
+  break;
+}
+default :
+{
+throw new IllegalStateException();
+}
+}
+}
+return Result.PENDING;
+}

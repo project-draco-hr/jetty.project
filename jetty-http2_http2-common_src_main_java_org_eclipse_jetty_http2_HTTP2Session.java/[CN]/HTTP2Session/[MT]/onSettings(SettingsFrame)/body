@@ -1,0 +1,60 @@
+{
+  if (frame.isReply())   return false;
+  for (  Map.Entry<Integer,Integer> entry : frame.getSettings().entrySet()) {
+    int key=entry.getKey();
+    int value=entry.getValue();
+switch (key) {
+case SettingsFrame.HEADER_TABLE_SIZE:
+{
+        if (LOG.isDebugEnabled())         LOG.debug("Update HPACK header table size to {}",value);
+        generator.setHeaderTableSize(value);
+        break;
+      }
+case SettingsFrame.ENABLE_PUSH:
+{
+      if (value != 0 && value != 1) {
+        onConnectionFailure(ErrorCodes.PROTOCOL_ERROR,"invalid_settings_enable_push");
+        return false;
+      }
+      pushEnabled=value == 1;
+      break;
+    }
+case SettingsFrame.MAX_CONCURRENT_STREAMS:
+{
+    maxLocalStreams=value;
+    if (LOG.isDebugEnabled())     LOG.debug("Update max local concurrent streams to {}",maxLocalStreams);
+    break;
+  }
+case SettingsFrame.INITIAL_WINDOW_SIZE:
+{
+  if (LOG.isDebugEnabled())   LOG.debug("Update initial window size to {}",value);
+  flowControl.updateInitialStreamWindow(this,value);
+  break;
+}
+case SettingsFrame.MAX_FRAME_SIZE:
+{
+if (LOG.isDebugEnabled()) LOG.debug("Update max frame size to {}",value);
+if (value < Frame.DEFAULT_MAX_LENGTH || value > Frame.MAX_MAX_LENGTH) {
+  onConnectionFailure(ErrorCodes.PROTOCOL_ERROR,"invalid_settings_max_frame_size");
+  return false;
+}
+generator.setMaxFrameSize(value);
+break;
+}
+case SettingsFrame.MAX_HEADER_LIST_SIZE:
+{
+LOG.warn("NOT IMPLEMENTED max header list size to {}",value);
+break;
+}
+default :
+{
+LOG.debug("Unknown setting {}:{}",key,value);
+break;
+}
+}
+}
+notifySettings(this,frame);
+SettingsFrame reply=new SettingsFrame(Collections.<Integer,Integer>emptyMap(),true);
+settings(reply,Callback.Adapter.INSTANCE);
+return false;
+}

@@ -1,0 +1,26 @@
+{
+  startServer(new HttpServlet(){
+  }
+);
+  ByteBufferPool.Lease lease=new ByteBufferPool.Lease(byteBufferPool);
+  generator.control(lease,new PrefaceFrame());
+  generator.control(lease,new PingFrame(new byte[8],false));
+  lease.getByteBuffers().get(1).putInt(4,1);
+  final CountDownLatch latch=new CountDownLatch(1);
+  try (Socket client=new Socket("localhost",connector.getLocalPort())){
+    OutputStream output=client.getOutputStream();
+    for (    ByteBuffer buffer : lease.getByteBuffers()) {
+      output.write(BufferUtil.toArray(buffer));
+    }
+    Parser parser=new Parser(byteBufferPool,new Parser.Listener.Adapter(){
+      @Override public boolean onGoAway(      GoAwayFrame frame){
+        Assert.assertEquals(ErrorCodes.PROTOCOL_ERROR,frame.getError());
+        latch.countDown();
+        return false;
+      }
+    }
+,4096,8192);
+    parseResponse(client,parser);
+    Assert.assertTrue(latch.await(5,TimeUnit.SECONDS));
+  }
+ }

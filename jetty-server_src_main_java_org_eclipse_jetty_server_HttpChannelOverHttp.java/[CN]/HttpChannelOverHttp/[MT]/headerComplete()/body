@@ -1,0 +1,38 @@
+{
+  boolean persistent;
+switch (_metadata.getVersion()) {
+case HTTP_1_0:
+{
+      if (_connection != null) {
+        if (_connection.contains(HttpHeaderValue.KEEP_ALIVE.asString()))         persistent=true;
+ else         persistent=_fields.contains(HttpHeader.CONNECTION,HttpHeaderValue.KEEP_ALIVE.asString());
+      }
+ else       persistent=false;
+      if (!persistent)       persistent=HttpMethod.CONNECT.is(_metadata.getMethod());
+      if (persistent)       getResponse().getHttpFields().add(HttpHeader.CONNECTION,HttpHeaderValue.KEEP_ALIVE);
+      break;
+    }
+case HTTP_1_1:
+{
+    if (_expect) {
+      badMessage(HttpStatus.EXPECTATION_FAILED_417,null);
+      return true;
+    }
+    if (_connection != null) {
+      if (_connection.contains(HttpHeaderValue.CLOSE.asString()))       persistent=false;
+ else       persistent=!_fields.contains(HttpHeader.CONNECTION,HttpHeaderValue.CLOSE.asString());
+    }
+ else     persistent=true;
+    if (!persistent)     persistent=HttpMethod.CONNECT.is(_metadata.getMethod());
+    if (!persistent)     getResponse().getHttpFields().add(HttpHeader.CONNECTION,HttpHeaderValue.CLOSE);
+    break;
+  }
+default :
+{
+  throw new IllegalStateException();
+}
+}
+if (!persistent) _httpConnection._generator.setPersistent(false);
+onRequest(_metadata);
+return true;
+}

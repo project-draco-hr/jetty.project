@@ -5,30 +5,34 @@
 switch (state) {
 case CLOSED:
 case ERROR:
-        _onError=null;
-      break loop;
+{
+          _onError=null;
+          break loop;
+        }
 default :
-    if (_state.compareAndSet(state,OutputState.ERROR)) {
-      Throwable th=_onError;
-      _onError=null;
-      if (LOG.isDebugEnabled())       LOG.debug("onError",th);
-      _writeListener.onError(th);
-      close();
-      break loop;
-    }
-}
-continue;
+{
+        if (_state.compareAndSet(state,OutputState.ERROR)) {
+          Throwable th=_onError;
+          _onError=null;
+          if (LOG.isDebugEnabled())           LOG.debug("onError",th);
+          _writeListener.onError(th);
+          close();
+          break loop;
+        }
+      }
+  }
+  continue;
 }
 switch (_state.get()) {
 case CLOSED:
 case READY:
-try {
-  _writeListener.onWritePossible();
-  break loop;
-}
- catch (Throwable e) {
-  _onError=e;
-}
+  try {
+    _writeListener.onWritePossible();
+    break loop;
+  }
+ catch (  Throwable e) {
+    _onError=e;
+  }
 break;
 default :
 _onError=new IllegalStateException("state=" + _state.get());

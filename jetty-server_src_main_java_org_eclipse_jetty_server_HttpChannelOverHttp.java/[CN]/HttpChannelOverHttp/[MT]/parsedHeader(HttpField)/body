@@ -1,0 +1,53 @@
+{
+  HttpHeader header=field.getHeader();
+  String value=field.getValue();
+  if (header != null) {
+switch (header) {
+case CONNECTION:
+      _connection=field;
+    break;
+case HOST:
+  if (!_metadata.getURI().isAbsolute() && field instanceof HostPortHttpField) {
+    HostPortHttpField hp=(HostPortHttpField)field;
+    _metadata.getURI().setAuthority(hp.getHost(),hp.getPort());
+  }
+break;
+case EXPECT:
+{
+if (_metadata.getVersion() == HttpVersion.HTTP_1_1) {
+  HttpHeaderValue expect=HttpHeaderValue.CACHE.get(value);
+switch (expect == null ? HttpHeaderValue.UNKNOWN : expect) {
+case CONTINUE:
+    _expect100Continue=true;
+  break;
+case PROCESSING:
+_expect102Processing=true;
+break;
+default :
+String[] values=field.getValues();
+for (int i=0; values != null && i < values.length; i++) {
+expect=HttpHeaderValue.CACHE.get(values[i].trim());
+if (expect == null) _expect=true;
+ else {
+switch (expect) {
+case CONTINUE:
+_expect100Continue=true;
+break;
+case PROCESSING:
+_expect102Processing=true;
+break;
+default :
+_expect=true;
+}
+}
+}
+}
+}
+break;
+}
+default :
+break;
+}
+}
+_fields.add(field);
+}

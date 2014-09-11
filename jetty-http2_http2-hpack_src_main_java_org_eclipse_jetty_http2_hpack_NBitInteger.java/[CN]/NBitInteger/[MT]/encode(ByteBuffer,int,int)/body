@@ -1,0 +1,42 @@
+{
+  if (n == 8) {
+    if (i < 0xFF) {
+      buf.put((byte)i);
+    }
+ else {
+      buf.put((byte)0xFF);
+      int length=i - 0xFF;
+      while (true) {
+        if ((length & ~0x7F) == 0) {
+          buf.put((byte)length);
+          return;
+        }
+ else {
+          buf.put((byte)((length & 0x7F) | 0x80));
+          length>>>=7;
+        }
+      }
+    }
+  }
+ else {
+    int p=buf.position() - 1;
+    int bits=0xFF >>> (8 - n);
+    if (i < bits) {
+      buf.put(p,(byte)((buf.get(p) & ~bits) | i));
+    }
+ else {
+      buf.put(p,(byte)(buf.get(p) | bits));
+      int length=i - bits;
+      while (true) {
+        if ((length & ~0x7F) == 0) {
+          buf.put((byte)length);
+          return;
+        }
+ else {
+          buf.put((byte)((length & 0x7F) | 0x80));
+          length>>>=7;
+        }
+      }
+    }
+  }
+}

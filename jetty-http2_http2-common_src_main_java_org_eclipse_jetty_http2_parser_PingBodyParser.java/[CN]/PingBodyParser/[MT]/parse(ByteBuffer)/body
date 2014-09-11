@@ -1,0 +1,44 @@
+{
+  while (buffer.hasRemaining()) {
+switch (state) {
+case PREPARE:
+{
+        if (getStreamId() != 0) {
+          return notifyConnectionFailure(ErrorCodes.PROTOCOL_ERROR,"invalid_ping_frame");
+        }
+        if (getBodyLength() != 8) {
+          return notifyConnectionFailure(ErrorCodes.FRAME_SIZE_ERROR,"invalid_ping_frame");
+        }
+        state=State.PAYLOAD;
+        break;
+      }
+case PAYLOAD:
+{
+      payload=new byte[8];
+      if (buffer.remaining() >= 8) {
+        buffer.get(payload);
+        return onPing(payload);
+      }
+ else {
+        state=State.PAYLOAD_BYTES;
+        cursor=8;
+      }
+      break;
+    }
+case PAYLOAD_BYTES:
+{
+    payload[8 - cursor]=buffer.get();
+    --cursor;
+    if (cursor == 0) {
+      return onPing(payload);
+    }
+    break;
+  }
+default :
+{
+  throw new IllegalStateException();
+}
+}
+}
+return Result.PENDING;
+}

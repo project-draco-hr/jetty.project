@@ -1,0 +1,34 @@
+{
+  final CountDownLatch timeoutLatch=new CountDownLatch(1);
+  startServer(new ServerSessionListener.Adapter(){
+    @Override public Stream.Listener onNewStream(    Stream stream,    HeadersFrame frame){
+      stream.setIdleTimeout(idleTimeout);
+      return new Stream.Listener.Adapter(){
+        @Override public void onFailure(        Stream stream,        Throwable x){
+          timeoutLatch.countDown();
+        }
+      }
+;
+    }
+  }
+);
+  Session session=newClient(new Session.Listener.Adapter());
+  MetaData.Request metaData=newRequest("GET",new HttpFields());
+  HeadersFrame requestFrame=new HeadersFrame(0,metaData,null,false);
+  session.newStream(requestFrame,new Promise.Adapter<Stream>(){
+    @Override public void succeeded(    final Stream stream){
+      sleep(idleTimeout / 2);
+      stream.data(new DataFrame(stream.getId(),ByteBuffer.allocate(1),false),new Callback.Adapter(){
+        private int sends;
+        @Override public void succeeded(){
+          sleep(idleTimeout / 2);
+          boolean last=++sends == 2;
+          stream.data(new DataFrame(stream.getId(),ByteBuffer.allocate(1),last),last ? INSTANCE : this);
+        }
+      }
+);
+    }
+  }
+,new Stream.Listener.Adapter());
+  Assert.assertFalse(timeoutLatch.await(1,TimeUnit.SECONDS));
+}

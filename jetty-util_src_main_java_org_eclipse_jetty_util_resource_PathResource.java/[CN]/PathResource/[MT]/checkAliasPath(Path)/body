@@ -1,0 +1,20 @@
+{
+  Path abs=path;
+  if (!abs.isAbsolute()) {
+    abs=path.toAbsolutePath();
+  }
+  try {
+    if (Files.isSymbolicLink(path))     return Files.readSymbolicLink(path);
+    if (Files.exists(path)) {
+      Path real=abs.toRealPath(FOLLOW_LINKS);
+      if (!abs.equals(real))       return real;
+    }
+  }
+ catch (  NoSuchFileException e) {
+  }
+catch (  Exception e) {
+    LOG.warn("bad alias ({}) for {}",e.getClass().getName(),e.getMessage());
+    return abs;
+  }
+  return null;
+}

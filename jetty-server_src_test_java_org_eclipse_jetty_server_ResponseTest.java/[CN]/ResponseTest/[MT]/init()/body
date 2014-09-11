@@ -7,17 +7,16 @@
   _server.setHandler(new DumpHandler());
   _server.start();
   AbstractEndPoint endp=new ByteArrayEndPoint(_scheduler,5000);
-  ByteBufferQueuedHttpInput input=new ByteBufferQueuedHttpInput();
-  _channel=new HttpChannel<ByteBuffer>(connector,new HttpConfiguration(),endp,new HttpTransport(){
+  QueuedHttpInput input=new QueuedHttpInput();
+  _channel=new HttpChannel(connector,new HttpConfiguration(),endp,new HttpTransport(){
     @Override public void send(    ResponseInfo info,    ByteBuffer content,    boolean lastContent,    Callback callback){
       callback.succeeded();
     }
-    @Override public void send(    ByteBuffer responseBodyContent,    boolean lastContent,    Callback callback){
-      send(null,responseBodyContent,lastContent,callback);
+    @Override public void push(    org.eclipse.jetty.http.MetaData.Request request){
     }
     @Override public void completed(){
     }
-    @Override public void abort(){
+    @Override public void abort(    Throwable failure){
     }
   }
 ,input);

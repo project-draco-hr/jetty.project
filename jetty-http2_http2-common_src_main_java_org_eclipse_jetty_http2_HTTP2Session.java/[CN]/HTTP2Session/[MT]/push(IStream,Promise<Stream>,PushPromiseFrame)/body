@@ -1,0 +1,12 @@
+{
+synchronized (this) {
+    int streamId=streamIds.getAndAdd(2);
+    frame=new PushPromiseFrame(frame.getStreamId(),streamId,frame.getMetaData());
+    final IStream pushStream=createLocalStream(streamId,promise);
+    if (pushStream == null)     return;
+    pushStream.updateClose(true,false);
+    ControlEntry entry=new ControlEntry(frame,pushStream,new PromiseCallback<>(promise,pushStream));
+    flusher.append(entry);
+  }
+  flusher.iterate();
+}

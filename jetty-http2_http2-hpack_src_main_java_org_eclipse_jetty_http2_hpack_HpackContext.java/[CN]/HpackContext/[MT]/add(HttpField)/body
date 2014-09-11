@@ -1,0 +1,16 @@
+{
+  int slot=_headerTable.getNextSlotUnsafe();
+  Entry entry=new Entry(slot,field);
+  int size=entry.getSize();
+  if (size > _maxHeaderTableSizeInBytes) {
+    if (LOG.isDebugEnabled())     LOG.debug(String.format("HdrTbl[%x] !added size %d>%d",hashCode(),size,_maxHeaderTableSizeInBytes));
+    return null;
+  }
+  _headerTableSizeInBytes+=size;
+  _headerTable.addUnsafe(entry);
+  _fieldMap.put(field,entry);
+  _nameMap.put(StringUtil.asciiToLowerCase(field.getName()),entry);
+  if (LOG.isDebugEnabled())   LOG.debug(String.format("HdrTbl[%x] added %s",hashCode(),entry));
+  evict();
+  return entry;
+}

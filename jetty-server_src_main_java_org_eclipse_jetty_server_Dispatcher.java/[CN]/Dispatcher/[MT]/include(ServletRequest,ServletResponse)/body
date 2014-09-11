@@ -1,5 +1,5 @@
 {
-  Request baseRequest=(request instanceof Request) ? ((Request)request) : HttpChannel.getCurrentHttpChannel().getRequest();
+  Request baseRequest=Request.getBaseRequest(request);
   if (!(request instanceof HttpServletRequest))   request=new ServletRequestHttpWrapper(request);
   if (!(response instanceof HttpServletResponse))   response=new ServletResponseHttpWrapper(response);
   final DispatcherType old_type=baseRequest.getDispatcherType();
@@ -13,14 +13,14 @@
     }
  else {
       IncludeAttributes attr=new IncludeAttributes(old_attr);
-      attr._requestURI=_uri;
+      attr._requestURI=_uri.getPath();
       attr._contextPath=_contextHandler.getContextPath();
       attr._servletPath=null;
-      attr._pathInfo=_path;
-      attr._query=_query;
-      if (_query != null)       baseRequest.mergeQueryParameters(_query,false);
+      attr._pathInfo=_pathInContext;
+      attr._query=_uri.getQuery();
+      if (attr._query != null)       baseRequest.mergeQueryParameters(baseRequest.getQueryString(),attr._query,false);
       baseRequest.setAttributes(attr);
-      _contextHandler.handle(_path,baseRequest,(HttpServletRequest)request,(HttpServletResponse)response);
+      _contextHandler.handle(_pathInContext,baseRequest,(HttpServletRequest)request,(HttpServletResponse)response);
     }
   }
   finally {

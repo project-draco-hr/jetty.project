@@ -1,33 +1,27 @@
 {
+  if (!(resource instanceof PathResource))   return false;
+  PathResource pathResource=(PathResource)resource;
   try {
-    File file=resource.getFile();
-    if (file == null)     return false;
-    if (file.exists()) {
-      URI real=file.toPath().toRealPath().toUri();
-      if (real.equals(resource.getAlias())) {
-        if (LOG.isDebugEnabled())         LOG.debug("Allow symlink {} --> {}",resource,real);
-        return true;
+    Path path=pathResource.getPath();
+    if (Files.isSymbolicLink(path) && Files.isSameFile(path,pathResource.getAliasPath())) {
+      if (LOG.isDebugEnabled())       LOG.debug("Allow symlink {} --> {}",resource,pathResource.getAliasPath());
+      return true;
+    }
+    Path d=path.getRoot();
+    for (    Path e : path) {
+      d=d.resolve(e);
+      while (Files.exists(d) && Files.isSymbolicLink(d)) {
+        Path link=Files.readSymbolicLink(d);
+        if (!link.isAbsolute())         link=d.resolve(link);
+        d=link;
       }
     }
- else {
-      Path p=file.toPath().toAbsolutePath();
-      File d=p.getRoot().toFile();
-      for (      Path e : p) {
-        d=new File(d,e.toString());
-        while (d.exists() && Files.isSymbolicLink(d.toPath())) {
-          Path link=Files.readSymbolicLink(d.toPath());
-          if (!link.isAbsolute())           link=link.resolve(d.toPath());
-          d=link.toFile().getAbsoluteFile().getCanonicalFile();
-        }
-      }
-      if (resource.getAlias().equals(d.toURI())) {
-        if (LOG.isDebugEnabled())         LOG.debug("Allow symlink {} --> {}",resource,d);
-        return true;
-      }
+    if (pathResource.getAliasPath().equals(d)) {
+      if (LOG.isDebugEnabled())       LOG.debug("Allow path symlink {} --> {}",resource,d);
+      return true;
     }
   }
  catch (  Exception e) {
-    e.printStackTrace();
     LOG.ignore(e);
   }
   return false;

@@ -1,0 +1,23 @@
+{
+  final HttpChannelState state=connection.getRequest().getHttpChannelState();
+  final AsyncContextEvent event=state.getAsyncContextEvent();
+  final Request baseRequest=connection.getRequest();
+  final String path=event.getPath();
+  if (path != null) {
+    ServletContext context=event.getServletContext();
+    String query=baseRequest.getQueryString();
+    baseRequest.setURIPathQuery(URIUtil.addPaths(context == null ? null : context.getContextPath(),path));
+    HttpURI uri=baseRequest.getHttpURI();
+    baseRequest.setPathInfo(uri.getDecodedPath());
+    if (uri.getQuery() != null)     baseRequest.mergeQueryParameters(query,uri.getQuery(),true);
+  }
+  final String target=baseRequest.getPathInfo();
+  final HttpServletRequest request=(HttpServletRequest)event.getSuppliedRequest();
+  final HttpServletResponse response=(HttpServletResponse)event.getSuppliedResponse();
+  if (LOG.isDebugEnabled()) {
+    LOG.debug(request.getDispatcherType() + " " + target+ " on "+ connection);
+    handle(target,baseRequest,request,response);
+    LOG.debug("RESPONSE " + target + "  "+ connection.getResponse().getStatus());
+  }
+ else   handle(target,baseRequest,request,response);
+}

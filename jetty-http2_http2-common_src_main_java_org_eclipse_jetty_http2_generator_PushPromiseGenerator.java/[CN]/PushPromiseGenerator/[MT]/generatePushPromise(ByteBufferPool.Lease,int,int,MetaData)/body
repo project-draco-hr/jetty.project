@@ -1,0 +1,18 @@
+{
+  if (streamId < 0)   throw new IllegalArgumentException("Invalid stream id: " + streamId);
+  if (promisedStreamId < 0)   throw new IllegalArgumentException("Invalid promised stream id: " + promisedStreamId);
+  int maxFrameSize=getMaxFrameSize();
+  int fixedLength=4;
+  maxFrameSize-=fixedLength;
+  int leaseSize=lease.getSize();
+  long leaseLength=lease.getTotalLength();
+  encoder.encode(metaData,lease,maxFrameSize);
+  long headersLength=lease.getTotalLength() - leaseLength;
+  if (headersLength > maxFrameSize)   throw new IllegalArgumentException(String.format("Invalid headers, too big for max frame size: %d > %d",headersLength,maxFrameSize));
+  headersLength+=fixedLength;
+  int flags=Flags.END_HEADERS;
+  ByteBuffer header=generateHeader(lease,FrameType.PUSH_PROMISE,(int)headersLength,flags,streamId);
+  header.putInt(promisedStreamId);
+  BufferUtil.flipToFlush(header,0);
+  lease.insert(leaseSize,header,true);
+}

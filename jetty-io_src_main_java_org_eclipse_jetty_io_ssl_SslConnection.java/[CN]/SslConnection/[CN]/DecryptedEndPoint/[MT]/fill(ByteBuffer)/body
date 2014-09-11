@@ -1,5 +1,4 @@
 {
-  if (DEBUG)   LOG.debug("{} fill enter",SslConnection.this);
   try {
     if (BufferUtil.hasContent(_decryptedInput))     return BufferUtil.append(buffer,_decryptedInput);
     if (_encryptedInput == null)     _encryptedInput=_bufferPool.acquire(_sslEngine.getSession().getPacketBufferSize(),_encryptedDirectBuffers);
@@ -10,12 +9,14 @@
  else     app_in=_decryptedInput;
     while (true) {
       int net_filled=getEndPoint().fill(_encryptedInput);
-      if (DEBUG)       LOG.debug("{} filled {} encrypted bytes",SslConnection.this,net_filled);
       decryption:       while (true) {
         int pos=BufferUtil.flipToFill(app_in);
         SSLEngineResult unwrapResult=_sslEngine.unwrap(_encryptedInput,app_in);
         BufferUtil.flipToFlush(app_in,pos);
-        if (DEBUG)         LOG.debug("{} unwrap {}",SslConnection.this,unwrapResult);
+        if (DEBUG) {
+          LOG.debug("{} net={} unwrap {}",SslConnection.this,net_filled,unwrapResult.toString().replace('\n',' '));
+          LOG.debug("{} filled {}",SslConnection.this,BufferUtil.toHexSummary(buffer));
+        }
         HandshakeStatus handshakeStatus=_sslEngine.getHandshakeStatus();
         HandshakeStatus unwrapHandshakeStatus=unwrapResult.getHandshakeStatus();
         Status unwrapResultStatus=unwrapResult.getStatus();
@@ -52,7 +53,7 @@ case OK:
 {
   if (unwrapHandshakeStatus == HandshakeStatus.FINISHED && !_handshaken) {
     _handshaken=true;
-    if (DEBUG)     LOG.debug("{} {} handshake completed",SslConnection.this,_sslEngine.getUseClientMode() ? "client-side" : "resumed session server-side");
+    if (DEBUG)     LOG.debug("{} {} handshook {}/{}",SslConnection.this,_sslEngine.getUseClientMode() ? "client" : "resumed server",_sslEngine.getSession().getProtocol(),_sslEngine.getSession().getCipherSuite());
   }
   if (_handshaken && handshakeStatus != HandshakeStatus.NOT_HANDSHAKING && !isRenegotiationAllowed()) {
     if (DEBUG)     LOG.debug("{} renegotiation denied",SslConnection.this);
@@ -123,6 +124,5 @@ if (_decryptedInput != null && !_decryptedInput.hasRemaining()) {
 _bufferPool.release(_decryptedInput);
 _decryptedInput=null;
 }
-if (DEBUG) LOG.debug("{} fill exit",SslConnection.this);
 }
 }

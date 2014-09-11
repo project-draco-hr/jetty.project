@@ -1,0 +1,19 @@
+{
+  try {
+    int flowControlLength=dataRemaining();
+    int sessionSendWindow=getSendWindow();
+    if (sessionSendWindow < 0)     throw new IllegalStateException();
+    int streamSendWindow=stream.getSendWindow();
+    if (streamSendWindow < 0)     throw new IllegalStateException();
+    int window=Math.min(streamSendWindow,sessionSendWindow);
+    int length=this.length=Math.min(flowControlLength,window);
+    if (LOG.isDebugEnabled())     LOG.debug("Generated {}, length/window={}/{}",frame,length,window);
+    generator.data(lease,(DataFrame)frame,length);
+    flowControl.onDataSending(stream,length);
+    return null;
+  }
+ catch (  Throwable x) {
+    if (LOG.isDebugEnabled())     LOG.debug("Failure generating frame " + frame,x);
+    return x;
+  }
+}
