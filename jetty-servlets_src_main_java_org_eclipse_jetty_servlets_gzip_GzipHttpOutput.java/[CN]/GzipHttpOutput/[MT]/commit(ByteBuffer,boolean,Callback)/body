@@ -4,7 +4,7 @@
   if (sc > 0 && (sc < 200 || sc == 204 || sc == 205 || sc >= 300)) {
     LOG.debug("{} exclude by status {}",this,sc);
     noCompression();
-    super.write(content,complete,callback);
+    superWrite(content,complete,callback);
     return;
   }
   String ct=getHttpChannel().getResponse().getContentType();
@@ -13,7 +13,7 @@
     if (_factory.isExcludedMimeType(StringUtil.asciiToLowerCase(ct))) {
       LOG.debug("{} exclude by mimeType {}",this,ct);
       noCompression();
-      super.write(content,complete,callback);
+      superWrite(content,complete,callback);
       return;
     }
   }
@@ -21,7 +21,7 @@
   if (ce != null) {
     LOG.debug("{} exclude by content-encoding {}",this,ce);
     noCompression();
-    super.write(content,complete,callback);
+    superWrite(content,complete,callback);
     return;
   }
   if (_state.compareAndSet(GZState.MIGHT_COMPRESS,GZState.COMMITTING)) {
@@ -33,7 +33,7 @@
     if (_deflater == null) {
       LOG.debug("{} exclude no deflater",this);
       _state.set(GZState.NOT_COMPRESSING);
-      super.write(content,complete,callback);
+      superWrite(content,complete,callback);
       return;
     }
     fields.put(CONTENT_ENCODING_GZIP);
