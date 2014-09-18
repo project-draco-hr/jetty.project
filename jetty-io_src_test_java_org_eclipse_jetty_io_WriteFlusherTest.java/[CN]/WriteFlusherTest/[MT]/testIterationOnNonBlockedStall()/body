@@ -1,0 +1,32 @@
+{
+  final Exchanger<Integer> exchange=new Exchanger<>();
+  final AtomicInteger window=new AtomicInteger(10);
+  EndPointIterationOnNonBlockedStallMock endp=new EndPointIterationOnNonBlockedStallMock(window);
+  final WriteFlusher writeFlusher=new WriteFlusher(endp){
+    @Override protected void onIncompleteFlushed(){
+      executor.submit(new Runnable(){
+        public void run(){
+          try {
+            while (window.get() == 0)             window.addAndGet(exchange.exchange(0));
+            completeWrite();
+          }
+ catch (          Throwable th) {
+            th.printStackTrace();
+          }
+        }
+      }
+);
+    }
+  }
+;
+  BlockingCallback callback=new BlockingCallback();
+  writeFlusher.write(callback,BufferUtil.toBuffer("How "),BufferUtil.toBuffer("now "),BufferUtil.toBuffer("brown "),BufferUtil.toBuffer("cow."));
+  exchange.exchange(0);
+  Assert.assertThat(endp.takeOutputString(StandardCharsets.US_ASCII),Matchers.equalTo("How now br"));
+  exchange.exchange(1);
+  exchange.exchange(0);
+  Assert.assertThat(endp.takeOutputString(StandardCharsets.US_ASCII),Matchers.equalTo("o"));
+  exchange.exchange(8);
+  callback.block();
+  Assert.assertThat(endp.takeOutputString(StandardCharsets.US_ASCII),Matchers.equalTo("wn cow."));
+}
