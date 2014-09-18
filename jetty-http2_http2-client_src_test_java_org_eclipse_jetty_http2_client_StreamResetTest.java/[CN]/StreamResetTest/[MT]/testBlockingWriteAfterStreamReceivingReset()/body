@@ -1,0 +1,39 @@
+{
+  final CountDownLatch resetLatch=new CountDownLatch(1);
+  final CountDownLatch dataLatch=new CountDownLatch(1);
+  startServer(new HttpServlet(){
+    @Override protected void doGet(    HttpServletRequest request,    HttpServletResponse response) throws ServletException, IOException {
+      Charset charset=StandardCharsets.UTF_8;
+      byte[] data="AFTER RESET".getBytes(charset);
+      response.setStatus(200);
+      response.setContentType("text/plain;charset=" + charset.name());
+      response.setContentLength(data.length);
+      response.flushBuffer();
+      try {
+        Assert.assertTrue(resetLatch.await(5,TimeUnit.SECONDS));
+        Thread.sleep(1000);
+      }
+ catch (      InterruptedException x) {
+        throw new InterruptedIOException();
+      }
+      try {
+        response.getOutputStream().write(data);
+      }
+ catch (      IOException x) {
+        dataLatch.countDown();
+      }
+    }
+  }
+);
+  Session client=newClient(new Session.Listener.Adapter());
+  MetaData.Request request=newRequest("GET",new HttpFields());
+  HeadersFrame frame=new HeadersFrame(0,request,null,true);
+  client.newStream(frame,new FuturePromise<Stream>(),new Stream.Listener.Adapter(){
+    @Override public void onHeaders(    Stream stream,    HeadersFrame frame){
+      stream.reset(new ResetFrame(stream.getId(),ErrorCodes.CANCEL_STREAM_ERROR),Callback.Adapter.INSTANCE);
+      resetLatch.countDown();
+    }
+  }
+);
+  Assert.assertTrue(dataLatch.await(5,TimeUnit.SECONDS));
+}
