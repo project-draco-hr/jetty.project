@@ -1,8 +1,20 @@
 {
-  try {
-    if (request.getInputStream().isReady())     onDataAvailable();
-  }
- catch (  Throwable x) {
-    failed(x);
-  }
+  loop:   while (true) {
+switch (state.get()) {
+case OFFER:
+      if (!state.compareAndSet(ReadState.OFFER,ReadState.SUCCESS))       continue;
+    break loop;
+case PENDING:
+  if (!state.compareAndSet(ReadState.PENDING,ReadState.SUCCESS))   continue;
+try {
+  onDataAvailable();
+}
+ catch (Throwable x) {
+  failed(x);
+}
+break loop;
+default :
+throw new IllegalStateException("state=" + state.get());
+}
+}
 }
