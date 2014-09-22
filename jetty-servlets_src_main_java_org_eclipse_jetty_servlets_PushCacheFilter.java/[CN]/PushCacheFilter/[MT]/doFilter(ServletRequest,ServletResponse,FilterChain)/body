@@ -2,7 +2,7 @@
   long now=System.nanoTime();
   HttpServletRequest request=(HttpServletRequest)req;
   if (Boolean.TRUE == req.getAttribute("org.eclipse.jetty.pushed")) {
-    LOG.debug("PUSH {}",request.getRequestURI());
+    if (LOG.isDebugEnabled())     LOG.debug("PUSH {}",request.getRequestURI());
     chain.doFilter(req,resp);
     return;
   }
@@ -29,13 +29,21 @@ break;
 }
 if (LOG.isDebugEnabled()) LOG.debug("{} {} referrer={} conditional={}",request.getMethod(),request.getRequestURI(),referrer,conditional);
 String path=URIUtil.addPaths(request.getServletPath(),request.getPathInfo());
-if (path.endsWith("__renewPushCache__")) {
+if (path.endsWith(_renewPath)) {
 if (LOG.isDebugEnabled()) LOG.debug("Renew {}",now);
 _renew=now;
+resp.getOutputStream().print("PUSH CACHE RESET");
+resp.flushBuffer();
+return;
 }
 if (referrer != null) {
 HttpURI referrerURI=new HttpURI(referrer);
-if (request.getServerName().equals(referrerURI.getHost()) && request.getServerPort() == referrerURI.getPort()) {
+String host=referrerURI.getHost();
+int port=referrerURI.getPort();
+if (port <= 0) port=request.isSecure() ? 443 : 80;
+boolean referred_from_here=(_hosts.size() > 0) ? _hosts.contains(host) : request.getServerName().equals(host);
+referred_from_here&=(_ports.size() > 0) ? _ports.contains(port) : port == request.getServerPort();
+if (referred_from_here) {
 String referrerPath=referrerURI.getPath();
 if (referrerPath.startsWith(request.getContextPath())) {
 String referrerPathNoContext=referrerPath.substring(request.getContextPath().length());
@@ -55,6 +63,9 @@ if (primaryTimestamp != 0) {
 }
 }
 }
+}
+ else {
+if (LOG.isDebugEnabled()) LOG.debug("External referrer {}",referrer);
 }
 }
 PrimaryResource primaryResource=_cache.get(path);
