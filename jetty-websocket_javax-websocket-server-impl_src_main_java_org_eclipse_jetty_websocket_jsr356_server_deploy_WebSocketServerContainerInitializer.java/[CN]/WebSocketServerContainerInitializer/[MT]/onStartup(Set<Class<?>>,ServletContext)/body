@@ -25,68 +25,75 @@
     throw new ServletException("Not running in Jetty ServletContextHandler, JSR-356 support disabled");
   }
   ServletContextHandler jettyContext=(ServletContextHandler)handler;
-  ServerContainer jettyContainer=configureContext(context,jettyContext);
-  context.setAttribute(javax.websocket.server.ServerContainer.class.getName(),jettyContainer);
-  if (LOG.isDebugEnabled()) {
-    LOG.debug("Found {} classes",c.size());
-  }
-  Set<Class<? extends Endpoint>> discoveredExtendedEndpoints=new HashSet<>();
-  Set<Class<?>> discoveredAnnotatedEndpoints=new HashSet<>();
-  Set<Class<? extends ServerApplicationConfig>> serverAppConfigs=new HashSet<>();
-  filterClasses(c,discoveredExtendedEndpoints,discoveredAnnotatedEndpoints,serverAppConfigs);
-  if (LOG.isDebugEnabled()) {
-    LOG.debug("Discovered {} extends Endpoint classes",discoveredExtendedEndpoints.size());
-    LOG.debug("Discovered {} @ServerEndpoint classes",discoveredAnnotatedEndpoints.size());
-    LOG.debug("Discovered {} ServerApplicationConfig classes",serverAppConfigs.size());
-  }
-  boolean wasFiltered=false;
-  Set<ServerEndpointConfig> deployableExtendedEndpointConfigs=new HashSet<>();
-  Set<Class<?>> deployableAnnotatedEndpoints=new HashSet<>();
-  for (  Class<? extends ServerApplicationConfig> clazz : serverAppConfigs) {
+  ClassLoader old=Thread.currentThread().getContextClassLoader();
+  try {
+    Thread.currentThread().setContextClassLoader(context.getClassLoader());
+    ServerContainer jettyContainer=configureContext(context,jettyContext);
+    context.setAttribute(javax.websocket.server.ServerContainer.class.getName(),jettyContainer);
     if (LOG.isDebugEnabled()) {
-      LOG.debug("Found ServerApplicationConfig: {}",clazz);
+      LOG.debug("Found {} classes",c.size());
     }
-    try {
-      ServerApplicationConfig config=clazz.newInstance();
-      Set<ServerEndpointConfig> seconfigs=config.getEndpointConfigs(discoveredExtendedEndpoints);
-      if (seconfigs != null) {
-        wasFiltered=true;
-        deployableExtendedEndpointConfigs.addAll(seconfigs);
+    Set<Class<? extends Endpoint>> discoveredExtendedEndpoints=new HashSet<>();
+    Set<Class<?>> discoveredAnnotatedEndpoints=new HashSet<>();
+    Set<Class<? extends ServerApplicationConfig>> serverAppConfigs=new HashSet<>();
+    filterClasses(c,discoveredExtendedEndpoints,discoveredAnnotatedEndpoints,serverAppConfigs);
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("Discovered {} extends Endpoint classes",discoveredExtendedEndpoints.size());
+      LOG.debug("Discovered {} @ServerEndpoint classes",discoveredAnnotatedEndpoints.size());
+      LOG.debug("Discovered {} ServerApplicationConfig classes",serverAppConfigs.size());
+    }
+    boolean wasFiltered=false;
+    Set<ServerEndpointConfig> deployableExtendedEndpointConfigs=new HashSet<>();
+    Set<Class<?>> deployableAnnotatedEndpoints=new HashSet<>();
+    for (    Class<? extends ServerApplicationConfig> clazz : serverAppConfigs) {
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("Found ServerApplicationConfig: {}",clazz);
       }
-      Set<Class<?>> annotatedClasses=config.getAnnotatedEndpointClasses(discoveredAnnotatedEndpoints);
-      if (annotatedClasses != null) {
-        wasFiltered=true;
-        deployableAnnotatedEndpoints.addAll(annotatedClasses);
+      try {
+        ServerApplicationConfig config=clazz.newInstance();
+        Set<ServerEndpointConfig> seconfigs=config.getEndpointConfigs(discoveredExtendedEndpoints);
+        if (seconfigs != null) {
+          wasFiltered=true;
+          deployableExtendedEndpointConfigs.addAll(seconfigs);
+        }
+        Set<Class<?>> annotatedClasses=config.getAnnotatedEndpointClasses(discoveredAnnotatedEndpoints);
+        if (annotatedClasses != null) {
+          wasFiltered=true;
+          deployableAnnotatedEndpoints.addAll(annotatedClasses);
+        }
+      }
+ catch (      InstantiationException|IllegalAccessException e) {
+        throw new ServletException("Unable to instantiate: " + clazz.getName(),e);
       }
     }
- catch (    InstantiationException|IllegalAccessException e) {
-      throw new ServletException("Unable to instantiate: " + clazz.getName(),e);
+    if (!wasFiltered) {
+      deployableAnnotatedEndpoints.addAll(discoveredAnnotatedEndpoints);
+      deployableExtendedEndpointConfigs=new HashSet<>();
+    }
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("Deploying {} ServerEndpointConfig(s)",deployableExtendedEndpointConfigs.size());
+    }
+    for (    ServerEndpointConfig config : deployableExtendedEndpointConfigs) {
+      try {
+        jettyContainer.addEndpoint(config);
+      }
+ catch (      DeploymentException e) {
+        throw new ServletException(e);
+      }
+    }
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("Deploying {} @ServerEndpoint(s)",deployableAnnotatedEndpoints.size());
+    }
+    for (    Class<?> annotatedClass : deployableAnnotatedEndpoints) {
+      try {
+        jettyContainer.addEndpoint(annotatedClass);
+      }
+ catch (      DeploymentException e) {
+        throw new ServletException(e);
+      }
     }
   }
-  if (!wasFiltered) {
-    deployableAnnotatedEndpoints.addAll(discoveredAnnotatedEndpoints);
-    deployableExtendedEndpointConfigs=new HashSet<>();
-  }
-  if (LOG.isDebugEnabled()) {
-    LOG.debug("Deploying {} ServerEndpointConfig(s)",deployableExtendedEndpointConfigs.size());
-  }
-  for (  ServerEndpointConfig config : deployableExtendedEndpointConfigs) {
-    try {
-      jettyContainer.addEndpoint(config);
-    }
- catch (    DeploymentException e) {
-      throw new ServletException(e);
-    }
-  }
-  if (LOG.isDebugEnabled()) {
-    LOG.debug("Deploying {} @ServerEndpoint(s)",deployableAnnotatedEndpoints.size());
-  }
-  for (  Class<?> annotatedClass : deployableAnnotatedEndpoints) {
-    try {
-      jettyContainer.addEndpoint(annotatedClass);
-    }
- catch (    DeploymentException e) {
-      throw new ServletException(e);
-    }
+  finally {
+    Thread.currentThread().setContextClassLoader(old);
   }
 }

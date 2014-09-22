@@ -2,9 +2,11 @@
   if (remote != null) {
     return;
   }
-  connection.getIOState().onConnected();
-  remote=new WebSocketRemoteEndpoint(connection,outgoingHandler,getBatchMode());
+  ClassLoader old=Thread.currentThread().getContextClassLoader();
   try {
+    Thread.currentThread().setContextClassLoader(classLoader);
+    connection.getIOState().onConnected();
+    remote=new WebSocketRemoteEndpoint(connection,outgoingHandler,getBatchMode());
     websocket.openSession(this);
     connection.getIOState().onOpened();
     if (LOG.isDebugEnabled()) {
@@ -17,5 +19,8 @@
       statusCode=StatusCode.POLICY_VIOLATION;
     }
     close(statusCode,t.getMessage());
+  }
+ finally {
+    Thread.currentThread().setContextClassLoader(old);
   }
 }
