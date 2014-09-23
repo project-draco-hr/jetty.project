@@ -11,6 +11,17 @@
     return;
   }
   final Request proxyRequest=_client.newRequest(rewrittenURI).method(request.getMethod()).version(HttpVersion.fromString(request.getProtocol()));
+  Set<String> hopHeaders=null;
+  Enumeration<String> connectionHeaders=request.getHeaders(HttpHeader.CONNECTION.asString());
+  while (connectionHeaders.hasMoreElements()) {
+    String value=connectionHeaders.nextElement();
+    String[] values=value.split(",");
+    for (    String name : values) {
+      name=name.trim().toLowerCase(Locale.ENGLISH);
+      if (hopHeaders == null)       hopHeaders=new HashSet<>();
+      hopHeaders.add(name);
+    }
+  }
   boolean hasContent=request.getContentLength() > 0 || request.getContentType() != null;
   for (Enumeration<String> headerNames=request.getHeaderNames(); headerNames.hasMoreElements(); ) {
     String headerName=headerNames.nextElement();
@@ -18,6 +29,7 @@
     if (HttpHeader.TRANSFER_ENCODING.is(headerName))     hasContent=true;
     if (_hostHeader != null && HttpHeader.HOST.is(headerName))     continue;
     if (HOP_HEADERS.contains(lowerHeaderName))     continue;
+    if (hopHeaders != null && hopHeaders.contains(lowerHeaderName))     continue;
     for (Enumeration<String> headerValues=request.getHeaders(headerName); headerValues.hasMoreElements(); ) {
       String headerValue=headerValues.nextElement();
       if (headerValue != null)       proxyRequest.header(headerName,headerValue);
