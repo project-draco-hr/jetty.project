@@ -7,10 +7,34 @@
   while (iter.hasNext()) {
     String p=iter.next().toString(false,true);
     p=normalizePattern(p);
+    ListIterator<ServletMapping> listItor=_servletMappings.listIterator();
+    boolean found=false;
+    while (listItor.hasNext() && !found) {
+      ServletMapping sm=listItor.next();
+      if (sm.getPathSpecs() != null) {
+        for (        String ps : sm.getPathSpecs()) {
+          if (p.equals(ps) && sm.isDefault()) {
+            if (LOG.isDebugEnabled())             LOG.debug("{} in mapping {} from defaults descriptor is overridden by ",ps,sm,servletName);
+            String[] updatedPaths=ArrayUtil.removeFromArray(sm.getPathSpecs(),ps);
+            if (updatedPaths == null || updatedPaths.length == 0) {
+              if (LOG.isDebugEnabled())               LOG.debug("Removed mapping {} from defaults descriptor",sm);
+              listItor.remove();
+            }
+ else {
+              sm.setPathSpecs(updatedPaths);
+              if (LOG.isDebugEnabled())               LOG.debug("Removed path {} from mapping {} from defaults descriptor ",p,sm);
+            }
+            found=true;
+            break;
+          }
+        }
+      }
+    }
     paths.add(p);
     context.getMetaData().setOrigin(servletName + ".servlet.mapping." + p,descriptor);
   }
   mapping.setPathSpecs((String[])paths.toArray(new String[paths.size()]));
+  if (LOG.isDebugEnabled())   LOG.debug("Added mapping {} ",mapping);
   _servletMappings.add(mapping);
   return mapping;
 }
