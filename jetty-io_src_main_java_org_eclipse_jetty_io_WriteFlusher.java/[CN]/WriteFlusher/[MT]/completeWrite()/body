@@ -6,9 +6,10 @@
   if (!updateState(pending,__COMPLETING))   return;
   try {
     ByteBuffer[] buffers=pending.getBuffers();
-    boolean flushed=_endPoint.flush(buffers);
-    if (DEBUG)     LOG.debug("flushed {}",flushed);
-    if (!flushed) {
+    buffers=flush(buffers);
+    if (buffers != null) {
+      if (DEBUG)       LOG.debug("flushed incomplete {}",BufferUtil.toDetailString(buffers));
+      if (buffers != pending.getBuffers())       pending=new PendingState(buffers,pending._callback);
       if (updateState(__COMPLETING,pending))       onIncompleteFlushed();
  else       fail(pending);
       return;

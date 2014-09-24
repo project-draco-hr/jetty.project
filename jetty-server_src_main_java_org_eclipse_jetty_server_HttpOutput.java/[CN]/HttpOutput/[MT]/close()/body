@@ -1,29 +1,28 @@
 {
-  loop:   while (true) {
+  while (true) {
     OutputState state=_state.get();
 switch (state) {
 case CLOSED:
 {
-        break loop;
+        return;
       }
 case UNREADY:
 {
       if (_state.compareAndSet(state,OutputState.ERROR))       _writeListener.onError(_onError == null ? new EofException("Async close") : _onError);
-      continue;
+      break;
     }
 default :
 {
-    if (_state.compareAndSet(state,OutputState.CLOSED)) {
-      try {
-        write(BufferUtil.hasContent(_aggregate) ? _aggregate : BufferUtil.EMPTY_BUFFER,!_channel.getResponse().isIncluding());
-        break loop;
-      }
- catch (      IOException x) {
-      }
- finally {
-        releaseBuffer();
-      }
+    if (!_state.compareAndSet(state,OutputState.CLOSED))     break;
+    try {
+      write(BufferUtil.hasContent(_aggregate) ? _aggregate : BufferUtil.EMPTY_BUFFER,!_channel.getResponse().isIncluding());
     }
+ catch (    IOException x) {
+    }
+ finally {
+      releaseBuffer();
+    }
+    return;
   }
 }
 }

@@ -1,24 +1,31 @@
 {
-  loop:   while (true) {
+  while (true) {
     OutputState state=_state.get();
 switch (state) {
 case CLOSED:
-      break loop;
+{
+        return;
+      }
 case UNREADY:
-    if (_state.compareAndSet(state,OutputState.ERROR))     _writeListener.onError(_onError == null ? new EofException("Async closed") : _onError);
-  continue;
+{
+      if (_state.compareAndSet(state,OutputState.ERROR))       _writeListener.onError(_onError == null ? new EofException("Async closed") : _onError);
+      break;
+    }
 default :
-if (_state.compareAndSet(state,OutputState.CLOSED)) {
-  try {
-    _channel.getResponse().closeOutput();
+{
+    if (!_state.compareAndSet(state,OutputState.CLOSED))     break;
+    try {
+      _channel.getResponse().closeOutput();
+    }
+ catch (    Throwable x) {
+      if (LOG.isDebugEnabled())       LOG.debug(x);
+      abort(x);
+    }
+ finally {
+      releaseBuffer();
+    }
+    return;
   }
- catch (  Throwable e) {
-    LOG.debug(e);
-    _channel.abort(e);
-  }
-  releaseBuffer();
-  return;
-}
 }
 }
 }

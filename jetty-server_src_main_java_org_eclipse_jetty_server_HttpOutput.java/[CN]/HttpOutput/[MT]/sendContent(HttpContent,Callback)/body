@@ -1,15 +1,23 @@
 {
-  if (BufferUtil.hasContent(_aggregate))   throw new IOException("written");
-  if (_channel.isCommitted())   throw new IOException("committed");
+  if (BufferUtil.hasContent(_aggregate)) {
+    callback.failed(new IOException("cannot sendContent() after write()"));
+    return;
+  }
+  if (_channel.isCommitted()) {
+    callback.failed(new IOException("committed"));
+    return;
+  }
   while (true) {
 switch (_state.get()) {
 case OPEN:
       if (!_state.compareAndSet(OutputState.OPEN,OutputState.PENDING))       continue;
     break;
 case ERROR:
-  throw new EofException(_onError);
+  callback.failed(new EofException(_onError));
+return;
 case CLOSED:
-throw new EofException("Closed");
+callback.failed(new EofException("Closed"));
+return;
 default :
 throw new IllegalStateException();
 }
@@ -22,6 +30,7 @@ if (LOG.isDebugEnabled()) LOG.debug("sendContent({}=={},{},direct={})",httpConte
 sendContent(buffer,callback);
 return;
 }
+try {
 ReadableByteChannel rbc=httpContent.getReadableByteChannel();
 if (rbc != null) {
 if (LOG.isDebugEnabled()) LOG.debug("sendContent({}=={},{},direct={})",httpContent,rbc,callback,_channel.useDirectBuffers());
@@ -34,5 +43,10 @@ if (LOG.isDebugEnabled()) LOG.debug("sendContent({}=={},{},direct={})",httpConte
 sendContent(in,callback);
 return;
 }
-callback.failed(new IllegalArgumentException("unknown content for " + httpContent));
+throw new IllegalArgumentException("unknown content for " + httpContent);
+}
+ catch (Throwable th) {
+abort(th);
+callback.failed(th);
+}
 }

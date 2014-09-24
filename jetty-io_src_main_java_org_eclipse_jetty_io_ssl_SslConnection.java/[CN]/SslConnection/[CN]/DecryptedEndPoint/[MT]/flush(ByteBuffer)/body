@@ -14,12 +14,9 @@
       SSLEngineResult wrapResult=_sslEngine.wrap(appOuts,_encryptedOutput);
       if (DEBUG)       LOG.debug("{} wrap {}",SslConnection.this,wrapResult.toString().replace('\n',' '));
       BufferUtil.flipToFlush(_encryptedOutput,pos);
-      boolean allConsumed=true;
-      for (      ByteBuffer b : appOuts) {
-        if (BufferUtil.isEmpty(b))         BufferUtil.clear(b);
- else         allConsumed=false;
-      }
       Status wrapResultStatus=wrapResult.getStatus();
+      boolean allConsumed=true;
+      for (      ByteBuffer b : appOuts)       if (BufferUtil.hasContent(b))       allConsumed=false;
 switch (wrapResultStatus) {
 case CLOSED:
         if (BufferUtil.hasContent(_encryptedOutput)) {
@@ -46,9 +43,11 @@ if (DEBUG) LOG.debug("{} renegotiation denied",SslConnection.this);
 getEndPoint().shutdownOutput();
 return allConsumed;
 }
-if (BufferUtil.hasContent(_encryptedOutput)) getEndPoint().flush(_encryptedOutput);
+if (BufferUtil.hasContent(_encryptedOutput)) if (!getEndPoint().flush(_encryptedOutput)) ;
+getEndPoint().flush(_encryptedOutput);
 switch (handshakeStatus) {
 case NOT_HANDSHAKING:
+if (!allConsumed && wrapResult.getHandshakeStatus() == HandshakeStatus.FINISHED && BufferUtil.isEmpty(_encryptedOutput)) continue;
 return allConsumed && BufferUtil.isEmpty(_encryptedOutput);
 case NEED_TASK:
 _sslEngine.getDelegatedTask().run();
