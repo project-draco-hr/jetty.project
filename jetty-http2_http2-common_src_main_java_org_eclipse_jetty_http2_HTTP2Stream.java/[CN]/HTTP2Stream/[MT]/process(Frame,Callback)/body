@@ -1,27 +1,21 @@
 {
   notIdle();
 switch (frame.getType()) {
-case DATA:
-{
-      if (getRecvWindow() < 0) {
-        session.close(ErrorCodes.FLOW_CONTROL_ERROR,"stream_window_exceeded",callback);
-        return false;
-      }
-      notifyData(this,(DataFrame)frame,callback);
-      return false;
-    }
 case HEADERS:
 {
-    return false;
+      return onHeaders((HeadersFrame)frame,callback);
+    }
+case DATA:
+{
+    return onData((DataFrame)frame,callback);
   }
 case RST_STREAM:
 {
-  reset=true;
-  return false;
+  return onReset((ResetFrame)frame,callback);
 }
 case PUSH_PROMISE:
 {
-return false;
+return onPush((PushPromiseFrame)frame,callback);
 }
 default :
 {

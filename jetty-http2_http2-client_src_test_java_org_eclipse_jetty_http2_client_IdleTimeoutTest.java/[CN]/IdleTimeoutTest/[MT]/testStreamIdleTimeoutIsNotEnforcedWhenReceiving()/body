@@ -19,7 +19,7 @@
   session.newStream(requestFrame,promise,new Stream.Listener.Adapter());
   final Stream stream=promise.get(5,TimeUnit.SECONDS);
   sleep(idleTimeout / 2);
-  final CountDownLatch latch=new CountDownLatch(1);
+  final CountDownLatch dataLatch=new CountDownLatch(1);
   stream.data(new DataFrame(stream.getId(),ByteBuffer.allocate(1),false),new Callback.Adapter(){
     private int sends;
     @Override public void succeeded(){
@@ -27,13 +27,13 @@
       final boolean last=++sends == 2;
       stream.data(new DataFrame(stream.getId(),ByteBuffer.allocate(1),last),!last ? this : new Adapter(){
         @Override public void succeeded(){
-          latch.countDown();
+          dataLatch.countDown();
         }
       }
 );
     }
   }
 );
-  Assert.assertTrue(latch.await(2 * idleTimeout,TimeUnit.MILLISECONDS));
+  Assert.assertTrue(dataLatch.await(2 * idleTimeout,TimeUnit.MILLISECONDS));
   Assert.assertFalse(timeoutLatch.await(0,TimeUnit.SECONDS));
 }
