@@ -18,14 +18,14 @@
     if (max != null) {
       policy.setInputBufferSize(Integer.parseInt(max));
     }
-    boolean addGlobalAttr=false;
-    String boolStr=config.getInitParameter("global");
-    if (boolStr != null) {
-      addGlobalAttr=Boolean.parseBoolean(boolStr);
+    String key=config.getInitParameter(CONTEXT_ATTRIBUTE_KEY);
+    if (key == null) {
+      key=WebSocketUpgradeFilter.class.getName();
     }
-    if (addGlobalAttr) {
-      config.getServletContext().setAttribute(WebSocketUpgradeFilter.class.getName(),this);
+    if (config.getServletContext().getAttribute(key) != null) {
+      throw new ServletException(WebSocketUpgradeFilter.class.getName() + " is defined twice for the same context attribute key '" + key+ "'.  Make sure you have different init-param '"+ CONTEXT_ATTRIBUTE_KEY+ "' values set");
     }
+    config.getServletContext().setAttribute(key,this);
     factory.start();
   }
  catch (  Exception x) {
