@@ -1,28 +1,13 @@
 {
-  Object enable=context.getAttribute(ENABLE_KEY);
-  if (TypeUtil.isFalse(enable)) {
-    if (c.isEmpty()) {
-      if (LOG.isDebugEnabled()) {
-        LOG.debug("JSR-356 support disabled via attribute on context {} - {}",context.getContextPath(),context);
-      }
-    }
- else {
-      LOG.warn("JSR-356 support disabled via attribute on context {} - {}",context.getContextPath(),context);
-    }
-    return;
-  }
-  if (!TypeUtil.isTrue(enable) && c.isEmpty()) {
-    if (LOG.isDebugEnabled()) {
-      LOG.debug("No JSR-356 annotations or interfaces discovered. JSR-356 support disabled",context.getContextPath(),context);
-    }
+  if (!isEnabled(c,context)) {
     return;
   }
   ContextHandler handler=ContextHandler.getContextHandler(context);
   if (handler == null) {
-    throw new ServletException("Not running on Jetty, JSR-356 support disabled");
+    throw new ServletException("Not running on Jetty, JSR-356 support unavailable");
   }
   if (!(handler instanceof ServletContextHandler)) {
-    throw new ServletException("Not running in Jetty ServletContextHandler, JSR-356 support disabled");
+    throw new ServletException("Not running in Jetty ServletContextHandler, JSR-356 support unavailable");
   }
   ServletContextHandler jettyContext=(ServletContextHandler)handler;
   ClassLoader old=Thread.currentThread().getContextClassLoader();
