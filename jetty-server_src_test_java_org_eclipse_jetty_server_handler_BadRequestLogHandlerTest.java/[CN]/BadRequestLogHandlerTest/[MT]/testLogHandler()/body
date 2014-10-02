@@ -1,0 +1,39 @@
+{
+  Server server=new Server();
+  ServerConnector connector=new ServerConnector(server);
+  connector.setPort(0);
+  server.setConnectors(new Connector[]{connector});
+  CaptureLog captureLog=new CaptureLog();
+  RequestLogHandler requestLog=new RequestLogHandler();
+  requestLog.setRequestLog(captureLog);
+  requestLog.setHandler(new HelloHandler());
+  server.setHandler(requestLog);
+  try {
+    server.start();
+    String host=connector.getHost();
+    if (host == null) {
+      host="localhost";
+    }
+    InetAddress destAddr=InetAddress.getByName(host);
+    int port=connector.getLocalPort();
+    SocketAddress endpoint=new InetSocketAddress(destAddr,port);
+    Socket socket=new Socket();
+    socket.setSoTimeout(1000);
+    socket.connect(endpoint);
+    try (OutputStream out=socket.getOutputStream();OutputStreamWriter writer=new OutputStreamWriter(out,StandardCharsets.UTF_8);InputStream in=socket.getInputStream();InputStreamReader reader=new InputStreamReader(in,StandardCharsets.UTF_8)){
+      StringReader request=new StringReader(requestHeader);
+      IO.copy(request,writer);
+      writer.flush();
+      StringWriter response=new StringWriter();
+      IO.copy(reader,response);
+      LOG.info("Response: {}",response);
+    }
+  finally {
+      socket.close();
+    }
+    assertRequestLog(captureLog);
+  }
+  finally {
+    server.stop();
+  }
+}
