@@ -1,0 +1,58 @@
+{
+  File keystore=MavenTestingUtils.getTestResourceFile("keystore");
+  SslContextFactory sslContextFactory=new SslContextFactory();
+  sslContextFactory.setKeyStorePath(keystore.getAbsolutePath());
+  sslContextFactory.setKeyStorePassword("storepwd");
+  sslContextFactory.setKeyManagerPassword("keypwd");
+  sslContextFactory.setTrustStorePath(keystore.getAbsolutePath());
+  sslContextFactory.setTrustStorePassword("storepwd");
+  server=new Server();
+  int port=32080;
+  int securePort=32443;
+  HttpConfiguration httpConf=new HttpConfiguration();
+  httpConf.setSecurePort(securePort);
+  httpConf.setSecureScheme("https");
+  ServerConnector httpConnector=new ServerConnector(server,new HttpConnectionFactory(httpConf));
+  httpConnector.setName("unsecured");
+  httpConnector.setPort(port);
+  HttpConfiguration httpsConf=new HttpConfiguration(httpConf);
+  httpsConf.addCustomizer(new SecureRequestCustomizer());
+  ServerConnector httpsConnector=new ServerConnector(server,new SslConnectionFactory(sslContextFactory,"http/1.1"),new HttpConnectionFactory(httpsConf));
+  httpsConnector.setName("secured");
+  httpsConnector.setPort(securePort);
+  server.setConnectors(new Connector[]{httpConnector,httpsConnector});
+  String secureHosts[]=new String[]{"@secured"};
+  ContextHandler test1Context=new ContextHandler();
+  test1Context.setContextPath("/test1");
+  test1Context.setHandler(new HelloHandler("Hello1"));
+  test1Context.setVirtualHosts(secureHosts);
+  ContextHandler test2Context=new ContextHandler();
+  test2Context.setContextPath("/test2");
+  test2Context.setHandler(new HelloHandler("Hello2"));
+  test2Context.setVirtualHosts(secureHosts);
+  ContextHandler rootContext=new ContextHandler();
+  rootContext.setContextPath("/");
+  rootContext.setHandler(new RootHandler("/test1","/test2"));
+  rootContext.setVirtualHosts(secureHosts);
+  ContextHandler redirectHandler=new ContextHandler();
+  redirectHandler.setContextPath("/");
+  redirectHandler.setHandler(new SecuredRedirectHandler());
+  redirectHandler.setVirtualHosts(new String[]{"@unsecured"});
+  ContextHandlerCollection contextHandlers=new ContextHandlerCollection();
+  contextHandlers.setHandlers(new Handler[]{redirectHandler,rootContext,test1Context,test2Context});
+  HandlerList handlers=new HandlerList();
+  handlers.addHandler(contextHandlers);
+  handlers.addHandler(new DefaultHandler());
+  server.setHandler(handlers);
+  server.start();
+  String host=httpConnector.getHost();
+  if (host == null) {
+    host="localhost";
+  }
+  serverHttpUri=new URI(String.format("http://%s:%d/",host,httpConnector.getLocalPort()));
+  serverHttpsUri=new URI(String.format("https://%s:%d/",host,httpsConnector.getLocalPort()));
+  origVerifier=HttpsURLConnection.getDefaultHostnameVerifier();
+  origSsf=HttpsURLConnection.getDefaultSSLSocketFactory();
+  HttpsURLConnection.setDefaultHostnameVerifier(new AllowAllVerifier());
+  HttpsURLConnection.setDefaultSSLSocketFactory(sslContextFactory.getSslContext().getSocketFactory());
+}

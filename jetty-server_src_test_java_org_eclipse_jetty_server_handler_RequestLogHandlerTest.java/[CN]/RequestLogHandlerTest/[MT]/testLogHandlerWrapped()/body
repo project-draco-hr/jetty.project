@@ -1,0 +1,37 @@
+{
+  Server server=new Server();
+  ServerConnector connector=new ServerConnector(server);
+  connector.setPort(0);
+  server.setConnectors(new Connector[]{connector});
+  CaptureLog captureLog=new CaptureLog();
+  RequestLogHandler requestLog=new RequestLogHandler();
+  requestLog.setRequestLog(captureLog);
+  requestLog.setHandler(testHandler);
+  server.setHandler(requestLog);
+  try {
+    server.start();
+    String host=connector.getHost();
+    if (host == null) {
+      host="localhost";
+    }
+    int port=connector.getLocalPort();
+    URI serverUri=new URI("http",null,host,port,"/test",null,null);
+    HttpURLConnection connection=(HttpURLConnection)serverUri.toURL().openConnection();
+    try {
+      connection.setAllowUserInteraction(false);
+      int statusCode=connection.getResponseCode();
+      LOG.info("Response Status Code: {}",statusCode);
+      if (statusCode == 200) {
+        String content=getResponseContent(connection);
+        LOG.info("Response Content: {}",content);
+      }
+    }
+  finally {
+      connection.disconnect();
+    }
+    assertRequestLog(captureLog);
+  }
+  finally {
+    server.stop();
+  }
+}
