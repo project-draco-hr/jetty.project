@@ -3,11 +3,26 @@
   ServerConnector connector=new ServerConnector(server);
   connector.setPort(0);
   server.setConnectors(new Connector[]{connector});
-  CaptureLog captureLog=new CaptureLog();
+  HandlerCollection handlers=new HandlerCollection();
+  ContextHandlerCollection contexts=new ContextHandlerCollection();
+  DefaultHandler defaultHandler=new DefaultHandler();
+  handlers.setHandlers(new Handler[]{contexts,defaultHandler});
+  server.setHandler(handlers);
   RequestLogHandler requestLog=new RequestLogHandler();
+  CaptureLog captureLog=new CaptureLog();
   requestLog.setRequestLog(captureLog);
-  requestLog.setHandler(testHandler);
+  Handler origServerHandler=server.getHandler();
+  requestLog.setHandler(origServerHandler);
   server.setHandler(requestLog);
+  ServletContextHandler app=new ServletContextHandler(ServletContextHandler.SESSIONS);
+  app.setContextPath("/");
+  contexts.addHandler(app);
+  ServletHolder testHolder=new ServletHolder(testServlet);
+  app.addServlet(testHolder,"/test");
+  app.addServlet(CustomErrorServlet.class,"/errorpage");
+  ErrorPageErrorHandler errorMapper=new ErrorPageErrorHandler();
+  errorMapper.addErrorPage(500,"/errorpage");
+  app.setErrorHandler(errorMapper);
   try {
     server.start();
     String host=connector.getHost();
@@ -15,7 +30,7 @@
       host="localhost";
     }
     int port=connector.getLocalPort();
-    URI serverUri=new URI("http",null,host,port,requestPath,null,null);
+    URI serverUri=new URI("http",null,host,port,"/test",null,null);
     HttpURLConnection connection=(HttpURLConnection)serverUri.toURL().openConnection();
     try {
       connection.setAllowUserInteraction(false);

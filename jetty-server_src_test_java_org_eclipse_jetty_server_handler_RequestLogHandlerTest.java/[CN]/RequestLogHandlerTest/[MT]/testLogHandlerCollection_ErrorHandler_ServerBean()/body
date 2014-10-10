@@ -3,11 +3,14 @@
   ServerConnector connector=new ServerConnector(server);
   connector.setPort(0);
   server.setConnectors(new Connector[]{connector});
+  ErrorHandler errorHandler=new ErrorHandler();
+  server.addBean(errorHandler);
   CaptureLog captureLog=new CaptureLog();
   RequestLogHandler requestLog=new RequestLogHandler();
   requestLog.setRequestLog(captureLog);
-  requestLog.setHandler(testHandler);
-  server.setHandler(requestLog);
+  HandlerCollection handlers=new HandlerCollection();
+  handlers.setHandlers(new Handler[]{testHandler,requestLog});
+  server.setHandler(handlers);
   try {
     server.start();
     String host=connector.getHost();
@@ -20,10 +23,10 @@
     try {
       connection.setAllowUserInteraction(false);
       int statusCode=connection.getResponseCode();
-      LOG.info("Response Status Code: {}",statusCode);
+      LOG.debug("Response Status Code: {}",statusCode);
       if (statusCode == 200) {
         String content=getResponseContent(connection);
-        LOG.info("Response Content: {}",content);
+        LOG.debug("Response Content: {}",content);
       }
     }
   finally {
