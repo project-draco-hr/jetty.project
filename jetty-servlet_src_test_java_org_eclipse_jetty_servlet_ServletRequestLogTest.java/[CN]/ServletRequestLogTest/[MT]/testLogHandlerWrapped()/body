@@ -1,0 +1,52 @@
+{
+  Server server=new Server();
+  ServerConnector connector=new ServerConnector(server);
+  connector.setPort(0);
+  server.setConnectors(new Connector[]{connector});
+  HandlerCollection handlers=new HandlerCollection();
+  ContextHandlerCollection contexts=new ContextHandlerCollection();
+  DefaultHandler defaultHandler=new DefaultHandler();
+  handlers.setHandlers(new Handler[]{contexts,defaultHandler});
+  server.setHandler(handlers);
+  RequestLogHandler requestLog=new RequestLogHandler();
+  CaptureLog captureLog=new CaptureLog();
+  requestLog.setRequestLog(captureLog);
+  Handler origServerHandler=server.getHandler();
+  requestLog.setHandler(origServerHandler);
+  server.setHandler(requestLog);
+  ServletContextHandler app=new ServletContextHandler(ServletContextHandler.SESSIONS);
+  app.setContextPath("/");
+  contexts.addHandler(app);
+  ServletHolder testHolder=new ServletHolder(testServlet);
+  app.addServlet(testHolder,"/test");
+  app.addServlet(CustomErrorServlet.class,"/errorpage");
+  ErrorPageErrorHandler errorMapper=new ErrorPageErrorHandler();
+  errorMapper.addErrorPage(500,"/errorpage");
+  app.setErrorHandler(errorMapper);
+  try {
+    server.start();
+    String host=connector.getHost();
+    if (host == null) {
+      host="localhost";
+    }
+    int port=connector.getLocalPort();
+    URI serverUri=new URI("http",null,host,port,"/test",null,null);
+    HttpURLConnection connection=(HttpURLConnection)serverUri.toURL().openConnection();
+    try {
+      connection.setAllowUserInteraction(false);
+      int statusCode=connection.getResponseCode();
+      LOG.info("Response Status Code: {}",statusCode);
+      if (statusCode == 200) {
+        String content=getResponseContent(connection);
+        LOG.info("Response Content: {}",content);
+      }
+    }
+  finally {
+      connection.disconnect();
+    }
+    assertRequestLog(captureLog);
+  }
+  finally {
+    server.stop();
+  }
+}
