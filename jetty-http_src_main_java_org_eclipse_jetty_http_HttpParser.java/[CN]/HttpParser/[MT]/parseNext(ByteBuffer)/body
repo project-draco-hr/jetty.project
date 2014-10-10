@@ -27,14 +27,17 @@
     if (_state == State.END) {
       while (buffer.remaining() > 0 && buffer.get(buffer.position()) <= HttpTokens.SPACE)       buffer.get();
     }
- else     if (_state == State.CLOSE || _state == State.CLOSED) {
+ else     if (_state == State.CLOSE) {
       if (BufferUtil.hasContent(buffer)) {
         _headerBytes+=buffer.remaining();
         BufferUtil.clear(buffer);
         if (_headerBytes > _maxHeaderBytes) {
-          throw new IllegalStateException("too much data when seeking close");
+          throw new IllegalStateException("too much data seeking EOF");
         }
       }
+    }
+ else     if (_state == State.CLOSED) {
+      BufferUtil.clear(buffer);
     }
     if (_eof && !buffer.hasRemaining()) {
 switch (_state) {
@@ -80,25 +83,29 @@ catch (NumberFormatException|IllegalStateException e) {
 BufferUtil.clear(buffer);
 LOG.warn("parse exception: {} in {} for {}",e.toString(),_state,_handler);
 if (DEBUG) LOG.debug(e);
-if (_state.ordinal() <= State.END.ordinal()) {
+switch (_state) {
+case CLOSED:
+break;
+case CLOSE:
+_handler.earlyEOF();
+break;
+default :
 setState(State.CLOSE);
 _handler.badMessage(400,null);
-}
- else {
-_handler.earlyEOF();
-setState(State.CLOSE);
 }
 }
 catch (Exception|Error e) {
 BufferUtil.clear(buffer);
 LOG.warn("parse exception: " + e.toString() + " for "+ _handler,e);
-if (_state.ordinal() <= State.END.ordinal()) {
+switch (_state) {
+case CLOSED:
+break;
+case CLOSE:
+_handler.earlyEOF();
+break;
+default :
 setState(State.CLOSE);
 _handler.badMessage(400,null);
-}
- else {
-_handler.earlyEOF();
-setState(State.CLOSE);
 }
 }
 return false;
