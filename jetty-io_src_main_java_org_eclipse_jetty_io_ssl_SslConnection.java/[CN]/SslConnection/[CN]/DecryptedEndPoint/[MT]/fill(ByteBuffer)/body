@@ -42,51 +42,55 @@ case NEED_WRAP:
 {
             return -1;
           }
+case NEED_UNWRAP:
+{
+          return -1;
+        }
 default :
 {
-          throw new IllegalStateException();
-        }
-    }
+        throw new IllegalStateException();
+      }
   }
+}
 case BUFFER_UNDERFLOW:
 case OK:
 {
-  if (unwrapHandshakeStatus == HandshakeStatus.FINISHED && !_handshaken) {
-    _handshaken=true;
-    if (DEBUG)     LOG.debug("{} {} handshook {}/{}",SslConnection.this,_sslEngine.getUseClientMode() ? "client" : "resumed server",_sslEngine.getSession().getProtocol(),_sslEngine.getSession().getCipherSuite());
-  }
-  if (_handshaken && handshakeStatus != HandshakeStatus.NOT_HANDSHAKING && !isRenegotiationAllowed()) {
-    if (DEBUG)     LOG.debug("{} renegotiation denied",SslConnection.this);
-    closeInbound();
-    return -1;
-  }
-  if (unwrapResult.bytesProduced() > 0) {
-    if (app_in == buffer)     return unwrapResult.bytesProduced();
-    return BufferUtil.append(buffer,_decryptedInput);
-  }
+if (unwrapHandshakeStatus == HandshakeStatus.FINISHED && !_handshaken) {
+  _handshaken=true;
+  if (DEBUG)   LOG.debug("{} {} handshook {}/{}",SslConnection.this,_sslEngine.getUseClientMode() ? "client" : "resumed server",_sslEngine.getSession().getProtocol(),_sslEngine.getSession().getCipherSuite());
+}
+if (_handshaken && handshakeStatus != HandshakeStatus.NOT_HANDSHAKING && !isRenegotiationAllowed()) {
+  if (DEBUG)   LOG.debug("{} renegotiation denied",SslConnection.this);
+  closeInbound();
+  return -1;
+}
+if (unwrapResult.bytesProduced() > 0) {
+  if (app_in == buffer)   return unwrapResult.bytesProduced();
+  return BufferUtil.append(buffer,_decryptedInput);
+}
 switch (handshakeStatus) {
 case NOT_HANDSHAKING:
 {
-      if (_underFlown)       break decryption;
-      continue;
-    }
+    if (_underFlown)     break decryption;
+    continue;
+  }
 case NEED_TASK:
 {
-    _sslEngine.getDelegatedTask().run();
-    continue;
-  }
+  _sslEngine.getDelegatedTask().run();
+  continue;
+}
 case NEED_WRAP:
 {
-  if (buffer == __FLUSH_CALLED_FILL)   return 0;
-  _fillRequiresFlushToProgress=true;
-  flush(__FILL_CALLED_FLUSH);
-  if (BufferUtil.isEmpty(_encryptedOutput)) {
-    _fillRequiresFlushToProgress=false;
-    continue;
-  }
+if (buffer == __FLUSH_CALLED_FILL) return 0;
+_fillRequiresFlushToProgress=true;
+flush(__FILL_CALLED_FLUSH);
+if (BufferUtil.isEmpty(_encryptedOutput)) {
+  _fillRequiresFlushToProgress=false;
+  continue;
+}
  else {
-    return 0;
-  }
+  return 0;
+}
 }
 case NEED_UNWRAP:
 {
