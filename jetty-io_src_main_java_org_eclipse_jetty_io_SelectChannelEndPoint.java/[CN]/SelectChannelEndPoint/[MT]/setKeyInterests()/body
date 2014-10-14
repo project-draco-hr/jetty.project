@@ -1,6 +1,16 @@
 {
-  int oldInterestOps=_key.interestOps();
-  int newInterestOps=_interestOps;
-  if (LOG.isDebugEnabled())   LOG.debug("Key interests update {} -> {} for {}",oldInterestOps,newInterestOps,this);
-  if (oldInterestOps != newInterestOps)   _key.interestOps(newInterestOps);
+  try {
+    int oldInterestOps=_key.interestOps();
+    int newInterestOps=_interestOps;
+    if (LOG.isDebugEnabled())     LOG.debug("Key interests update {} -> {} for {}",oldInterestOps,newInterestOps,this);
+    if (oldInterestOps != newInterestOps)     _key.interestOps(newInterestOps);
+  }
+ catch (  CancelledKeyException x) {
+    LOG.debug("Ignoring key update for concurrently closed channel {}",this);
+    close();
+  }
+catch (  Throwable x) {
+    LOG.warn("Ignoring key update for " + this,x);
+    close();
+  }
 }

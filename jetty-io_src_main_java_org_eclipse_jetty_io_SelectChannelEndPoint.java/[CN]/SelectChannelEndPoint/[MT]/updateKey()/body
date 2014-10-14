@@ -1,2 +1,38 @@
 {
+  while (true) {
+    State current=_interestState.get();
+    if (LOG.isDebugEnabled())     LOG.debug("Updating key, state {} for {}",current,this);
+switch (current) {
+case SELECTING:
+{
+        if (!_interestState.compareAndSet(current,State.UPDATING))         continue;
+        break;
+      }
+case PENDING:
+{
+      if (!_interestState.compareAndSet(current,State.UPDATING))       continue;
+      break;
+    }
+case UPDATING:
+{
+    setKeyInterests();
+    if (!_interestState.compareAndSet(current,State.SELECTING))     throw new IllegalStateException("Invalid state: " + _interestState);
+    return;
+  }
+case CHANGING:
+{
+  if (_interestState.compareAndSet(current,State.CHANGING_UPDATING))   break;
+  return;
+}
+case CHANGING_UPDATING:
+{
+Thread.yield();
+break;
+}
+default :
+{
+throw new IllegalStateException("Invalid state: " + current);
+}
+}
+}
 }
