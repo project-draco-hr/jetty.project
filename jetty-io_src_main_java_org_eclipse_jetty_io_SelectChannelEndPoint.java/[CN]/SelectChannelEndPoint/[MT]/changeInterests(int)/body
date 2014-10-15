@@ -1,5 +1,4 @@
 {
-  boolean pending=false;
   while (true) {
     State current=_interestState.get();
     if (LOG.isDebugEnabled())     LOG.debug("Changing interests in state {} for {}",current,this);
@@ -8,17 +7,18 @@ case SELECTED:
 case SELECTING:
 {
         if (!_interestState.compareAndSet(current,State.LOCKED))         continue;
+        boolean selecting=current == State.SELECTING;
         try {
           int oldInterestOps=_interestOps;
           int newInterestOps=oldInterestOps | operation;
-          if (LOG.isDebugEnabled())           LOG.debug("changeInterests pending={} {}->{} for {}",pending,oldInterestOps,newInterestOps,this);
+          if (LOG.isDebugEnabled())           LOG.debug("changeInterests selecting={} {}->{} for {}",selecting,oldInterestOps,newInterestOps,this);
           if (newInterestOps != oldInterestOps)           _interestOps=newInterestOps;
-          if (current == State.SELECTING)           setKeyInterests();
+          if (selecting)           setKeyInterests();
         }
   finally {
           _interestState.set(current);
         }
-        if (current == State.SELECTING)         _selector.wakeup();
+        if (selecting)         _selector.wakeup();
         return;
       }
 case LOCKED:
@@ -26,6 +26,10 @@ case LOCKED:
       Thread.yield();
       break;
     }
+default :
+{
+    throw new IllegalStateException("Invalid state: " + current);
+  }
 }
 }
 }
