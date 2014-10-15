@@ -2,40 +2,30 @@
   boolean pending=false;
   while (true) {
     State current=_interestState.get();
-    if (LOG.isDebugEnabled())     LOG.debug("Changing interests, state {} for {}",current,this);
+    if (LOG.isDebugEnabled())     LOG.debug("Changing interests in state {} for {}",current,this);
 switch (current) {
+case SELECTED:
 case SELECTING:
-case PENDING:
 {
-        if (!_interestState.compareAndSet(current,State.CHANGING))         continue;
-        pending=current == State.PENDING;
-        break;
+        if (!_interestState.compareAndSet(current,State.LOCKED))         continue;
+        try {
+          int oldInterestOps=_interestOps;
+          int newInterestOps=oldInterestOps | operation;
+          if (LOG.isDebugEnabled())           LOG.debug("changeInterests pending={} {}->{} for {}",pending,oldInterestOps,newInterestOps,this);
+          if (newInterestOps != oldInterestOps)           _interestOps=newInterestOps;
+          if (current == State.SELECTING)           setKeyInterests();
+        }
+  finally {
+          _interestState.set(current);
+        }
+        if (current == State.SELECTING)         _selector.wakeup();
+        return;
       }
-case PROCESSING:
-case UPDATING:
+case LOCKED:
 {
       Thread.yield();
       break;
     }
-case CHANGING:
-{
-    int oldInterestOps=_interestOps;
-    int newInterestOps=oldInterestOps | operation;
-    if (LOG.isDebugEnabled())     LOG.debug("changeInterests pending={} {}->{} for {}",pending,oldInterestOps,newInterestOps,this);
-    if (newInterestOps != oldInterestOps)     _interestOps=newInterestOps;
-    if (!_interestState.compareAndSet(current,State.SELECTING))     break;
-    submitKeyUpdate(!pending);
-    return;
-  }
-case CHANGING_UPDATING:
-{
-  if (!_interestState.compareAndSet(current,State.SELECTING))   throw new IllegalStateException("Invalid state " + _interestState);
-  return;
-}
-default :
-{
-throw new IllegalStateException("Invalid state " + current);
-}
 }
 }
 }
