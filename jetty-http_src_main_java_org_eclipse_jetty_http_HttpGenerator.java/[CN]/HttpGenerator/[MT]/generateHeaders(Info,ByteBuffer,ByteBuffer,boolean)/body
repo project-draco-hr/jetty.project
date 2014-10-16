@@ -115,6 +115,7 @@ if (!isPersistent() || _info.getHttpVersion().ordinal() < HttpVersion.HTTP_1_1.o
 }
 break;
 case CONTENT_LENGTH:
+{
 long content_length=_info.getContentLength();
 if ((response != null || content_length > 0 || content_type) && !_noContent) {
 header.put(HttpHeader.CONTENT_LENGTH.getBytesColonSpace());
@@ -122,6 +123,17 @@ BufferUtil.putDecLong(header,content_length);
 header.put(HttpTokens.CRLF);
 }
 break;
+}
+case SELF_DEFINING_CONTENT:
+{
+long content_length=_info.getContentLength();
+if (content_length > 0) {
+header.put(HttpHeader.CONTENT_LENGTH.getBytesColonSpace());
+BufferUtil.putDecLong(header,content_length);
+header.put(HttpTokens.CRLF);
+}
+break;
+}
 case NO_CONTENT:
 if (response != null && status >= 200 && status != 204 && status != 304) header.put(CONTENT_LENGTH_0);
 break;

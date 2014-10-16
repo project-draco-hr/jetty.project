@@ -1,5 +1,5 @@
 {
-  final long content_length=(content == null) ? resource.length() : content.getContentLength();
+  final long content_length=(content == null) ? resource.length() : content.getContentLengthValue();
   OutputStream out=null;
   boolean written;
   try {
@@ -16,18 +16,13 @@
       resource.writeTo(out,0,content_length);
     }
  else     if (content == null || written || !(out instanceof HttpOutput)) {
-      writeHeaders(response,content,written ? -1 : content_length);
+      putHeaders(response,content,written ? -1 : 0);
       ByteBuffer buffer=(content == null) ? null : content.getIndirectBuffer();
       if (buffer != null)       BufferUtil.writeTo(buffer,out);
  else       resource.writeTo(out,0,content_length);
     }
  else {
-      if (response instanceof Response) {
-        Response r=(Response)response;
-        writeOptionHeaders(r.getHttpFields());
-        r.setHeaders(content);
-      }
- else       writeHeaders(response,content,content_length);
+      putHeaders(response,content,0);
       if (request.isAsyncSupported()) {
         final AsyncContext context=request.startAsync();
         ((HttpOutput)out).sendContent(content,new Callback(){
@@ -53,7 +48,7 @@
  else {
     List<InclusiveByteRange> ranges=InclusiveByteRange.satisfiableRanges(reqRanges,content_length);
     if (ranges == null || ranges.size() == 0) {
-      writeHeaders(response,content,content_length);
+      putHeaders(response,content,0);
       response.setStatus(HttpServletResponse.SC_REQUESTED_RANGE_NOT_SATISFIABLE);
       response.setHeader(HttpHeader.CONTENT_RANGE.asString(),InclusiveByteRange.to416HeaderRangeString(content_length));
       resource.writeTo(out,0,content_length);
@@ -62,15 +57,15 @@
     if (ranges.size() == 1) {
       InclusiveByteRange singleSatisfiableRange=ranges.get(0);
       long singleLength=singleSatisfiableRange.getSize(content_length);
-      writeHeaders(response,content,singleLength);
+      putHeaders(response,content,singleLength);
       response.setStatus(HttpServletResponse.SC_PARTIAL_CONTENT);
       if (!response.containsHeader(HttpHeader.DATE.asString()))       response.addDateHeader(HttpHeader.DATE.asString(),System.currentTimeMillis());
       response.setHeader(HttpHeader.CONTENT_RANGE.asString(),singleSatisfiableRange.toHeaderRangeString(content_length));
       resource.writeTo(out,singleSatisfiableRange.getFirst(content_length),singleLength);
       return;
     }
-    writeHeaders(response,content,-1);
-    String mimetype=(content == null ? null : content.getContentType());
+    putHeaders(response,content,-1);
+    String mimetype=(content == null ? null : content.getContentTypeValue());
     if (mimetype == null)     LOG.warn("Unknown mimetype for " + request.getRequestURI());
     MultiPartOutputStream multi=new MultiPartOutputStream(out);
     response.setStatus(HttpServletResponse.SC_PARTIAL_CONTENT);
