@@ -1,49 +1,49 @@
 {
-  if (_handler != null && isStarted()) {
-    String ae=request.getHeader("accept-encoding");
-    if (ae != null && ae.indexOf("gzip") >= 0 && !response.containsHeader("Content-Encoding") && !HttpMethod.HEAD.is(request.getMethod())) {
-      if (_excludedUA != null) {
-        String ua=request.getHeader("User-Agent");
-        if (_excludedUA.contains(ua)) {
-          _handler.handle(target,baseRequest,request,response);
-          return;
-        }
+  LOG.debug("{} doFilter {}",this,request);
+  String requestURI=request.getRequestURI();
+  if (!_methods.contains(request.getMethod())) {
+    LOG.debug("{} excluded by method {}",this,request);
+    _handler.handle(target,baseRequest,request,response);
+    return;
+  }
+  if (isExcludedPath(requestURI)) {
+    LOG.debug("{} excluded by path {}",this,request);
+    _handler.handle(target,baseRequest,request,response);
+    return;
+  }
+  if (_mimeTypes.size() > 0 && _excludeMimeTypes) {
+    ServletContext context=request.getServletContext();
+    String mimeType=context == null ? _knownMimeTypes.getMimeByExtension(request.getRequestURI()) : context.getMimeType(request.getRequestURI());
+    if (mimeType != null) {
+      mimeType=MimeTypes.getContentTypeWithoutCharset(mimeType);
+      if (_mimeTypes.contains(mimeType)) {
+        LOG.debug("{} excluded by path suffix {}",this,request);
+        _handler.handle(target,baseRequest,request,response);
+        return;
       }
-      final CompressedResponseWrapper wrappedResponse=newGzipResponseWrapper(request,response);
-      boolean exceptional=true;
-      try {
-        _handler.handle(target,baseRequest,request,wrappedResponse);
-        exceptional=false;
-      }
-  finally {
-        if (request.isAsyncStarted()) {
-          request.getAsyncContext().addListener(new AsyncListener(){
-            @Override public void onTimeout(            AsyncEvent event) throws IOException {
-            }
-            @Override public void onStartAsync(            AsyncEvent event) throws IOException {
-            }
-            @Override public void onError(            AsyncEvent event) throws IOException {
-            }
-            @Override public void onComplete(            AsyncEvent event) throws IOException {
-              try {
-                wrappedResponse.finish();
-              }
- catch (              IOException e) {
-                LOG.warn(e);
-              }
-            }
-          }
-);
-        }
- else         if (exceptional && !response.isCommitted()) {
-          wrappedResponse.resetBuffer();
-          wrappedResponse.noCompression();
-        }
- else         wrappedResponse.finish();
-      }
-    }
- else {
-      _handler.handle(target,baseRequest,request,response);
     }
   }
+  if (response.getHeader("Content-Encoding") != null) {
+    _handler.handle(target,baseRequest,request,response);
+    return;
+  }
+  if (_checkGzExists && request.getServletContext() != null) {
+    String path=request.getServletContext().getRealPath(URIUtil.addPaths(request.getServletPath(),request.getPathInfo()));
+    if (path != null) {
+      File gz=new File(path + ".gz");
+      if (gz.exists()) {
+        LOG.debug("{} gzip exists {}",this,request);
+        _handler.handle(target,baseRequest,request,response);
+        return;
+      }
+    }
+  }
+  String etag=request.getHeader("If-None-Match");
+  if (etag != null) {
+    if (etag.contains(ETAG_GZIP))     request.setAttribute(ETAG,etag.replace(ETAG_GZIP,""));
+  }
+  HttpChannel channel=HttpChannel.getCurrentHttpChannel();
+  HttpOutput out=channel.getResponse().getHttpOutput();
+  out.setFilter(new GzipHttpOutputInterceptor(this,channel,out.getFilter()));
+  _handler.handle(target,baseRequest,request,response);
 }

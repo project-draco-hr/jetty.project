@@ -1,8 +1,15 @@
 {
+  LOG.debug("{} doFilter {}",this,req);
   HttpServletRequest request=(HttpServletRequest)req;
   HttpServletResponse response=(HttpServletResponse)res;
   String requestURI=request.getRequestURI();
-  if (!_methods.contains(request.getMethod()) || isExcludedPath(requestURI)) {
+  if (!_methods.contains(request.getMethod())) {
+    LOG.debug("{} excluded by method {}",this,request);
+    super.doFilter(request,response,chain);
+    return;
+  }
+  if (isExcludedPath(requestURI)) {
+    LOG.debug("{} excluded by path {}",this,request);
     super.doFilter(request,response,chain);
     return;
   }
@@ -11,6 +18,7 @@
     if (mimeType != null) {
       mimeType=MimeTypes.getContentTypeWithoutCharset(mimeType);
       if (_mimeTypes.contains(mimeType)) {
+        LOG.debug("{} excluded by path suffix {}",this,request);
         super.doFilter(request,response,chain);
         return;
       }
@@ -25,33 +33,18 @@
     if (path != null) {
       File gz=new File(path + ".gz");
       if (gz.exists()) {
+        LOG.debug("{} gzip exists {}",this,request);
         super.doFilter(request,response,chain);
         return;
       }
     }
   }
-  String ua=getUserAgent(request);
-  boolean ua_excluded=ua != null && isExcludedAgent(ua);
-  String compressionType=ua_excluded ? null : selectCompression(request.getHeader("accept-encoding"));
   String etag=request.getHeader("If-None-Match");
   if (etag != null) {
-    int dd=etag.indexOf("--");
-    if (dd > 0)     request.setAttribute(ETAG,etag.substring(0,dd) + (etag.endsWith("\"") ? "\"" : ""));
+    if (etag.contains(ETAG_GZIP))     request.setAttribute(ETAG,etag.replace(ETAG_GZIP,""));
   }
-  CompressedResponseWrapper wrappedResponse=createWrappedResponse(request,response,compressionType);
-  boolean exceptional=true;
-  try {
-    super.doFilter(request,wrappedResponse,chain);
-    exceptional=false;
-  }
-  finally {
-    if (request.isAsyncStarted()) {
-      request.getAsyncContext().addListener(new FinishOnCompleteListener(wrappedResponse));
-    }
- else     if (exceptional && !response.isCommitted()) {
-      wrappedResponse.resetBuffer();
-      wrappedResponse.noCompression();
-    }
- else     wrappedResponse.finish();
-  }
+  HttpChannel channel=HttpChannel.getCurrentHttpChannel();
+  HttpOutput out=channel.getResponse().getHttpOutput();
+  out.setFilter(new GzipHttpOutputInterceptor(this,channel,out.getFilter()));
+  super.doFilter(request,response,chain);
 }
