@@ -3,22 +3,20 @@
     State current=_interestState.get();
     if (LOG.isDebugEnabled())     LOG.debug("Changing interests in state {} for {}",current,this);
 switch (current) {
-case SELECTED:
-case SELECTING:
+case UPDATE_PENDING:
+case UPDATED:
 {
         if (!_interestState.compareAndSet(current,State.LOCKED))         continue;
-        boolean selecting=current == State.SELECTING;
         try {
           int oldInterestOps=_interestOps;
           int newInterestOps=oldInterestOps | operation;
-          if (LOG.isDebugEnabled())           LOG.debug("changeInterests selecting={} {}->{} for {}",selecting,oldInterestOps,newInterestOps,this);
+          if (LOG.isDebugEnabled())           LOG.debug("changeInterests s={} {}->{} for {}",current,oldInterestOps,newInterestOps,this);
           if (newInterestOps != oldInterestOps)           _interestOps=newInterestOps;
-          if (selecting)           setKeyInterests();
+          if (current == State.UPDATED)           _selector.submit(_runUpdateKey);
         }
   finally {
-          _interestState.set(current);
+          _interestState.set(State.UPDATE_PENDING);
         }
-        if (selecting)         _selector.wakeup();
         return;
       }
 case LOCKED:
