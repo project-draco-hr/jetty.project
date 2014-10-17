@@ -1,2 +1,71 @@
 {
+  boolean debug=LOG.isDebugEnabled();
+  try {
+    loop:     while (true) {
+      State state=_state.get();
+switch (state) {
+case CHANGING:
+case PROCESSING:
+        int size=_runChanges.size();
+      for (int i=0; i < size; i++)       runChange(_runChanges.get(i));
+    _runChanges.clear();
+  if (!_state.compareAndSet(state,State.LOCKED))   continue;
+if (_addChanges.isEmpty()) {
+  _state.set(State.SELECTING);
+  break loop;
+}
+List<Runnable> tmp=_runChanges;
+_runChanges=_addChanges;
+_addChanges=tmp;
+_state.set(State.CHANGING);
+continue;
+case LOCKED:
+Thread.yield();
+continue;
+default :
+throw new IllegalStateException();
+}
+}
+int selected;
+if (debug) {
+LOG.debug("Selector loop waiting on select");
+selected=_selector.select();
+LOG.debug("Selector loop woken up from select, {}/{} selected",selected,_selector.keys().size());
+}
+ else selected=_selector.select();
+out: while (true) {
+switch (_state.get()) {
+case SELECTING:
+if (_state.compareAndSet(State.SELECTING,State.PROCESSING)) continue;
+break out;
+case PROCESSING:
+break out;
+case LOCKED:
+Thread.yield();
+continue;
+case CHANGING:
+throw new IllegalStateException();
+}
+}
+Set<SelectionKey> selectedKeys=_selector.selectedKeys();
+for (SelectionKey key : selectedKeys) {
+if (key.isValid()) {
+processKey(key);
+}
+ else {
+if (debug) LOG.debug("Selector loop ignoring invalid key for channel {}",key.channel());
+Object attachment=key.attachment();
+if (attachment instanceof EndPoint) ((EndPoint)attachment).close();
+}
+}
+Thread.yield();
+for (SelectionKey key : selectedKeys) {
+if (key.isValid()) updateKey(key);
+}
+selectedKeys.clear();
+}
+ catch (Throwable x) {
+if (isRunning()) LOG.warn(x);
+ else LOG.ignore(x);
+}
 }

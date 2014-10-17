@@ -1,24 +1,27 @@
 {
-  _changes.offer(change);
   if (LOG.isDebugEnabled())   LOG.debug("Queued change {}",change);
   out:   while (true) {
-switch (_state.get()) {
-case SELECT:
-      if (!_state.compareAndSet(State.SELECT,State.WAKEUP))       continue;
-    _selector.wakeup();
-  return true;
-case CHANGES:
-if (_state.compareAndSet(State.CHANGES,State.MORE_CHANGES)) break out;
+    State state=_state.get();
+switch (state) {
+case PROCESSING:
+      if (!_state.compareAndSet(State.PROCESSING,State.LOCKED))       continue;
+    _addChanges.add(change);
+  _state.set(State.PROCESSING);
+break out;
+case CHANGING:
+if (!_state.compareAndSet(State.CHANGING,State.LOCKED)) continue;
+_addChanges.add(change);
+_state.set(State.CHANGING);
+break out;
+case SELECTING:
+if (!_state.compareAndSet(State.SELECTING,State.LOCKED)) continue;
+_addChanges.add(change);
+_selector.wakeup();
+_state.set(State.PROCESSING);
+break out;
+case LOCKED:
+Thread.yield();
 continue;
-case WAKEUP:
-break out;
-case MORE_CHANGES:
-break out;
-case PROCESS:
-break out;
-default :
-throw new IllegalStateException();
 }
 }
-return false;
 }
