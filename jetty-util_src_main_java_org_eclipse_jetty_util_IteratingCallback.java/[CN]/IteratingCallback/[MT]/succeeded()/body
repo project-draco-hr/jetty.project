@@ -4,22 +4,28 @@
 switch (state) {
 case PROCESSING:
 {
-        if (!_state.compareAndSet(State.PROCESSING,State.CALLED))         continue loop;
+        if (!_state.compareAndSet(state,State.CALLED))         continue loop;
         break loop;
       }
 case PENDING:
 {
-      if (!_state.compareAndSet(State.PENDING,State.PROCESSING))       continue loop;
+      if (!_state.compareAndSet(state,State.PROCESSING))       continue loop;
       processing();
       break loop;
     }
 case CLOSED:
+case FAILED:
 {
     break loop;
   }
+case LOCKED:
+{
+  Thread.yield();
+  continue loop;
+}
 default :
 {
-  throw new IllegalStateException(toString());
+throw new IllegalStateException("state=" + state);
 }
 }
 }
