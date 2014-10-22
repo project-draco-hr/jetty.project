@@ -1,0 +1,84 @@
+{
+  processing:   while (true) {
+    Action action;
+    try {
+      action=process();
+    }
+ catch (    Throwable x) {
+      failed(x);
+      break processing;
+    }
+    acting:     while (true) {
+      State state=_state.get();
+switch (action) {
+case IDLE:
+{
+switch (state) {
+case PROCESSING:
+{
+              if (!_state.compareAndSet(State.PROCESSING,State.LOCKED))               continue acting;
+              if (_iterate) {
+                _iterate=false;
+                _state.set(State.PROCESSING);
+                continue processing;
+              }
+              _state.set(State.IDLE);
+              break processing;
+            }
+case LOCKED:
+{
+            Thread.yield();
+            continue;
+          }
+default :
+        throw new IllegalStateException("state=" + state);
+    }
+  }
+case SCHEDULED:
+{
+switch (state) {
+case PROCESSING:
+{
+      if (!_state.compareAndSet(State.PROCESSING,State.PENDING))       continue acting;
+      break processing;
+    }
+case CALLED:
+{
+    if (!_state.compareAndSet(State.CALLED,State.PROCESSING))     continue acting;
+    continue processing;
+  }
+case LOCKED:
+{
+  Thread.yield();
+  continue;
+}
+case FAILED:
+case CLOSED:
+{
+break processing;
+}
+default :
+throw new IllegalStateException("state=" + state);
+}
+}
+case SUCCEEDED:
+{
+switch (state) {
+case SUCCEEDED:
+case FAILED:
+break processing;
+case PROCESSING:
+if (_state.compareAndSet(State.PROCESSING,State.SUCCEEDED)) {
+onCompleteSuccess();
+break processing;
+}
+default :
+throw new IllegalStateException("state=" + state);
+}
+}
+default :
+throw new IllegalStateException("action=" + action);
+}
+}
+}
+}
