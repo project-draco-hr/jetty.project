@@ -6,17 +6,21 @@ case PENDING:
 case CALLED:
       break loop;
 case IDLE:
-    if (!_state.compareAndSet(State.IDLE,State.PROCESSING))     continue;
+    if (!_state.compareAndSet(state,State.PROCESSING))     continue;
   processing();
 break loop;
 case PROCESSING:
-if (!_state.compareAndSet(State.PROCESSING,State.LOCKED)) continue;
+if (!_state.compareAndSet(state,State.LOCKED)) continue;
 _iterate=true;
 _state.set(State.PROCESSING);
 break loop;
 case LOCKED:
 Thread.yield();
-continue;
+continue loop;
+case FAILED:
+case SUCCEEDED:
+break loop;
+case CLOSED:
 default :
 throw new IllegalStateException("state=" + state);
 }

@@ -10,13 +10,13 @@
     }
     acting:     while (true) {
       State state=_state.get();
-switch (action) {
-case IDLE:
-{
 switch (state) {
 case PROCESSING:
 {
-              if (!_state.compareAndSet(State.PROCESSING,State.LOCKED))               continue acting;
+switch (action) {
+case IDLE:
+{
+              if (!_state.compareAndSet(state,State.LOCKED))               continue acting;
               if (_iterate) {
                 _iterate=false;
                 _state.set(State.PROCESSING);
@@ -25,59 +25,46 @@ case PROCESSING:
               _state.set(State.IDLE);
               break processing;
             }
-case LOCKED:
-{
-            Thread.yield();
-            continue;
-          }
-default :
-        throw new IllegalStateException("state=" + state);
-    }
-  }
 case SCHEDULED:
 {
-switch (state) {
-case PROCESSING:
+            if (!_state.compareAndSet(state,State.PENDING))             continue acting;
+            break processing;
+          }
+case SUCCEEDED:
 {
-      if (!_state.compareAndSet(State.PROCESSING,State.PENDING))       continue acting;
-      break processing;
-    }
+          if (!_state.compareAndSet(state,State.LOCKED))           continue acting;
+          _iterate=false;
+          _state.set(State.SUCCEEDED);
+          onCompleteSuccess();
+          break processing;
+        }
+default :
+      throw new IllegalStateException("state=" + state + " action="+ action);
+  }
+}
 case CALLED:
 {
-    if (!_state.compareAndSet(State.CALLED,State.PROCESSING))     continue acting;
+switch (action) {
+case SCHEDULED:
+{
+    if (!_state.compareAndSet(state,State.PROCESSING))     continue acting;
     continue processing;
   }
-case LOCKED:
-{
-  Thread.yield();
-  continue;
+default :
+throw new IllegalStateException("state=" + state + " action="+ action);
 }
+}
+case LOCKED:
+Thread.yield();
+continue acting;
+case SUCCEEDED:
 case FAILED:
 case CLOSED:
-{
 break processing;
-}
+case IDLE:
+case PENDING:
 default :
-throw new IllegalStateException("state=" + state);
-}
-}
-case SUCCEEDED:
-{
-switch (state) {
-case SUCCEEDED:
-case FAILED:
-break processing;
-case PROCESSING:
-if (!_state.compareAndSet(State.PROCESSING,State.SUCCEEDED)) continue acting;
-_iterate=false;
-onCompleteSuccess();
-break processing;
-default :
-throw new IllegalStateException("state=" + state);
-}
-}
-default :
-throw new IllegalStateException("action=" + action);
+throw new IllegalStateException("state=" + state + " action="+ action);
 }
 }
 }
