@@ -4,11 +4,16 @@ switch (_state.get()) {
 case IDLE:
       return true;
 case SUCCEEDED:
-    if (_state.compareAndSet(State.SUCCEEDED,State.IDLE))     return true;
-  break;
+    if (!_state.compareAndSet(State.SUCCEEDED,State.IDLE))     continue;
+  _iterate=false;
+return true;
 case FAILED:
-if (_state.compareAndSet(State.FAILED,State.IDLE)) return true;
-break;
+if (!_state.compareAndSet(State.FAILED,State.IDLE)) continue;
+_iterate=false;
+return true;
+case LOCKED:
+Thread.yield();
+continue;
 default :
 return false;
 }
