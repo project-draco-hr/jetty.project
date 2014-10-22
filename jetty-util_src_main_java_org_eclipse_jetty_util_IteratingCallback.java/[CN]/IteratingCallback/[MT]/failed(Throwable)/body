@@ -1,5 +1,5 @@
 {
-  while (true) {
+  loop:   while (true) {
     State state=_state.get();
 switch (state) {
 case SUCCEEDED:
@@ -7,15 +7,19 @@ case FAILED:
 case IDLE:
 case CLOSED:
 {
-        return;
+        break loop;
       }
+case LOCKED:
+{
+      Thread.yield();
+      continue loop;
+    }
 default :
 {
-      if (_state.compareAndSet(state,State.FAILED)) {
-        onCompleteFailure(x);
-        return;
-      }
-    }
+    if (!_state.compareAndSet(state,State.FAILED))     continue loop;
+    onCompleteFailure(x);
+    break loop;
+  }
 }
 }
 }
