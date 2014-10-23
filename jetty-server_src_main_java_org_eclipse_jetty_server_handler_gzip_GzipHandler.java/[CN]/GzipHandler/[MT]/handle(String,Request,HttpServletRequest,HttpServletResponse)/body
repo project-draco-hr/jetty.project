@@ -1,0 +1,43 @@
+{
+  ServletContext context=baseRequest.getServletContext();
+  String path=context == null ? baseRequest.getRequestURI() : URIUtil.addPaths(baseRequest.getServletPath(),baseRequest.getPathInfo());
+  LOG.debug("{} handle {} in {}",this,baseRequest,context);
+  if (!_methods.contains(baseRequest.getMethod())) {
+    LOG.debug("{} excluded by method {}",this,request);
+    _handler.handle(target,baseRequest,request,response);
+    return;
+  }
+  if (!isPathGzipable(path)) {
+    LOG.debug("{} excluded by path {}",this,request);
+    _handler.handle(target,baseRequest,request,response);
+    return;
+  }
+  String mimeType=context == null ? null : context.getMimeType(path);
+  if (mimeType != null) {
+    mimeType=MimeTypes.getContentTypeWithoutCharset(mimeType);
+    if (!isMimeTypeGzipable(mimeType)) {
+      LOG.debug("{} excluded by path suffix mime type {}",this,request);
+      _handler.handle(target,baseRequest,request,response);
+      return;
+    }
+  }
+  if (_checkGzExists && context != null) {
+    String realpath=request.getServletContext().getRealPath(path);
+    if (realpath != null) {
+      File gz=new File(realpath + ".gz");
+      if (gz.exists()) {
+        LOG.debug("{} gzip exists {}",this,request);
+        _handler.handle(target,baseRequest,request,response);
+        return;
+      }
+    }
+  }
+  String etag=request.getHeader("If-None-Match");
+  if (etag != null) {
+    if (etag.contains(ETAG_GZIP))     request.setAttribute(ETAG,etag.replace(ETAG_GZIP,""));
+  }
+  HttpChannel channel=HttpChannel.getCurrentHttpChannel();
+  HttpOutput out=channel.getResponse().getHttpOutput();
+  out.setInterceptor(new GzipHttpOutputInterceptor(this,_vary,channel,out.getFilter()));
+  _handler.handle(target,baseRequest,request,response);
+}

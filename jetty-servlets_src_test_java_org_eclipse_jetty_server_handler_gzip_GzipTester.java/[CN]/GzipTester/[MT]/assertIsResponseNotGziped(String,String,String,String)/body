@@ -1,0 +1,35 @@
+{
+  HttpTester.Request request=HttpTester.newRequest();
+  HttpTester.Response response;
+  request.setMethod("GET");
+  request.setVersion("HTTP/1.0");
+  request.setHeader("Host","tester");
+  request.setHeader("Accept-Encoding",compressionType);
+  if (this.userAgent != null)   request.setHeader("User-Agent",this.userAgent);
+  request.setURI("/context/" + requestedFilename);
+  response=HttpTester.parseResponse(tester.getResponses(request.generate()));
+  dumpHeaders(requestedFilename + " / Response Headers",response);
+  String prefix=requestedFilename + " / Response";
+  Assert.assertThat(prefix + ".status",response.getStatus(),is(HttpServletResponse.SC_OK));
+  Assert.assertThat(prefix + ".header[Content-Length]",response.get("Content-Length"),notNullValue());
+  Assert.assertThat(prefix + ".header[Content-Encoding] (should not be recompressed by GzipHandler)",response.get("Content-Encoding"),expectedContentEncoding == null ? nullValue() : notNullValue());
+  if (expectedContentEncoding != null)   Assert.assertThat(prefix + ".header[Content-Encoding]",response.get("Content-Encoding"),is(expectedContentEncoding));
+  Assert.assertThat(prefix + ".header[Content-Type] (should have a Content-Type associated with it)",response.get("Content-Type"),notNullValue());
+  Assert.assertThat(prefix + ".header[Content-Type]",response.get("Content-Type"),is(expectedContentType));
+  Assert.assertThat(response.get("ETAG"),Matchers.startsWith("W/"));
+  ByteArrayInputStream bais=null;
+  DigestOutputStream digester=null;
+  try {
+    MessageDigest digest=MessageDigest.getInstance("SHA1");
+    bais=new ByteArrayInputStream(response.getContentBytes());
+    digester=new DigestOutputStream(new NoOpOutputStream(),digest);
+    IO.copy(bais,digester);
+    String actualSha1Sum=Hex.asHex(digest.digest());
+    String expectedSha1Sum=loadExpectedSha1Sum(testResourceSha1Sum);
+    Assert.assertEquals(requestedFilename + " / SHA1Sum of content",expectedSha1Sum,actualSha1Sum);
+  }
+  finally {
+    IO.close(digester);
+    IO.close(bais);
+  }
+}

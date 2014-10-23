@@ -1,0 +1,15 @@
+{
+  testdir.ensureEmpty();
+  File testFile=testdir.getFile("file.txt");
+  try (OutputStream testOut=new BufferedOutputStream(new FileOutputStream(testFile))){
+    ByteArrayInputStream testIn=new ByteArrayInputStream(__content.getBytes("ISO8859_1"));
+    IO.copy(testIn,testOut);
+  }
+   tester=new ServletTester("/context");
+  tester.getContext().setResourceBase(testdir.getDir().getCanonicalPath());
+  tester.getContext().addServlet(org.eclipse.jetty.servlet.DefaultServlet.class,"/");
+  GzipHandler gzipHandler=new GzipHandler();
+  gzipHandler.setHandler(tester.getContext().getHandler());
+  tester.getContext().setHandler(gzipHandler);
+  tester.start();
+}
