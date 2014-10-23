@@ -2,7 +2,7 @@
   ServletContext context=baseRequest.getServletContext();
   String path=context == null ? baseRequest.getRequestURI() : URIUtil.addPaths(baseRequest.getServletPath(),baseRequest.getPathInfo());
   LOG.debug("{} handle {} in {}",this,baseRequest,context);
-  if (!_methods.contains(baseRequest.getMethod())) {
+  if (!_includedMethods.contains(baseRequest.getMethod())) {
     LOG.debug("{} excluded by method {}",this,request);
     _handler.handle(target,baseRequest,request,response);
     return;
@@ -38,6 +38,7 @@
   }
   HttpChannel channel=HttpChannel.getCurrentHttpChannel();
   HttpOutput out=channel.getResponse().getHttpOutput();
-  out.setInterceptor(new GzipHttpOutputInterceptor(this,_vary,channel,out.getFilter()));
+  HttpOutput.Interceptor interceptor=out.getInterceptor();
+  if (!(interceptor instanceof GzipHttpOutputInterceptor))   out.setInterceptor(new GzipHttpOutputInterceptor(this,_vary,channel,interceptor));
   _handler.handle(target,baseRequest,request,response);
 }
