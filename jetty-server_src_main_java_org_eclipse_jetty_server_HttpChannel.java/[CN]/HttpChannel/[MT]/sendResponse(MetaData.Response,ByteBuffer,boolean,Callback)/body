@@ -1,0 +1,18 @@
+{
+  boolean committing=_committed.compareAndSet(false,true);
+  if (committing) {
+    if (info == null)     info=_response.newResponseInfo();
+    commit(info);
+    final int status=info.getStatus();
+    final Callback committed=(status < 200 && status >= 100) ? new Commit100Callback(callback) : new CommitCallback(callback);
+    _committedInfo=info;
+    _transport.send(info,_request.isHead(),content,complete,committed);
+  }
+ else   if (info == null) {
+    _transport.send(null,_request.isHead(),content,complete,callback);
+  }
+ else {
+    callback.failed(new IllegalStateException("committed"));
+  }
+  return committing;
+}
