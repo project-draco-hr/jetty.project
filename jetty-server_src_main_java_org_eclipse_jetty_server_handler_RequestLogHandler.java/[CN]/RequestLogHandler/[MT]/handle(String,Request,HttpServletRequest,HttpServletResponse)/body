@@ -1,17 +1,4 @@
 {
-  try {
-    super.handle(target,baseRequest,request,response);
-  }
- catch (  Error|IOException|ServletException|RuntimeException e) {
-    if (!response.isCommitted() && !baseRequest.getHttpChannelState().isAsync())     response.setStatus(500);
-    throw e;
-  }
- finally {
-    if (_requestLog != null && baseRequest.getDispatcherType().equals(DispatcherType.REQUEST)) {
-      if (baseRequest.getHttpChannelState().isAsync()) {
-        if (baseRequest.getHttpChannelState().isInitial())         baseRequest.getAsyncContext().addListener(_listener);
-      }
- else       _requestLog.log(baseRequest,(Response)response);
-    }
-  }
+  baseRequest.getHttpChannel().setRequestLog(_requestLog);
+  if (_handler != null)   _handler.handle(target,baseRequest,request,response);
 }
