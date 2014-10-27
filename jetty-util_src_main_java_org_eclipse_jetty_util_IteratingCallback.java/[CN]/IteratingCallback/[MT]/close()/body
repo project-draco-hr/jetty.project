@@ -1,21 +1,29 @@
 {
-  while (true) {
-    State current=_state.get();
-switch (current) {
-case INACTIVE:
+  loop:   while (true) {
+    State state=_state.get();
+switch (state) {
+case IDLE:
 case SUCCEEDED:
 case FAILED:
 {
-        if (_state.compareAndSet(current,State.CLOSED))         return;
-        break;
+        if (!_state.compareAndSet(state,State.CLOSED))         continue loop;
+        break loop;
       }
+case CLOSED:
+{
+      break loop;
+    }
+case LOCKED:
+{
+    Thread.yield();
+    continue loop;
+  }
 default :
 {
-      if (_state.compareAndSet(current,State.CLOSED)) {
-        onCompleteFailure(new IllegalStateException("Closed with pending callback " + this));
-        return;
-      }
-    }
+  if (!_state.compareAndSet(state,State.CLOSED))   continue loop;
+  onCompleteFailure(new ClosedChannelException());
+  break loop;
+}
 }
 }
 }

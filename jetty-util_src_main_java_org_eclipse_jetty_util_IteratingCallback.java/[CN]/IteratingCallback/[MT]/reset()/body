@@ -1,14 +1,22 @@
 {
   while (true) {
-switch (_state.get()) {
-case INACTIVE:
+    State state=_state.get();
+switch (state) {
+case IDLE:
       return true;
 case SUCCEEDED:
-    if (_state.compareAndSet(State.SUCCEEDED,State.INACTIVE))     return true;
-  break;
+    if (!_state.compareAndSet(state,State.LOCKED))     continue;
+  _iterate=false;
+_state.set(State.IDLE);
+return true;
 case FAILED:
-if (_state.compareAndSet(State.FAILED,State.INACTIVE)) return true;
-break;
+if (!_state.compareAndSet(state,State.LOCKED)) continue;
+_iterate=false;
+_state.set(State.IDLE);
+return true;
+case LOCKED:
+Thread.yield();
+continue;
 default :
 return false;
 }

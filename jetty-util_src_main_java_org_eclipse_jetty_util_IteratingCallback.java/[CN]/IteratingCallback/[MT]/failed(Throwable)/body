@@ -1,21 +1,29 @@
 {
-  while (true) {
-    State current=_state.get();
-switch (current) {
+  loop:   while (true) {
+    State state=_state.get();
+switch (state) {
 case SUCCEEDED:
 case FAILED:
-case INACTIVE:
+case IDLE:
 case CLOSED:
+case CALLED:
 {
-        return;
+        break loop;
       }
-default :
+case LOCKED:
 {
-      if (_state.compareAndSet(current,State.FAILED)) {
-        onCompleteFailure(x);
-        return;
-      }
+      Thread.yield();
+      continue loop;
     }
+case PENDING:
+case PROCESSING:
+{
+    if (!_state.compareAndSet(state,State.FAILED))     continue loop;
+    onCompleteFailure(x);
+    break loop;
+  }
+default :
+throw new IllegalStateException("state=" + state);
 }
 }
 }

@@ -1,25 +1,28 @@
 {
-  try {
-    while (true) {
-switch (_state.get()) {
-case INACTIVE:
-{
-          if (processIterations())           return;
-          break;
-        }
-case ITERATING:
-{
-        if (_state.compareAndSet(State.ITERATING,State.ITERATE_AGAIN))         return;
-        break;
-      }
+  loop:   while (true) {
+    State state=_state.get();
+switch (state) {
+case PENDING:
+case CALLED:
+      break loop;
+case IDLE:
+    if (!_state.compareAndSet(state,State.PROCESSING))     continue;
+  processing();
+break loop;
+case PROCESSING:
+if (!_state.compareAndSet(state,State.LOCKED)) continue;
+_iterate=true;
+_state.set(State.PROCESSING);
+break loop;
+case LOCKED:
+Thread.yield();
+continue loop;
+case FAILED:
+case SUCCEEDED:
+break loop;
+case CLOSED:
 default :
-{
-      return;
-    }
+throw new IllegalStateException("state=" + state);
 }
-}
-}
- catch (Throwable x) {
-failed(x);
 }
 }
