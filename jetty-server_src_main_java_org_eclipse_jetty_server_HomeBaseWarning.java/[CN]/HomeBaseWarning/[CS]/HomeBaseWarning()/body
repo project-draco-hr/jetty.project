@@ -1,0 +1,26 @@
+{
+  boolean showWarn=false;
+  String home=System.getProperty("jetty.home");
+  String base=System.getProperty("jetty.base");
+  if (StringUtil.isBlank(base)) {
+    return;
+  }
+  Path homePath=new File(home).toPath();
+  Path basePath=new File(base).toPath();
+  try {
+    showWarn=Files.isSameFile(homePath,basePath);
+  }
+ catch (  IOException e) {
+    LOG.ignore(e);
+    return;
+  }
+  if (showWarn) {
+    StringBuilder warn=new StringBuilder();
+    warn.append("This instance of Jetty is running directly from {jetty.home} at ");
+    warn.append(homePath.toAbsolutePath().toString());
+    warn.append(", this is not recommended.").append(System.lineSeparator());
+    warn.append("Please setup a separate {jetty.base} directory to manage your configuration.").append(System.lineSeparator());
+    warn.append("See documentation at http://www.eclipse.org/jetty/documentation/current/startup.html");
+    LOG.warn("{}",warn.toString());
+  }
+}
