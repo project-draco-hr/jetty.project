@@ -1,35 +1,22 @@
 {
   try {
     getLog().debug("Starting Jetty Server ...");
+    Resource.setDefaultUseCaches(false);
     configureMonitor();
     printSystemProperties();
     applyJettyXml();
     if (httpConnector != null) {
       if (httpConnector.getPort() <= 0) {
-        String tmp=System.getProperty(PORT_SYSPROPERTY,MavenServerConnector.DEFAULT_PORT_STR);
+        String tmp=System.getProperty(MavenServerConnector.PORT_SYSPROPERTY,MavenServerConnector.DEFAULT_PORT_STR);
         httpConnector.setPort(Integer.parseInt(tmp.trim()));
       }
-      if (httpConnector.getServer() == null)       httpConnector.setServer(this.server);
-      this.server.addConnector(httpConnector);
+      httpConnector.setServer(server);
     }
-    Connector[] connectors=this.server.getConnectors();
-    if (connectors == null || connectors.length == 0) {
-      if (httpConnector == null) {
-        httpConnector=new MavenServerConnector();
-        String tmp=System.getProperty(PORT_SYSPROPERTY,MavenServerConnector.DEFAULT_PORT_STR);
-        httpConnector.setPort(Integer.parseInt(tmp.trim()));
-      }
-      if (httpConnector.getServer() == null)       httpConnector.setServer(this.server);
-      this.server.setConnectors(new Connector[]{httpConnector});
-    }
-    if (this.requestLog != null)     this.server.setRequestLog(this.requestLog);
-    this.server.configureHandlers();
+    ServerSupport.configureConnectors(server,httpConnector);
+    ServerSupport.configureHandlers(server,this.requestLog);
     configureWebApplication();
-    this.server.addWebApplication(webApp);
-    for (int i=0; (this.loginServices != null) && i < this.loginServices.length; i++) {
-      getLog().debug(this.loginServices[i].getClass().getName() + ": " + this.loginServices[i].toString());
-      this.server.addBean(this.loginServices[i]);
-    }
+    ServerSupport.addWebApplication(server,webApp);
+    ServerSupport.configureLoginServices(server,loginServices);
     finishConfigurationBeforeStart();
     this.server.start();
     getLog().info("Started Jetty Server");

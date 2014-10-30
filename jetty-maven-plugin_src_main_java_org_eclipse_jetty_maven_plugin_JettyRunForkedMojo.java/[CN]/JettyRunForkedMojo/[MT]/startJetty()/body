@@ -2,7 +2,8 @@
   if (forkWebXml == null)   forkWebXml=new File(target,"fork-web.xml");
   try {
     printSystemProperties();
-    server.configureHandlers();
+    if (server == null)     server=new Server();
+    ServerSupport.configureHandlers(server,null);
     configureWebApplication();
     originalBaseResource=webApp.getBaseResource();
     webApp.setCopyWebDir(false);
@@ -11,7 +12,7 @@
     if (!forkWebXml.getParentFile().exists())     forkWebXml.getParentFile().mkdirs();
     if (!forkWebXml.exists())     forkWebXml.createNewFile();
     webApp.setQuickStartWebDescriptor(Resource.newResource(forkWebXml));
-    server.addWebApplication(webApp);
+    ServerSupport.addWebApplication(server,webApp);
     QueuedThreadPool tpool=server.getBean(QueuedThreadPool.class);
     if (tpool != null)     tpool.start();
  else     webApp.setAttribute(AnnotationConfiguration.MULTI_THREADED,Boolean.FALSE.toString());
