@@ -6,6 +6,7 @@
     StartLog.warn("ERROR: No known module for %s",name);
     return;
   }
+  boolean transitive=module.isEnabled() && (module.getSources().size() == 0);
   Path start_ini=baseHome.getBasePath("start.ini");
   String short_start_ini=baseHome.toShortForm(start_ini);
   Path startd_ini=start_d.resolve(name + ".ini");
@@ -18,17 +19,14 @@
       return;
     }
   }
-  boolean transitive=module.isEnabled() && (module.getSources().size() == 0);
   boolean buildIni=false;
   if (module.isEnabled()) {
     if (topLevel && !FS.exists(startd_ini) && !appendStartIni) {
       buildIni=true;
     }
  else     if (transitive) {
-      if (module.hasDefaultConfig() || module.hasLicense()) {
+      if (module.hasDefaultConfig()) {
         buildIni=true;
-      }
- else {
         StartLog.info("%-15s initialised transitively",name);
       }
     }
@@ -86,9 +84,8 @@
       if (appendStartIni) {
         out.println();
       }
-      out.println("#");
-      out.println("# Initialize module " + name);
-      out.println("#");
+      out.println("# --------------------------------------- ");
+      out.println("# Module: " + name);
       Pattern p=Pattern.compile("--module=([^,]+)(,([^,]+))*");
       out.println("--module=" + name);
       args.parse("--module=" + name,source);
