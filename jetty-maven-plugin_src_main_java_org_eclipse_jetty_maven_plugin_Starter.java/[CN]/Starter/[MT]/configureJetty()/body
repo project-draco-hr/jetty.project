@@ -1,21 +1,9 @@
 {
   LOG.debug("Starting Jetty Server ...");
+  Resource.setDefaultUseCaches(false);
   applyJettyXml();
-  Connector[] connectors=this.server.getConnectors();
-  if (connectors == null || connectors.length == 0) {
-    MavenServerConnector httpConnector=new MavenServerConnector();
-    httpConnector.setServer(this.server);
-    String tmp=System.getProperty(PORT_SYSPROPERTY,MavenServerConnector.DEFAULT_PORT_STR);
-    httpConnector.setPort(Integer.parseInt(tmp.trim()));
-    connectors=new Connector[]{httpConnector};
-    this.server.setConnectors(connectors);
-  }
-  HandlerCollection handlers=(HandlerCollection)server.getChildHandlerByClass(HandlerCollection.class);
-  if (handlers == null) {
-    handlers=new HandlerCollection();
-    server.setHandler(handlers);
-  }
-  this.server.configureHandlers();
+  ServerSupport.configureConnectors(server,null);
+  ServerSupport.configureHandlers(server,null);
   webApp=new JettyWebAppContext();
   configureWebApp();
   if (webApp.getTempDirectory() != null) {
@@ -27,7 +15,7 @@
     xmlConfiguration.getIdMap().put("Server",server);
     xmlConfiguration.configure(webApp);
   }
-  this.server.addWebApplication(webApp);
+  ServerSupport.addWebApplication(server,webApp);
   if (stopPort > 0 && stopKey != null) {
     ShutdownMonitor monitor=ShutdownMonitor.getInstance();
     monitor.setPort(stopPort);
