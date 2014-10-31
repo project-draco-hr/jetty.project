@@ -1,0 +1,57 @@
+{
+  String q=request.getQueryString();
+  if (q == null)   return;
+  baseRequest.setHandled(true);
+  for (  String action : q.split("\\&")) {
+    String[] param=action.split("=");
+    String name=param[0];
+    String value=param.length > 1 ? param[1] : null;
+switch (name) {
+case "status":
+{
+        response.setStatus(Integer.parseInt(value));
+        break;
+      }
+case "data":
+{
+      int data=Integer.parseInt(value);
+      PrintWriter out=response.getWriter();
+      int w=0;
+      while (w < data) {
+        if ((data - w) > 17) {
+          w+=17;
+          out.print("0123456789ABCDEF\n");
+        }
+ else {
+          w++;
+          out.print("\n");
+        }
+      }
+      break;
+    }
+case "throw":
+{
+    try {
+      throw (Throwable)(Class.forName(value).newInstance());
+    }
+ catch (    ServletException|IOException|Error|RuntimeException e) {
+      throw e;
+    }
+catch (    Throwable e) {
+      throw new ServletException(e);
+    }
+  }
+case "flush":
+{
+  response.flushBuffer();
+  break;
+}
+case "read":
+{
+InputStream in=request.getInputStream();
+while (in.read() >= 0) ;
+break;
+}
+}
+}
+}

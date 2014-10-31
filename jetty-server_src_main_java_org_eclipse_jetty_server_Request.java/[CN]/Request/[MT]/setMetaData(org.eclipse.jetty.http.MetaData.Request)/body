@@ -9,15 +9,23 @@
       path="/";
       uri.setPath(path);
     }
- else     throw new BadMessageException(400,"Bad URI");
+ else {
+      setPathInfo("");
+      throw new BadMessageException(400,"Bad URI");
+    }
     info=path;
   }
  else   if (!path.startsWith("/")) {
-    System.err.println(request);
-    if (!"*".equals(path) && !HttpMethod.CONNECT.is(getMethod()))     throw new BadMessageException(400,"Bad URI");
+    if (!"*".equals(path) && !HttpMethod.CONNECT.is(getMethod())) {
+      setPathInfo(path);
+      throw new BadMessageException(400,"Bad URI");
+    }
     info=path;
   }
  else   info=URIUtil.canonicalPath(path);
-  if (info == null)   throw new BadMessageException(400,"Bad URI");
+  if (info == null) {
+    setPathInfo(path);
+    throw new BadMessageException(400,"Bad URI");
+  }
   setPathInfo(info);
 }
