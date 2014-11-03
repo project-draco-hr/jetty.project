@@ -1,9 +1,14 @@
 {
-  boolean result;
+  Throwable failure;
+  boolean result=false;
 synchronized (lock) {
-    result=chunks.offer(chunk);
-    if (result && chunk != CLOSE)     ++size;
+    failure=this.failure;
+    if (failure == null) {
+      result=chunks.offer(chunk);
+      if (result && chunk != CLOSE)       ++size;
+    }
   }
-  if (result)   notifyListener();
+  if (failure != null)   chunk.callback.failed(failure);
+ else   if (result)   notifyListener();
   return result;
 }

@@ -1,9 +1,11 @@
 {
-  AsyncChunk chunk;
+  List<AsyncChunk> chunks=new ArrayList<>();
 synchronized (lock) {
-    chunk=current;
     failure=x;
+    chunks.addAll(DeferredContentProvider.this.chunks);
+    clear();
+    current=null;
     lock.notify();
   }
-  if (chunk != null)   chunk.callback.failed(x);
+  for (  AsyncChunk chunk : chunks)   chunk.callback.failed(x);
 }
