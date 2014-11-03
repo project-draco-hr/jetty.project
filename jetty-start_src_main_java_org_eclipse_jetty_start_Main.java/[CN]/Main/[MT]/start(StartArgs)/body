@@ -28,24 +28,46 @@
   if (args.isStopCommand()) {
     doStop(args);
   }
+  boolean rebuildGraph=false;
   for (  String module : args.getAddToStartIni()) {
     buildIni(args,module,true,true);
+    rebuildGraph=true;
   }
   for (  String module : args.getAddToStartdIni()) {
     buildIni(args,module,true,false);
+    rebuildGraph=true;
+  }
+  if (rebuildGraph) {
+    args.getAllModules().clearMissing();
+    args.getAllModules().buildGraph();
+  }
+  if (args.isDownload()) {
+    if (!args.isApproveAllLicenses()) {
+      for (      Module module : args.getAllModules().resolveEnabled()) {
+        if (!module.acknowledgeLicense()) {
+          StartLog.warn(EXITING_LICENSE_NOT_ACKNOWLEDGED);
+          System.exit(1);
+        }
+      }
+    }
   }
   for (  FileArg arg : args.getFiles()) {
     Path file=baseHome.getBasePath(arg.location);
     if (!FS.exists(file) && args.isDownload()) {
-      initFile(arg);
+      initFile(args,arg);
     }
     if (!FS.exists(file)) {
       boolean isDir=arg.location.endsWith("/");
       if (isDir) {
-        System.err.println("MKDIR: " + baseHome.toShortForm(file));
+        StartLog.log("MKDIR",baseHome.toShortForm(file));
         FS.ensureDirectoryExists(file);
       }
  else {
+        String shortRef=baseHome.toShortForm(file);
+        if (args.isTestingModeEnabled()) {
+          StartLog.log("TESTING MODE","Skipping required file check on: %s",shortRef);
+          return;
+        }
         StartLog.warn("Missing Required File: %s",baseHome.toShortForm(file));
         args.setRun(false);
         if (arg.uri != null) {

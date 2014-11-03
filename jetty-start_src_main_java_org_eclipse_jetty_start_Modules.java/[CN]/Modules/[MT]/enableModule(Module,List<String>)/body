@@ -1,10 +1,14 @@
 {
-  if (sources != null)   module.addSources(sources);
+  String via="<transitive>";
+  if (sources != null) {
+    module.addSources(sources);
+    via=Main.join(sources,", ");
+  }
   if (module.isEnabled()) {
-    StartLog.debug("Enabled  module: %s (via %s)",module.getName(),Main.join(sources,", "));
+    StartLog.debug("Enabled module: %s (via %s)",module.getName(),via);
     return;
   }
-  StartLog.debug("Enabling module: %s (via %s)",module.getName(),Main.join(sources,", "));
+  StartLog.debug("Enabling module: %s (via %s)",module.getName(),via);
   module.setEnabled(true);
   args.parseModule(module);
   module.expandProperties(args.getProperties());
@@ -17,11 +21,14 @@
       Path file=baseHome.getPath("modules/" + name + ".mod");
       if (FS.canReadFile(file)) {
         parent=registerModule(file);
+        parent.expandProperties(args.getProperties());
         updateParentReferencesTo(parent);
       }
  else {
-        StartLog.debug("Missing module definition: [ Mod: %s | File: %s ]",name,file);
-        missingModules.add(name);
+        if (!Props.hasPropertyKey(name)) {
+          StartLog.debug("Missing module definition: [ Mod: %s | File: %s ]",name,file);
+          missingModules.add(name);
+        }
       }
     }
     if (parent != null) {

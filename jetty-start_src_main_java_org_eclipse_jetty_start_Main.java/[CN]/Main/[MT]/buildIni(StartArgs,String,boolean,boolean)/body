@@ -19,6 +19,12 @@
       return;
     }
   }
+  if (!args.isApproveAllLicenses()) {
+    if (!module.acknowledgeLicense()) {
+      StartLog.warn(EXITING_LICENSE_NOT_ACKNOWLEDGED);
+      System.exit(1);
+    }
+  }
   boolean buildIni=false;
   if (module.isEnabled()) {
     if (topLevel && !FS.exists(startd_ini) && !appendStartIni) {
@@ -39,32 +45,9 @@
  else {
     buildIni=true;
   }
+  String source="<transitive>";
   if (buildIni) {
-    if (module.hasLicense()) {
-      System.err.printf("%nModule %s:%n",module.getName());
-      System.err.printf(" + contains software not provided by the Eclipse Foundation!%n");
-      System.err.printf(" + contains software not covered by the Eclipse Public License!%n");
-      System.err.printf(" + has not been audited for compliance with its license%n");
-      System.err.printf("%n");
-      for (      String l : module.getLicense()) {
-        System.err.printf("    %s%n",l);
-      }
-      if (args.isApproveAllLicenses()) {
-        System.err.println("All licenses approved via command line");
-      }
- else {
-        try (BufferedReader input=new BufferedReader(new InputStreamReader(System.in))){
-          System.err.printf("%nProceed (y/N)? ");
-          String line=input.readLine();
-          if (line == null || line.length() == 0 || !line.toLowerCase().startsWith("y")) {
-            System.err.printf("Exiting: license not acknowledged%n");
-            System.exit(1);
-          }
-        }
-       }
-    }
     BufferedWriter writer=null;
-    String source=null;
     PrintWriter out=null;
     try {
       if (appendStartIni) {
@@ -88,10 +71,9 @@
       out.println("# Module: " + name);
       out.println("--module=" + name);
       args.parse("--module=" + name,source);
-      modules.enable(name,Collections.singletonList(source));
+      args.parseModule(module);
       for (      String line : module.getDefaultConfig()) {
         out.println(line);
-        args.parse(line,source);
       }
     }
   finally {
@@ -100,14 +82,15 @@
       }
     }
   }
-  for (  String source : module.getSources()) {
-    StartLog.debug("also enabled in: %s",source);
-    if (!short_start_ini.equals(source)) {
-      StartLog.info("%-15s enabled in     %s",name,baseHome.toShortForm(source));
+  modules.enable(name,Collections.singletonList(source));
+  for (  String src : module.getSources()) {
+    StartLog.debug("also enabled in: %s",src);
+    if (!short_start_ini.equals(src)) {
+      StartLog.info("%-15s enabled in     %s",name,baseHome.toShortForm(src));
     }
   }
   for (  String file : module.getFiles()) {
-    initFile(new FileArg(file));
+    initFile(args,new FileArg(module,file));
   }
   module.expandProperties(args.getProperties());
   modules.registerParentsIfMissing(module);

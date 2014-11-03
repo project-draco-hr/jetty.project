@@ -18,6 +18,11 @@
   if ("--debug".equals(arg) || arg.startsWith("--start-log-file")) {
     return;
   }
+  if ("--testing-mode".equals(arg)) {
+    System.setProperty("org.eclipse.jetty.start.testing","true");
+    testingMode=true;
+    return;
+  }
   if (arg.startsWith("--include-jetty-dir=")) {
     return;
   }
@@ -27,7 +32,7 @@
     return;
   }
   if (arg.startsWith("--download=")) {
-    addFile(Props.getValue(arg));
+    addFile(null,Props.getValue(arg));
     run=false;
     download=true;
     return;
@@ -76,27 +81,22 @@
     return;
   }
   if (arg.startsWith("--add-to-startd=")) {
-    addToStartdIni.addAll(Props.getValues(arg));
+    List<String> moduleNames=Props.getValues(arg);
+    addToStartdIni.addAll(moduleNames);
     run=false;
     download=true;
     return;
   }
   if (arg.startsWith("--add-to-start=")) {
-    addToStartIni.addAll(Props.getValues(arg));
+    List<String> moduleNames=Props.getValues(arg);
+    addToStartIni.addAll(moduleNames);
     run=false;
     download=true;
     return;
   }
   if (arg.startsWith("--module=")) {
-    for (    String moduleName : Props.getValues(arg)) {
-      modules.add(moduleName);
-      List<String> list=sources.get(moduleName);
-      if (list == null) {
-        list=new ArrayList<String>();
-        sources.put(moduleName,list);
-      }
-      list.add(source);
-    }
+    List<String> moduleNames=Props.getValues(arg);
+    enableModules(source,moduleNames);
     return;
   }
   if (arg.startsWith("--write-module-graph=")) {
