@@ -1,0 +1,35 @@
+{
+  start(new EmptyServerHandler());
+  final CountDownLatch failLatch=new CountDownLatch(2);
+  final Callback.Adapter callback=new Callback.Adapter(){
+    @Override public void failed(    Throwable x){
+      failLatch.countDown();
+    }
+  }
+;
+  final CountDownLatch completeLatch=new CountDownLatch(1);
+  final DeferredContentProvider content=new DeferredContentProvider();
+  client.newRequest("localhost",connector.getLocalPort()).scheme(scheme).content(content).onRequestBegin(new Request.BeginListener(){
+    @Override public void onBegin(    Request request){
+      content.offer(ByteBuffer.wrap(new byte[256]),callback);
+      content.offer(ByteBuffer.wrap(new byte[256]),callback);
+      request.abort(new Exception("explicitly_thrown_by_test"));
+    }
+  }
+).send(new Response.CompleteListener(){
+    @Override public void onComplete(    Result result){
+      if (result.isFailed())       completeLatch.countDown();
+    }
+  }
+);
+  Assert.assertTrue(completeLatch.await(5,TimeUnit.SECONDS));
+  Assert.assertTrue(failLatch.await(5,TimeUnit.SECONDS));
+  final CountDownLatch latch=new CountDownLatch(1);
+  content.offer(ByteBuffer.wrap(new byte[128]),new Callback.Adapter(){
+    @Override public void failed(    Throwable x){
+      latch.countDown();
+    }
+  }
+);
+  Assert.assertTrue(latch.await(5,TimeUnit.SECONDS));
+}
