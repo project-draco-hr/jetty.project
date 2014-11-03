@@ -1,0 +1,30 @@
+{
+  if (!hasLicense() || licenseAck) {
+    return true;
+  }
+  System.err.printf("%nModule %s:%n",getName());
+  System.err.printf(" + contains software not provided by the Eclipse Foundation!%n");
+  System.err.printf(" + contains software not covered by the Eclipse Public License!%n");
+  System.err.printf(" + has not been audited for compliance with its license%n");
+  System.err.printf("%n");
+  for (  String l : getLicense()) {
+    System.err.printf("    %s%n",l);
+  }
+  String propBasedAckName="org.eclipse.jetty.start.ack.license." + getName();
+  String propBasedAckValue=System.getProperty(propBasedAckName);
+  if (propBasedAckValue != null) {
+    StartLog.log("TESTING MODE","Programmatic ACK - %s=%s",propBasedAckName,propBasedAckValue);
+    licenseAck=Boolean.parseBoolean(propBasedAckValue);
+  }
+ else {
+    if (Boolean.getBoolean("org.eclipse.jetty.start.testing")) {
+      throw new RuntimeException("Test Configuration Missing - Pre-specify answer to (" + propBasedAckName + ") in test case");
+    }
+    try (BufferedReader input=new BufferedReader(new InputStreamReader(System.in))){
+      System.err.printf("%nProceed (y/N)? ");
+      String line=input.readLine();
+      licenseAck=!(line == null || line.length() == 0 || !line.toLowerCase().startsWith("y"));
+    }
+   }
+  return licenseAck;
+}

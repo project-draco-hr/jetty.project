@@ -1,0 +1,47 @@
+{
+  try {
+    Path file=baseHome.getBasePath(farg.location);
+    StartLog.debug("[init-file] %s module specified file %s",file.toAbsolutePath(),(FS.exists(file) ? "[Exists!]" : ""));
+    if (FS.exists(file)) {
+      return;
+    }
+    if (farg.uri != null) {
+      URL url=new URL(farg.uri);
+      StartLog.log("DOWNLOAD","%s to %s",url,farg.location);
+      FS.ensureDirectoryExists(file.getParent());
+      if (args.isTestingModeEnabled()) {
+        StartLog.log("TESTING MODE","Skipping download of " + url);
+        return;
+      }
+      byte[] buf=new byte[8192];
+      try (InputStream in=url.openStream();OutputStream out=Files.newOutputStream(file,StandardOpenOption.CREATE_NEW,StandardOpenOption.WRITE)){
+        while (true) {
+          int len=in.read(buf);
+          if (len > 0) {
+            out.write(buf,0,len);
+          }
+          if (len < 0) {
+            break;
+          }
+        }
+      }
+     }
+ else     if (farg.location.endsWith("/")) {
+      StartLog.log("MKDIR",baseHome.toShortForm(file));
+      FS.ensureDirectoryExists(file);
+    }
+ else {
+      String shortRef=baseHome.toShortForm(file);
+      if (args.isTestingModeEnabled()) {
+        StartLog.log("TESTING MODE","Skipping required file check on: %s",shortRef);
+        return;
+      }
+      StartLog.warn("MISSING: Required file %s",shortRef);
+    }
+  }
+ catch (  Exception e) {
+    StartLog.warn("ERROR: processing %s%n%s",farg,e);
+    StartLog.warn(e);
+    usageExit(EXIT_USAGE);
+  }
+}
