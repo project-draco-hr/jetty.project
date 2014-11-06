@@ -1,0 +1,19 @@
+{
+  AsyncContext ctx=(AsyncContext)request.getAttribute(AsyncContext.class.getName());
+  if (ctx == null) {
+    ctx=request.startAsync();
+    ctx.setTimeout(0);
+    scheduler.schedule(new DispatchBack(ctx),500,TimeUnit.MILLISECONDS);
+  }
+ else {
+    String fileName=request.getServletPath();
+    byte[] dataBytes=loadContentFileBytes(fileName);
+    response.setContentLength(dataBytes.length);
+    ServletOutputStream out=response.getOutputStream();
+    if (fileName.endsWith("txt"))     response.setContentType("text/plain");
+ else     if (fileName.endsWith("mp3"))     response.setContentType("audio/mpeg");
+    response.setHeader("ETag","W/etag-" + fileName);
+    out.write(dataBytes);
+    ctx.complete();
+  }
+}
