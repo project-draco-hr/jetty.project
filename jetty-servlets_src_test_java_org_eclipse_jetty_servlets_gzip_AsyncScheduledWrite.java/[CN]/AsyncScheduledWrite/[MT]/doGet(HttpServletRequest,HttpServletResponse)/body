@@ -1,7 +1,8 @@
 {
-  AsyncContext ctx=(AsyncContext)request.getAttribute(AsyncContext.class.getName());
-  if (ctx == null) {
-    ctx=request.startAsync();
+  Boolean suspended=(Boolean)request.getAttribute("SUSPENDED");
+  if (suspended == null || !suspended) {
+    request.setAttribute("SUSPENDED",Boolean.TRUE);
+    AsyncContext ctx=request.startAsync();
     ctx.setTimeout(0);
     scheduler.schedule(new DispatchBack(ctx),500,TimeUnit.MILLISECONDS);
   }
@@ -14,6 +15,5 @@
  else     if (fileName.endsWith("mp3"))     response.setContentType("audio/mpeg");
     response.setHeader("ETag","W/etag-" + fileName);
     out.write(dataBytes);
-    ctx.complete();
   }
 }
