@@ -4,8 +4,12 @@
   server.addBean(mbContainer);
   WebAppContext webapp=new WebAppContext();
   webapp.setContextPath("/");
-  webapp.setWar("../../jetty-distribution/target/distribution/demo-base/webapps/test.war");
-  org.eclipse.jetty.webapp.Configuration.ClassList classlist=org.eclipse.jetty.webapp.Configuration.ClassList.setServerDefault(server);
+  File warFile=new File("../../jetty-distribution/target/distribution/demo-base/webapps/test.war");
+  if (!warFile.exists()) {
+    throw new RuntimeException("Unable to find WAR File: " + warFile.getAbsolutePath());
+  }
+  webapp.setWar(warFile.getAbsolutePath());
+  Configuration.ClassList classlist=Configuration.ClassList.setServerDefault(server);
   classlist.addBefore("org.eclipse.jetty.webapp.JettyWebXmlConfiguration","org.eclipse.jetty.annotations.AnnotationConfiguration");
   webapp.setAttribute("org.eclipse.jetty.server.webapp.ContainerIncludeJarPattern",".*/[^/]*servlet-api-[^/]*\\.jar$|.*/javax.servlet.jsp.jstl-.*\\.jar$|.*/[^/]*taglibs.*\\.jar$");
   server.setHandler(webapp);

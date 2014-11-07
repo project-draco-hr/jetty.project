@@ -1,16 +1,17 @@
 {
   Server server=new Server(8080);
-  org.eclipse.jetty.webapp.Configuration.ClassList classlist=org.eclipse.jetty.webapp.Configuration.ClassList.setServerDefault(server);
+  Configuration.ClassList classlist=Configuration.ClassList.setServerDefault(server);
   classlist.addAfter("org.eclipse.jetty.webapp.FragmentConfiguration","org.eclipse.jetty.plus.webapp.EnvConfiguration","org.eclipse.jetty.plus.webapp.PlusConfiguration");
   classlist.addBefore("org.eclipse.jetty.webapp.JettyWebXmlConfiguration","org.eclipse.jetty.annotations.AnnotationConfiguration");
   WebAppContext webapp=new WebAppContext();
   webapp.setContextPath("/");
-  webapp.setWar("../../jetty-distribution/target/distribution/demo-base/webapps/test-spec.war");
+  File warFile=new File("../../jetty-distribution/target/distribution/demo-base/webapps/test.war");
+  webapp.setWar(warFile.getAbsolutePath());
   webapp.setAttribute("org.eclipse.jetty.server.webapp.ContainerIncludeJarPattern",".*/javax.servlet-[^/]*\\.jar$|.*/servlet-api-[^/]*\\.jar$");
   server.setHandler(webapp);
-  org.eclipse.jetty.plus.jndi.Transaction transactionMgr=new org.eclipse.jetty.plus.jndi.Transaction(new com.acme.MockUserTransaction());
-  org.eclipse.jetty.plus.jndi.EnvEntry maxAmount=new org.eclipse.jetty.plus.jndi.EnvEntry(webapp,"maxAmount",new Double(100),true);
-  org.eclipse.jetty.plus.jndi.Resource mydatasource=new org.eclipse.jetty.plus.jndi.Resource(webapp,"jdbc/mydatasource",new com.acme.MockDataSource());
+  new Transaction(new com.acme.MockUserTransaction());
+  new EnvEntry(webapp,"maxAmount",new Double(100),true);
+  new Resource(webapp,"jdbc/mydatasource",new com.acme.MockDataSource());
   HashLoginService loginService=new HashLoginService();
   loginService.setName("Test Realm");
   loginService.setConfig("src/test/resources/realm.properties");

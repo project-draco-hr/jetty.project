@@ -1,22 +1,18 @@
 {
   Server server=new Server(8080);
   Handler param=new ParamHandler();
-  HandlerWrapper wrapper=new HandlerWrapper(){
-    @Override public void handle(    String target,    Request baseRequest,    HttpServletRequest request,    HttpServletResponse response) throws IOException, ServletException {
-      request.setAttribute("welcome","Hello");
-      super.handle(target,baseRequest,request,response);
-    }
-  }
-;
+  HandlerWrapper wrapper=new WelcomeWrapHandler();
   Handler hello=new HelloHandler();
   Handler dft=new DefaultHandler();
-  RequestLogHandler log=new RequestLogHandler();
-  log.setRequestLog(new NCSARequestLog(File.createTempFile("demo","log").getAbsolutePath()));
+  RequestLogHandler requestLog=new RequestLogHandler();
+  File requestLogFile=File.createTempFile("demo","log");
+  NCSARequestLog ncsaLog=new NCSARequestLog(requestLogFile.getAbsolutePath());
+  requestLog.setRequestLog(ncsaLog);
   HandlerCollection handlers=new HandlerCollection();
   HandlerList list=new HandlerList();
   wrapper.setHandler(hello);
   list.setHandlers(new Handler[]{param,wrapper,dft});
-  handlers.setHandlers(new Handler[]{list,log});
+  handlers.setHandlers(new Handler[]{list,requestLog});
   server.setHandler(handlers);
   server.start();
   server.join();
