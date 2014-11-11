@@ -2,6 +2,15 @@
   LOG.debug("{} doFilter {}",this,req);
   HttpServletRequest request=(HttpServletRequest)req;
   HttpServletResponse response=(HttpServletResponse)res;
+  HttpChannel<?> channel=HttpChannel.getCurrentHttpChannel();
+  if (req.getDispatcherType() != DispatcherType.REQUEST) {
+    HttpOutput out=channel.getResponse().getHttpOutput();
+    if (out instanceof GzipHttpOutput && ((GzipHttpOutput)out).mightCompress()) {
+      LOG.debug("{} already might compress {}",this,request);
+      super.doFilter(request,response,chain);
+      return;
+    }
+  }
   String requestURI=request.getRequestURI();
   if (!_methods.contains(request.getMethod())) {
     LOG.debug("{} excluded by method {}",this,request);
@@ -43,7 +52,6 @@
   if (etag != null) {
     if (etag.contains(ETAG_GZIP))     request.setAttribute(ETAG,etag.replace(ETAG_GZIP,""));
   }
-  HttpChannel<?> channel=HttpChannel.getCurrentHttpChannel();
   HttpOutput out=channel.getResponse().getHttpOutput();
   if (!(out instanceof GzipHttpOutput)) {
     if (out.getClass() != HttpOutput.class)     throw new IllegalStateException();
