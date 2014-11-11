@@ -1,11 +1,15 @@
 {
   GzipTester tester=new GzipTester(testingdir,compressionType);
-  tester.setGzipFilterClass(testFilter);
-  FilterHolder holder=tester.setContentServlet(HttpStatusServlet.class);
-  holder.setInitParameter("mimeTypes","text/plain");
+  FilterHolder gzipHolder=new FilterHolder(testFilter);
+  gzipHolder.setAsyncSupported(true);
+  tester.addFilter(gzipHolder,"/*",EnumSet.of(DispatcherType.REQUEST,DispatcherType.ASYNC));
+  gzipHolder.setInitParameter("mimeTypes","text/plain");
+  tester.setContentServlet(HttpStatusServlet.class);
   try {
     tester.start();
-    tester.assertIsResponseNotGzipCompressed("GET",-1,204);
+    HttpTester.Response response=tester.executeRequest("GET","/context/",2,TimeUnit.SECONDS);
+    assertThat("Response status",response.getStatus(),is(HttpStatus.NO_CONTENT_204));
+    assertThat("Content-Encoding",response.get("Content-Encoding"),not(containsString(GzipFilter.GZIP)));
   }
   finally {
     tester.stop();
