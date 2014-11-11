@@ -1,13 +1,15 @@
 {
   GzipTester tester=new GzipTester(testingdir,compressionType);
-  tester.setGzipFilterClass(testFilter);
-  FilterHolder holder=tester.setContentServlet(DefaultServlet.class);
-  holder.setInitParameter("excludePaths","/bar/, /context/");
+  FilterHolder gzipHolder=new FilterHolder(testFilter);
+  gzipHolder.setAsyncSupported(true);
+  gzipHolder.setInitParameter("excludePaths","/bar/, /context/");
+  tester.addFilter(gzipHolder,"/*",EnumSet.of(DispatcherType.REQUEST,DispatcherType.ASYNC));
   int filesize=tester.getOutputBufferSize() * 4;
   tester.prepareServerFile("file.txt",filesize);
+  tester.setContentServlet(DefaultServlet.class);
   try {
     tester.start();
-    tester.assertIsResponseNotGzipCompressed("GET","file.txt",filesize,HttpStatus.OK_200);
+    assertIsResponseNotGzipCompressed(tester,"GET","file.txt",filesize,HttpStatus.OK_200);
   }
   finally {
     tester.stop();

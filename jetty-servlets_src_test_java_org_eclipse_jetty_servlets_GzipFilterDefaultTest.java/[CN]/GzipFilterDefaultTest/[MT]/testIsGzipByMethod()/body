@@ -1,16 +1,25 @@
 {
   GzipTester tester=new GzipTester(testingdir,compressionType);
-  tester.setGzipFilterClass(testFilter);
+  FilterHolder gzipHolder=new FilterHolder(testFilter);
+  gzipHolder.setAsyncSupported(true);
+  tester.addFilter(gzipHolder,"/*",EnumSet.of(DispatcherType.REQUEST,DispatcherType.ASYNC));
+  gzipHolder.setInitParameter("mimeTypes","text/plain");
+  gzipHolder.setInitParameter("methods","POST, WIBBLE");
   int filesize=tester.getOutputBufferSize() * 2;
   tester.prepareServerFile("file.txt",filesize);
-  FilterHolder holder=tester.setContentServlet(GetServlet.class);
-  holder.setInitParameter("mimeTypes","text/plain");
-  holder.setInitParameter("methods","POST, WIBBLE");
+  tester.setContentServlet(GetServlet.class);
   try {
     tester.start();
+    HttpTester.Response response;
     tester.assertIsResponseGzipCompressed("POST","file.txt");
     tester.assertIsResponseGzipCompressed("WIBBLE","file.txt");
-    tester.assertIsResponseNotGzipCompressed("GET","file.txt",filesize,200);
+    response=tester.executeRequest("GET","/context/file.txt",2,TimeUnit.SECONDS);
+    assertThat("Response status",response.getStatus(),is(HttpStatus.OK_200));
+    assertThat("Content-Encoding",response.get("Content-Encoding"),not(containsString(compressionType)));
+    String content=tester.readResponse(response);
+    assertThat("Response content size",content.length(),is(filesize));
+    String expectedContent=IO.readToString(testingdir.getFile("file.txt"));
+    assertThat("Response content",content,is(expectedContent));
   }
   finally {
     tester.stop();

@@ -1,12 +1,21 @@
 {
   GzipTester tester=new GzipTester(testingdir,compressionType);
-  tester.setGzipFilterClass(testFilter);
+  FilterHolder gzipHolder=new FilterHolder(testFilter);
+  gzipHolder.setAsyncSupported(true);
+  tester.addFilter(gzipHolder,"/*",EnumSet.of(DispatcherType.REQUEST,DispatcherType.ASYNC));
+  gzipHolder.setInitParameter("mimeTypes","text/plain");
   tester.prepareServerFile("empty.txt",0);
-  FilterHolder holder=tester.setContentServlet(org.eclipse.jetty.servlet.DefaultServlet.class);
-  holder.setInitParameter("mimeTypes","text/plain");
+  tester.setContentServlet(DefaultServlet.class);
   try {
     tester.start();
-    @SuppressWarnings("unused") HttpTester.Response http=tester.assertIsResponseNotGzipCompressed("GET","empty.txt",0,200);
+    HttpTester.Response response;
+    response=tester.executeRequest("GET","/context/empty.txt",2,TimeUnit.SECONDS);
+    assertThat("Response status",response.getStatus(),is(HttpStatus.OK_200));
+    assertThat("Content-Encoding",response.get("Content-Encoding"),not(containsString(compressionType)));
+    String content=tester.readResponse(response);
+    assertThat("Response content size",content.length(),is(0));
+    String expectedContent=IO.readToString(testingdir.getFile("empty.txt"));
+    assertThat("Response content",content,is(expectedContent));
   }
   finally {
     tester.stop();

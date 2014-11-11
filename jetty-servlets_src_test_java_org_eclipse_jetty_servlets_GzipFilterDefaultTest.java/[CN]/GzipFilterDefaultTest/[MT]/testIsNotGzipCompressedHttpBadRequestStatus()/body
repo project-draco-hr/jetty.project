@@ -2,14 +2,14 @@
   GzipTester tester=new GzipTester(testingdir,compressionType);
   FilterHolder gzipHolder=new FilterHolder(testFilter);
   gzipHolder.setAsyncSupported(true);
-  tester.addFilter(gzipHolder,"/*",EnumSet.of(DispatcherType.REQUEST,DispatcherType.ASYNC));
   gzipHolder.setInitParameter("mimeTypes","text/plain");
+  tester.addFilter(gzipHolder,"/*",EnumSet.of(DispatcherType.REQUEST,DispatcherType.ASYNC));
   tester.setContentServlet(HttpErrorServlet.class);
   try {
     tester.start();
     HttpTester.Response response=tester.executeRequest("GET","/context/",2,TimeUnit.SECONDS);
     assertThat("Response status",response.getStatus(),is(HttpStatus.BAD_REQUEST_400));
-    assertThat("Content-Encoding",response.get("Content-Encoding"),not(containsString(GzipFilter.GZIP)));
+    assertThat("Content-Encoding",response.get("Content-Encoding"),not(containsString(compressionType)));
     String content=tester.readResponse(response);
     assertThat("Response content",content,is("error message"));
   }
