@@ -1,14 +1,21 @@
 {
   GzipTester tester=new GzipTester(testingdir,compressionType);
+  tester.getGzipHandler().setIncludedMethods("POST","WIBBLE");
   int filesize=tester.getOutputBufferSize() * 2;
   tester.prepareServerFile("file.txt",filesize);
   tester.setContentServlet(GetServlet.class);
-  tester.getGzipHandler().setIncludedMethods("POST","WIBBLE");
   try {
     tester.start();
+    HttpTester.Response response;
     tester.assertIsResponseGzipCompressed("POST","file.txt");
     tester.assertIsResponseGzipCompressed("WIBBLE","file.txt");
-    tester.assertIsResponseNotGzipCompressed("GET","file.txt",filesize,200);
+    response=tester.executeRequest("GET","/context/file.txt",2,TimeUnit.SECONDS);
+    assertThat("Response status",response.getStatus(),is(HttpStatus.OK_200));
+    assertThat("Content-Encoding",response.get("Content-Encoding"),not(containsString(compressionType)));
+    String content=tester.readResponse(response);
+    assertThat("Response content size",content.length(),is(filesize));
+    String expectedContent=IO.readToString(testingdir.getFile("file.txt"));
+    assertThat("Response content",content,is(expectedContent));
   }
   finally {
     tester.stop();
