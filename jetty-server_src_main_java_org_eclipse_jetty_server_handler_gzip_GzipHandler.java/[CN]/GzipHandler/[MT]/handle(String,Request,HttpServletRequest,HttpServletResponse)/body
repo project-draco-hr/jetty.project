@@ -2,6 +2,17 @@
   ServletContext context=baseRequest.getServletContext();
   String path=context == null ? baseRequest.getRequestURI() : URIUtil.addPaths(baseRequest.getServletPath(),baseRequest.getPathInfo());
   LOG.debug("{} handle {} in {}",this,baseRequest,context);
+  HttpChannel channel=HttpChannel.getCurrentHttpChannel();
+  HttpOutput out=channel.getResponse().getHttpOutput();
+  HttpOutput.Interceptor interceptor=out.getInterceptor();
+  while (interceptor != null) {
+    if (interceptor instanceof GzipHttpOutputInterceptor) {
+      LOG.debug("{} already intercepting {}",this,request);
+      _handler.handle(target,baseRequest,request,response);
+      return;
+    }
+    interceptor=interceptor.getNextInterceptor();
+  }
   if (!_includedMethods.contains(baseRequest.getMethod())) {
     LOG.debug("{} excluded by method {}",this,request);
     _handler.handle(target,baseRequest,request,response);
@@ -36,9 +47,6 @@
   if (etag != null) {
     if (etag.contains(ETAG_GZIP))     request.setAttribute(ETAG,etag.replace(ETAG_GZIP,""));
   }
-  HttpChannel channel=HttpChannel.getCurrentHttpChannel();
-  HttpOutput out=channel.getResponse().getHttpOutput();
-  HttpOutput.Interceptor interceptor=out.getInterceptor();
-  if (!(interceptor instanceof GzipHttpOutputInterceptor))   out.setInterceptor(new GzipHttpOutputInterceptor(this,_vary,channel,interceptor));
+  out.setInterceptor(new GzipHttpOutputInterceptor(this,_vary,channel,out.getInterceptor()));
   _handler.handle(target,baseRequest,request,response);
 }
