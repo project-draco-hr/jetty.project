@@ -20,7 +20,7 @@ case -1:
 {
         LOG.warn("DOS ALERT: Request rejected ip={}, session={}, user={}",request.getRemoteAddr(),request.getRequestedSessionId(),request.getUserPrincipal());
         if (insertHeaders)         response.addHeader("DoSFilter","unavailable");
-        response.sendError(HttpServletResponse.SC_SERVICE_UNAVAILABLE);
+        response.sendError(getTooManyCode());
         return;
       }
 case 0:
@@ -73,11 +73,12 @@ doFilterChain(filterChain,request,response);
  else {
 if (LOG.isDebugEnabled()) LOG.debug("Rejecting {}",request);
 if (isInsertHeaders()) response.addHeader("DoSFilter","unavailable");
-response.sendError(HttpServletResponse.SC_SERVICE_UNAVAILABLE);
+response.sendError(getTooManyCode());
 }
 }
  catch (InterruptedException e) {
-response.sendError(HttpServletResponse.SC_SERVICE_UNAVAILABLE);
+LOG.ignore(e);
+response.sendError(getTooManyCode());
 }
  finally {
 if (accepted) {
