@@ -1,0 +1,71 @@
+{
+  try {
+    ByteBuffer buffer=null;
+    loop:     while (true) {
+      int size=Math.max(1,__size[_fields] - _builder.length());
+      if (buffer == null || buffer.capacity() != size)       buffer=BufferUtil.allocate(size);
+ else       BufferUtil.clear(buffer);
+      int fill=getEndPoint().fill(buffer);
+      if (fill < 0) {
+        getEndPoint().shutdownOutput();
+        return;
+      }
+      if (fill == 0) {
+        fillInterested();
+        return;
+      }
+      _length+=fill;
+      if (_length >= 108) {
+        LOG.warn("PROXY line too long {}",getEndPoint());
+        close();
+        return;
+      }
+      while (buffer.hasRemaining()) {
+        byte b=buffer.get();
+        if (_fields < 6) {
+          if (b == ' ' || b == '\r' && _fields == 5) {
+            _field[_fields++]=_builder.toString();
+            _builder.setLength(0);
+          }
+ else           if (b < ' ') {
+            LOG.warn("Bad char {}",getEndPoint());
+            close();
+            return;
+          }
+ else           _builder.append((char)b);
+        }
+ else {
+          if (b == '\n')           break loop;
+          LOG.warn("Bad CRLF {}",getEndPoint());
+          close();
+          return;
+        }
+      }
+    }
+    if (!"PROXY".equals(_field[0])) {
+      LOG.warn("Bad PROXY {}",getEndPoint());
+      close();
+      return;
+    }
+    InetSocketAddress remote=new InetSocketAddress(_field[2],Integer.parseInt(_field[4]));
+    InetSocketAddress local=new InetSocketAddress(_field[3],Integer.parseInt(_field[5]));
+    ConnectionFactory connectionFactory=_connector.getConnectionFactory(_next);
+    if (connectionFactory == null) {
+      LOG.info("{} next protocol '{}'",getEndPoint(),_next);
+      close();
+      return;
+    }
+    EndPoint endPoint=new ProxyEndPoint(getEndPoint(),remote,local);
+    Connection oldConnection=getEndPoint().getConnection();
+    Connection newConnection=connectionFactory.newConnection(_connector,endPoint);
+    if (LOG.isDebugEnabled())     LOG.debug("Switching to {} {}",_next,getEndPoint());
+    oldConnection.onClose();
+    endPoint.setConnection(newConnection);
+    newConnection.onOpen();
+  }
+ catch (  Throwable e) {
+    LOG.warn("Bad PROXY {} {}",e.toString(),getEndPoint());
+    LOG.debug(e);
+    close();
+  }
+}
