@@ -28,13 +28,21 @@
   if (args.isStopCommand()) {
     doStop(args);
   }
+  List<FileInitializer> fileInitializers=new ArrayList<FileInitializer>();
+  if (args.isTestingModeEnabled()) {
+    fileInitializers.add(new TestFileInitializer());
+  }
+ else {
+    fileInitializers.add(new MavenLocalRepoFileInitializer());
+    fileInitializers.add(new UriFileInitializer());
+  }
   boolean rebuildGraph=false;
   for (  String module : args.getAddToStartIni()) {
-    buildIni(args,module,true,true);
+    buildIni(fileInitializers,args,module,true,true);
     rebuildGraph=true;
   }
   for (  String module : args.getAddToStartdIni()) {
-    buildIni(args,module,true,false);
+    buildIni(fileInitializers,args,module,true,false);
     rebuildGraph=true;
   }
   if (rebuildGraph) {
@@ -43,6 +51,7 @@
   }
   if (args.isDownload()) {
     if (!args.isApproveAllLicenses()) {
+      StartLog.debug("Requesting License Acknowledgement");
       for (      Module module : args.getAllModules().resolveEnabled()) {
         if (!module.acknowledgeLicense()) {
           StartLog.warn(EXITING_LICENSE_NOT_ACKNOWLEDGED);
@@ -51,32 +60,7 @@
       }
     }
   }
-  for (  FileArg arg : args.getFiles()) {
-    Path file=baseHome.getBasePath(arg.location);
-    if (!FS.exists(file) && args.isDownload()) {
-      initFile(args,arg);
-    }
-    if (!FS.exists(file)) {
-      boolean isDir=arg.location.endsWith("/");
-      if (isDir) {
-        StartLog.log("MKDIR",baseHome.toShortForm(file));
-        FS.ensureDirectoryExists(file);
-      }
- else {
-        String shortRef=baseHome.toShortForm(file);
-        if (args.isTestingModeEnabled()) {
-          StartLog.log("TESTING MODE","Skipping required file check on: %s",shortRef);
-          return;
-        }
-        StartLog.warn("Missing Required File: %s",baseHome.toShortForm(file));
-        args.setRun(false);
-        if (arg.uri != null) {
-          StartLog.warn("  Can be downloaded From: %s",arg.uri);
-          StartLog.warn("  Run start.jar --create-files to download");
-        }
-      }
-    }
-  }
+  processFileResources(fileInitializers,args);
   if (!args.isRun()) {
     return;
   }

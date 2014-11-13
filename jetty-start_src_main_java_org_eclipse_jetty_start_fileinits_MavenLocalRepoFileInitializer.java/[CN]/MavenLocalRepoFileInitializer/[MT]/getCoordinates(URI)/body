@@ -1,0 +1,35 @@
+{
+  if (!"maven".equalsIgnoreCase(uri.getScheme())) {
+    return null;
+  }
+  String ssp=uri.getSchemeSpecificPart();
+  if (ssp.startsWith("//")) {
+    ssp=ssp.substring(2);
+  }
+  String parts[]=ssp.split("/");
+  if (StartLog.isDebugEnabled()) {
+    StartLog.debug("ssp = %s",ssp);
+    StartLog.debug("parts = %d",parts.length);
+    for (int i=0; i < parts.length; i++) {
+      StartLog.debug("  part[%2d]: [%s]",i,parts[i]);
+    }
+  }
+  if (parts.length < 3) {
+    throw new RuntimeException("Not a valid maven:// uri - " + uri);
+  }
+  Coordinates coords=new Coordinates();
+  coords.groupId=parts[0];
+  coords.artifactId=parts[1];
+  coords.version=parts[2];
+  coords.type="jar";
+  coords.classifier=null;
+  if (parts.length >= 4) {
+    if (Utils.isNotBlank(parts[3])) {
+      coords.type=parts[3];
+    }
+    if ((parts.length == 5) && (Utils.isNotBlank(parts[4]))) {
+      coords.classifier=parts[4];
+    }
+  }
+  return coords;
+}

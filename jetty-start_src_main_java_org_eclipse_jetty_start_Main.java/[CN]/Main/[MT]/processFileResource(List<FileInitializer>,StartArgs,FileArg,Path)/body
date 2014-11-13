@@ -1,0 +1,49 @@
+{
+  if (args.isDownload() && arg.uri != null) {
+    URI uri=URI.create(arg.uri);
+    for (    FileInitializer finit : fileInitializers) {
+      if (finit.init(uri,file)) {
+        return true;
+      }
+    }
+    return false;
+  }
+ else {
+    boolean isDir=arg.location.endsWith("/");
+    if (FS.exists(file)) {
+      if (isDir) {
+        if (!Files.isDirectory(file)) {
+          throw new IOException("Invalid: path should be a directory (but isn't): " + file);
+        }
+        if (!FS.canReadDirectory(file)) {
+          throw new IOException("Unable to read directory: " + file);
+        }
+      }
+ else {
+        if (!FS.canReadFile(file)) {
+          throw new IOException("Unable to read file: " + file);
+        }
+      }
+      return true;
+    }
+    if (isDir) {
+      StartLog.log("MKDIR",baseHome.toShortForm(file));
+      FS.ensureDirectoryExists(file);
+      return true;
+    }
+ else {
+      String shortRef=baseHome.toShortForm(file);
+      if (args.isTestingModeEnabled()) {
+        StartLog.log("TESTING MODE","Skipping required file check on: %s",shortRef);
+        return true;
+      }
+      StartLog.warn("Missing Required File: %s",baseHome.toShortForm(file));
+      args.setRun(false);
+      if (arg.uri != null) {
+        StartLog.warn("  Can be downloaded From: %s",arg.uri);
+        StartLog.warn("  Run start.jar --create-files to download");
+      }
+      return false;
+    }
+  }
+}
