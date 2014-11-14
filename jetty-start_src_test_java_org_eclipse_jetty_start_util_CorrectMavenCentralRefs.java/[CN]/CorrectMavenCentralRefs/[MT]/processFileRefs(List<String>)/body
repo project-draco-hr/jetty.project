@@ -1,0 +1,66 @@
+{
+  Pattern section=Pattern.compile("\\s*\\[([^]]*)\\]\\s*");
+  int filesStart=-1;
+  int filesEnd=-1;
+  String sectionId=null;
+  int lineCount=lines.size();
+  for (int i=0; i < lineCount; i++) {
+    String line=lines.get(i).trim();
+    Matcher sectionMatcher=section.matcher(line);
+    if (sectionMatcher.matches()) {
+      sectionId=sectionMatcher.group(1).trim().toUpperCase(Locale.ENGLISH);
+    }
+ else {
+      if ("FILES".equals(sectionId)) {
+        if (filesStart < 0) {
+          filesStart=i;
+        }
+        filesEnd=i;
+      }
+    }
+  }
+  if (filesStart == (-1)) {
+    return false;
+  }
+  int updated=0;
+  for (int i=filesStart; i <= filesEnd; i++) {
+    String line=lines.get(i);
+    String keyword="maven.org/maven2/";
+    int idx=line.indexOf(keyword);
+    if (idx > 0) {
+      int pipe=line.indexOf('|');
+      String rawpath=line.substring(idx + keyword.length(),pipe);
+      String destpath=line.substring(pipe + 1);
+      String parts[]=rawpath.split("/");
+      int rev=parts.length;
+      String filename=parts[--rev];
+      String type="jar";
+      int ext=filename.lastIndexOf('.');
+      if (ext > 0) {
+        type=filename.substring(ext + 1);
+      }
+      String version=parts[--rev];
+      String artifactId=parts[--rev];
+      String groupId=Utils.join(parts,0,rev,".");
+      String classifier=filename.replaceFirst(artifactId + '-' + version,"");
+      classifier=classifier.replaceFirst('.' + type + '$',"");
+      if (Utils.isNotBlank(classifier) && (classifier.charAt(0) == '-')) {
+        classifier=classifier.substring(1);
+      }
+      StringBuilder murl=new StringBuilder();
+      murl.append("maven://");
+      murl.append(groupId).append('/');
+      murl.append(artifactId).append('/');
+      murl.append(version);
+      if (!"jar".equals(type) || Utils.isNotBlank(classifier)) {
+        murl.append('/').append(type);
+        if (Utils.isNotBlank(classifier)) {
+          murl.append('/').append(classifier);
+        }
+      }
+      lines.set(i,murl.toString() + '|' + destpath);
+      updated++;
+    }
+  }
+  return (updated > 0);
+}
