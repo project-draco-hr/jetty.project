@@ -1,13 +1,20 @@
 {
 synchronized (_factories) {
-    String key=StringUtil.asciiToLowerCase(factory.getProtocol());
-    ConnectionFactory old=_factories.remove(key);
-    if (old != null) {
-      if (old.getProtocol().equals(_defaultProtocol))       _defaultProtocol=null;
+    Set<ConnectionFactory> to_remove=new HashSet<ConnectionFactory>();
+    for (    String key : factory.getProtocols()) {
+      key=StringUtil.asciiToLowerCase(key);
+      ConnectionFactory old=_factories.remove(key);
+      if (old != null) {
+        if (old.getProtocol().equals(_defaultProtocol))         _defaultProtocol=null;
+        to_remove.add(old);
+      }
+      _factories.put(key,factory);
+    }
+    for (    ConnectionFactory f : _factories.values())     to_remove.remove(f);
+    for (    ConnectionFactory old : to_remove) {
       removeBean(old);
       if (LOG.isDebugEnabled())       LOG.debug("{} removed {}",this,old);
     }
-    _factories.put(key,factory);
     addBean(factory);
     if (_defaultProtocol == null)     _defaultProtocol=factory.getProtocol();
     if (LOG.isDebugEnabled())     LOG.debug("{} added {}",this,factory);

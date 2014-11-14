@@ -1,22 +1,22 @@
 {
-  List<String> protocols=this.protocols;
-  if (protocols.isEmpty()) {
-    protocols=connector.getProtocols();
-    Iterator<String> i=protocols.iterator();
-    while (i.hasNext()) {
+  List<String> negotiated=this.negotiatedProtocols;
+  if (negotiated.isEmpty()) {
+    negotiated=new ArrayList<>(connector.getProtocols());
+    for (Iterator<String> i=negotiated.iterator(); i.hasNext(); ) {
       String protocol=i.next();
-      if ("ssl".equalsIgnoreCase(protocol) || "alpn".equalsIgnoreCase(protocol) || "npn".equalsIgnoreCase(protocol)) {
+      ConnectionFactory f=connector.getConnectionFactory(protocol);
+      if ((f instanceof SslConnectionFactory) || (f instanceof NegotiatingServerConnectionFactory)) {
         i.remove();
       }
     }
   }
   String dft=defaultProtocol;
-  if (dft == null && !protocols.isEmpty())   dft=protocols.get(0);
+  if (dft == null && !negotiated.isEmpty())   dft=negotiated.get(0);
   SSLEngine engine=null;
   EndPoint ep=endPoint;
   while (engine == null && ep != null) {
     if (ep instanceof SslConnection.DecryptedEndPoint)     engine=((SslConnection.DecryptedEndPoint)ep).getSslConnection().getSSLEngine();
  else     ep=null;
   }
-  return configure(newServerConnection(connector,endPoint,engine,protocols,dft),connector,endPoint);
+  return configure(newServerConnection(connector,endPoint,engine,negotiated,dft),connector,endPoint);
 }
