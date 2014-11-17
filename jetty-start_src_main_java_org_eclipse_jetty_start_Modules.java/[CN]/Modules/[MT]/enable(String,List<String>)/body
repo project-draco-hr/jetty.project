@@ -1,28 +1,18 @@
 {
+  int count=0;
   if (name.contains("*")) {
-    Pattern pat=Pattern.compile(name);
-    List<Module> matching=new ArrayList<>();
-    do {
-      matching.clear();
-      for (      Map.Entry<String,Module> entry : modules.entrySet()) {
-        if (pat.matcher(entry.getKey()).matches()) {
-          if (!entry.getValue().isEnabled()) {
-            matching.add(entry.getValue());
-          }
-        }
-      }
-      for (      Module module : matching) {
-        enableModule(module,sources);
-      }
+    List<Module> matching=getMatching(new RegexNameMatcher(name));
+    for (    Module module : matching) {
+      count+=enableModule(module,sources);
     }
- while (!matching.isEmpty());
   }
  else {
     Module module=modules.get(name);
     if (module == null) {
       System.err.printf("WARNING: Cannot enable requested module [%s]: not a valid module name.%n",name);
-      return;
+      return count;
     }
-    enableModule(module,sources);
+    count+=enableModule(module,sources);
   }
+  return count;
 }

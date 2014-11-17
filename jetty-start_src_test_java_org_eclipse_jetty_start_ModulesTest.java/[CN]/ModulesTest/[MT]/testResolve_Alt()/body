@@ -1,0 +1,59 @@
+{
+  File homeDir=MavenTestingUtils.getTestResourceDir("usecases/home");
+  File baseDir=testdir.getEmptyDir();
+  String cmdLine[]=new String[]{"jetty.version=TEST"};
+  CommandLineConfigSource cmdLineSource=new CommandLineConfigSource(cmdLine);
+  ConfigSources config=new ConfigSources();
+  config.add(cmdLineSource);
+  config.add(new JettyHomeConfigSource(homeDir.toPath()));
+  config.add(new JettyBaseConfigSource(baseDir.toPath()));
+  BaseHome basehome=new BaseHome(config);
+  StartArgs args=new StartArgs();
+  args.parse(config);
+  Modules modules=new Modules(basehome,args);
+  modules.registerAll();
+  modules.enable("http",TEST_SOURCE);
+  modules.enable("annotations",TEST_SOURCE);
+  modules.enable("deploy",TEST_SOURCE);
+  String alt="<alt>";
+  modules.enable("websocket",Collections.singletonList(alt));
+  modules.enable("jsp",Collections.singletonList(alt));
+  modules.buildGraph();
+  List<Module> active=modules.getEnabled();
+  List<String> expectedNames=new ArrayList<>();
+  expectedNames.add("base");
+  expectedNames.add("jsp-impl");
+  expectedNames.add("xml");
+  expectedNames.add("server");
+  expectedNames.add("http");
+  expectedNames.add("jndi");
+  expectedNames.add("security");
+  expectedNames.add("servlet");
+  expectedNames.add("jsp");
+  expectedNames.add("plus");
+  expectedNames.add("webapp");
+  expectedNames.add("annotations");
+  expectedNames.add("deploy");
+  expectedNames.add("websocket");
+  List<String> actualNames=new ArrayList<>();
+  for (  Module actual : active) {
+    actualNames.add(actual.getName());
+  }
+  assertThat("Resolved Names: " + actualNames,actualNames,contains(expectedNames.toArray()));
+  List<String> expectedAlts=new ArrayList<>();
+  expectedAlts.add("jsp-impl");
+  expectedAlts.add("jsp");
+  expectedAlts.add("websocket");
+  for (  String expectedAlt : expectedAlts) {
+    Module altMod=modules.get(expectedAlt);
+    assertThat("Alt.mod[" + expectedAlt + "].enabled",altMod.isEnabled(),is(true));
+    Set<String> sources=altMod.getSources();
+    assertThat("Alt.mod[" + expectedAlt + "].sources: ["+ Utils.join(sources,", ")+ "]",sources,contains(alt));
+  }
+  List<Module> alts=modules.getMatching(new AndMatcher(new EnabledMatcher(),new UniqueSourceMatcher(alt)));
+  actualNames=new ArrayList<>();
+  for (  Module actual : alts) {
+    actualNames.add(actual.getName());
+  }
+  assertThat("Resolved Alt (Sources) Names: " + actualNames,actualNames,contains(expectedAlts.toArray()));
+}
