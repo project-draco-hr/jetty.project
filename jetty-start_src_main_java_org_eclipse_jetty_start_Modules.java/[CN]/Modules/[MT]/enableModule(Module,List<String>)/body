@@ -1,15 +1,17 @@
 {
-  String via="<transitive>";
-  if (sources != null) {
-    module.addSources(sources);
-    via=Main.join(sources,", ");
+  int count=0;
+  if (sources == null) {
+    throw new RuntimeException("sources should never be empty");
   }
+  module.addSources(sources);
+  String via=Utils.join(sources,", ");
   if (module.isEnabled()) {
     StartLog.debug("Enabled module: %s (via %s)",module.getName(),via);
-    return;
+    return count;
   }
   StartLog.debug("Enabling module: %s (via %s)",module.getName(),via);
   module.setEnabled(true);
+  count++;
   args.parseModule(module);
   module.expandProperties(args.getProperties());
   Set<String> parentNames=new HashSet<>();
@@ -32,7 +34,8 @@
       }
     }
     if (parent != null) {
-      enableModule(parent,null);
+      count+=enableModule(parent,sources);
     }
   }
+  return count;
 }
