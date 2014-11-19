@@ -1,0 +1,41 @@
+{
+  normalizeDependencies();
+  for (  T node : nodes.values()) {
+    for (    String parentName : node.getParentNames()) {
+      T parent=get(parentName);
+      if (parent == null) {
+        if (Props.hasPropertyKey(parentName)) {
+          StartLog.debug("Module property not expandable (yet) [%s]",parentName);
+        }
+ else {
+          StartLog.warn("Module not found [%s]",parentName);
+        }
+      }
+ else {
+        node.addParentEdge(parent);
+        parent.addChildEdge(node);
+      }
+    }
+    for (    String optionalParentName : node.getOptionalParentNames()) {
+      T optional=get(optionalParentName);
+      if (optional == null) {
+        StartLog.debug("Optional module not found [%s]",optionalParentName);
+      }
+ else       if (optional.isSelected()) {
+        node.addParentEdge(optional);
+        optional.addChildEdge(node);
+      }
+    }
+  }
+  Stack<String> refs=new Stack<>();
+  for (  T module : nodes.values()) {
+    refs.push(module.getName());
+    assertNoCycle(module,refs);
+    refs.pop();
+  }
+  for (  T module : nodes.values()) {
+    if (module.getParentEdges().isEmpty()) {
+      bfsCalculateDepth(module,0);
+    }
+  }
+}

@@ -1,0 +1,21 @@
+{
+  int count=0;
+  if (node.getSelections().contains(selection)) {
+    return count;
+  }
+  StartLog.debug("%s %s: %s (via %s)",toCap(selectionTerm),nodeTerm,node.getName(),selection);
+  boolean newlySelected=node.getSelections().isEmpty();
+  node.addSelection(selection);
+  if (newlySelected) {
+    onNodeSelected(node);
+  }
+  count++;
+  Selection transitive=selection.asTransitive();
+  Set<String> parentNames=new HashSet<>();
+  parentNames.addAll(node.getParentNames());
+  Set<T> parentNodes=resolveNodes(parentNames);
+  for (  T parentNode : parentNodes) {
+    count+=selectNode(parentNode,transitive);
+  }
+  return count;
+}

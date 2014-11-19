@@ -3,12 +3,14 @@
   boolean dirty=false;
   String dirSource="<add-to-startd>";
   String iniSource="<add-to-start-ini>";
+  Selection startDirSelection=new Selection(dirSource);
+  Selection startIniSelection=new Selection(iniSource);
   int count=0;
-  count+=modules.enableAll(startArgs.getAddToStartdIni(),dirSource);
-  count+=modules.enableAll(startArgs.getAddToStartIni(),iniSource);
-  Matcher startDMatcher=new AndMatcher(new EnabledMatcher(),new UniqueSourceMatcher(dirSource));
-  Matcher startIniMatcher=new AndMatcher(new EnabledMatcher(),new UniqueSourceMatcher(iniSource));
-  Matcher ambiguousMatcher=new AndMatcher(new EnabledMatcher(),new SourceSetMatcher(dirSource,iniSource));
+  count+=modules.selectNodes(startArgs.getAddToStartdIni(),startDirSelection);
+  count+=modules.selectNodes(startArgs.getAddToStartIni(),startIniSelection);
+  Predicate startDMatcher=new HowSetMatcher(dirSource);
+  Predicate startIniMatcher=new HowSetMatcher(iniSource);
+  Predicate ambiguousMatcher=new HowSetMatcher(dirSource,iniSource);
   List<Module> ambiguous=modules.getMatching(ambiguousMatcher);
   if (ambiguous.size() > 0) {
     StringBuilder err=new StringBuilder();

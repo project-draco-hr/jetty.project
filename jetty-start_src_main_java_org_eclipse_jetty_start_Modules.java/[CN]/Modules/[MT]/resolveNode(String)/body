@@ -1,0 +1,19 @@
+{
+  String expandedName=args.getProperties().expand(name);
+  if (Props.hasPropertyKey(expandedName)) {
+    throw new GraphException("Unable to expand property in name: " + name);
+  }
+  Path file=baseHome.getPath("modules/" + expandedName + ".mod");
+  if (FS.canReadFile(file)) {
+    Module parent=registerModule(file);
+    parent.expandProperties(args.getProperties());
+    updateParentReferencesTo(parent);
+    return parent;
+  }
+ else {
+    if (!Props.hasPropertyKey(name)) {
+      StartLog.debug("Missing module definition: [ Mod: %s | File: %s ]",name,file);
+    }
+    return null;
+  }
+}

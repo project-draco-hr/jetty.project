@@ -12,12 +12,12 @@
   args.parse(config);
   Modules modules=new Modules(basehome,args);
   modules.registerAll();
-  modules.enable("http",TEST_SOURCE);
-  modules.enable("annotations",TEST_SOURCE);
-  modules.enable("deploy",TEST_SOURCE);
+  modules.selectNode("http",new Selection(TEST_SOURCE));
+  modules.selectNode("annotations",new Selection(TEST_SOURCE));
+  modules.selectNode("deploy",new Selection(TEST_SOURCE));
   String alt="<alt>";
-  modules.enable("websocket",Collections.singletonList(alt));
-  modules.enable("jsp",Collections.singletonList(alt));
+  modules.selectNode("websocket",new Selection(alt));
+  modules.selectNode("jsp",new Selection(alt));
   modules.buildGraph();
   List<Module> active=modules.getEnabled();
   List<String> expectedNames=new ArrayList<>();
@@ -46,11 +46,11 @@
   expectedAlts.add("websocket");
   for (  String expectedAlt : expectedAlts) {
     Module altMod=modules.get(expectedAlt);
-    assertThat("Alt.mod[" + expectedAlt + "].enabled",altMod.isEnabled(),is(true));
-    Set<String> sources=altMod.getSources();
+    assertThat("Alt.mod[" + expectedAlt + "].selected",altMod.isSelected(),is(true));
+    Set<String> sources=altMod.getSelectedHowSet();
     assertThat("Alt.mod[" + expectedAlt + "].sources: ["+ Utils.join(sources,", ")+ "]",sources,contains(alt));
   }
-  List<Module> alts=modules.getMatching(new AndMatcher(new EnabledMatcher(),new UniqueSourceMatcher(alt)));
+  List<Module> alts=modules.getMatching(new HowSetMatcher(alt));
   actualNames=new ArrayList<>();
   for (  Module actual : alts) {
     actualNames.add(actual.getName());
