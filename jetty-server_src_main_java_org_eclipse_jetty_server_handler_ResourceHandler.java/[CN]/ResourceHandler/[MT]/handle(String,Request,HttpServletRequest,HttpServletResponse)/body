@@ -73,6 +73,7 @@
     int min_async_size=_minAsyncContentLength == 0 ? response.getBufferSize() : _minAsyncContentLength;
     if (request.isAsyncSupported() && min_async_size > 0 && resource.length() >= min_async_size) {
       final AsyncContext async=request.startAsync();
+      async.setTimeout(0);
       Callback callback=new Callback(){
         @Override public void succeeded(){
           async.complete();
@@ -84,7 +85,7 @@
         }
       }
 ;
-      if (_minMemoryMappedContentLength > 0 && resource.length() > _minMemoryMappedContentLength && resource instanceof PathResource) {
+      if (_minMemoryMappedContentLength > 0 && resource.length() > _minMemoryMappedContentLength && resource.length() < Integer.MAX_VALUE && resource instanceof PathResource) {
         ByteBuffer buffer=BufferUtil.toMappedBuffer(resource.getFile());
         ((HttpOutput)out).sendContent(buffer,callback);
       }
