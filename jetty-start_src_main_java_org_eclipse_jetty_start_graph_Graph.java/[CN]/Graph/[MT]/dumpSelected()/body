@@ -1,0 +1,25 @@
+{
+  List<T> ordered=new ArrayList<>();
+  ordered.addAll(nodes.values());
+  Collections.sort(ordered,new NodeDepthComparator());
+  List<T> active=getEnabled();
+  for (  T module : ordered) {
+    if (active.contains(module)) {
+      boolean transitive=module.matches(OnlyTransitivePredicate.INSTANCE);
+      System.out.printf("  %3d) %-15s ",module.getDepth() + 1,module.getName());
+      if (transitive) {
+        System.out.println("<transitive> ");
+      }
+ else {
+        List<String> hows=new ArrayList<>();
+        for (        Selection selection : module.getSelections()) {
+          if (selection.isExplicit()) {
+            hows.add(selection.getHow());
+          }
+        }
+        Collections.sort(hows);
+        System.out.println(Utils.join(hows,", "));
+      }
+    }
+  }
+}
