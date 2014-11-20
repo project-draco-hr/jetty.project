@@ -5,13 +5,15 @@
   String iniSource="<add-to-start-ini>";
   Selection startDirSelection=new Selection(dirSource);
   Selection startIniSelection=new Selection(iniSource);
+  Set<String> startDNames=new HashSet<>();
+  startDNames.addAll(startArgs.getAddToStartdIni());
+  Set<String> startIniNames=new HashSet<>();
+  startIniNames.addAll(startArgs.getAddToStartIni());
   int count=0;
-  count+=modules.selectNodes(startArgs.getAddToStartdIni(),startDirSelection);
-  count+=modules.selectNodes(startArgs.getAddToStartIni(),startIniSelection);
-  Predicate startDMatcher=new HowSetMatcher(dirSource);
-  Predicate startIniMatcher=new HowSetMatcher(iniSource);
-  Predicate ambiguousMatcher=new HowSetMatcher(dirSource,iniSource);
-  List<Module> ambiguous=modules.getMatching(ambiguousMatcher);
+  count+=modules.selectNodes(startDNames,startDirSelection);
+  count+=modules.selectNodes(startIniNames,startIniSelection);
+  Predicate ambiguousPredicate=new HowSetPredicate(dirSource,iniSource);
+  List<Module> ambiguous=modules.getMatching(ambiguousPredicate);
   if (ambiguous.size() > 0) {
     StringBuilder err=new StringBuilder();
     err.append("Unable to add ");
@@ -32,6 +34,8 @@
   }
   StartLog.debug("Adding %s new module(s)",count);
   ackLicenses();
+  Predicate startDMatcher=new HowUniquePredicate(dirSource);
+  Predicate startIniMatcher=new HowUniquePredicate(iniSource);
   List<Module> startDModules=modules.getMatching(startDMatcher);
   List<Module> startIniModules=modules.getMatching(startIniMatcher);
   List<FileArg> files=new ArrayList<FileArg>();
