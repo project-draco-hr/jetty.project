@@ -1,0 +1,32 @@
+{
+  HttpServletRequest request=null;
+  if (req instanceof HttpServletRequest)   request=(HttpServletRequest)req;
+ else   throw new ServletException("Request not HttpServletRequest");
+  String servletPath=null;
+  String pathInfo=null;
+  if (request.getAttribute("javax.servlet.include.request_uri") != null) {
+    servletPath=(String)request.getAttribute("javax.servlet.include.servlet_path");
+    pathInfo=(String)request.getAttribute("javax.servlet.include.path_info");
+    if (servletPath == null) {
+      servletPath=request.getServletPath();
+      pathInfo=request.getPathInfo();
+    }
+  }
+ else {
+    servletPath=request.getServletPath();
+    pathInfo=request.getPathInfo();
+  }
+  String pathInContext=URIUtil.addPaths(servletPath,pathInfo);
+  if (pathInContext.endsWith("/")) {
+    getServletContext().getNamedDispatcher("default").forward(req,resp);
+    return;
+  }
+ else {
+    Resource resource=((ContextHandler.Context)getServletContext()).getContextHandler().getResource(pathInContext);
+    if (resource != null && resource.isDirectory()) {
+      getServletContext().getNamedDispatcher("default").forward(req,resp);
+      return;
+    }
+  }
+  super.service(req,resp);
+}
