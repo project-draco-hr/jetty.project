@@ -1,0 +1,16 @@
+{
+  endpointClientMetadataCache=new ConcurrentHashMap<>();
+  decoderFactory=new DecoderFactory(PrimitiveDecoderMetadataSet.INSTANCE,null,enhancedInstantiator);
+  encoderFactory=new EncoderFactory(PrimitiveEncoderMetadataSet.INSTANCE,null,enhancedInstantiator);
+  EmptyClientEndpointConfig empty=new EmptyClientEndpointConfig();
+  decoderFactory.init(empty);
+  encoderFactory.init(empty);
+  boolean trustAll=Boolean.getBoolean("org.eclipse.jetty.websocket.jsr356.ssl-trust-all");
+  client=new WebSocketClient(new SslContextFactory(trustAll),executor);
+  client.setEventDriverFactory(new JsrEventDriverFactory(client.getPolicy()));
+  SessionFactory sessionFactory=new JsrSessionFactory(this,this,client);
+  sessionFactory.setEnhancedInstantiator(enhancedInstantiator);
+  client.setSessionFactory(sessionFactory);
+  addBean(client);
+  ShutdownThread.register(this);
+}
