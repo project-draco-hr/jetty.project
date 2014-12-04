@@ -1,0 +1,24 @@
+{
+  if (contextHandler.getServer() != null) {
+    return context.getService(reference);
+  }
+  String watermark=(String)reference.getProperty(OSGiWebappConstants.WATERMARK);
+  if (watermark != null && !"".equals(watermark))   return context.getService(reference);
+  String serverName=(String)reference.getProperty(OSGiServerConstants.MANAGED_JETTY_SERVER_NAME);
+  Map<ServiceReference,ServiceProvider> candidates=getDeployers(serverName);
+  if (candidates != null) {
+    boolean added=false;
+    Iterator<Entry<ServiceReference,ServiceProvider>> itor=candidates.entrySet().iterator();
+    while (!added && itor.hasNext()) {
+      Entry<ServiceReference,ServiceProvider> e=itor.next();
+      try {
+        added=e.getValue().serviceAdded(reference,contextHandler);
+        if (added && LOG.isDebugEnabled())         LOG.debug("Provider " + e.getValue() + " deployed "+ contextHandler);
+      }
+ catch (      Exception x) {
+        LOG.warn("Error deploying service representing jetty context",x);
+      }
+    }
+  }
+  return context.getService(reference);
+}

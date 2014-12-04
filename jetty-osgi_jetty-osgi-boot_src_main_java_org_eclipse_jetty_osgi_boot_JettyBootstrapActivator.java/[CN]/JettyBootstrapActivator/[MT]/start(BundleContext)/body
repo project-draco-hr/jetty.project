@@ -1,15 +1,19 @@
 {
-  INSTANCE=this;
-  _bundleContext=context;
-  _packageAdminServiceTracker=new PackageAdminServiceTracker(context);
-  _jettyServerServiceTracker=new JettyServerServiceTracker();
-  context.addServiceListener(_jettyServerServiceTracker,"(objectclass=" + Server.class.getName() + ")");
-  _jettyContextHandlerTracker=new ServiceWatcher();
-  context.addServiceListener(_jettyContextHandlerTracker,"(objectclass=" + ContextHandler.class.getName() + ")");
-  Server defaultServer=DefaultJettyAtJettyHomeHelper.startJettyAtJettyHome(context);
-  BundleWatcher bundleTrackerCustomizer=new BundleWatcher();
-  bundleTrackerCustomizer.setWaitForDefaultServer(defaultServer != null);
-  _webBundleTracker=new BundleTracker(context,Bundle.ACTIVE | Bundle.STOPPING,bundleTrackerCustomizer);
-  bundleTrackerCustomizer.setBundleTracker(_webBundleTracker);
-  bundleTrackerCustomizer.open();
+  try {
+    INSTANCE=this;
+    _packageAdminServiceTracker=new PackageAdminServiceTracker(context);
+    _jettyServerServiceTracker=new JettyServerServiceTracker();
+    context.addServiceListener(_jettyServerServiceTracker,"(objectclass=" + Server.class.getName() + ")");
+    Server defaultServer=DefaultJettyAtJettyHomeHelper.startJettyAtJettyHome(context);
+    _contextHandlerTracker=new ServiceTracker(context,context.createFilter("(objectclass=" + ContextHandler.class.getName() + ")"),new ServiceWatcher());
+    _contextHandlerTracker.open();
+    BundleWatcher bundleTrackerCustomizer=new BundleWatcher();
+    bundleTrackerCustomizer.setWaitForDefaultServer(defaultServer != null);
+    _webBundleTracker=new BundleTracker(context,Bundle.ACTIVE | Bundle.STOPPING,bundleTrackerCustomizer);
+    bundleTrackerCustomizer.setBundleTracker(_webBundleTracker);
+    bundleTrackerCustomizer.open();
+  }
+ catch (  Exception e) {
+    e.printStackTrace();
+  }
 }
