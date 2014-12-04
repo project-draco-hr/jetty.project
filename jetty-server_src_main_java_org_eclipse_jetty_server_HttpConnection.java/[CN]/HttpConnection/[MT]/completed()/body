@@ -13,8 +13,19 @@
       return;
     }
   }
-  if (_channel.isExpecting100Continue())   _parser.close();
- else   if (_parser.inContentState() && _generator.isPersistent())   _channel.getRequest().getHttpInput().consumeAll();
+  if (_channel.isExpecting100Continue()) {
+    _parser.close();
+  }
+ else   if (_parser.inContentState() && _generator.isPersistent()) {
+    if (_channel.getRequest().getHttpInput().isAsync()) {
+      if (LOG.isDebugEnabled())       LOG.debug("unconsumed async input {}",this);
+      _channel.abort();
+    }
+ else {
+      if (LOG.isDebugEnabled())       LOG.debug("unconsumed input {}",this);
+      _channel.getRequest().getHttpInput().consumeAll();
+    }
+  }
   _channel.reset();
   if (_generator.isPersistent() && !_parser.isClosed())   _parser.reset();
  else   _parser.close();
