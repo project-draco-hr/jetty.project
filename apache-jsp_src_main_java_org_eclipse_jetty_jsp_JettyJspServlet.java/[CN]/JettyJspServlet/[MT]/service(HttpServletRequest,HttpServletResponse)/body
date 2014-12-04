@@ -17,15 +17,18 @@
     pathInfo=request.getPathInfo();
   }
   String pathInContext=URIUtil.addPaths(servletPath,pathInfo);
-  if (pathInContext.endsWith("/")) {
-    getServletContext().getNamedDispatcher("default").forward(req,resp);
-    return;
-  }
- else {
-    Resource resource=((ContextHandler.Context)getServletContext()).getContextHandler().getResource(pathInContext);
-    if (resource != null && resource.isDirectory()) {
+  String jspFile=getInitParameter("jspFile");
+  if (jspFile == null) {
+    if (pathInContext.endsWith("/")) {
       getServletContext().getNamedDispatcher("default").forward(req,resp);
       return;
+    }
+ else {
+      Resource resource=((ContextHandler.Context)getServletContext()).getContextHandler().getResource(pathInContext);
+      if (resource != null && resource.isDirectory()) {
+        getServletContext().getNamedDispatcher("default").forward(req,resp);
+        return;
+      }
     }
   }
   super.service(req,resp);

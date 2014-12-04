@@ -1,0 +1,17 @@
+{
+  String serverName=(String)reference.getProperty(OSGiServerConstants.MANAGED_JETTY_SERVER_NAME);
+  Map<ServiceReference,ServiceProvider> candidates=getDeployers(serverName);
+  if (candidates != null) {
+    boolean removed=false;
+    Iterator<Entry<ServiceReference,ServiceProvider>> itor=candidates.entrySet().iterator();
+    while (!removed && itor.hasNext()) {
+      Entry<ServiceReference,ServiceProvider> e=itor.next();
+      try {
+        removed=e.getValue().serviceRemoved(reference,contextHandler);
+      }
+ catch (      Exception x) {
+        LOG.warn("Error undeploying service representing jetty context ",x);
+      }
+    }
+  }
+}
