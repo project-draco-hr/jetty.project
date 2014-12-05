@@ -1,0 +1,47 @@
+{
+  HttpFields fields=new HttpFields(getHttpFields().size() + 5);
+  boolean conditional=false;
+  UserIdentity user_identity=null;
+  Authentication authentication=null;
+  for (  HttpField field : getHttpFields()) {
+    HttpHeader header=field.getHeader();
+    if (header == null)     fields.add(field);
+ else {
+switch (header) {
+case IF_MATCH:
+case IF_RANGE:
+case IF_UNMODIFIED_SINCE:
+case RANGE:
+case EXPECT:
+case REFERER:
+case COOKIE:
+        continue;
+case AUTHORIZATION:
+      user_identity=getUserIdentity();
+    authentication=_authentication;
+  continue;
+case IF_NONE_MATCH:
+case IF_MODIFIED_SINCE:
+conditional=true;
+continue;
+default :
+fields.add(field);
+}
+}
+}
+String id=null;
+try {
+HttpSession session=getSession();
+if (session != null) {
+session.getLastAccessedTime();
+id=session.getId();
+}
+ else id=getRequestedSessionId();
+}
+ catch (IllegalStateException e) {
+id=getRequestedSessionId();
+}
+PushBuilder builder=new PushBuilder(this,fields,getMethod(),getQueryString(),id,conditional);
+builder.addHeader("referer",getRequestURL().toString());
+return builder;
+}

@@ -1,0 +1,32 @@
+{
+  if (config.getInitParameter("associateDelay") != null)   _associateDelay=Long.valueOf(config.getInitParameter("associateDelay"));
+  config.getServletContext().addListener(new ServletRequestListener(){
+    @Override public void requestDestroyed(    ServletRequestEvent sre){
+      Request request=Request.getBaseRequest(sre.getServletRequest());
+      Target target=(Target)request.getAttribute(TARGET_ATTR);
+      if (target == null)       return;
+      Response response=request.getResponse();
+      target._etag=response.getHttpFields().get(HttpHeader.ETAG);
+      target._lastModified=response.getHttpFields().get(HttpHeader.LAST_MODIFIED);
+      String referer=request.getHttpFields().get(HttpHeader.REFERER);
+      if (referer != null) {
+        HttpURI uri=new HttpURI(referer);
+        String path=uri.getPath();
+        if (request.getServerName().equals(uri.getHost()) && path.startsWith(request.getContextPath())) {
+          String path_in_ctx=path.substring(request.getContextPath().length());
+          Target referer_target=_cache.get(path_in_ctx);
+          if (referer_target != null) {
+            String sessionId=request.getSession(true).getId();
+            Long last=referer_target._timestamp.get(sessionId);
+            if (last != null && (System.currentTimeMillis() - last) < _associateDelay && !referer_target._associated.containsKey(path)) {
+              if (referer_target._associated.putIfAbsent(path,target) == null)               LOG.info("ASSOCIATE {}->{}",path_in_ctx,target._path);
+            }
+          }
+        }
+      }
+    }
+    @Override public void requestInitialized(    ServletRequestEvent sre){
+    }
+  }
+);
+}
