@@ -16,8 +16,9 @@
           String path_in_ctx=path.substring(request.getContextPath().length());
           Target referer_target=_cache.get(path_in_ctx);
           if (referer_target != null) {
-            String sessionId=request.getSession(true).getId();
-            Long last=referer_target._timestamp.get(sessionId);
+            HttpSession session=request.getSession();
+            ConcurrentHashMap<String,Long> timestamps=(ConcurrentHashMap<String,Long>)session.getAttribute(TIMESTAMP_ATTR);
+            Long last=timestamps.get(referer_target._path);
             if (last != null && (System.currentTimeMillis() - last) < _associateDelay && !referer_target._associated.containsKey(path)) {
               if (referer_target._associated.putIfAbsent(path,target) == null)               LOG.info("ASSOCIATE {}->{}",path_in_ctx,target._path);
             }

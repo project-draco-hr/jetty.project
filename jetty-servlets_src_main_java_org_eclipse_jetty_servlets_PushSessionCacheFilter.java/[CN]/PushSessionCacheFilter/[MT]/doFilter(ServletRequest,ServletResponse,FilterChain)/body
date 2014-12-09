@@ -1,5 +1,8 @@
 {
   Request baseRequest=Request.getBaseRequest(request);
+  if (baseRequest.isPush()) {
+    LOG.info("PUSH {} if modified since {}",baseRequest,baseRequest.getHttpFields().get("If-Modified-Since"));
+  }
   HttpFields fields=baseRequest.getHttpFields();
   String referer=fields.get(HttpHeader.REFERER);
   if (LOG.isDebugEnabled())   LOG.debug("{} {} referer={}%n",baseRequest.getMethod(),baseRequest.getRequestURI(),referer);
@@ -12,16 +15,19 @@
     target=_cache.putIfAbsent(path,t);
     target=target == null ? t : target;
   }
-  target._timestamp.put(sessionId,System.currentTimeMillis());
+  ConcurrentHashMap<String,Long> timestamps=(ConcurrentHashMap<String,Long>)session.getAttribute(TIMESTAMP_ATTR);
+  if (timestamps == null) {
+    timestamps=new ConcurrentHashMap<>();
+    session.setAttribute(TIMESTAMP_ATTR,timestamps);
+  }
+  timestamps.put(path,System.currentTimeMillis());
   request.setAttribute(TARGET_ATTR,target);
-  if (target._associated.size() > 0) {
+  if (baseRequest.isPushSupported() && target._associated.size() > 0) {
     PushBuilder builder=baseRequest.getPushBuilder();
     if (!session.isNew())     builder.setConditional(true);
-    if (builder != null) {
-      for (      Target associated : target._associated.values()) {
-        LOG.info("PUSH {}->{}",path,associated._path);
-        builder.push(associated._path,associated._etag,associated._lastModified);
-      }
+    for (    Target associated : target._associated.values()) {
+      LOG.info("PUSH {}->{}",path,associated);
+      builder.push(associated._path,associated._etag,associated._lastModified);
     }
   }
   chain.doFilter(request,response);
