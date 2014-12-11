@@ -1,0 +1,39 @@
+{
+  final int status=567;
+  startServer(new HttpServlet(){
+    @Override protected void service(    HttpServletRequest request,    final HttpServletResponse response) throws ServletException, IOException {
+      final AsyncContext asyncContext=request.startAsync(request,response);
+      asyncContext.setTimeout(0);
+      final ServletInputStream inputStream=request.getInputStream();
+      inputStream.setReadListener(new ReadListener(){
+        @Override public void onDataAvailable() throws IOException {
+          while (inputStream.isReady() && !inputStream.isFinished())           inputStream.read();
+        }
+        @Override public void onAllDataRead() throws IOException {
+        }
+        @Override public void onError(        Throwable t){
+          response.setStatus(status);
+          asyncContext.complete();
+        }
+      }
+);
+    }
+  }
+);
+  server.stop();
+  long idleTimeout=1000;
+  connector.setIdleTimeout(idleTimeout);
+  server.start();
+  String data1="0123456789";
+  String data2="ABCDEF";
+  String request="GET " + path + " HTTP/1.1\r\n"+ "Host: localhost:"+ connector.getLocalPort()+ "\r\n"+ "Content-Length: "+ (data1.length() + data2.length())+ "\r\n"+ "\r\n"+ data1;
+  try (Socket client=new Socket("localhost",connector.getLocalPort())){
+    OutputStream output=client.getOutputStream();
+    output.write(request.getBytes("UTF-8"));
+    output.flush();
+    SimpleHttpParser parser=new SimpleHttpParser();
+    SimpleHttpResponse response=parser.readResponse(new BufferedReader(new InputStreamReader(client.getInputStream(),"UTF-8")));
+    assertEquals(String.valueOf(status),response.getCode());
+    assertEquals(-1,client.getInputStream().read());
+  }
+ }
