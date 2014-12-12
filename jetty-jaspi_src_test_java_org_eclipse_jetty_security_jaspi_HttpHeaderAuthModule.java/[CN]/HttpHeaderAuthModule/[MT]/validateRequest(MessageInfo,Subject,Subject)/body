@@ -1,0 +1,14 @@
+{
+  final HttpServletRequest req=(HttpServletRequest)messageInfo.getRequestMessage();
+  try {
+    final String userName=req.getHeader("X-Forwarded-User");
+    if (userName == null) {
+      return AuthStatus.FAILURE;
+    }
+    handler.handle(new Callback[]{new CallerPrincipalCallback(client,userName),new GroupPrincipalCallback(client,new String[]{"users"})});
+    return AuthStatus.SUCCESS;
+  }
+ catch (  final Exception e) {
+    throw new AuthException(e.getMessage());
+  }
+}
