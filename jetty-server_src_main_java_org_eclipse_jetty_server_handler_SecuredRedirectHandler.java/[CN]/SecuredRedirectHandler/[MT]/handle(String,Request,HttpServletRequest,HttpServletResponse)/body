@@ -1,6 +1,11 @@
 {
-  HttpConfiguration httpConfig=HttpChannel.getCurrentHttpChannel().getHttpConfiguration();
-  if (baseRequest.isSecure()) {
+  HttpConnection connection=HttpConnection.getCurrentConnection();
+  if (baseRequest.isSecure() || (connection == null)) {
+    return;
+  }
+  HttpConfiguration httpConfig=connection.getHttpConfiguration();
+  if (httpConfig == null) {
+    response.sendError(HttpStatus.FORBIDDEN_403,"No http configuration available");
     return;
   }
   if (httpConfig.getSecurePort() > 0) {
