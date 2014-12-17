@@ -1,2 +1,39 @@
 {
+  while (true) {
+    State current=_interestState.get();
+    if (LOG.isDebugEnabled())     LOG.debug("Processing, state {} for {}",current,this);
+switch (current) {
+case UPDATE_PENDING:
+case UPDATED:
+{
+        if (!_interestState.compareAndSet(current,State.LOCKED))         continue;
+        int readyOps;
+        try {
+          readyOps=_key.readyOps();
+          int oldInterestOps=_interestOps;
+          int newInterestOps=oldInterestOps & ~readyOps;
+          _interestOps=newInterestOps;
+          if (LOG.isDebugEnabled())           LOG.debug("onSelected {}->{} for {}",oldInterestOps,newInterestOps,this);
+        }
+  finally {
+          _interestState.set(State.UPDATE_PENDING);
+        }
+        if ((readyOps & SelectionKey.OP_READ) != 0) {
+          if ((readyOps & SelectionKey.OP_WRITE) != 0)           return _runFillableCompleteWrite;
+          return _runFillable;
+        }
+        if ((readyOps & SelectionKey.OP_WRITE) != 0)         return _runCompleteWrite;
+        return null;
+      }
+case LOCKED:
+{
+      Thread.yield();
+      break;
+    }
+default :
+{
+    throw new IllegalStateException("Invalid state: " + current);
+  }
+}
+}
 }
