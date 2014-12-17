@@ -1,26 +1,13 @@
 {
-  _dispatched=false;
-  _threads.incrementAndGet();
-  try {
-    boolean complete=false;
-    loop:     while (!complete) {
-      if (!_producing.compareAndSet(false,true))       break loop;
-      Runnable task=null;
-      try {
-        task=_producer.produce();
-        complete=task == null || _producer.isMore();
-      }
-  finally {
-        _producing.set(false);
-      }
-      if (!complete && !_dispatched) {
-        _dispatched=true;
-        _executor.execute(this);
-      }
-      if (task != null)       task.run();
+  if (!clearPendingTryProducing())   return;
+  while (true) {
+    Runnable task=_producer.produce();
+    if (task == null) {
+      if (tryIdle())       _producer.onProductionComplete();
+      return;
     }
-  }
-  finally {
-    if (_threads.decrementAndGet() == 0)     _producer.onCompleted();
+    if (clearProducingTryPending())     _executor.execute(this);
+    task.run();
+    if (!tryProducing())     return;
   }
 }
