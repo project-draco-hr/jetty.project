@@ -1,0 +1,16 @@
+{
+  try {
+    for (    SelectionKey key : _selector.keys()) {
+      Object attachment=key.attachment();
+      if (attachment instanceof EndPoint) {
+        EndPointCloser closer=new EndPointCloser((EndPoint)attachment);
+        ManagedSelector.this._selectorManager.execute(closer);
+        closer.await(getStopTimeout());
+      }
+    }
+    closeNoExceptions(_selector);
+  }
+  finally {
+    latch.countDown();
+  }
+}
