@@ -1,0 +1,54 @@
+{
+  try {
+    while (isRunning() || isStopping()) {
+      if (_selections == null || !_selections.hasNext()) {
+        if (_selectedKeys != null) {
+          for (          SelectionKey key : _selectedKeys)           updateKey(key);
+          _selectedKeys.clear();
+        }
+        runChangesAndSetSelecting();
+        selectAndSetProcessing();
+      }
+      while (_selections.hasNext()) {
+        SelectionKey key=_selections.next();
+        if (key.isValid()) {
+          Object attachment=key.attachment();
+          try {
+            if (attachment instanceof SelectableEndPoint) {
+              Runnable task=((SelectableEndPoint)attachment).onSelected();
+              if (task != null)               return task;
+            }
+ else             if (key.isConnectable()) {
+              processConnect(key,(Connect)attachment);
+            }
+ else             if (key.isAcceptable()) {
+              processAccept(key);
+            }
+ else {
+              throw new IllegalStateException();
+            }
+          }
+ catch (          CancelledKeyException x) {
+            LOG.debug("Ignoring cancelled key for channel {}",key.channel());
+            if (attachment instanceof EndPoint)             closeNoExceptions((EndPoint)attachment);
+          }
+catch (          Throwable x) {
+            LOG.warn("Could not process key for channel " + key.channel(),x);
+            if (attachment instanceof EndPoint)             closeNoExceptions((EndPoint)attachment);
+          }
+        }
+ else {
+          if (LOG.isDebugEnabled())           LOG.debug("Selector loop ignoring invalid key for channel {}",key.channel());
+          Object attachment=key.attachment();
+          if (attachment instanceof EndPoint)           ((EndPoint)attachment).close();
+        }
+      }
+    }
+    return null;
+  }
+ catch (  Throwable x) {
+    if (isRunning())     LOG.warn(x);
+ else     LOG.ignore(x);
+    return null;
+  }
+}
