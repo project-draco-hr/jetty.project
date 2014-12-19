@@ -4,21 +4,25 @@
   ByteBuffer buffer=BufferUtil.allocate(1024);
   FutureCallback fcb=new FutureCallback();
   endp.fillInterested(fcb);
+  fcb.get(100,TimeUnit.MILLISECONDS);
   assertTrue(fcb.isDone());
   assertEquals(null,fcb.get());
   assertEquals(10,endp.fill(buffer));
   assertEquals("test input",BufferUtil.toString(buffer));
   fcb=new FutureCallback();
   endp.fillInterested(fcb);
+  Thread.sleep(100);
   assertFalse(fcb.isDone());
   assertEquals(0,endp.fill(buffer));
   endp.setInput(" more");
+  fcb.get(1000,TimeUnit.MILLISECONDS);
   assertTrue(fcb.isDone());
   assertEquals(null,fcb.get());
   assertEquals(5,endp.fill(buffer));
   assertEquals("test input more",BufferUtil.toString(buffer));
   fcb=new FutureCallback();
   endp.fillInterested(fcb);
+  Thread.sleep(100);
   assertFalse(fcb.isDone());
   assertEquals(0,endp.fill(buffer));
   endp.setInput((ByteBuffer)null);
@@ -27,15 +31,15 @@
   assertEquals(-1,endp.fill(buffer));
   fcb=new FutureCallback();
   endp.fillInterested(fcb);
+  fcb.get(1000,TimeUnit.MILLISECONDS);
   assertTrue(fcb.isDone());
   assertEquals(null,fcb.get());
   assertEquals(-1,endp.fill(buffer));
   endp.close();
   fcb=new FutureCallback();
   endp.fillInterested(fcb);
-  assertTrue(fcb.isDone());
   try {
-    fcb.get();
+    fcb.get(1000,TimeUnit.MILLISECONDS);
     fail();
   }
  catch (  ExecutionException e) {

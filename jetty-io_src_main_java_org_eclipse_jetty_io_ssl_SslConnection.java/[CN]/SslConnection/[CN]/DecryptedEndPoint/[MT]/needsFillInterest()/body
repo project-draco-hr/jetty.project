@@ -1,7 +1,7 @@
 {
 synchronized (DecryptedEndPoint.this) {
-    if (BufferUtil.hasContent(_decryptedInput))     return true;
-    if (BufferUtil.isEmpty(_encryptedInput) || _underFlown) {
+    boolean fillable=(BufferUtil.hasContent(_decryptedInput)) || BufferUtil.hasContent(_encryptedInput) && !_underFlown;
+    if (!fillable) {
       if (_fillRequiresFlushToProgress) {
         if (BufferUtil.hasContent(_encryptedOutput)) {
           _cannotAcceptMoreAppDataToFlush=true;
@@ -9,16 +9,11 @@ synchronized (DecryptedEndPoint.this) {
         }
  else {
           _fillRequiresFlushToProgress=false;
-          return true;
+          fillable=true;
         }
       }
- else {
-        SslConnection.this.fillInterested();
-      }
-      return false;
     }
- else {
-      return true;
-    }
+    if (fillable)     getExecutor().execute(_runFillable);
+ else     SslConnection.this.fillInterested();
   }
 }
