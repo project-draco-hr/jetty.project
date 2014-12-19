@@ -9,9 +9,9 @@
   Class<?> endpoint=websocket.getClass();
   ServerEndpoint anno=endpoint.getAnnotation(ServerEndpoint.class);
   Assert.assertThat("Endpoint: " + endpoint + " should be annotated with @ServerEndpoint",anno,notNullValue());
-  DecoratedObjectFactory instantiator=new DecoratedObjectFactory();
-  ServerEndpointConfig config=new BasicServerEndpointConfig(endpoint,"/",instantiator);
-  AnnotatedServerEndpointMetadata metadata=new AnnotatedServerEndpointMetadata(endpoint,config,instantiator);
+  WebSocketContainerScope containerScope=new SimpleContainerScope(policy);
+  ServerEndpointConfig config=new BasicServerEndpointConfig(containerScope,endpoint,"/");
+  AnnotatedServerEndpointMetadata metadata=new AnnotatedServerEndpointMetadata(containerScope,endpoint,config);
   AnnotatedEndpointScanner<ServerEndpoint,ServerEndpointConfig> scanner=new AnnotatedEndpointScanner<>(metadata);
   scanner.scan();
   EndpointInstance ei=new EndpointInstance(websocket,config,metadata);
@@ -21,7 +21,7 @@
   URI requestURI=URI.create("ws://localhost/" + id);
   DummyConnection connection=new DummyConnection();
   ClientContainer container=new ClientContainer();
-  @SuppressWarnings("resource") JsrSession session=new JsrSession(requestURI,driver,connection,container,id,new DecoratedObjectFactory());
+  @SuppressWarnings("resource") JsrSession session=new JsrSession(container,id,requestURI,driver,connection);
   session.setPolicy(policy);
   session.open();
   return driver;

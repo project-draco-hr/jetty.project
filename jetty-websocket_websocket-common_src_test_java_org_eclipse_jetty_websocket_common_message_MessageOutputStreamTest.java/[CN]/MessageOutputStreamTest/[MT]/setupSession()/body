@@ -3,10 +3,11 @@
   policy.setInputBufferSize(1024);
   policy.setMaxBinaryMessageBufferSize(1024);
   EventDriverFactory factory=new EventDriverFactory(policy);
+  WebSocketContainerScope containerScope=new SimpleContainerScope(policy,bufferPool);
   EventDriver driver=factory.wrap(new TrackingSocket("local"));
   socket=new TrackingSocket("remote");
   OutgoingFrames socketPipe=FramePipes.to(factory.wrap(socket));
-  session=new LocalWebSocketSession(testname,driver,bufferPool);
+  session=new LocalWebSocketSession(containerScope,testname,driver);
   session.setPolicy(policy);
   session.setOutgoingHandler(socketPipe);
   session.open();
