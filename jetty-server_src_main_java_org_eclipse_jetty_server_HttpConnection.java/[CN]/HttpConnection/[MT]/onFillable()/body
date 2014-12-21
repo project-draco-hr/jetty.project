@@ -1,44 +1,24 @@
 {
-  if (LOG.isDebugEnabled())   LOG.debug("{} onFillable {}",this,_channel.getState());
+  if (LOG.isDebugEnabled())   LOG.debug("{} onFillable enter {}",this,_channel.getState());
   final HttpConnection last=setCurrentConnection(this);
-  int filled=Integer.MAX_VALUE;
-  boolean suspended=false;
   try {
-    while (!suspended && getEndPoint().getConnection() == this) {
-      if (BufferUtil.isEmpty(_requestBuffer)) {
-        if (filled <= 0)         break;
-        if (getEndPoint().isInputShutdown()) {
-          filled=-1;
-          _parser.atEOF();
-        }
- else {
-          _requestBuffer=getRequestBuffer();
-          filled=getEndPoint().fill(_requestBuffer);
-          if (filled == 0)           filled=getEndPoint().fill(_requestBuffer);
-          if (filled < 0)           _parser.atEOF();
-        }
-      }
-      if (_parser.parseNext(_requestBuffer == null ? BufferUtil.EMPTY_BUFFER : _requestBuffer)) {
-        suspended=!_channel.handle();
+    while (true) {
+      int filled=fillRequestBuffer();
+      boolean handle=parseRequestBuffer();
+      if (handle) {
+        boolean suspended=!_channel.handle();
+        if (suspended || getEndPoint().getConnection() != this)         break;
       }
  else {
-        releaseRequestBuffer();
-        if (_parser.isClose())         close();
+        if (filled <= 0) {
+          if (filled == 0)           fillInterested();
+          break;
+        }
       }
     }
   }
- catch (  EofException e) {
-    LOG.debug(e);
-  }
-catch (  Exception e) {
-    if (_parser.isIdle())     LOG.debug(e);
- else     LOG.warn(this.toString(),e);
-    close();
-  }
- finally {
+  finally {
     setCurrentConnection(last);
-    if (!suspended && getEndPoint().isOpen() && getEndPoint().getConnection() == this) {
-      fillInterested();
-    }
+    if (LOG.isDebugEnabled())     LOG.debug("{} onFillable exit {}",this,_channel.getState());
   }
 }

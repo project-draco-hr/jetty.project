@@ -1,0 +1,22 @@
+{
+  if (BufferUtil.isEmpty(_requestBuffer)) {
+    if (getEndPoint().isInputShutdown()) {
+      _parser.atEOF();
+      if (LOG.isDebugEnabled())       LOG.debug("{} filled -1",this);
+      return -1;
+    }
+    _requestBuffer=getRequestBuffer();
+    try {
+      int filled=getEndPoint().fill(_requestBuffer);
+      if (filled == 0)       filled=getEndPoint().fill(_requestBuffer);
+      if (filled < 0)       _parser.atEOF();
+      if (LOG.isDebugEnabled())       LOG.debug("{} filled {}",this,filled);
+      return filled;
+    }
+ catch (    IOException e) {
+      LOG.debug(e);
+      return -1;
+    }
+  }
+  return 0;
+}
