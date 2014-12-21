@@ -1,0 +1,17 @@
+{
+  _in.setReadListener(_listener);
+  _in.run();
+  assertThat(_history.poll(),equalTo("onReadPossible"));
+  assertThat(_history.poll(),equalTo("produceContent 0"));
+  assertThat(_history.poll(),equalTo("unready"));
+  assertThat(_history.poll(),nullValue());
+  _in.content(new HttpInput.Content(BufferUtil.toBuffer("AB")));
+  assertThat(_history.poll(),equalTo("onReadPossible"));
+  assertThat(_in.isReady(),equalTo(true));
+  assertThat(_in.read(),equalTo((int)'A'));
+  assertThat(_in.isReady(),equalTo(true));
+  assertThat(_in.read(),equalTo((int)'B'));
+  assertThat(_in.isReady(),equalTo(false));
+  assertThat(_history.poll(),equalTo("produceContent 0"));
+  assertThat(_history.poll(),nullValue());
+}

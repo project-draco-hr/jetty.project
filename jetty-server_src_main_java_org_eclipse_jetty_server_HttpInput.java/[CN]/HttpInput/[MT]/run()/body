@@ -3,12 +3,12 @@
   final ReadListener listener;
   boolean available=false;
   final boolean eof;
-synchronized (lock()) {
+synchronized (_inputQ) {
     if (!_notReady || _listener == null)     return;
-    error=_onError;
+    error=_state instanceof ErrorState ? ((ErrorState)_state).getError() : null;
     listener=_listener;
     try {
-      Content item=getNextContent();
+      Content item=nextContent();
       available=item != null && remaining(item) > 0;
     }
  catch (    Exception e) {

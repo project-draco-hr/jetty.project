@@ -1,10 +1,19 @@
 {
-synchronized (lock()) {
-    if (!isEOF()) {
-      if (LOG.isDebugEnabled())       LOG.debug("{} early EOF",this);
-      _eofState=EARLY_EOF;
-      if (_listener == null)       return;
+synchronized (_inputQ) {
+    if (!isFinished()) {
+      if (_inputQ.isEmpty()) {
+        if (LOG.isDebugEnabled())         LOG.debug("{} Early EOF",this);
+        _state=EARLY_EOF;
+      }
+ else {
+        if (LOG.isDebugEnabled())         LOG.debug("{} Early EOF pending",this);
+        _inputQ.add(EARLY_EOF_CONTENT);
+      }
+      if (_listener == null) {
+        _inputQ.notify();
+        return;
+      }
     }
   }
-  _channelState.onReadPossible();
+  onReadPossible();
 }

@@ -1,13 +1,9 @@
 {
-synchronized (lock()) {
-    Content item=getNextContent();
-    if (item == null) {
-      _contentState.waitForContent(this);
-      item=getNextContent();
-      if (item == null)       return _contentState.noContent();
-    }
+synchronized (_inputQ) {
+    Content item=nextContent();
+    if (item == null && _state.blockForContent(this))     item=nextContent();
+    if (item == null)     return _state.noContent();
     int l=get(item,b,off,len);
-    _contentRead+=l;
     return l;
   }
 }

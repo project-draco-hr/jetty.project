@@ -1,0 +1,22 @@
+{
+  _in.content(new HttpInput.Content(BufferUtil.toBuffer("AB")));
+  _in.content(new HttpInput.Content(BufferUtil.toBuffer("CD")));
+  _in.earlyEOF();
+  assertThat(_in.isFinished(),equalTo(false));
+  assertThat(_in.available(),equalTo(2));
+  assertThat(_in.isFinished(),equalTo(false));
+  assertThat(_in.read(),equalTo((int)'A'));
+  assertThat(_in.read(),equalTo((int)'B'));
+  assertThat(_in.read(),equalTo((int)'C'));
+  assertThat(_in.isFinished(),equalTo(false));
+  assertThat(_in.read(),equalTo((int)'D'));
+  assertThat(_in.isFinished(),equalTo(false));
+  try {
+    _in.read();
+    fail();
+  }
+ catch (  EOFException eof) {
+    assertThat(_in.isFinished(),equalTo(true));
+  }
+  assertThat(_history.poll(),nullValue());
+}
