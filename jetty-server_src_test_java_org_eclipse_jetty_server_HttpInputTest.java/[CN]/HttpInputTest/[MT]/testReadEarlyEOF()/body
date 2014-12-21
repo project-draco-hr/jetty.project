@@ -1,6 +1,6 @@
 {
-  _in.content(new HttpInput.Content(BufferUtil.toBuffer("AB")));
-  _in.content(new HttpInput.Content(BufferUtil.toBuffer("CD")));
+  _in.content(new TContent("AB"));
+  _in.content(new TContent("CD"));
   _in.earlyEOF();
   assertThat(_in.isFinished(),equalTo(false));
   assertThat(_in.available(),equalTo(2));
@@ -10,7 +10,6 @@
   assertThat(_in.read(),equalTo((int)'C'));
   assertThat(_in.isFinished(),equalTo(false));
   assertThat(_in.read(),equalTo((int)'D'));
-  assertThat(_in.isFinished(),equalTo(false));
   try {
     _in.read();
     fail();
@@ -18,5 +17,7 @@
  catch (  EOFException eof) {
     assertThat(_in.isFinished(),equalTo(true));
   }
+  assertThat(_history.poll(),equalTo("Content succeeded AB"));
+  assertThat(_history.poll(),equalTo("Content succeeded CD"));
   assertThat(_history.poll(),nullValue());
 }
