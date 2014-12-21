@@ -9,13 +9,14 @@
         if (LOG.isDebugEnabled())         LOG.debug("{} action {}",this,action);
 switch (action) {
 case REQUEST_DISPATCH:
-          _request.setHandled(false);
-        _response.getHttpOutput().reopen();
-      _request.setDispatcherType(DispatcherType.REQUEST);
-    List<HttpConfiguration.Customizer> customizers=_configuration.getCustomizers();
-  if (!customizers.isEmpty()) {
-    for (    HttpConfiguration.Customizer customizer : customizers)     customizer.customize(getConnector(),_configuration,_request);
-  }
+          if (!_request.hasMetaData())           throw new IllegalStateException();
+        _request.setHandled(false);
+      _response.getHttpOutput().reopen();
+    _request.setDispatcherType(DispatcherType.REQUEST);
+  List<HttpConfiguration.Customizer> customizers=_configuration.getCustomizers();
+if (!customizers.isEmpty()) {
+  for (  HttpConfiguration.Customizer customizer : customizers)   customizer.customize(getConnector(),_configuration,_request);
+}
 getServer().handle(this);
 break;
 case ASYNC_DISPATCH:

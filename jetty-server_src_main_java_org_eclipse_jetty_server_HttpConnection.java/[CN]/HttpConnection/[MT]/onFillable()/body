@@ -5,15 +5,17 @@
     while (true) {
       int filled=fillRequestBuffer();
       boolean handle=parseRequestBuffer();
+      if (_parser.isClose()) {
+        close();
+        break;
+      }
       if (handle) {
         boolean suspended=!_channel.handle();
         if (suspended || getEndPoint().getConnection() != this)         break;
       }
- else {
-        if (filled <= 0) {
-          if (filled == 0)           fillInterested();
-          break;
-        }
+ else       if (filled <= 0) {
+        if (filled == 0)         fillInterested();
+        break;
       }
     }
   }
