@@ -43,9 +43,14 @@
     if (authStatus == AuthStatus.SEND_SUCCESS) {
       return Authentication.SEND_SUCCESS;
     }
-    throw new NullPointerException("No AuthStatus returned");
+    if (authStatus == AuthStatus.FAILURE) {
+      HttpServletResponse response=(HttpServletResponse)messageInfo.getResponseMessage();
+      response.sendError(HttpServletResponse.SC_FORBIDDEN);
+      return Authentication.SEND_FAILURE;
+    }
+    throw new IllegalStateException("No AuthStatus returned");
   }
- catch (  AuthException e) {
+ catch (  IOException|AuthException e) {
     throw new ServerAuthException(e);
   }
 }
