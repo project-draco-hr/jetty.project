@@ -1,11 +1,16 @@
 {
-  try {
 synchronized (_inputQ) {
-      Content item=nextContent();
-      return item == null ? 0 : remaining(item);
+    Content content=_inputQ.peekUnsafe();
+    if (content == null) {
+      try {
+        produceContent();
+      }
+ catch (      IOException e) {
+        failed(e);
+      }
+      content=_inputQ.peekUnsafe();
     }
-  }
- catch (  IOException e) {
-    throw new RuntimeIOException(e);
+    if (content != null)     return remaining(content);
+    return 0;
   }
 }

@@ -1,14 +1,20 @@
 {
-  boolean finished;
+  boolean finished=false;
 synchronized (_inputQ) {
-    if (available() > 0)     return true;
-    if (_state.isEOF())     return true;
     if (_listener == null)     return true;
     if (_unready)     return false;
+    if (_state.isEOF())     return true;
+    if (_inputQ.isEmpty()) {
+      try {
+        produceContent();
+      }
+ catch (      IOException e) {
+        failed(e);
+      }
+    }
+    if (!_inputQ.isEmpty())     return true;
     _unready=true;
-    finished=isFinished();
   }
-  if (finished)   onReadPossible();
- else   unready();
+  unready();
   return false;
 }

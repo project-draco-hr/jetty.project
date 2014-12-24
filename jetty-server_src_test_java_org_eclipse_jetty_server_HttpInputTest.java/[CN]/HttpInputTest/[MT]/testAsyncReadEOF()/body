@@ -3,11 +3,14 @@
   assertThat(_history.poll(),equalTo("onReadPossible"));
   assertThat(_history.poll(),nullValue());
   _in.run();
+  assertThat(_history.poll(),equalTo("onDataAvailable"));
+  assertThat(_history.poll(),nullValue());
+  assertThat(_in.isReady(),equalTo(false));
   assertThat(_history.poll(),equalTo("produceContent 0"));
   assertThat(_history.poll(),equalTo("unready"));
   assertThat(_history.poll(),nullValue());
-  _in.content(new TContent("AB"));
-  _content.add("_EOF_");
+  _in.addContent(new TContent("AB"));
+  _fillAndParseSimulate.add("_EOF_");
   assertThat(_history.poll(),equalTo("onReadPossible"));
   assertThat(_history.poll(),nullValue());
   _in.run();
@@ -19,14 +22,14 @@
   assertThat(_in.read(),equalTo((int)'B'));
   assertThat(_history.poll(),equalTo("Content succeeded AB"));
   assertThat(_history.poll(),nullValue());
+  assertThat(_in.isFinished(),equalTo(false));
   assertThat(_in.isReady(),equalTo(true));
   assertThat(_history.poll(),equalTo("produceContent 1"));
-  assertThat(_history.poll(),equalTo("onReadPossible"));
   assertThat(_history.poll(),nullValue());
-  _in.run();
-  assertThat(_history.poll(),nullValue());
-  assertThat(_in.isReady(),equalTo(true));
+  assertThat(_in.isFinished(),equalTo(false));
   assertThat(_in.read(),equalTo(-1));
   assertThat(_in.isFinished(),equalTo(true));
+  assertThat(_history.poll(),nullValue());
+  assertThat(_in.isReady(),equalTo(true));
   assertThat(_history.poll(),nullValue());
 }
