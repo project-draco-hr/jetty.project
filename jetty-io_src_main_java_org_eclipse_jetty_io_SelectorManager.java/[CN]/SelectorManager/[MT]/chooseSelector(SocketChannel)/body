@@ -1,0 +1,20 @@
+{
+  ManagedSelector ms0=null;
+  if (channel != null) {
+    try {
+      SocketAddress remote=channel.getRemoteAddress();
+      if (remote instanceof InetSocketAddress) {
+        byte[] addr=((InetSocketAddress)remote).getAddress().getAddress();
+        if (addr != null && addr.length > 0)         ms0=_selectors[addr[addr.length - 1] % getSelectorCount()];
+      }
+    }
+ catch (    IOException e) {
+      LOG.ignore(e);
+    }
+  }
+  long s=_selectorIndex++;
+  int index=(int)(s % getSelectorCount());
+  ManagedSelector ms1=_selectors[index];
+  if (ms0 == null || ms0.size() >= ms1.size() * 2)   return ms1;
+  return ms0;
+}
