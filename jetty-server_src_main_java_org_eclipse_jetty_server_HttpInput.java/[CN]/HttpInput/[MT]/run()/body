@@ -1,20 +1,29 @@
 {
   final Throwable error;
   final ReadListener listener;
-  final boolean eof;
+  boolean aeof=false;
 synchronized (_inputQ) {
-    if (!_unready || _listener == null)     return;
+    if (_state == AEOF) {
+      _state=EOF;
+      aeof=true;
+    }
+ else     if (!_unready)     return;
     listener=_listener;
     error=_state instanceof ErrorState ? ((ErrorState)_state).getError() : null;
-    eof=isFinished();
     _unready=false;
   }
   try {
     if (error != null)     listener.onError(error);
- else     if (eof)     listener.onAllDataRead();
+ else     if (aeof)     listener.onAllDataRead();
  else {
       listener.onDataAvailable();
-      if (isFinished())       listener.onAllDataRead();
+synchronized (_inputQ) {
+        if (_state == AEOF) {
+          _state=EOF;
+          aeof=true;
+        }
+      }
+      if (aeof)       listener.onAllDataRead();
     }
   }
  catch (  Throwable e) {

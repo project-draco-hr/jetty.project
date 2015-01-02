@@ -5,7 +5,13 @@
     _inputQ.pollUnsafe();
     content.succeeded();
     if (LOG.isDebugEnabled())     LOG.debug("{} consumed {}",this,content);
-    if (content == EOF_CONTENT)     _state=EOF;
+    if (content == EOF_CONTENT) {
+      if (_listener == null)       _state=EOF;
+ else {
+        _state=AEOF;
+        onReadPossible();
+      }
+    }
  else     if (content == EARLY_EOF_CONTENT)     _state=EARLY_EOF;
     content=_inputQ.peekUnsafe();
   }
