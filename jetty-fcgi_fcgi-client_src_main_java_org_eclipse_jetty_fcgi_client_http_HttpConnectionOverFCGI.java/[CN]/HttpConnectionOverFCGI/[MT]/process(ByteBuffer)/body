@@ -1,28 +1,30 @@
 {
-  EndPoint endPoint=getEndPoint();
-  ByteBufferPool bufferPool=connector.getByteBufferPool();
-  ByteBuffer buffer=bufferPool.acquire(configuration.getResponseHeaderSize(),true);
   try {
+    EndPoint endPoint=getEndPoint();
+    boolean looping=false;
     while (true) {
+      if (!looping && parse(buffer))       return;
       int read=endPoint.fill(buffer);
       if (LOG.isDebugEnabled())       LOG.debug("Read {} bytes from {}",read,endPoint);
       if (read > 0) {
-        parse(buffer);
+        if (parse(buffer))         return;
       }
  else       if (read == 0) {
-        bufferPool.release(buffer);
+        releaseBuffer(buffer);
         fillInterested();
-        break;
+        return;
       }
  else {
-        bufferPool.release(buffer);
+        releaseBuffer(buffer);
         shutdown();
-        break;
+        return;
       }
+      looping=true;
     }
   }
  catch (  Exception x) {
     if (LOG.isDebugEnabled())     LOG.debug(x);
-    bufferPool.release(buffer);
+    releaseBuffer(buffer);
+    close(x);
   }
 }
