@@ -1,20 +1,23 @@
 {
-  ManagedSelector ms0=null;
+  ManagedSelector candidate1=null;
   if (channel != null) {
     try {
       SocketAddress remote=channel.getRemoteAddress();
       if (remote instanceof InetSocketAddress) {
         byte[] addr=((InetSocketAddress)remote).getAddress().getAddress();
-        if (addr != null && addr.length > 0)         ms0=_selectors[addr[addr.length - 1] % getSelectorCount()];
+        if (addr != null) {
+          int s=addr[addr.length - 1] & 0xFF;
+          candidate1=_selectors[s % getSelectorCount()];
+        }
       }
     }
- catch (    IOException e) {
-      LOG.ignore(e);
+ catch (    IOException x) {
+      LOG.ignore(x);
     }
   }
   long s=_selectorIndex++;
   int index=(int)(s % getSelectorCount());
-  ManagedSelector ms1=_selectors[index];
-  if (ms0 == null || ms0.size() >= ms1.size() * 2)   return ms1;
-  return ms0;
+  ManagedSelector candidate2=_selectors[index];
+  if (candidate1 == null || candidate1.size() >= candidate2.size() * 2)   return candidate2;
+  return candidate1;
 }
