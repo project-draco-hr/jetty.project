@@ -1,0 +1,12 @@
+{
+  WebSocketContainer container=ContainerProvider.getWebSocketContainer();
+  AnnotatedRuntimeOnOpen socket=new AnnotatedRuntimeOnOpen();
+  try (StacklessLogging logging=new StacklessLogging(AnnotatedRuntimeOnOpen.class)){
+    Session session=container.connectToServer(socket,serverUri);
+    assertThat("Close should have occurred",socket.closeLatch.await(1,TimeUnit.SECONDS),is(true));
+    assertThat("Session.isOpen",session.isOpen(),is(false));
+    assertThat("Should have only had 1 error",socket.errors.size(),is(1));
+    Throwable cause=socket.errors.pop();
+    assertThat("Error",cause,instanceOf(ArrayIndexOutOfBoundsException.class));
+  }
+ }
