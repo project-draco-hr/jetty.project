@@ -2,8 +2,7 @@
   ServletContext context=baseRequest.getServletContext();
   String path=context == null ? baseRequest.getRequestURI() : URIUtil.addPaths(baseRequest.getServletPath(),baseRequest.getPathInfo());
   LOG.debug("{} handle {} in {}",this,baseRequest,context);
-  HttpChannel channel=HttpChannel.getCurrentHttpChannel();
-  HttpOutput out=channel.getResponse().getHttpOutput();
+  HttpOutput out=baseRequest.getResponse().getHttpOutput();
   HttpOutput.Interceptor interceptor=out.getInterceptor();
   while (interceptor != null) {
     if (interceptor instanceof GzipHttpOutputInterceptor) {
@@ -47,6 +46,6 @@
   if (etag != null) {
     if (etag.contains(ETAG_GZIP))     request.setAttribute(ETAG,etag.replace(ETAG_GZIP,""));
   }
-  out.setInterceptor(new GzipHttpOutputInterceptor(this,_vary,channel,out.getInterceptor()));
+  out.setInterceptor(new GzipHttpOutputInterceptor(this,_vary,baseRequest.getHttpChannel(),out.getInterceptor()));
   _handler.handle(target,baseRequest,request,response);
 }
