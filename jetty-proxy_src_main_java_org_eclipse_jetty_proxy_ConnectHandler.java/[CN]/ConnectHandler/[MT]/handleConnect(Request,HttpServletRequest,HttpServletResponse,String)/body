@@ -1,5 +1,5 @@
 {
-  jettyRequest.setHandled(true);
+  baseRequest.setHandled(true);
   try {
     boolean proceed=handleAuthentication(request,response,serverAddress);
     if (!proceed) {
@@ -26,7 +26,13 @@
     AsyncContext asyncContext=request.startAsync();
     asyncContext.setTimeout(0);
     if (LOG.isDebugEnabled())     LOG.debug("Connecting to {}",address);
-    ConnectContext connectContext=new ConnectContext(request,response,asyncContext,HttpConnection.getCurrentConnection());
+    HttpTransport transport=baseRequest.getHttpChannel().getHttpTransport();
+    if (!(transport instanceof HttpConnection)) {
+      if (LOG.isDebugEnabled())       LOG.debug("CONNECT forbidden for {}",transport);
+      sendConnectResponse(request,response,HttpServletResponse.SC_FORBIDDEN);
+      return;
+    }
+    ConnectContext connectContext=new ConnectContext(request,response,asyncContext,(HttpConnection)transport);
     if (channel.connect(address))     selector.accept(channel,connectContext);
  else     selector.connect(channel,connectContext);
   }
