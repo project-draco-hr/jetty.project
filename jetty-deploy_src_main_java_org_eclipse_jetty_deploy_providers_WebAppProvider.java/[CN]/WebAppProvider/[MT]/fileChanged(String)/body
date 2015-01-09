@@ -1,0 +1,31 @@
+{
+  File file=new File(filename);
+  if (!file.exists())   return;
+  File parent=file.getParentFile();
+  if (file.isDirectory()) {
+    if (exists(file.getName() + ".xml") || exists(file.getName() + ".XML"))     return;
+    if (exists(file.getName() + ".war") || exists(file.getName() + ".WAR"))     return;
+    super.fileChanged(filename);
+    return;
+  }
+  String lowname=file.getName().toLowerCase(Locale.ENGLISH);
+  if (lowname.endsWith(".war")) {
+    String name=file.getName();
+    String base=name.substring(0,name.length() - 4);
+    String xmlname=base + ".xml";
+    if (exists(xmlname)) {
+      File xml=new File(parent,xmlname);
+      super.fileChanged(xml.getCanonicalPath());
+      return;
+    }
+    xmlname=base + ".XML";
+    if (exists(xmlname)) {
+      File xml=new File(parent,xmlname);
+      super.fileChanged(xml.getCanonicalPath());
+      return;
+    }
+    super.fileChanged(filename);
+    return;
+  }
+  if (lowname.endsWith(".xml"))   super.fileChanged(filename);
+}
