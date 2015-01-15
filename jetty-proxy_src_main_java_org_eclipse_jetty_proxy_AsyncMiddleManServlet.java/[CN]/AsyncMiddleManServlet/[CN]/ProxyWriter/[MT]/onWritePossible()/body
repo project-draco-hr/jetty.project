@@ -1,0 +1,24 @@
+{
+  ServletOutputStream output=clientRequest.getAsyncContext().getResponse().getOutputStream();
+  while (true) {
+    if (writePending) {
+      writePending=false;
+      if (_log.isDebugEnabled())       _log.debug("{} pending async write complete of {} bytes on {}",getRequestId(clientRequest),chunk.length,output);
+      if (succeed(chunk.callback))       break;
+    }
+ else {
+      chunk=chunks.poll();
+      if (chunk == null)       break;
+      writeProxyResponseContent(output,chunk.buffer);
+      if (output.isReady()) {
+        if (_log.isDebugEnabled())         _log.debug("{} async write complete of {} bytes on {}",getRequestId(clientRequest),chunk.length,output);
+        if (succeed(chunk.callback))         break;
+      }
+ else {
+        writePending=true;
+        if (_log.isDebugEnabled())         _log.debug("{} async write pending of {} bytes on {}",getRequestId(clientRequest),chunk.length,output);
+        break;
+      }
+    }
+  }
+}

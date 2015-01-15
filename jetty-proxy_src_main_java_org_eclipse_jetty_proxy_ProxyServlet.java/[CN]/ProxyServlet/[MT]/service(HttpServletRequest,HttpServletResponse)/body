@@ -10,57 +10,13 @@
     onRewriteFailed(request,response);
     return;
   }
-  final Request proxyRequest=_client.newRequest(rewrittenURI).method(request.getMethod()).version(HttpVersion.fromString(request.getProtocol()));
-  Set<String> hopHeaders=null;
-  Enumeration<String> connectionHeaders=request.getHeaders(HttpHeader.CONNECTION.asString());
-  while (connectionHeaders.hasMoreElements()) {
-    String value=connectionHeaders.nextElement();
-    String[] values=value.split(",");
-    for (    String name : values) {
-      name=name.trim().toLowerCase(Locale.ENGLISH);
-      if (hopHeaders == null)       hopHeaders=new HashSet<>();
-      hopHeaders.add(name);
-    }
-  }
-  boolean hasContent=request.getContentLength() > 0 || request.getContentType() != null;
-  for (Enumeration<String> headerNames=request.getHeaderNames(); headerNames.hasMoreElements(); ) {
-    String headerName=headerNames.nextElement();
-    String lowerHeaderName=headerName.toLowerCase(Locale.ENGLISH);
-    if (HttpHeader.TRANSFER_ENCODING.is(headerName))     hasContent=true;
-    if (_hostHeader != null && HttpHeader.HOST.is(headerName))     continue;
-    if (HOP_HEADERS.contains(lowerHeaderName))     continue;
-    if (hopHeaders != null && hopHeaders.contains(lowerHeaderName))     continue;
-    for (Enumeration<String> headerValues=request.getHeaders(headerName); headerValues.hasMoreElements(); ) {
-      String headerValue=headerValues.nextElement();
-      if (headerValue != null)       proxyRequest.header(headerName,headerValue);
-    }
-  }
-  if (_hostHeader != null)   proxyRequest.header(HttpHeader.HOST,_hostHeader);
-  addViaHeader(proxyRequest);
-  addXForwardedHeaders(proxyRequest,request);
+  final Request proxyRequest=getHttpClient().newRequest(rewrittenURI).method(request.getMethod()).version(HttpVersion.fromString(request.getProtocol()));
+  copyHeaders(request,proxyRequest);
+  addProxyHeaders(request,proxyRequest);
   final AsyncContext asyncContext=request.startAsync();
   asyncContext.setTimeout(0);
   proxyRequest.timeout(getTimeout(),TimeUnit.MILLISECONDS);
-  if (hasContent)   proxyRequest.content(proxyRequestContent(proxyRequest,request));
+  if (hasContent(request))   proxyRequest.content(proxyRequestContent(proxyRequest,request));
   customizeProxyRequest(proxyRequest,request);
-  if (_log.isDebugEnabled()) {
-    StringBuilder builder=new StringBuilder(request.getMethod());
-    builder.append(" ").append(request.getRequestURI());
-    String query=request.getQueryString();
-    if (query != null)     builder.append("?").append(query);
-    builder.append(" ").append(request.getProtocol()).append("\r\n");
-    for (Enumeration<String> headerNames=request.getHeaderNames(); headerNames.hasMoreElements(); ) {
-      String headerName=headerNames.nextElement();
-      builder.append(headerName).append(": ");
-      for (Enumeration<String> headerValues=request.getHeaders(headerName); headerValues.hasMoreElements(); ) {
-        String headerValue=headerValues.nextElement();
-        if (headerValue != null)         builder.append(headerValue);
-        if (headerValues.hasMoreElements())         builder.append(",");
-      }
-      builder.append("\r\n");
-    }
-    builder.append("\r\n");
-    _log.debug("{} proxying to upstream:{}{}{}{}",requestId,System.lineSeparator(),builder,proxyRequest,System.lineSeparator(),proxyRequest.getHeaders().toString().trim());
-  }
-  proxyRequest.send(newProxyResponseListener(request,response));
+  sendProxyRequest(request,response,proxyRequest);
 }

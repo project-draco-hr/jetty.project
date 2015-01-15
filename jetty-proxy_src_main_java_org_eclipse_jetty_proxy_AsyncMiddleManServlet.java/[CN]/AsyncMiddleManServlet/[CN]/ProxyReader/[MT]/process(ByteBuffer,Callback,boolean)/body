@@ -1,0 +1,27 @@
+{
+  ContentTransformer transformer=(ContentTransformer)clientRequest.getAttribute(CLIENT_TRANSFORMER);
+  boolean committed=transformer != null;
+  if (transformer == null) {
+    transformer=newClientRequestContentTransformer(clientRequest,proxyRequest);
+    clientRequest.setAttribute(CLIENT_TRANSFORMER,transformer);
+  }
+  if (content.hasRemaining() || finished) {
+    int contentBytes=content.remaining();
+    transformer.transform(content,finished,buffers);
+    int newContentBytes=0;
+    int size=buffers.size();
+    for (int i=0; i < size; ++i) {
+      ByteBuffer buffer=buffers.get(i);
+      newContentBytes+=buffer.remaining();
+      provider.offer(buffer,i == size - 1 ? callback : failer);
+    }
+    buffers.clear();
+    if (finished)     provider.close();
+    if (_log.isDebugEnabled())     _log.debug("{} upstream content transformation {} -> {} bytes",getRequestId(clientRequest),contentBytes,newContentBytes);
+    if (!committed) {
+      proxyRequest.header(HttpHeader.CONTENT_LENGTH,null);
+      sendProxyRequest(clientRequest,proxyResponse,proxyRequest);
+    }
+    if (size == 0)     succeeded();
+  }
+}

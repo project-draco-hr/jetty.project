@@ -1,0 +1,39 @@
+{
+  int position=input.position();
+  while (input.hasRemaining()) {
+    boolean match=parser.parse(input);
+    int limit=input.limit();
+    input.limit(input.position());
+    input.position(position);
+    ByteBuffer slice=input.slice();
+    input.position(input.limit());
+    input.limit(limit);
+    position=input.position();
+    if (matching) {
+      if (match) {
+        ByteBuffer copy=ByteBuffer.allocate(slice.remaining());
+        copy.put(slice).flip();
+        matches.add(copy);
+      }
+ else {
+        matching=false;
+        Utf8StringBuilder builder=new Utf8StringBuilder();
+        for (        ByteBuffer buffer : matches)         builder.append(buffer);
+        String transformed=transform(builder.toString());
+        output.add(ByteBuffer.wrap(transformed.getBytes(StandardCharsets.UTF_8)));
+        output.add(slice);
+      }
+    }
+ else {
+      if (match) {
+        matching=true;
+        ByteBuffer copy=ByteBuffer.allocate(slice.remaining());
+        copy.put(slice).flip();
+        matches.add(copy);
+      }
+ else {
+        output.add(slice);
+      }
+    }
+  }
+}
