@@ -16,20 +16,22 @@
     return true;
   }
  else {
-    JarFile jarFile=null;
-    if (check)     jarFile=_jarFile;
+    boolean close_jar_file=false;
+    JarFile jar_file=null;
+    if (check)     jar_file=_jarFile;
  else {
       try {
         JarURLConnection c=(JarURLConnection)((new URL(_jarUrl)).openConnection());
         c.setUseCaches(getUseCaches());
-        jarFile=c.getJarFile();
+        jar_file=c.getJarFile();
+        close_jar_file=!getUseCaches();
       }
  catch (      Exception e) {
         LOG.ignore(e);
       }
     }
-    if (jarFile != null && _entry == null && !_directory) {
-      Enumeration<JarEntry> e=jarFile.entries();
+    if (jar_file != null && _entry == null && !_directory) {
+      Enumeration<JarEntry> e=jar_file.entries();
       while (e.hasMoreElements()) {
         JarEntry entry=e.nextElement();
         String name=entry.getName().replace('\\','/');
@@ -48,6 +50,14 @@
           _directory=true;
           break;
         }
+      }
+    }
+    if (close_jar_file && jar_file != null) {
+      try {
+        jar_file.close();
+      }
+ catch (      IOException ioe) {
+        LOG.ignore(ioe);
       }
     }
   }
