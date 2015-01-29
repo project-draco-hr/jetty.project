@@ -1,0 +1,41 @@
+{
+  try {
+    int contentBytes=content.remaining();
+    if (_log.isDebugEnabled())     _log.debug("{} received server content: {} bytes",getRequestId(clientRequest),contentBytes);
+    hasContent=true;
+    ProxyWriter proxyWriter=(ProxyWriter)clientRequest.getAttribute(WRITE_LISTENER_ATTRIBUTE);
+    boolean committed=proxyWriter != null;
+    if (proxyWriter == null) {
+      proxyWriter=newProxyWriteListener(clientRequest,serverResponse);
+      clientRequest.setAttribute(WRITE_LISTENER_ATTRIBUTE,proxyWriter);
+    }
+    ContentTransformer transformer=(ContentTransformer)clientRequest.getAttribute(SERVER_TRANSFORMER);
+    if (transformer == null) {
+      transformer=newServerResponseContentTransformer(clientRequest,proxyResponse,serverResponse);
+      clientRequest.setAttribute(SERVER_TRANSFORMER,transformer);
+    }
+    length+=contentBytes;
+    boolean finished=contentLength > 0 && length == contentLength;
+    transformer.transform(content,finished,buffers);
+    int newContentBytes=0;
+    int size=buffers.size();
+    for (int i=0; i < size; ++i) {
+      ByteBuffer buffer=buffers.get(i);
+      newContentBytes+=buffer.remaining();
+      proxyWriter.offer(buffer,i == size - 1 ? callback : Callback.Adapter.INSTANCE);
+    }
+    buffers.clear();
+    if (_log.isDebugEnabled())     _log.debug("{} downstream content transformation {} -> {} bytes",getRequestId(clientRequest),contentBytes,newContentBytes);
+    if (committed) {
+      proxyWriter.onWritePossible();
+    }
+ else {
+      if (contentLength > 0)       proxyResponse.setContentLength(-1);
+      proxyResponse.getOutputStream().setWriteListener(proxyWriter);
+    }
+    if (size == 0)     callback.succeeded();
+  }
+ catch (  Throwable x) {
+    callback.failed(x);
+  }
+}

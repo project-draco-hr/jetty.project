@@ -1,0 +1,21 @@
+{
+  String rewrittenTarget=rewriteTarget(clientRequest);
+  if (_log.isDebugEnabled()) {
+    StringBuffer target=clientRequest.getRequestURL();
+    if (clientRequest.getQueryString() != null)     target.append("?").append(clientRequest.getQueryString());
+    _log.debug("{} rewriting: {} -> {}",getRequestId(clientRequest),target,rewrittenTarget);
+  }
+  if (rewrittenTarget == null) {
+    onProxyRewriteFailed(clientRequest,proxyResponse);
+    return;
+  }
+  final Request proxyRequest=getHttpClient().newRequest(rewrittenTarget).method(clientRequest.getMethod()).version(HttpVersion.fromString(clientRequest.getProtocol()));
+  boolean hasContent=hasContent(clientRequest);
+  copyHeaders(clientRequest,proxyRequest);
+  addProxyHeaders(clientRequest,proxyRequest);
+  final AsyncContext asyncContext=clientRequest.startAsync();
+  asyncContext.setTimeout(0);
+  proxyRequest.timeout(getTimeout(),TimeUnit.MILLISECONDS);
+  if (hasContent)   proxyRequest.content(newProxyContentProvider(clientRequest,proxyResponse,proxyRequest));
+ else   sendProxyRequest(clientRequest,proxyResponse,proxyRequest);
+}

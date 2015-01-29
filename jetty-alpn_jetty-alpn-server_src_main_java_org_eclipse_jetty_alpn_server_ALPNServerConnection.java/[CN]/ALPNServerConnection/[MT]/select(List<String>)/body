@@ -4,20 +4,25 @@
   String tlsProtocol=sslEngine.getHandshakeSession().getProtocol();
   String tlsCipher=sslEngine.getHandshakeSession().getCipherSuite();
   String negotiated=null;
-  for (  String clientProtocol : clientProtocols) {
-    if (serverProtocols.contains(clientProtocol)) {
-      ConnectionFactory factory=getConnector().getConnectionFactory(clientProtocol);
-      if (factory instanceof CipherDiscriminator && !((CipherDiscriminator)factory).isAcceptable(clientProtocol,tlsProtocol,tlsCipher)) {
-        if (LOG.isDebugEnabled())         LOG.debug("{} protocol {} not acceptable to {} for {}/{}",this,clientProtocol,factory,tlsProtocol,tlsCipher);
+  for (  String serverProtocol : serverProtocols) {
+    if (clientProtocols.contains(serverProtocol)) {
+      ConnectionFactory factory=getConnector().getConnectionFactory(serverProtocol);
+      if (factory instanceof CipherDiscriminator && !((CipherDiscriminator)factory).isAcceptable(serverProtocol,tlsProtocol,tlsCipher)) {
+        if (LOG.isDebugEnabled())         LOG.debug("{} protocol {} not acceptable to {} for {}/{}",this,serverProtocol,factory,tlsProtocol,tlsCipher);
         continue;
       }
-      negotiated=clientProtocol;
+      negotiated=serverProtocol;
       break;
     }
   }
   if (negotiated == null) {
-    if (clientProtocols.isEmpty())     negotiated=getDefaultProtocol();
- else     throw new IllegalStateException("No acceptable protocol");
+    if (clientProtocols.isEmpty()) {
+      negotiated=getDefaultProtocol();
+    }
+ else {
+      if (LOG.isDebugEnabled())       LOG.debug("{} could not negotiate protocol: C[{}] | S[{}]",this,clientProtocols,serverProtocols);
+      throw new IllegalStateException();
+    }
   }
   if (LOG.isDebugEnabled())   LOG.debug("{} protocol selected {}",this,negotiated);
   setProtocol(negotiated);

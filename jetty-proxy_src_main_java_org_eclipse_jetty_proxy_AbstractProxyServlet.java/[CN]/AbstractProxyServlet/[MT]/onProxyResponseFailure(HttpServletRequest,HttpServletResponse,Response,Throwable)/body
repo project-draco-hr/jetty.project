@@ -1,0 +1,21 @@
+{
+  if (_log.isDebugEnabled())   _log.debug(getRequestId(clientRequest) + " proxying failed",failure);
+  if (proxyResponse.isCommitted()) {
+    try {
+      proxyResponse.sendError(-1);
+      AsyncContext asyncContext=clientRequest.getAsyncContext();
+      asyncContext.complete();
+    }
+ catch (    IOException x) {
+      if (_log.isDebugEnabled())       _log.debug(getRequestId(clientRequest) + " could not close the connection",failure);
+    }
+  }
+ else {
+    proxyResponse.resetBuffer();
+    if (failure instanceof TimeoutException)     proxyResponse.setStatus(HttpServletResponse.SC_GATEWAY_TIMEOUT);
+ else     proxyResponse.setStatus(HttpServletResponse.SC_BAD_GATEWAY);
+    proxyResponse.setHeader(HttpHeader.CONNECTION.asString(),HttpHeaderValue.CLOSE.asString());
+    AsyncContext asyncContext=clientRequest.getAsyncContext();
+    asyncContext.complete();
+  }
+}
