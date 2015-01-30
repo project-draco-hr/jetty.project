@@ -44,7 +44,11 @@
   resp.setExtensions(configs);
   try {
     Class<?> endpointClass=config.getEndpointClass();
-    Object endpoint=config.getConfigurator().getEndpointInstance(endpointClass);
+    Configurator configr=config.getConfigurator();
+    Object endpoint=configr.getEndpointInstance(endpointClass);
+    if (configr instanceof ContainerDefaultConfigurator) {
+      endpoint=containerScope.getObjectFactory().decorate(endpoint);
+    }
     PathSpec pathSpec=hsreq.getRequestPathSpec();
     if (pathSpec instanceof WebSocketPathSpec) {
       WebSocketPathSpec wspathSpec=(WebSocketPathSpec)pathSpec;
