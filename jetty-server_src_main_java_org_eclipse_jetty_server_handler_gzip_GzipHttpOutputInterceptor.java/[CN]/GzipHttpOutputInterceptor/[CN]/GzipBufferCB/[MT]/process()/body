@@ -6,6 +6,10 @@
         _deflater=null;
         _channel.getByteBufferPool().release(_buffer);
         _buffer=null;
+        if (_copy != null) {
+          _channel.getByteBufferPool().release(_copy);
+          _copy=null;
+        }
         return Action.SUCCEEDED;
       }
       if (!_last) {
@@ -13,14 +17,24 @@
       }
       _deflater.finish();
     }
+ else     if (_content.hasArray()) {
+      byte[] array=_content.array();
+      int off=_content.arrayOffset() + _content.position();
+      int len=_content.remaining();
+      BufferUtil.clear(_content);
+      _crc.update(array,off,len);
+      _deflater.setInput(array,off,len);
+      if (_last)       _deflater.finish();
+    }
  else {
-      BufferUtil.clearToFill(_input);
-      int took=BufferUtil.put(_content,_input);
-      BufferUtil.flipToFlush(_input,0);
+      if (_copy == null)       _copy=_channel.getByteBufferPool().acquire(_bufferSize,false);
+      BufferUtil.clearToFill(_copy);
+      int took=BufferUtil.put(_content,_copy);
+      BufferUtil.flipToFlush(_copy,0);
       if (took == 0)       throw new IllegalStateException();
-      byte[] array=_input.array();
-      int off=_input.arrayOffset() + _input.position();
-      int len=_input.remaining();
+      byte[] array=_copy.array();
+      int off=_copy.arrayOffset() + _copy.position();
+      int len=_copy.remaining();
       _crc.update(array,off,len);
       _deflater.setInput(array,off,len);
       if (_last && BufferUtil.isEmpty(_content))       _deflater.finish();

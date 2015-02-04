@@ -10,7 +10,7 @@ case ASYNC:
 case READY:
   if (!_state.compareAndSet(OutputState.READY,OutputState.PENDING))   continue;
 if (!complete && len <= _commitSize) {
-  if (_aggregate == null)   _aggregate=_channel.getByteBufferPool().acquire(getBufferSize(),false);
+  if (_aggregate == null)   _aggregate=_channel.getByteBufferPool().acquire(getBufferSize(),_interceptor.isOptimizedForDirectBuffers());
   int filled=BufferUtil.fill(_aggregate,b,off,len);
   if (filled == len && !BufferUtil.isFull(_aggregate)) {
     if (!_state.compareAndSet(OutputState.PENDING,OutputState.ASYNC))     throw new IllegalStateException();
@@ -35,7 +35,7 @@ break;
 }
 int capacity=getBufferSize();
 if (!complete && len <= _commitSize) {
-if (_aggregate == null) _aggregate=_channel.getByteBufferPool().acquire(capacity,false);
+if (_aggregate == null) _aggregate=_channel.getByteBufferPool().acquire(capacity,_interceptor.isOptimizedForDirectBuffers());
 int filled=BufferUtil.fill(_aggregate,b,off,len);
 if (filled == len && !BufferUtil.isFull(_aggregate)) return;
 off+=filled;
