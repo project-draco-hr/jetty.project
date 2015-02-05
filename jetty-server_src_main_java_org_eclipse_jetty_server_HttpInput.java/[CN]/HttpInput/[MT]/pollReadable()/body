@@ -1,0 +1,12 @@
+{
+  if (!Thread.holdsLock(_inputQ))   throw new IllegalStateException();
+  Content content=_inputQ.peekUnsafe();
+  while (content != null) {
+    if (content == EOF_CONTENT || content == EARLY_EOF_CONTENT || remaining(content) > 0)     return content;
+    _inputQ.pollUnsafe();
+    content.succeeded();
+    if (LOG.isDebugEnabled())     LOG.debug("{} consumed {}",this,content);
+    content=_inputQ.peekUnsafe();
+  }
+  return content;
+}

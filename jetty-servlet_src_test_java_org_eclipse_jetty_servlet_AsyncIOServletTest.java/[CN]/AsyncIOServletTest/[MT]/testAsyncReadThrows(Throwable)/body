@@ -29,9 +29,13 @@
     OutputStream output=client.getOutputStream();
     output.write(request.getBytes("UTF-8"));
     output.flush();
-    SimpleHttpParser parser=new SimpleHttpParser();
-    SimpleHttpResponse response=parser.readResponse(new BufferedReader(new InputStreamReader(client.getInputStream(),"UTF-8")));
+    BufferedReader in=new BufferedReader(new InputStreamReader(client.getInputStream()));
+    String line=in.readLine();
+    assertThat(line,containsString("500 Server Error"));
+    while (line.length() > 0) {
+      line=in.readLine();
+    }
+    line=in.readLine();
     Assert.assertTrue(latch.await(5,TimeUnit.SECONDS));
-    Assert.assertEquals("500",response.getCode());
   }
  }

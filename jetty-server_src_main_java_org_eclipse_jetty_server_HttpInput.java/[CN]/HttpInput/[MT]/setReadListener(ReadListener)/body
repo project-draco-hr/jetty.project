@@ -1,10 +1,18 @@
 {
   readListener=Objects.requireNonNull(readListener);
+  boolean content;
+  try {
 synchronized (_inputQ) {
-    if (_state != STREAM)     throw new IllegalStateException("state=" + _state);
-    _state=ASYNC;
-    _listener=readListener;
-    _unready=true;
+      if (_state != STREAM)       throw new IllegalStateException("state=" + _state);
+      _state=ASYNC;
+      _listener=readListener;
+      _unready=true;
+      content=nextContent() != null;
+    }
   }
-  onReadPossible();
+ catch (  IOException e) {
+    throw new RuntimeIOException(e);
+  }
+  if (content)   onReadPossible();
+ else   unready();
 }

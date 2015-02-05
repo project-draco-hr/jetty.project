@@ -14,22 +14,20 @@ synchronized (_inputQ) {
     _unready=false;
   }
   try {
-    if (error != null)     listener.onError(error);
- else     if (aeof)     listener.onAllDataRead();
- else {
-      listener.onDataAvailable();
-synchronized (_inputQ) {
-        if (_state == AEOF) {
-          _state=EOF;
-          aeof=true;
-        }
-      }
-      if (aeof)       listener.onAllDataRead();
-    }
+    if (aeof)     listener.onAllDataRead();
+ else     if (error == null)     listener.onDataAvailable();
+ else     listener.onError(error);
   }
  catch (  Throwable e) {
     LOG.warn(e.toString());
     LOG.debug(e);
-    listener.onError(e);
+    try {
+      if (aeof || error == null)       listener.onError(e);
+    }
+ catch (    Throwable e2) {
+      LOG.warn(e2.toString());
+      LOG.debug(e2);
+      throw new RuntimeIOException(e2);
+    }
   }
 }

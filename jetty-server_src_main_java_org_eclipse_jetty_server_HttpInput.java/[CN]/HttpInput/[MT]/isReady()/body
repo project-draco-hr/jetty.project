@@ -1,19 +1,17 @@
 {
+  try {
 synchronized (_inputQ) {
-    if (_listener == null)     return true;
-    if (_unready)     return false;
-    if (_state instanceof EOFState)     return true;
-    if (_inputQ.isEmpty()) {
-      try {
-        produceContent();
-      }
- catch (      IOException e) {
-        failed(e);
-      }
+      if (_listener == null)       return true;
+      if (_unready)       return false;
+      if (_state instanceof EOFState)       return true;
+      if (nextReadable() != null)       return true;
+      _unready=true;
     }
-    if (!_inputQ.isEmpty())     return true;
-    _unready=true;
+    unready();
+    return false;
   }
-  unready();
-  return false;
+ catch (  IOException e) {
+    LOG.ignore(e);
+    return true;
+  }
 }
