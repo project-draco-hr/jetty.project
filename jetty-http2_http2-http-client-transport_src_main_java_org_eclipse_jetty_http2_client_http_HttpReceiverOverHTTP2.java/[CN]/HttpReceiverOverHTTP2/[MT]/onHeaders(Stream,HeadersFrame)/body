@@ -1,0 +1,16 @@
+{
+  HttpExchange exchange=getHttpExchange();
+  if (exchange == null)   return;
+  HttpResponse response=exchange.getResponse();
+  MetaData.Response metaData=(MetaData.Response)frame.getMetaData();
+  response.version(metaData.getVersion()).status(metaData.getStatus()).reason(metaData.getReason());
+  if (responseBegin(exchange)) {
+    HttpFields headers=metaData.getFields();
+    for (    HttpField header : headers) {
+      if (!responseHeader(exchange,header))       return;
+    }
+    if (responseHeaders(exchange)) {
+      if (frame.isEndStream())       responseSuccess(exchange);
+    }
+  }
+}

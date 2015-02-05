@@ -1,0 +1,21 @@
+{
+  final byte[] bytes=new byte[1024 * 1024];
+  new Random().nextBytes(bytes);
+  start(new AbstractHandler(){
+    @Override public void handle(    String target,    Request baseRequest,    HttpServletRequest request,    HttpServletResponse response) throws IOException, ServletException {
+      baseRequest.setHandled(true);
+      ServletInputStream input=request.getInputStream();
+      byte[] buffer=new byte[512];
+      input.read(buffer);
+      throw new IOException();
+    }
+  }
+);
+  try {
+    ContentResponse response=client.newRequest("localhost",connector.getLocalPort()).method(HttpMethod.POST).content(new BytesContentProvider(bytes)).timeout(555,TimeUnit.SECONDS).send();
+    Assert.assertEquals(500,response.getStatus());
+  }
+ catch (  Exception e) {
+    Thread.sleep(1000);
+  }
+}

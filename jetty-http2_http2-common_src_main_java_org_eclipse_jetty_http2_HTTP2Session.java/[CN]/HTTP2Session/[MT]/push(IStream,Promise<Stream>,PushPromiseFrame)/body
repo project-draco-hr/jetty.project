@@ -1,4 +1,5 @@
 {
+  boolean queued;
 synchronized (this) {
     int streamId=streamIds.getAndAdd(2);
     frame=new PushPromiseFrame(frame.getStreamId(),streamId,frame.getMetaData());
@@ -6,7 +7,7 @@ synchronized (this) {
     if (pushStream == null)     return;
     pushStream.updateClose(true,false);
     ControlEntry entry=new ControlEntry(frame,pushStream,new PromiseCallback<>(promise,pushStream));
-    flusher.append(entry);
+    queued=flusher.append(entry);
   }
-  flusher.iterate();
+  if (queued)   flusher.iterate();
 }

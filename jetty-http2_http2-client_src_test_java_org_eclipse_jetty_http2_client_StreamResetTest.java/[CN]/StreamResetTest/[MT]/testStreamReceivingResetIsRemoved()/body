@@ -2,12 +2,16 @@
   final AtomicReference<Stream> streamRef=new AtomicReference<>();
   final CountDownLatch resetLatch=new CountDownLatch(1);
   startServer(new ServerSessionListener.Adapter(){
-    @Override public void onReset(    Session session,    ResetFrame frame){
-      Stream stream=session.getStream(frame.getStreamId());
-      Assert.assertNotNull(stream);
-      Assert.assertTrue(stream.isReset());
-      streamRef.set(stream);
-      resetLatch.countDown();
+    @Override public Stream.Listener onNewStream(    Stream stream,    HeadersFrame frame){
+      return new Stream.Listener.Adapter(){
+        @Override public void onReset(        Stream stream,        ResetFrame frame){
+          Assert.assertNotNull(stream);
+          Assert.assertTrue(stream.isReset());
+          streamRef.set(stream);
+          resetLatch.countDown();
+        }
+      }
+;
     }
   }
 );
@@ -17,7 +21,7 @@
   FuturePromise<Stream> promise=new FuturePromise<>();
   client.newStream(requestFrame,promise,new Stream.Listener.Adapter());
   Stream stream=promise.get(5,TimeUnit.SECONDS);
-  ResetFrame resetFrame=new ResetFrame(stream.getId(),ErrorCodes.CANCEL_STREAM_ERROR);
+  ResetFrame resetFrame=new ResetFrame(stream.getId(),ErrorCode.CANCEL_STREAM_ERROR.code);
   stream.reset(resetFrame,Callback.Adapter.INSTANCE);
   Assert.assertTrue(resetLatch.await(5,TimeUnit.SECONDS));
   Thread.sleep(1000);

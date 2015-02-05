@@ -12,17 +12,16 @@
           stream.data(new DataFrame(stream.getId(),ByteBuffer.allocate(16),true),Callback.Adapter.INSTANCE);
           serverDataLatch.countDown();
         }
-      }
-;
-    }
-    @Override public void onReset(    Session session,    ResetFrame frame){
-      Stream stream=session.getStream(frame.getStreamId());
-      stream.data(new DataFrame(stream.getId(),ByteBuffer.allocate(16),true),new Callback.Adapter(){
-        @Override public void failed(        Throwable x){
-          serverResetLatch.countDown();
+        @Override public void onReset(        Stream stream,        ResetFrame frame){
+          stream.data(new DataFrame(stream.getId(),ByteBuffer.allocate(16),true),new Callback.Adapter(){
+            @Override public void failed(            Throwable x){
+              serverResetLatch.countDown();
+            }
+          }
+);
         }
       }
-);
+;
     }
   }
 );
@@ -54,7 +53,7 @@
   }
 );
   Stream stream2=promise2.get(5,TimeUnit.SECONDS);
-  ResetFrame resetFrame=new ResetFrame(stream1.getId(),ErrorCodes.CANCEL_STREAM_ERROR);
+  ResetFrame resetFrame=new ResetFrame(stream1.getId(),ErrorCode.CANCEL_STREAM_ERROR.code);
   stream1.reset(resetFrame,Callback.Adapter.INSTANCE);
   Assert.assertTrue(serverResetLatch.await(5,TimeUnit.SECONDS));
   Assert.assertFalse(stream1DataLatch.await(1,TimeUnit.SECONDS));

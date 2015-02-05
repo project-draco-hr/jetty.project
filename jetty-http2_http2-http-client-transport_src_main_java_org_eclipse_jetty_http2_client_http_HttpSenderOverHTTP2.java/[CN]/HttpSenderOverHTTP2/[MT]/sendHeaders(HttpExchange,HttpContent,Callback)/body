@@ -1,0 +1,26 @@
+{
+  final Request request=exchange.getRequest();
+  HttpURI uri=new HttpURI(request.getScheme(),request.getHost(),request.getPort(),request.getPath(),null,request.getQuery(),null);
+  MetaData.Request metaData=new MetaData.Request(request.getMethod(),uri,HttpVersion.HTTP_2,request.getHeaders());
+  HeadersFrame headersFrame=new HeadersFrame(0,metaData,null,!content.hasContent());
+  HttpChannelOverHTTP2 channel=getHttpChannel();
+  Promise<Stream> promise=new Promise<Stream>(){
+    @Override public void succeeded(    Stream stream){
+      HttpSenderOverHTTP2.this.stream=stream;
+      stream.setIdleTimeout(request.getIdleTimeout());
+      if (content.hasContent() && !expects100Continue(request)) {
+        if (content.advance()) {
+          DataFrame dataFrame=new DataFrame(stream.getId(),content.getByteBuffer(),content.isLast());
+          stream.data(dataFrame,callback);
+          return;
+        }
+      }
+      callback.succeeded();
+    }
+    @Override public void failed(    Throwable failure){
+      callback.failed(failure);
+    }
+  }
+;
+  channel.getSession().newStream(headersFrame,promise,channel.getStreamListener());
+}

@@ -1,4 +1,5 @@
 {
+  boolean queued;
 synchronized (this) {
     int streamId=streamIds.getAndAdd(2);
     PriorityFrame priority=frame.getPriority();
@@ -9,7 +10,7 @@ synchronized (this) {
     stream.updateClose(frame.isEndStream(),true);
     stream.setListener(listener);
     ControlEntry entry=new ControlEntry(frame,stream,new PromiseCallback<>(promise,stream));
-    flusher.append(entry);
+    queued=flusher.append(entry);
   }
-  flusher.iterate();
+  if (queued)   flusher.iterate();
 }

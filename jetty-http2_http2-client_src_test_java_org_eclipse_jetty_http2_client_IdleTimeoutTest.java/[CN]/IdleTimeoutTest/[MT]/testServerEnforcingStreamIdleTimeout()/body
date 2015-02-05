@@ -4,7 +4,7 @@
     @Override public Stream.Listener onNewStream(    Stream stream,    HeadersFrame frame){
       stream.setIdleTimeout(idleTimeout);
       return new Stream.Listener.Adapter(){
-        @Override public void onFailure(        Stream stream,        Throwable x){
+        @Override public void onTimeout(        Stream stream,        Throwable x){
           timeoutLatch.countDown();
         }
       }
@@ -13,15 +13,15 @@
   }
 );
   final CountDownLatch resetLatch=new CountDownLatch(1);
-  Session session=newClient(new Session.Listener.Adapter(){
-    @Override public void onReset(    Session session,    ResetFrame frame){
+  Session session=newClient(new Session.Listener.Adapter());
+  MetaData.Request metaData=newRequest("GET",new HttpFields());
+  HeadersFrame requestFrame=new HeadersFrame(0,metaData,null,false);
+  session.newStream(requestFrame,new Promise.Adapter<Stream>(),new Stream.Listener.Adapter(){
+    @Override public void onReset(    Stream stream,    ResetFrame frame){
       resetLatch.countDown();
     }
   }
 );
-  MetaData.Request metaData=newRequest("GET",new HttpFields());
-  HeadersFrame requestFrame=new HeadersFrame(0,metaData,null,false);
-  session.newStream(requestFrame,new Promise.Adapter<Stream>(),new Stream.Listener.Adapter());
   Assert.assertTrue(timeoutLatch.await(5,TimeUnit.SECONDS));
   Assert.assertTrue(resetLatch.await(5,TimeUnit.SECONDS));
   Assert.assertTrue(session.getStreams().isEmpty());
