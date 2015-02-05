@@ -1,10 +1,18 @@
 {
-  readListener=Objects.requireNonNull(readListener);
+  try {
+    readListener=Objects.requireNonNull(readListener);
+    boolean content;
 synchronized (lock()) {
-    if (_contentState != STREAM)     throw new IllegalStateException("state=" + _contentState);
-    _contentState=ASYNC;
-    _listener=readListener;
-    _notReady=true;
+      if (_contentState != STREAM)       throw new IllegalStateException("state=" + _contentState);
+      _contentState=ASYNC;
+      _listener=readListener;
+      _notReady=true;
+      content=getNextContent() != null;
+    }
+    if (content)     _channelState.onReadPossible();
+ else     unready();
   }
-  _channelState.onReadPossible();
+ catch (  IOException e) {
+    throw new RuntimeIOException(e);
+  }
 }
