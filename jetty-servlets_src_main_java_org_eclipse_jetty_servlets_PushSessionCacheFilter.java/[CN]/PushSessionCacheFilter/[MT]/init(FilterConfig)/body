@@ -10,17 +10,17 @@
       target._lastModified=response.getHttpFields().get(HttpHeader.LAST_MODIFIED);
       String referer=request.getHttpFields().get(HttpHeader.REFERER);
       if (referer != null) {
-        HttpURI uri=new HttpURI(referer);
-        String path=uri.getPath();
-        if (request.getServerName().equals(uri.getHost()) && path.startsWith(request.getContextPath())) {
-          String path_in_ctx=path.substring(request.getContextPath().length());
-          Target referer_target=_cache.get(path_in_ctx);
+        HttpURI referer_uri=new HttpURI(referer);
+        if (request.getServerName().equals(referer_uri.getHost())) {
+          Target referer_target=_cache.get(referer_uri.getPath());
           if (referer_target != null) {
             HttpSession session=request.getSession();
             ConcurrentHashMap<String,Long> timestamps=(ConcurrentHashMap<String,Long>)session.getAttribute(TIMESTAMP_ATTR);
             Long last=timestamps.get(referer_target._path);
-            if (last != null && (System.currentTimeMillis() - last) < _associateDelay && !referer_target._associated.containsKey(path)) {
-              if (referer_target._associated.putIfAbsent(path,target) == null)               LOG.info("ASSOCIATE {}->{}",path_in_ctx,target._path);
+            if (last != null && (System.currentTimeMillis() - last) < _associateDelay) {
+              if (referer_target._associated.putIfAbsent(target._path,target) == null) {
+                if (LOG.isDebugEnabled())                 LOG.debug("ASSOCIATE {}->{}",referer_target._path,target._path);
+              }
             }
           }
         }

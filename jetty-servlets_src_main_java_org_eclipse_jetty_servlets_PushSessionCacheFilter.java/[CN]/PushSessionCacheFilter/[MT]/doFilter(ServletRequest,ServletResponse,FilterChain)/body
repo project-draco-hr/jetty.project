@@ -1,32 +1,26 @@
 {
   Request baseRequest=Request.getBaseRequest(request);
-  if (baseRequest.isPush()) {
-    LOG.info("PUSH {} if modified since {}",baseRequest,baseRequest.getHttpFields().get("If-Modified-Since"));
-  }
-  HttpFields fields=baseRequest.getHttpFields();
-  String referer=fields.get(HttpHeader.REFERER);
-  if (LOG.isDebugEnabled())   LOG.debug("{} {} referer={}%n",baseRequest.getMethod(),baseRequest.getRequestURI(),referer);
+  String uri=baseRequest.getRequestURI();
+  if (LOG.isDebugEnabled())   LOG.debug("{} {} push={}",baseRequest.getMethod(),uri,baseRequest.isPush());
   HttpSession session=baseRequest.getSession(true);
-  String sessionId=session.getId();
-  String path=URIUtil.addPaths(baseRequest.getServletPath(),baseRequest.getPathInfo());
-  Target target=_cache.get(path);
+  Target target=_cache.get(uri);
   if (target == null) {
-    Target t=new Target(path);
-    target=_cache.putIfAbsent(path,t);
+    Target t=new Target(uri);
+    target=_cache.putIfAbsent(uri,t);
     target=target == null ? t : target;
   }
+  request.setAttribute(TARGET_ATTR,target);
   ConcurrentHashMap<String,Long> timestamps=(ConcurrentHashMap<String,Long>)session.getAttribute(TIMESTAMP_ATTR);
   if (timestamps == null) {
     timestamps=new ConcurrentHashMap<>();
     session.setAttribute(TIMESTAMP_ATTR,timestamps);
   }
-  timestamps.put(path,System.currentTimeMillis());
-  request.setAttribute(TARGET_ATTR,target);
+  timestamps.put(uri,System.currentTimeMillis());
   if (baseRequest.isPushSupported() && target._associated.size() > 0) {
     PushBuilder builder=baseRequest.getPushBuilder();
     if (!session.isNew())     builder.setConditional(true);
     for (    Target associated : target._associated.values()) {
-      LOG.info("PUSH {}->{}",path,associated);
+      if (LOG.isDebugEnabled())       LOG.debug("PUSH {}->{}",uri,associated);
       builder.push(associated._path,associated._etag,associated._lastModified);
     }
   }
