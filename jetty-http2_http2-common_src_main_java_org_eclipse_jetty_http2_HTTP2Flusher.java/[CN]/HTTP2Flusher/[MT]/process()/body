@@ -11,6 +11,13 @@ synchronized (this) {
     while (index < size) {
       Entry entry=frames.get(index);
       IStream stream=entry.stream;
+      if (stream != null && stream.isReset() && !entry.isProtocol()) {
+        remove(index);
+        --size;
+        resets.add(entry);
+        if (LOG.isDebugEnabled())         LOG.debug("Gathered for reset {}",entry);
+        continue;
+      }
       int remaining=entry.dataRemaining();
       if (remaining > 0) {
         if (sessionWindow <= 0) {
@@ -18,45 +25,40 @@ synchronized (this) {
           ++index;
           continue;
         }
-        Integer streamWindow=streams.get(stream);
-        if (streamWindow == null) {
-          streamWindow=stream.getSendWindow();
-          streams.put(stream,streamWindow);
+        if (stream != null) {
+          Integer streamWindow=streams.get(stream);
+          if (streamWindow == null) {
+            streamWindow=stream.getSendWindow();
+            streams.put(stream,streamWindow);
+          }
+          if (streamWindow <= 0) {
+            session.getFlowControl().onStreamStalled(stream);
+            ++index;
+            continue;
+          }
         }
-        if (streamWindow <= 0) {
-          session.getFlowControl().onStreamStalled(stream);
-          ++index;
-          continue;
-        }
-      }
-      if (index == 0)       frames.pollUnsafe();
- else       frames.remove(index);
-      --size;
-      if (stream != null && stream.isReset() && !entry.isProtocol()) {
-        reset.add(entry);
-        continue;
-      }
-      if (remaining > 0) {
         sessionWindow-=remaining;
-        streams.put(stream,streams.get(stream) - remaining);
+        if (stream != null)         streams.put(stream,streams.get(stream) - remaining);
       }
-      active.add(entry);
-      if (LOG.isDebugEnabled())       LOG.debug("Gathered {}",entry);
+      remove(index);
+      --size;
+      actives.add(entry);
+      if (LOG.isDebugEnabled())       LOG.debug("Gathered for write {}",entry);
     }
     streams.clear();
   }
-  for (int i=0; i < reset.size(); ++i) {
-    Entry entry=reset.get(i);
+  for (int i=0; i < resets.size(); ++i) {
+    Entry entry=resets.get(i);
     entry.reset();
   }
-  reset.clear();
-  if (active.isEmpty()) {
+  resets.clear();
+  if (actives.isEmpty()) {
     if (isClosed())     terminate(new ClosedChannelException());
     if (LOG.isDebugEnabled())     LOG.debug("Flushed {}",session);
     return Action.IDLE;
   }
-  for (int i=0; i < active.size(); ++i) {
-    Entry entry=active.get(i);
+  for (int i=0; i < actives.size(); ++i) {
+    Entry entry=actives.get(i);
     Throwable failure=entry.generate(lease);
     if (failure != null) {
       failed(failure);
@@ -64,7 +66,7 @@ synchronized (this) {
     }
   }
   List<ByteBuffer> byteBuffers=lease.getByteBuffers();
-  if (LOG.isDebugEnabled())   LOG.debug("Writing {} buffers ({} bytes) for {} frames {}",byteBuffers.size(),lease.getTotalLength(),active.size(),active);
+  if (LOG.isDebugEnabled())   LOG.debug("Writing {} buffers ({} bytes) for {} frames {}",byteBuffers.size(),lease.getTotalLength(),actives.size(),actives);
   session.getEndPoint().write(this,byteBuffers.toArray(new ByteBuffer[byteBuffers.size()]));
   return Action.SCHEDULED;
 }
