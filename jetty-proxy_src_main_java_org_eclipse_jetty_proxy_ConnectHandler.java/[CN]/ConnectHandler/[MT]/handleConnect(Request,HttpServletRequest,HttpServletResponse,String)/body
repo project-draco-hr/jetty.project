@@ -22,16 +22,16 @@
     SocketChannel channel=SocketChannel.open();
     channel.socket().setTcpNoDelay(true);
     channel.configureBlocking(false);
-    InetSocketAddress address=new InetSocketAddress(host,port);
     AsyncContext asyncContext=request.startAsync();
     asyncContext.setTimeout(0);
-    if (LOG.isDebugEnabled())     LOG.debug("Connecting to {}",address);
     HttpTransport transport=baseRequest.getHttpChannel().getHttpTransport();
     if (!(transport instanceof HttpConnection)) {
       if (LOG.isDebugEnabled())       LOG.debug("CONNECT forbidden for {}",transport);
       sendConnectResponse(request,response,HttpServletResponse.SC_FORBIDDEN);
       return;
     }
+    InetSocketAddress address=newConnectAddress(host,port);
+    if (LOG.isDebugEnabled())     LOG.debug("Connecting to {}",address);
     ConnectContext connectContext=new ConnectContext(request,response,asyncContext,(HttpConnection)transport);
     if (channel.connect(address))     selector.accept(channel,connectContext);
  else     selector.connect(channel,connectContext);
