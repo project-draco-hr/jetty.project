@@ -1,21 +1,28 @@
 {
 switch (frame.getType()) {
-case RST_STREAM:
+case HEADERS:
 {
-      if (stream != null)       removeStream(stream,true);
+      HeadersFrame headersFrame=(HeadersFrame)frame;
+      stream.updateClose(headersFrame.isEndStream(),true);
+      if (stream.isClosed())       removeStream(stream,true);
       break;
     }
-case SETTINGS:
+case RST_STREAM:
 {
-    SettingsFrame settings=(SettingsFrame)frame;
-    Integer initialWindow=settings.getSettings().get(SettingsFrame.INITIAL_WINDOW_SIZE);
-    if (initialWindow != null)     flowControl.updateInitialStreamWindow(HTTP2Session.this,initialWindow,true);
+    if (stream != null)     removeStream(stream,true);
     break;
   }
+case SETTINGS:
+{
+  SettingsFrame settingsFrame=(SettingsFrame)frame;
+  Integer initialWindow=settingsFrame.getSettings().get(SettingsFrame.INITIAL_WINDOW_SIZE);
+  if (initialWindow != null)   flowControl.updateInitialStreamWindow(HTTP2Session.this,initialWindow,true);
+  break;
+}
 case GO_AWAY:
 {
-  getEndPoint().shutdownOutput();
-  break;
+getEndPoint().shutdownOutput();
+break;
 }
 case DISCONNECT:
 {
