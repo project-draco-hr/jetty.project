@@ -1,0 +1,17 @@
+{
+  QueuedThreadPool serverExecutor=new QueuedThreadPool();
+  serverExecutor.setName("server");
+  server=new Server(serverExecutor);
+  connector=new ServerConnector(server,new RawHTTP2ServerConnectionFactory(new HttpConfiguration(),listener){
+    @Override protected FlowControlStrategy newFlowControlStrategy(){
+      return FlowControlStrategyTest.this.newFlowControlStrategy();
+    }
+  }
+);
+  server.addConnector(connector);
+  server.start();
+  QueuedThreadPool clientExecutor=new QueuedThreadPool();
+  clientExecutor.setName("client");
+  client=new HTTP2Client(clientExecutor);
+  client.start();
+}

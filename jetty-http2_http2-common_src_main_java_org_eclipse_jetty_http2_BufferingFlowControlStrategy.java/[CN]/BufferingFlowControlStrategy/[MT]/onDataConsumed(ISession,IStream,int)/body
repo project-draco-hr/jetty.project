@@ -1,0 +1,39 @@
+{
+  if (length > 0) {
+    WindowUpdateFrame windowFrame=null;
+    int level=sessionLevel.addAndGet(length);
+    int maxLevel=(int)(initialSessionWindow.get() * bufferRatio);
+    if (level > maxLevel) {
+      level=sessionLevel.getAndSet(0);
+      session.updateRecvWindow(level);
+      if (LOG.isDebugEnabled())       LOG.debug("Data consumed, updated session recv window by {} for {}",level,session);
+      windowFrame=new WindowUpdateFrame(0,level);
+    }
+ else {
+      if (LOG.isDebugEnabled())       LOG.debug("Data consumed, session recv window level {}/{} for {}",level,maxLevel,session);
+    }
+    Frame[] windowFrames=Frame.EMPTY_ARRAY;
+    if (stream != null) {
+      if (stream.isClosed()) {
+        if (LOG.isDebugEnabled())         LOG.debug("Data consumed, ignoring update stream recv window by {} for closed {}",length,stream);
+      }
+ else {
+        AtomicInteger streamLevel=streamLevels.get(stream);
+        level=streamLevel.addAndGet(length);
+        maxLevel=(int)(getInitialStreamWindow() * bufferRatio);
+        if (level > maxLevel) {
+          level=streamLevel.getAndSet(0);
+          stream.updateRecvWindow(length);
+          if (LOG.isDebugEnabled())           LOG.debug("Data consumed, updated stream recv window by {} for {}",length,stream);
+          WindowUpdateFrame frame=new WindowUpdateFrame(stream.getId(),level);
+          if (windowFrame == null)           windowFrame=frame;
+ else           windowFrames=new Frame[]{frame};
+        }
+ else {
+          if (LOG.isDebugEnabled())           LOG.debug("Data consumed, stream recv window level {}/{} for {}",level,maxLevel,session);
+        }
+      }
+    }
+    if (windowFrame != null)     session.control(stream,Callback.Adapter.INSTANCE,windowFrame,windowFrames);
+  }
+}

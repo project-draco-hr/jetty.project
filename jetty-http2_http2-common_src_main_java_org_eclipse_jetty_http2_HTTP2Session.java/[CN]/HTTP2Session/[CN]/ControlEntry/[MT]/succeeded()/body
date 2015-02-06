@@ -5,15 +5,22 @@ case RST_STREAM:
       if (stream != null)       removeStream(stream,true);
       break;
     }
-case GO_AWAY:
+case SETTINGS:
 {
-    getEndPoint().shutdownOutput();
+    SettingsFrame settings=(SettingsFrame)frame;
+    Integer initialWindow=settings.getSettings().get(SettingsFrame.INITIAL_WINDOW_SIZE);
+    if (initialWindow != null)     flowControl.updateInitialStreamWindow(HTTP2Session.this,initialWindow,true);
     break;
   }
+case GO_AWAY:
+{
+  getEndPoint().shutdownOutput();
+  break;
+}
 case DISCONNECT:
 {
-  terminate();
-  break;
+terminate();
+break;
 }
 default :
 {
