@@ -6,17 +6,20 @@
       transformer.transform(BufferUtil.EMPTY_BUFFER,true,buffers);
       long newContentBytes=0;
       int size=buffers.size();
-      for (int i=0; i < size; ++i) {
-        ByteBuffer buffer=buffers.get(i);
-        newContentBytes+=buffer.remaining();
-        proxyWriter.offer(buffer,i == size - 1 ? new Callback.Adapter(){
+      if (size > 0) {
+        Callback callback=new Callback.Adapter(){
           @Override public void failed(          Throwable x){
             if (complete.compareAndSet(false,true))             onProxyResponseFailure(clientRequest,proxyResponse,serverResponse,x);
           }
         }
- : Callback.Adapter.INSTANCE);
+;
+        for (int i=0; i < size; ++i) {
+          ByteBuffer buffer=buffers.get(i);
+          newContentBytes+=buffer.remaining();
+          proxyWriter.offer(buffer,callback);
+        }
+        buffers.clear();
       }
-      buffers.clear();
       if (_log.isDebugEnabled())       _log.debug("{} downstream content transformation to {} bytes",getRequestId(clientRequest),newContentBytes);
       proxyWriter.onWritePossible();
     }
