@@ -8,7 +8,8 @@
  else   code=Integer.valueOf(error);
   String location=node.getString("location",false,true);
   ErrorPageErrorHandler handler=(ErrorPageErrorHandler)context.getErrorHandler();
-switch (context.getMetaData().getOrigin("error." + error)) {
+  String originName="error." + error;
+switch (context.getMetaData().getOrigin(originName)) {
 case NotSet:
 {
       if (code > 0)       handler.addErrorPage(code,location);
@@ -21,12 +22,11 @@ case WebDefaults:
 case WebOverride:
 {
     if (!(descriptor instanceof FragmentDescriptor)) {
-      if (descriptor instanceof OverrideDescriptor || descriptor instanceof DefaultsDescriptor) {
-        if (code > 0)         handler.addErrorPage(code,location);
- else         handler.addErrorPage(error,location);
-        context.getMetaData().setOrigin("error." + error,descriptor);
-      }
- else       throw new IllegalStateException("Duplicate global error-page " + location);
+      Descriptor originDescriptor=context.getMetaData().getOriginDescriptor(originName);
+      if (descriptor == originDescriptor)       throw new IllegalStateException("Duplicate error-page " + error + " at "+ location);
+      if (code > 0)       handler.addErrorPage(code,location);
+ else       handler.addErrorPage(error,location);
+      context.getMetaData().setOrigin("error." + error,descriptor);
     }
     break;
   }
