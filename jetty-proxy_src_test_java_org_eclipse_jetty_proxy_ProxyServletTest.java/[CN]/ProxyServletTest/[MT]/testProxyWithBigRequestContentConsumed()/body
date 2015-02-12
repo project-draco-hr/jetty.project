@@ -1,8 +1,7 @@
 {
   final byte[] content=new byte[128 * 1024];
   new Random().nextBytes(content);
-  prepareProxy();
-  prepareServer(new HttpServlet(){
+  startServer(new HttpServlet(){
     @Override protected void doPost(    HttpServletRequest req,    HttpServletResponse resp) throws ServletException, IOException {
       if (req.getHeader("Via") != null)       resp.addHeader(PROXIED_HEADER,"true");
       InputStream input=req.getInputStream();
@@ -16,6 +15,8 @@
     }
   }
 );
+  startProxy();
+  startClient();
   ContentResponse response=client.newRequest("localhost",serverConnector.getLocalPort()).method(HttpMethod.POST).content(new BytesContentProvider(content)).timeout(5,TimeUnit.SECONDS).send();
   Assert.assertEquals(200,response.getStatus());
   Assert.assertTrue(response.getHeaders().containsKey(PROXIED_HEADER));

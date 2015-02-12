@@ -1,5 +1,6 @@
 {
-  prepareProxy();
+  startServer(new EmptyHttpServlet());
+  startProxy();
   proxyContext.stop();
   final String headerName="X-Test";
   final String headerValue="test-value";
@@ -15,8 +16,8 @@
   }
 ),"/*",EnumSet.of(DispatcherType.REQUEST));
   proxyContext.start();
-  prepareServer(new EmptyHttpServlet());
-  ContentResponse response=client.newRequest("localhost",serverConnector.getLocalPort()).send();
+  startClient();
+  ContentResponse response=client.newRequest("localhost",serverConnector.getLocalPort()).timeout(5,TimeUnit.SECONDS).send();
   Assert.assertEquals(200,response.getStatus());
   Assert.assertEquals(headerValue,response.getHeaders().get(headerName));
 }
