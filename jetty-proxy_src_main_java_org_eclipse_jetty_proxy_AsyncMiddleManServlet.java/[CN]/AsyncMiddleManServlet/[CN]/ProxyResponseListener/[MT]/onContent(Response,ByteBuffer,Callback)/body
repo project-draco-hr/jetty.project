@@ -20,7 +20,7 @@
     int newContentBytes=0;
     int size=buffers.size();
     if (size > 0) {
-      CountingCallback counter=new CountingCallback(callback,size);
+      Callback counter=size == 1 ? callback : new CountingCallback(callback,size);
       for (int i=0; i < size; ++i) {
         ByteBuffer buffer=buffers.get(i);
         newContentBytes+=buffer.remaining();
@@ -28,14 +28,16 @@
       }
       buffers.clear();
     }
+ else {
+      proxyWriter.offer(BufferUtil.EMPTY_BUFFER,callback);
+    }
+    if (finished)     proxyWriter.offer(BufferUtil.EMPTY_BUFFER,complete);
     if (_log.isDebugEnabled())     _log.debug("{} downstream content transformation {} -> {} bytes",getRequestId(clientRequest),contentBytes,newContentBytes);
     if (committed) {
-      if (size == 0)       callback.succeeded();
- else       proxyWriter.onWritePossible();
+      proxyWriter.onWritePossible();
     }
  else {
       if (contentLength > 0)       proxyResponse.setContentLength(-1);
-      if (size == 0)       proxyWriter.offer(BufferUtil.EMPTY_BUFFER,callback);
       proxyResponse.getOutputStream().setWriteListener(proxyWriter);
     }
   }

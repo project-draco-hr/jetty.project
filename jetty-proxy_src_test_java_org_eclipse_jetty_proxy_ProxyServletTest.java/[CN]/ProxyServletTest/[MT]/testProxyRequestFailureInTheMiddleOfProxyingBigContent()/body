@@ -1,15 +1,10 @@
 {
-  final long proxyTimeout=1000;
   int outputBufferSize=1024;
-  Map<String,String> proxyParams=new HashMap<>();
-  proxyParams.put("timeout",String.valueOf(proxyTimeout));
-  proxyParams.put("outputBufferSize",String.valueOf(outputBufferSize));
-  prepareProxy(proxyParams);
   final CountDownLatch chunk1Latch=new CountDownLatch(1);
   final byte[] chunk1=new byte[outputBufferSize];
   new Random().nextBytes(chunk1);
   final int chunk2='w';
-  prepareServer(new HttpServlet(){
+  startServer(new HttpServlet(){
     @Override protected void service(    HttpServletRequest request,    HttpServletResponse response) throws ServletException, IOException {
       ServletOutputStream output=response.getOutputStream();
       output.write(chunk1);
@@ -27,6 +22,12 @@
     }
   }
 );
+  final long proxyTimeout=1000;
+  Map<String,String> proxyParams=new HashMap<>();
+  proxyParams.put("timeout",String.valueOf(proxyTimeout));
+  proxyParams.put("outputBufferSize",String.valueOf(outputBufferSize));
+  startProxy(proxyParams);
+  startClient();
   InputStreamResponseListener listener=new InputStreamResponseListener();
   int port=serverConnector.getLocalPort();
   client.newRequest("localhost",port).send(listener);

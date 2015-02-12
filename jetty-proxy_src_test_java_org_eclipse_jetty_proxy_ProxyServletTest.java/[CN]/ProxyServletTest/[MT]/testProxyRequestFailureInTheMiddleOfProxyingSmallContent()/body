@@ -1,12 +1,8 @@
 {
-  final long proxyTimeout=1000;
-  Map<String,String> proxyParams=new HashMap<>();
-  proxyParams.put("timeout",String.valueOf(proxyTimeout));
-  prepareProxy(proxyParams);
   final CountDownLatch chunk1Latch=new CountDownLatch(1);
   final int chunk1='q';
   final int chunk2='w';
-  prepareServer(new HttpServlet(){
+  startServer(new HttpServlet(){
     @Override protected void service(    HttpServletRequest request,    HttpServletResponse response) throws ServletException, IOException {
       ServletOutputStream output=response.getOutputStream();
       output.write(chunk1);
@@ -24,6 +20,11 @@
     }
   }
 );
+  final long proxyTimeout=1000;
+  Map<String,String> proxyParams=new HashMap<>();
+  proxyParams.put("timeout",String.valueOf(proxyTimeout));
+  startProxy(proxyParams);
+  startClient();
   InputStreamResponseListener listener=new InputStreamResponseListener();
   int port=serverConnector.getLocalPort();
   client.newRequest("localhost",port).send(listener);

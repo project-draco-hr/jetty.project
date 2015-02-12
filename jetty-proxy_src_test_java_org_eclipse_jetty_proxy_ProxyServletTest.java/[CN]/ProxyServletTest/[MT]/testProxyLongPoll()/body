@@ -1,7 +1,6 @@
 {
-  prepareProxy();
   final long timeout=1000;
-  prepareServer(new HttpServlet(){
+  startServer(new HttpServlet(){
     @Override protected void doGet(    final HttpServletRequest request,    final HttpServletResponse response) throws ServletException, IOException {
       if (!request.isAsyncStarted()) {
         final AsyncContext asyncContext=request.startAsync();
@@ -23,6 +22,8 @@
     }
   }
 );
+  startProxy();
+  startClient();
   Response response=client.newRequest("localhost",serverConnector.getLocalPort()).timeout(2 * timeout,TimeUnit.MILLISECONDS).send();
   Assert.assertEquals(200,response.getStatus());
   Assert.assertTrue(response.getHeaders().containsKey(PROXIED_HEADER));
