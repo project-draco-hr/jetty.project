@@ -4,7 +4,7 @@
 switch (state) {
 case HEADER:
 {
-          if (!headerParser.parse(buffer))           return false;
+          if (!headerParser.parse(buffer))           return;
           state=State.BODY;
           break;
         }
@@ -13,54 +13,33 @@ case BODY:
         int type=headerParser.getFrameType();
         if (LOG.isDebugEnabled())         LOG.debug("Parsing {} frame",FrameType.from(type));
         if (type < 0 || type >= bodyParsers.length) {
-          notifyConnectionFailure(ErrorCode.PROTOCOL_ERROR.code,"unknown_frame_type_" + type);
           BufferUtil.clear(buffer);
-          return false;
+          notifyConnectionFailure(ErrorCode.PROTOCOL_ERROR.code,"unknown_frame_type_" + type);
+          return;
         }
         BodyParser bodyParser=bodyParsers[type];
         if (headerParser.getLength() == 0) {
-          boolean async=bodyParser.emptyBody(buffer);
+          bodyParser.emptyBody(buffer);
           reset();
-          if (async)           return true;
-          if (!buffer.hasRemaining())           return false;
+          if (!buffer.hasRemaining())           return;
         }
  else {
-          BodyParser.Result result=bodyParser.parse(buffer);
-switch (result) {
-case PENDING:
-{
-              return false;
-            }
-case ASYNC:
-{
-            if (LOG.isDebugEnabled())             LOG.debug("Parsed  {} frame, asynchronous processing",FrameType.from(type));
-            return true;
-          }
-case COMPLETE:
-{
-          if (LOG.isDebugEnabled())           LOG.debug("Parsed  {} frame, synchronous processing",FrameType.from(type));
+          if (!bodyParser.parse(buffer))           return;
+          if (LOG.isDebugEnabled())           LOG.debug("Parsed {} frame",FrameType.from(type));
           reset();
-          break;
         }
-default :
-{
-        throw new IllegalStateException();
+        break;
       }
-  }
-}
-break;
-}
 default :
 {
-throw new IllegalStateException();
-}
+      throw new IllegalStateException();
+    }
 }
 }
 }
  catch (Throwable x) {
 if (LOG.isDebugEnabled()) LOG.debug(x);
-notifyConnectionFailure(ErrorCode.PROTOCOL_ERROR.code,"parser_error");
 BufferUtil.clear(buffer);
-return false;
+notifyConnectionFailure(ErrorCode.PROTOCOL_ERROR.code,"parser_error");
 }
 }

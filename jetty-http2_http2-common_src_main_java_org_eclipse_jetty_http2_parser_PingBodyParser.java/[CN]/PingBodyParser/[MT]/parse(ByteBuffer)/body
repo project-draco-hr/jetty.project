@@ -3,14 +3,8 @@
 switch (state) {
 case PREPARE:
 {
-        if (getStreamId() != 0) {
-          BufferUtil.clear(buffer);
-          return notifyConnectionFailure(ErrorCode.PROTOCOL_ERROR.code,"invalid_ping_frame");
-        }
-        if (getBodyLength() != 8) {
-          BufferUtil.clear(buffer);
-          return notifyConnectionFailure(ErrorCode.FRAME_SIZE_ERROR.code,"invalid_ping_frame");
-        }
+        if (getStreamId() != 0)         return connectionFailure(buffer,ErrorCode.PROTOCOL_ERROR.code,"invalid_ping_frame");
+        if (getBodyLength() != 8)         return connectionFailure(buffer,ErrorCode.FRAME_SIZE_ERROR.code,"invalid_ping_frame");
         state=State.PAYLOAD;
         break;
       }
@@ -31,9 +25,7 @@ case PAYLOAD_BYTES:
 {
     payload[8 - cursor]=buffer.get();
     --cursor;
-    if (cursor == 0) {
-      return onPing(payload);
-    }
+    if (cursor == 0)     return onPing(payload);
     break;
   }
 default :
@@ -42,5 +34,5 @@ default :
 }
 }
 }
-return Result.PENDING;
+return false;
 }

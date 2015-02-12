@@ -4,17 +4,9 @@
 switch (state) {
 case PREPARE:
 {
-        if (getStreamId() == 0) {
-          BufferUtil.clear(buffer);
-          return notifyConnectionFailure(ErrorCode.PROTOCOL_ERROR.code,"invalid_data_frame");
-        }
+        if (getStreamId() == 0)         return connectionFailure(buffer,ErrorCode.PROTOCOL_ERROR.code,"invalid_data_frame");
         length=getBodyLength();
-        if (isPadding()) {
-          state=State.PADDING_LENGTH;
-        }
- else {
-          state=State.DATA;
-        }
+        state=isPadding() ? State.PADDING_LENGTH : State.DATA;
         break;
       }
 case PADDING_LENGTH:
@@ -25,10 +17,7 @@ case PADDING_LENGTH:
       length-=paddingLength;
       state=State.DATA;
       loop=length == 0;
-      if (length < 0) {
-        BufferUtil.clear(buffer);
-        return notifyConnectionFailure(ErrorCode.FRAME_SIZE_ERROR.code,"invalid_data_frame_padding");
-      }
+      if (length < 0)       return connectionFailure(buffer,ErrorCode.FRAME_SIZE_ERROR.code,"invalid_data_frame_padding");
       break;
     }
 case DATA:
@@ -44,14 +33,10 @@ case DATA:
     if (length == 0) {
       state=State.PADDING;
       loop=paddingLength == 0;
-      if (onData(slice,false,padding + paddingLength)) {
-        return Result.ASYNC;
-      }
+      onData(slice,false,padding + paddingLength);
     }
  else {
-      if (onData(slice,true,0)) {
-        return Result.ASYNC;
-      }
+      onData(slice,true,0);
     }
     break;
   }
@@ -62,7 +47,7 @@ case PADDING:
   paddingLength-=size;
   if (paddingLength == 0) {
     reset();
-    return Result.COMPLETE;
+    return true;
   }
   break;
 }
@@ -72,5 +57,5 @@ throw new IllegalStateException();
 }
 }
 }
-return Result.PENDING;
+return false;
 }

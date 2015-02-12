@@ -1,18 +1,14 @@
 {
   if (getRecvWindow() < 0) {
     session.close(ErrorCode.FLOW_CONTROL_ERROR.code,"stream_window_exceeded",callback);
-    return true;
   }
   if (isRemotelyClosed()) {
     reset(new ResetFrame(streamId,ErrorCode.STREAM_CLOSED_ERROR.code),Callback.Adapter.INSTANCE);
     callback.failed(new EOFException("stream_closed"));
-    return true;
   }
   if (isReset()) {
     callback.failed(new IOException("stream_reset"));
-    return true;
   }
   updateClose(frame.isEndStream(),false);
   notifyData(this,frame,callback);
-  return false;
 }

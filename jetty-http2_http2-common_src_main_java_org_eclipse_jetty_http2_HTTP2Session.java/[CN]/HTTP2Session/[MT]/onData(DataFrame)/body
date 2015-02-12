@@ -7,23 +7,22 @@
   if (stream != null) {
     if (getRecvWindow() < 0) {
       close(ErrorCode.FLOW_CONTROL_ERROR.code,"session_window_exceeded",Callback.Adapter.INSTANCE);
-      return false;
     }
-    boolean result=stream.process(frame,new Callback(){
-      @Override public void succeeded(){
-        flowControl.onDataConsumed(HTTP2Session.this,stream,flowControlLength);
+ else {
+      stream.process(frame,new Callback(){
+        @Override public void succeeded(){
+          flowControl.onDataConsumed(HTTP2Session.this,stream,flowControlLength);
+        }
+        @Override public void failed(        Throwable x){
+          flowControl.onDataConsumed(HTTP2Session.this,stream,flowControlLength);
+        }
       }
-      @Override public void failed(      Throwable x){
-        flowControl.onDataConsumed(HTTP2Session.this,stream,flowControlLength);
-      }
-    }
 );
-    if (stream.isClosed())     removeStream(stream,false);
-    return result;
+      if (stream.isClosed())       removeStream(stream,false);
+    }
   }
  else {
     if (LOG.isDebugEnabled())     LOG.debug("Ignoring {}, stream #{} not found",frame,streamId);
     flowControl.onDataConsumed(this,null,flowControlLength);
-    return false;
   }
 }
