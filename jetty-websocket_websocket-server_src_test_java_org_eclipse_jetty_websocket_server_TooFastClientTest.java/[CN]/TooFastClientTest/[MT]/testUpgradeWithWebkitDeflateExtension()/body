@@ -1,0 +1,27 @@
+{
+  BlockheadClient client=new BlockheadClient(server.getServerUri());
+  try {
+    client.connect();
+    ByteBuffer initialPacket=ByteBuffer.allocate(4096);
+    BufferUtil.clearToFill(initialPacket);
+    StringBuilder upgradeRequest=client.generateUpgradeRequest();
+    ByteBuffer upgradeBuffer=BufferUtil.toBuffer(upgradeRequest.toString(),StandardCharsets.UTF_8);
+    initialPacket.put(upgradeBuffer);
+    Generator generator=new Generator(WebSocketPolicy.newClientPolicy(),new LeakTrackingBufferPool("Generator",new MappedByteBufferPool()));
+    String msg1="Echo 1";
+    String msg2="This is also an echo ... cho ... ho ... o";
+    generator.generateWholeFrame(new TextFrame().setPayload(msg1),initialPacket);
+    generator.generateWholeFrame(new TextFrame().setPayload(msg2),initialPacket);
+    BufferUtil.flipToFlush(initialPacket,0);
+    client.writeRaw(initialPacket);
+    client.expectUpgradeResponse();
+    EventQueue<WebSocketFrame> frames=client.readFrames(2,1,TimeUnit.SECONDS);
+    WebSocketFrame tf=frames.poll();
+    Assert.assertThat("Text Frame/msg1",tf.getPayloadAsUTF8(),is(msg1));
+    tf=frames.poll();
+    Assert.assertThat("Text Frame/msg2",tf.getPayloadAsUTF8(),is(msg2));
+  }
+  finally {
+    client.close();
+  }
+}
