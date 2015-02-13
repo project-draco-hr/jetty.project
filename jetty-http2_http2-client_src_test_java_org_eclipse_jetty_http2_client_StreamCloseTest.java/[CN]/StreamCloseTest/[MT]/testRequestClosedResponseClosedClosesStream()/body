@@ -1,13 +1,17 @@
 {
   final CountDownLatch latch=new CountDownLatch(2);
   start(new ServerSessionListener.Adapter(){
-    @Override public Stream.Listener onNewStream(    Stream stream,    HeadersFrame frame){
+    @Override public Stream.Listener onNewStream(    final Stream stream,    HeadersFrame frame){
       MetaData.Response metaData=new MetaData.Response(HttpVersion.HTTP_2,200,new HttpFields());
       HeadersFrame response=new HeadersFrame(stream.getId(),metaData,null,true);
-      stream.headers(response,Callback.Adapter.INSTANCE);
-      Assert.assertTrue(stream.isClosed());
-      Assert.assertEquals(0,stream.getSession().getStreams().size());
-      latch.countDown();
+      stream.headers(response,new Callback.Adapter(){
+        @Override public void succeeded(){
+          Assert.assertTrue(stream.isClosed());
+          Assert.assertEquals(0,stream.getSession().getStreams().size());
+          latch.countDown();
+        }
+      }
+);
       return null;
     }
   }
