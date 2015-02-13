@@ -2,16 +2,19 @@
   if (LOG.isDebugEnabled())   LOG.debug("{} Connection State Change: {}",policy.getBehavior(),state);
 switch (state) {
 case OPEN:
-    if (LOG.isDebugEnabled())     LOG.debug("fillInterested");
-  fillInterested();
-break;
+    if (BufferUtil.isEmpty(buffer)) {
+      if (LOG.isDebugEnabled())       LOG.debug("fillInterested");
+      fillInterested();
+    }
+ else     onFillable();
+  break;
 case CLOSED:
 if (ioState.wasAbnormalClose()) {
-CloseInfo abnormal=new CloseInfo(StatusCode.SHUTDOWN,"Abnormal Close - " + ioState.getCloseInfo().getReason());
-outgoingFrame(abnormal.asFrame(),new OnDisconnectCallback(false),BatchMode.OFF);
+  CloseInfo abnormal=new CloseInfo(StatusCode.SHUTDOWN,"Abnormal Close - " + ioState.getCloseInfo().getReason());
+  outgoingFrame(abnormal.asFrame(),new OnDisconnectCallback(false),BatchMode.OFF);
 }
  else {
-this.disconnect(false);
+  this.disconnect(false);
 }
 break;
 case CLOSING:
