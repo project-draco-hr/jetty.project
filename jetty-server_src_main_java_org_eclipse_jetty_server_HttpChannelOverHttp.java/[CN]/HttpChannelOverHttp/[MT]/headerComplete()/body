@@ -14,9 +14,9 @@ case HTTP_1_0:
     }
 case HTTP_1_1:
 {
-    if (_expect) {
+    if (_unknownExpectation) {
       badMessage(HttpStatus.EXPECTATION_FAILED_417,null);
-      return true;
+      return false;
     }
     if (_connection != null) {
       if (_connection.contains(HttpHeaderValue.CLOSE.asString()))       persistent=false;
@@ -27,9 +27,25 @@ case HTTP_1_1:
     if (!persistent)     getResponse().getHttpFields().add(HttpHeader.CONNECTION,HttpHeaderValue.CLOSE);
     break;
   }
+case HTTP_2:
+{
+  ConnectionFactory h2=null;
+  if (!(getConnector().getDefaultConnectionFactory() instanceof NegotiatingServerConnectionFactory))   for (  ConnectionFactory factory : getConnector().getConnectionFactories())   if (factory.getProtocols().contains("h2c"))   h2=factory;
+  if (h2 == null || _metadata.getMethod() != HttpMethod.PRI.asString() || !"*".equals(_metadata.getURI().toString()) || _fields.size() > 0) {
+    badMessage(HttpStatus.UPGRADE_REQUIRED_426,null);
+    return false;
+  }
+  Connection old_connection=getEndPoint().getConnection();
+  Connection new_connection=h2.newConnection(getConnector(),getEndPoint());
+  if (LOG.isDebugEnabled())   LOG.debug("Direct Upgrade from {} to {}",old_connection,new_connection);
+  getResponse().setStatus(101);
+  getRequest().setAttribute(HttpConnection.UPGRADE_CONNECTION_ATTRIBUTE,new_connection);
+  getHttpTransport().onCompleted();
+  return true;
+}
 default :
 {
-  throw new IllegalStateException();
+throw new IllegalStateException();
 }
 }
 if (!persistent) _httpConnection.getGenerator().setPersistent(false);
