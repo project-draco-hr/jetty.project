@@ -10,8 +10,13 @@
     Generator generator=new Generator(WebSocketPolicy.newClientPolicy(),new LeakTrackingBufferPool("Generator",new MappedByteBufferPool()));
     String msg1="Echo 1";
     String msg2="This is also an echooooo!";
-    generator.generateWholeFrame(new TextFrame().setPayload(msg1),initialPacket);
-    generator.generateWholeFrame(new TextFrame().setPayload(msg2),initialPacket);
+    TextFrame frame1=new TextFrame().setPayload(msg1);
+    TextFrame frame2=new TextFrame().setPayload(msg2);
+    byte mask[]=new byte[]{0x11,0x22,0x33,0x44};
+    frame1.setMask(mask);
+    frame2.setMask(mask);
+    generator.generateWholeFrame(frame1,initialPacket);
+    generator.generateWholeFrame(frame2,initialPacket);
     BufferUtil.flipToFlush(initialPacket,0);
     client.writeRaw(initialPacket);
     client.expectUpgradeResponse();

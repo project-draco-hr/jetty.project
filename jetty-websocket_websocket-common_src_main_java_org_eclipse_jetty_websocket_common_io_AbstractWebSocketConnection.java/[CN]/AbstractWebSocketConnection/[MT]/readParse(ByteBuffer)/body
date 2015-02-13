@@ -1,22 +1,36 @@
 {
   EndPoint endPoint=getEndPoint();
   try {
+    while (BufferUtil.hasContent(prefillBuffer)) {
+      if (BufferUtil.hasContent(prefillBuffer)) {
+        int pos=BufferUtil.flipToFill(buffer);
+        int size=BufferUtil.put(prefillBuffer,buffer);
+        BufferUtil.flipToFlush(buffer,pos);
+        if (LOG.isDebugEnabled()) {
+          LOG.debug("Filled {} bytes of Upgrade prefill buffer for parse ({} remaining)",size,prefillBuffer.remaining());
+        }
+        if (!prefillBuffer.hasRemaining()) {
+          prefillBuffer=null;
+        }
+      }
+      if (buffer.hasRemaining()) {
+        parser.parse(buffer);
+      }
+    }
     while (true) {
       int filled=endPoint.fill(buffer);
-      if (filled == 0) {
-        return ReadMode.PARSE;
-      }
- else       if (filled < 0) {
+      if (filled < 0) {
         LOG.debug("read - EOF Reached (remote: {})",getRemoteAddress());
         ioState.onReadFailure(new EOFException("Remote Read EOF"));
         return ReadMode.EOF;
       }
- else {
-        if (LOG.isDebugEnabled()) {
-          LOG.debug("Filled {} bytes - {}",filled,BufferUtil.toDetailString(buffer));
-        }
-        parser.parse(buffer);
+ else       if (filled == 0) {
+        return ReadMode.PARSE;
       }
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("Filled {} bytes - {}",filled,BufferUtil.toDetailString(buffer));
+      }
+      parser.parse(buffer);
     }
   }
  catch (  IOException e) {
