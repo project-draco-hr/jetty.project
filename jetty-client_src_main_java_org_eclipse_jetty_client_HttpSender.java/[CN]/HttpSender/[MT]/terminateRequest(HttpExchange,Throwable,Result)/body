@@ -1,13 +1,13 @@
 {
   Request request=exchange.getRequest();
   if (LOG.isDebugEnabled())   LOG.debug("Terminating request {}",request);
-  if (failure != null && !committed && result == null && request.getAbortCause() == null) {
-    if (exchange.responseComplete()) {
-      result=exchange.terminateResponse(failure);
-      if (LOG.isDebugEnabled())       LOG.debug("Failed response from request {}",exchange);
+  if (result == null) {
+    if (failure != null) {
+      if (LOG.isDebugEnabled())       LOG.debug("Response failure from request {}",exchange);
+      getHttpChannel().abortResponse(failure);
     }
   }
-  if (result != null) {
+ else {
     HttpDestination destination=getHttpChannel().getHttpDestination();
     boolean ordered=destination.getHttpClient().isStrictEventOrdering();
     if (!ordered)     channel.exchangeTerminated(result);
