@@ -1,0 +1,43 @@
+{
+  startServer(new EmptyServerHandler());
+  final AtomicReference<HttpConnectionOverHTTP> connectionRef=new AtomicReference<>();
+  client=new HttpClient(new HttpClientTransportOverHTTP(){
+    @Override protected HttpConnectionOverHTTP newHttpConnection(    EndPoint endPoint,    HttpDestination destination){
+      HttpConnectionOverHTTP connection=super.newHttpConnection(endPoint,destination);
+      connectionRef.set(connection);
+      return connection;
+    }
+  }
+,null);
+  client.start();
+  final CountDownLatch commitLatch=new CountDownLatch(1);
+  final CountDownLatch completeLatch=new CountDownLatch(1);
+  DeferredContentProvider content=new DeferredContentProvider();
+  client.newRequest("localhost",connector.getLocalPort()).onRequestCommit(new Request.CommitListener(){
+    @Override public void onCommit(    Request request){
+      connectionRef.get().getEndPoint().close();
+      commitLatch.countDown();
+    }
+  }
+).content(content).idleTimeout(2,TimeUnit.SECONDS).send(new Response.CompleteListener(){
+    @Override public void onComplete(    Result result){
+      if (result.isFailed())       completeLatch.countDown();
+    }
+  }
+);
+  Assert.assertTrue(commitLatch.await(5,TimeUnit.SECONDS));
+  final CountDownLatch contentLatch=new CountDownLatch(1);
+  content.offer(ByteBuffer.allocate(1024),new Callback.Adapter(){
+    @Override public void failed(    Throwable x){
+      contentLatch.countDown();
+    }
+  }
+);
+  Assert.assertTrue(commitLatch.await(5,TimeUnit.SECONDS));
+  Assert.assertTrue(contentLatch.await(5,TimeUnit.SECONDS));
+  Assert.assertTrue(completeLatch.await(5,TimeUnit.SECONDS));
+  ConnectionPool connectionPool=connectionRef.get().getHttpDestination().getConnectionPool();
+  Assert.assertEquals(0,connectionPool.getConnectionCount());
+  Assert.assertEquals(0,connectionPool.getActiveConnections().size());
+  Assert.assertEquals(0,connectionPool.getIdleConnections().size());
+}
