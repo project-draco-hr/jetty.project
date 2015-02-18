@@ -1,0 +1,42 @@
+{
+  final CountDownLatch serverLatch=new CountDownLatch(1);
+  start(new ServerSessionListener.Adapter(){
+    @Override public Stream.Listener onNewStream(    final Stream stream,    HeadersFrame frame){
+      PushPromiseFrame pushFrame=new PushPromiseFrame(stream.getId(),0,newRequest("GET",new HttpFields()));
+      stream.push(pushFrame,new Promise.Adapter<Stream>(),new Stream.Listener.Adapter(){
+        @Override public void onReset(        Stream pushedStream,        ResetFrame frame){
+          Assert.assertTrue(pushedStream.isReset());
+          Assert.assertTrue(pushedStream.isClosed());
+          HeadersFrame response=new HeadersFrame(stream.getId(),new MetaData.Response(HttpVersion.HTTP_2,200,new HttpFields()),null,true);
+          stream.headers(response,Callback.Adapter.INSTANCE);
+          serverLatch.countDown();
+        }
+      }
+);
+      return null;
+    }
+  }
+);
+  Session session=newClient(new Session.Listener.Adapter());
+  HeadersFrame frame=new HeadersFrame(0,newRequest("GET",new HttpFields()),null,true);
+  final CountDownLatch clientLatch=new CountDownLatch(2);
+  session.newStream(frame,new Promise.Adapter<Stream>(),new Stream.Listener.Adapter(){
+    @Override public Stream.Listener onPush(    final Stream pushedStream,    PushPromiseFrame frame){
+      pushedStream.reset(new ResetFrame(pushedStream.getId(),ErrorCode.REFUSED_STREAM_ERROR.code),new Callback.Adapter(){
+        @Override public void succeeded(){
+          Assert.assertTrue(pushedStream.isReset());
+          Assert.assertTrue(pushedStream.isClosed());
+          clientLatch.countDown();
+        }
+      }
+);
+      return null;
+    }
+    @Override public void onHeaders(    Stream stream,    HeadersFrame frame){
+      clientLatch.countDown();
+    }
+  }
+);
+  Assert.assertTrue(serverLatch.await(5,TimeUnit.SECONDS));
+  Assert.assertTrue(clientLatch.await(5,TimeUnit.SECONDS));
+}

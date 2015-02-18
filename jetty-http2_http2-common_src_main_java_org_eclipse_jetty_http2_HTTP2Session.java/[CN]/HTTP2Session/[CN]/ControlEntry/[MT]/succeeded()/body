@@ -3,13 +3,13 @@ switch (frame.getType()) {
 case HEADERS:
 {
       HeadersFrame headersFrame=(HeadersFrame)frame;
-      stream.updateClose(headersFrame.isEndStream(),true);
-      if (stream.isClosed())       removeStream(stream,true);
+      if (stream.updateClose(headersFrame.isEndStream(),true))       removeStream(stream,true);
       break;
     }
 case RST_STREAM:
 {
-    if (stream != null)     removeStream(stream,true);
+    stream.close();
+    removeStream(stream,true);
     break;
   }
 case SETTINGS:
@@ -18,6 +18,11 @@ case SETTINGS:
   Integer initialWindow=settingsFrame.getSettings().get(SettingsFrame.INITIAL_WINDOW_SIZE);
   if (initialWindow != null)   flowControl.updateInitialStreamWindow(HTTP2Session.this,initialWindow,true);
   break;
+}
+case PUSH_PROMISE:
+{
+stream.updateClose(true,false);
+break;
 }
 case GO_AWAY:
 {

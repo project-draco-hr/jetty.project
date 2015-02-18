@@ -1,0 +1,27 @@
+{
+  final CountDownLatch latch=new CountDownLatch(1);
+  final List<Stream> streams=new ArrayList<>();
+  start(new ServerSessionListener.Adapter(){
+    @Override public Stream.Listener onNewStream(    Stream stream,    HeadersFrame frame){
+      streams.add(stream);
+      MetaData.Request request=(MetaData.Request)frame.getMetaData();
+      if ("GET".equals(request.getMethod())) {
+        ((HTTP2Session)stream.getSession()).getEndPoint().close();
+        stream.data(new DataFrame(stream.getId(),ByteBuffer.allocate(1024),true),Callback.Adapter.INSTANCE);
+      }
+      return null;
+    }
+    @Override public void onFailure(    Session session,    Throwable failure){
+      Assert.assertEquals(0,session.getStreams().size());
+      for (      Stream stream : streams)       Assert.assertTrue(stream.isClosed());
+      latch.countDown();
+    }
+  }
+);
+  Session session=newClient(new Session.Listener.Adapter());
+  HeadersFrame request1=new HeadersFrame(0,newRequest("HEAD",new HttpFields()),null,true);
+  session.newStream(request1,new Promise.Adapter<Stream>(),new Stream.Listener.Adapter());
+  HeadersFrame request2=new HeadersFrame(0,newRequest("GET",new HttpFields()),null,true);
+  session.newStream(request2,new Promise.Adapter<Stream>(),new Stream.Listener.Adapter());
+  Assert.assertTrue(latch.await(5,TimeUnit.SECONDS));
+}

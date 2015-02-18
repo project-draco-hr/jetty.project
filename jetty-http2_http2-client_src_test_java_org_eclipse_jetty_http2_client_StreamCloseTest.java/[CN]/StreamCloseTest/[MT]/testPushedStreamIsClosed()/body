@@ -15,7 +15,7 @@
 );
         }
       }
-);
+,new Stream.Listener.Adapter());
       HeadersFrame response=new HeadersFrame(stream.getId(),new MetaData.Response(HttpVersion.HTTP_2,200,new HttpFields()),null,true);
       stream.headers(response,Callback.Adapter.INSTANCE);
       return null;
@@ -23,10 +23,9 @@
   }
 );
   Session session=newClient(new Session.Listener.Adapter());
-  HeadersFrame frame=new HeadersFrame(0,newRequest("GET",new HttpFields()),null,false);
-  Promise<Stream> promise=new Promise.Adapter<>();
+  HeadersFrame frame=new HeadersFrame(0,newRequest("GET",new HttpFields()),null,true);
   final CountDownLatch clientLatch=new CountDownLatch(1);
-  session.newStream(frame,promise,new Stream.Listener.Adapter(){
+  session.newStream(frame,new Promise.Adapter<Stream>(),new Stream.Listener.Adapter(){
     @Override public Stream.Listener onPush(    Stream pushedStream,    PushPromiseFrame frame){
       Assert.assertTrue(((HTTP2Stream)pushedStream).isLocallyClosed());
       return new Adapter(){
