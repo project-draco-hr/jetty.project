@@ -1,0 +1,19 @@
+{
+  try {
+    if (LOG.isDebugEnabled())     LOG.debug("Selector loop waiting on select");
+    int selected=_selector.select();
+    if (LOG.isDebugEnabled())     LOG.debug("Selector loop woken up from select, {}/{} selected",selected,_selector.keys().size());
+    try (SpinLock.Lock lock=_lock.lock()){
+      _state=State.PROCESSING;
+    }
+     _keys=_selector.selectedKeys();
+    _cursor=_keys.iterator();
+    return true;
+  }
+ catch (  Throwable x) {
+    closeNoExceptions(_selector);
+    if (isRunning())     LOG.warn(x);
+ else     LOG.debug(x);
+    return false;
+  }
+}

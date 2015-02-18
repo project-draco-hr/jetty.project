@@ -6,8 +6,13 @@
     if (connected) {
       connect.timeout.cancel();
       key.interestOps(0);
-      EndPoint endpoint=createEndPoint(channel,key);
-      key.attach(endpoint);
+      return new CreateEndPoint(channel,key){
+        @Override protected void failed(        Throwable failure){
+          super.failed(failure);
+          connect.failed(failure);
+        }
+      }
+;
     }
  else {
       throw new ConnectException();
@@ -15,5 +20,6 @@
   }
  catch (  Throwable x) {
     connect.failed(x);
+    return null;
   }
 }

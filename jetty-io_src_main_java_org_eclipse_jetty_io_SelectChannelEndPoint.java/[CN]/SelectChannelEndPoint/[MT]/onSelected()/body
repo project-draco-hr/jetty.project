@@ -18,12 +18,18 @@ case UPDATED:
   finally {
           _interestState.set(State.UPDATE_PENDING);
         }
-        if ((readyOps & SelectionKey.OP_READ) != 0) {
-          if ((readyOps & SelectionKey.OP_WRITE) != 0)           return _runFillableCompleteWrite;
+        boolean readable=(readyOps & SelectionKey.OP_READ) != 0;
+        boolean writable=(readyOps & SelectionKey.OP_WRITE) != 0;
+        if (readable) {
+          if (writable)           return _runFillableCompleteWrite;
           return _runFillable;
         }
-        if ((readyOps & SelectionKey.OP_WRITE) != 0)         return _runCompleteWrite;
-        return null;
+ else         if (writable) {
+          return _runCompleteWrite;
+        }
+ else {
+          return null;
+        }
       }
 case LOCKED:
 {

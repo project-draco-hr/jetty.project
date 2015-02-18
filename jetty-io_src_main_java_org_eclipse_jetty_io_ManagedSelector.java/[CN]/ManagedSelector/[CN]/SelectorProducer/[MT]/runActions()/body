@@ -1,0 +1,14 @@
+{
+  while (true) {
+    Runnable action;
+    try (SpinLock.Lock lock=_lock.lock()){
+      action=_actions.poll();
+      if (action == null) {
+        _state=State.SELECTING;
+        return null;
+      }
+    }
+     if (action instanceof Product)     return action;
+    runChange(action);
+  }
+}

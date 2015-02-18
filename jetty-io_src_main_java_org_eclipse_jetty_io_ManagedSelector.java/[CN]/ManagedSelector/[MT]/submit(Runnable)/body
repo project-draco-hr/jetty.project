@@ -1,24 +1,10 @@
 {
   if (LOG.isDebugEnabled())   LOG.debug("Queued change {}",change);
-  out:   while (true) {
-    State state=_state.get();
-switch (state) {
-case PROCESSING:
-      if (!_state.compareAndSet(State.PROCESSING,State.LOCKED))       continue;
-    _addChanges.add(change);
-  _state.set(State.PROCESSING);
-break out;
-case SELECTING:
-if (!_state.compareAndSet(State.SELECTING,State.LOCKED)) continue;
-_addChanges.add(change);
-_selector.wakeup();
-_state.set(State.PROCESSING);
-break out;
-case LOCKED:
-Thread.yield();
-continue;
-default :
-throw new IllegalStateException();
-}
-}
-}
+  try (SpinLock.Lock lock=_lock.lock()){
+    _actions.offer(change);
+    if (_state == State.SELECTING) {
+      _selector.wakeup();
+      _state=State.PROCESSING;
+    }
+  }
+ }
