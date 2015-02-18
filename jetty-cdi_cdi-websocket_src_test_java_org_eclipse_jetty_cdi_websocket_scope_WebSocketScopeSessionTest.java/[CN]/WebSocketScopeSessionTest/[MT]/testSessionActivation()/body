@@ -1,0 +1,19 @@
+{
+  ScopedInstance<WebSocketScopeContext> wsScopeBean=newInstance(WebSocketScopeContext.class);
+  WebSocketScopeContext wsScope=wsScopeBean.instance;
+  wsScope.create();
+  try {
+    wsScope.begin();
+    BogusSession sess=new BogusSession("1");
+    wsScope.setSession(sess);
+    ScopedInstance<BogusSocket> sock1Bean=newInstance(BogusSocket.class);
+    BogusSocket sock1=sock1Bean.instance;
+    assertThat("Socket 1 Session",sock1.getSession(),sameInstance((Session)sess));
+    sock1Bean.destroy();
+  }
+  finally {
+    wsScope.end();
+  }
+  wsScope.destroy();
+  wsScopeBean.destroy();
+}
