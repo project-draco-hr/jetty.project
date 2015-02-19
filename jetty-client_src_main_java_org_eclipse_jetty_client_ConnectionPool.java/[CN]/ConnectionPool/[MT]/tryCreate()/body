@@ -11,13 +11,13 @@
       destination.newConnection(new Promise<Connection>(){
         @Override public void succeeded(        Connection connection){
           if (LOG.isDebugEnabled())           LOG.debug("Connection {}/{} creation succeeded {}",next,maxConnections,connection);
-          if (activate(connection))           connectionPromise.succeeded(connection);
- else           connectionPromise.failed(new IllegalStateException("Active connection overflow"));
+          idle(connection,true);
+          requester.succeeded();
         }
         @Override public void failed(        Throwable x){
           if (LOG.isDebugEnabled())           LOG.debug("Connection " + next + "/"+ maxConnections+ " creation failed",x);
           connectionCount.decrementAndGet();
-          connectionPromise.failed(x);
+          requester.failed(x);
         }
       }
 );
