@@ -1,33 +1,13 @@
 {
-  while (true) {
-    State current=_interestState.get();
-    if (LOG.isDebugEnabled())     LOG.debug("Changing interests in state {} for {}",current,this);
-switch (current) {
-case UPDATE_PENDING:
-case UPDATED:
-{
-        if (!_interestState.compareAndSet(current,State.LOCKED))         continue;
-        try {
-          int oldInterestOps=_interestOps;
-          int newInterestOps=oldInterestOps | operation;
-          if (LOG.isDebugEnabled())           LOG.debug("changeInterests s={} {}->{} for {}",current,oldInterestOps,newInterestOps,this);
-          if (newInterestOps != oldInterestOps)           _interestOps=newInterestOps;
-          if (current == State.UPDATED)           _selector.submit(_runUpdateKey);
-        }
-  finally {
-          _interestState.set(State.UPDATE_PENDING);
-        }
-        return;
-      }
-case LOCKED:
-{
-      Thread.yield();
-      break;
-    }
-default :
-{
-    throw new IllegalStateException("Invalid state: " + current);
+  int oldInterestOps;
+  int newInterestOps;
+  boolean pending;
+  try (SpinLock.Lock lock=_lock.lock()){
+    pending=_updatePending;
+    oldInterestOps=_interestOps;
+    newInterestOps=oldInterestOps | operation;
+    if (newInterestOps != oldInterestOps)     _interestOps=newInterestOps;
   }
-}
-}
+   if (LOG.isDebugEnabled())   LOG.debug("changeInterests p={} {}->{} for {}",pending,oldInterestOps,newInterestOps,this);
+  if (!pending)   _selector.submit(_runUpdateKey);
 }

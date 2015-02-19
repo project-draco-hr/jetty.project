@@ -1,0 +1,12 @@
+{
+  List<EndPoint> end_points=new ArrayList<EndPoint>();
+  for (  SelectionKey key : _selector.keys()) {
+    if (key.isValid()) {
+      Object attachment=key.attachment();
+      if (attachment instanceof EndPoint)       end_points.add((EndPoint)attachment);
+    }
+  }
+  _allClosed=new CountDownLatch(end_points.size());
+  _latch.countDown();
+  for (  EndPoint endp : end_points)   submit(new EndPointCloser(endp,_allClosed));
+}

@@ -1,45 +1,16 @@
 {
-  while (true) {
-    State current=_interestState.get();
-    if (LOG.isDebugEnabled())     LOG.debug("Processing, state {} for {}",current,this);
-switch (current) {
-case UPDATE_PENDING:
-case UPDATED:
-{
-        if (!_interestState.compareAndSet(current,State.LOCKED))         continue;
-        int readyOps;
-        try {
-          readyOps=_key.readyOps();
-          int oldInterestOps=_interestOps;
-          int newInterestOps=oldInterestOps & ~readyOps;
-          _interestOps=newInterestOps;
-          if (LOG.isDebugEnabled())           LOG.debug("onSelected {}->{} for {}",oldInterestOps,newInterestOps,this);
-        }
-  finally {
-          _interestState.set(State.UPDATE_PENDING);
-        }
-        boolean readable=(readyOps & SelectionKey.OP_READ) != 0;
-        boolean writable=(readyOps & SelectionKey.OP_WRITE) != 0;
-        if (readable) {
-          if (writable)           return _runFillableCompleteWrite;
-          return _runFillable;
-        }
- else         if (writable) {
-          return _runCompleteWrite;
-        }
- else {
-          return null;
-        }
-      }
-case LOCKED:
-{
-      Thread.yield();
-      break;
-    }
-default :
-{
-    throw new IllegalStateException("Invalid state: " + current);
+  int readyOps;
+  int oldInterestOps;
+  int newInterestOps;
+  try (SpinLock.Lock lock=_lock.lock()){
+    _updatePending=true;
+    readyOps=_key.readyOps();
+    oldInterestOps=_interestOps;
+    newInterestOps=oldInterestOps & ~readyOps;
+    _interestOps=newInterestOps;
   }
-}
-}
+   if (LOG.isDebugEnabled())   LOG.debug("onSelected {}->{} for {}",oldInterestOps,newInterestOps,this);
+  boolean readable=(readyOps & SelectionKey.OP_READ) != 0;
+  boolean writable=(readyOps & SelectionKey.OP_WRITE) != 0;
+  return readable ? (writable ? _runFillableCompleteWrite : _runFillable) : (writable ? _runCompleteWrite : null);
 }
