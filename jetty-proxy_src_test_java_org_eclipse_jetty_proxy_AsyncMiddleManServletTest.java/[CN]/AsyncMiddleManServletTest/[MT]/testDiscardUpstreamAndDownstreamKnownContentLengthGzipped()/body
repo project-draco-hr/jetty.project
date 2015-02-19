@@ -2,7 +2,9 @@
   final byte[] bytes="ABCDEFGHIJKLMNOPQRSTUVWXYZ".getBytes(StandardCharsets.UTF_8);
   startServer(new HttpServlet(){
     @Override protected void service(    HttpServletRequest request,    HttpServletResponse response) throws ServletException, IOException {
-      Assert.assertEquals(-1,request.getInputStream().read());
+      ByteArrayOutputStream bos=new ByteArrayOutputStream();
+      IO.copy(new GZIPInputStream(request.getInputStream()),bos);
+      Assert.assertEquals(0,bos.toByteArray().length);
       response.setHeader(HttpHeader.CONTENT_ENCODING.asString(),"gzip");
       response.getOutputStream().write(gzip(bytes));
     }
