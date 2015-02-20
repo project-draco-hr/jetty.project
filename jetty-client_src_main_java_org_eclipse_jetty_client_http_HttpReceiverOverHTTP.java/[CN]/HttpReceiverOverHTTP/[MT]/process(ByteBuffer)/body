@@ -2,16 +2,15 @@
   try {
     HttpConnectionOverHTTP connection=getHttpConnection();
     EndPoint endPoint=connection.getEndPoint();
-    boolean looping=false;
     while (true) {
       if (connection.isClosed()) {
         if (LOG.isDebugEnabled())         LOG.debug("{} closed",connection);
         releaseBuffer(buffer);
         return;
       }
-      if (!looping && !parse(buffer))       return;
+      if (!parse(buffer))       return;
       int read=endPoint.fill(buffer);
-      if (LOG.isDebugEnabled())       LOG.debug("Read {} bytes from {}",read,endPoint);
+      if (LOG.isDebugEnabled())       LOG.debug("Read {} bytes {} from {}",read,BufferUtil.toDetailString(buffer),endPoint);
       if (read > 0) {
         if (!parse(buffer))         return;
       }
@@ -25,7 +24,6 @@
         shutdown();
         return;
       }
-      looping=true;
     }
   }
  catch (  Throwable x) {

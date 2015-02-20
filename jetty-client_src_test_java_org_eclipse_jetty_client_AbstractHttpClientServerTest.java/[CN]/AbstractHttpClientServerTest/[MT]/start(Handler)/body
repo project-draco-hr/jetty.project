@@ -6,14 +6,14 @@
     sslContextFactory.setTrustStorePath("src/test/resources/truststore.jks");
     sslContextFactory.setTrustStorePassword("storepwd");
   }
-  if (server == null)   server=new Server();
+  if (server == null) {
+    QueuedThreadPool serverThreads=new QueuedThreadPool();
+    serverThreads.setName("server");
+    server=new Server(serverThreads);
+  }
   connector=new ServerConnector(server,sslContextFactory);
   server.addConnector(connector);
   server.setHandler(handler);
   server.start();
-  QueuedThreadPool executor=new QueuedThreadPool();
-  executor.setName(executor.getName() + "-client");
-  client=new HttpClient(sslContextFactory);
-  client.setExecutor(executor);
-  client.start();
+  startClient();
 }
