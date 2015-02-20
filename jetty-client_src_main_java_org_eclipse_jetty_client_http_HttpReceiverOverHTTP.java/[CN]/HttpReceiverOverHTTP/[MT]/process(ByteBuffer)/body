@@ -1,0 +1,34 @@
+{
+  try {
+    HttpConnectionOverHTTP connection=getHttpConnection();
+    EndPoint endPoint=connection.getEndPoint();
+    while (true) {
+      if (connection.isClosed()) {
+        if (LOG.isDebugEnabled())         LOG.debug("{} closed",connection);
+        releaseBuffer(buffer);
+        return;
+      }
+      if (!parse(buffer))       return;
+      int read=endPoint.fill(buffer);
+      if (LOG.isDebugEnabled())       LOG.debug("Read {} bytes {} from {}",read,BufferUtil.toDetailString(buffer),endPoint);
+      if (read > 0) {
+        if (!parse(buffer))         return;
+      }
+ else       if (read == 0) {
+        releaseBuffer(buffer);
+        fillInterested();
+        return;
+      }
+ else {
+        releaseBuffer(buffer);
+        shutdown();
+        return;
+      }
+    }
+  }
+ catch (  Throwable x) {
+    if (LOG.isDebugEnabled())     LOG.debug(x);
+    releaseBuffer(buffer);
+    failAndClose(x);
+  }
+}
