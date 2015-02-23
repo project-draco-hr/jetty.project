@@ -1,5 +1,4 @@
 {
-  if (!Thread.holdsLock(_inputQ))   throw new IllegalStateException();
   Content content=_inputQ.peekUnsafe();
   while (content != null && remaining(content) == 0) {
     _inputQ.pollUnsafe();
@@ -9,7 +8,9 @@
       if (_listener == null)       _state=EOF;
  else {
         _state=AEOF;
-        onReadPossible();
+        _channelState.onReadUnready();
+        boolean woken=_channelState.onReadPossible();
+        if (woken)         wake();
       }
     }
  else     if (content == EARLY_EOF_CONTENT)     _state=EARLY_EOF;

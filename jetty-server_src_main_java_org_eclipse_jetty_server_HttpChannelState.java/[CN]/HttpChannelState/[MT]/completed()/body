@@ -1,7 +1,7 @@
 {
   final List<AsyncListener> aListeners;
   final AsyncContextEvent event;
-synchronized (this) {
+  try (SpinLock.Lock lock=_lock.lock()){
 switch (_state) {
 case COMPLETING:
       _state=State.COMPLETED;
@@ -12,7 +12,7 @@ default :
 throw new IllegalStateException(this.getStatusString());
 }
 }
-if (event != null) {
+ if (event != null) {
 if (aListeners != null) {
 if (event.getThrowable() != null) {
 event.getSuppliedRequest().setAttribute(RequestDispatcher.ERROR_EXCEPTION,event.getThrowable());

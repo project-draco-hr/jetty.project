@@ -1,6 +1,6 @@
 {
   boolean dispatch;
-synchronized (this) {
+  try (SpinLock.Lock lock=_lock.lock()){
     if (_async != Async.STARTED && _async != Async.EXPIRING)     throw new IllegalStateException("AsyncContext#dispath " + this.getStatusString());
     _async=Async.DISPATCH;
     if (context != null)     _event.setDispatchContext(context);
@@ -23,6 +23,6 @@ dispatch=false;
 break;
 }
 }
-cancelTimeout();
+ cancelTimeout();
 if (dispatch) scheduleDispatch();
 }

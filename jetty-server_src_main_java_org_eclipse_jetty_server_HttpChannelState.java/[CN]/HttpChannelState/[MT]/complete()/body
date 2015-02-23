@@ -1,6 +1,6 @@
 {
   boolean handle=false;
-synchronized (this) {
+  try (SpinLock.Lock lock=_lock.lock()){
     if (_async != Async.STARTED && _async != Async.EXPIRING)     throw new IllegalStateException(this.getStatusString());
     _async=Async.COMPLETE;
     if (_state == State.ASYNC_WAIT) {
@@ -8,7 +8,7 @@ synchronized (this) {
       _state=State.ASYNC_WOKEN;
     }
   }
-  cancelTimeout();
+   cancelTimeout();
   if (handle) {
     ContextHandler handler=getContextHandler();
     if (handler != null)     handler.handle(_channel);

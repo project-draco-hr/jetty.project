@@ -1,13 +1,13 @@
 {
   final List<AsyncListener> aListeners;
   AsyncContextEvent event;
-synchronized (this) {
+  try (SpinLock.Lock lock=_lock.lock()){
     if (_async != Async.STARTED)     return;
     _async=Async.EXPIRING;
     event=_event;
     aListeners=_asyncListeners;
   }
-  if (aListeners != null) {
+   if (aListeners != null) {
     for (    AsyncListener listener : aListeners) {
       try {
         listener.onTimeout(event);
@@ -21,7 +21,7 @@ synchronized (this) {
     }
   }
   boolean dispatch=false;
-synchronized (this) {
+  try (SpinLock.Lock lock=_lock.lock()){
     if (_async == Async.EXPIRING) {
       _async=Async.EXPIRED;
       if (_state == State.ASYNC_WAIT) {
@@ -30,5 +30,5 @@ synchronized (this) {
       }
     }
   }
-  if (dispatch)   scheduleDispatch();
+   if (dispatch)   scheduleDispatch();
 }

@@ -1,11 +1,11 @@
 {
-  boolean handle=false;
-synchronized (this) {
-    _asyncRead=true;
-    if (_state == State.ASYNC_WAIT) {
+  boolean woken=false;
+  try (SpinLock.Lock lock=_lock.lock()){
+    _asyncReadPossible=true;
+    if (_state == State.ASYNC_WAIT && _asyncReadUnready) {
+      woken=true;
       _state=State.ASYNC_WOKEN;
-      handle=true;
     }
   }
-  if (handle)   _channel.execute(_channel);
+   return woken;
 }

@@ -1,13 +1,13 @@
 {
   final List<AsyncListener> lastAsyncListeners;
-synchronized (this) {
+  try (SpinLock.Lock lock=_lock.lock()){
     if (_state != State.DISPATCHED || _async != null)     throw new IllegalStateException(this.getStatusString());
     _async=Async.STARTED;
     _event=event;
     lastAsyncListeners=_asyncListeners;
     _asyncListeners=null;
   }
-  if (lastAsyncListeners != null) {
+   if (lastAsyncListeners != null) {
     for (    AsyncListener listener : lastAsyncListeners) {
       try {
         listener.onStartAsync(event);

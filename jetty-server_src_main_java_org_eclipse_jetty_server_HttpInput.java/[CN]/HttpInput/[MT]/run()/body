@@ -8,21 +8,25 @@ synchronized (_inputQ) {
       _state=EOF;
       aeof=true;
     }
- else     if (!_unready)     return;
     listener=_listener;
     error=_state instanceof ErrorState ? ((ErrorState)_state).getError() : null;
-    _unready=false;
   }
   try {
-    if (aeof)     listener.onAllDataRead();
+    if (error != null) {
+      _channelState.getHttpChannel().getResponse().getHttpFields().add(HttpConnection.CONNECTION_CLOSE);
+      listener.onError(error);
+    }
+ else     if (aeof)     listener.onAllDataRead();
  else     if (error == null)     listener.onDataAvailable();
- else     listener.onError(error);
   }
  catch (  Throwable e) {
     LOG.warn(e.toString());
     LOG.debug(e);
     try {
-      if (aeof || error == null)       listener.onError(e);
+      if (aeof || error == null) {
+        _channelState.getHttpChannel().getResponse().getHttpFields().add(HttpConnection.CONNECTION_CLOSE);
+        listener.onError(e);
+      }
     }
  catch (    Throwable e2) {
       LOG.warn(e2.toString());

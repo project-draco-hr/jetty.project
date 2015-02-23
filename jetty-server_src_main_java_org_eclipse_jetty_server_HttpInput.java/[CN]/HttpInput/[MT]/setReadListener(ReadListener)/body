@@ -6,13 +6,13 @@ synchronized (_inputQ) {
       if (_state != STREAM)       throw new IllegalStateException("state=" + _state);
       _state=ASYNC;
       _listener=readListener;
-      _unready=true;
+      _channelState.onReadUnready();
       content=nextContent() != null;
     }
   }
  catch (  IOException e) {
     throw new RuntimeIOException(e);
   }
-  if (content)   onReadPossible();
- else   unready();
+  boolean woken=content && _channelState.onReadPossible();
+  if (woken)   throw new IllegalStateException("How do we wake?");
 }

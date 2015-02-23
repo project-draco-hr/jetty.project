@@ -1,8 +1,20 @@
 {
-  _in=new HttpInput(){
-    @Override protected void onReadPossible(){
-      _history.add("onReadPossible");
+  _in=new HttpInput(new HttpChannelState(new HttpChannel(null,new HttpConfiguration(),null,null){
+    @Override public void asyncReadFillInterested(){
+      _history.add("asyncReadFillInterested");
     }
+  }
+){
+    @Override public void onReadUnready(){
+      _history.add("unready");
+      super.onReadUnready();
+    }
+    @Override public boolean onReadPossible(){
+      _history.add("onReadPossible");
+      return super.onReadPossible();
+    }
+  }
+){
     @Override protected void produceContent() throws IOException {
       _history.add("produceContent " + _fillAndParseSimulate.size());
       for (String s=_fillAndParseSimulate.poll(); s != null; s=_fillAndParseSimulate.poll()) {
@@ -13,9 +25,6 @@
     @Override protected void blockForContent() throws IOException {
       _history.add("blockForContent");
       super.blockForContent();
-    }
-    @Override protected void unready(){
-      _history.add("unready");
     }
   }
 ;

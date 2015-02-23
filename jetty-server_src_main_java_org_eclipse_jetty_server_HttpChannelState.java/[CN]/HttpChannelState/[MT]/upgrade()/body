@@ -1,5 +1,6 @@
 {
-synchronized (this) {
+  cancelTimeout();
+  try (SpinLock.Lock lock=_lock.lock()){
 switch (_state) {
 case IDLE:
 case COMPLETED:
@@ -11,10 +12,9 @@ _asyncListeners=null;
 _state=State.UPGRADED;
 _async=null;
 _initial=true;
-_asyncRead=false;
+_asyncReadPossible=_asyncReadUnready=false;
 _asyncWrite=false;
 _timeoutMs=DEFAULT_TIMEOUT;
-cancelTimeout();
 _event=null;
 }
-}
+ }

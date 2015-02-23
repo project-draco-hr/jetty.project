@@ -1,4 +1,6 @@
 {
+  int available=0;
+  boolean woken=false;
 synchronized (_inputQ) {
     Content content=_inputQ.peekUnsafe();
     if (content == null) {
@@ -6,11 +8,12 @@ synchronized (_inputQ) {
         produceContent();
       }
  catch (      IOException e) {
-        failed(e);
+        woken=failed(e);
       }
       content=_inputQ.peekUnsafe();
     }
-    if (content != null)     return remaining(content);
-    return 0;
+    if (content != null)     available=remaining(content);
   }
+  if (woken)   wake();
+  return available;
 }

@@ -1,13 +1,13 @@
 {
-  boolean call_on_read_possible=false;
+  boolean woken=false;
 synchronized (_inputQ) {
     boolean wasEmpty=_inputQ.isEmpty();
     _inputQ.add(item);
-    if (LOG.isDebugEnabled())     LOG.debug("{} queued {}",this,item);
+    if (LOG.isDebugEnabled())     LOG.debug("{} addContent {}",this,item);
     if (wasEmpty) {
       if (_listener == null)       _inputQ.notify();
- else       call_on_read_possible=_unready;
+ else       woken=_channelState.onReadPossible();
     }
   }
-  if (call_on_read_possible)   onReadPossible();
+  return woken;
 }

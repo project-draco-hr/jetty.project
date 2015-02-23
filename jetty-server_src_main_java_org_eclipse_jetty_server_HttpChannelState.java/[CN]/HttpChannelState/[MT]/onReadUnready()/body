@@ -1,0 +1,11 @@
+{
+  boolean interested=false;
+  try (SpinLock.Lock lock=_lock.lock()){
+    if (!_asyncReadUnready) {
+      _asyncReadUnready=true;
+      _asyncReadPossible=false;
+      if (_state == State.ASYNC_WAIT)       interested=true;
+    }
+  }
+   if (interested)   _channel.asyncReadFillInterested();
+}

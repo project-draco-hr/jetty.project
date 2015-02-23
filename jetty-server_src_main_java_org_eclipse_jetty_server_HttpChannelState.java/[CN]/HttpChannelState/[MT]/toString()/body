@@ -1,5 +1,5 @@
 {
-synchronized (this) {
-    return String.format("%s@%x{s=%s i=%b a=%s}",getClass().getSimpleName(),hashCode(),_state,_initial,_async);
+  try (SpinLock.Lock lock=_lock.lock()){
+    return String.format("%s@%x{s=%s a=%s i=%b r=%s w=%b}",getClass().getSimpleName(),hashCode(),_state,_async,_initial,_asyncReadPossible ? (_asyncReadUnready ? "PU" : "P!U") : (_asyncReadUnready ? "!PU" : "!P!U"),_asyncWrite);
   }
-}
+ }

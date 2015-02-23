@@ -1,6 +1,9 @@
 {
-synchronized (this) {
-    if (DEBUG)     LOG.debug("{} unhandle {}",this,_state);
+  Action action;
+  boolean schedule_timeout=false;
+  boolean read_interested=false;
+  if (DEBUG)   LOG.debug("{} unhandle {}",this,_state);
+  try (SpinLock.Lock lock=_lock.lock()){
 switch (_state) {
 case DISPATCHED:
 case ASYNC_IO:
@@ -14,36 +17,53 @@ switch (_async) {
 case COMPLETE:
     _state=State.COMPLETING;
   _async=null;
-return Action.COMPLETE;
+action=Action.COMPLETE;
+break;
 case DISPATCH:
 _state=State.DISPATCHED;
 _async=null;
-return Action.ASYNC_DISPATCH;
+action=Action.ASYNC_DISPATCH;
+break;
 case EXPIRED:
 _state=State.DISPATCHED;
 _async=null;
-return Action.ASYNC_EXPIRED;
+action=Action.ASYNC_EXPIRED;
+break;
 case STARTED:
-if (_asyncRead) {
+if (_asyncReadUnready && _asyncReadPossible) {
 _state=State.ASYNC_IO;
-_asyncRead=false;
-return Action.READ_CALLBACK;
+_asyncReadUnready=false;
+action=Action.READ_CALLBACK;
 }
-if (_asyncWrite) {
+ else if (_asyncWrite) {
 _asyncWrite=false;
 _state=State.ASYNC_IO;
-return Action.WRITE_CALLBACK;
+action=Action.WRITE_CALLBACK;
 }
-scheduleTimeout();
+ else {
+schedule_timeout=true;
+read_interested=_asyncReadUnready;
 _state=State.ASYNC_WAIT;
-return Action.WAIT;
+action=Action.WAIT;
+}
+break;
 case EXPIRING:
-scheduleTimeout();
+schedule_timeout=true;
 _state=State.ASYNC_WAIT;
-return Action.WAIT;
-}
-}
+action=Action.WAIT;
+break;
+default :
 _state=State.COMPLETING;
-return Action.COMPLETE;
+action=Action.COMPLETE;
+break;
 }
+}
+ else {
+_state=State.COMPLETING;
+action=Action.COMPLETE;
+}
+}
+ if (schedule_timeout) scheduleTimeout();
+if (read_interested) _channel.asyncReadFillInterested();
+return action;
 }

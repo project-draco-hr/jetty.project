@@ -1,6 +1,6 @@
 {
-synchronized (this) {
-    if (DEBUG)     LOG.debug("{} handling {}",this,_state);
+  if (DEBUG)   LOG.debug("{} handling {}",this,_state);
+  try (SpinLock.Lock lock=_lock.lock()){
 switch (_state) {
 case IDLE:
       _initial=true;
@@ -11,9 +11,9 @@ return Action.COMPLETE;
 case COMPLETED:
 return Action.WAIT;
 case ASYNC_WOKEN:
-if (_asyncRead) {
+if (_asyncReadPossible) {
 _state=State.ASYNC_IO;
-_asyncRead=false;
+_asyncReadUnready=false;
 return Action.READ_CALLBACK;
 }
 if (_asyncWrite) {
@@ -38,7 +38,6 @@ _state=State.DISPATCHED;
 _async=null;
 return Action.ASYNC_EXPIRED;
 case STARTED:
-if (DEBUG) LOG.debug("TODO Fix this double dispatch",new IllegalStateException(this.getStatusString()));
 return Action.WAIT;
 }
 }
@@ -47,4 +46,4 @@ default :
 return Action.WAIT;
 }
 }
-}
+ }
