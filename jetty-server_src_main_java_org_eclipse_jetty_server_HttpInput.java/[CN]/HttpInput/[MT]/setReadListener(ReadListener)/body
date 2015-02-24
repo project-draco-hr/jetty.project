@@ -1,18 +1,18 @@
 {
   readListener=Objects.requireNonNull(readListener);
-  boolean content;
+  boolean woken=false;
   try {
 synchronized (_inputQ) {
       if (_state != STREAM)       throw new IllegalStateException("state=" + _state);
       _state=ASYNC;
       _listener=readListener;
-      _channelState.onReadUnready();
-      content=nextContent() != null;
+      boolean content=nextContent() != null;
+      if (content)       woken=_channelState.onReadReady();
+ else       _channelState.onReadUnready();
     }
   }
  catch (  IOException e) {
     throw new RuntimeIOException(e);
   }
-  boolean woken=content && _channelState.onReadPossible();
-  if (woken)   throw new IllegalStateException("How do we wake?");
+  if (woken)   wake();
 }
