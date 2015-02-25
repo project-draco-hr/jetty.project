@@ -1,0 +1,66 @@
+{
+  final Mode mode=Mode.valueOf(req.getParameter("mode"));
+  resp.setContentType("text/plain");
+  if (mode == Mode.BLOCKING) {
+    try {
+      String content=IO.toString(req.getInputStream());
+      resp.setStatus(200);
+      resp.setContentType("text/plain");
+      resp.getWriter().println("read=" + content.length());
+    }
+ catch (    Exception e) {
+      e.printStackTrace();
+      resp.setStatus(500);
+      resp.getWriter().println("read=" + e);
+    }
+  }
+ else {
+    final AsyncContext context=req.startAsync();
+    context.setTimeout(10000);
+    final ServletInputStream in=req.getInputStream();
+    final Request request=Request.getBaseRequest(req);
+    final AtomicInteger read=new AtomicInteger(0);
+    runmode(mode,request,new Runnable(){
+      @Override public void run(){
+        in.setReadListener(new ReadListener(){
+          @Override public void onError(          Throwable t){
+            t.printStackTrace();
+            try {
+              resp.sendError(500);
+            }
+ catch (            IOException e) {
+              e.printStackTrace();
+              throw new RuntimeException(e);
+            }
+            context.complete();
+          }
+          @Override public void onDataAvailable() throws IOException {
+            runmode(mode,request,new Runnable(){
+              @Override public void run(){
+                while (in.isReady() && !in.isFinished()) {
+                  try {
+                    int b=in.read();
+                    if (b < 0)                     return;
+                    read.incrementAndGet();
+                  }
+ catch (                  IOException e) {
+                    onError(e);
+                  }
+                }
+              }
+            }
+);
+          }
+          @Override public void onAllDataRead() throws IOException {
+            resp.setStatus(200);
+            resp.setContentType("text/plain");
+            resp.getWriter().println("read=" + read.get());
+            context.complete();
+          }
+        }
+);
+      }
+    }
+);
+  }
+}
