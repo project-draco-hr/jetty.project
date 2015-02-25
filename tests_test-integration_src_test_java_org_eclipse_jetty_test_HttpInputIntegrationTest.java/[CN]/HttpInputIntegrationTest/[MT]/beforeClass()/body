@@ -11,12 +11,8 @@
   __sslConfig=new HttpConfiguration(__config);
   __sslConfig.addCustomizer(new SecureRequestCustomizer());
   HttpConnectionFactory h1=new HttpConnectionFactory(__sslConfig);
-  HTTP2ServerConnectionFactory h2=new HTTP2ServerConnectionFactory(__sslConfig);
-  NegotiatingServerConnectionFactory.checkProtocolNegotiationAvailable();
-  ALPNServerConnectionFactory alpn=new ALPNServerConnectionFactory();
-  alpn.setDefaultProtocol(h1.getProtocol());
-  SslConnectionFactory ssl=new SslConnectionFactory(__sslContextFactory,alpn.getProtocol());
-  ServerConnector http2Connector=new ServerConnector(__server,ssl,alpn,h1,h2);
+  SslConnectionFactory ssl=new SslConnectionFactory(__sslContextFactory,h1.getProtocol());
+  ServerConnector http2Connector=new ServerConnector(__server,ssl,h1);
   http2Connector.setPort(8443);
   __server.addConnector(http2Connector);
   ServletContextHandler context=new ServletContextHandler(__server,"/ctx");
