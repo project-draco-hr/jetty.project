@@ -1,4 +1,7 @@
 {
-  if (_closed)   throw new ClosedChannelException();
-  if (BufferUtil.hasContent(_in) || _in == null)   execute(_runFillable);
-}
+  try (SpinLock.Lock lock=_lock.lock()){
+    if (_closed)     throw new ClosedChannelException();
+    ByteBuffer in=_inQ.peek();
+    if (BufferUtil.hasContent(in) || in == EOF)     execute(_runFillable);
+  }
+ }

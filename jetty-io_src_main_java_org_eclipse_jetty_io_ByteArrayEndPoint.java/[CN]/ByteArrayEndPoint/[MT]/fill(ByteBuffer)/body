@@ -1,8 +1,27 @@
 {
-  if (_closed)   throw new EofException("CLOSED");
-  if (_in == null)   shutdownInput();
-  if (_ishut)   return -1;
-  int filled=BufferUtil.append(buffer,_in);
+  int filled=0;
+  boolean close=false;
+  try (SpinLock.Lock lock=_lock.lock()){
+    while (true) {
+      if (_closed)       throw new EofException("CLOSED");
+      if (_ishut)       return -1;
+      if (_inQ.isEmpty())       break;
+      ByteBuffer in=_inQ.peek();
+      if (in == EOF) {
+        _ishut=true;
+        if (_oshut)         close=_closed=true;
+        filled=-1;
+        break;
+      }
+      if (BufferUtil.hasContent(in)) {
+        filled=BufferUtil.append(buffer,in);
+        if (BufferUtil.isEmpty(in))         _inQ.poll();
+        break;
+      }
+      _inQ.poll();
+    }
+  }
+   if (close)   super.close();
   if (filled > 0)   notIdle();
   return filled;
 }

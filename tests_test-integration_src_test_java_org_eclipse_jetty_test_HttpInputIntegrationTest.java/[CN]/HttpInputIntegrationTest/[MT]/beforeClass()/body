@@ -1,8 +1,12 @@
 {
   __config=new HttpConfiguration();
   __server=new Server();
-  __server.addConnector(new LocalConnector(__server,new HttpConnectionFactory(__config)));
-  __server.addConnector(new ServerConnector(__server,new HttpConnectionFactory(__config),new HTTP2CServerConnectionFactory(__config)));
+  LocalConnector local=new LocalConnector(__server,new HttpConnectionFactory(__config));
+  local.setIdleTimeout(4000);
+  __server.addConnector(local);
+  ServerConnector http=new ServerConnector(__server,new HttpConnectionFactory(__config),new HTTP2CServerConnectionFactory(__config));
+  http.setIdleTimeout(4000);
+  __server.addConnector(http);
   String jetty_distro=System.getProperty("jetty.distro","../../jetty-distribution/target/distribution");
   __sslContextFactory=new SslContextFactory();
   __sslContextFactory.setKeyStorePath(jetty_distro + "/etc/keystore");
@@ -12,8 +16,9 @@
   __sslConfig.addCustomizer(new SecureRequestCustomizer());
   HttpConnectionFactory h1=new HttpConnectionFactory(__sslConfig);
   SslConnectionFactory ssl=new SslConnectionFactory(__sslContextFactory,h1.getProtocol());
-  ServerConnector http2Connector=new ServerConnector(__server,ssl,h1);
-  __server.addConnector(http2Connector);
+  ServerConnector http2=new ServerConnector(__server,ssl,h1);
+  http2.setIdleTimeout(4000);
+  __server.addConnector(http2);
   ServletContextHandler context=new ServletContextHandler(__server,"/ctx");
   ServletHolder holder=new ServletHolder(new TestServlet());
   holder.setAsyncSupported(true);
