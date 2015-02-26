@@ -1,0 +1,35 @@
+{
+  System.err.printf("[%d] STRESS c=%s, m=%s, delayDispatch=%b delayInFrame=%s content-length:%d expect=%d read=%d content:%s%n",_id,_client.getSimpleName(),_mode,__config.isDelayDispatchUntilContent(),_delay,_length,_status,_read,_send);
+  int sum=0;
+  for (  String s : _send)   for (  char c : s.toCharArray())   sum+=c;
+  final int summation=sum;
+  final int threads=10;
+  final int loops=10;
+  final AtomicInteger count=new AtomicInteger(0);
+  Thread[] t=new Thread[threads];
+  Runnable run=new Runnable(){
+    @Override public void run(){
+      try {
+        TestClient client=_client.newInstance();
+        for (int j=0; j < loops; j++) {
+          String response=client.send("/ctx/test?mode=" + _mode,10,_delay,_length,_send);
+          assertThat(response,startsWith("HTTP"));
+          assertThat(response,Matchers.containsString(" " + _status + " "));
+          assertThat(response,Matchers.containsString("read=" + _read));
+          assertThat(response,Matchers.containsString("sum=" + summation));
+          count.incrementAndGet();
+        }
+      }
+ catch (      Exception e) {
+        e.printStackTrace();
+      }
+    }
+  }
+;
+  for (int i=0; i < threads; i++) {
+    t[i]=new Thread(run);
+    t[i].start();
+  }
+  for (int i=0; i < threads; i++)   t[i].join();
+  assertThat(count.get(),Matchers.is(threads * loops));
+}

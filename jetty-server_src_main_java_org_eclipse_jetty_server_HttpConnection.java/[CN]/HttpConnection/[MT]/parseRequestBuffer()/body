@@ -1,16 +1,7 @@
 {
   if (LOG.isDebugEnabled())   LOG.debug("{} parse {} {}",this,BufferUtil.toDetailString(_requestBuffer));
-  boolean buffer_had_content=BufferUtil.hasContent(_requestBuffer);
   boolean handle=_parser.parseNext(_requestBuffer == null ? BufferUtil.EMPTY_BUFFER : _requestBuffer);
   if (LOG.isDebugEnabled())   LOG.debug("{} parsed {} {}",this,handle,_parser);
-  if (buffer_had_content) {
-    if (BufferUtil.isEmpty(_requestBuffer)) {
-      if (_parser.inContentState())       _input.addContent(_recycleRequestBuffer);
- else       releaseRequestBuffer();
-    }
-  }
- else {
-    releaseRequestBuffer();
-  }
+  if (_contentBufferReferences.get() == 0)   releaseRequestBuffer();
   return handle;
 }

@@ -1,0 +1,34 @@
+{
+  LocalConnector connector=__server.getBean(LocalConnector.class);
+  StringBuilder buffer=new StringBuilder();
+  buffer.append("GET ").append(uri).append(" HTTP/1.1\r\n");
+  buffer.append("Host: localhost\r\n");
+  buffer.append("Connection: close\r\n");
+  LocalEndPoint local=connector.executeRequest("");
+  flush(local,buffer,delayMs,delayInFrame,true);
+  boolean chunked=contentLength < 0;
+  if (chunked)   buffer.append("Transfer-Encoding: chunked\r\n");
+ else   buffer.append("Content-Length: ").append(contentLength).append("\r\n");
+  if (contentLength > 0)   buffer.append("Content-Type: text/plain\r\n");
+  buffer.append("\r\n");
+  flush(local,buffer,delayMs,delayInFrame,false);
+  for (  String c : content) {
+    if (chunked) {
+      buffer.append("\r\n").append(Integer.toHexString(c.length())).append("\r\n");
+      flush(local,buffer,delayMs,delayInFrame,true);
+    }
+    buffer.append(c.substring(0,1));
+    flush(local,buffer,delayMs,delayInFrame,true);
+    buffer.append(c.substring(1));
+    if (chunked)     buffer.append("\r\n");
+    flush(local,buffer,delayMs,delayInFrame,false);
+  }
+  if (chunked) {
+    buffer.append("0");
+    flush(local,buffer,delayMs,delayInFrame,true);
+    buffer.append("\r\n\r\n");
+  }
+  flush(local,buffer);
+  local.waitUntilClosed();
+  return local.takeOutputString();
+}

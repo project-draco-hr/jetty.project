@@ -7,11 +7,15 @@
       resp.setStatus(200);
       resp.setContentType("text/plain");
       resp.getWriter().println("read=" + content.length());
+      int sum=0;
+      for (      char c : content.toCharArray())       sum+=c;
+      resp.getWriter().println("sum=" + sum);
     }
  catch (    Exception e) {
       e.printStackTrace();
       resp.setStatus(500);
       resp.getWriter().println("read=" + e);
+      resp.getWriter().println("sum=-1");
     }
   }
  else {
@@ -20,6 +24,7 @@
     final ServletInputStream in=req.getInputStream();
     final Request request=Request.getBaseRequest(req);
     final AtomicInteger read=new AtomicInteger(0);
+    final AtomicInteger sum=new AtomicInteger(0);
     runmode(mode,request,new Runnable(){
       @Override public void run(){
         in.setReadListener(new ReadListener(){
@@ -41,7 +46,13 @@
                   try {
                     int b=in.read();
                     if (b < 0)                     return;
-                    read.incrementAndGet();
+                    sum.addAndGet(b);
+                    int i=read.getAndIncrement();
+                    if (b != expected.charAt(i)) {
+                      System.err.printf("XXX '%c'!='%c' at %d%n",expected.charAt(i),(char)b,i);
+                      System.err.println("    " + request.getHttpChannel());
+                      System.err.println("    " + request.getHttpChannel().getHttpTransport());
+                    }
                   }
  catch (                  IOException e) {
                     onError(e);
@@ -55,6 +66,7 @@
             resp.setStatus(200);
             resp.setContentType("text/plain");
             resp.getWriter().println("read=" + read.get());
+            resp.getWriter().println("sum=" + sum.get());
             context.complete();
           }
         }
