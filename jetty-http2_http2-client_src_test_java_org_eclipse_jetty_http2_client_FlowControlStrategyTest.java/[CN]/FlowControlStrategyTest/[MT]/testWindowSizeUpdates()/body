@@ -1,0 +1,66 @@
+{
+  final CountDownLatch prefaceLatch=new CountDownLatch(1);
+  final CountDownLatch stream1Latch=new CountDownLatch(1);
+  final CountDownLatch stream2Latch=new CountDownLatch(1);
+  final CountDownLatch settingsLatch=new CountDownLatch(1);
+  start(new ServerSessionListener.Adapter(){
+    @Override public Map<Integer,Integer> onPreface(    Session session){
+      HTTP2Session serverSession=(HTTP2Session)session;
+      Assert.assertEquals(FlowControlStrategy.DEFAULT_WINDOW_SIZE,serverSession.getSendWindow());
+      Assert.assertEquals(FlowControlStrategy.DEFAULT_WINDOW_SIZE,serverSession.getRecvWindow());
+      prefaceLatch.countDown();
+      return null;
+    }
+    @Override public void onSettings(    Session session,    SettingsFrame frame){
+      for (      Stream stream : session.getStreams()) {
+        HTTP2Stream serverStream=(HTTP2Stream)stream;
+        Assert.assertEquals(0,serverStream.getSendWindow());
+        Assert.assertEquals(FlowControlStrategy.DEFAULT_WINDOW_SIZE,serverStream.getRecvWindow());
+      }
+      settingsLatch.countDown();
+    }
+    @Override public Stream.Listener onNewStream(    Stream stream,    HeadersFrame frame){
+      HTTP2Stream serverStream=(HTTP2Stream)stream;
+      MetaData.Request request=(MetaData.Request)frame.getMetaData();
+      if ("GET".equalsIgnoreCase(request.getMethod())) {
+        Assert.assertEquals(FlowControlStrategy.DEFAULT_WINDOW_SIZE,serverStream.getSendWindow());
+        Assert.assertEquals(FlowControlStrategy.DEFAULT_WINDOW_SIZE,serverStream.getRecvWindow());
+        stream1Latch.countDown();
+      }
+ else {
+        Assert.assertEquals(0,serverStream.getSendWindow());
+        Assert.assertEquals(FlowControlStrategy.DEFAULT_WINDOW_SIZE,serverStream.getRecvWindow());
+        stream2Latch.countDown();
+      }
+      return null;
+    }
+  }
+);
+  HTTP2Session clientSession=(HTTP2Session)newClient(new Session.Listener.Adapter());
+  Assert.assertEquals(FlowControlStrategy.DEFAULT_WINDOW_SIZE,clientSession.getSendWindow());
+  Assert.assertEquals(FlowControlStrategy.DEFAULT_WINDOW_SIZE,clientSession.getRecvWindow());
+  Assert.assertTrue(prefaceLatch.await(5,TimeUnit.SECONDS));
+  MetaData.Request request1=newRequest("GET",new HttpFields());
+  FuturePromise<Stream> promise1=new FuturePromise<>();
+  clientSession.newStream(new HeadersFrame(0,request1,null,true),promise1,new Stream.Listener.Adapter());
+  HTTP2Stream clientStream1=(HTTP2Stream)promise1.get(5,TimeUnit.SECONDS);
+  Assert.assertEquals(FlowControlStrategy.DEFAULT_WINDOW_SIZE,clientStream1.getSendWindow());
+  Assert.assertEquals(FlowControlStrategy.DEFAULT_WINDOW_SIZE,clientStream1.getRecvWindow());
+  Assert.assertTrue(stream1Latch.await(5,TimeUnit.SECONDS));
+  Map<Integer,Integer> settings=new HashMap<>();
+  settings.put(SettingsFrame.INITIAL_WINDOW_SIZE,0);
+  SettingsFrame frame=new SettingsFrame(settings,false);
+  FutureCallback callback=new FutureCallback();
+  clientSession.settings(frame,callback);
+  callback.get(5,TimeUnit.SECONDS);
+  Assert.assertEquals(FlowControlStrategy.DEFAULT_WINDOW_SIZE,clientStream1.getSendWindow());
+  Assert.assertEquals(0,clientStream1.getRecvWindow());
+  settingsLatch.await(5,TimeUnit.SECONDS);
+  MetaData.Request request2=newRequest("POST",new HttpFields());
+  FuturePromise<Stream> promise2=new FuturePromise<>();
+  clientSession.newStream(new HeadersFrame(0,request2,null,true),promise2,new Stream.Listener.Adapter());
+  HTTP2Stream clientStream2=(HTTP2Stream)promise2.get(5,TimeUnit.SECONDS);
+  Assert.assertEquals(FlowControlStrategy.DEFAULT_WINDOW_SIZE,clientStream2.getSendWindow());
+  Assert.assertEquals(0,clientStream2.getRecvWindow());
+  Assert.assertTrue(stream2Latch.await(5,TimeUnit.SECONDS));
+}

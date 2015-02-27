@@ -4,7 +4,13 @@
   if (settings == null)   settings=Collections.emptyMap();
   PrefaceFrame prefaceFrame=new PrefaceFrame();
   SettingsFrame settingsFrame=new SettingsFrame(settings,false);
-  int windowDelta=getInitialSessionWindow() - FlowControlStrategy.DEFAULT_WINDOW_SIZE;
-  if (windowDelta > 0)   getSession().control(null,this,prefaceFrame,settingsFrame,new WindowUpdateFrame(0,windowDelta));
- else   getSession().control(null,this,prefaceFrame,settingsFrame);
+  ISession session=getSession();
+  int windowDelta=getInitialSessionRecvWindow() - FlowControlStrategy.DEFAULT_WINDOW_SIZE;
+  if (windowDelta > 0) {
+    session.updateRecvWindow(windowDelta);
+    session.control(null,this,prefaceFrame,settingsFrame,new WindowUpdateFrame(0,windowDelta));
+  }
+ else {
+    session.control(null,this,prefaceFrame,settingsFrame);
+  }
 }
