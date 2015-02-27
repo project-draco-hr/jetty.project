@@ -1,13 +1,10 @@
 {
   GzipTester tester=new GzipTester(testingdir,GzipHandler.GZIP);
-  FilterHolder gzipHolder=new FilterHolder(gzipFilterClass);
-  gzipHolder.setAsyncSupported(true);
-  tester.addFilter(gzipHolder,"*.txt",EnumSet.of(DispatcherType.REQUEST,DispatcherType.ASYNC));
-  tester.addFilter(gzipHolder,"*.mp3",EnumSet.of(DispatcherType.REQUEST,DispatcherType.ASYNC));
-  gzipHolder.setInitParameter("mimeTypes","text/plain");
+  tester.getGzipHandler().setIncludedMimeTypes("text/plain");
+  tester.getGzipHandler().setIncludedPaths("*.txt","*.mp3");
   tester.setContentServlet(contentServlet);
   try {
-    String testFilename=String.format("%s-%s-%s",gzipFilterClass.getSimpleName(),contentServlet.getSimpleName(),fileName);
+    String testFilename=String.format("%s-%s",contentServlet.getSimpleName(),fileName);
     File testFile=tester.prepareServerFile(testFilename,fileSize);
     tester.start();
     HttpTester.Response response=tester.executeRequest("GET","/context/" + testFile.getName(),5,TimeUnit.SECONDS);
