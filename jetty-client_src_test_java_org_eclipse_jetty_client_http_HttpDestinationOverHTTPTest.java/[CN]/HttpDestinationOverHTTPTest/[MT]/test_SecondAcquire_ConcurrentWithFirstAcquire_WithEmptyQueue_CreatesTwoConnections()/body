@@ -4,15 +4,14 @@
   HttpDestinationOverHTTP destination=new HttpDestinationOverHTTP(client,new Origin("http","localhost",connector.getLocalPort())){
     @Override protected ConnectionPool newConnectionPool(    HttpClient client){
       return new ConnectionPool(this,client.getMaxConnectionsPerDestination(),this){
-        @Override protected boolean idle(        Connection connection,        boolean created){
+        @Override protected void idleCreated(        Connection connection){
           try {
             idleLatch.countDown();
             latch.await(5,TimeUnit.SECONDS);
-            return super.idle(connection,created);
+            super.idleCreated(connection);
           }
  catch (          InterruptedException x) {
             x.printStackTrace();
-            return false;
           }
         }
       }

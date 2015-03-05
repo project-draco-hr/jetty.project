@@ -1,7 +1,13 @@
 {
-  for (  Connection connection : idleConnections)   connection.close();
-  idleConnections.clear();
-  for (  Connection connection : activeConnections)   connection.close();
-  activeConnections.clear();
-  connectionCount.set(0);
+  List<Connection> idles=new ArrayList<>();
+  List<Connection> actives=new ArrayList<>();
+  try (SpinLock.Lock lock=this.lock.lock()){
+    idles.addAll(idleConnections);
+    idleConnections.clear();
+    actives.addAll(activeConnections);
+    activeConnections.clear();
+  }
+   connectionCount.set(0);
+  for (  Connection connection : idles)   connection.close();
+  for (  Connection connection : actives)   connection.close();
 }

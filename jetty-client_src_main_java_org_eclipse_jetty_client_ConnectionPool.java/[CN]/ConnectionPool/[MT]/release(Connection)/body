@@ -1,5 +1,9 @@
 {
-  released(connection);
-  if (activeConnections.remove(connection))   return idle(connection,false);
-  return false;
+  boolean idle;
+  try (SpinLock.Lock lock=this.lock.lock()){
+    if (!activeConnections.remove(connection))     return false;
+    idle=idleConnections.offerFirst(connection);
+  }
+   released(connection);
+  return idle(connection,idle);
 }

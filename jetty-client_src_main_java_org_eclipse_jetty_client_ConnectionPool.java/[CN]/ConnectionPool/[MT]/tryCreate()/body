@@ -4,14 +4,14 @@
     final int next=current + 1;
     if (next > maxConnections) {
       if (LOG.isDebugEnabled())       LOG.debug("Max connections {}/{} reached",current,maxConnections);
-      return acquireIdleConnection();
+      return activateIdle();
     }
     if (connectionCount.compareAndSet(current,next)) {
       if (LOG.isDebugEnabled())       LOG.debug("Connection {}/{} creation",next,maxConnections);
       destination.newConnection(new Promise<Connection>(){
         @Override public void succeeded(        Connection connection){
           if (LOG.isDebugEnabled())           LOG.debug("Connection {}/{} creation succeeded {}",next,maxConnections,connection);
-          idle(connection,true);
+          idleCreated(connection);
           requester.succeeded();
         }
         @Override public void failed(        Throwable x){
@@ -21,7 +21,7 @@
         }
       }
 );
-      return acquireIdleConnection();
+      return activateIdle();
     }
   }
 }
