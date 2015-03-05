@@ -1,18 +1,26 @@
 {
+  final CountDownLatch idleLatch=new CountDownLatch(1);
   final CountDownLatch latch=new CountDownLatch(1);
   HttpDestinationOverHTTP destination=new HttpDestinationOverHTTP(client,new Origin("http","localhost",connector.getLocalPort())){
-    @Override public void process(    HttpConnectionOverHTTP connection,    boolean dispatch){
-      try {
-        latch.await(5,TimeUnit.SECONDS);
-        super.process(connection,dispatch);
+    @Override protected ConnectionPool newConnectionPool(    HttpClient client){
+      return new ConnectionPool(this,client.getMaxConnectionsPerDestination(),this){
+        @Override protected void idleCreated(        Connection connection){
+          try {
+            idleLatch.countDown();
+            latch.await(5,TimeUnit.SECONDS);
+            super.idleCreated(connection);
+          }
+ catch (          InterruptedException x) {
+            x.printStackTrace();
+          }
+        }
       }
- catch (      InterruptedException x) {
-        x.printStackTrace();
-      }
+;
     }
   }
 ;
   Connection connection1=destination.acquire();
+  Assert.assertTrue(idleLatch.await(5,TimeUnit.SECONDS));
   Assert.assertNull(connection1);
   Connection connection2=destination.acquire();
   Assert.assertNull(connection2);
