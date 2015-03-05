@@ -1,3 +1,7 @@
 {
-  return responseComplete.compareAndSet(false,true);
-}
+  try (SpinLock.Lock lock=_lock.lock()){
+    if (responseState != State.PENDING)     return false;
+    responseState=State.COMPLETED;
+    return true;
+  }
+ }
