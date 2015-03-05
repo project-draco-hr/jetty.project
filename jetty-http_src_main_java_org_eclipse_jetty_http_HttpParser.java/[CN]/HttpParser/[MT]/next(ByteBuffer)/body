@@ -1,23 +1,22 @@
 {
   byte ch=buffer.get();
-  if (_cr) {
-    if (ch != LINE_FEED)     throw new BadMessageException("Bad EOL");
-    _cr=false;
-    return ch;
-  }
-  if (ch >= 0 && ch < SPACE) {
-    if (ch == CARRIAGE_RETURN) {
-      if (buffer.hasRemaining()) {
-        if (_maxHeaderBytes > 0 && _state.ordinal() < State.END.ordinal())         _headerBytes++;
-        ch=buffer.get();
-        if (ch != LINE_FEED)         throw new BadMessageException("Bad EOL");
-      }
- else {
-        _cr=true;
-        return 0;
-      }
-    }
- else     if (!(ch == LINE_FEED || ch == TAB))     throw new IllegalCharacterException(_state,ch,buffer);
-  }
-  return ch;
+  CharState s=__charState[0xff & ch];
+switch (s) {
+case ILLEGAL:
+    throw new IllegalCharacterException(_state,ch,buffer);
+case LF:
+  _cr=false;
+break;
+case CR:
+if (_cr) throw new BadMessageException("Bad EOL");
+_cr=true;
+if (buffer.hasRemaining()) {
+if (_maxHeaderBytes > 0 && _state.ordinal() < State.END.ordinal()) _headerBytes++;
+return next(buffer);
+}
+return 0;
+case LEGAL:
+if (_cr) throw new BadMessageException("Bad EOL");
+}
+return ch;
 }
