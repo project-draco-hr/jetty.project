@@ -1,2 +1,27 @@
 {
+  boolean notify=false;
+  try (SpinLock.Lock lock=_lock.lock()){
+    if (!Boolean.TRUE.equals(requestTerminated)) {
+      requestTerminated=Boolean.TRUE;
+      notify=true;
+      requestFailure=cause;
+    }
+    if (!Boolean.TRUE.equals(responseTerminated)) {
+      responseTerminated=Boolean.TRUE;
+      notify=true;
+      responseFailure=cause;
+    }
+  }
+   if (notify) {
+    if (LOG.isDebugEnabled())     LOG.debug("Failing {}: {}",this,cause);
+    destination.getRequestNotifier().notifyFailure(request,cause);
+    List<Response.ResponseListener> listeners=getConversation().getResponseListeners();
+    ResponseNotifier responseNotifier=destination.getResponseNotifier();
+    responseNotifier.notifyFailure(listeners,response,cause);
+    responseNotifier.notifyComplete(listeners,new Result(request,cause,response,cause));
+    return true;
+  }
+ else {
+    return false;
+  }
 }
