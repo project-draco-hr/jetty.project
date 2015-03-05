@@ -5,22 +5,22 @@
     while (true) {
       if (connection.isClosed()) {
         if (LOG.isDebugEnabled())         LOG.debug("{} closed",connection);
-        releaseBuffer(buffer);
+        releaseBuffer();
         return;
       }
-      if (!parse(buffer))       return;
+      if (parse())       return;
       int read=endPoint.fill(buffer);
       if (LOG.isDebugEnabled())       LOG.debug("Read {} bytes {} from {}",read,BufferUtil.toDetailString(buffer),endPoint);
       if (read > 0) {
-        if (!parse(buffer))         return;
+        if (parse())         return;
       }
  else       if (read == 0) {
-        releaseBuffer(buffer);
+        releaseBuffer();
         fillInterested();
         return;
       }
  else {
-        releaseBuffer(buffer);
+        releaseBuffer();
         shutdown();
         return;
       }
@@ -28,7 +28,7 @@
   }
  catch (  Throwable x) {
     if (LOG.isDebugEnabled())     LOG.debug(x);
-    releaseBuffer(buffer);
+    releaseBuffer();
     failAndClose(x);
   }
 }
