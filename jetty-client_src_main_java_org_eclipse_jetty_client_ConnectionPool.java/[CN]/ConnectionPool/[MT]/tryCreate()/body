@@ -11,11 +11,7 @@
       destination.newConnection(new Promise<Connection>(){
         @Override public void succeeded(        Connection connection){
           if (LOG.isDebugEnabled())           LOG.debug("Connection {}/{} creation succeeded {}",next,maxConnections,connection);
-          boolean idle;
-          try (SpinLock.Lock lock=ConnectionPool.this.lock.lock()){
-            idle=idleConnections.offerLast(connection);
-          }
-           idle(connection,idle);
+          idleCreated(connection);
           requester.succeeded(connection);
         }
         @Override public void failed(        Throwable x){
