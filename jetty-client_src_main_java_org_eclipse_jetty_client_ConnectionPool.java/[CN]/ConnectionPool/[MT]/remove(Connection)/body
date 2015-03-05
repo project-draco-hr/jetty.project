@@ -1,7 +1,11 @@
 {
-  boolean activeRemoved=activeConnections.remove(connection);
-  boolean idleRemoved=idleConnections.remove(connection);
-  if (!idleRemoved)   released(connection);
+  boolean activeRemoved;
+  boolean idleRemoved;
+  try (SpinLock.Lock lock=this.lock.lock()){
+    activeRemoved=activeConnections.remove(connection);
+    idleRemoved=idleConnections.remove(connection);
+  }
+   if (activeRemoved)   released(connection);
   boolean removed=activeRemoved || idleRemoved;
   if (removed) {
     int pooled=connectionCount.decrementAndGet();

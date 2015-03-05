@@ -4,24 +4,28 @@
     final int next=current + 1;
     if (next > maxConnections) {
       if (LOG.isDebugEnabled())       LOG.debug("Max connections {}/{} reached",current,maxConnections);
-      return acquireIdleConnection();
+      return activateIdle();
     }
     if (connectionCount.compareAndSet(current,next)) {
       if (LOG.isDebugEnabled())       LOG.debug("Connection {}/{} creation",next,maxConnections);
       destination.newConnection(new Promise<Connection>(){
         @Override public void succeeded(        Connection connection){
           if (LOG.isDebugEnabled())           LOG.debug("Connection {}/{} creation succeeded {}",next,maxConnections,connection);
-          if (activate(connection))           connectionPromise.succeeded(connection);
- else           connectionPromise.failed(new IllegalStateException("Active connection overflow"));
+          boolean idle;
+          try (SpinLock.Lock lock=ConnectionPool.this.lock.lock()){
+            idle=idleConnections.offerLast(connection);
+          }
+           idle(connection,idle);
+          requester.succeeded(connection);
         }
         @Override public void failed(        Throwable x){
           if (LOG.isDebugEnabled())           LOG.debug("Connection " + next + "/"+ maxConnections+ " creation failed",x);
           connectionCount.decrementAndGet();
-          connectionPromise.failed(x);
+          requester.failed(x);
         }
       }
 );
-      return acquireIdleConnection();
+      return activateIdle();
     }
   }
 }

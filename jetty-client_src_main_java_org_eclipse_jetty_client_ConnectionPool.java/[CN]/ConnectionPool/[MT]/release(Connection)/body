@@ -1,14 +1,9 @@
 {
-  released(connection);
-  if (activeConnections.remove(connection)) {
-    if (idleConnections.offerFirst(connection)) {
-      if (LOG.isDebugEnabled())       LOG.debug("Connection idle {}",connection);
-      return true;
-    }
- else {
-      if (LOG.isDebugEnabled())       LOG.debug("Connection idle overflow {}",connection);
-      connection.close();
-    }
+  boolean idle;
+  try (SpinLock.Lock lock=this.lock.lock()){
+    if (!activeConnections.remove(connection))     return false;
+    idle=idleConnections.offerFirst(connection);
   }
-  return false;
+   released(connection);
+  return idle(connection,idle);
 }

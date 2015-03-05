@@ -1,0 +1,19 @@
+{
+  boolean acquired;
+  Connection connection;
+  try (SpinLock.Lock lock=this.lock.lock()){
+    connection=idleConnections.pollFirst();
+    if (connection == null)     return null;
+    acquired=activeConnections.offer(connection);
+  }
+   if (acquired) {
+    if (LOG.isDebugEnabled())     LOG.debug("Connection active {}",connection);
+    acquired(connection);
+    return connection;
+  }
+ else {
+    if (LOG.isDebugEnabled())     LOG.debug("Connection active overflow {}",connection);
+    connection.close();
+    return null;
+  }
+}
