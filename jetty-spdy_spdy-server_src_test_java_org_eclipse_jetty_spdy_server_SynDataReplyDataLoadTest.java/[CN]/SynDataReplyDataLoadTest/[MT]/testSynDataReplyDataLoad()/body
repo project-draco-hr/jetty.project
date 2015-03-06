@@ -1,17 +1,6 @@
 {
-  final AtomicLong leaks=new AtomicLong();
-  LeakTrackingByteBufferPool serverBufferPool=new LeakTrackingByteBufferPool(new ArrayByteBufferPool()){
-    @Override protected void leaked(    LeakDetector.LeakInfo leakInfo){
-      leaks.incrementAndGet();
-    }
-  }
-;
-  LeakTrackingByteBufferPool clientBufferPool=new LeakTrackingByteBufferPool(new MappedByteBufferPool()){
-    @Override protected void leaked(    LeakDetector.LeakInfo leakInfo){
-      leaks.incrementAndGet();
-    }
-  }
-;
+  LeakTrackingByteBufferPool serverBufferPool=new LeakTrackingByteBufferPool(new MappedByteBufferPool.Tagged());
+  LeakTrackingByteBufferPool clientBufferPool=new LeakTrackingByteBufferPool(new MappedByteBufferPool.Tagged());
   ServerSessionFrameListener listener=new ServerSessionFrameListener.Adapter(){
     @Override public StreamFrameListener onSyn(    Stream stream,    SynInfo synInfo){
       stream.reply(new ReplyInfo(synInfo.getHeaders(),false),new Callback.Adapter());
@@ -102,5 +91,10 @@
   }
   asyncTimeoutTask.cancel();
   threadPool.shutdown();
-  Assert.assertEquals(0,leaks.get());
+  assertThat("Server BufferPool - leaked acquires",serverBufferPool.getLeakedAcquires(),is(0L));
+  assertThat("Server BufferPool - leaked releases",serverBufferPool.getLeakedReleases(),is(0L));
+  assertThat("Server BufferPool - unreleased",serverBufferPool.getLeakedUnreleased(),is(0L));
+  assertThat("Client BufferPool - leaked acquires",clientBufferPool.getLeakedAcquires(),is(0L));
+  assertThat("Client BufferPool - leaked releases",clientBufferPool.getLeakedReleases(),is(0L));
+  assertThat("Client BufferPool - unreleased",clientBufferPool.getLeakedUnreleased(),is(0L));
 }
