@@ -3,11 +3,17 @@
   client.setCookieStore(cookieMgr.getCookieStore());
   HttpCookie cookie=new HttpCookie("hello","world");
   cookie.setPath("/");
+  cookie.setVersion(0);
+  cookie.setMaxAge(100000);
+  cookieMgr.getCookieStore().add(server.getWsUri(),cookie);
+  cookie=new HttpCookie("foo","bar is the word");
+  cookie.setPath("/");
   cookie.setMaxAge(100000);
   cookieMgr.getCookieStore().add(server.getWsUri(),cookie);
   CookieTrackingSocket clientSocket=new CookieTrackingSocket();
   Future<Session> clientConnectFuture=client.connect(clientSocket,server.getWsUri());
   ServerConnection serverConn=server.accept();
   String serverCookies=confirmClientUpgradeAndCookies(clientSocket,clientConnectFuture,serverConn);
-  Assert.assertThat("Cookies seen at server side",serverCookies,containsString("hello=\"world\""));
+  assertThat("Cookies seen at server side",serverCookies,containsString("hello=world"));
+  assertThat("Cookies seen at server side",serverCookies,containsString("foo=\"bar is the word\""));
 }
