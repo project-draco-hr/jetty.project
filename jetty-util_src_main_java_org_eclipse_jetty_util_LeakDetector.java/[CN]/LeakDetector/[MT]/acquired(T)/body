@@ -1,4 +1,9 @@
 {
   String id=id(resource);
-  return resources.putIfAbsent(id,new LeakInfo(resource,id)) == null;
+  LeakInfo info=resources.putIfAbsent(id,new LeakInfo(resource,id));
+  if (info != null) {
+    LOG.warn("Prior Acquire from Stack",info.getStackFrames());
+    return false;
+  }
+  return true;
 }
