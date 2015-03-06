@@ -1,5 +1,4 @@
 {
-  final Logger LOG=Log.getLogger(getClass());
   final AtomicReference<EndPoint> endPointRef=new AtomicReference<>();
   final CountDownLatch serverLatch=new CountDownLatch(1);
   QueuedThreadPool serverThreads=new QueuedThreadPool();
@@ -30,7 +29,6 @@
             @Override public void send(){
               if (afterSetup.get()) {
                 associateLatch.countDown();
-                LOG.info("Sending...");
               }
               super.send();
             }
@@ -50,7 +48,6 @@
         @Override protected boolean abort(        Throwable failure){
           try {
             associateLatch.await(5,TimeUnit.SECONDS);
-            LOG.info("Aborting... {}",getHttpChannel());
             return super.abort(failure);
           }
  catch (          InterruptedException x) {
@@ -87,7 +84,6 @@
   }
 ).send(new Response.CompleteListener(){
     @Override public void onComplete(    Result result){
-      LOG.info("Completed");
       completeLatch.countDown();
     }
   }
