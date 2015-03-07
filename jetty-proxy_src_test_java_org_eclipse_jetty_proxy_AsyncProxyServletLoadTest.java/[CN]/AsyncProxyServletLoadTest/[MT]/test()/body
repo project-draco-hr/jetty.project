@@ -1,0 +1,23 @@
+{
+  startServer(new HttpServlet(){
+    @Override protected void doPost(    HttpServletRequest req,    HttpServletResponse resp) throws ServletException, IOException {
+      if (req.getHeader("Via") != null)       resp.addHeader(PROXIED_HEADER,"true");
+      IO.copy(req.getInputStream(),resp.getOutputStream());
+    }
+  }
+);
+  startProxy();
+  startClient();
+  int clientCount=Runtime.getRuntime().availableProcessors();
+  final CountDownLatch activeClientLatch=new CountDownLatch(clientCount);
+  final AtomicBoolean success=new AtomicBoolean(true);
+  int iterations=1000;
+  for (int i=0; i < clientCount; i++) {
+    ClientLoop r=new ClientLoop(activeClientLatch,success,client,"localhost",serverConnector.getLocalPort(),iterations);
+    String name="client-" + i;
+    Thread thread=new Thread(r,name);
+    thread.start();
+  }
+  Assert.assertTrue(activeClientLatch.await(clientCount * iterations * 10,TimeUnit.MILLISECONDS));
+  Assert.assertTrue(success.get());
+}

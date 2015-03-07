@@ -1,15 +1,30 @@
 {
-  if (isLast()) {
+  boolean advanced;
+  boolean hasNext;
+  ByteBuffer bytes;
+  if (iterator instanceof Synchronizable) {
+synchronized (((Synchronizable)iterator).getLock()) {
+      advanced=iterator.hasNext();
+      bytes=advanced ? iterator.next() : null;
+      hasNext=advanced && iterator.hasNext();
+    }
+  }
+ else {
+    advanced=iterator.hasNext();
+    bytes=advanced ? iterator.next() : null;
+    hasNext=advanced && iterator.hasNext();
+  }
+  if (advanced) {
+    buffer=bytes;
+    content=bytes == null ? null : bytes.slice();
+    if (LOG.isDebugEnabled())     LOG.debug("Advanced content to {} chunk {}",hasNext ? "next" : "last",bytes);
+    return bytes != null;
+  }
+ else {
     if (content != AFTER) {
       content=buffer=AFTER;
       if (LOG.isDebugEnabled())       LOG.debug("Advanced content past last chunk");
     }
     return false;
-  }
- else {
-    ByteBuffer buffer=this.buffer=iterator.next();
-    if (LOG.isDebugEnabled())     LOG.debug("Advanced content to {} chunk {}",isLast() ? "last" : "next",buffer);
-    content=buffer == null ? null : buffer.slice();
-    return buffer != null;
   }
 }
