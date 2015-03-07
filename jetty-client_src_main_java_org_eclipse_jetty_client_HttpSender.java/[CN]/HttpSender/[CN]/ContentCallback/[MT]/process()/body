@@ -2,6 +2,7 @@
   HttpExchange exchange=getHttpExchange();
   if (exchange == null)   return Action.IDLE;
   HttpContent content=HttpSender.this.content;
+  if (content == null)   return Action.IDLE;
   while (true) {
     boolean advanced=content.advance();
     boolean consumed=content.isConsumed();
@@ -14,7 +15,7 @@
       sendContent(exchange,content,lastCallback);
       return Action.IDLE;
     }
-    SenderState current=HttpSender.this.senderState.get();
+    SenderState current=senderState.get();
 switch (current) {
 case SENDING:
 {
@@ -31,7 +32,8 @@ case SENDING_WITH_CONTENT:
     }
 default :
 {
-    throw illegalSenderState(current);
+    illegalSenderState(current);
+    return Action.IDLE;
   }
 }
 }
