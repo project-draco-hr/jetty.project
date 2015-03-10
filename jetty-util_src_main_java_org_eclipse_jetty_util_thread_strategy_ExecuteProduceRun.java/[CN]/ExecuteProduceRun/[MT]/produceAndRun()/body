@@ -1,6 +1,6 @@
 {
   if (LOG.isDebugEnabled())   LOG.debug("{} produce enter",this);
-  loop:   while (true) {
+  while (true) {
     if (LOG.isDebugEnabled())     LOG.debug("{} producing",this);
     Runnable task=_producer.produce();
     if (LOG.isDebugEnabled())     LOG.debug("{} produced {}",this,task);
@@ -12,10 +12,10 @@
           _idle=false;
           _producing=true;
           _execute=false;
-          continue loop;
+          continue;
         }
         _idle=true;
-        break loop;
+        break;
       }
       if (!_pending) {
         dispatch=_pending=true;
@@ -24,13 +24,13 @@
     }
      if (dispatch) {
       if (LOG.isDebugEnabled())       LOG.debug("{} dispatch",this);
-      _executor.execute(this);
+      _executor.execute(_resumer);
     }
     if (LOG.isDebugEnabled())     LOG.debug("{} run {}",this,task);
     task.run();
     if (LOG.isDebugEnabled())     LOG.debug("{} ran {}",this,task);
     try (Lock locked=_lock.lock()){
-      if (_producing || _idle)       break loop;
+      if (_producing || _idle)       break;
       _producing=true;
     }
    }

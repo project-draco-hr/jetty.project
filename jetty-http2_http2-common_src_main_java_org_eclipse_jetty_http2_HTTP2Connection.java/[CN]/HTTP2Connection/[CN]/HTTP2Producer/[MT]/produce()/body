@@ -2,9 +2,10 @@
   Runnable task=tasks.poll();
   if (LOG.isDebugEnabled())   LOG.debug("Dequeued task {}",task);
   if (task != null)   return task;
+  if (isFillInterested())   return null;
+  if (buffer == null)   buffer=byteBufferPool.acquire(bufferSize,false);
   boolean looping=BufferUtil.hasContent(buffer);
   while (true) {
-    if (buffer == null)     buffer=byteBufferPool.acquire(bufferSize,false);
     if (looping) {
       while (buffer.hasRemaining())       parser.parse(buffer);
       task=tasks.poll();
