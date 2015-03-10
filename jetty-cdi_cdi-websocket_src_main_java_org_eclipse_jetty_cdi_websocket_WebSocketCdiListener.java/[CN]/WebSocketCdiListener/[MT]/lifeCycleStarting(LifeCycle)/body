@@ -1,14 +1,16 @@
 {
   if (event instanceof WebSocketContainerScope) {
     if (LOG.isDebugEnabled()) {
-      LOG.debug("starting websocket container [{}]",event);
+      LOG.debug("started websocket container [{}]",event);
     }
-    getWebSocketScope().instance.begin();
-  }
- else   if (event instanceof WebSocketSessionScope) {
-    if (LOG.isDebugEnabled()) {
-      LOG.debug("starting websocket session [{}]",event);
+    ContainerListener listener=new ContainerListener((WebSocketContainerScope)event);
+    if (event instanceof ContainerLifeCycle) {
+      ContainerLifeCycle container=(ContainerLifeCycle)event;
+      container.addLifeCycleListener(listener);
+      container.addEventListener(listener);
     }
-    getWebSocketScope().instance.setSession((Session)event);
+ else {
+      throw new RuntimeException("Unable to setup CDI against non-container: " + event.getClass().getName());
+    }
   }
 }

@@ -61,17 +61,18 @@
   extensionStack.setNextIncoming(session);
   session.setOutgoingHandler(extensionStack);
   extensionStack.setNextOutgoing(wsConnection);
-  try {
-    session.start();
+  session.addBean(extensionStack);
+  this.addBean(session);
+  if (session.isFailed()) {
+    throw new IOException("Session failed to start");
   }
- catch (  Exception e) {
-    throw new IOException("Unable to start Session",e);
-  }
-  try {
-    extensionStack.start();
-  }
- catch (  Exception e) {
-    throw new IOException("Unable to start Extension Stack",e);
+ else   if (!session.isRunning()) {
+    try {
+      session.start();
+    }
+ catch (    Exception e) {
+      throw new IOException("Unable to start Session",e);
+    }
   }
   request.setServletAttribute(HttpConnection.UPGRADE_CONNECTION_ATTRIBUTE,wsConnection);
   if (LOG.isDebugEnabled())   LOG.debug("Handshake Response: {}",handshaker);
