@@ -1,0 +1,20 @@
+{
+  try {
+    barrier.await();
+    Random random=new Random(System.nanoTime());
+    for (int i=0; i < requestsCount; ++i) {
+      int pauseMsec=random.nextInt(1000);
+      if (pauseMsec > 0) {
+        Thread.currentThread().sleep(pauseMsec);
+      }
+      Request request=client.newRequest(url + "?action=increment");
+      request.header("Cookie",sessionCookie);
+      ContentResponse response=request.send();
+      assertEquals(HttpServletResponse.SC_OK,response.getStatus());
+    }
+    barrier.await();
+  }
+ catch (  Exception x) {
+    throw new RuntimeException(x);
+  }
+}

@@ -1,15 +1,26 @@
 {
   super.complete();
-  if (_activeThreads.decrementAndGet() == 0) {
-    try {
-      if (isValid()) {
-        willPassivate();
-        save(this);
-        didActivate();
+  _lock.lock();
+  try {
+    if (_activeThreads.decrementAndGet() == 0) {
+      try {
+        if (isValid()) {
+          if (_dirty || getLastSyncTime() == 0 || isStale(System.currentTimeMillis())) {
+            willPassivate();
+            save(this);
+            didActivate();
+          }
+        }
+      }
+ catch (      Exception e) {
+        LOG.warn("Problem saving session({})",getId(),e);
+      }
+ finally {
+        _dirty=false;
       }
     }
- catch (    Exception e) {
-      LOG.warn("Problem saving session({})",getId(),e);
-    }
+  }
+  finally {
+    _lock.unlock();
   }
 }
