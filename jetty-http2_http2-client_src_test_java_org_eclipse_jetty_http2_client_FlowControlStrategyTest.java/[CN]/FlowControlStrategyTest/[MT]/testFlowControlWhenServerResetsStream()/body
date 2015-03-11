@@ -1,8 +1,15 @@
 {
   start(new ServerSessionListener.Adapter(){
     @Override public Stream.Listener onNewStream(    Stream stream,    HeadersFrame frame){
-      stream.reset(new ResetFrame(stream.getId(),ErrorCode.CANCEL_STREAM_ERROR.code),Callback.Adapter.INSTANCE);
-      return null;
+      MetaData.Request request=(MetaData.Request)frame.getMetaData();
+      if (HttpMethod.GET.is(request.getMethod()))       return new Stream.Listener.Adapter();
+      return new Stream.Listener.Adapter(){
+        @Override public void onData(        Stream stream,        DataFrame frame,        Callback callback){
+          callback.failed(new Throwable());
+          stream.reset(new ResetFrame(stream.getId(),ErrorCode.CANCEL_STREAM_ERROR.code),Callback.Adapter.INSTANCE);
+        }
+      }
+;
     }
   }
 );
@@ -28,7 +35,4 @@
 );
   Assert.assertTrue(resetLatch.await(5,TimeUnit.SECONDS));
   Assert.assertTrue(dataLatch.await(5,TimeUnit.SECONDS));
-  Thread.sleep(1000);
-  HTTP2Session http2Session=(HTTP2Session)session;
-  Assert.assertEquals(FlowControlStrategy.DEFAULT_WINDOW_SIZE,http2Session.getSendWindow());
 }
