@@ -1,4 +1,5 @@
 {
+  boolean on_complete_success=false;
   processing:   while (true) {
     Action action;
     try {
@@ -8,38 +9,35 @@
       failed(x);
       break processing;
     }
-    acting:     while (true) {
-      State state=_state.get();
-switch (state) {
+    try (SpinLock.Lock lock=_lock.lock()){
+switch (_state) {
 case PROCESSING:
 {
 switch (action) {
 case IDLE:
 {
-              if (!_state.compareAndSet(state,State.LOCKED))               continue acting;
               if (_iterate) {
                 _iterate=false;
-                _state.set(State.PROCESSING);
+                _state=State.PROCESSING;
                 continue processing;
               }
-              _state.set(State.IDLE);
+              _state=State.IDLE;
               break processing;
             }
 case SCHEDULED:
 {
-            if (!_state.compareAndSet(state,State.PENDING))             continue acting;
+            _state=State.PENDING;
             break processing;
           }
 case SUCCEEDED:
 {
-          if (!_state.compareAndSet(state,State.LOCKED))           continue acting;
           _iterate=false;
-          _state.set(State.SUCCEEDED);
-          onCompleteSuccess();
+          _state=State.SUCCEEDED;
+          on_complete_success=true;
           break processing;
         }
 default :
-      throw new IllegalStateException("state=" + state + " action="+ action);
+      throw new IllegalStateException("state=" + _state + " action="+ action);
   }
 }
 case CALLED:
@@ -47,16 +45,13 @@ case CALLED:
 switch (action) {
 case SCHEDULED:
 {
-    if (!_state.compareAndSet(state,State.PROCESSING))     continue acting;
+    _state=State.PROCESSING;
     continue processing;
   }
 default :
-throw new IllegalStateException("state=" + state + " action="+ action);
+throw new IllegalStateException("state=" + _state + " action="+ action);
 }
 }
-case LOCKED:
-Thread.yield();
-continue acting;
 case SUCCEEDED:
 case FAILED:
 case CLOSED:
@@ -64,8 +59,9 @@ break processing;
 case IDLE:
 case PENDING:
 default :
-throw new IllegalStateException("state=" + state + " action="+ action);
+throw new IllegalStateException("state=" + _state + " action="+ action);
 }
 }
-}
+ }
+if (on_complete_success) onCompleteSuccess();
 }

@@ -1,28 +1,26 @@
 {
+  boolean process=false;
   loop:   while (true) {
-    State state=_state.get();
-switch (state) {
+    try (SpinLock.Lock lock=_lock.lock()){
+switch (_state) {
 case PENDING:
 case CALLED:
-      break loop;
+        break loop;
 case IDLE:
-    if (!_state.compareAndSet(state,State.PROCESSING))     continue;
-  processing();
-break loop;
+      _state=State.PROCESSING;
+    process=true;
+  break loop;
 case PROCESSING:
-if (!_state.compareAndSet(state,State.LOCKED)) continue;
 _iterate=true;
-_state.set(State.PROCESSING);
 break loop;
-case LOCKED:
-Thread.yield();
-continue loop;
 case FAILED:
 case SUCCEEDED:
 break loop;
 case CLOSED:
 default :
-throw new IllegalStateException("state=" + state);
+throw new IllegalStateException("state=" + _state);
 }
 }
+ }
+if (process) processing();
 }
