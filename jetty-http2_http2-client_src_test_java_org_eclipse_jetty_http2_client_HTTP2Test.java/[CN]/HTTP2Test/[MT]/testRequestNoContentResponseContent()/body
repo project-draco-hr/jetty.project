@@ -13,7 +13,6 @@
   final CountDownLatch latch=new CountDownLatch(2);
   session.newStream(frame,new Promise.Adapter<Stream>(),new Stream.Listener.Adapter(){
     @Override public void onHeaders(    Stream stream,    HeadersFrame frame){
-      Assert.assertFalse(stream.isClosed());
       Assert.assertTrue(stream.getId() > 0);
       Assert.assertFalse(frame.isEndStream());
       Assert.assertEquals(stream.getId(),frame.getStreamId());
@@ -23,7 +22,6 @@
       latch.countDown();
     }
     @Override public void onData(    Stream stream,    DataFrame frame,    Callback callback){
-      Assert.assertTrue(stream.isClosed());
       Assert.assertTrue(frame.isEndStream());
       Assert.assertEquals(ByteBuffer.wrap(content),frame.getData());
       callback.succeeded();
