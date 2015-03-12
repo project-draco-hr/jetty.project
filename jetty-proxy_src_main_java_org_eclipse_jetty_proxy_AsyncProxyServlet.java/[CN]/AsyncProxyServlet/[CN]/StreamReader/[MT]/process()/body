@@ -1,10 +1,8 @@
 {
   int requestId=_log.isDebugEnabled() ? getRequestId(request) : 0;
   ServletInputStream input=request.getInputStream();
-  System.err.printf(Thread.currentThread() + " process isFinished=%b%n",input.isFinished());
   while (input.isReady() && !input.isFinished()) {
     int read=input.read(buffer);
-    System.err.printf(Thread.currentThread() + " read=%d%n",read);
     if (_log.isDebugEnabled())     _log.debug("{} asynchronous read {} bytes on {}",requestId,read,input);
     if (read > 0) {
       if (_log.isDebugEnabled())       _log.debug("{} proxying content to upstream: {} bytes",requestId,read);
@@ -12,7 +10,6 @@
       return Action.SCHEDULED;
     }
   }
-  System.err.printf(Thread.currentThread() + " processed isFinished=%b%n",input.isFinished());
   if (input.isFinished()) {
     if (_log.isDebugEnabled())     _log.debug("{} asynchronous read complete on {}",requestId,input);
     return Action.SUCCEEDED;
