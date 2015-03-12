@@ -1,0 +1,26 @@
+{
+  if (LOG.isDebugEnabled()) {
+    LOG.debug("get({},{})",contextual,creationalContext);
+  }
+  Bean<T> bean=(Bean<T>)contextual;
+  SimpleBeanStore store=state.get();
+  if (store == null) {
+    store=new SimpleBeanStore();
+    state.set(store);
+  }
+  List<ScopedInstance<?>> beans=store.getBeans(contextual);
+  if ((beans != null) && (!beans.isEmpty())) {
+    for (    ScopedInstance<?> instance : beans) {
+      if (instance.creationalContext.equals(creationalContext)) {
+        return (T)instance.instance;
+      }
+    }
+  }
+  T t=bean.create(creationalContext);
+  ScopedInstance<T> customInstance=new ScopedInstance<>();
+  customInstance.bean=bean;
+  customInstance.creationalContext=creationalContext;
+  customInstance.instance=t;
+  store.addBean(customInstance);
+  return t;
+}
