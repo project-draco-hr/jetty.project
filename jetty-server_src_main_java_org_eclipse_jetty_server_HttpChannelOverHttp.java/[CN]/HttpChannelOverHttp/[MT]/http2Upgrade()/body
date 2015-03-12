@@ -1,0 +1,50 @@
+{
+  LOG.debug("h2c upgrade {}",this);
+  ConnectionFactory h2=null;
+  if (!(getConnector().getDefaultConnectionFactory() instanceof NegotiatingServerConnectionFactory)) {
+    loop:     for (    ConnectionFactory factory : getConnector().getConnectionFactories())     for (    String protocol : factory.getProtocols())     if (protocol.startsWith("h2c")) {
+      h2=factory;
+      break loop;
+    }
+  }
+  Connection old_connection=getEndPoint().getConnection();
+  Connection new_connection;
+  if (_http2Upgrade == null) {
+    LOG.debug("h2c preamble upgrade {}",this);
+    if (h2 == null || _metadata.getMethod() != HttpMethod.PRI.asString() || !"*".equals(_metadata.getURI().toString()) || _fields.size() > 0) {
+      badMessage(HttpStatus.UPGRADE_REQUIRED_426,null);
+      return false;
+    }
+    getResponse().setStatus(101);
+    new_connection=h2.newConnection(getConnector(),getEndPoint(),null);
+  }
+ else {
+    if (h2 == null) {
+      LOG.debug("No h2c factory for {}",this);
+      return false;
+    }
+    if (!h2.getProtocols().contains(_http2Upgrade.getValue())) {
+      LOG.debug("No h2c version {} for {}",_http2Upgrade.getValue(),this);
+      return false;
+    }
+    if (_connection == null || !_connection.getValue().contains("Upgrade") || !_connection.getValue().contains("HTTP2-Settings")) {
+      LOG.debug("Bad h2c {} for {}",_connection,this);
+      return false;
+    }
+    getResponse().setStatus(101);
+    HttpFields fields=new HttpFields();
+    try {
+      sendResponse(new MetaData.Response(HttpVersion.HTTP_1_1,HttpStatus.SWITCHING_PROTOCOLS_101,fields,0),null,true);
+    }
+ catch (    IOException e) {
+      LOG.warn(e);
+      badMessage(HttpStatus.INTERNAL_SERVER_ERROR_500,null);
+      return false;
+    }
+    new_connection=h2.newConnection(getConnector(),getEndPoint(),_metadata);
+  }
+  if (LOG.isDebugEnabled())   LOG.debug("Upgrade from {} to {}",old_connection,new_connection);
+  getRequest().setAttribute(HttpConnection.UPGRADE_CONNECTION_ATTRIBUTE,new_connection);
+  getHttpTransport().onCompleted();
+  return true;
+}

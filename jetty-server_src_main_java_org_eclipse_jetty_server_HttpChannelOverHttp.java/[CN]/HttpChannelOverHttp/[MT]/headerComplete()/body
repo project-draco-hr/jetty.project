@@ -25,23 +25,12 @@ case HTTP_1_1:
  else     persistent=true;
     if (!persistent)     persistent=HttpMethod.CONNECT.is(_metadata.getMethod());
     if (!persistent)     getResponse().getHttpFields().add(HttpHeader.CONNECTION,HttpHeaderValue.CLOSE);
+    if (_http2Upgrade != null && http2Upgrade())     return true;
     break;
   }
 case HTTP_2:
 {
-  ConnectionFactory h2=null;
-  if (!(getConnector().getDefaultConnectionFactory() instanceof NegotiatingServerConnectionFactory))   for (  ConnectionFactory factory : getConnector().getConnectionFactories())   if (factory.getProtocols().contains("h2c"))   h2=factory;
-  if (h2 == null || _metadata.getMethod() != HttpMethod.PRI.asString() || !"*".equals(_metadata.getURI().toString()) || _fields.size() > 0) {
-    badMessage(HttpStatus.UPGRADE_REQUIRED_426,null);
-    return false;
-  }
-  Connection old_connection=getEndPoint().getConnection();
-  Connection new_connection=h2.newConnection(getConnector(),getEndPoint());
-  if (LOG.isDebugEnabled())   LOG.debug("Direct Upgrade from {} to {}",old_connection,new_connection);
-  getResponse().setStatus(101);
-  getRequest().setAttribute(HttpConnection.UPGRADE_CONNECTION_ATTRIBUTE,new_connection);
-  getHttpTransport().onCompleted();
-  return true;
+  return http2Upgrade();
 }
 default :
 {
