@@ -1,10 +1,25 @@
 {
-  Connection connection=super.newConnection(connector,endPoint,attachment);
+  HTTP2ServerConnection connection=(HTTP2ServerConnection)super.newConnection(connector,endPoint,attachment);
   if (attachment instanceof MetaData.Request) {
     MetaData.Request request=(MetaData.Request)attachment;
     if (LOG.isDebugEnabled())     LOG.debug("{} upgraded {}",this,request.toString() + request.getFields());
-    byte[] settings=B64Code.decode(request.getFields().getField(HttpHeader.HTTP2_SETTINGS).getValue().replace('_','='));
+    final byte[] settings=B64Code.decodeRFC4648URL(request.getFields().getField(HttpHeader.HTTP2_SETTINGS).getValue());
     if (LOG.isDebugEnabled())     LOG.debug("{} settings {}",this,TypeUtil.toHexString(settings));
+    SettingsBodyParser parser=new SettingsBodyParser(null,null){
+      @Override protected int getStreamId(){
+        return 0;
+      }
+      @Override protected int getBodyLength(){
+        return settings.length;
+      }
+      @Override protected boolean onSettings(      Map<Integer,Integer> settings){
+        SettingsFrame frame=new SettingsFrame(settings,false);
+        reset();
+        return true;
+      }
+    }
+;
+    parser.parse(BufferUtil.toBuffer(settings));
   }
   return connection;
 }
