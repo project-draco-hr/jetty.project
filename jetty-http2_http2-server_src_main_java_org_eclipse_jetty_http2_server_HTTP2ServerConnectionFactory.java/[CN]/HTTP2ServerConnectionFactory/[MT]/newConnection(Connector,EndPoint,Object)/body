@@ -3,23 +3,13 @@
   if (attachment instanceof MetaData.Request) {
     MetaData.Request request=(MetaData.Request)attachment;
     if (LOG.isDebugEnabled())     LOG.debug("{} upgraded {}",this,request.toString() + request.getFields());
-    final byte[] settings=B64Code.decodeRFC4648URL(request.getFields().getField(HttpHeader.HTTP2_SETTINGS).getValue());
+    String value=request.getFields().getField(HttpHeader.HTTP2_SETTINGS).getValue();
+    final byte[] settings=B64Code.decodeRFC4648URL(value);
     if (LOG.isDebugEnabled())     LOG.debug("{} settings {}",this,TypeUtil.toHexString(settings));
-    SettingsBodyParser parser=new SettingsBodyParser(null,null){
-      @Override protected int getStreamId(){
-        return 0;
-      }
-      @Override protected int getBodyLength(){
-        return settings.length;
-      }
-      @Override protected boolean onSettings(      Map<Integer,Integer> settings){
-        SettingsFrame frame=new SettingsFrame(settings,false);
-        reset();
-        return true;
-      }
-    }
-;
-    parser.parse(BufferUtil.toBuffer(settings));
+    SettingsFrame frame=SettingsBodyParser.parseBody(BufferUtil.toBuffer(settings));
+    if (frame == null)     throw new IllegalArgumentException(String.format("Invalid %s header value: %s",HttpHeader.HTTP2_SETTINGS,value));
+    HTTP2Session session=(HTTP2Session)connection.getSession();
+    session.onSettings(frame,false);
   }
   return connection;
 }
