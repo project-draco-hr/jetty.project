@@ -1,0 +1,34 @@
+{
+  if (LOG.isDebugEnabled())   LOG.debug("upgrade {} {}",this,_upgrade);
+  if (_upgrade != PREAMBLE_UPGRADE_H2C && (_connection == null || !_connection.getValue().contains("Upgrade")))   throw new BadMessageException(HttpStatus.BAD_REQUEST_400);
+  ConnectionFactory.Upgrading factory=null;
+  loop:   for (  ConnectionFactory f : getConnector().getConnectionFactories()) {
+    if (f instanceof ConnectionFactory.Upgrading) {
+      if (f.getProtocols().contains(_upgrade.getValue())) {
+        factory=(ConnectionFactory.Upgrading)f;
+        break loop;
+      }
+    }
+  }
+  if (factory == null) {
+    if (LOG.isDebugEnabled())     LOG.debug("No factory for {} in {}",_upgrade,getConnector());
+    return false;
+  }
+  HttpFields response101=new HttpFields();
+  Connection upgrade_connection=factory.upgradeConnection(getConnector(),getEndPoint(),_metadata,response101);
+  if (upgrade_connection == null) {
+    if (LOG.isDebugEnabled())     LOG.debug("Upgrade ignored for {} by {}",_upgrade,factory);
+    return false;
+  }
+  try {
+    if (_upgrade != PREAMBLE_UPGRADE_H2C)     sendResponse(new MetaData.Response(HttpVersion.HTTP_1_1,HttpStatus.SWITCHING_PROTOCOLS_101,response101,0),null,true);
+  }
+ catch (  IOException e) {
+    throw new BadMessageException(HttpStatus.INTERNAL_SERVER_ERROR_500,null,e);
+  }
+  if (LOG.isDebugEnabled())   LOG.debug("Upgrade from {} to {}",getEndPoint().getConnection(),upgrade_connection);
+  getRequest().setAttribute(HttpConnection.UPGRADE_CONNECTION_ATTRIBUTE,upgrade_connection);
+  getResponse().setStatus(101);
+  getHttpTransport().onCompleted();
+  return true;
+}

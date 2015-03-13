@@ -1,0 +1,18 @@
+{
+  if (HttpMethod.PRI.is(request.getMethod())) {
+    ((ServerParser)getParser()).directUpgrade();
+  }
+ else {
+    String value=request.getFields().getField(HttpHeader.HTTP2_SETTINGS).getValue();
+    final byte[] settings=B64Code.decodeRFC4648URL(value);
+    if (LOG.isDebugEnabled())     LOG.debug("{} settings {}",this,TypeUtil.toHexString(settings));
+    SettingsFrame frame=SettingsBodyParser.parseBody(BufferUtil.toBuffer(settings));
+    if (frame == null) {
+      LOG.warn("Invalid {} header value: {}",HttpHeader.HTTP2_SETTINGS,value);
+      throw new BadMessageException();
+    }
+    HTTP2Session session=(HTTP2Session)getSession();
+    session.onSettings(frame,false);
+  }
+  return true;
+}

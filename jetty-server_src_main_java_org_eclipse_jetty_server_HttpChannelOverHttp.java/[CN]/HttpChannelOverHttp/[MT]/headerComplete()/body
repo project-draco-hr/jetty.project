@@ -25,12 +25,15 @@ case HTTP_1_1:
  else     persistent=true;
     if (!persistent)     persistent=HttpMethod.CONNECT.is(_metadata.getMethod());
     if (!persistent)     getResponse().getHttpFields().add(HttpHeader.CONNECTION,HttpHeaderValue.CLOSE);
-    if (_http2Upgrade != null && http2Upgrade())     return true;
+    if (_upgrade != null && upgrade())     return true;
     break;
   }
 case HTTP_2:
 {
-  return http2Upgrade();
+  _upgrade=PREAMBLE_UPGRADE_H2C;
+  if (HttpMethod.PRI.is(_metadata.getMethod()) && "*".equals(_metadata.getURI().toString()) && _fields.size() == 0 && upgrade())   return false;
+  badMessage(HttpStatus.UPGRADE_REQUIRED_426,null);
+  return false;
 }
 default :
 {
