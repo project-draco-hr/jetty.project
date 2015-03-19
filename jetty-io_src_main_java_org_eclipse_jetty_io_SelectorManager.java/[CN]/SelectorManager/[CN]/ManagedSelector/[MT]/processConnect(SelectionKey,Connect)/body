@@ -4,10 +4,14 @@
     key.attach(connect.attachment);
     boolean connected=finishConnect(channel);
     if (connected) {
-      connect.timeout.cancel();
-      key.interestOps(0);
-      EndPoint endpoint=createEndPoint(channel,key);
-      key.attach(endpoint);
+      if (connect.timeout.cancel()) {
+        key.interestOps(0);
+        EndPoint endpoint=createEndPoint(channel,key);
+        key.attach(endpoint);
+      }
+ else {
+        throw new SocketTimeoutException("Concurrent Connect Timeout");
+      }
     }
  else {
       throw new ConnectException();
