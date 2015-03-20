@@ -6,14 +6,13 @@
     String value=request.getFields().getField(HttpHeader.HTTP2_SETTINGS).getValue();
     final byte[] settings=B64Code.decodeRFC4648URL(value);
     if (LOG.isDebugEnabled())     LOG.debug("{} settings {}",this,TypeUtil.toHexString(settings));
-    SettingsFrame frame=SettingsBodyParser.parseBody(BufferUtil.toBuffer(settings));
-    if (frame == null) {
+    SettingsFrame settingsFrame=SettingsBodyParser.parseBody(BufferUtil.toBuffer(settings));
+    if (settingsFrame == null) {
       LOG.warn("Invalid {} header value: {}",HttpHeader.HTTP2_SETTINGS,value);
       throw new BadMessageException();
     }
-    HTTP2Session session=(HTTP2Session)getSession();
-    session.onSettings(frame,false);
-    upgrade=new MetaData.Request(request);
+    getSession().onFrame(settingsFrame);
+    upgradeRequest=new HeadersFrame(1,request,null,true);
   }
   return true;
 }
