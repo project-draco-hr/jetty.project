@@ -1,0 +1,15 @@
+{
+  List<Sweeper.Sweepable> toSweep=new ArrayList<>();
+  try (SpinLock.Lock lock=this.lock.lock()){
+    for (    Connection connection : getActiveConnections()) {
+      if (connection instanceof Sweeper.Sweepable)       toSweep.add(((Sweeper.Sweepable)connection));
+    }
+  }
+   for (  Sweeper.Sweepable candidate : toSweep) {
+    if (candidate.sweep()) {
+      boolean removed=getActiveConnections().remove(candidate);
+      LOG.warn("Connection swept: {}{}{} from active connections{}{}",candidate,System.lineSeparator(),removed ? "Removed" : "Not removed",System.lineSeparator(),dump());
+    }
+  }
+  return false;
+}

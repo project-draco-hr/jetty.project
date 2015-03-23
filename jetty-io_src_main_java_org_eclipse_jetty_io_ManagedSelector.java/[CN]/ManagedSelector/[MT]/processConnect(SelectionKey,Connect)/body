@@ -5,15 +5,19 @@
     boolean connected=_selectorManager.finishConnect(channel);
     if (LOG.isDebugEnabled())     LOG.debug("Connected {} {}",connected,channel);
     if (connected) {
-      connect.timeout.cancel();
-      key.interestOps(0);
-      return new CreateEndPoint(channel,key){
-        @Override protected void failed(        Throwable failure){
-          super.failed(failure);
-          connect.failed(failure);
+      if (connect.timeout.cancel()) {
+        key.interestOps(0);
+        return new CreateEndPoint(channel,key){
+          @Override protected void failed(          Throwable failure){
+            super.failed(failure);
+            connect.failed(failure);
+          }
         }
-      }
 ;
+      }
+ else {
+        throw new SocketTimeoutException("Concurrent Connect Timeout");
+      }
     }
  else {
       throw new ConnectException();
