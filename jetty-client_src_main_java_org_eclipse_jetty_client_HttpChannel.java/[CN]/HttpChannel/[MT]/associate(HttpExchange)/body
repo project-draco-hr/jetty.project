@@ -1,9 +1,14 @@
 {
-  if (this.exchange.compareAndSet(null,exchange)) {
-    exchange.associate(this);
-    if (LOG.isDebugEnabled())     LOG.debug("{} associated to {}",exchange,this);
+  boolean result=false;
+  boolean abort=true;
+  try (SpinLock.Lock lock=_lock.lock()){
+    if (_exchange == null) {
+      abort=false;
+      result=exchange.associate(this);
+      if (result)       _exchange=exchange;
+    }
   }
- else {
-    exchange.getRequest().abort(new UnsupportedOperationException("Pipelined requests not supported"));
-  }
+   if (abort)   exchange.getRequest().abort(new UnsupportedOperationException("Pipelined requests not supported"));
+  if (LOG.isDebugEnabled())   LOG.debug("{} associated {} to {}",exchange,result,this);
+  return result;
 }

@@ -1,0 +1,35 @@
+{
+  boolean terminate;
+  out:   while (true) {
+    ResponseState current=responseState.get();
+switch (current) {
+case FAILURE:
+{
+        return false;
+      }
+default :
+{
+      if (updateResponseState(current,ResponseState.FAILURE)) {
+        terminate=current != ResponseState.TRANSIENT;
+        break out;
+      }
+      break;
+    }
+}
+}
+this.failure=failure;
+dispose();
+HttpResponse response=exchange.getResponse();
+if (LOG.isDebugEnabled()) LOG.debug("Response failure {} {} on {}: {}",response,exchange,getHttpChannel(),failure);
+List<Response.ResponseListener> listeners=exchange.getConversation().getResponseListeners();
+ResponseNotifier notifier=getHttpDestination().getResponseNotifier();
+notifier.notifyFailure(listeners,response,failure);
+if (terminate) {
+Result result=exchange.terminateResponse();
+terminateResponse(exchange,result);
+}
+ else {
+if (LOG.isDebugEnabled()) LOG.debug("Concurrent failure: response termination skipped, performed by helpers");
+}
+return true;
+}

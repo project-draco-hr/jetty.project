@@ -1,25 +1,6 @@
 {
   HttpExchange exchange=getHttpExchange();
   if (exchange == null)   return false;
-  boolean completed=exchange.requestComplete();
-  if (!completed)   return false;
-  this.failure=failure;
-  RequestState current;
-  boolean fail;
-  while (true) {
-    current=requestState.get();
-    if (updateRequestState(current,RequestState.FAILURE)) {
-      fail=current != RequestState.TRANSIENT && current != RequestState.TRANSIENT_CONTENT;
-      break;
-    }
-  }
-  dispose();
-  Result result=failRequest(exchange,failure);
-  if (fail) {
-    terminateRequest(exchange,failure,result);
-  }
- else {
-    if (LOG.isDebugEnabled())     LOG.debug("Concurrent failure: request termination skipped, performed by helpers");
-  }
-  return true;
+  if (exchange.requestComplete(failure))   return abort(exchange,failure);
+  return false;
 }
