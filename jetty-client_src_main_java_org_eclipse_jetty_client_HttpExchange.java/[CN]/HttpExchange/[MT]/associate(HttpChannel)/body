@@ -1,3 +1,15 @@
 {
-  if (!this.channel.compareAndSet(null,channel))   request.abort(new IllegalStateException());
+  boolean result=false;
+  boolean abort=false;
+  try (SpinLock.Lock lock=_lock.lock()){
+    if (requestState == State.PENDING && responseState == State.PENDING) {
+      abort=_channel != null;
+      if (!abort) {
+        _channel=channel;
+        result=true;
+      }
+    }
+  }
+   if (abort)   request.abort(new IllegalStateException(toString()));
+  return result;
 }

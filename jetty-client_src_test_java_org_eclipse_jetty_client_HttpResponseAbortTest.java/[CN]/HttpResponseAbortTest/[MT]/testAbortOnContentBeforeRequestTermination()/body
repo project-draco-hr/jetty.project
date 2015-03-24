@@ -1,0 +1,53 @@
+{
+  start(new AbstractHandler(){
+    @Override public void handle(    String target,    Request baseRequest,    HttpServletRequest request,    HttpServletResponse response) throws IOException, ServletException {
+      try {
+        baseRequest.setHandled(true);
+        OutputStream output=response.getOutputStream();
+        output.write(1);
+        output.flush();
+        output.write(2);
+        output.flush();
+      }
+ catch (      IOException ignored) {
+      }
+    }
+  }
+);
+  final CountDownLatch abortLatch=new CountDownLatch(1);
+  final AtomicInteger completes=new AtomicInteger();
+  final CountDownLatch completeLatch=new CountDownLatch(1);
+  client.newRequest("localhost",connector.getLocalPort()).scheme(scheme).onRequestSuccess(new org.eclipse.jetty.client.api.Request.SuccessListener(){
+    @Override public void onSuccess(    org.eclipse.jetty.client.api.Request request){
+      try {
+        abortLatch.await(5,TimeUnit.SECONDS);
+      }
+ catch (      InterruptedException x) {
+        x.printStackTrace();
+      }
+    }
+  }
+).onResponseContent(new Response.ContentListener(){
+    @Override public void onContent(    Response response,    ByteBuffer content){
+      try {
+        response.abort(new Exception());
+        abortLatch.countDown();
+        Thread.sleep(1000);
+      }
+ catch (      InterruptedException x) {
+        x.printStackTrace();
+      }
+    }
+  }
+).send(new Response.CompleteListener(){
+    @Override public void onComplete(    Result result){
+      completes.incrementAndGet();
+      Assert.assertTrue(result.isFailed());
+      completeLatch.countDown();
+    }
+  }
+);
+  Assert.assertTrue(completeLatch.await(5,TimeUnit.SECONDS));
+  Thread.sleep(1000);
+  Assert.assertEquals(1,completes.get());
+}
