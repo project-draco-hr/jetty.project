@@ -1,14 +1,14 @@
 {
-  boolean completed=exchange.responseComplete(null);
-  if (!completed)   return false;
+  if (!exchange.responseComplete(null))   return false;
   responseState.set(ResponseState.IDLE);
   reset();
-  Result result=exchange.terminateResponse();
   HttpResponse response=exchange.getResponse();
   if (LOG.isDebugEnabled())   LOG.debug("Response success {}",response);
   List<Response.ResponseListener> listeners=exchange.getConversation().getResponseListeners();
   ResponseNotifier notifier=getHttpDestination().getResponseNotifier();
   notifier.notifySuccess(listeners,response);
+  if (exchange.getResponse().getStatus() == HttpStatus.CONTINUE_100)   return true;
+  Result result=exchange.terminateResponse();
   terminateResponse(exchange,result);
   return true;
 }
