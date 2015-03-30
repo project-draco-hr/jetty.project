@@ -1,8 +1,9 @@
 {
-  Thread thread=Thread.currentThread();
+  Thread current=Thread.currentThread();
   while (true) {
-    if (!_lock.compareAndSet(null,thread)) {
-      if (_lock.get() == thread)       throw new IllegalStateException("SpinLock is not reentrant");
+    Thread locker=_lock.get();
+    if (locker != null || !_lock.compareAndSet(null,current)) {
+      if (locker == current)       throw new IllegalStateException("SpinLock is not reentrant");
       continue;
     }
     return _unlock;
