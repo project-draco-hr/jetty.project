@@ -1,0 +1,25 @@
+{
+  LOG.debug("matches={} for {}",serverName,this);
+  if (serverName instanceof SNIHostName) {
+    _name=(SNIHostName)serverName;
+    if (_name == null || _aliases.size() == 0)     return true;
+    for (    String alias : _aliases.keySet()) {
+      String cn=_aliases.get(alias);
+      if (cn.equals(_name.getAsciiName())) {
+        _alias=alias;
+        LOG.debug("matches={}",alias);
+        return true;
+      }
+      if (cn.startsWith("*.")) {
+        String domain=_name.getAsciiName();
+        domain=domain.substring(domain.indexOf('.'));
+        if (cn.substring(1).equals(domain)) {
+          _alias=alias;
+          LOG.debug("matches={}",alias);
+          return true;
+        }
+      }
+    }
+  }
+  return false;
+}

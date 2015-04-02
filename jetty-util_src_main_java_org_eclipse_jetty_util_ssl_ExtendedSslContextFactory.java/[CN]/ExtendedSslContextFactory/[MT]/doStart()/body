@@ -1,0 +1,18 @@
+{
+  super.doStart();
+  _aliases.clear();
+  if (_factory._keyStore != null) {
+    for (    String alias : Collections.list(_factory._keyStore.aliases())) {
+      Certificate certificate=_factory._keyStore.getCertificate(alias);
+      if ("X.509".equals(certificate.getType())) {
+        X509Certificate x509=(X509Certificate)certificate;
+        String cn=x509.getSubjectX500Principal().getName("CANONICAL");
+        if (cn.startsWith("cn=")) {
+          cn=cn.substring(3,cn.indexOf(","));
+          _aliases.put(alias,cn);
+        }
+      }
+    }
+  }
+  LOG.info("aliases={} for {}",_aliases,this);
+}

@@ -1,20 +1,21 @@
 {
-  if (_context == null) {
-    if (_keyStore == null && _keyStoreInputStream == null && _keyStorePath == null && _trustStore == null && _trustStoreInputStream == null && _trustStorePath == null) {
+  SSLContext context=_setContext;
+  KeyStore keyStore=_setKeyStore;
+  KeyStore trustStore=_setTrustStore;
+  if (context == null) {
+    if (keyStore == null && _keyStoreResource == null && trustStore == null && _trustStoreResource == null) {
       TrustManager[] trust_managers=null;
       if (_trustAll) {
         if (LOG.isDebugEnabled())         LOG.debug("No keystore or trust store configured.  ACCEPTING UNTRUSTED CERTIFICATES!!!!!");
         trust_managers=TRUST_ALL_CERTS;
       }
       SecureRandom secureRandom=(_secureRandomAlgorithm == null) ? null : SecureRandom.getInstance(_secureRandomAlgorithm);
-      SSLContext context=_sslProvider == null ? SSLContext.getInstance(_sslProtocol) : SSLContext.getInstance(_sslProtocol,_sslProvider);
+      context=_sslProvider == null ? SSLContext.getInstance(_sslProtocol) : SSLContext.getInstance(_sslProtocol,_sslProvider);
       context.init(null,trust_managers,secureRandom);
-      _context=context;
     }
  else {
-      checkKeyStore();
-      KeyStore keyStore=loadKeyStore();
-      KeyStore trustStore=loadTrustStore();
+      if (keyStore == null)       keyStore=loadKeyStore(_keyStoreResource);
+      if (trustStore == null)       trustStore=loadTrustStore(_trustStoreResource == null ? _keyStoreResource : _trustStoreResource);
       Collection<? extends CRL> crls=loadCRL(_crlPath);
       if (_validateCerts && keyStore != null) {
         if (_certAlias == null) {
@@ -35,14 +36,14 @@
       KeyManager[] keyManagers=getKeyManagers(keyStore);
       TrustManager[] trustManagers=getTrustManagers(trustStore,crls);
       SecureRandom secureRandom=(_secureRandomAlgorithm == null) ? null : SecureRandom.getInstance(_secureRandomAlgorithm);
-      SSLContext context=_sslProvider == null ? SSLContext.getInstance(_sslProtocol) : SSLContext.getInstance(_sslProtocol,_sslProvider);
+      context=_sslProvider == null ? SSLContext.getInstance(_sslProtocol) : SSLContext.getInstance(_sslProtocol,_sslProvider);
       context.init(keyManagers,trustManagers,secureRandom);
-      _context=context;
     }
-    SSLEngine engine=newSSLEngine();
-    if (LOG.isDebugEnabled()) {
-      LOG.debug("Enabled Protocols {} of {}",Arrays.asList(engine.getEnabledProtocols()),Arrays.asList(engine.getSupportedProtocols()));
-      LOG.debug("Enabled Ciphers   {} of {}",Arrays.asList(engine.getEnabledCipherSuites()),Arrays.asList(engine.getSupportedCipherSuites()));
-    }
+  }
+  _factory=new Factory(keyStore,trustStore,context);
+  SSLEngine engine=newSSLEngine();
+  if (LOG.isDebugEnabled()) {
+    LOG.debug("Enabled Protocols {} of {}",Arrays.asList(engine.getEnabledProtocols()),Arrays.asList(engine.getSupportedProtocols()));
+    LOG.debug("Enabled Ciphers   {} of {}",Arrays.asList(engine.getEnabledCipherSuites()),Arrays.asList(engine.getSupportedCipherSuites()));
   }
 }

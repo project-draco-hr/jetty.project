@@ -1,0 +1,22 @@
+{
+  String[] aliases=_delegate.getServerAliases(keyType,issuers);
+  if (aliases == null || aliases.length == 0)   return null;
+  String alias=null;
+  Collection<SNIMatcher> matchers=((SSLSocket)socket).getSSLParameters().getSNIMatchers();
+  if (matchers != null) {
+    for (    SNIMatcher m : matchers) {
+      if (m instanceof ExtendedSslContextFactory.AliasSNIMatcher) {
+        alias=((ExtendedSslContextFactory.AliasSNIMatcher)m).getAlias();
+        break;
+      }
+    }
+  }
+  if (LOG.isDebugEnabled())   LOG.debug("choose {} from {}",alias,Arrays.asList(aliases));
+  if (alias != null) {
+    for (    String a : aliases) {
+      if (a.equals(alias))       return alias;
+    }
+    return null;
+  }
+  return _delegate.chooseServerAlias(keyType,issuers,socket);
+}
