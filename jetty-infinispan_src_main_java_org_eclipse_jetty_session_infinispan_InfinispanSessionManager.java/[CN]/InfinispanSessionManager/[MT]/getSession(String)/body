@@ -1,0 +1,42 @@
+{
+  Session session=null;
+  Session memSession=(Session)_sessions.get(idInCluster);
+  if (LOG.isDebugEnabled())   LOG.debug("getSession({}) {} in session map",idInCluster,(memSession == null ? "not" : ""));
+  long now=System.currentTimeMillis();
+  try {
+    if (memSession == null) {
+      if (LOG.isDebugEnabled())       LOG.debug("getSession({}): loading session data from cluster",idInCluster);
+      session=load(makeKey(idInCluster,_context));
+      if (session != null) {
+        if (session.getExpiry() > 0 && session.getExpiry() <= now) {
+          if (LOG.isDebugEnabled())           LOG.debug("getSession ({}): Session expired",idInCluster);
+          ((InfinispanSessionIdManager)getSessionIdManager()).removeSession(session);
+          return null;
+        }
+        session.setLastNode(getSessionIdManager().getWorkerName());
+        Session existingSession=_sessions.putIfAbsent(idInCluster,session);
+        if (existingSession != null) {
+          session=existingSession;
+          LOG.debug("getSession({}): using session loaded by another request thread ",idInCluster);
+        }
+ else {
+          session.didActivate();
+          LOG.debug("getSession({}): loaded session from cluster",idInCluster);
+        }
+        return session;
+      }
+ else {
+        LOG.debug("getSession({}): No session in cluster matching",idInCluster);
+        return null;
+      }
+    }
+ else {
+      LOG.debug("getSession({}): returning session from local memory ",memSession.getClusterId());
+      return memSession;
+    }
+  }
+ catch (  Exception e) {
+    LOG.warn("Unable to load session=" + idInCluster,e);
+    return null;
+  }
+}

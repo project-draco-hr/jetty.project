@@ -1,0 +1,10 @@
+{
+  if (_cache == null)   throw new IllegalStateException("No cache");
+  if (LOG.isDebugEnabled())   LOG.debug("Writing session {} to cluster",session.getId());
+  SerializableSessionData storableSession=new SerializableSessionData(session);
+  InfinispanSessionIdManager sessionIdManager=(InfinispanSessionIdManager)getSessionIdManager();
+  if (storableSession.maxInactive > 0)   _cache.put(makeKey(session,_context),storableSession,-1,TimeUnit.SECONDS,storableSession.maxInactive * sessionIdManager.getIdleExpiryMultiple(),TimeUnit.SECONDS);
+ else   _cache.put(makeKey(session,_context),storableSession);
+  sessionIdManager.touch(session.getClusterId());
+  session.setLastSyncTime(System.currentTimeMillis());
+}

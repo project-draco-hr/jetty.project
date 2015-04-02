@@ -1,0 +1,31 @@
+{
+  Set<String> candidateIds=new HashSet<String>();
+  long now=System.currentTimeMillis();
+  LOG.info("SessionManager for context {} scavenging at {} ",getContextPath(getContext()),now);
+synchronized (_sessions) {
+    for (    Map.Entry<String,Session> entry : _sessions.entrySet()) {
+      long expiry=entry.getValue().getExpiry();
+      if (expiry > 0 && expiry < now)       candidateIds.add(entry.getKey());
+    }
+  }
+  for (  String candidateId : candidateIds) {
+    if (LOG.isDebugEnabled())     LOG.debug("Session {} expired ",candidateId);
+    Session candidateSession=_sessions.get(candidateId);
+    if (candidateSession != null) {
+      Session cachedSession=load(makeKey(candidateId,_context));
+      if (cachedSession == null) {
+        if (LOG.isDebugEnabled())         LOG.debug("Locally expired session({}) does not exist in cluster ",candidateId);
+        candidateSession.timeout();
+      }
+ else       if (getSessionIdManager().getWorkerName().equals(cachedSession.getLastNode())) {
+        if (LOG.isDebugEnabled())         LOG.debug("Expiring session({}) local to session manager",candidateId);
+        candidateSession.timeout();
+      }
+ else {
+        if (LOG.isDebugEnabled())         LOG.debug("Session({}) not local to this session manager, removing from local memory",candidateId);
+        candidateSession.willPassivate();
+        _sessions.remove(candidateSession.getClusterId());
+      }
+    }
+  }
+}

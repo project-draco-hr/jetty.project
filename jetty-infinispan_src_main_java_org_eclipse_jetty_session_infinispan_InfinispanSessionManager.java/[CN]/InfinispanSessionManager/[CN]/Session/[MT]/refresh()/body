@@ -1,0 +1,31 @@
+{
+  Session fresh=load(makeKey(getClusterId(),_context));
+  if (fresh == null) {
+    invalidate();
+    return;
+  }
+  if (fresh.getLastNode().equals(getLastNode()))   return;
+  setLastNode(getSessionIdManager().getWorkerName());
+  willPassivate();
+  if (fresh.getAttributes() == 0)   this.clearAttributes();
+ else {
+    for (    String key : fresh.getAttributeMap().keySet()) {
+      Object freshvalue=fresh.getAttribute(key);
+      if (getAttribute(key) == null) {
+        doPutOrRemove(key,freshvalue);
+        bindValue(key,freshvalue);
+      }
+ else {
+        doPutOrRemove(key,freshvalue);
+      }
+    }
+    for (    String key : getNames()) {
+      if (fresh.getAttribute(key) == null) {
+        Object oldvalue=getAttribute(key);
+        doPutOrRemove(key,null);
+        unbindValue(key,oldvalue);
+      }
+    }
+  }
+  didActivate();
+}
