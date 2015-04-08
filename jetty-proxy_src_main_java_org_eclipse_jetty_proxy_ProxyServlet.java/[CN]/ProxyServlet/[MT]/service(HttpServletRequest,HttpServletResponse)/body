@@ -1,22 +1,21 @@
 {
   final int requestId=getRequestId(request);
-  URI rewrittenURI=rewriteURI(request);
+  String rewrittenTarget=rewriteTarget(request);
   if (_log.isDebugEnabled()) {
     StringBuffer uri=request.getRequestURL();
     if (request.getQueryString() != null)     uri.append("?").append(request.getQueryString());
-    if (_log.isDebugEnabled())     _log.debug("{} rewriting: {} -> {}",requestId,uri,rewrittenURI);
+    if (_log.isDebugEnabled())     _log.debug("{} rewriting: {} -> {}",requestId,uri,rewrittenTarget);
   }
-  if (rewrittenURI == null) {
-    onRewriteFailed(request,response);
+  if (rewrittenTarget == null) {
+    onProxyRewriteFailed(request,response);
     return;
   }
-  final Request proxyRequest=getHttpClient().newRequest(rewrittenURI).method(request.getMethod()).version(HttpVersion.fromString(request.getProtocol()));
-  copyHeaders(request,proxyRequest);
+  final Request proxyRequest=getHttpClient().newRequest(rewrittenTarget).method(request.getMethod()).version(HttpVersion.fromString(request.getProtocol()));
+  copyRequestHeaders(request,proxyRequest);
   addProxyHeaders(request,proxyRequest);
   final AsyncContext asyncContext=request.startAsync();
   asyncContext.setTimeout(0);
   proxyRequest.timeout(getTimeout(),TimeUnit.MILLISECONDS);
-  if (hasContent(request))   proxyRequest.content(proxyRequestContent(proxyRequest,request));
-  customizeProxyRequest(proxyRequest,request);
+  if (hasContent(request))   proxyRequest.content(proxyRequestContent(request,response,proxyRequest));
   sendProxyRequest(request,response,proxyRequest);
 }
