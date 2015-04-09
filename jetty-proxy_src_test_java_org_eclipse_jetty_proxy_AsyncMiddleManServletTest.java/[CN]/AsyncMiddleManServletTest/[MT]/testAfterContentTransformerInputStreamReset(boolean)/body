@@ -1,0 +1,34 @@
+{
+  final byte[] data=new byte[]{'c','o','f','f','e','e'};
+  startServer(new HttpServlet(){
+    @Override protected void service(    HttpServletRequest request,    HttpServletResponse response) throws ServletException, IOException {
+      int chunk=data.length / 2;
+      ServletOutputStream output=response.getOutputStream();
+      output.write(data,0,chunk);
+      sleep(1000);
+      output.write(data,chunk,data.length - chunk);
+    }
+  }
+);
+  startProxy(new AsyncMiddleManServlet(){
+    @Override protected ContentTransformer newServerResponseContentTransformer(    HttpServletRequest clientRequest,    HttpServletResponse proxyResponse,    Response serverResponse){
+      return new AfterContentTransformer(){
+{
+          setMaxInputBufferSize(overflow ? data.length / 2 : data.length * 2);
+        }
+        @Override public void transform(        Source source,        Sink sink) throws IOException {
+          InputStream input=source.getInputStream();
+          IO.copy(input,IO.getNullStream());
+          input.reset();
+          IO.copy(input,sink.getOutputStream());
+        }
+      }
+;
+    }
+  }
+);
+  startClient();
+  ContentResponse response=client.newRequest("localhost",serverConnector.getLocalPort()).timeout(5,TimeUnit.SECONDS).send();
+  Assert.assertEquals(HttpStatus.OK_200,response.getStatus());
+  Assert.assertArrayEquals(data,response.getContent());
+}

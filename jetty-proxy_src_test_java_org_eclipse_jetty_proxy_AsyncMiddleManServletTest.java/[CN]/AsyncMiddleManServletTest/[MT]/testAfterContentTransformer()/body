@@ -1,0 +1,38 @@
+{
+  final String key0="id";
+  long value0=1;
+  final String key1="channel";
+  String value1="foo";
+  final String json="{ \"" + key0 + "\":"+ value0+ ", \""+ key1+ "\":\""+ value1+ "\" }";
+  startServer(new HttpServlet(){
+    @Override protected void service(    HttpServletRequest request,    HttpServletResponse response) throws ServletException, IOException {
+      response.getOutputStream().write(json.getBytes(StandardCharsets.UTF_8));
+    }
+  }
+);
+  final String key2="c";
+  startProxy(new AsyncMiddleManServlet(){
+    @Override protected ContentTransformer newServerResponseContentTransformer(    HttpServletRequest clientRequest,    HttpServletResponse proxyResponse,    Response serverResponse){
+      return new AfterContentTransformer(){
+        @Override public void transform(        Source source,        Sink sink) throws IOException {
+          InputStream input=source.getInputStream();
+          @SuppressWarnings("unchecked") Map<String,Object> obj=(Map<String,Object>)JSON.parse(new InputStreamReader(input,"UTF-8"));
+          obj.put(key2,obj.remove(key1));
+          try (OutputStream output=sink.getOutputStream()){
+            output.write(JSON.toString(obj).getBytes(StandardCharsets.UTF_8));
+          }
+         }
+      }
+;
+    }
+  }
+);
+  startClient();
+  ContentResponse response=client.newRequest("localhost",serverConnector.getLocalPort()).timeout(5,TimeUnit.SECONDS).send();
+  Assert.assertEquals(200,response.getStatus());
+  @SuppressWarnings("unchecked") Map<String,Object> obj=(Map<String,Object>)JSON.parse(response.getContentAsString());
+  Assert.assertNotNull(obj);
+  Assert.assertEquals(2,obj.size());
+  Assert.assertEquals(value0,obj.get(key0));
+  Assert.assertEquals(value1,obj.get(key2));
+}
