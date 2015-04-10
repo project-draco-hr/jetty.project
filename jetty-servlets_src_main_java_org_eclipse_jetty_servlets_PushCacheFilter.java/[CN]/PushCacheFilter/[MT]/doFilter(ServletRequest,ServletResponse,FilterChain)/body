@@ -1,12 +1,7 @@
 {
   long now=System.nanoTime();
   HttpServletRequest request=(HttpServletRequest)req;
-  if (Boolean.TRUE == req.getAttribute("org.eclipse.jetty.pushed")) {
-    if (LOG.isDebugEnabled())     LOG.debug("PUSH {}",request.getRequestURI());
-    chain.doFilter(req,resp);
-    return;
-  }
-  HttpFields fields=Request.getBaseRequest(req).getHttpFields();
+  HttpFields fields=Request.getBaseRequest(request).getHttpFields();
   boolean conditional=false;
   String referrer=null;
   loop:   for (int i=0; i < fields.size(); i++) {
@@ -29,20 +24,13 @@ break;
 }
 if (LOG.isDebugEnabled()) LOG.debug("{} {} referrer={} conditional={}",request.getMethod(),request.getRequestURI(),referrer,conditional);
 String path=URIUtil.addPaths(request.getServletPath(),request.getPathInfo());
-if (path.endsWith(_renewPath)) {
-if (LOG.isDebugEnabled()) LOG.debug("Renew {}",now);
-_renew=now;
-resp.getOutputStream().print("PUSH CACHE RESET");
-resp.flushBuffer();
-return;
-}
 if (referrer != null) {
 HttpURI referrerURI=new HttpURI(referrer);
 String host=referrerURI.getHost();
 int port=referrerURI.getPort();
 if (port <= 0) port=request.isSecure() ? 443 : 80;
-boolean referred_from_here=(_hosts.size() > 0) ? _hosts.contains(host) : request.getServerName().equals(host);
-referred_from_here&=(_ports.size() > 0) ? _ports.contains(port) : port == request.getServerPort();
+boolean referred_from_here=_hosts.size() > 0 ? _hosts.contains(host) : host.equals(request.getServerName());
+referred_from_here&=_ports.size() > 0 ? _ports.contains(port) : port == request.getServerPort();
 if (referred_from_here) {
 String referrerPath=referrerURI.getPath();
 if (referrerPath.startsWith(request.getContextPath())) {
@@ -53,12 +41,18 @@ long primaryTimestamp=primaryResource._timestamp.get();
 if (primaryTimestamp != 0) {
   RequestDispatcher dispatcher=request.getServletContext().getRequestDispatcher(path);
   if (now - primaryTimestamp < TimeUnit.MILLISECONDS.toNanos(_associatePeriod)) {
-    if (primaryResource._associated.putIfAbsent(path,dispatcher) == null) {
-      if (LOG.isDebugEnabled())       LOG.debug("Associated {} -> {}",referrerPathNoContext,dispatcher);
+    ConcurrentMap<String,RequestDispatcher> associated=primaryResource._associated;
+    if (associated.size() <= _maxAssociations) {
+      if (associated.putIfAbsent(path,dispatcher) == null) {
+        if (LOG.isDebugEnabled())         LOG.debug("Associated {} to {}",path,referrerPathNoContext);
+      }
+    }
+ else {
+      if (LOG.isDebugEnabled())       LOG.debug("Not associated {} to {}, exceeded max associations of {}",path,referrerPathNoContext,_maxAssociations);
     }
   }
  else {
-    if (LOG.isDebugEnabled())     LOG.debug("Not associated {} -> {}, outside associate period of {}ms",referrerPathNoContext,dispatcher,_associatePeriod);
+    if (LOG.isDebugEnabled())     LOG.debug("Not associated {} to {}, outside associate period of {}ms",path,referrerPathNoContext,_associatePeriod);
   }
 }
 }
@@ -74,20 +68,20 @@ PrimaryResource t=new PrimaryResource();
 primaryResource=_cache.putIfAbsent(path,t);
 primaryResource=primaryResource == null ? t : primaryResource;
 primaryResource._timestamp.compareAndSet(0,now);
-if (LOG.isDebugEnabled()) LOG.debug("Cached {}",path);
+if (LOG.isDebugEnabled()) LOG.debug("Cached primary resource {}",path);
 }
  else {
 long last=primaryResource._timestamp.get();
 if (last < _renew && primaryResource._timestamp.compareAndSet(last,now)) {
 primaryResource._associated.clear();
-if (LOG.isDebugEnabled()) LOG.debug("Clear associated {}",path);
+if (LOG.isDebugEnabled()) LOG.debug("Clear associated resources for {}",path);
 }
 }
 if (!conditional && !primaryResource._associated.isEmpty()) {
 for (RequestDispatcher dispatcher : primaryResource._associated.values()) {
-if (LOG.isDebugEnabled()) LOG.debug("Pushing {} <- {}",dispatcher,path);
+if (LOG.isDebugEnabled()) LOG.debug("Pushing {} for {}",dispatcher,path);
 ((Dispatcher)dispatcher).push(request);
 }
 }
-chain.doFilter(req,resp);
+chain.doFilter(request,resp);
 }
