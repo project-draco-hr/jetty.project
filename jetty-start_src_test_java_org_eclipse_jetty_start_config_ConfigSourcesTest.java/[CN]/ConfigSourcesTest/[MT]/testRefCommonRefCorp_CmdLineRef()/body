@@ -4,16 +4,16 @@
   TestEnv.copyTestDir("dist-home",home);
   File devops=testdir.getFile("devops");
   FS.ensureEmpty(devops);
-  TestEnv.makeFile(devops,"start.ini","--module=logging","jetty.port=2222");
+  TestEnv.makeFile(devops,"start.ini","--module=logging","jetty.http.port=2222");
   File corp=testdir.getFile("corp");
   FS.ensureEmpty(corp);
-  TestEnv.makeFile(corp,"start.ini","jetty.port=9090");
+  TestEnv.makeFile(corp,"start.ini","jetty.http.port=9090");
   File common=testdir.getFile("common");
   FS.ensureEmpty(common);
-  TestEnv.makeFile(common,"start.ini","--include-jetty-dir=" + corp.getAbsolutePath(),"jetty.port=8080");
+  TestEnv.makeFile(common,"start.ini","--include-jetty-dir=" + corp.getAbsolutePath(),"jetty.http.port=8080");
   File base=testdir.getFile("base");
   FS.ensureEmpty(base);
-  TestEnv.makeFile(base,"start.ini","jetty.host=127.0.0.1","--include-jetty-dir=" + common.getAbsolutePath());
+  TestEnv.makeFile(base,"start.ini","jetty.http.host=127.0.0.1","--include-jetty-dir=" + common.getAbsolutePath());
   ConfigSources sources=new ConfigSources();
   String cmdLine[]=new String[]{"--include-jetty-dir=" + devops.getAbsolutePath()};
   sources.add(new CommandLineConfigSource(cmdLine));
@@ -21,6 +21,6 @@
   sources.add(new JettyBaseConfigSource(base.toPath()));
   assertIdOrder(sources,"<command-line>","${jetty.base}",devops.getAbsolutePath(),common.getAbsolutePath(),corp.getAbsolutePath(),"${jetty.home}");
   assertDirOrder(sources,base,devops,common,corp,home);
-  assertProperty(sources,"jetty.host","127.0.0.1");
-  assertProperty(sources,"jetty.port","2222");
+  assertProperty(sources,"jetty.http.host","127.0.0.1");
+  assertProperty(sources,"jetty.http.port","2222");
 }
