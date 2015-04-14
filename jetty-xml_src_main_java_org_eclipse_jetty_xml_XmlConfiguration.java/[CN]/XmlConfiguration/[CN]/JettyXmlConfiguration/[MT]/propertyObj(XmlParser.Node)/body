@@ -3,24 +3,9 @@
   String nameAttr=node.getAttribute("name");
   String defaultValue=node.getAttribute("default");
   Object value=null;
-  boolean present=false;
   Map<String,String> properties=_configuration.getProperties();
-  if (properties != null && nameAttr != null) {
-    String preferredName=null;
-    String[] names=nameAttr.split(",");
-    for (    String name : names) {
-      name=name.trim();
-      if (name.length() == 0)       continue;
-      if (preferredName == null)       preferredName=name;
-      if (properties.containsKey(name)) {
-        if (!name.equals(preferredName))         LOG.warn("Property '{}' is deprecated, use '{}' instead",name,preferredName);
-        present=true;
-        value=properties.get(name);
-        break;
-      }
-    }
-  }
-  if (!present)   value=defaultValue;
+  if (properties != null && nameAttr != null)   value=resolve(properties,nameAttr);
+  if (value == null && defaultValue != null)   value=interpolate(properties,defaultValue);
   if (idAttr != null)   _configuration.getIdMap().put(idAttr,value);
   if (value != null)   configure(value,node,0);
   return value;
