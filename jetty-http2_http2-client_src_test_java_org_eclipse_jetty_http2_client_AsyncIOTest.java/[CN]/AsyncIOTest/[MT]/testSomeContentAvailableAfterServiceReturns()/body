@@ -1,0 +1,41 @@
+{
+  final AtomicInteger count=new AtomicInteger();
+  start(new HttpServlet(){
+    @Override protected void service(    final HttpServletRequest request,    HttpServletResponse response) throws ServletException, IOException {
+      final AsyncContext asyncContext=request.startAsync();
+      asyncContext.setTimeout(0);
+      request.getInputStream().setReadListener(new EmptyReadListener(){
+        @Override public void onDataAvailable() throws IOException {
+          count.incrementAndGet();
+          ServletInputStream input=request.getInputStream();
+          while (input.isReady()) {
+            int read=input.read();
+            if (read < 0)             break;
+          }
+          if (input.isFinished())           asyncContext.complete();
+        }
+      }
+);
+    }
+  }
+);
+  Session session=newClient(new Session.Listener.Adapter());
+  HttpFields fields=new HttpFields();
+  MetaData.Request metaData=newRequest("GET",fields);
+  HeadersFrame frame=new HeadersFrame(1,metaData,null,false);
+  final CountDownLatch latch=new CountDownLatch(1);
+  FuturePromise<Stream> promise=new FuturePromise<>();
+  session.newStream(frame,promise,new Stream.Listener.Adapter(){
+    @Override public void onHeaders(    Stream stream,    HeadersFrame frame){
+      if (frame.isEndStream())       latch.countDown();
+    }
+  }
+);
+  Stream stream=promise.get(5,TimeUnit.SECONDS);
+  Thread.sleep(1000);
+  stream.data(new DataFrame(stream.getId(),ByteBuffer.allocate(1),false),Callback.Adapter.INSTANCE);
+  Thread.sleep(1000);
+  stream.data(new DataFrame(stream.getId(),ByteBuffer.allocate(1),true),Callback.Adapter.INSTANCE);
+  Assert.assertTrue(latch.await(5,TimeUnit.SECONDS));
+  Assert.assertEquals(2,count.get());
+}
