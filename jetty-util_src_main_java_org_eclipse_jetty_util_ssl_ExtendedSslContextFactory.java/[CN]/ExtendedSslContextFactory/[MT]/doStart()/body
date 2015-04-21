@@ -21,11 +21,13 @@
           }
         }
         if (!named) {
-          Matcher matcher=__cnPattern.matcher(x509.getSubjectX500Principal().getName("CANONICAL"));
-          if (matcher.matches()) {
-            String cn=matcher.group(1);
-            LOG.info("Certificate cn alias={} cn={} in {}",alias,cn,_factory);
-            if (cn != null)             _aliases.put(cn,alias);
+          LdapName name=new LdapName(x509.getSubjectX500Principal().getName("CANONICAL"));
+          for (          Rdn rdn : name.getRdns()) {
+            if (rdn.getType().equalsIgnoreCase("cn")) {
+              String cn=rdn.getValue().toString();
+              LOG.info("Certificate cn alias={} cn={} in {}",alias,cn,_factory);
+              if (cn != null)               _aliases.put(cn,alias);
+            }
           }
         }
       }
