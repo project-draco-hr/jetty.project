@@ -6,14 +6,32 @@
       Certificate certificate=_factory._keyStore.getCertificate(alias);
       if ("X.509".equals(certificate.getType())) {
         X509Certificate x509=(X509Certificate)certificate;
-        Matcher matcher=__cnPattern.matcher(x509.getSubjectX500Principal().getName("CANONICAL"));
-        if (matcher.matches()) {
-          String cn=matcher.group(1);
-          LOG.debug("Certificate alias={} cn={} in {}",alias,cn,_factory);
-          if (cn != null)           _aliases.put(alias,cn);
+        boolean named=false;
+        Collection<List<?>> altNames=x509.getSubjectAlternativeNames();
+        if (altNames != null) {
+          for (          List<?> list : altNames) {
+            if (((Number)list.get(0)).intValue() == 2) {
+              String cn=list.get(1).toString();
+              LOG.info("Certificate san alias={} cn={} in {}",alias,cn,_factory);
+              if (cn != null) {
+                named=true;
+                _aliases.put(cn,alias);
+              }
+            }
+          }
+        }
+        if (!named) {
+          Matcher matcher=__cnPattern.matcher(x509.getSubjectX500Principal().getName("CANONICAL"));
+          if (matcher.matches()) {
+            String cn=matcher.group(1);
+            LOG.info("Certificate cn alias={} cn={} in {}",alias,cn,_factory);
+            if (cn != null)             _aliases.put(cn,alias);
+          }
         }
       }
     }
   }
-  LOG.debug("aliases={} for {}",_aliases,this);
+  _wild.clear();
+  for (  String name : _aliases.keySet())   if (name.startsWith("*."))   _wild.put(name.substring(1),_aliases.get(name));
+  LOG.info("aliases={} for {}",_aliases,this);
 }

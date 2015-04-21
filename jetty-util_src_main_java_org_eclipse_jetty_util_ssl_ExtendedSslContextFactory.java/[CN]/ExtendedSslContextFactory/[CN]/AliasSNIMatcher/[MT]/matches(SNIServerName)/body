@@ -3,21 +3,18 @@
   if (serverName instanceof SNIHostName) {
     _name=(SNIHostName)serverName;
     if (_name == null || _aliases.size() == 0)     return true;
-    for (    String alias : _aliases.keySet()) {
-      String cn=_aliases.get(alias);
-      if (cn.equals(_name.getAsciiName())) {
-        _alias=alias;
-        LOG.debug("matches={}",alias);
+    _alias=_aliases.get(_name.getAsciiName());
+    if (_alias != null) {
+      if (LOG.isDebugEnabled())       LOG.debug("matched {}->{}",_name.getAsciiName(),_alias);
+      return true;
+    }
+    for (    String wild : _wild.keySet()) {
+      String domain=_name.getAsciiName();
+      domain=domain.substring(domain.indexOf('.'));
+      if (wild.equals(domain)) {
+        _alias=_wild.get(wild);
+        if (LOG.isDebugEnabled())         LOG.debug("wild match {}->{}",_name.getAsciiName(),_alias);
         return true;
-      }
-      if (cn.startsWith("*.")) {
-        String domain=_name.getAsciiName();
-        domain=domain.substring(domain.indexOf('.'));
-        if (cn.substring(1).equals(domain)) {
-          _alias=alias;
-          LOG.debug("matches={}",alias);
-          return true;
-        }
       }
     }
   }
