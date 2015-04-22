@@ -1,0 +1,27 @@
+{
+  String[] aliases=_delegate.getServerAliases(keyType,issuers);
+  if (aliases == null || aliases.length == 0)   return null;
+  String alias=null;
+  String host=null;
+  if (matchers != null) {
+    for (    SNIMatcher m : matchers) {
+      if (m instanceof ExtendedSslContextFactory.AliasSNIMatcher) {
+        ExtendedSslContextFactory.AliasSNIMatcher matcher=(ExtendedSslContextFactory.AliasSNIMatcher)m;
+        alias=matcher.getAlias();
+        host=matcher.getServerName();
+        break;
+      }
+    }
+  }
+  if (LOG.isDebugEnabled())   LOG.debug("choose {} from {}",alias,Arrays.asList(aliases));
+  if (alias != null) {
+    for (    String a : aliases) {
+      if (a.equals(alias)) {
+        session.putValue(SNI_NAME,host);
+        return alias;
+      }
+    }
+    return null;
+  }
+  return NO_MATCHERS;
+}

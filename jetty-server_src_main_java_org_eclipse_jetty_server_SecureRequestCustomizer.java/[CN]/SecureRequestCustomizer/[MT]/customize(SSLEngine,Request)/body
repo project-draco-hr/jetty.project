@@ -1,6 +1,13 @@
 {
   request.setScheme(HttpScheme.HTTPS.asString());
   SSLSession sslSession=sslEngine.getSession();
+  if (_sniHostCheck) {
+    String sniName=(String)sslSession.getValue("org.eclipse.jetty.util.ssl.sniname");
+    if (sniName != null && !sniName.equalsIgnoreCase(request.getServerName())) {
+      LOG.warn("Host does not match SNI Name: {}!={}",sniName,request.getServerName());
+      throw new BadMessageException(400,"Host does not match SNI");
+    }
+  }
   try {
     String cipherSuite=sslSession.getCipherSuite();
     Integer keySize;
