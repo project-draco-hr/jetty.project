@@ -53,10 +53,7 @@ case CHUNK_SIZE:
 ch=next(buffer);
 if (ch == 0) break;
 if (ch == HttpTokens.LINE_FEED) {
-if (_chunkLength == 0) {
-setState(State.END);
-return _handler.messageComplete();
-}
+if (_chunkLength == 0) setState(State.CHUNK_END);
  else setState(State.CHUNK);
 }
  else if (ch <= HttpTokens.SPACE || ch == HttpTokens.SEMI_COLON) setState(State.CHUNK_PARAMS);
@@ -67,10 +64,7 @@ case CHUNK_PARAMS:
 {
 ch=next(buffer);
 if (ch == HttpTokens.LINE_FEED) {
-if (_chunkLength == 0) {
-setState(State.END);
-return _handler.messageComplete();
-}
+if (_chunkLength == 0) setState(State.CHUNK_END);
  else setState(State.CHUNK);
 }
 break;
@@ -91,6 +85,16 @@ buffer.position(buffer.position() + chunk);
 if (_handler.content(_contentChunk)) return true;
 }
 break;
+}
+case CHUNK_END:
+{
+ch=next(buffer);
+if (ch == 0) break;
+if (ch == HttpTokens.LINE_FEED) {
+setState(State.END);
+return _handler.messageComplete();
+}
+throw new IllegalCharacterException(_state,ch,buffer);
 }
 case CLOSED:
 {

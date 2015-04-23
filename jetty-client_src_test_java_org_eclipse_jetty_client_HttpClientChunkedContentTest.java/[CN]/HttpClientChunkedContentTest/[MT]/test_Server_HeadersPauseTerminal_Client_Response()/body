@@ -1,0 +1,31 @@
+{
+  startClient();
+  try (ServerSocket server=new ServerSocket()){
+    server.bind(new InetSocketAddress("localhost",0));
+    final AtomicReference<Result> resultRef=new AtomicReference<>();
+    final CountDownLatch completeLatch=new CountDownLatch(1);
+    client.newRequest("localhost",server.getLocalPort()).timeout(5,TimeUnit.SECONDS).send(new Response.CompleteListener(){
+      @Override public void onComplete(      Result result){
+        resultRef.set(result);
+        completeLatch.countDown();
+      }
+    }
+);
+    try (Socket socket=server.accept()){
+      consumeRequestHeaders(socket);
+      OutputStream output=socket.getOutputStream();
+      String headers="" + "HTTP/1.1 200 OK\r\n" + "Transfer-Encoding: chunked\r\n"+ "\r\n";
+      output.write(headers.getBytes(StandardCharsets.UTF_8));
+      output.flush();
+      Thread.sleep(1000);
+      String terminal="" + "0\r\n" + "\r\n";
+      output.write(terminal.getBytes(StandardCharsets.UTF_8));
+      output.flush();
+      assertTrue(completeLatch.await(5,TimeUnit.SECONDS));
+      Result result=resultRef.get();
+      assertTrue(result.isSucceeded());
+      Response response=result.getResponse();
+      Assert.assertEquals(200,response.getStatus());
+    }
+   }
+ }
