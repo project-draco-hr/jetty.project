@@ -3,9 +3,12 @@
 switch (_metadata.getVersion()) {
 case HTTP_1_0:
 {
-      if (_connection != null) {
-        if (_connection.contains(HttpHeaderValue.KEEP_ALIVE.asString()))         persistent=true;
- else         persistent=_fields.contains(HttpHeader.CONNECTION,HttpHeaderValue.KEEP_ALIVE.asString());
+      if (getHttpConfiguration().isPersistentConnectionsEnabled()) {
+        if (_connection != null) {
+          if (_connection.contains(HttpHeaderValue.KEEP_ALIVE.asString()))           persistent=true;
+ else           persistent=_fields.contains(HttpHeader.CONNECTION,HttpHeaderValue.KEEP_ALIVE.asString());
+        }
+ else         persistent=false;
       }
  else       persistent=false;
       if (!persistent)       persistent=HttpMethod.CONNECT.is(_metadata.getMethod());
@@ -18,11 +21,14 @@ case HTTP_1_1:
       badMessage(HttpStatus.EXPECTATION_FAILED_417,null);
       return false;
     }
-    if (_connection != null) {
-      if (_connection.contains(HttpHeaderValue.CLOSE.asString()))       persistent=false;
- else       persistent=!_fields.contains(HttpHeader.CONNECTION,HttpHeaderValue.CLOSE.asString());
+    if (getHttpConfiguration().isPersistentConnectionsEnabled()) {
+      if (_connection != null) {
+        if (_connection.contains(HttpHeaderValue.CLOSE.asString()))         persistent=false;
+ else         persistent=!_fields.contains(HttpHeader.CONNECTION,HttpHeaderValue.CLOSE.asString());
+      }
+ else       persistent=true;
     }
- else     persistent=true;
+ else     persistent=false;
     if (!persistent)     persistent=HttpMethod.CONNECT.is(_metadata.getMethod());
     if (!persistent)     getResponse().getHttpFields().add(HttpHeader.CONNECTION,HttpHeaderValue.CLOSE);
     if (_upgrade != null && upgrade())     return true;
