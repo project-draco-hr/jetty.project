@@ -14,7 +14,7 @@
     if (_sessionManager != null) {
       session=baseRequest.getSession(false);
       if (session != null) {
-        if (session != old_session) {
+        if ((session != old_session) && (request.getDispatcherType() == DispatcherType.ASYNC || request.getDispatcherType() == DispatcherType.REQUEST)) {
           access=session;
           HttpCookie cookie=_sessionManager.access(session,request.isSecure());
           if (cookie != null)           baseRequest.getResponse().addCookie(cookie);
@@ -36,7 +36,7 @@
   finally {
     if (access != null)     _sessionManager.complete(access);
     HttpSession session=baseRequest.getSession(false);
-    if (session != null && old_session == null && session != access)     _sessionManager.complete(session);
+    if ((session != null && old_session == null && session != access) && (request.getDispatcherType() == DispatcherType.ASYNC || request.getDispatcherType() == DispatcherType.REQUEST))     _sessionManager.complete(session);
     if (old_session_manager != null && old_session_manager != _sessionManager) {
       baseRequest.setSessionManager(old_session_manager);
       baseRequest.setSession(old_session);

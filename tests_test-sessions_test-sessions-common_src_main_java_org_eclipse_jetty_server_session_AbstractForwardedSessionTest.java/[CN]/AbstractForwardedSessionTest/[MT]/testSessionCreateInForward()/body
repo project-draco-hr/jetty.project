@@ -1,0 +1,34 @@
+{
+  AbstractTestServer testServer=createServer(0);
+  ServletContextHandler testServletContextHandler=testServer.addContext("/context");
+  testServletContextHandler.addServlet(Servlet1.class,"/one");
+  testServletContextHandler.addServlet(Servlet2.class,"/two");
+  testServletContextHandler.addServlet(Servlet3.class,"/three");
+  testServletContextHandler.addServlet(Servlet4.class,"/four");
+  try {
+    testServer.start();
+    int serverPort=testServer.getPort();
+    HttpClient client=new HttpClient();
+    client.start();
+    try {
+      ContentResponse response=client.GET("http://localhost:" + serverPort + "/context/one");
+      assertEquals(HttpServletResponse.SC_OK,response.getStatus());
+      String sessionCookie=response.getHeaders().get("Set-Cookie");
+      assertTrue(sessionCookie != null);
+      sessionCookie=sessionCookie.replaceFirst("(\\W)(P|p)ath=","$1\\$Path=");
+      testServer.stop();
+      testServer.start();
+      serverPort=testServer.getPort();
+      Request request=client.newRequest("http://localhost:" + serverPort + "/context/four");
+      request.header("Cookie",sessionCookie);
+      response=request.send();
+      assertEquals(HttpServletResponse.SC_OK,response.getStatus());
+    }
+  finally {
+      client.stop();
+    }
+  }
+  finally {
+    testServer.stop();
+  }
+}
