@@ -6,10 +6,12 @@
   if (getHttpConfiguration().getSendServerVersion())   response.add(SERVER_VERSION);
   if (getHttpConfiguration().getSendXPoweredBy())   response.add(POWERED_BY);
   onRequest(request);
-  if (frame.isEndStream())   onRequestComplete();
+  boolean endStream=frame.isEndStream();
+  if (endStream)   onRequestComplete();
+  _delayedUntilContent=getHttpConfiguration().isDelayDispatchUntilContent() && !endStream && !_expect100Continue;
   if (LOG.isDebugEnabled()) {
     Stream stream=getStream();
-    LOG.debug("HTTP2 Request #{}/{}:{}{} {} {}{}{}",stream.getId(),Integer.toHexString(stream.getSession().hashCode()),System.lineSeparator(),request.getMethod(),request.getURI(),request.getVersion(),System.lineSeparator(),fields);
+    LOG.debug("HTTP2 Request #{}/{}, delayed={}:{}{} {} {}{}{}",stream.getId(),Integer.toHexString(stream.getSession().hashCode()),_delayedUntilContent,System.lineSeparator(),request.getMethod(),request.getURI(),request.getVersion(),System.lineSeparator(),fields);
   }
-  return this;
+  return _delayedUntilContent ? null : this;
 }
