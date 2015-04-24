@@ -12,22 +12,13 @@
     }
   }
  else {
-    Resource metaInfDir=null;
+    tlds=new HashSet<URL>();
     if (jar.isDirectory()) {
-      metaInfDir=jar.addPath("/META-INF/");
+      tlds.addAll(getTlds(jar.getFile()));
     }
  else {
       URI uri=jar.getURI();
-      metaInfDir=Resource.newResource("jar:" + uri + "!/META-INF/");
-    }
-    tlds=new HashSet<URL>();
-    Collection<Resource> resources=metaInfDir.getAllResources();
-    for (    Resource t : resources) {
-      String name=t.toString();
-      if (name.endsWith(".tld")) {
-        if (LOG.isDebugEnabled())         LOG.debug(t + " tld discovered");
-        tlds.add(t.getURL());
-      }
+      tlds.addAll(getTlds(uri));
     }
     if (cache != null) {
       if (LOG.isDebugEnabled())       LOG.debug(jar + " tld cache updated");
@@ -36,11 +27,11 @@
     }
     if (tlds.isEmpty())     return;
   }
-  Collection<URL> tld_resources=(Collection<URL>)context.getAttribute(METAINF_TLDS);
-  if (tld_resources == null) {
-    tld_resources=new HashSet<URL>();
-    context.setAttribute(METAINF_TLDS,tld_resources);
+  Collection<URL> metaInfTlds=(Collection<URL>)context.getAttribute(METAINF_TLDS);
+  if (metaInfTlds == null) {
+    metaInfTlds=new HashSet<URL>();
+    context.setAttribute(METAINF_TLDS,metaInfTlds);
   }
-  tld_resources.addAll(tlds);
+  metaInfTlds.addAll(tlds);
   if (LOG.isDebugEnabled())   LOG.debug("tlds added to context");
 }
