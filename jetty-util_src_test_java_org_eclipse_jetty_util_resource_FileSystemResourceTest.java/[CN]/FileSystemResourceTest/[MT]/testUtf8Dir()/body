@@ -1,10 +1,14 @@
 {
-  File dir=new File(testdir.getDir(),"b??m");
-  dir.mkdir();
-  File file=new File(dir,"file.txt");
-  file.createNewFile();
-  Resource base=newResource(dir);
-  assertNull(base.getAlias());
-  Resource r=base.addPath("file.txt");
-  assertNull(r.getAlias());
-}
+  Path dir=testdir.getDir().toPath().normalize().toRealPath();
+  Path utf8Dir=dir.resolve("b??m");
+  Files.createDirectories(utf8Dir);
+  Path file=utf8Dir.resolve("file.txt");
+  Files.createFile(file);
+  try (Resource base=newResource(utf8Dir.toFile())){
+    assertThat("Exists: " + utf8Dir,base.exists(),is(true));
+    assertThat("Alias: " + utf8Dir,base,hasNoAlias());
+    Resource r=base.addPath("file.txt");
+    assertThat("Exists: " + r,r.exists(),is(true));
+    assertThat("Alias: " + r,r,hasNoAlias());
+  }
+ }

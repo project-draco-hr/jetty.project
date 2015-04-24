@@ -1,13 +1,14 @@
 {
-  File dir=testdir.getDir();
+  Path dir=testdir.getDir().toPath().normalize().toRealPath();
+  Files.createDirectories(dir);
   try {
-    Path foo=new File(dir,"foo` bar").toPath();
+    Path foo=dir.resolve("foo` bar");
     Files.createFile(foo);
   }
  catch (  Exception e) {
     assumeNoException(e);
   }
-  try (Resource base=newResource(testdir.getDir())){
+  try (Resource base=newResource(dir.toFile())){
     assumeFalse(base instanceof FileResource);
     Resource res=base.addPath("foo` bar");
     assertThat("Alias: " + res,res.getAlias(),nullValue());

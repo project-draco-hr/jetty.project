@@ -1,28 +1,33 @@
 {
-  createEmptyFile("foo's.txt");
-  createEmptyFile("f o's.txt");
-  URI refQuoted=testdir.getDir().toURI().resolve("foo's.txt");
+  Path dir=testdir.getDir().toPath().normalize().toRealPath();
+  Files.createDirectories(dir);
+  Path fooA=dir.resolve("foo's.txt");
+  Path fooB=dir.resolve("f o's.txt");
+  Files.createFile(fooA);
+  Files.createFile(fooB);
+  URI refQuoted=dir.resolve("foo's.txt").toUri();
   try (Resource fileres=newResource(refQuoted)){
+    assumeFalse((fileres instanceof FileResource) && (OS.IS_OSX));
     assertThat("Exists: " + refQuoted,fileres.exists(),is(true));
     assertThat("Alias: " + refQuoted,fileres,hasNoAlias());
   }
-   URI refEncoded=testdir.getDir().toURI().resolve("foo%27s.txt");
+   URI refEncoded=dir.toUri().resolve("foo%27s.txt");
   try (Resource fileres=newResource(refEncoded)){
     assertThat("Exists: " + refEncoded,fileres.exists(),is(true));
     assertThat("Alias: " + refEncoded,fileres,hasNoAlias());
   }
-   URI refQuoteSpace=testdir.getDir().toURI().resolve("f%20o's.txt");
+   URI refQuoteSpace=dir.toUri().resolve("f%20o's.txt");
   try (Resource fileres=newResource(refQuoteSpace)){
     assertThat("Exists: " + refQuoteSpace,fileres.exists(),is(true));
     assertThat("Alias: " + refQuoteSpace,fileres,hasNoAlias());
   }
-   URI refEncodedSpace=testdir.getDir().toURI().resolve("f%20o%27s.txt");
+   URI refEncodedSpace=dir.toUri().resolve("f%20o%27s.txt");
   try (Resource fileres=newResource(refEncodedSpace)){
     assertThat("Exists: " + refEncodedSpace,fileres.exists(),is(true));
     assertThat("Alias: " + refEncodedSpace,fileres,hasNoAlias());
   }
-   URI refA=testdir.getDir().toURI().resolve("foo's.txt");
-  URI refB=testdir.getDir().toURI().resolve("foo%27s.txt");
+   URI refA=dir.toUri().resolve("foo's.txt");
+  URI refB=dir.toUri().resolve("foo%27s.txt");
   StringBuilder msg=new StringBuilder();
   msg.append("URI[a].equals(URI[b])").append(System.lineSeparator());
   msg.append("URI[a] = ").append(refA).append(System.lineSeparator());

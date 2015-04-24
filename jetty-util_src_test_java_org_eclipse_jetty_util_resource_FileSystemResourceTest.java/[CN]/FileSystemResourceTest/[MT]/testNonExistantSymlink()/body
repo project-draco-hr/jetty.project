@@ -1,14 +1,15 @@
 {
-  File dir=testdir.getDir();
-  Path foo=new File(dir,"foo").toPath();
-  Path bar=new File(dir,"bar").toPath();
+  Path dir=testdir.getDir().toPath().normalize().toRealPath();
+  Files.createDirectories(dir);
+  Path foo=dir.resolve("foo");
+  Path bar=dir.resolve("bar");
   try {
     Files.createSymbolicLink(bar,foo);
   }
  catch (  UnsupportedOperationException|FileSystemException e) {
     assumeNoException(e);
   }
-  try (Resource base=newResource(testdir.getDir())){
+  try (Resource base=newResource(dir.toFile())){
     assumeFalse(base instanceof FileResource);
     Resource resFoo=base.addPath("foo");
     Resource resBar=base.addPath("bar");

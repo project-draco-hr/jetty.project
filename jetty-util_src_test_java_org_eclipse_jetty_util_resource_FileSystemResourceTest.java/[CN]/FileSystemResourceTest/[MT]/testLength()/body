@@ -1,11 +1,12 @@
 {
-  File file=testdir.getFile("foo");
-  file.createNewFile();
-  try (StringReader reader=new StringReader("foo");FileWriter writer=new FileWriter(file)){
+  Path dir=testdir.getDir().toPath().normalize().toRealPath();
+  Files.createDirectories(dir);
+  Path file=dir.resolve("foo");
+  try (StringReader reader=new StringReader("foo");BufferedWriter writer=Files.newBufferedWriter(file)){
     IO.copy(reader,writer);
   }
-   long expected=file.length();
-  try (Resource base=newResource(testdir.getDir())){
+   long expected=Files.size(file);
+  try (Resource base=newResource(dir.toFile())){
     Resource res=base.addPath("foo");
     assertThat("foo.length",res.length(),is(expected));
   }
