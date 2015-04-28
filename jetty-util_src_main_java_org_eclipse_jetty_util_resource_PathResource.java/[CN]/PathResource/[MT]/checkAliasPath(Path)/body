@@ -7,14 +7,22 @@
     if (Files.isSymbolicLink(path))     return Files.readSymbolicLink(path);
     if (Files.exists(path)) {
       Path real=abs.toRealPath(FOLLOW_LINKS);
-      if (!abs.equals(real))       return real;
+      int absCount=abs.getNameCount();
+      int realCount=abs.getNameCount();
+      if (absCount != realCount) {
+        return real;
+      }
+      for (int i=realCount - 1; i >= 0; i--) {
+        if (!abs.getName(i).toString().equals(real.getName(i).toString())) {
+          return real;
+        }
+      }
     }
   }
- catch (  NoSuchFileException e) {
+ catch (  IOException e) {
   }
 catch (  Exception e) {
     LOG.warn("bad alias ({}) for {}",e.getClass().getName(),e.getMessage());
-    return abs;
   }
   return null;
 }
