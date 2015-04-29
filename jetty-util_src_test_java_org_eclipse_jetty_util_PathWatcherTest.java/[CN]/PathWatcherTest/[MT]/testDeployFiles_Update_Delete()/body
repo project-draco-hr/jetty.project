@@ -1,0 +1,31 @@
+{
+  Path dir=testdir.getEmptyDir().toPath();
+  Files.createFile(dir.resolve("foo.war"));
+  Files.createDirectories(dir.resolve("bar/WEB-INF"));
+  Files.createFile(dir.resolve("bar/WEB-INF/web.xml"));
+  PathWatcher pathWatcher=new PathWatcher();
+  pathWatcher.setUpdateQuietTime(300,TimeUnit.MILLISECONDS);
+  PathWatchEventCapture capture=new PathWatchEventCapture(dir);
+  pathWatcher.addListener(capture);
+  PathWatcher.Config baseDirConfig=new PathWatcher.Config(dir);
+  baseDirConfig.setRecurseDepth(2);
+  baseDirConfig.addExcludeHidden();
+  baseDirConfig.addInclude("glob:" + dir.toAbsolutePath().toString() + "/*.war");
+  baseDirConfig.addInclude("glob:" + dir.toAbsolutePath().toString() + "/*/WEB-INF/web.xml");
+  pathWatcher.addDirectoryWatch(baseDirConfig);
+  try {
+    pathWatcher.start();
+    TimeUnit.MILLISECONDS.sleep(500);
+    updateFile(dir.resolve("bar/WEB-INF/web.xml"),"Hello Update");
+    FS.touch(dir.resolve("bar/WEB-INF/web.xml").toFile());
+    Files.delete(dir.resolve("foo.war"));
+    TimeUnit.MILLISECONDS.sleep(500);
+    Map<String,PathWatchEventType[]> expected=new HashMap<>();
+    expected.put("bar/WEB-INF/web.xml",new PathWatchEventType[]{ADDED,MODIFIED});
+    expected.put("foo.war",new PathWatchEventType[]{ADDED,DELETED});
+    capture.assertEvents(expected);
+  }
+  finally {
+    pathWatcher.stop();
+  }
+}

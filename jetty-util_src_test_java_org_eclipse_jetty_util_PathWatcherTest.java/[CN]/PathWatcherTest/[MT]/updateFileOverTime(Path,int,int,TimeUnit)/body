@@ -1,0 +1,18 @@
+{
+  int sleepMs=100;
+  long totalMs=timeUnit.toMillis(timeDuration);
+  int writeCount=(int)((int)totalMs / (int)sleepMs);
+  int chunkBufLen=fileSize / writeCount;
+  byte chunkBuf[]=new byte[chunkBufLen];
+  Arrays.fill(chunkBuf,(byte)'x');
+  try (OutputStream out=Files.newOutputStream(path,CREATE,TRUNCATE_EXISTING,WRITE)){
+    int left=fileSize;
+    while (left > 0) {
+      int len=Math.min(left,chunkBufLen);
+      out.write(chunkBuf,0,len);
+      left-=chunkBufLen;
+      TimeUnit.MILLISECONDS.sleep(sleepMs);
+      out.flush();
+    }
+  }
+ }

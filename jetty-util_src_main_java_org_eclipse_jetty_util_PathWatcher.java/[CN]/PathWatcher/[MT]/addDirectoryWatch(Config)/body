@@ -1,0 +1,41 @@
+{
+  if (LOG.isDebugEnabled()) {
+    LOG.debug("Watching directory {}",baseDir);
+  }
+  Files.walkFileTree(baseDir.dir,new SimpleFileVisitor<Path>(){
+    @Override public FileVisitResult preVisitDirectory(    Path dir,    BasicFileAttributes attrs) throws IOException {
+      FileVisitResult result=FileVisitResult.SKIP_SUBTREE;
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("preVisitDirectory: {}",dir);
+      }
+      if (!baseDir.isExcluded(dir)) {
+        if (baseDir.isIncluded(dir)) {
+          PathWatchEvent event=new PathWatchEvent(dir,PathWatchEventType.ADDED);
+          if (LOG.isDebugEnabled()) {
+            LOG.debug("Pending {}",event);
+          }
+          pendingAddEvents.add(event);
+        }
+        if (baseDir.shouldRecurseDirectory(dir)) {
+          register(dir,baseDir);
+          result=FileVisitResult.CONTINUE;
+        }
+      }
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("preVisitDirectory: result {}",result);
+      }
+      return result;
+    }
+    @Override public FileVisitResult visitFile(    Path file,    BasicFileAttributes attrs) throws IOException {
+      if (baseDir.matches(file)) {
+        PathWatchEvent event=new PathWatchEvent(file,PathWatchEventType.ADDED);
+        if (LOG.isDebugEnabled()) {
+          LOG.debug("Pending {}",event);
+        }
+        pendingAddEvents.add(event);
+      }
+      return FileVisitResult.CONTINUE;
+    }
+  }
+);
+}
