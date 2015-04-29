@@ -1,0 +1,65 @@
+{
+  try (Socket client=new Socket("localhost",_port)){
+    OutputStream output=client.getOutputStream();
+    output.write(("" + "GET /one HTTP/1.1\r\n" + "Host: localhost\r\n"+ "Connection: Upgrade, HTTP2-Settings\r\n"+ "Upgrade: h2c\r\n"+ "HTTP2-Settings: \r\n"+ "\r\n").getBytes(StandardCharsets.ISO_8859_1));
+    output.flush();
+    InputStream input=client.getInputStream();
+    Utf8StringBuilder upgrade=new Utf8StringBuilder();
+    int crlfs=0;
+    while (true) {
+      int read=input.read();
+      if (read == '\r' || read == '\n')       ++crlfs;
+ else       crlfs=0;
+      upgrade.append((byte)read);
+      if (crlfs == 4)       break;
+    }
+    assertTrue(upgrade.toString().startsWith("HTTP/1.1 101 "));
+    byteBufferPool=new MappedByteBufferPool();
+    generator=new Generator(byteBufferPool);
+    final AtomicReference<HeadersFrame> headersRef=new AtomicReference<>();
+    final AtomicReference<DataFrame> dataRef=new AtomicReference<>();
+    final AtomicReference<CountDownLatch> latchRef=new AtomicReference<>(new CountDownLatch(2));
+    Parser parser=new Parser(byteBufferPool,new Parser.Listener.Adapter(){
+      @Override public void onHeaders(      HeadersFrame frame){
+        headersRef.set(frame);
+        latchRef.get().countDown();
+      }
+      @Override public void onData(      DataFrame frame){
+        dataRef.set(frame);
+        latchRef.get().countDown();
+      }
+    }
+,4096,8192);
+    parseResponse(client,parser);
+    Assert.assertTrue(latchRef.get().await(5,TimeUnit.SECONDS));
+    HeadersFrame response=headersRef.get();
+    Assert.assertNotNull(response);
+    MetaData.Response responseMetaData=(MetaData.Response)response.getMetaData();
+    Assert.assertEquals(200,responseMetaData.getStatus());
+    DataFrame responseData=dataRef.get();
+    Assert.assertNotNull(responseData);
+    String content=BufferUtil.toString(responseData.getData());
+    assertThat(content,containsString("Hello from Jetty using HTTP/1.1"));
+    assertThat(content,containsString("uri=/one"));
+    headersRef.set(null);
+    dataRef.set(null);
+    latchRef.set(new CountDownLatch(2));
+    ByteBufferPool.Lease lease=new ByteBufferPool.Lease(byteBufferPool);
+    generator.control(lease,new PrefaceFrame());
+    MetaData.Request metaData=new MetaData.Request("GET",HttpScheme.HTTP,new HostPortHttpField("localhost:" + _port),"/two",HttpVersion.HTTP_2,new HttpFields());
+    generator.control(lease,new HeadersFrame(3,metaData,null,true));
+    for (    ByteBuffer buffer : lease.getByteBuffers())     output.write(BufferUtil.toArray(buffer));
+    output.flush();
+    parseResponse(client,parser);
+    Assert.assertTrue(latchRef.get().await(5,TimeUnit.SECONDS));
+    response=headersRef.get();
+    Assert.assertNotNull(response);
+    responseMetaData=(MetaData.Response)response.getMetaData();
+    Assert.assertEquals(200,responseMetaData.getStatus());
+    responseData=dataRef.get();
+    Assert.assertNotNull(responseData);
+    content=BufferUtil.toString(responseData.getData());
+    assertThat(content,containsString("Hello from Jetty using HTTP/2.0"));
+    assertThat(content,containsString("uri=/two"));
+  }
+ }

@@ -1,10 +1,12 @@
 {
   if (HttpMethod.PRI.is(request.getMethod())) {
-    ((ServerParser)getParser()).directUpgrade();
+    getParser().directUpgrade();
   }
  else {
-    String value=request.getFields().getField(HttpHeader.HTTP2_SETTINGS).getValue();
-    final byte[] settings=B64Code.decodeRFC4648URL(value);
+    HttpField settingsField=request.getFields().getField(HttpHeader.HTTP2_SETTINGS);
+    if (settingsField == null)     throw new BadMessageException("Missing " + HttpHeader.HTTP2_SETTINGS + " header");
+    String value=settingsField.getValue();
+    final byte[] settings=B64Code.decodeRFC4648URL(value == null ? "" : value);
     if (LOG.isDebugEnabled())     LOG.debug("{} settings {}",this,TypeUtil.toHexString(settings));
     SettingsFrame settingsFrame=SettingsBodyParser.parseBody(BufferUtil.toBuffer(settings));
     if (settingsFrame == null) {
