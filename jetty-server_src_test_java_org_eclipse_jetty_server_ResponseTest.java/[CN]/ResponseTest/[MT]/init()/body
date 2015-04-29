@@ -8,8 +8,10 @@
   _server.start();
   AbstractEndPoint endp=new ByteArrayEndPoint(_scheduler,5000);
   _channel=new HttpChannel(connector,new HttpConfiguration(),endp,new HttpTransport(){
+    private Throwable _channelError;
     @Override public void send(    MetaData.Response info,    boolean head,    ByteBuffer content,    boolean lastContent,    Callback callback){
-      callback.succeeded();
+      if (_channelError == null)       callback.succeeded();
+ else       callback.failed(_channelError);
     }
     @Override public boolean isPushSupported(){
       return false;
@@ -19,6 +21,7 @@
     @Override public void onCompleted(){
     }
     @Override public void abort(    Throwable failure){
+      _channelError=failure;
     }
     @Override public boolean isOptimizedForDirectBuffers(){
       return false;
