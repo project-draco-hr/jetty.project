@@ -14,20 +14,12 @@
       props.put("context.path",webApp.getContextPath());
     }
     props.put("tmp.dir",webApp.getTempDirectory().getAbsolutePath());
-    props.put("tmp.dir.persist",Boolean.toString(webApp.isPersistTempDirectory()));
-    if (originalBaseResource != null) {
-      StringBuffer rb=new StringBuffer();
-      if (originalBaseResource instanceof ResourceCollection) {
-        ResourceCollection resources=((ResourceCollection)originalBaseResource);
-        for (        Resource r : resources.getResources()) {
-          if (rb.length() > 0)           rb.append(",");
-          rb.append(r.toString());
-        }
-      }
- else       rb.append(originalBaseResource.toString());
-      props.put("base.dirs",rb.toString());
-    }
-    props.put("base.first",Boolean.toString(webApp.getBaseAppFirst()));
+    props.put("tmp.dir.persist",Boolean.toString(originalPersistTemp));
+    if (originalBaseResource instanceof ResourceCollection)     props.put("base.dirs.orig",toCSV(((ResourceCollection)originalBaseResource).getResources()));
+ else     props.put("base.dirs.orig",originalBaseResource.toString());
+    Resource postOverlayResources=(Resource)webApp.getAttribute(MavenWebInfConfiguration.RESOURCE_BASES_POST_OVERLAY);
+    if (postOverlayResources instanceof ResourceCollection)     props.put("base.dirs",toCSV(((ResourceCollection)postOverlayResources).getResources()));
+ else     props.put("base.dirs",postOverlayResources.toString());
     if (webApp.getClasses() != null) {
       props.put("classes.dir",webApp.getClasses().getAbsolutePath());
     }
