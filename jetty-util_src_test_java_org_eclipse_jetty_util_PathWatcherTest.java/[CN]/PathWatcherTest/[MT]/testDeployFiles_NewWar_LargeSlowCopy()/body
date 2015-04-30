@@ -10,14 +10,14 @@
   PathWatcher.Config baseDirConfig=new PathWatcher.Config(dir);
   baseDirConfig.setRecurseDepth(2);
   baseDirConfig.addExcludeHidden();
-  baseDirConfig.addInclude("glob:" + dir.toAbsolutePath().toString() + "/*.war");
-  baseDirConfig.addInclude("glob:" + dir.toAbsolutePath().toString() + "/*/WEB-INF/web.xml");
+  baseDirConfig.addIncludeGlobRelative("*.war");
+  baseDirConfig.addIncludeGlobRelative("*/WEB-INF/web.xml");
   pathWatcher.addDirectoryWatch(baseDirConfig);
   try {
     pathWatcher.start();
-    TimeUnit.MILLISECONDS.sleep(500);
+    awaitQuietTime(pathWatcher);
     updateFileOverTime(dir.resolve("hello.war"),50 * MB,3,TimeUnit.SECONDS);
-    TimeUnit.MILLISECONDS.sleep(500);
+    awaitQuietTime(pathWatcher);
     Map<String,PathWatchEventType[]> expected=new HashMap<>();
     expected.put("bar/WEB-INF/web.xml",new PathWatchEventType[]{ADDED});
     expected.put("foo.war",new PathWatchEventType[]{ADDED});

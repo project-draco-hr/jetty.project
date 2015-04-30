@@ -5,14 +5,15 @@
   int chunkBufLen=fileSize / writeCount;
   byte chunkBuf[]=new byte[chunkBufLen];
   Arrays.fill(chunkBuf,(byte)'x');
-  try (OutputStream out=Files.newOutputStream(path,CREATE,TRUNCATE_EXISTING,WRITE)){
+  try (FileOutputStream out=new FileOutputStream(path.toFile())){
     int left=fileSize;
     while (left > 0) {
       int len=Math.min(left,chunkBufLen);
       out.write(chunkBuf,0,len);
       left-=chunkBufLen;
-      TimeUnit.MILLISECONDS.sleep(sleepMs);
       out.flush();
+      out.getFD().sync();
+      TimeUnit.MILLISECONDS.sleep(sleepMs);
     }
   }
  }
