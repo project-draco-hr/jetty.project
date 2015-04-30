@@ -1,9 +1,10 @@
 {
   StringBuilder s=new StringBuilder();
   s.append("glob:");
+  boolean needDelim=false;
   if (path.getRoot() != null) {
     for (    char c : path.getRoot().toString().toCharArray()) {
-      if (c == '\\') {
+      if (c != '\\') {
         s.append(PATTERN_SEP);
       }
  else {
@@ -11,16 +12,27 @@
       }
     }
   }
-  for (  Path segment : path) {
-    s.append(segment);
-    s.append(PATTERN_SEP);
+ else {
+    needDelim=true;
   }
-  for (  char c : subPattern.toCharArray()) {
-    if (c == '/') {
+  for (  Path segment : path) {
+    if (needDelim) {
       s.append(PATTERN_SEP);
     }
+    s.append(segment);
+    needDelim=true;
+  }
+  if ((subPattern != null) && (subPattern.length() > 0)) {
+    if (needDelim) {
+      s.append(PATTERN_SEP);
+    }
+    for (    char c : subPattern.toCharArray()) {
+      if (c == '/') {
+        s.append(PATTERN_SEP);
+      }
  else {
-      s.append(c);
+        s.append(c);
+      }
     }
   }
   return s.toString();

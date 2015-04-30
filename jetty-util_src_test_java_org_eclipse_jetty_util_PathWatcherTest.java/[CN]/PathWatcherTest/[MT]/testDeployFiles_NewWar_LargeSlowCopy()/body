@@ -4,7 +4,7 @@
   Files.createDirectories(dir.resolve("bar/WEB-INF"));
   Files.createFile(dir.resolve("bar/WEB-INF/web.xml"));
   PathWatcher pathWatcher=new PathWatcher();
-  pathWatcher.setUpdateQuietTime(300,TimeUnit.MILLISECONDS);
+  pathWatcher.setUpdateQuietTime(500,TimeUnit.MILLISECONDS);
   PathWatchEventCapture capture=new PathWatchEventCapture(dir);
   pathWatcher.addListener(capture);
   PathWatcher.Config baseDirConfig=new PathWatcher.Config(dir);
@@ -16,8 +16,10 @@
   try {
     pathWatcher.start();
     awaitQuietTime(pathWatcher);
-    updateFileOverTime(dir.resolve("hello.war"),50 * MB,3,TimeUnit.SECONDS);
-    awaitQuietTime(pathWatcher);
+    Path warFile=dir.resolve("hello.war");
+    capture.setFinishTrigger(warFile,MODIFIED);
+    updateFileOverTime(warFile,50 * MB,3,TimeUnit.SECONDS);
+    capture.awaitFinish(pathWatcher);
     Map<String,PathWatchEventType[]> expected=new HashMap<>();
     expected.put("bar/WEB-INF/web.xml",new PathWatchEventType[]{ADDED});
     expected.put("foo.war",new PathWatchEventType[]{ADDED});

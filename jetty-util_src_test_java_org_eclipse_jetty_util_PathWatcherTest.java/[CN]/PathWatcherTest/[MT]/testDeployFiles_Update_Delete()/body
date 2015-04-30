@@ -16,13 +16,16 @@
   try {
     pathWatcher.start();
     awaitQuietTime(pathWatcher);
-    updateFile(dir.resolve("bar/WEB-INF/web.xml"),"Hello Update");
-    FS.touch(dir.resolve("bar/WEB-INF/web.xml").toFile());
+    Path webFile=dir.resolve("bar/WEB-INF/web.xml");
+    capture.setFinishTrigger(webFile,MODIFIED);
+    updateFile(webFile,"Hello Update");
     Files.delete(dir.resolve("foo.war"));
-    awaitQuietTime(pathWatcher);
+    Files.createFile(dir.resolve("bar.war"));
+    capture.awaitFinish(pathWatcher);
     Map<String,PathWatchEventType[]> expected=new HashMap<>();
     expected.put("bar/WEB-INF/web.xml",new PathWatchEventType[]{ADDED,MODIFIED});
     expected.put("foo.war",new PathWatchEventType[]{ADDED,DELETED});
+    expected.put("bar.war",new PathWatchEventType[]{ADDED});
     capture.assertEvents(expected);
   }
   finally {
