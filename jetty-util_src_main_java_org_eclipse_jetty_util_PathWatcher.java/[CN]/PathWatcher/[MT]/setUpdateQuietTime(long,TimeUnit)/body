@@ -1,12 +1,17 @@
 {
   long desiredMillis=unit.toMillis(duration);
+  if (!this.nativeWatchService && (desiredMillis < 5000)) {
+    LOG.warn("Quiet Time is too low for non-native WatchService [{}]: {} < 5000 ms (defaulting to 5000 ms)",watcher.getClass().getName(),desiredMillis);
+    this.updateQuietTimeDuration=5000;
+    this.updateQuietTimeUnit=TimeUnit.MILLISECONDS;
+    return;
+  }
   if (IS_WINDOWS && (desiredMillis < 1000)) {
     LOG.warn("Quiet Time is too low for Microsoft Windows: {} < 1000 ms (defaulting to 1000 ms)",desiredMillis);
     this.updateQuietTimeDuration=1000;
     this.updateQuietTimeUnit=TimeUnit.MILLISECONDS;
+    return;
   }
- else {
-    this.updateQuietTimeDuration=duration;
-    this.updateQuietTimeUnit=unit;
-  }
+  this.updateQuietTimeDuration=duration;
+  this.updateQuietTimeUnit=unit;
 }
