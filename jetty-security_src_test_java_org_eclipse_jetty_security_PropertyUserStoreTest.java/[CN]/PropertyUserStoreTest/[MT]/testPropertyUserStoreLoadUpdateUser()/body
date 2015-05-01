@@ -1,9 +1,10 @@
 {
   final AtomicInteger userCount=new AtomicInteger();
   final List<String> users=new ArrayList<String>();
+  final File usersFile=initUsersText();
   PropertyUserStore store=new PropertyUserStore();
-  store.setRefreshInterval(1);
-  store.setConfig(testFile);
+  store.setHotReload(true);
+  store.setConfigPath(usersFile);
   store.registerUserListener(new PropertyUserStore.UserListener(){
     public void update(    String username,    Credential credential,    String[] roleArray){
       if (!users.contains(username)) {
@@ -16,8 +17,9 @@
   }
 );
   store.start();
+  Thread.sleep(2000);
   Assert.assertEquals(3,userCount.get());
-  writeAdditionalUser(testFile);
+  addAdditionalUser(usersFile,"skip: skip, roleA\n");
   long start=System.currentTimeMillis();
   while (userCount.get() < 4 && (System.currentTimeMillis() - start) < 10000) {
     Thread.sleep(10);
