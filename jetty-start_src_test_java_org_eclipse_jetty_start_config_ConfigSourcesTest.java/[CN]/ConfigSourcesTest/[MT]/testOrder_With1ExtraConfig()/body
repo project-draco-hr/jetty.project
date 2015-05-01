@@ -2,15 +2,16 @@
   File home=testdir.getFile("home");
   FS.ensureEmpty(home);
   TestEnv.copyTestDir("dist-home",home);
-  File common=testdir.getFile("common");
-  FS.ensureEmpty(common);
+  Path common=testdir.getFile("common").toPath();
+  FS.ensureEmpty(common.toFile());
+  common=common.toRealPath();
   File base=testdir.getFile("base");
   FS.ensureEmpty(base);
-  TestEnv.makeFile(base,"start.ini","jetty.http.host=127.0.0.1","--include-jetty-dir=" + common.getAbsolutePath());
+  TestEnv.makeFile(base,"start.ini","jetty.http.host=127.0.0.1","--include-jetty-dir=" + common.toString());
   ConfigSources sources=new ConfigSources();
   String[] cmdLine=new String[0];
   sources.add(new CommandLineConfigSource(cmdLine));
-  sources.add(new JettyHomeConfigSource(home.toPath()));
-  sources.add(new JettyBaseConfigSource(base.toPath()));
-  assertIdOrder(sources,"<command-line>","${jetty.base}",common.getAbsolutePath(),"${jetty.home}");
+  sources.add(new JettyHomeConfigSource(home.toPath().toRealPath()));
+  sources.add(new JettyBaseConfigSource(base.toPath().toRealPath()));
+  assertIdOrder(sources,"<command-line>","${jetty.base}",common.toString(),"${jetty.home}");
 }

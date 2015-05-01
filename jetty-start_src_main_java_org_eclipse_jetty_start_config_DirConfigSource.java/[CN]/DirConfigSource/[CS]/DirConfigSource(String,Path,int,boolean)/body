@@ -5,11 +5,16 @@
   this.props=new Props();
   this.args=new RawArgs();
   if (canHaveArgs) {
-    Path iniFile=dir.resolve("start.ini").toRealPath();
-    if (FS.canReadFile(iniFile)) {
-      StartIni ini=new StartIni(iniFile);
-      args.addAll(ini.getLines(),iniFile);
-      parseAllArgs(ini.getLines(),iniFile.toString());
+    Path iniFile=dir.resolve("start.ini").normalize().toAbsolutePath();
+    try {
+      iniFile=iniFile.toRealPath();
+      if (FS.canReadFile(iniFile)) {
+        StartIni ini=new StartIni(iniFile);
+        args.addAll(ini.getLines(),iniFile);
+        parseAllArgs(ini.getLines(),iniFile.toString());
+      }
+    }
+ catch (    NoSuchFileException ignore) {
     }
     Path startDdir=dir.resolve("start.d");
     if (FS.canReadDirectory(startDdir)) {

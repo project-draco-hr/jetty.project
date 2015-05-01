@@ -1,15 +1,13 @@
 {
   List<String> cmdLineArgs=new ArrayList<>();
-  File homePath=MavenTestingUtils.getTestResourceDir("dist-home").getAbsoluteFile();
-  cmdLineArgs.add("jetty.home=" + homePath);
-  cmdLineArgs.add("user.dir=" + homePath);
+  Path homePath=MavenTestingUtils.getTestResourceDir("dist-home").toPath().toRealPath();
+  cmdLineArgs.add("jetty.home=" + homePath.toString());
+  cmdLineArgs.add("user.dir=" + homePath.toString());
   cmdLineArgs.add("--exec");
   cmdLineArgs.add("-Xms1024m");
   cmdLineArgs.add("-Xmx1024m");
-  Path extraJar=MavenTestingUtils.getTestResourceFile("extra-libs/example.jar").toPath().normalize();
-  Path extraDir=MavenTestingUtils.getTestResourceDir("extra-resources").toPath().normalize();
-  extraJar=extraJar.toAbsolutePath();
-  extraDir=extraDir.toAbsolutePath();
+  Path extraJar=MavenTestingUtils.getTestResourceFile("extra-libs/example.jar").toPath().toRealPath();
+  Path extraDir=MavenTestingUtils.getTestResourceDir("extra-resources").toPath().toRealPath();
   assertThat("Extra Jar exists: " + extraJar,Files.exists(extraJar),is(true));
   assertThat("Extra Dir exists: " + extraDir,Files.exists(extraDir),is(true));
   StringBuilder lib=new StringBuilder();
@@ -24,7 +22,7 @@
   Main main=new Main();
   StartArgs args=main.processCommandLine(cmdLineArgs.toArray(new String[cmdLineArgs.size()]));
   BaseHome baseHome=main.getBaseHome();
-  assertThat("jetty.home",baseHome.getHome(),is(homePath.getAbsolutePath()));
-  assertThat("jetty.base",baseHome.getBase(),is(homePath.getAbsolutePath()));
+  assertThat("jetty.home",baseHome.getHome(),is(homePath.toString()));
+  assertThat("jetty.base",baseHome.getBase(),is(homePath.toString()));
   ConfigurationAssert.assertConfiguration(baseHome,args,"assert-home-with-jvm.txt");
 }
