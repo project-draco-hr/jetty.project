@@ -1,28 +1,14 @@
 {
+  final UserCount userCount=new UserCount();
   final File usersFile=initUsersText();
-  final AtomicInteger userCount=new AtomicInteger();
-  final List<String> users=new ArrayList<String>();
   addAdditionalUser(usersFile,"skip: skip, roleA\n");
   PropertyUserStore store=new PropertyUserStore();
   store.setHotReload(true);
   store.setConfigPath(usersFile);
-  store.registerUserListener(new PropertyUserStore.UserListener(){
-    public void update(    String username,    Credential credential,    String[] roleArray){
-      if (!users.contains(username)) {
-        users.add(username);
-        userCount.getAndIncrement();
-      }
-    }
-    public void remove(    String username){
-      users.remove(username);
-      userCount.getAndDecrement();
-    }
-  }
-);
+  store.registerUserListener(userCount);
   store.start();
   Thread.sleep(2000);
-  Assert.assertEquals(4,userCount.get());
+  userCount.assertThatCount(is(4));
   initUsersText();
-  Thread.sleep(3000);
-  Assert.assertEquals(3,userCount.get());
+  userCount.awaitCount(3);
 }

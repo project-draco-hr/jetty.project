@@ -1,19 +1,13 @@
 {
-  final AtomicInteger userCount=new AtomicInteger();
+  final UserCount userCount=new UserCount();
   final File usersFile=initUsersText();
   PropertyUserStore store=new PropertyUserStore();
   store.setConfigPath(usersFile);
-  store.registerUserListener(new PropertyUserStore.UserListener(){
-    public void update(    String username,    Credential credential,    String[] roleArray){
-      userCount.getAndIncrement();
-    }
-    public void remove(    String username){
-    }
-  }
-);
+  store.registerUserListener(userCount);
   store.start();
-  Assert.assertNotNull("Failed to retrieve UserIdentity directly from PropertyUserStore",store.getUserIdentity("tom"));
-  Assert.assertNotNull("Failed to retrieve UserIdentity directly from PropertyUserStore",store.getUserIdentity("dick"));
-  Assert.assertNotNull("Failed to retrieve UserIdentity directly from PropertyUserStore",store.getUserIdentity("harry"));
-  Assert.assertEquals(3,userCount.get());
+  assertThat("Failed to retrieve UserIdentity directly from PropertyUserStore",store.getUserIdentity("tom"),notNullValue());
+  assertThat("Failed to retrieve UserIdentity directly from PropertyUserStore",store.getUserIdentity("dick"),notNullValue());
+  assertThat("Failed to retrieve UserIdentity directly from PropertyUserStore",store.getUserIdentity("harry"),notNullValue());
+  userCount.assertThatCount(is(3));
+  userCount.awaitCount(3);
 }
