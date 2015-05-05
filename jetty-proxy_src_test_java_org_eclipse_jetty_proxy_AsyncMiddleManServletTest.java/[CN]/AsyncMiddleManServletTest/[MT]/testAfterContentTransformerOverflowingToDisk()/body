@@ -17,12 +17,13 @@
   startProxy(new AsyncMiddleManServlet(){
     @Override protected ContentTransformer newServerResponseContentTransformer(    HttpServletRequest clientRequest,    HttpServletResponse proxyResponse,    Response serverResponse){
       AfterContentTransformer transformer=new AfterContentTransformer(){
-        @Override public void transform(        Source source,        Sink sink) throws IOException {
+        @Override public boolean transform(        Source source,        Sink sink) throws IOException {
           InputStream input=source.getInputStream();
           @SuppressWarnings("unchecked") Map<String,Object> obj=(Map<String,Object>)JSON.parse(new InputStreamReader(input,"UTF-8"));
           obj.put(key2,obj.remove(key1));
           try (OutputStream output=sink.getOutputStream()){
             output.write(JSON.toString(obj).getBytes(StandardCharsets.UTF_8));
+            return true;
           }
          }
       }
