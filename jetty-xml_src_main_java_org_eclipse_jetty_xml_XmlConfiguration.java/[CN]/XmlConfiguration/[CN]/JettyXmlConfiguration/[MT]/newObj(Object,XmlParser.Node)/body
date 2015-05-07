@@ -1,44 +1,36 @@
 {
-  Class<?> oClass=nodeClass(node);
-  int argIndex=node.size();
+  AttrOrElementNode aoeNode=new AttrOrElementNode(obj,node,"Id","Class","Arg");
+  String id=aoeNode.getString("Id");
+  String clazz=aoeNode.getString("Class");
+  List<XmlParser.Node> argNodes=aoeNode.getNodes("Arg");
+  if (LOG.isDebugEnabled())   LOG.debug("XML new " + clazz);
+  Class<?> oClass=Loader.loadClass(XmlConfiguration.class,clazz);
   Map<String,Object> namedArgMap=new HashMap<>();
   List<Object> arguments=new LinkedList<>();
-  XmlParser.Node child;
-  for (int i=0; i < node.size(); i++) {
-    Object o=node.get(i);
-    if (o instanceof String) {
-      continue;
+  for (  XmlParser.Node child : argNodes) {
+    String namedAttribute=child.getAttribute("name");
+    Object value=value(obj,child);
+    if (namedAttribute != null) {
+      namedArgMap.put(namedAttribute,value);
     }
-    child=(XmlParser.Node)o;
-    if (child.getTag().equals("Arg")) {
-      String namedAttribute=child.getAttribute("name");
-      Object value=value(obj,child);
-      if (namedAttribute != null) {
-        namedArgMap.put(namedAttribute,value);
-      }
-      arguments.add(value);
-    }
- else {
-      argIndex=i;
-      break;
-    }
+    arguments.add(value);
   }
-  if (LOG.isDebugEnabled())   LOG.debug("XML new " + oClass);
-  Object n;
+  Object nobj;
   try {
     if (namedArgMap.size() > 0) {
       LOG.debug("using named mapping");
-      n=TypeUtil.construct(oClass,arguments.toArray(),namedArgMap);
+      nobj=TypeUtil.construct(oClass,arguments.toArray(),namedArgMap);
     }
  else {
       LOG.debug("using normal mapping");
-      n=TypeUtil.construct(oClass,arguments.toArray());
+      nobj=TypeUtil.construct(oClass,arguments.toArray());
     }
   }
  catch (  NoSuchMethodException e) {
     throw new IllegalStateException("No suitable constructor: " + node + " on "+ obj);
   }
-  _configuration.initializeDefaults(n);
-  configure(n,node,argIndex);
-  return n;
+  if (id != null)   _configuration.getIdMap().put(id,nobj);
+  _configuration.initializeDefaults(nobj);
+  configure(nobj,node,aoeNode.getNext());
+  return nobj;
 }
