@@ -4,39 +4,39 @@
     while (true) {
       int filled=endPoint.fill(buffer);
       if (filled == 0) {
-        return true;
+        return;
       }
  else       if (filled < 0) {
         LOG.warn("read - EOF Reached");
+        state=State.FAILURE;
         failUpgrade(new EOFException("Reading WebSocket Upgrade response"));
-        return false;
+        return;
       }
  else {
         if (LOG.isDebugEnabled()) {
           LOG.debug("Filled {} bytes - {}",filled,BufferUtil.toDetailString(buffer));
         }
-        ClientUpgradeResponse resp=(ClientUpgradeResponse)parser.parse(buffer);
-        if (resp != null) {
-          validateResponse(resp);
-          notifyConnect(resp);
-          upgradeConnection(resp);
-          if (buffer.hasRemaining()) {
-            LOG.debug("Has remaining client bytebuffer of {}",buffer.remaining());
-          }
-          return false;
+        response=(ClientUpgradeResponse)parser.parse(buffer);
+        if (response != null) {
+          validateResponse(response);
+          notifyConnect(response);
+          state=State.UPGRADE;
+          return;
         }
       }
     }
   }
  catch (  IOException|ParseException e) {
+    LOG.ignore(e);
+    state=State.FAILURE;
     UpgradeException ue=new UpgradeException(request.getRequestURI(),e);
     connectPromise.failed(ue);
     disconnect(false);
-    return false;
   }
 catch (  UpgradeException e) {
+    LOG.ignore(e);
+    state=State.FAILURE;
     connectPromise.failed(e);
     disconnect(false);
-    return false;
   }
 }

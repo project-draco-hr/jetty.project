@@ -4,14 +4,16 @@
   }
   ByteBuffer buffer=bufferPool.acquire(getInputBufferSize(),false);
   BufferUtil.clear(buffer);
-  boolean readMore=false;
   try {
-    readMore=read(buffer);
+    read(buffer);
   }
   finally {
     bufferPool.release(buffer);
   }
-  if (readMore) {
+  if (state == State.RESPONSE) {
     fillInterested();
+  }
+ else   if (state == State.UPGRADE) {
+    upgradeConnection(response);
   }
 }

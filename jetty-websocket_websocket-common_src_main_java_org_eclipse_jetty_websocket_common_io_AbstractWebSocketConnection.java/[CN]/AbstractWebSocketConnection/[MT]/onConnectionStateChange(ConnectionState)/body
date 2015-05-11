@@ -4,24 +4,22 @@ switch (state) {
 case OPEN:
     if (BufferUtil.hasContent(prefillBuffer)) {
       if (LOG.isDebugEnabled()) {
-        LOG.debug("OPEN: has prefill - onFillable called");
+        LOG.debug("Parsing Upgrade prefill buffer ({} remaining)",prefillBuffer.remaining());
       }
-      onFillable();
+      parser.parse(prefillBuffer);
     }
- else {
-      if (LOG.isDebugEnabled()) {
-        LOG.debug("OPEN: normal fillInterested");
-      }
-      fillInterested();
-    }
-  break;
+  if (LOG.isDebugEnabled()) {
+    LOG.debug("OPEN: normal fillInterested");
+  }
+fillInterested();
+break;
 case CLOSED:
 if (ioState.wasAbnormalClose()) {
-  CloseInfo abnormal=new CloseInfo(StatusCode.SHUTDOWN,"Abnormal Close - " + ioState.getCloseInfo().getReason());
-  outgoingFrame(abnormal.asFrame(),new OnDisconnectCallback(false),BatchMode.OFF);
+CloseInfo abnormal=new CloseInfo(StatusCode.SHUTDOWN,"Abnormal Close - " + ioState.getCloseInfo().getReason());
+outgoingFrame(abnormal.asFrame(),new OnDisconnectCallback(false),BatchMode.OFF);
 }
  else {
-  this.disconnect(false);
+this.disconnect(false);
 }
 break;
 case CLOSING:
