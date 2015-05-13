@@ -1,20 +1,16 @@
 {
   LOG.debug("matches={} for {}",serverName,this);
-  if (_aliases.size() == 0 && _wild.size() == 0) {
-    if (LOG.isDebugEnabled())     LOG.debug("No SNI ready certificates for {} in {}",serverName,ExtendedSslContextFactory.this);
-    return true;
-  }
   if (serverName instanceof SNIHostName) {
     _name=(SNIHostName)serverName;
-    if (_name == null || _aliases.size() == 0)     return true;
-    _alias=_aliases.get(_name.getAsciiName());
+    if (_name == null || _certAliases.size() == 0)     return true;
+    _alias=_certAliases.get(_name.getAsciiName());
     if (_alias != null) {
       if (LOG.isDebugEnabled())       LOG.debug("matched {}->{}",_name.getAsciiName(),_alias);
       return true;
     }
     String domain=_name.getAsciiName();
     domain=domain.substring(domain.indexOf('.'));
-    _alias=_wild.get(domain);
+    _alias=_certWilds.get(domain);
     if (_alias != null) {
       if (LOG.isDebugEnabled())       LOG.debug("wild match {}->{}",_name.getAsciiName(),_alias);
       return true;
