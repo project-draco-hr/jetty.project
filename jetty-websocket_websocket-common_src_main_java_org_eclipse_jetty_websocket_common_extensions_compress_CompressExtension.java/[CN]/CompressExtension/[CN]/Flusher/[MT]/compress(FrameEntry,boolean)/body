@@ -1,53 +1,54 @@
 {
+  final int flush=Deflater.SYNC_FLUSH;
   Frame frame=entry.frame;
   ByteBuffer data=frame.getPayload();
   int remaining=data.remaining();
-  int inputLength=Math.min(remaining,INPUT_BUFSIZE);
-  if (LOG.isDebugEnabled())   LOG.debug("Compressing {}: {} bytes in {} bytes chunk",entry,remaining,inputLength);
-  int inputOffset;
-  byte[] input;
-  if (data.hasArray()) {
-    input=data.array();
-    int position=data.position();
-    inputOffset=position + data.arrayOffset();
-    data.position(position + inputLength);
+  int chunkSize=Math.min(remaining,INPUT_BUFSIZE);
+  if (LOG.isDebugEnabled())   LOG.debug("Compressing {}: {} bytes in {} bytes chunk",entry,remaining,chunkSize);
+  boolean needsCompress=true;
+  if (deflater.needsInput() && !supplyInput(deflater,data)) {
+    needsCompress=false;
   }
- else {
-    input=new byte[inputLength];
-    inputOffset=0;
-    data.get(input,0,inputLength);
-  }
-  finished=inputLength == remaining;
-  compressor.setInput(input,inputOffset,inputLength);
-  byte[] output=new byte[inputLength + 64];
-  int outputOffset=0;
-  int outputLength=0;
-  while (true) {
-    int space=output.length - outputOffset;
-    int compressed=compressor.deflate(output,outputOffset,space,Deflater.SYNC_FLUSH);
-    outputLength+=compressed;
-    if (compressed < space) {
-      break;
+  ByteArrayOutputStream out=new ByteArrayOutputStream();
+  byte[] output=new byte[chunkSize];
+  while (needsCompress) {
+    int read=deflater.deflate(output,0,chunkSize,flush);
+    if (read == 0) {
+      if (deflater.finished()) {
+        break;
+      }
+ else       if (deflater.needsInput()) {
+        if (!supplyInput(deflater,data)) {
+          needsCompress=false;
+        }
+      }
     }
  else {
-      byte[] newOutput=new byte[output.length * 2];
-      System.arraycopy(output,0,newOutput,0,output.length);
-      outputOffset+=output.length;
-      output=newOutput;
+      out.write(output,0,read);
     }
   }
-  boolean fin=frame.isFin() && finished;
-  if (tailDrop == TAIL_DROP_ALWAYS) {
-    payload=ByteBuffer.wrap(output,0,outputLength - TAIL_BYTES.length);
+  boolean fin=frame.isFin();
+  ByteBuffer payload=ByteBuffer.wrap(out.toByteArray());
+  if (payload.remaining() > 0) {
+    LOG.debug("compressed bytes[] = {}",BufferUtil.toDetailString(payload));
+    if (tailDrop == TAIL_DROP_ALWAYS) {
+      if (endsWithTail(payload)) {
+        payload.limit(payload.limit() - TAIL_BYTES.length);
+      }
+      LOG.debug("payload (TAIL_DROP_ALWAYS) = {}",BufferUtil.toDetailString(payload));
+    }
+ else     if (tailDrop == TAIL_DROP_FIN_ONLY) {
+      if (frame.isFin() && endsWithTail(payload)) {
+        payload.limit(payload.limit() - TAIL_BYTES.length);
+      }
+      LOG.debug("payload (TAIL_DROP_FIN_ONLY) = {}",BufferUtil.toDetailString(payload));
+    }
   }
- else   if (tailDrop == TAIL_DROP_FIN_ONLY) {
-    payload=ByteBuffer.wrap(output,0,outputLength - (fin ? TAIL_BYTES.length : 0));
-  }
- else {
-    payload=ByteBuffer.wrap(output,0,outputLength);
+ else   if (fin) {
+    payload=ByteBuffer.wrap(new byte[]{0x00});
   }
   if (LOG.isDebugEnabled()) {
-    LOG.debug("Compressed {}: {}->{} chunk bytes",entry,inputLength,outputLength);
+    LOG.debug("Compressed {}: input:{} -> payload:{}",entry,chunkSize,payload.remaining());
   }
   boolean continuation=frame.getType().isContinuation() || !first;
   DataFrame chunk=new DataFrame(frame,continuation);

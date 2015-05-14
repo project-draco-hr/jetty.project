@@ -1,15 +1,22 @@
 {
-  if (frame.getType().isData())   incomingCompressed=frame.isRsv1();
-  if (OpCode.isControlFrame(frame.getOpCode()) || !frame.hasPayload() || !incomingCompressed) {
+  if (frame.getType().isData()) {
+    incomingCompressed=frame.isRsv1();
+  }
+  if (OpCode.isControlFrame(frame.getOpCode()) || !incomingCompressed) {
     nextIncomingFrame(frame);
     return;
   }
-  boolean appendTail=frame.isFin();
-  ByteBuffer payload=frame.getPayload();
-  int remaining=payload.remaining();
-  byte[] input=new byte[remaining + (appendTail ? TAIL_BYTES.length : 0)];
-  payload.get(input,0,remaining);
-  if (appendTail)   System.arraycopy(TAIL_BYTES,0,input,remaining,TAIL_BYTES.length);
-  forwardIncoming(frame,decompress(input));
+  ByteAccumulator accumulator=newByteAccumulator();
+  try {
+    ByteBuffer payload=frame.getPayload();
+    decompress(accumulator,payload);
+    if (frame.isFin()) {
+      decompress(accumulator,TAIL_BYTES_BUF.slice());
+    }
+    forwardIncoming(frame,accumulator);
+  }
+ catch (  DataFormatException e) {
+    throw new BadPayloadException(e);
+  }
   if (frame.isFin())   incomingCompressed=false;
 }

@@ -1,0 +1,28 @@
+{
+  if (buf.remaining() <= 0) {
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("No data left left to supply to Deflater");
+    }
+    return false;
+  }
+  byte input[];
+  int inputOffset=0;
+  int len;
+  if (buf.hasArray()) {
+    len=buf.remaining();
+    input=buf.array();
+    inputOffset=buf.position() + buf.arrayOffset();
+    buf.position(buf.position() + len);
+  }
+ else {
+    len=Math.min(INPUT_MAX_BUFFER_SIZE,buf.remaining());
+    input=new byte[len];
+    inputOffset=0;
+    buf.get(input,0,len);
+  }
+  deflater.setInput(input,inputOffset,len);
+  if (LOG.isDebugEnabled()) {
+    LOG.debug("Supplied {} input bytes: {}",input.length,toDetail(deflater));
+  }
+  return true;
+}
