@@ -1,0 +1,42 @@
+{
+  String contextPath="";
+  String servletMapping="/server";
+  long purgeDelay=1000;
+  long purgeValidAge=1000;
+  int purgeLimit=5;
+  MongoTestServer server=createServer(0,1,0);
+  ServletContextHandler context=server.addContext(contextPath);
+  context.addServlet(TestServlet.class,servletMapping);
+  MongoSessionManager sessionManager=(MongoSessionManager)context.getSessionHandler().getSessionManager();
+  MongoSessionIdManager idManager=(MongoSessionIdManager)server.getServer().getSessionIdManager();
+  idManager.setPurge(false);
+  idManager.setPurgeLimit(purgeLimit);
+  idManager.setPurgeDelay(purgeDelay);
+  idManager.setPurgeValidAge(purgeValidAge);
+  server.start();
+  int port=server.getPort();
+  try {
+    idManager.purgeFully();
+    HttpClient client=new HttpClient();
+    client.start();
+    try {
+      for (int i=0; i < purgeLimit * 2; i++) {
+        ContentResponse response=client.GET("http://localhost:" + port + contextPath+ servletMapping+ "?action=create");
+        assertEquals(HttpServletResponse.SC_OK,response.getStatus());
+        String sessionCookie=response.getHeaders().get("Set-Cookie");
+        assertTrue(sessionCookie != null);
+        client.getCookieStore().removeAll();
+      }
+      Thread.sleep(2 * purgeValidAge);
+      assertEquals("Expected to find right number of sessions before purge",purgeLimit * 2,sessionManager.getSessionStoreCount());
+      idManager.purge();
+      assertEquals("Expected to find sessions remaining in db after purge run with limit set",purgeLimit,sessionManager.getSessionStoreCount());
+    }
+  finally {
+      client.stop();
+    }
+  }
+  finally {
+    server.stop();
+  }
+}

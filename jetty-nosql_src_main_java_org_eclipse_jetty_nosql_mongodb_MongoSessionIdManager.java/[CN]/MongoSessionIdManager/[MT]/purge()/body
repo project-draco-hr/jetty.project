@@ -1,9 +1,12 @@
 {
   __log.debug("PURGING");
   BasicDBObject invalidQuery=new BasicDBObject();
-  invalidQuery.put(MongoSessionManager.__ACCESSED,new BasicDBObject("$lt",System.currentTimeMillis() - _purgeInvalidAge));
   invalidQuery.put(MongoSessionManager.__VALID,false);
+  invalidQuery.put(MongoSessionManager.__ACCESSED,new BasicDBObject("$lt",System.currentTimeMillis() - _purgeInvalidAge));
   DBCursor oldSessions=_sessions.find(invalidQuery,new BasicDBObject(MongoSessionManager.__ID,1));
+  if (_purgeLimit > 0) {
+    oldSessions.limit(_purgeLimit);
+  }
   for (  DBObject session : oldSessions) {
     String id=(String)session.get("id");
     __log.debug("MongoSessionIdManager:purging invalid session {}",id);
@@ -11,9 +14,12 @@
   }
   if (_purgeValidAge != 0) {
     BasicDBObject validQuery=new BasicDBObject();
-    validQuery.put(MongoSessionManager.__ACCESSED,new BasicDBObject("$lt",System.currentTimeMillis() - _purgeValidAge));
     validQuery.put(MongoSessionManager.__VALID,true);
+    validQuery.put(MongoSessionManager.__ACCESSED,new BasicDBObject("$lt",System.currentTimeMillis() - _purgeValidAge));
     oldSessions=_sessions.find(validQuery,new BasicDBObject(MongoSessionManager.__ID,1));
+    if (_purgeLimit > 0) {
+      oldSessions.limit(_purgeLimit);
+    }
     for (    DBObject session : oldSessions) {
       String id=(String)session.get(MongoSessionManager.__ID);
       __log.debug("MongoSessionIdManager:purging valid session {}",id);
