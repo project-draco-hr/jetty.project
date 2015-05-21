@@ -4,9 +4,12 @@
     int newInterestOps;
     try (SpinLock.Lock lock=_lock.lock()){
       _updatePending=false;
-      oldInterestOps=_key.interestOps();
-      newInterestOps=_interestOps;
-      if (oldInterestOps != newInterestOps)       _key.interestOps(newInterestOps);
+      oldInterestOps=_currentInterestOps;
+      newInterestOps=_desiredInterestOps;
+      if (oldInterestOps != newInterestOps) {
+        _currentInterestOps=newInterestOps;
+        _key.interestOps(newInterestOps);
+      }
     }
      if (LOG.isDebugEnabled())     LOG.debug("Key interests updated {} -> {} on {}",oldInterestOps,newInterestOps,this);
   }
