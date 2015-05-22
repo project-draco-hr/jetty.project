@@ -3,7 +3,7 @@
   long seconds=now / 1000;
   DateField df=_dateField;
   if (df == null || df._seconds != seconds) {
-synchronized (this) {
+    try (SpinLock.Lock lock=_dateLock.lock()){
       df=_dateField;
       if (df == null || df._seconds != seconds) {
         HttpField field=new PreEncodedHttpField(HttpHeader.DATE,DateGenerator.formatDate(now));
@@ -11,6 +11,6 @@ synchronized (this) {
         return field;
       }
     }
-  }
+   }
   return df._dateField;
 }
