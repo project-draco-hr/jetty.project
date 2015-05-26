@@ -36,26 +36,31 @@ if ("GET".equalsIgnoreCase(request.getMethod())) {
 String referrerPath=referrerURI.getPath();
 if (referrerPath.startsWith(request.getContextPath())) {
 String referrerPathNoContext=referrerPath.substring(request.getContextPath().length());
-PrimaryResource primaryResource=_cache.get(referrerPathNoContext);
-if (primaryResource != null) {
-  long primaryTimestamp=primaryResource._timestamp.get();
-  if (primaryTimestamp != 0) {
-    RequestDispatcher dispatcher=request.getServletContext().getRequestDispatcher(path);
-    if (now - primaryTimestamp < TimeUnit.MILLISECONDS.toNanos(_associatePeriod)) {
-      ConcurrentMap<String,RequestDispatcher> associated=primaryResource._associated;
-      if (associated.size() <= _maxAssociations) {
-        if (associated.putIfAbsent(path,dispatcher) == null) {
-          if (LOG.isDebugEnabled())           LOG.debug("Associated {} to {}",path,referrerPathNoContext);
+if (!referrerPathNoContext.equals(path)) {
+  PrimaryResource primaryResource=_cache.get(referrerPathNoContext);
+  if (primaryResource != null) {
+    long primaryTimestamp=primaryResource._timestamp.get();
+    if (primaryTimestamp != 0) {
+      RequestDispatcher dispatcher=request.getServletContext().getRequestDispatcher(path);
+      if (now - primaryTimestamp < TimeUnit.MILLISECONDS.toNanos(_associatePeriod)) {
+        ConcurrentMap<String,RequestDispatcher> associated=primaryResource._associated;
+        if (associated.size() <= _maxAssociations) {
+          if (associated.putIfAbsent(path,dispatcher) == null) {
+            if (LOG.isDebugEnabled())             LOG.debug("Associated {} to {}",path,referrerPathNoContext);
+          }
+        }
+ else {
+          if (LOG.isDebugEnabled())           LOG.debug("Not associated {} to {}, exceeded max associations of {}",path,referrerPathNoContext,_maxAssociations);
         }
       }
  else {
-        if (LOG.isDebugEnabled())         LOG.debug("Not associated {} to {}, exceeded max associations of {}",path,referrerPathNoContext,_maxAssociations);
+        if (LOG.isDebugEnabled())         LOG.debug("Not associated {} to {}, outside associate period of {}ms",path,referrerPathNoContext,_associatePeriod);
       }
     }
- else {
-      if (LOG.isDebugEnabled())       LOG.debug("Not associated {} to {}, outside associate period of {}ms",path,referrerPathNoContext,_associatePeriod);
-    }
   }
+}
+ else {
+  if (LOG.isDebugEnabled())   LOG.debug("Not associated {} to {}, referring to self",path,referrerPathNoContext);
 }
 }
 }

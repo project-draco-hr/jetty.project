@@ -1,0 +1,62 @@
+{
+  final String primaryResource="/login.html";
+  start(new HttpServlet(){
+    @Override protected void doGet(    HttpServletRequest request,    HttpServletResponse response) throws ServletException, IOException {
+      ServletOutputStream output=response.getOutputStream();
+      String credentials=request.getParameter("credentials");
+      if (credentials == null) {
+        output.print("<html><head></head><body>LOGIN</body></html>");
+      }
+ else       if ("secret".equals(credentials)) {
+        output.print("<html><head></head><body>OK</body></html>");
+      }
+ else {
+        response.setStatus(HttpStatus.TEMPORARY_REDIRECT_307);
+        response.setHeader(HttpHeader.LOCATION.asString(),primaryResource);
+      }
+    }
+  }
+);
+  final String primaryURI="http://localhost:" + connector.getLocalPort() + servletPath+ primaryResource;
+  final Session session=newClient(new Session.Listener.Adapter());
+  HttpFields primaryFields=new HttpFields();
+  MetaData.Request primaryRequest=newRequest("GET",primaryResource + "?credentials=wrong",primaryFields);
+  final CountDownLatch warmupLatch=new CountDownLatch(1);
+  session.newStream(new HeadersFrame(0,primaryRequest,null,true),new Promise.Adapter<>(),new Stream.Listener.Adapter(){
+    @Override public void onHeaders(    Stream stream,    HeadersFrame frame){
+      if (frame.isEndStream()) {
+        MetaData.Response response=(MetaData.Response)frame.getMetaData();
+        if (response.getStatus() == HttpStatus.TEMPORARY_REDIRECT_307) {
+          String location=response.getFields().get(HttpHeader.LOCATION);
+          HttpFields redirectFields=new HttpFields();
+          redirectFields.put(HttpHeader.REFERER,primaryURI);
+          MetaData.Request redirectRequest=newRequest("GET",location,redirectFields);
+          session.newStream(new HeadersFrame(0,redirectRequest,null,true),new Promise.Adapter<>(),new Adapter(){
+            @Override public void onData(            Stream stream,            DataFrame frame,            Callback callback){
+              if (frame.isEndStream())               warmupLatch.countDown();
+            }
+          }
+);
+        }
+      }
+    }
+  }
+);
+  Assert.assertTrue(warmupLatch.await(5,TimeUnit.SECONDS));
+  Thread.sleep(1000);
+  primaryRequest=newRequest("GET",primaryResource + "?credentials=secret",primaryFields);
+  final CountDownLatch primaryResponseLatch=new CountDownLatch(1);
+  final CountDownLatch pushLatch=new CountDownLatch(1);
+  session.newStream(new HeadersFrame(0,primaryRequest,null,true),new Promise.Adapter<>(),new Stream.Listener.Adapter(){
+    @Override public void onData(    Stream stream,    DataFrame frame,    Callback callback){
+      if (frame.isEndStream())       primaryResponseLatch.countDown();
+    }
+    @Override public Stream.Listener onPush(    Stream stream,    PushPromiseFrame frame){
+      pushLatch.countDown();
+      return null;
+    }
+  }
+);
+  Assert.assertFalse(pushLatch.await(1,TimeUnit.SECONDS));
+  Assert.assertTrue(primaryResponseLatch.await(5,TimeUnit.SECONDS));
+}
