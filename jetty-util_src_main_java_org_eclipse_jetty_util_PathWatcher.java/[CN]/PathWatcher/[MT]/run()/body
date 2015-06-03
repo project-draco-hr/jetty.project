@@ -1,37 +1,29 @@
 {
-  Map<Path,PathWatchEvent> pendingUpdateEvents=new HashMap<>();
+  List<PathWatchEvent> notifiableEvents=new ArrayList<PathWatchEvent>();
   if (LOG.isDebugEnabled()) {
     LOG.debug("Starting java.nio file watching with {}",watcher);
   }
   while (true) {
     WatchKey key=null;
     try {
-      if (!pendingAddEvents.isEmpty()) {
-        for (        PathWatchEvent event : pendingAddEvents) {
-          notifyOnPathWatchEvent(event);
-        }
-        pendingAddEvents.clear();
-      }
-      if (pendingUpdateEvents.isEmpty()) {
-        if (NOISY_LOG.isDebugEnabled()) {
-          NOISY_LOG.debug("Waiting for take()");
-        }
+      if (pendingEvents.isEmpty()) {
+        if (NOISY_LOG.isDebugEnabled())         NOISY_LOG.debug("Waiting for take()");
         key=watcher.take();
       }
  else {
-        if (NOISY_LOG.isDebugEnabled()) {
-          NOISY_LOG.debug("Waiting for poll({}, {})",updateQuietTimeDuration,updateQuietTimeUnit);
-        }
+        if (NOISY_LOG.isDebugEnabled())         NOISY_LOG.debug("Waiting for poll({}, {})",updateQuietTimeDuration,updateQuietTimeUnit);
         key=watcher.poll(updateQuietTimeDuration,updateQuietTimeUnit);
         if (key == null) {
-          for (          Path path : new HashSet<Path>(pendingUpdateEvents.keySet())) {
-            PathWatchEvent pending=pendingUpdateEvents.get(path);
-            if (pending.isQuiet(updateQuietTimeDuration,updateQuietTimeUnit)) {
-              notifyOnPathWatchEvent(pending);
-              pendingUpdateEvents.remove(path);
+          long now=System.currentTimeMillis();
+          for (          Path path : new HashSet<Path>(pendingEvents.keySet())) {
+            PathPendingEvents pending=pendingEvents.get(path);
+            if (pending.isQuiet(now,updateQuietTimeDuration,updateQuietTimeUnit)) {
+              for (              PathWatchEvent p : pending.getEvents()) {
+                notifiableEvents.add(p);
+              }
+              pendingEvents.remove(path);
             }
           }
-          continue;
         }
       }
     }
@@ -47,53 +39,40 @@ catch (    InterruptedException e) {
       }
       return;
     }
-    Config config=keys.get(key);
-    if (config == null) {
-      if (LOG.isDebugEnabled()) {
-        LOG.debug("WatchKey not recognized: {}",key);
+    if (key != null) {
+      Config config=keys.get(key);
+      if (config == null) {
+        if (LOG.isDebugEnabled()) {
+          LOG.debug("WatchKey not recognized: {}",key);
+        }
+        continue;
       }
-      continue;
-    }
-    for (    WatchEvent<?> event : key.pollEvents()) {
-      @SuppressWarnings("unchecked") WatchEvent.Kind<Path> kind=(Kind<Path>)event.kind();
-      WatchEvent<Path> ev=cast(event);
-      Path name=ev.context();
-      Path child=config.dir.resolve(name);
-      if (kind == ENTRY_CREATE) {
-        if (Files.isDirectory(child,LinkOption.NOFOLLOW_LINKS)) {
-          try {
-            addDirectoryWatch(config.asSubConfig(child));
+      for (      WatchEvent<?> event : key.pollEvents()) {
+        @SuppressWarnings("unchecked") WatchEvent.Kind<Path> kind=(Kind<Path>)event.kind();
+        WatchEvent<Path> ev=cast(event);
+        Path name=ev.context();
+        Path child=config.dir.resolve(name);
+        if (kind == ENTRY_CREATE) {
+          if (Files.isDirectory(child,LinkOption.NOFOLLOW_LINKS)) {
+            try {
+              addDirectoryWatch(config.asSubConfig(child));
+            }
+ catch (            IOException e) {
+              LOG.warn(e);
+            }
           }
- catch (          IOException e) {
-            LOG.warn(e);
+ else           if (config.matches(child)) {
+            addToPendingList(child,new PathWatchEvent(child,ev));
           }
         }
  else         if (config.matches(child)) {
-          notifyOnPathWatchEvent(new PathWatchEvent(child,ev));
-        }
-      }
- else       if (config.matches(child)) {
-        if (kind == ENTRY_MODIFY) {
-          PathWatchEvent pending=pendingUpdateEvents.get(child);
-          if (pending == null) {
-            pendingUpdateEvents.put(child,new PathWatchEvent(child,ev));
-          }
- else {
-            if (pending.isQuiet(updateQuietTimeDuration,updateQuietTimeUnit)) {
-              notifyOnPathWatchEvent(pending);
-              pendingUpdateEvents.remove(child);
-            }
- else {
-              pending.incrementCount(ev.count());
-            }
-          }
-        }
- else {
-          notifyOnPathWatchEvent(new PathWatchEvent(child,ev));
+          addToPendingList(child,new PathWatchEvent(child,ev));
         }
       }
     }
-    if (!key.reset()) {
+    notifyOnPathWatchEvents(notifiableEvents);
+    notifiableEvents.clear();
+    if (key != null && !key.reset()) {
       keys.remove(key);
       if (keys.isEmpty()) {
         return;
