@@ -1,0 +1,33 @@
+{
+  Path dir=testdir.getEmptyDir().toPath();
+  Files.createDirectories(dir.resolve("b/c"));
+  Files.createFile(dir.resolve("a.txt"));
+  Files.createFile(dir.resolve("b.txt"));
+  PathWatcher pathWatcher=new PathWatcher();
+  pathWatcher.setNotifyExistingOnStart(true);
+  pathWatcher.setUpdateQuietTime(500,TimeUnit.MILLISECONDS);
+  PathWatchEventCapture capture=new PathWatchEventCapture(dir);
+  capture.setFinishTrigger(2);
+  pathWatcher.addListener(capture);
+  PathWatcher.Config config=new PathWatcher.Config(dir);
+  config.setRecurseDepth(PathWatcher.Config.UNLIMITED_DEPTH);
+  config.addIncludeGlobRelative("*.txt");
+  pathWatcher.watch(config);
+  try {
+    pathWatcher.start();
+    awaitQuietTime(pathWatcher);
+    Map<String,PathWatchEventType[]> expected=new HashMap<>();
+    expected.put("a.txt",new PathWatchEventType[]{ADDED});
+    expected.put("b.txt",new PathWatchEventType[]{ADDED});
+    capture.assertEvents(expected);
+    pathWatcher.stop();
+    capture.reset();
+    Thread.currentThread().sleep(1000);
+    pathWatcher.start();
+    awaitQuietTime(pathWatcher);
+    capture.assertEvents(expected);
+  }
+  finally {
+    pathWatcher.stop();
+  }
+}

@@ -1,18 +1,18 @@
 {
   List<PathWatchEvent> notifiableEvents=new ArrayList<PathWatchEvent>();
   if (LOG.isDebugEnabled()) {
-    LOG.debug("Starting java.nio file watching with {}",watcher);
+    LOG.debug("Starting java.nio file watching with {}",watchService);
   }
   while (true) {
     WatchKey key=null;
     try {
       if (pendingEvents.isEmpty()) {
         if (NOISY_LOG.isDebugEnabled())         NOISY_LOG.debug("Waiting for take()");
-        key=watcher.take();
+        key=watchService.take();
       }
  else {
         if (NOISY_LOG.isDebugEnabled())         NOISY_LOG.debug("Waiting for poll({}, {})",updateQuietTimeDuration,updateQuietTimeUnit);
-        key=watcher.poll(updateQuietTimeDuration,updateQuietTimeUnit);
+        key=watchService.poll(updateQuietTimeDuration,updateQuietTimeUnit);
         if (key == null) {
           long now=System.currentTimeMillis();
           for (          Path path : new HashSet<Path>(pendingEvents.keySet())) {
@@ -55,7 +55,7 @@ catch (    InterruptedException e) {
         if (kind == ENTRY_CREATE) {
           if (Files.isDirectory(child,LinkOption.NOFOLLOW_LINKS)) {
             try {
-              addDirectoryWatch(config.asSubConfig(child));
+              prepareConfig(config.asSubConfig(child));
             }
  catch (            IOException e) {
               LOG.warn(e);
