@@ -1,0 +1,42 @@
+{
+  final Locker lock=new Locker(spin);
+  final CountDownLatch held0=new CountDownLatch(1);
+  final CountDownLatch hold0=new CountDownLatch(1);
+  Thread thread0=new Thread(){
+    @Override public void run(){
+      try (Locker.Lock l=lock.lock()){
+        held0.countDown();
+        hold0.await();
+      }
+ catch (      InterruptedException e) {
+        e.printStackTrace();
+      }
+    }
+  }
+;
+  thread0.start();
+  held0.await();
+  assertTrue(lock.isLocked());
+  final CountDownLatch held1=new CountDownLatch(1);
+  final CountDownLatch hold1=new CountDownLatch(1);
+  Thread thread1=new Thread(){
+    @Override public void run(){
+      try (Locker.Lock l=lock.lock()){
+        held1.countDown();
+        hold1.await();
+      }
+ catch (      InterruptedException e) {
+        e.printStackTrace();
+      }
+    }
+  }
+;
+  thread1.start();
+  assertFalse(held1.await(100,TimeUnit.MILLISECONDS));
+  hold0.countDown();
+  thread0.join();
+  held1.await();
+  hold1.countDown();
+  thread1.join();
+  assertFalse(lock.isLocked());
+}

@@ -5,7 +5,7 @@
     Runnable task=_producer.produce();
     if (LOG.isDebugEnabled())     LOG.debug("{} produced {}",this,task);
     boolean dispatch=false;
-    try (Lock locked=_lock.lock()){
+    try (Lock locked=_locker.lock()){
       _producing=false;
       if (task == null) {
         if (_execute) {
@@ -29,7 +29,7 @@
     if (LOG.isDebugEnabled())     LOG.debug("{} run {}",this,task);
     task.run();
     if (LOG.isDebugEnabled())     LOG.debug("{} ran {}",this,task);
-    try (Lock locked=_lock.lock()){
+    try (Lock locked=_locker.lock()){
       if (_producing || _idle)       break;
       _producing=true;
     }

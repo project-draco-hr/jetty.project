@@ -1,7 +1,7 @@
 {
   final List<AsyncListener> aListeners;
   AsyncContextEvent event;
-  try (SpinLock.Lock lock=_lock.lock()){
+  try (Locker.Lock lock=_locker.lock()){
     if (_async != Async.STARTED)     return;
     _async=Async.EXPIRING;
     event=_event;
@@ -21,7 +21,7 @@
     }
   }
   boolean dispatch=false;
-  try (SpinLock.Lock lock=_lock.lock()){
+  try (Locker.Lock lock=_locker.lock()){
     if (_async == Async.EXPIRING) {
       _async=Async.EXPIRED;
       if (_state == State.ASYNC_WAIT) {
