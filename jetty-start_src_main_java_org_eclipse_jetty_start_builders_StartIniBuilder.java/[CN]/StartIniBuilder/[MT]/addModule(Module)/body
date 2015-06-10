@@ -8,12 +8,16 @@
     return false;
   }
   String mode="";
-  if (module.matches(OnlyTransitivePredicate.INSTANCE)) {
+  boolean isTransitive=module.matches(OnlyTransitivePredicate.INSTANCE);
+  if (isTransitive) {
     mode="(transitively) ";
   }
   StartLog.info("%-15s initialised %sin %s",module.getName(),mode,baseHome.toShortForm(startIni));
-  try (BufferedWriter writer=Files.newBufferedWriter(startIni,StandardCharsets.UTF_8,StandardOpenOption.APPEND,StandardOpenOption.CREATE)){
-    writeModuleSection(writer,module);
+  if (module.hasIniTemplate() || !isTransitive) {
+    try (BufferedWriter writer=Files.newBufferedWriter(startIni,StandardCharsets.UTF_8,StandardOpenOption.APPEND,StandardOpenOption.CREATE)){
+      writeModuleSection(writer,module);
+    }
+     return true;
   }
-   return true;
+  return false;
 }
