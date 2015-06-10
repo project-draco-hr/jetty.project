@@ -6,15 +6,19 @@
   String dftValue=aoeNode.getString("Default");
   Map<String,String> properties=_configuration.getProperties();
   String value=properties.get(name);
-  if (value == null && !deprecated.isEmpty()) {
+  String alternate=null;
+  if (!deprecated.isEmpty()) {
     for (    Object d : deprecated) {
-      value=properties.get(StringUtil.valueOf(d));
-      if (value != null) {
-        LOG.warn("Property '{}' is deprecated, use '{}' instead",d,name);
-        break;
+      String v=properties.get(StringUtil.valueOf(d));
+      if (v != null) {
+        if (value == null)         LOG.warn("Property '{}' is deprecated, use '{}' instead",d,name);
+ else         LOG.warn("Property '{}' is deprecated, value from '{}' used",d,name);
       }
+      if (alternate == null)       alternate=v;
+      ;
     }
   }
+  if (value == null)   value=alternate;
   if (value == null)   value=dftValue;
   if (id != null)   _configuration.getIdMap().put(id,value);
   return value;
