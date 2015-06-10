@@ -1,0 +1,32 @@
+{
+  Path dir=testdir.getEmptyDir().toPath();
+  Files.createFile(dir.resolve("a.txt"));
+  Files.createDirectories(dir.resolve("b/b.txt"));
+  Files.createDirectories(dir.resolve("c/d"));
+  Files.createFile(dir.resolve("c/d/d.txt"));
+  Files.createFile(dir.resolve(".foo.txt"));
+  Files.createFile(dir.resolve("txt.foo"));
+  Files.createFile(dir.resolve("b/foo.xml"));
+  PathWatcher pathWatcher=new PathWatcher();
+  pathWatcher.setUpdateQuietTime(300,TimeUnit.MILLISECONDS);
+  PathWatchEventCapture capture=new PathWatchEventCapture(dir);
+  capture.setFinishTrigger(3);
+  pathWatcher.addListener(capture);
+  PathWatcher.Config baseDirConfig=new PathWatcher.Config(dir);
+  baseDirConfig.setRecurseDepth(PathWatcher.Config.UNLIMITED_DEPTH);
+  baseDirConfig.addExcludeHidden();
+  baseDirConfig.addIncludeGlobRelative("**.txt");
+  pathWatcher.watch(baseDirConfig);
+  try {
+    pathWatcher.start();
+    awaitQuietTime(pathWatcher);
+    Map<String,PathWatchEventType[]> expected=new HashMap<>();
+    expected.put("a.txt",new PathWatchEventType[]{ADDED});
+    expected.put("b/b.txt",new PathWatchEventType[]{ADDED});
+    expected.put("c/d/d.txt",new PathWatchEventType[]{ADDED});
+    capture.assertEvents(expected);
+  }
+  finally {
+    pathWatcher.stop();
+  }
+}
