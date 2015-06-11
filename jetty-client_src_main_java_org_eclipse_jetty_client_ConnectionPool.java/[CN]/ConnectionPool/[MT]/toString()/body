@@ -1,9 +1,14 @@
 {
   int activeSize;
   int idleSize;
-  try (SpinLock.Lock lock=this.lock.lock()){
+  final ReentrantLock lock=this.lock;
+  lock.lock();
+  try {
     activeSize=activeConnections.size();
     idleSize=idleConnections.size();
   }
-   return String.format("%s[c=%d/%d,a=%d,i=%d]",getClass().getSimpleName(),connectionCount.get(),maxConnections,activeSize,idleSize);
+  finally {
+    lock.unlock();
+  }
+  return String.format("%s[c=%d/%d,a=%d,i=%d]",getClass().getSimpleName(),connectionCount.get(),maxConnections,activeSize,idleSize);
 }

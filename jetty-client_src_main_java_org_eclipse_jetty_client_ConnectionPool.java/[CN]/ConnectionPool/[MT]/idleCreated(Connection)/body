@@ -1,7 +1,12 @@
 {
   boolean idle;
-  try (SpinLock.Lock lock=this.lock.lock()){
+  final ReentrantLock lock=this.lock;
+  lock.lock();
+  try {
     idle=idleConnections.offerLast(connection);
   }
-   idle(connection,idle);
+  finally {
+    lock.unlock();
+  }
+  idle(connection,idle);
 }
