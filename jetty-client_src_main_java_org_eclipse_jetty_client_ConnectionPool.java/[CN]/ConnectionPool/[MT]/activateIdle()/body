@@ -1,12 +1,17 @@
 {
   boolean acquired;
   Connection connection;
-  try (Locker.Lock lock=this.locker.lock()){
+  final ReentrantLock lock=this.lock;
+  lock.lock();
+  try {
     connection=idleConnections.pollFirst();
     if (connection == null)     return null;
     acquired=activeConnections.offer(connection);
   }
-   if (acquired) {
+  finally {
+    lock.unlock();
+  }
+  if (acquired) {
     if (LOG.isDebugEnabled())     LOG.debug("Connection active {}",connection);
     acquired(connection);
     return connection;

@@ -1,11 +1,11 @@
 {
   boolean abortRequest;
   boolean abortResponse;
-  try (Locker.Lock lock=_locker.lock()){
+synchronized (this) {
     abortRequest=completeRequest(failure);
     abortResponse=completeResponse(failure);
   }
-   if (LOG.isDebugEnabled())   LOG.debug("Failed {}: req={}/rsp={} {}",this,abortRequest,abortResponse,failure);
+  if (LOG.isDebugEnabled())   LOG.debug("Failed {}: req={}/rsp={} {}",this,abortRequest,abortResponse,failure);
   if (!abortRequest && !abortResponse)   return false;
   if (destination.remove(this)) {
     if (LOG.isDebugEnabled())     LOG.debug("Aborting while queued {}: {}",this,failure);

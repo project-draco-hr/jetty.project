@@ -1,13 +1,18 @@
 {
   List<Connection> idles=new ArrayList<>();
   List<Connection> actives=new ArrayList<>();
-  try (Locker.Lock lock=this.locker.lock()){
+  final ReentrantLock lock=this.lock;
+  lock.lock();
+  try {
     idles.addAll(idleConnections);
     idleConnections.clear();
     actives.addAll(activeConnections);
     activeConnections.clear();
   }
-   connectionCount.set(0);
+  finally {
+    lock.unlock();
+  }
+  connectionCount.set(0);
   for (  Connection connection : idles)   connection.close();
   for (  Connection connection : actives)   connection.close();
 }
