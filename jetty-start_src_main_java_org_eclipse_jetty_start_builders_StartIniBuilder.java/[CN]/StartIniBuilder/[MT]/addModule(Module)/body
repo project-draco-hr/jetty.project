@@ -3,8 +3,10 @@
     StartLog.info("%-15s already initialised in %s",module.getName(),baseHome.toShortForm(startIni));
     return false;
   }
-  if (module.isVirtual()) {
-    StartLog.info("%-15s skipping (virtual module)",module.getName());
+  if (module.isDynamic()) {
+    if (module.hasIniTemplate()) {
+      StartLog.warn("%-15s not adding [ini-template] from dynamic module",module.getName());
+    }
     return false;
   }
   String mode="";
@@ -12,8 +14,8 @@
   if (isTransitive) {
     mode="(transitively) ";
   }
-  StartLog.info("%-15s initialised %sin %s",module.getName(),mode,baseHome.toShortForm(startIni));
   if (module.hasIniTemplate() || !isTransitive) {
+    StartLog.info("%-15s initialised %sin %s",module.getName(),mode,baseHome.toShortForm(startIni));
     try (BufferedWriter writer=Files.newBufferedWriter(startIni,StandardCharsets.UTF_8,StandardOpenOption.APPEND,StandardOpenOption.CREATE)){
       writeModuleSection(writer,module);
     }

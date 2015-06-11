@@ -1,6 +1,8 @@
 {
-  if (module.isVirtual()) {
-    StartLog.info("%-15s skipping (virtual module)",module.getName());
+  if (module.isDynamic()) {
+    if (module.hasIniTemplate()) {
+      StartLog.warn("%-15s not adding [ini-template] from dynamic module",module.getName());
+    }
     return false;
   }
   String mode="";
@@ -8,9 +10,9 @@
   if (isTransitive) {
     mode="(transitively) ";
   }
-  Path ini=startDir.resolve(module.getName() + ".ini");
-  StartLog.info("%-15s initialised %sin %s",module.getName(),mode,baseHome.toShortForm(ini));
   if (module.hasIniTemplate() || !isTransitive) {
+    Path ini=startDir.resolve(module.getName() + ".ini");
+    StartLog.info("%-15s initialised %sin %s",module.getName(),mode,baseHome.toShortForm(ini));
     try (BufferedWriter writer=Files.newBufferedWriter(ini,StandardCharsets.UTF_8,StandardOpenOption.CREATE,StandardOpenOption.TRUNCATE_EXISTING)){
       writeModuleSection(writer,module);
     }
