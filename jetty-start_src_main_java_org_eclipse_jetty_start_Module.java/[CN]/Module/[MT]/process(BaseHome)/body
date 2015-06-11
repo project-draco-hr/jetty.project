@@ -16,7 +16,8 @@
  else {
         if ((line.length() == 0) || line.startsWith("#")) {
           if ("INI-TEMPLATE".equals(sectionType)) {
-            defaultConfig.add(line);
+            iniTemplate.add(line);
+            hasIniTemplate=true;
           }
         }
  else {
@@ -30,9 +31,13 @@ case "FILES":
       files.add(line);
     break;
 case "DEFAULTS":
-case "INI-TEMPLATE":
+case "INI":
   defaultConfig.add(line);
 hasDefaultConfig=true;
+break;
+case "INI-TEMPLATE":
+iniTemplate.add(line);
+hasIniTemplate=true;
 break;
 case "LIB":
 libs.add(line);
@@ -50,6 +55,12 @@ break;
 case "EXEC":
 jvmArgs.add(line);
 break;
+case "VERSION":
+if (version != null) {
+throw new IOException("[version] already specified");
+}
+version=new Version(line);
+break;
 case "XML":
 xmls.add(line);
 break;
@@ -60,4 +71,7 @@ throw new IOException("Unrecognized Module section: [" + sectionType + "]");
 }
 }
 }
- }
+ if (version == null) {
+version=new Version(VERSION_UNSPECIFIED);
+}
+}
