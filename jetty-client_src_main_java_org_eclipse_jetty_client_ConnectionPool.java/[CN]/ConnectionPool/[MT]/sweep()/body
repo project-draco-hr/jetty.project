@@ -1,11 +1,16 @@
 {
   List<Sweeper.Sweepable> toSweep=new ArrayList<>();
-  try (Locker.Lock lock=this.locker.lock()){
+  final ReentrantLock lock=this.lock;
+  lock.lock();
+  try {
     for (    Connection connection : getActiveConnections()) {
       if (connection instanceof Sweeper.Sweepable)       toSweep.add(((Sweeper.Sweepable)connection));
     }
   }
-   for (  Sweeper.Sweepable candidate : toSweep) {
+  finally {
+    lock.unlock();
+  }
+  for (  Sweeper.Sweepable candidate : toSweep) {
     if (candidate.sweep()) {
       boolean removed=getActiveConnections().remove(candidate);
       LOG.warn("Connection swept: {}{}{} from active connections{}{}",candidate,System.lineSeparator(),removed ? "Removed" : "Not removed",System.lineSeparator(),dump());

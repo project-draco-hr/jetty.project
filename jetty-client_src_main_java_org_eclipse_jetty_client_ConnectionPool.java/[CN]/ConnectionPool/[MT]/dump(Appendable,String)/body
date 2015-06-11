@@ -1,10 +1,15 @@
 {
   List<Connection> actives=new ArrayList<>();
   List<Connection> idles=new ArrayList<>();
-  try (Locker.Lock lock=this.locker.lock()){
+  final ReentrantLock lock=this.lock;
+  lock.lock();
+  try {
     actives.addAll(activeConnections);
     idles.addAll(idleConnections);
   }
-   ContainerLifeCycle.dumpObject(out,this);
+  finally {
+    lock.unlock();
+  }
+  ContainerLifeCycle.dumpObject(out,this);
   ContainerLifeCycle.dump(out,indent,actives,idles);
 }

@@ -1,9 +1,14 @@
 {
   boolean idle;
-  try (Locker.Lock lock=this.locker.lock()){
+  final ReentrantLock lock=this.lock;
+  lock.lock();
+  try {
     if (!activeConnections.remove(connection))     return false;
     idle=idleConnections.offerFirst(connection);
   }
-   released(connection);
+  finally {
+    lock.unlock();
+  }
+  released(connection);
   return idle(connection,idle);
 }
