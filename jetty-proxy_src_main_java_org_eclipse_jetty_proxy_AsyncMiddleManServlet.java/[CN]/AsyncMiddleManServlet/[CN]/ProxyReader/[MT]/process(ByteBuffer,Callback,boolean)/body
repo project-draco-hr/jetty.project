@@ -1,15 +1,15 @@
 {
   ContentTransformer transformer=(ContentTransformer)clientRequest.getAttribute(CLIENT_TRANSFORMER);
-  boolean committed=transformer != null;
   if (transformer == null) {
     transformer=newClientRequestContentTransformer(clientRequest,proxyRequest);
     clientRequest.setAttribute(CLIENT_TRANSFORMER,transformer);
   }
-  if (!content.hasRemaining() && !finished) {
+  boolean committed=clientRequest.getAttribute(PROXY_REQUEST_COMMITTED) != null;
+  int contentBytes=content.remaining();
+  if (contentBytes == 0 && !finished) {
     callback.succeeded();
     return;
   }
-  int contentBytes=content.remaining();
   transform(transformer,content,finished,buffers);
   int newContentBytes=0;
   int size=buffers.size();
@@ -24,9 +24,10 @@
   }
   if (finished)   provider.close();
   if (_log.isDebugEnabled())   _log.debug("{} upstream content transformation {} -> {} bytes",getRequestId(clientRequest),contentBytes,newContentBytes);
-  if (!committed) {
+  if (!committed && (size > 0 || finished)) {
     proxyRequest.header(HttpHeader.CONTENT_LENGTH,null);
+    clientRequest.setAttribute(PROXY_REQUEST_COMMITTED,true);
     sendProxyRequest(clientRequest,proxyResponse,proxyRequest);
   }
-  if (size == 0)   succeeded();
+  if (size == 0)   callback.succeeded();
 }

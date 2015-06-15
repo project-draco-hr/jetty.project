@@ -1,0 +1,45 @@
+{
+  startServer(new EchoHttpServlet());
+  final CountDownLatch proxyRequestLatch=new CountDownLatch(1);
+  startProxy(new AsyncMiddleManServlet(){
+    @Override protected ContentTransformer newClientRequestContentTransformer(    HttpServletRequest clientRequest,    Request proxyRequest){
+      return new ContentTransformer(){
+        private ByteBuffer buffer;
+        @Override public void transform(        ByteBuffer input,        boolean finished,        List<ByteBuffer> output) throws IOException {
+          if (buffer == null) {
+            buffer=ByteBuffer.allocate(input.remaining());
+            buffer.put(input).flip();
+          }
+ else           if (buffer.hasRemaining()) {
+            output.add(buffer);
+            output.add(input);
+          }
+ else {
+            output.add(input);
+          }
+        }
+      }
+;
+    }
+    @Override protected void sendProxyRequest(    HttpServletRequest clientRequest,    HttpServletResponse proxyResponse,    Request proxyRequest){
+      proxyRequestLatch.countDown();
+      super.sendProxyRequest(clientRequest,proxyResponse,proxyRequest);
+    }
+  }
+);
+  startClient();
+  DeferredContentProvider content=new DeferredContentProvider();
+  Request request=client.newRequest("localhost",serverConnector.getLocalPort()).timeout(5,TimeUnit.SECONDS).content(content);
+  FutureResponseListener listener=new FutureResponseListener(request);
+  request.send(listener);
+  ByteBuffer chunk1=ByteBuffer.allocate(1024);
+  content.offer(chunk1);
+  Assert.assertFalse(proxyRequestLatch.await(1,TimeUnit.SECONDS));
+  ByteBuffer chunk2=ByteBuffer.allocate(512);
+  content.offer(chunk2);
+  Assert.assertTrue(proxyRequestLatch.await(5,TimeUnit.SECONDS));
+  content.close();
+  ContentResponse response=listener.get(5,TimeUnit.SECONDS);
+  Assert.assertEquals(HttpStatus.OK_200,response.getStatus());
+  Assert.assertEquals(chunk1.capacity() + chunk2.capacity(),response.getContent().length);
+}
