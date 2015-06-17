@@ -1,0 +1,65 @@
+{
+  if (webApp.getDescriptor() != null) {
+    Resource r=Resource.newResource(webApp.getDescriptor());
+    scanner.watch(r.getFile().toPath());
+  }
+  if (webApp.getJettyEnvXml() != null)   scanner.watch(new File(webApp.getJettyEnvXml()).toPath());
+  if (webApp.getDefaultsDescriptor() != null) {
+    if (!WebAppContext.WEB_DEFAULTS_XML.equals(webApp.getDefaultsDescriptor()))     scanner.watch(new File(webApp.getDefaultsDescriptor()).toPath());
+  }
+  if (webApp.getOverrideDescriptor() != null) {
+    scanner.watch(new File(webApp.getOverrideDescriptor()).toPath());
+  }
+  File jettyWebXmlFile=findJettyWebXmlFile(new File(webAppSourceDirectory,"WEB-INF"));
+  if (jettyWebXmlFile != null) {
+    scanner.watch(jettyWebXmlFile.toPath());
+  }
+  for (  Artifact a : getWarArtifacts()) {
+    scanner.watch(a.getFile().toPath());
+  }
+  if (scanTargets != null) {
+    for (    File f : scanTargets) {
+      if (f.isDirectory()) {
+        PathWatcher.Config config=new PathWatcher.Config(f.toPath());
+        config.setRecurseDepth(PathWatcher.Config.UNLIMITED_DEPTH);
+        scanner.watch(config);
+      }
+ else       scanner.watch(f.toPath());
+    }
+  }
+  if (scanTargetPatterns != null) {
+    for (    ScanTargetPattern p : scanTargetPatterns) {
+      PathWatcher.Config config=new PathWatcher.Config(p.getDirectory().toPath());
+      config.setRecurseDepth(PathWatcher.Config.UNLIMITED_DEPTH);
+      for (      String pattern : p.getExcludes())       config.addExcludeGlobRelative(pattern);
+      for (      String pattern : p.getIncludes())       config.addIncludeGlobRelative(pattern);
+      scanner.watch(config);
+    }
+  }
+  scanner.watch(project.getFile().toPath());
+  if (webApp.getTestClasses() != null) {
+    PathWatcher.Config config=new PathWatcher.Config(webApp.getTestClasses().toPath());
+    config.setRecurseDepth(PathWatcher.Config.UNLIMITED_DEPTH);
+    if (testClassesPattern != null) {
+      for (      String p : testClassesPattern.getExcludes())       config.addExcludeGlobRelative(p);
+      for (      String p : testClassesPattern.getIncludes())       config.addIncludeGlobRelative(p);
+    }
+    scanner.watch(config);
+  }
+  if (webApp.getClasses() != null) {
+    PathWatcher.Config config=new PathWatcher.Config(webApp.getClasses().toPath());
+    config.setRecurseDepth(PathWatcher.Config.UNLIMITED_DEPTH);
+    if (classesPattern != null) {
+      for (      String p : classesPattern.getExcludes())       config.addExcludeGlobRelative(p);
+      for (      String p : classesPattern.getIncludes())       config.addIncludeGlobRelative(p);
+    }
+    scanner.watch(config);
+  }
+  if (webApp.getWebInfLib() != null) {
+    for (    File f : webApp.getWebInfLib()) {
+      PathWatcher.Config config=new PathWatcher.Config(f.toPath());
+      config.setRecurseDepth(PathWatcher.Config.UNLIMITED_DEPTH);
+      scanner.watch(config);
+    }
+  }
+}
