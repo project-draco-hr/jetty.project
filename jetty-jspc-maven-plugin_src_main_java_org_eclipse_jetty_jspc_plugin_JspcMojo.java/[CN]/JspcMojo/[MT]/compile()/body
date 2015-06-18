@@ -1,13 +1,12 @@
 {
   ClassLoader currentClassLoader=Thread.currentThread().getContextClassLoader();
   List<URL> webAppUrls=setUpWebAppClassPath();
-  String sysClassPath=setUpSysClassPath();
-  List<URL> tldJarUrls=getSystemJarsWithTlds();
-  for (  URL u : tldJarUrls) {
-    if (getLog().isDebugEnabled())     getLog().debug(" sys jar with tlds: " + u);
-    webAppUrls.add(u);
-  }
-  URLClassLoader webAppClassLoader=new URLClassLoader((URL[])webAppUrls.toArray(new URL[0]),currentClassLoader);
+  Set<URL> pluginJars=getPluginJars();
+  Set<URL> providedJars=getProvidedScopeJars(pluginJars);
+  List<URL> sysUrls=new ArrayList<URL>();
+  sysUrls.addAll(providedJars);
+  URLClassLoader sysClassLoader=new URLClassLoader((URL[])sysUrls.toArray(new URL[0]),currentClassLoader);
+  URLClassLoader webAppClassLoader=new URLClassLoader((URL[])webAppUrls.toArray(new URL[0]),sysClassLoader);
   StringBuffer webAppClassPath=new StringBuffer();
   for (int i=0; i < webAppUrls.size(); i++) {
     if (getLog().isDebugEnabled())     getLog().debug("webappclassloader contains: " + webAppUrls.get(i));
@@ -21,7 +20,6 @@
   jspc.setWebXmlFragment(webXmlFragment);
   jspc.setUriroot(webAppSourceDirectory);
   jspc.setOutputDir(generatedClasses);
-  jspc.setClassPath(sysClassPath + System.getProperty("path.separator") + webAppClassPath.toString());
   jspc.setClassLoader(fakeWebAppClassLoader);
   jspc.setScanAllDirectories(scanAllDirectories);
   jspc.setCompile(true);
