@@ -1,0 +1,94 @@
+{
+  if (list == null)   list=new ArrayList<>();
+  CsvSplitState state=CsvSplitState.PRE_DATA;
+  StringBuilder out=new StringBuilder();
+  int last=-1;
+  while (len > 0) {
+    char ch=s.charAt(off++);
+    len--;
+switch (state) {
+case PRE_DATA:
+      if (Character.isWhitespace(ch))       continue;
+    if ('"' == ch) {
+      state=CsvSplitState.QUOTE;
+      continue;
+    }
+  if (',' == ch) {
+    list.add("");
+    continue;
+  }
+state=CsvSplitState.DATA;
+out.append(ch);
+continue;
+case DATA:
+if (Character.isWhitespace(ch)) {
+last=out.length();
+out.append(ch);
+state=CsvSplitState.WHITE;
+continue;
+}
+if (',' == ch) {
+list.add(out.toString());
+out.setLength(0);
+state=CsvSplitState.PRE_DATA;
+continue;
+}
+out.append(ch);
+continue;
+case WHITE:
+if (Character.isWhitespace(ch)) {
+out.append(ch);
+continue;
+}
+if (',' == ch) {
+out.setLength(last);
+list.add(out.toString());
+out.setLength(0);
+state=CsvSplitState.PRE_DATA;
+continue;
+}
+state=CsvSplitState.DATA;
+out.append(ch);
+last=-1;
+continue;
+case QUOTE:
+if ('\\' == ch) {
+state=CsvSplitState.SLOSH;
+continue;
+}
+if ('"' == ch) {
+list.add(out.toString());
+out.setLength(0);
+state=CsvSplitState.POST_DATA;
+continue;
+}
+out.append(ch);
+continue;
+case SLOSH:
+out.append(ch);
+state=CsvSplitState.QUOTE;
+continue;
+case POST_DATA:
+if (',' == ch) {
+state=CsvSplitState.PRE_DATA;
+continue;
+}
+continue;
+}
+}
+switch (state) {
+case PRE_DATA:
+case POST_DATA:
+break;
+case DATA:
+case QUOTE:
+case SLOSH:
+list.add(out.toString());
+break;
+case WHITE:
+out.setLength(last);
+list.add(out.toString());
+break;
+}
+return list;
+}
