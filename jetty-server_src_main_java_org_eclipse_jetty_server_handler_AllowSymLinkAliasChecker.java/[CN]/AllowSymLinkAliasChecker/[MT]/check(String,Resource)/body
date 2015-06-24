@@ -3,9 +3,19 @@
   PathResource pathResource=(PathResource)resource;
   try {
     Path path=pathResource.getPath();
-    if (Files.isSymbolicLink(path) && Files.isSameFile(path,pathResource.getAliasPath())) {
-      if (LOG.isDebugEnabled())       LOG.debug("Allow symlink {} --> {}",resource,pathResource.getAliasPath());
-      return true;
+    Path alias=pathResource.getAliasPath();
+    System.err.printf("getPath=%s%n",path);
+    System.err.printf("getAliasPath=%s%n",alias);
+    if (Files.isSymbolicLink(path)) {
+      alias=path.getParent().resolve(alias);
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("path ={}",path);
+        LOG.debug("alias={}",alias);
+      }
+      if (Files.isSameFile(path,alias)) {
+        if (LOG.isDebugEnabled())         LOG.debug("Allow symlink {} --> {}",resource,pathResource.getAliasPath());
+        return true;
+      }
     }
     Path d=path.getRoot();
     for (    Path e : path) {
