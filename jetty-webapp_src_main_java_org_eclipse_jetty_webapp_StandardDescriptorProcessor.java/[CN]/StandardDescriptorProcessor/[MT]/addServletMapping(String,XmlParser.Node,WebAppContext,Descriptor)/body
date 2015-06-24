@@ -13,16 +13,19 @@
       ServletMapping sm=listItor.next();
       if (sm.getPathSpecs() != null) {
         for (        String ps : sm.getPathSpecs()) {
-          if (p.equals(ps) && sm.isDefault()) {
-            if (LOG.isDebugEnabled())             LOG.debug("{} in mapping {} from defaults descriptor is overridden by ",ps,sm,servletName);
+          if (p.equals(ps) && (sm.isDefault() || servletName.equals(sm.getServletName()))) {
+            if (sm.isDefault()) {
+              if (LOG.isDebugEnabled())               LOG.debug("{} in mapping {} from defaults descriptor is overridden by ",ps,sm,servletName);
+            }
+ else             LOG.warn("Duplicate mapping from {} to {}",p,servletName);
             String[] updatedPaths=ArrayUtil.removeFromArray(sm.getPathSpecs(),ps);
             if (updatedPaths == null || updatedPaths.length == 0) {
-              if (LOG.isDebugEnabled())               LOG.debug("Removed mapping {} from defaults descriptor",sm);
+              if (LOG.isDebugEnabled())               LOG.debug("Removed empty mapping {}",sm);
               listItor.remove();
             }
  else {
               sm.setPathSpecs(updatedPaths);
-              if (LOG.isDebugEnabled())               LOG.debug("Removed path {} from mapping {} from defaults descriptor ",p,sm);
+              if (LOG.isDebugEnabled())               LOG.debug("Removed path {} from mapping {}",p,sm);
             }
             found=true;
             break;
