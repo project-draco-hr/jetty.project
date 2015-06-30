@@ -1,0 +1,29 @@
+{
+  context.setAttribute("javax.servlet.context.tempdir",scratchDir);
+  context.setWar(baseUri.toASCIIString());
+  context.setResourceBase(baseUri.toASCIIString());
+  System.setProperty("org.apache.jasper.compiler.disablejsr199","false");
+  context.setAttribute("org.eclipse.jetty.server.webapp.ContainerIncludeJarPattern",".*/[^/]*servlet-api-[^/]*\\.jar$|.*/javax.servlet.jsp.jstl-.*\\.jar$|.*/.*taglibs.*\\.jar$");
+  JettyJasperInitializer sci=new JettyJasperInitializer();
+  ContainerInitializer initializer=new ContainerInitializer(sci,null);
+  List<ContainerInitializer> initializers=new ArrayList<ContainerInitializer>();
+  initializers.add(initializer);
+  context.setAttribute("org.eclipse.jetty.containerInitializers",initializers);
+  context.addBean(new ServletContainerInitializersStarter(context),true);
+  context.setAttribute(InstanceManager.class.getName(),new SimpleInstanceManager());
+  ClassLoader jspClassLoader=new URLClassLoader(new URL[0],context.getClass().getClassLoader());
+  context.setClassLoader(jspClassLoader);
+  ServletHolder holderJsp=new ServletHolder("jsp",JettyJspServlet.class);
+  holderJsp.setInitOrder(0);
+  holderJsp.setInitParameter("logVerbosityLevel","DEBUG");
+  holderJsp.setInitParameter("fork","false");
+  holderJsp.setInitParameter("xpoweredBy","false");
+  holderJsp.setInitParameter("compilerTargetVM","1.8");
+  holderJsp.setInitParameter("compilerSourceVM","1.8");
+  holderJsp.setInitParameter("keepgenerated","true");
+  context.addServlet(holderJsp,"*.jsp");
+  ServletHolder holderDefault=new ServletHolder("default",DefaultServlet.class);
+  holderDefault.setInitParameter("resourceBase",baseUri.toASCIIString());
+  holderDefault.setInitParameter("dirAllowed","true");
+  context.addServlet(holderDefault,"/");
+}

@@ -1,0 +1,20 @@
+{
+  server=new Server();
+  ServerConnector connector=new ServerConnector(server);
+  connector.setPort(0);
+  server.addConnector(connector);
+  File testWebAppDir=MavenTestingUtils.getProjectDir("src/test/webapp");
+  WebAppContext context=new WebAppContext();
+  context.setContextPath("/");
+  File scratchDir=MavenTestingUtils.getTargetFile("tests/" + JstlTest.class.getSimpleName() + "-scratch");
+  FS.ensureEmpty(scratchDir);
+  JspConfig.init(context,testWebAppDir.toURI(),scratchDir);
+  server.setHandler(context);
+  server.start();
+  String host=connector.getHost();
+  if (host == null) {
+    host="localhost";
+  }
+  int port=connector.getLocalPort();
+  baseUri=new URI(String.format("http://%s:%d/",host,port));
+}
