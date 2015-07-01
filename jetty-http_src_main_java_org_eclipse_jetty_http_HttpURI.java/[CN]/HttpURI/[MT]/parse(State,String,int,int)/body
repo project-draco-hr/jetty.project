@@ -9,14 +9,24 @@ case START:
 {
 switch (c) {
 case '/':
-          p=m=i;
-        state=State.PATH;
-      break;
+          if (i + 1 < end) {
+            c=uri.charAt(i + 1);
+            m=i;
+            if (c == '/') {
+              _hasAuthHostPortInSSP=true;
+              state=State.HOST_OR_PATH;
+              break;
+            }
+          }
+        p=m=i;
+      state=State.PATH;
+    break;
 case ';':
-    m=i + 1;
-  state=State.PARAM;
+  m=i + 1;
+state=State.PARAM;
 break;
 case '?':
+_path="";
 m=i + 1;
 state=State.QUERY;
 break;
@@ -53,13 +63,14 @@ break;
 }
 case ';':
 {
-p=m;
+m=i + 1;
 state=State.PARAM;
 break;
 }
 case '?':
 {
 _path=uri.substring(m,i);
+m=i + 1;
 state=State.QUERY;
 break;
 }
@@ -80,8 +91,13 @@ case HOST_OR_PATH:
 {
 switch (c) {
 case '/':
+_hasAuthHostPortInSSP=true;
 m=i + 1;
 state=State.HOST;
+break;
+case '@':
+_user=uri.substring(m,i);
+m=i + 1;
 break;
 case ';':
 case '?':
@@ -101,19 +117,20 @@ case HOST:
 switch (c) {
 case '/':
 {
-_host=uri.substring(m,i);
+if (i > m) _host=uri.substring(m,i);
 p=m=i;
 state=State.PATH;
 break;
 }
 case ':':
 {
-_host=uri.substring(m,i);
+if (i > m) _host=uri.substring(m,i);
 m=i + 1;
 state=State.PORT;
 break;
 }
 case '@':
+_user=uri.substring(m,i);
 m=i + 1;
 break;
 case '[':
@@ -250,7 +267,7 @@ case HOST_OR_PATH:
 _path=uri.substring(m,end);
 break;
 case HOST:
-_host=uri.substring(m,end);
+if (end > m) _host=uri.substring(m,end);
 break;
 case IPV6:
 throw new IllegalArgumentException("No closing ']' for ipv6 in " + uri);
