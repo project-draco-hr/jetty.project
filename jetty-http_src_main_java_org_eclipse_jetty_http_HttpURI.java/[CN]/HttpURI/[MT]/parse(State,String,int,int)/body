@@ -31,7 +31,11 @@ state=State.ASTERISK;
 break;
 default :
 mark=i;
-state=State.SCHEME_OR_PATH;
+if (_scheme == null) state=State.SCHEME_OR_PATH;
+ else {
+path_mark=i;
+state=State.PATH;
+}
 }
 continue;
 }
@@ -39,42 +43,29 @@ case SCHEME_OR_PATH:
 {
 switch (c) {
 case ':':
-{
 _scheme=uri.substring(mark,i);
-c=uri.charAt(++i);
-mark=i;
-if (c == '/') state=State.HOST_OR_PATH;
- else state=State.PATH;
+state=State.START;
 break;
-}
 case '/':
-{
 state=State.PATH;
 break;
-}
 case ';':
-{
 mark=i + 1;
 state=State.PARAM;
 break;
-}
 case '?':
-{
 _path=uri.substring(mark,i);
 mark=i + 1;
 state=State.QUERY;
 break;
-}
 case '%':
-{
 encoded=true;
-}
+state=State.PATH;
+break;
 case '#':
-{
 _path=uri.substring(mark,i);
 state=State.FRAGMENT;
 break;
-}
 }
 continue;
 }
@@ -107,28 +98,22 @@ case HOST:
 {
 switch (c) {
 case '/':
-{
-if (i > mark) _host=uri.substring(mark,i);
+_host=uri.substring(mark,i);
 path_mark=mark=i;
 state=State.PATH;
 break;
-}
 case ':':
-{
 if (i > mark) _host=uri.substring(mark,i);
 mark=i + 1;
 state=State.PORT;
 break;
-}
 case '@':
 _user=uri.substring(mark,i);
 mark=i + 1;
 break;
 case '[':
-{
 state=State.IPV6;
 break;
-}
 }
 continue;
 }
@@ -136,11 +121,8 @@ case IPV6:
 {
 switch (c) {
 case '/':
-{
 throw new IllegalArgumentException("No closing ']' for ipv6 in " + uri);
-}
 case ']':
-{
 c=uri.charAt(++i);
 _host=uri.substring(mark,i);
 if (c == ':') {
@@ -152,7 +134,6 @@ path_mark=mark=i;
 state=State.PATH;
 }
 break;
-}
 }
 continue;
 }
@@ -169,29 +150,22 @@ case PATH:
 {
 switch (c) {
 case ';':
-{
 mark=i + 1;
 state=State.PARAM;
 break;
-}
 case '?':
-{
 _path=uri.substring(path_mark,i);
 mark=i + 1;
 state=State.QUERY;
 break;
-}
 case '#':
-{
 _path=uri.substring(path_mark,i);
 mark=i + 1;
 state=State.FRAGMENT;
 break;
-}
 case '%':
-{
 encoded=true;
-}
+break;
 }
 continue;
 }
@@ -199,32 +173,24 @@ case PARAM:
 {
 switch (c) {
 case '?':
-{
 _path=uri.substring(path_mark,i);
 _param=uri.substring(mark,i);
 mark=i + 1;
 state=State.QUERY;
 break;
-}
 case '#':
-{
 _path=uri.substring(path_mark,i);
 _param=uri.substring(mark,i);
 mark=i + 1;
 state=State.FRAGMENT;
 break;
-}
 case '/':
-{
 encoded=true;
 state=State.PATH;
 break;
-}
 case ';':
-{
 mark=i + 1;
 break;
-}
 }
 continue;
 }
