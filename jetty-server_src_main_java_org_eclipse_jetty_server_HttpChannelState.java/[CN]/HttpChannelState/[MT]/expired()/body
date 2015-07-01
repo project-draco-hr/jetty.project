@@ -7,7 +7,8 @@
     event=_event;
     aListeners=_asyncListeners;
   }
-   if (aListeners != null) {
+   if (LOG.isDebugEnabled())   LOG.debug("Async timeout {}",this);
+  if (aListeners != null) {
     for (    AsyncListener listener : aListeners) {
       try {
         listener.onTimeout(event);
@@ -26,9 +27,13 @@
       _async=Async.EXPIRED;
       if (_state == State.ASYNC_WAIT) {
         _state=State.ASYNC_WOKEN;
+        _event.setThrowable(new TimeoutException("async"));
         dispatch=true;
       }
     }
   }
-   if (dispatch)   scheduleDispatch();
+   if (dispatch) {
+    if (LOG.isDebugEnabled())     LOG.debug("Dispatch after async timeout {}",this);
+    scheduleDispatch();
+  }
 }
