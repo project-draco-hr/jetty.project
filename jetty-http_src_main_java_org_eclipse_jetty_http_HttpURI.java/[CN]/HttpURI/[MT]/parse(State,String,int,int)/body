@@ -1,7 +1,7 @@
 {
   boolean encoded=false;
-  int m=offset;
-  int p=0;
+  int mark=offset;
+  int path_mark=0;
   for (int i=offset; i < end; i++) {
     char c=uri.charAt(i);
 switch (state) {
@@ -9,29 +9,20 @@ case START:
 {
 switch (c) {
 case '/':
-          if (i + 1 < end) {
-            c=uri.charAt(i + 1);
-            m=i;
-            if (c == '/') {
-              _hasAuthHostPortInSSP=true;
-              state=State.HOST_OR_PATH;
-              break;
-            }
-          }
-        p=m=i;
-      state=State.PATH;
-    break;
+          mark=i;
+        state=State.HOST_OR_PATH;
+      break;
 case ';':
-  m=i + 1;
-state=State.PARAM;
+    mark=i + 1;
+  state=State.PARAM;
 break;
 case '?':
 _path="";
-m=i + 1;
+mark=i + 1;
 state=State.QUERY;
 break;
 case '#':
-m=i + 1;
+mark=i + 1;
 state=State.FRAGMENT;
 break;
 case '*':
@@ -39,7 +30,7 @@ _path="*";
 state=State.ASTERISK;
 break;
 default :
-m=i;
+mark=i;
 state=State.SCHEME_OR_PATH;
 }
 continue;
@@ -49,9 +40,9 @@ case SCHEME_OR_PATH:
 switch (c) {
 case ':':
 {
-_scheme=uri.substring(m,i);
+_scheme=uri.substring(mark,i);
 c=uri.charAt(++i);
-m=i;
+mark=i;
 if (c == '/') state=State.HOST_OR_PATH;
  else state=State.PATH;
 break;
@@ -63,14 +54,14 @@ break;
 }
 case ';':
 {
-m=i + 1;
+mark=i + 1;
 state=State.PARAM;
 break;
 }
 case '?':
 {
-_path=uri.substring(m,i);
-m=i + 1;
+_path=uri.substring(mark,i);
+mark=i + 1;
 state=State.QUERY;
 break;
 }
@@ -80,7 +71,7 @@ encoded=true;
 }
 case '#':
 {
-_path=uri.substring(m,i);
+_path=uri.substring(mark,i);
 state=State.FRAGMENT;
 break;
 }
@@ -91,23 +82,23 @@ case HOST_OR_PATH:
 {
 switch (c) {
 case '/':
-_hasAuthHostPortInSSP=true;
-m=i + 1;
+_host="";
+mark=i + 1;
 state=State.HOST;
 break;
 case '@':
-_user=uri.substring(m,i);
-m=i + 1;
+_user=uri.substring(mark,i);
+mark=i + 1;
 break;
 case ';':
 case '?':
 case '#':
 i--;
-p=m;
+path_mark=mark;
 state=State.PATH;
 break;
 default :
-p=m;
+path_mark=mark;
 state=State.PATH;
 }
 continue;
@@ -117,21 +108,21 @@ case HOST:
 switch (c) {
 case '/':
 {
-if (i > m) _host=uri.substring(m,i);
-p=m=i;
+if (i > mark) _host=uri.substring(mark,i);
+path_mark=mark=i;
 state=State.PATH;
 break;
 }
 case ':':
 {
-if (i > m) _host=uri.substring(m,i);
-m=i + 1;
+if (i > mark) _host=uri.substring(mark,i);
+mark=i + 1;
 state=State.PORT;
 break;
 }
 case '@':
-_user=uri.substring(m,i);
-m=i + 1;
+_user=uri.substring(mark,i);
+mark=i + 1;
 break;
 case '[':
 {
@@ -151,13 +142,13 @@ throw new IllegalArgumentException("No closing ']' for ipv6 in " + uri);
 case ']':
 {
 c=uri.charAt(++i);
-_host=uri.substring(m,i);
+_host=uri.substring(mark,i);
 if (c == ':') {
-m=i + 1;
+mark=i + 1;
 state=State.PORT;
 }
  else {
-p=m=i;
+path_mark=mark=i;
 state=State.PATH;
 }
 break;
@@ -168,8 +159,8 @@ continue;
 case PORT:
 {
 if (c == '/') {
-_port=TypeUtil.parseInt(uri,m,i - m,10);
-p=m=i;
+_port=TypeUtil.parseInt(uri,mark,i - mark,10);
+path_mark=mark=i;
 state=State.PATH;
 }
 continue;
@@ -179,21 +170,21 @@ case PATH:
 switch (c) {
 case ';':
 {
-m=i + 1;
+mark=i + 1;
 state=State.PARAM;
 break;
 }
 case '?':
 {
-_path=uri.substring(p,i);
-m=i + 1;
+_path=uri.substring(path_mark,i);
+mark=i + 1;
 state=State.QUERY;
 break;
 }
 case '#':
 {
-_path=uri.substring(p,i);
-m=i + 1;
+_path=uri.substring(path_mark,i);
+mark=i + 1;
 state=State.FRAGMENT;
 break;
 }
@@ -209,17 +200,17 @@ case PARAM:
 switch (c) {
 case '?':
 {
-_path=uri.substring(p,i);
-_param=uri.substring(m,i);
-m=i + 1;
+_path=uri.substring(path_mark,i);
+_param=uri.substring(mark,i);
+mark=i + 1;
 state=State.QUERY;
 break;
 }
 case '#':
 {
-_path=uri.substring(p,i);
-_param=uri.substring(m,i);
-m=i + 1;
+_path=uri.substring(path_mark,i);
+_param=uri.substring(mark,i);
+mark=i + 1;
 state=State.FRAGMENT;
 break;
 }
@@ -231,7 +222,7 @@ break;
 }
 case ';':
 {
-m=i + 1;
+mark=i + 1;
 break;
 }
 }
@@ -240,8 +231,8 @@ continue;
 case QUERY:
 {
 if (c == '#') {
-_query=uri.substring(m,i);
-m=i + 1;
+_query=uri.substring(mark,i);
+mark=i + 1;
 state=State.FRAGMENT;
 }
 continue;
@@ -252,7 +243,7 @@ throw new IllegalArgumentException("only '*'");
 }
 case FRAGMENT:
 {
-_fragment=uri.substring(m,end);
+_fragment=uri.substring(mark,end);
 i=end;
 }
 }
@@ -261,33 +252,33 @@ switch (state) {
 case START:
 break;
 case SCHEME_OR_PATH:
-_path=uri.substring(m,end);
+_path=uri.substring(mark,end);
 break;
 case HOST_OR_PATH:
-_path=uri.substring(m,end);
+_path=uri.substring(mark,end);
 break;
 case HOST:
-if (end > m) _host=uri.substring(m,end);
+if (end > mark) _host=uri.substring(mark,end);
 break;
 case IPV6:
 throw new IllegalArgumentException("No closing ']' for ipv6 in " + uri);
 case PORT:
-_port=TypeUtil.parseInt(uri,m,end - m,10);
+_port=TypeUtil.parseInt(uri,mark,end - mark,10);
 break;
 case ASTERISK:
 break;
 case FRAGMENT:
-_fragment=uri.substring(m,end);
+_fragment=uri.substring(mark,end);
 break;
 case PARAM:
-_path=uri.substring(p,end);
-_param=uri.substring(m,end);
+_path=uri.substring(path_mark,end);
+_param=uri.substring(mark,end);
 break;
 case PATH:
-_path=uri.substring(p,end);
+_path=uri.substring(path_mark,end);
 break;
 case QUERY:
-_query=uri.substring(m,end);
+_query=uri.substring(mark,end);
 break;
 }
 if (!encoded) {
