@@ -5,9 +5,7 @@
   connector.setPort(0);
   server.addConnector(connector);
   TestHandler handler=new TestHandler();
-  StatisticsHandler stats=new StatisticsHandler();
-  server.setHandler(stats);
-  stats.setHandler(handler);
+  server.setHandler(handler);
   server.start();
   final int port=connector.getLocalPort();
   Socket client=new Socket("127.0.0.1",port);
@@ -15,14 +13,9 @@
   client.getOutputStream().flush();
   handler.latch.await();
   long start=System.nanoTime();
-  try {
-    server.stop();
-    Assert.fail();
-  }
- catch (  TimeoutException e) {
-    long stop=System.nanoTime();
-    assertThat(TimeUnit.NANOSECONDS.toMillis(stop - start),greaterThan(900L));
-  }
+  server.stop();
+  long stop=System.nanoTime();
+  assertThat(TimeUnit.NANOSECONDS.toMillis(stop - start),lessThan(900L));
   assertThat(client.getInputStream().read(),Matchers.is(-1));
   assertThat(handler.handling.get(),Matchers.is(false));
   assertThat(handler.thrown.get(),instanceOf(ClosedChannelException.class));

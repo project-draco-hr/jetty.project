@@ -1,10 +1,22 @@
 {
+  handling.set(true);
+  latch.countDown();
+  int c=0;
   try {
-    TimeUnit.SECONDS.sleep(2);
+    int content_length=request.getContentLength();
+    InputStream in=request.getInputStream();
+    while (true) {
+      if (in.read() < 0)       break;
+      c++;
+    }
+    baseRequest.setHandled(true);
+    response.setStatus(200);
+    response.getWriter().printf("read %d/%d%n",c,content_length);
   }
- catch (  InterruptedException e) {
+ catch (  Throwable th) {
+    thrown.set(th);
   }
-  httpServletResponse.getWriter().write("OK");
-  httpServletResponse.setStatus(200);
-  request.setHandled(true);
+ finally {
+    handling.set(false);
+  }
 }

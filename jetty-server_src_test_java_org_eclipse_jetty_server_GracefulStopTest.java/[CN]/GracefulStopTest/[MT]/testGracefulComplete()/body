@@ -1,0 +1,55 @@
+{
+  Server server=new Server();
+  server.setStopTimeout(10000);
+  ServerConnector connector=new ServerConnector(server);
+  connector.setPort(0);
+  server.addConnector(connector);
+  TestHandler handler=new TestHandler();
+  StatisticsHandler stats=new StatisticsHandler();
+  server.setHandler(stats);
+  stats.setHandler(handler);
+  server.start();
+  final int port=connector.getLocalPort();
+  try (final Socket client1=new Socket("127.0.0.1",port);final Socket client2=new Socket("127.0.0.1",port)){
+    client1.getOutputStream().write(("POST / HTTP/1.0\r\n" + "Host: localhost:" + port + "\r\n"+ "Content-Type: plain/text\r\n"+ "Content-Length: 10\r\n"+ "\r\n"+ "12345").getBytes());
+    client1.getOutputStream().flush();
+    handler.latch.await();
+    new Thread(){
+      @Override public void run(){
+        long now=TimeUnit.NANOSECONDS.toMillis(System.nanoTime());
+        long end=now + 500;
+        try {
+          Thread.sleep(100);
+          try {
+            new Socket("127.0.0.1",port);
+            throw new IllegalStateException();
+          }
+ catch (          ConnectException e) {
+          }
+          client2.getOutputStream().write(("GET / HTTP/1.0\r\n" + "Host: localhost:" + port + "\r\n"+ "\r\n").getBytes());
+          client2.getOutputStream().flush();
+          String response2=IO.toString(client2.getInputStream());
+          assertThat(response2,containsString(" 503 "));
+          now=TimeUnit.NANOSECONDS.toMillis(System.nanoTime());
+          Thread.sleep(end - now);
+          client1.getOutputStream().write("567890".getBytes());
+        }
+ catch (        Exception e) {
+          e.printStackTrace();
+        }
+      }
+    }
+.start();
+    long start=System.nanoTime();
+    server.stop();
+    long stop=System.nanoTime();
+    assertThat(TimeUnit.NANOSECONDS.toMillis(stop - start),greaterThan(500L));
+    assertThat(TimeUnit.NANOSECONDS.toMillis(stop - start),lessThan(10000L));
+    String response=IO.toString(client1.getInputStream());
+    assertThat(handler.handling.get(),Matchers.is(false));
+    assertThat(response,containsString(" 200 OK"));
+    assertThat(response,containsString("read 10/10"));
+    assertThat(stats.getRequests(),Matchers.is(2));
+    assertThat(stats.getResponses5xx(),Matchers.is(1));
+  }
+ }

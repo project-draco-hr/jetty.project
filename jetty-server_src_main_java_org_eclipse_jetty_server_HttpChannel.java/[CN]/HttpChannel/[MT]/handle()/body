@@ -2,7 +2,7 @@
   if (LOG.isDebugEnabled())   LOG.debug("{} handle {} ",this,_request.getHttpURI());
   HttpChannelState.Action action=_state.handling();
   try {
-    loop:     while (action.ordinal() < HttpChannelState.Action.WAIT.ordinal() && getServer().isRunning()) {
+    loop:     while (action.ordinal() < HttpChannelState.Action.WAIT.ordinal() && !getServer().isStopped()) {
       boolean error=false;
       try {
         if (LOG.isDebugEnabled())         LOG.debug("{} action {}",this,action);
@@ -72,7 +72,8 @@ handleException(e);
 }
 catch (Exception e) {
 error=true;
-LOG.warn(String.valueOf(_request.getHttpURI()),e);
+if (_connector.isStarted()) LOG.warn(String.valueOf(_request.getHttpURI()),e);
+ else LOG.debug(String.valueOf(_request.getHttpURI()),e);
 _state.error(e);
 _request.setHandled(true);
 handleException(e);
@@ -81,6 +82,8 @@ catch (Throwable e) {
 if ("ContinuationThrowable".equals(e.getClass().getSimpleName())) LOG.ignore(e);
  else {
 error=true;
+if (_connector.isStarted()) LOG.warn(String.valueOf(_request.getHttpURI()),e);
+ else LOG.debug(String.valueOf(_request.getHttpURI()),e);
 LOG.warn(String.valueOf(_request.getHttpURI()),e);
 _state.error(e);
 _request.setHandled(true);

@@ -1,17 +1,22 @@
 {
   _dispatchedStats.increment();
   final long start;
-  HttpChannelState state=request.getHttpChannelState();
+  HttpChannelState state=baseRequest.getHttpChannelState();
   if (state.isInitial()) {
     _requestStats.increment();
-    start=request.getTimeStamp();
+    start=baseRequest.getTimeStamp();
   }
  else {
     start=System.currentTimeMillis();
     _asyncDispatches.incrementAndGet();
   }
   try {
-    super.handle(path,request,httpRequest,httpResponse);
+    Handler handler=getHandler();
+    if (handler != null && _shutdown.get() == null && isStarted())     handler.handle(path,baseRequest,request,response);
+ else {
+      baseRequest.setHandled(true);
+      response.sendError(HttpStatus.SERVICE_UNAVAILABLE_503);
+    }
   }
   finally {
     final long now=System.currentTimeMillis();
@@ -27,10 +32,10 @@
  else     if (state.isInitial()) {
       long d=_requestStats.decrement();
       _requestTimeStats.set(dispatched);
-      updateResponse(request);
+      updateResponse(baseRequest);
       FutureCallback shutdown=_shutdown.get();
       if (shutdown != null) {
-        httpResponse.flushBuffer();
+        response.flushBuffer();
         if (d == 0)         shutdown.succeeded();
       }
     }
