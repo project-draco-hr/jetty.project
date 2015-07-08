@@ -5,6 +5,21 @@ switch (state) {
 case HEADER:
 {
           if (!headerParser.parse(buffer))           return;
+          if (continuation) {
+            if (headerParser.getFrameType() != FrameType.CONTINUATION.getType()) {
+              BufferUtil.clear(buffer);
+              notifyConnectionFailure(ErrorCode.PROTOCOL_ERROR.code,"continuation_frame_expected");
+              return;
+            }
+            if (headerParser.hasFlag(Flags.END_HEADERS)) {
+              continuation=false;
+            }
+          }
+ else {
+            if (headerParser.getFrameType() == FrameType.HEADERS.getType() && !headerParser.hasFlag(Flags.END_HEADERS)) {
+              continuation=true;
+            }
+          }
           state=State.BODY;
           break;
         }

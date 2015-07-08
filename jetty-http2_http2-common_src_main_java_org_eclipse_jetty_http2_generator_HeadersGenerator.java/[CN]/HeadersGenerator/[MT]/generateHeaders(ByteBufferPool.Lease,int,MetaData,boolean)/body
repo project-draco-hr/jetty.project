@@ -1,14 +1,41 @@
 {
   if (streamId < 0)   throw new IllegalArgumentException("Invalid stream id: " + streamId);
   int maxFrameSize=getMaxFrameSize();
-  int leaseSize=lease.getSize();
-  long leaseLength=lease.getTotalLength();
-  encoder.encode(metaData,lease,maxFrameSize);
-  long headersLength=lease.getTotalLength() - leaseLength;
-  if (headersLength > maxFrameSize)   throw new IllegalArgumentException(String.format("Invalid headers, too big for max frame size: %d > %d",headersLength,maxFrameSize));
-  int flags=Flags.END_HEADERS;
-  if (!contentFollows)   flags|=Flags.END_STREAM;
-  ByteBuffer header=generateHeader(lease,FrameType.HEADERS,(int)headersLength,flags,streamId);
-  BufferUtil.flipToFlush(header,0);
-  lease.insert(leaseSize,header,true);
+  ByteBuffer hpacked=lease.acquire(maxFrameSize,false);
+  BufferUtil.clearToFill(hpacked);
+  encoder.encode(hpacked,metaData);
+  int hpackedLength=hpacked.position();
+  BufferUtil.flipToFlush(hpacked,0);
+  if (maxHeaderBlockFragment > 0 && hpackedLength > maxHeaderBlockFragment) {
+    int flags=contentFollows ? Flags.NONE : Flags.END_STREAM;
+    ByteBuffer header=generateHeader(lease,FrameType.HEADERS,maxHeaderBlockFragment,flags,streamId);
+    BufferUtil.flipToFlush(header,0);
+    lease.append(header,true);
+    hpacked.limit(maxHeaderBlockFragment);
+    lease.append(hpacked.slice(),false);
+    int position=maxHeaderBlockFragment;
+    int limit=position + maxHeaderBlockFragment;
+    while (limit < hpackedLength) {
+      hpacked.position(position).limit(limit);
+      header=generateHeader(lease,FrameType.CONTINUATION,maxHeaderBlockFragment,Flags.NONE,streamId);
+      BufferUtil.flipToFlush(header,0);
+      lease.append(header,true);
+      lease.append(hpacked.slice(),false);
+      position+=maxHeaderBlockFragment;
+      limit+=maxHeaderBlockFragment;
+    }
+    hpacked.position(position).limit(hpackedLength);
+    header=generateHeader(lease,FrameType.CONTINUATION,hpacked.remaining(),Flags.END_HEADERS,streamId);
+    BufferUtil.flipToFlush(header,0);
+    lease.append(header,true);
+    lease.append(hpacked,true);
+  }
+ else {
+    int flags=Flags.END_HEADERS;
+    if (!contentFollows)     flags|=Flags.END_STREAM;
+    ByteBuffer header=generateHeader(lease,FrameType.HEADERS,hpackedLength,flags,streamId);
+    BufferUtil.flipToFlush(header,0);
+    lease.append(header,true);
+    lease.append(hpacked,true);
+  }
 }
