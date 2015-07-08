@@ -6,31 +6,34 @@
       return;
     }
     File fragmentWebXml=new File(webXmlFragment);
-    if (!fragmentWebXml.exists()) {
-      getLog().info("No fragment web.xml file generated");
-    }
     File mergedWebXml=new File(fragmentWebXml.getParentFile(),"web.xml");
     try (BufferedReader webXmlReader=new BufferedReader(new FileReader(webXml));PrintWriter mergedWebXmlWriter=new PrintWriter(new FileWriter(mergedWebXml))){
-      boolean atInsertPoint=false;
-      boolean atEOF=false;
-      String marker=(insertionMarker == null || insertionMarker.equals("") ? END_OF_WEBAPP : insertionMarker);
-      while (!atInsertPoint && !atEOF) {
-        String line=webXmlReader.readLine();
-        if (line == null)         atEOF=true;
- else         if (line.indexOf(marker) >= 0) {
-          atInsertPoint=true;
-        }
- else {
-          mergedWebXmlWriter.println(line);
-        }
-      }
-      if (atEOF && !atInsertPoint)       throw new IllegalStateException("web.xml does not contain insertionMarker " + insertionMarker);
-      mergedWebXmlWriter.println("<context-param><param-name>" + PRECOMPILED_FLAG + "</param-name><param-value>true</param-value></context-param>");
-      try (BufferedReader fragmentWebXmlReader=new BufferedReader(new FileReader(fragmentWebXml))){
-        IO.copy(fragmentWebXmlReader,mergedWebXmlWriter);
-        if (marker.equals(END_OF_WEBAPP))         mergedWebXmlWriter.println(END_OF_WEBAPP);
+      if (!fragmentWebXml.exists()) {
+        getLog().info("No fragment web.xml file generated");
         IO.copy(webXmlReader,mergedWebXmlWriter);
       }
-     }
+ else {
+        boolean atInsertPoint=false;
+        boolean atEOF=false;
+        String marker=(insertionMarker == null || insertionMarker.equals("") ? END_OF_WEBAPP : insertionMarker);
+        while (!atInsertPoint && !atEOF) {
+          String line=webXmlReader.readLine();
+          if (line == null)           atEOF=true;
+ else           if (line.indexOf(marker) >= 0) {
+            atInsertPoint=true;
+          }
+ else {
+            mergedWebXmlWriter.println(line);
+          }
+        }
+        if (atEOF && !atInsertPoint)         throw new IllegalStateException("web.xml does not contain insertionMarker " + insertionMarker);
+        mergedWebXmlWriter.println("<context-param><param-name>" + PRECOMPILED_FLAG + "</param-name><param-value>true</param-value></context-param>");
+        try (BufferedReader fragmentWebXmlReader=new BufferedReader(new FileReader(fragmentWebXml))){
+          IO.copy(fragmentWebXmlReader,mergedWebXmlWriter);
+          if (marker.equals(END_OF_WEBAPP))           mergedWebXmlWriter.println(END_OF_WEBAPP);
+          IO.copy(webXmlReader,mergedWebXmlWriter);
+        }
+       }
+    }
    }
 }
