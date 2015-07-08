@@ -1,10 +1,4 @@
 {
-  if (effectiveWebXml == null) {
-    deleteOnExit=true;
-    effectiveWebXml=new File(target,"effective-web.xml");
-    effectiveWebXml.deleteOnExit();
-  }
-  Resource descriptor=Resource.newResource(effectiveWebXml);
   QueuedThreadPool tpool=null;
   try {
     printSystemProperties();
@@ -14,9 +8,17 @@
     webApp.setCopyWebDir(false);
     webApp.setCopyWebInf(false);
     webApp.setGenerateQuickStart(true);
-    if (!effectiveWebXml.getParentFile().exists())     effectiveWebXml.getParentFile().mkdirs();
-    if (!effectiveWebXml.exists())     effectiveWebXml.createNewFile();
-    webApp.setQuickStartWebDescriptor(descriptor);
+    if (webApp.getQuickStartWebDescriptor() == null) {
+      if (effectiveWebXml == null) {
+        deleteOnExit=true;
+        effectiveWebXml=new File(target,"effective-web.xml");
+        effectiveWebXml.deleteOnExit();
+      }
+      Resource descriptor=Resource.newResource(effectiveWebXml);
+      if (!effectiveWebXml.getParentFile().exists())       effectiveWebXml.getParentFile().mkdirs();
+      if (!effectiveWebXml.exists())       effectiveWebXml.createNewFile();
+      webApp.setQuickStartWebDescriptor(descriptor);
+    }
     ServerSupport.addWebApplication(server,webApp);
     tpool=server.getBean(QueuedThreadPool.class);
     if (tpool != null)     tpool.start();
@@ -42,7 +44,7 @@
   }
   if (deleteOnExit) {
     try {
-      getLog().info(IO.toString(descriptor.getInputStream()));
+      getLog().info(IO.toString(webApp.getQuickStartWebDescriptor().getInputStream()));
     }
  catch (    IOException e) {
       throw new MojoExecutionException("Unable to output effective web.xml",e);
