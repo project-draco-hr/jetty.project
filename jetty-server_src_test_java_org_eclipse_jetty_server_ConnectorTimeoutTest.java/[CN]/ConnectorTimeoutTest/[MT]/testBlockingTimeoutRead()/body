@@ -1,0 +1,46 @@
+{
+  _httpConfiguration.setBlockingTimeout(750L);
+  configureServer(new EchoHandler());
+  Socket client=newSocket(_serverURI.getHost(),_serverURI.getPort());
+  client.setSoTimeout(10000);
+  InputStream is=client.getInputStream();
+  Assert.assertFalse(client.isClosed());
+  OutputStream os=client.getOutputStream();
+  os.write(("GET / HTTP/1.1\r\n" + "host: " + _serverURI.getHost() + ":"+ _serverURI.getPort()+ "\r\n"+ "Transfer-Encoding: chunked\r\n"+ "Content-Type: text/plain\r\n"+ "Connection: close\r\n"+ "\r\n"+ "5\r\n"+ "LMNOP\r\n").getBytes("utf-8"));
+  os.flush();
+  long start=System.currentTimeMillis();
+  try {
+    ((StdErrLog)Log.getLogger(HttpChannel.class)).setHideStacks(true);
+    Thread.sleep(300);
+    os.write("1".getBytes("utf-8"));
+    os.flush();
+    Thread.sleep(300);
+    os.write("0".getBytes("utf-8"));
+    os.flush();
+    Thread.sleep(300);
+    os.write("\r".getBytes("utf-8"));
+    os.flush();
+    Thread.sleep(300);
+    os.write("\n".getBytes("utf-8"));
+    os.flush();
+    Thread.sleep(300);
+    os.write("0123456789ABCDEF\r\n".getBytes("utf-8"));
+    os.write("0\r\n".getBytes("utf-8"));
+    os.write("\r\n".getBytes("utf-8"));
+    os.flush();
+  }
+ catch (  Exception e) {
+  }
+ finally {
+    ((StdErrLog)Log.getLogger(HttpChannel.class)).setHideStacks(false);
+  }
+  long duration=System.currentTimeMillis() - start;
+  Assert.assertThat(duration,Matchers.greaterThan(500L));
+  try {
+    String response=IO.toString(is);
+    Assert.assertThat(response,Matchers.startsWith("HTTP/1.1 500 "));
+    Assert.assertThat(response,Matchers.containsString("InterruptedIOException"));
+  }
+ catch (  SSLException e) {
+  }
+}
