@@ -1,0 +1,33 @@
+{
+  File directoryFile=MavenTestingUtils.getTargetTestingDir();
+  Path directoryPath=directoryFile.toPath();
+  Path hiddenDirectory=directoryPath.resolve("WEB-INF");
+  Files.createDirectories(hiddenDirectory);
+  Path hiddenResource=hiddenDirectory.resolve("one.js");
+  try (OutputStream output=Files.newOutputStream(hiddenResource)){
+    output.write("function() {}".getBytes(StandardCharsets.UTF_8));
+  }
+   String contextPath="";
+  WebAppContext context=new WebAppContext(server,directoryPath.toString(),contextPath);
+  server.setHandler(context);
+  String concatPath="/concat";
+  context.addServlet(ConcatServlet.class,concatPath);
+  server.start();
+  Assert.assertNotNull(context.getServletContext().getResource("/WEB-INF/one.js"));
+  String uri=contextPath + concatPath + "?/trick/../WEB-INF/one.js";
+  String request="" + "GET " + uri + " HTTP/1.1\r\n"+ "Host: localhost\r\n"+ "Connection: close\r\n"+ "\r\n";
+  String response=connector.getResponses(request);
+  Assert.assertTrue(response.startsWith("HTTP/1.1 404 "));
+  uri=contextPath + concatPath + "?/trick/../web-inf/one.js";
+  request="" + "GET " + uri + " HTTP/1.1\r\n"+ "Host: localhost\r\n"+ "Connection: close\r\n"+ "\r\n";
+  response=connector.getResponses(request);
+  Assert.assertTrue(response.startsWith("HTTP/1.1 404 "));
+  uri=contextPath + concatPath + "?/trick/..%2FWEB-INF%2Fone.js";
+  request="" + "GET " + uri + " HTTP/1.1\r\n"+ "Host: localhost\r\n"+ "Connection: close\r\n"+ "\r\n";
+  response=connector.getResponses(request);
+  Assert.assertTrue(response.startsWith("HTTP/1.1 404 "));
+  uri=contextPath + concatPath + "?/trick/../../"+ directoryFile.getName();
+  request="" + "GET " + uri + " HTTP/1.1\r\n"+ "Host: localhost\r\n"+ "Connection: close\r\n"+ "\r\n";
+  response=connector.getResponses(request);
+  Assert.assertTrue(response.startsWith("HTTP/1.1 404 "));
+}
