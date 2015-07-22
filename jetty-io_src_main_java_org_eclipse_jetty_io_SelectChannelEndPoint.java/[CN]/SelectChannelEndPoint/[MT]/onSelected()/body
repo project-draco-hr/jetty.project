@@ -8,16 +8,20 @@
     newInterestOps=oldInterestOps & ~readyOps;
     _desiredInterestOps=newInterestOps;
   }
-   if (LOG.isDebugEnabled())   LOG.debug("onSelected {}->{} for {}",oldInterestOps,newInterestOps,this);
-  boolean readable=(readyOps & SelectionKey.OP_READ) != 0;
+   boolean readable=(readyOps & SelectionKey.OP_READ) != 0;
   boolean writable=(readyOps & SelectionKey.OP_WRITE) != 0;
+  if (LOG.isDebugEnabled())   LOG.debug("onSelected {}->{} r={} w={} for {}",oldInterestOps,newInterestOps,readable,writable,this);
   if (readable && getFillInterest().isCallbackNonBlocking()) {
+    if (LOG.isDebugEnabled())     LOG.debug("Direct readable run {}",this);
     _runFillable.run();
     readable=false;
   }
   if (writable && getWriteFlusher().isCallbackNonBlocking()) {
+    if (LOG.isDebugEnabled())     LOG.debug("Direct writable run {}",this);
     _runCompleteWrite.run();
     writable=false;
   }
-  return readable ? (writable ? _runFillableCompleteWrite : _runFillable) : (writable ? _runCompleteWrite : null);
+  Runnable task=readable ? (writable ? _runFillableCompleteWrite : _runFillable) : (writable ? _runCompleteWrite : null);
+  if (LOG.isDebugEnabled())   LOG.debug("task {}",task);
+  return task;
 }

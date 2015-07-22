@@ -11,8 +11,8 @@
       settingsLatch.get().countDown();
     }
     @Override public Stream.Listener onNewStream(    Stream stream,    HeadersFrame frame){
-      stream.data(new DataFrame(stream.getId(),ByteBuffer.wrap(chunk1),false),Callback.Adapter.INSTANCE);
-      stream.data(new DataFrame(stream.getId(),ByteBuffer.wrap(chunk2),true),Callback.Adapter.INSTANCE);
+      stream.data(new DataFrame(stream.getId(),ByteBuffer.wrap(chunk1),false),Callback.NOOP);
+      stream.data(new DataFrame(stream.getId(),ByteBuffer.wrap(chunk2),true),Callback.NOOP);
       dataLatch.countDown();
       return null;
     }
@@ -21,7 +21,7 @@
   Session session=newClient(new Session.Listener.Adapter());
   Map<Integer,Integer> settings=new HashMap<>();
   settings.put(SettingsFrame.INITIAL_WINDOW_SIZE,0);
-  session.settings(new SettingsFrame(settings,false),Callback.Adapter.INSTANCE);
+  session.settings(new SettingsFrame(settings,false),Callback.NOOP);
   Assert.assertTrue(settingsLatch.get().await(5,TimeUnit.SECONDS));
   byte[] content=new byte[chunk1.length + chunk2.length];
   final ByteBuffer buffer=ByteBuffer.wrap(content);
@@ -40,7 +40,7 @@
   settingsLatch.set(new CountDownLatch(1));
   settings.clear();
   settings.put(SettingsFrame.INITIAL_WINDOW_SIZE,chunk1.length / 2);
-  session.settings(new SettingsFrame(settings,false),Callback.Adapter.INSTANCE);
+  session.settings(new SettingsFrame(settings,false),Callback.NOOP);
   Assert.assertTrue(settingsLatch.get().await(5,TimeUnit.SECONDS));
   Assert.assertTrue(responseLatch.await(5,TimeUnit.SECONDS));
   byte[] expected=new byte[content.length];

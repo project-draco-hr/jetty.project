@@ -20,7 +20,7 @@
   Stream stream=streamPromise.get(5,TimeUnit.SECONDS);
   ByteBuffer data=ByteBuffer.allocate(FlowControlStrategy.DEFAULT_WINDOW_SIZE);
   final CountDownLatch dataLatch=new CountDownLatch(1);
-  stream.data(new DataFrame(stream.getId(),data,false),new Callback.Adapter(){
+  stream.data(new DataFrame(stream.getId(),data,false),new Callback.NonBlocking(){
     @Override public void succeeded(){
       dataLatch.countDown();
     }
@@ -33,6 +33,6 @@
   ByteBuffer extraData=ByteBuffer.allocate(1024);
   http2Session.getGenerator().data(lease,new DataFrame(stream.getId(),extraData,true),extraData.remaining());
   List<ByteBuffer> buffers=lease.getByteBuffers();
-  http2Session.getEndPoint().write(Callback.Adapter.INSTANCE,buffers.toArray(new ByteBuffer[buffers.size()]));
+  http2Session.getEndPoint().write(Callback.NOOP,buffers.toArray(new ByteBuffer[buffers.size()]));
   Assert.assertTrue(closeLatch.await(5,TimeUnit.SECONDS));
 }

@@ -3,7 +3,7 @@
     @Override public Stream.Listener onNewStream(    Stream stream,    HeadersFrame frame){
       MetaData metaData=new MetaData.Response(HttpVersion.HTTP_2,200,new HttpFields());
       HeadersFrame responseFrame=new HeadersFrame(stream.getId(),metaData,null,false);
-      stream.headers(responseFrame,Callback.Adapter.INSTANCE);
+      stream.headers(responseFrame,Callback.NOOP);
       return new Stream.Listener.Adapter(){
         @Override public void onData(        Stream stream,        DataFrame frame,        Callback callback){
           ByteBuffer data=frame.getData();
@@ -44,7 +44,7 @@
   Stream stream=streamPromise.get(5,TimeUnit.SECONDS);
   ByteBuffer requestContent=ByteBuffer.wrap(requestData);
   DataFrame dataFrame=new DataFrame(stream.getId(),requestContent,true);
-  stream.data(dataFrame,Callback.Adapter.INSTANCE);
+  stream.data(dataFrame,Callback.NOOP);
   Assert.assertTrue(latch.await(5,TimeUnit.SECONDS));
   responseContent.flip();
   Assert.assertArrayEquals(requestData,responseData);

@@ -6,7 +6,7 @@
       return new Stream.Listener.Adapter(){
         @Override public void onData(        Stream stream,        DataFrame frame,        Callback callback){
           callback.failed(new Throwable());
-          stream.reset(new ResetFrame(stream.getId(),ErrorCode.CANCEL_STREAM_ERROR.code),Callback.Adapter.INSTANCE);
+          stream.reset(new ResetFrame(stream.getId(),ErrorCode.CANCEL_STREAM_ERROR.code),Callback.NOOP);
         }
       }
 ;
@@ -27,7 +27,7 @@
   Stream stream=streamPromise.get(5,TimeUnit.SECONDS);
   ByteBuffer data=ByteBuffer.allocate(5 * FlowControlStrategy.DEFAULT_WINDOW_SIZE);
   final CountDownLatch dataLatch=new CountDownLatch(1);
-  stream.data(new DataFrame(stream.getId(),data,true),new Callback.Adapter(){
+  stream.data(new DataFrame(stream.getId(),data,true),new Callback.NonBlocking(){
     @Override public void failed(    Throwable x){
       dataLatch.countDown();
     }

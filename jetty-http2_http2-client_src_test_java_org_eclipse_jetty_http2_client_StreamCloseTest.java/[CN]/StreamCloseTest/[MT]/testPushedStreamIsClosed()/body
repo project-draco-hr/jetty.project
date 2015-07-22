@@ -6,7 +6,7 @@
       stream.push(pushFrame,new Promise.Adapter<Stream>(){
         @Override public void succeeded(        final Stream pushedStream){
           Assert.assertTrue(((HTTP2Stream)pushedStream).isRemotelyClosed());
-          pushedStream.data(new DataFrame(pushedStream.getId(),ByteBuffer.allocate(16),true),new Callback.Adapter(){
+          pushedStream.data(new DataFrame(pushedStream.getId(),ByteBuffer.allocate(16),true),new Callback(){
             @Override public void succeeded(){
               Assert.assertTrue(pushedStream.isClosed());
               serverLatch.countDown();
@@ -17,7 +17,7 @@
       }
 ,new Stream.Listener.Adapter());
       HeadersFrame response=new HeadersFrame(stream.getId(),new MetaData.Response(HttpVersion.HTTP_2,200,new HttpFields()),null,true);
-      stream.headers(response,Callback.Adapter.INSTANCE);
+      stream.headers(response,Callback.NOOP);
       return null;
     }
   }
