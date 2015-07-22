@@ -29,21 +29,22 @@
         ((HttpOutput)out).sendContent(content,new Callback(){
           @Override public void succeeded(){
             context.complete();
+            content.release();
           }
           @Override public void failed(          Throwable x){
             if (x instanceof IOException)             LOG.debug(x);
  else             LOG.warn(x);
             context.complete();
+            content.release();
           }
           @Override public String toString(){
             return String.format("DefaultServlet@%x$CB",DefaultServlet.this.hashCode());
           }
         }
 );
+        return false;
       }
- else {
-        ((HttpOutput)out).sendContent(content);
-      }
+      ((HttpOutput)out).sendContent(content);
     }
   }
  else {
@@ -53,7 +54,7 @@
       response.setStatus(HttpServletResponse.SC_REQUESTED_RANGE_NOT_SATISFIABLE);
       response.setHeader(HttpHeader.CONTENT_RANGE.asString(),InclusiveByteRange.to416HeaderRangeString(content_length));
       resource.writeTo(out,0,content_length);
-      return;
+      return true;
     }
     if (ranges.size() == 1) {
       InclusiveByteRange singleSatisfiableRange=ranges.get(0);
@@ -63,7 +64,7 @@
       if (!response.containsHeader(HttpHeader.DATE.asString()))       response.addDateHeader(HttpHeader.DATE.asString(),System.currentTimeMillis());
       response.setHeader(HttpHeader.CONTENT_RANGE.asString(),singleSatisfiableRange.toHeaderRangeString(content_length));
       resource.writeTo(out,singleSatisfiableRange.getFirst(content_length),singleLength);
-      return;
+      return true;
     }
     putHeaders(response,content,-1);
     String mimetype=(content == null ? null : content.getContentTypeValue());
@@ -109,5 +110,5 @@
     if (in != null)     in.close();
     multi.close();
   }
-  return;
+  return true;
 }
