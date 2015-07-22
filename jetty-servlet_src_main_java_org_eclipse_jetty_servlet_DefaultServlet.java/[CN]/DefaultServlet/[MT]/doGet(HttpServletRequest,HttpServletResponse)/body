@@ -22,6 +22,7 @@
   boolean endsWithSlash=(pathInfo == null ? request.getServletPath() : pathInfo).endsWith(URIUtil.SLASH);
   Resource resource=null;
   HttpContent content=null;
+  boolean close_content=true;
   try {
     String pathInContextGz=null;
     boolean gzip=false;
@@ -65,7 +66,7 @@
             String mt=_servletContext.getMimeType(pathInContext);
             if (mt != null)             response.setContentType(mt);
           }
-          sendData(request,response,included.booleanValue(),resource,content,reqRanges);
+          close_content=sendData(request,response,included.booleanValue(),resource,content,reqRanges);
         }
       }
     }
@@ -116,7 +117,9 @@ synchronized (buf) {
     if (!response.isCommitted())     response.sendError(500,e.getMessage());
   }
  finally {
-    if (content != null)     content.release();
- else     if (resource != null)     resource.close();
+    if (close_content) {
+      if (content != null)       content.release();
+ else       if (resource != null)       resource.close();
+    }
   }
 }
