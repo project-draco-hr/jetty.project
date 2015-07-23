@@ -3,12 +3,14 @@
   if (aliases == null || aliases.length == 0)   return null;
   String alias=null;
   String host=null;
+  String wild=null;
   if (matchers != null) {
     for (    SNIMatcher m : matchers) {
       if (m instanceof SslContextFactory.AliasSNIMatcher) {
         SslContextFactory.AliasSNIMatcher matcher=(SslContextFactory.AliasSNIMatcher)m;
         alias=matcher.getAlias();
         host=matcher.getServerName();
+        wild=matcher.getWildDomain();
         break;
       }
     }
@@ -18,6 +20,7 @@
     for (    String a : aliases) {
       if (a.equals(alias)) {
         session.putValue(SNI_NAME,host);
+        if (wild != null)         session.putValue(SNI_WILD,wild);
         return alias;
       }
     }

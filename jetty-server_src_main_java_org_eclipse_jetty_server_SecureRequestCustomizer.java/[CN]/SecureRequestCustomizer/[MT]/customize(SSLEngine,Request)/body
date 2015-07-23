@@ -4,8 +4,12 @@
   if (_sniHostCheck) {
     String sniName=(String)sslSession.getValue("org.eclipse.jetty.util.ssl.sniname");
     if (sniName != null && !sniName.equalsIgnoreCase(request.getServerName())) {
-      LOG.warn("Host does not match SNI Name: {}!={}",sniName,request.getServerName());
-      throw new BadMessageException(400,"Host does not match SNI");
+      String wild=(String)sslSession.getValue("org.eclipse.jetty.util.ssl.sniwild");
+      String name=request.getServerName();
+      if (wild == null || !IO.isInDomain(name,wild)) {
+        LOG.warn("Host does not match SNI Name: {}/{}!={}",sniName,wild,request.getServerName());
+        throw new BadMessageException(400,"Host does not match SNI");
+      }
     }
   }
   try {
