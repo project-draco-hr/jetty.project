@@ -5,6 +5,7 @@
   URL webappWebInfClasses=testWebappDir.resolve("WEB-INF/classes/org/acme/resource.txt").toUri().toURL();
   URL targetTestClasses=MavenTestingUtils.getTargetDir().toPath().resolve("test-classes/org/acme/resource.txt").toUri().toURL();
   _context.setParentLoaderPriority(false);
+  dump(_context);
   resources=Collections.list(_loader.getResources("org/acme/resource.txt"));
   expected.clear();
   expected.add(webappWebInfLibAcme);
@@ -17,7 +18,7 @@
   expected.add(targetTestClasses);
   expected.add(webappWebInfLibAcme);
   expected.add(webappWebInfClasses);
-  assertOrdered("Resources Found (Parent Loader Priority == true)",expected,resources);
+  assertThat("Resources Found (Parent Loader Priority == true)",resources,ordered(expected));
   String[] oldServC=_context.getServerClasses();
   String[] newServC=new String[oldServC.length + 1];
   newServC[0]="org.acme.";
@@ -28,7 +29,7 @@
   expected.clear();
   expected.add(webappWebInfLibAcme);
   expected.add(webappWebInfClasses);
-  assertOrdered("Resources Found (Parent Loader Priority == true) (with serverClasses filtering)",expected,resources);
+  assertThat("Resources Found (Parent Loader Priority == true) (with serverClasses filtering)",resources,ordered(expected));
   _context.setServerClasses(oldServC);
   String[] oldSysC=_context.getSystemClasses();
   String[] newSysC=new String[oldSysC.length + 1];
@@ -39,5 +40,5 @@
   resources=Collections.list(_loader.getResources("org/acme/resource.txt"));
   expected.clear();
   expected.add(targetTestClasses);
-  assertOrdered("Resources Found (Parent Loader Priority == true) (with systemClasses filtering)",expected,resources);
+  assertThat("Resources Found (Parent Loader Priority == true) (with systemClasses filtering)",resources,ordered(expected));
 }
