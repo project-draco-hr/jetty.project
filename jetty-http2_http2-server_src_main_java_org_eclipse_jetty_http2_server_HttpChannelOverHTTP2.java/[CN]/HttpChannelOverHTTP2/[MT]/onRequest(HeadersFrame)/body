@@ -1,6 +1,12 @@
 {
   MetaData.Request request=(MetaData.Request)frame.getMetaData();
   HttpFields fields=request.getFields();
+  if (!fields.contains(HttpHeader.HOST)) {
+    String authority=request.getURI().getAuthority();
+    if (authority != null) {
+      fields.put("host",authority);
+    }
+  }
   _expect100Continue=fields.contains(HttpHeader.EXPECT,HttpHeaderValue.CONTINUE.asString());
   HttpFields response=getResponse().getHttpFields();
   if (getHttpConfiguration().getSendServerVersion())   response.add(SERVER_VERSION);
