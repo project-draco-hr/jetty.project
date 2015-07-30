@@ -11,8 +11,13 @@
       int net_filled=getEndPoint().fill(_encryptedInput);
       decryption:       while (true) {
         int pos=BufferUtil.flipToFill(app_in);
-        SSLEngineResult unwrapResult=_sslEngine.unwrap(_encryptedInput,app_in);
-        BufferUtil.flipToFlush(app_in,pos);
+        SSLEngineResult unwrapResult;
+        try {
+          unwrapResult=_sslEngine.unwrap(_encryptedInput,app_in);
+        }
+  finally {
+          BufferUtil.flipToFlush(app_in,pos);
+        }
         if (DEBUG) {
           LOG.debug("{} net={} unwrap {}",SslConnection.this,net_filled,unwrapResult.toString().replace('\n',' '));
           LOG.debug("{} filled {}",SslConnection.this,BufferUtil.toHexSummary(buffer));
