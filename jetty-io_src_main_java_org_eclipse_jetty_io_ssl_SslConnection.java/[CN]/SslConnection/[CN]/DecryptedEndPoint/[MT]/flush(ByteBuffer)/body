@@ -10,9 +10,14 @@
     while (true) {
       BufferUtil.compact(_encryptedOutput);
       int pos=BufferUtil.flipToFill(_encryptedOutput);
-      SSLEngineResult wrapResult=_sslEngine.wrap(appOuts,_encryptedOutput);
+      SSLEngineResult wrapResult;
+      try {
+        wrapResult=_sslEngine.wrap(appOuts,_encryptedOutput);
+      }
+  finally {
+        BufferUtil.flipToFlush(_encryptedOutput,pos);
+      }
       if (DEBUG)       LOG.debug("{} wrap {}",SslConnection.this,wrapResult);
-      BufferUtil.flipToFlush(_encryptedOutput,pos);
       if (wrapResult.bytesConsumed() > 0)       consumed+=wrapResult.bytesConsumed();
       Status wrapResultStatus=wrapResult.getStatus();
       boolean allConsumed=true;

@@ -13,8 +13,13 @@
       if (DEBUG)       LOG.debug("{} filled {} encrypted bytes",SslConnection.this,net_filled);
       decryption:       while (true) {
         int pos=BufferUtil.flipToFill(app_in);
-        SSLEngineResult unwrapResult=_sslEngine.unwrap(_encryptedInput,app_in);
-        BufferUtil.flipToFlush(app_in,pos);
+        SSLEngineResult unwrapResult;
+        try {
+          unwrapResult=_sslEngine.unwrap(_encryptedInput,app_in);
+        }
+  finally {
+          BufferUtil.flipToFlush(app_in,pos);
+        }
         if (DEBUG)         LOG.debug("{} unwrap {}",SslConnection.this,unwrapResult);
         HandshakeStatus handshakeStatus=_sslEngine.getHandshakeStatus();
         HandshakeStatus unwrapHandshakeStatus=unwrapResult.getHandshakeStatus();
