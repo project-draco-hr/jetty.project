@@ -7,11 +7,18 @@
     SocketAddress bindAddress=client.getBindAddress();
     if (bindAddress != null)     channel.bind(bindAddress);
     configure(client,channel);
-    channel.configureBlocking(false);
     context.put(SslClientConnectionFactory.SSL_PEER_HOST_CONTEXT_KEY,destination.getHost());
     context.put(SslClientConnectionFactory.SSL_PEER_PORT_CONTEXT_KEY,destination.getPort());
-    if (channel.connect(address))     selectorManager.accept(channel,context);
- else     selectorManager.connect(channel,context);
+    if (client.isConnectBlocking()) {
+      channel.socket().connect(address,(int)client.getConnectTimeout());
+      channel.configureBlocking(false);
+      selectorManager.accept(channel,context);
+    }
+ else {
+      channel.configureBlocking(false);
+      if (channel.connect(address))       selectorManager.accept(channel,context);
+ else       selectorManager.connect(channel,context);
+    }
   }
  catch (  Throwable x) {
     try {
