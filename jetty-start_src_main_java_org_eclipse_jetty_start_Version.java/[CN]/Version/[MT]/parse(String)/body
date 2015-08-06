@@ -1,30 +1,43 @@
 {
-  _version=0;
-  _revision=-1;
-  _subrevision=-1;
-  _suffix="";
-  int pos=0;
-  int startpos=0;
-  int endpos=version_string.length();
-  while ((pos < endpos) && Character.isDigit(version_string.charAt(pos))) {
-    pos++;
-  }
-  _version=Integer.parseInt(version_string.substring(startpos,pos));
-  if ((pos < endpos) && (version_string.charAt(pos) == '.')) {
-    startpos=++pos;
-    while ((pos < endpos) && Character.isDigit(version_string.charAt(pos))) {
-      pos++;
+  legacyMajor=0;
+  major=-1;
+  revision=-1;
+  update=-1;
+  suffix="";
+  ParseState state=ParseState.LEGACY;
+  int offset=0;
+  int len=versionStr.length();
+  int val=0;
+  while (offset < len) {
+    char c=versionStr.charAt(offset);
+    boolean isSeparator=!Character.isLetterOrDigit(c);
+    if (isSeparator) {
+      val=0;
     }
-    _revision=Integer.parseInt(version_string.substring(startpos,pos));
-  }
-  if ((pos < endpos) && (version_string.charAt(pos) == '.')) {
-    startpos=++pos;
-    while ((pos < endpos) && Character.isDigit(version_string.charAt(pos))) {
-      pos++;
+ else     if (Character.isDigit(c)) {
+      val=(val * 10) + (c - '0');
     }
-    _subrevision=Integer.parseInt(version_string.substring(startpos,pos));
-  }
-  if (pos < endpos) {
-    _suffix=version_string.substring(pos);
-  }
+ else     if (Character.isLetter(c)) {
+      suffix=versionStr.substring(offset);
+      return;
+    }
+switch (state) {
+case LEGACY:
+      if (isSeparator)       state=ParseState.MAJOR;
+ else       legacyMajor=val;
+    break;
+case MAJOR:
+  if (isSeparator)   state=ParseState.REVISION;
+ else   major=val;
+break;
+case REVISION:
+if (isSeparator) state=ParseState.UPDATE;
+ else revision=val;
+break;
+case UPDATE:
+if (!isSeparator) update=val;
+break;
+}
+offset++;
+}
 }
