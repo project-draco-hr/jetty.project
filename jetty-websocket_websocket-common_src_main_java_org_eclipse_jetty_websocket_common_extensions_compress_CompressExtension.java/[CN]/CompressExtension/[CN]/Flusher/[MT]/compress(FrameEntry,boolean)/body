@@ -1,54 +1,45 @@
 {
-  final int flush=Deflater.SYNC_FLUSH;
   Frame frame=entry.frame;
   ByteBuffer data=frame.getPayload();
   int remaining=data.remaining();
-  int chunkSize=Math.min(remaining,INPUT_BUFSIZE);
-  if (LOG.isDebugEnabled())   LOG.debug("Compressing {}: {} bytes in {} bytes chunk",entry,remaining,chunkSize);
+  int outputLength=Math.max(256,data.remaining());
+  if (LOG.isDebugEnabled())   LOG.debug("Compressing {}: {} bytes in {} bytes chunk",entry,remaining,outputLength);
   boolean needsCompress=true;
   if (deflater.needsInput() && !supplyInput(deflater,data)) {
     needsCompress=false;
   }
   ByteArrayOutputStream out=new ByteArrayOutputStream();
-  byte[] output=new byte[chunkSize];
+  byte[] output=new byte[outputLength];
+  boolean fin=frame.isFin();
   while (needsCompress) {
-    int read=deflater.deflate(output,0,chunkSize,flush);
-    if (read == 0) {
-      if (deflater.finished()) {
-        break;
-      }
- else       if (deflater.needsInput()) {
-        if (!supplyInput(deflater,data)) {
-          needsCompress=false;
-        }
-      }
-    }
- else {
-      out.write(output,0,read);
+    int compressed=deflater.deflate(output,0,outputLength,Deflater.SYNC_FLUSH);
+    if (LOG.isDebugEnabled())     LOG.debug("Wrote {} bytes to output buffer",compressed);
+    out.write(output,0,compressed);
+    if (compressed < outputLength) {
+      needsCompress=false;
     }
   }
-  boolean fin=frame.isFin();
   ByteBuffer payload=ByteBuffer.wrap(out.toByteArray());
   if (payload.remaining() > 0) {
-    LOG.debug("compressed bytes[] = {}",BufferUtil.toDetailString(payload));
+    if (LOG.isDebugEnabled())     LOG.debug("compressed bytes[] = {}",BufferUtil.toDetailString(payload));
     if (tailDrop == TAIL_DROP_ALWAYS) {
       if (endsWithTail(payload)) {
         payload.limit(payload.limit() - TAIL_BYTES.length);
       }
-      LOG.debug("payload (TAIL_DROP_ALWAYS) = {}",BufferUtil.toDetailString(payload));
+      if (LOG.isDebugEnabled())       LOG.debug("payload (TAIL_DROP_ALWAYS) = {}",BufferUtil.toDetailString(payload));
     }
  else     if (tailDrop == TAIL_DROP_FIN_ONLY) {
       if (frame.isFin() && endsWithTail(payload)) {
         payload.limit(payload.limit() - TAIL_BYTES.length);
       }
-      LOG.debug("payload (TAIL_DROP_FIN_ONLY) = {}",BufferUtil.toDetailString(payload));
+      if (LOG.isDebugEnabled())       LOG.debug("payload (TAIL_DROP_FIN_ONLY) = {}",BufferUtil.toDetailString(payload));
     }
   }
  else   if (fin) {
     payload=ByteBuffer.wrap(new byte[]{0x00});
   }
   if (LOG.isDebugEnabled()) {
-    LOG.debug("Compressed {}: input:{} -> payload:{}",entry,chunkSize,payload.remaining());
+    LOG.debug("Compressed {}: input:{} -> payload:{}",entry,outputLength,payload.remaining());
   }
   boolean continuation=frame.getType().isContinuation() || !first;
   DataFrame chunk=new DataFrame(frame,continuation);
