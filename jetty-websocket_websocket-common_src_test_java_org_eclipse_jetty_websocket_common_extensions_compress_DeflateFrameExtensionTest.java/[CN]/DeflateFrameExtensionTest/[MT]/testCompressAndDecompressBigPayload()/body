@@ -1,0 +1,38 @@
+{
+  byte[] input=new byte[1024 * 1024];
+  new Random().nextBytes(input);
+  DeflateFrameExtension clientExtension=new DeflateFrameExtension();
+  clientExtension.setBufferPool(bufferPool);
+  clientExtension.setPolicy(WebSocketPolicy.newClientPolicy());
+  clientExtension.setConfig(ExtensionConfig.parse("deflate-frame"));
+  final DeflateFrameExtension serverExtension=new DeflateFrameExtension();
+  serverExtension.setBufferPool(bufferPool);
+  serverExtension.setPolicy(WebSocketPolicy.newServerPolicy());
+  serverExtension.setConfig(ExtensionConfig.parse("deflate-frame"));
+  clientExtension.setNextOutgoingFrames(new OutgoingFrames(){
+    @Override public void outgoingFrame(    Frame frame,    WriteCallback callback,    BatchMode batchMode){
+      serverExtension.incomingFrame(frame);
+      callback.writeSuccess();
+    }
+  }
+);
+  final ByteArrayOutputStream result=new ByteArrayOutputStream(input.length);
+  serverExtension.setNextIncomingFrames(new IncomingFrames(){
+    @Override public void incomingFrame(    Frame frame){
+      try {
+        result.write(BufferUtil.toArray(frame.getPayload()));
+      }
+ catch (      IOException x) {
+        throw new RuntimeIOException(x);
+      }
+    }
+    @Override public void incomingError(    Throwable t){
+    }
+  }
+);
+  BinaryFrame frame=new BinaryFrame();
+  frame.setPayload(input);
+  frame.setFin(true);
+  clientExtension.outgoingFrame(frame,null,BatchMode.OFF);
+  Assert.assertArrayEquals(input,result.toByteArray());
+}
