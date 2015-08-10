@@ -1,0 +1,39 @@
+{
+  Server server=new Server();
+  LocalConnector conn=new LocalConnector(server);
+  conn.setIdleTimeout(10000);
+  server.addConnector(conn);
+  ServletContextHandler context=new ServletContextHandler();
+  context.setContextPath("/");
+  @SuppressWarnings("serial") HttpServlet servlet=new HttpServlet(){
+    public void doGet(    HttpServletRequest req,    HttpServletResponse resp) throws ServletException, IOException {
+      AsyncContext ctx=req.startAsync();
+      ctx.addListener(new AsyncListenerAdapter(){
+        @Override public void onError(        AsyncEvent event) throws IOException {
+          System.err.println("### ONERROR");
+          event.getThrowable().printStackTrace(System.err);
+          event.getAsyncContext().complete();
+        }
+      }
+);
+      throw new FooRuntimeException();
+    }
+  }
+;
+  ServletHolder holder=new ServletHolder(servlet);
+  holder.setAsyncSupported(true);
+  context.addServlet(holder,"/err/*");
+  List<ErrorContext> tracking=new LinkedList<ErrorContext>();
+  ErrorFilter filter=new ErrorFilter(tracking);
+  context.addFilter(new FilterHolder(filter),"/*",EnumSet.allOf(DispatcherType.class));
+  server.setHandler(context);
+  try {
+    server.start();
+    String resp=conn.getResponses("GET /err/ HTTP/1.1\n" + "Host: localhost\n" + "Connection: close\n"+ "\n");
+    assertThat("Response status",resp,containsString("HTTP/1.1 500 Server Error"));
+    assertThat("Response",resp,containsString(FooRuntimeException.class.getName()));
+  }
+  finally {
+    server.stop();
+  }
+}
