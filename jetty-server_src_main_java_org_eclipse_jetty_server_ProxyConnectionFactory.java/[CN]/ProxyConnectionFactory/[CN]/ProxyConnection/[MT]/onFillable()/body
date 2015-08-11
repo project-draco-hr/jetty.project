@@ -16,7 +16,7 @@
       }
       _length+=fill;
       if (_length >= 108) {
-        LOG.warn("PROXY line too long {}",getEndPoint());
+        LOG.warn("PROXY line too long {} for {}",_length,getEndPoint());
         close();
         return;
       }
@@ -28,22 +28,24 @@
             _builder.setLength(0);
           }
  else           if (b < ' ') {
-            LOG.warn("Bad char {}",getEndPoint());
+            LOG.warn("Bad character {} for {}",b & 0xFF,getEndPoint());
             close();
             return;
           }
- else           _builder.append((char)b);
+ else {
+            _builder.append((char)b);
+          }
         }
  else {
           if (b == '\n')           break loop;
-          LOG.warn("Bad CRLF {}",getEndPoint());
+          LOG.warn("Bad CRLF for {}",getEndPoint());
           close();
           return;
         }
       }
     }
     if (!"PROXY".equals(_field[0])) {
-      LOG.warn("Bad PROXY {}",getEndPoint());
+      LOG.warn("Not PROXY protocol for {}",getEndPoint());
       close();
       return;
     }
@@ -51,7 +53,7 @@
     InetSocketAddress local=new InetSocketAddress(_field[3],Integer.parseInt(_field[5]));
     ConnectionFactory connectionFactory=_connector.getConnectionFactory(_next);
     if (connectionFactory == null) {
-      LOG.info("{} next protocol '{}'",getEndPoint(),_next);
+      LOG.info("Next protocol '{}' for {}",_next,getEndPoint());
       close();
       return;
     }
@@ -59,9 +61,8 @@
     Connection newConnection=connectionFactory.newConnection(_connector,endPoint);
     endPoint.upgrade(newConnection);
   }
- catch (  Throwable e) {
-    LOG.warn("Bad PROXY {} {}",e.toString(),getEndPoint());
-    LOG.debug(e);
+ catch (  Throwable x) {
+    LOG.warn("PROXY error for " + getEndPoint(),x);
     close();
   }
 }
