@@ -1,0 +1,44 @@
+{
+  final List<AsyncListener> listeners;
+  AsyncContextEvent event;
+  try (Locker.Lock lock=_locker.lock()){
+    if (_async != Async.STARTED)     return;
+    _async=Async.EXPIRING;
+    event=_event;
+    listeners=_asyncListeners;
+  }
+   if (LOG.isDebugEnabled())   LOG.debug("Async timeout {}",this);
+  if (listeners != null) {
+    for (    AsyncListener listener : listeners) {
+      try {
+        listener.onTimeout(event);
+      }
+ catch (      Exception e) {
+        LOG.debug(e);
+        event.addThrowable(e);
+        _channel.getRequest().setAttribute(RequestDispatcher.ERROR_EXCEPTION,event.getThrowable());
+        break;
+      }
+    }
+  }
+  boolean dispatch=false;
+  try (Locker.Lock lock=_locker.lock()){
+    if (_async == Async.EXPIRING) {
+      if (event.getThrowable() == null) {
+        _async=Async.EXPIRED;
+        _event.addThrowable(new TimeoutException("Async API violation"));
+      }
+ else {
+        _async=Async.ERRORING;
+      }
+      if (_state == State.ASYNC_WAIT) {
+        _state=State.ASYNC_WOKEN;
+        dispatch=true;
+      }
+    }
+  }
+   if (dispatch) {
+    if (LOG.isDebugEnabled())     LOG.debug("Dispatch after async timeout {}",this);
+    scheduleDispatch();
+  }
+}

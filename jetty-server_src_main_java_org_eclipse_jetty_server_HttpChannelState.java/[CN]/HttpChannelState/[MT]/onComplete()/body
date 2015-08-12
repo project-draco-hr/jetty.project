@@ -1,0 +1,29 @@
+{
+  final List<AsyncListener> aListeners;
+  final AsyncContextEvent event;
+  try (Locker.Lock lock=_locker.lock()){
+switch (_state) {
+case COMPLETING:
+      aListeners=_asyncListeners;
+    event=_event;
+  _state=State.COMPLETED;
+_async=null;
+break;
+default :
+throw new IllegalStateException(this.getStatusStringLocked());
+}
+}
+ if (event != null) {
+if (aListeners != null) {
+for (AsyncListener listener : aListeners) {
+try {
+listener.onComplete(event);
+}
+ catch (Exception e) {
+LOG.warn(e);
+}
+}
+}
+event.completed();
+}
+}

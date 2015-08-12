@@ -1,17 +1,24 @@
 {
   boolean handle=false;
   try (Locker.Lock lock=_locker.lock()){
-    if (_async != Async.STARTED && _async != Async.EXPIRING)     throw new IllegalStateException(this.getStatusString());
-    _async=Async.COMPLETE;
-    if (_state == State.ASYNC_WAIT) {
-      handle=true;
-      _state=State.ASYNC_WOKEN;
-    }
-  }
-   cancelTimeout();
-  if (handle) {
-    ContextHandler handler=getContextHandler();
-    if (handler != null)     handler.handle(_channel);
- else     _channel.handle();
-  }
+switch (_async) {
+case STARTED:
+case EXPIRING:
+case ERRORED:
+      break;
+default :
+    throw new IllegalStateException(this.getStatusStringLocked());
+}
+_async=Async.COMPLETE;
+if (_state == State.ASYNC_WAIT) {
+  handle=true;
+  _state=State.ASYNC_WOKEN;
+}
+}
+ cancelTimeout();
+if (handle) {
+ContextHandler handler=getContextHandler();
+if (handler != null) handler.handle(_channel);
+ else _channel.handle();
+}
 }

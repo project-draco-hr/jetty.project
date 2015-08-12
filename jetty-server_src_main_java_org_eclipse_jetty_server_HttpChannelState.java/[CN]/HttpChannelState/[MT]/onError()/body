@@ -1,0 +1,22 @@
+{
+  final List<AsyncListener> aListeners;
+  final AsyncContextEvent event;
+  try (Locker.Lock lock=_locker.lock()){
+    if (_state != State.DISPATCHED)     throw new IllegalStateException(this.getStatusStringLocked());
+    aListeners=_asyncListeners;
+    event=_event;
+    _async=Async.ERRORED;
+  }
+   if (event != null && aListeners != null) {
+    event.getSuppliedRequest().setAttribute(RequestDispatcher.ERROR_EXCEPTION,event.getThrowable());
+    event.getSuppliedRequest().setAttribute(RequestDispatcher.ERROR_MESSAGE,event.getThrowable().getMessage());
+    for (    AsyncListener listener : aListeners) {
+      try {
+        listener.onError(event);
+      }
+ catch (      Exception x) {
+        LOG.info("Exception while invoking listener " + listener,x);
+      }
+    }
+  }
+}

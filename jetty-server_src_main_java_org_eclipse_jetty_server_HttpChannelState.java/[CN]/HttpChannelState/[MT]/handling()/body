@@ -5,9 +5,9 @@ switch (_state) {
 case IDLE:
       _initial=true;
     _state=State.DISPATCHED;
-  return Action.REQUEST_DISPATCH;
+  return Action.DISPATCH;
 case COMPLETING:
-return Action.COMPLETE;
+return Action.COMPLETING;
 case COMPLETED:
 return Action.WAIT;
 case ASYNC_WOKEN:
@@ -26,7 +26,7 @@ Async async=_async;
 switch (async) {
 case COMPLETE:
 _state=State.COMPLETING;
-return Action.COMPLETE;
+return Action.COMPLETING;
 case DISPATCH:
 _state=State.DISPATCHED;
 _async=null;
@@ -36,9 +36,14 @@ break;
 case EXPIRED:
 _state=State.DISPATCHED;
 _async=null;
-return Action.ASYNC_EXPIRED;
+return Action.ERROR_DISPATCH;
 case STARTED:
 return Action.WAIT;
+case ERRORING:
+_state=State.DISPATCHED;
+return Action.ASYNC_ERROR;
+default :
+throw new IllegalStateException(String.valueOf(async));
 }
 }
 return Action.WAIT;

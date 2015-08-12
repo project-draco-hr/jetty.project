@@ -1,6 +1,6 @@
 {
   _expectedLogs=2;
-  String header="GET /ctx/path/info?suspend=2000&resume=1500 HTTP/1.1\r\n" + "Host: localhost\r\n" + "Content-Length: 10\r\n"+ "\r\n";
+  String header="GET /ctx/path/info?start=2000&dispatch=1500 HTTP/1.1\r\n" + "Host: localhost\r\n" + "Content-Length: 10\r\n"+ "\r\n";
   String body="12345678\r\n";
   String close="GET /ctx/path/info HTTP/1.1\r\n" + "Host: localhost\r\n" + "Connection: close\r\n"+ "\r\n";
   try (Socket socket=new Socket("localhost",_port)){
@@ -12,7 +12,7 @@
     socket.getOutputStream().write(body.getBytes(StandardCharsets.ISO_8859_1),2,8);
     socket.getOutputStream().write(close.getBytes(StandardCharsets.ISO_8859_1));
     String response=IO.toString(socket.getInputStream());
-    assertEquals("HTTP/1.1 200 OK",response.substring(0,15));
-    assertContains("history: REQUEST /ctx/path/info\r\n" + "history: initial\r\n" + "history: suspend\r\n"+ "history: async-read=10\r\n"+ "history: resume\r\n"+ "history: ASYNC /ctx/path/info\r\n"+ "history: !initial\r\n"+ "history: onComplete\r\n",response);
+    assertThat(response,startsWith("HTTP/1.1 200 OK\r\n"));
+    assertContains("history: REQUEST /ctx/path/info\r\n" + "history: initial\r\n" + "history: start\r\n"+ "history: async-read=10\r\n"+ "history: dispatch\r\n"+ "history: ASYNC /ctx/path/info\r\n"+ "history: !initial\r\n"+ "history: onComplete\r\n",response);
   }
  }

@@ -5,19 +5,21 @@
   if (DEBUG)   LOG.debug("{} unhandle {}",this,_state);
   try (Locker.Lock lock=_locker.lock()){
 switch (_state) {
+case COMPLETED:
+      return Action.COMPLETED;
 case DISPATCHED:
 case ASYNC_IO:
-      break;
+    break;
 default :
-    throw new IllegalStateException(this.getStatusString());
+  throw new IllegalStateException(this.getStatusStringLocked());
 }
 if (_async != null) {
-  _initial=false;
+_initial=false;
 switch (_async) {
 case COMPLETE:
-    _state=State.COMPLETING;
-  _async=null;
-action=Action.COMPLETE;
+  _state=State.COMPLETING;
+_async=null;
+action=Action.COMPLETING;
 break;
 case DISPATCH:
 _state=State.DISPATCHED;
@@ -27,7 +29,7 @@ break;
 case EXPIRED:
 _state=State.DISPATCHED;
 _async=null;
-action=Action.ASYNC_EXPIRED;
+action=Action.ERROR_DISPATCH;
 break;
 case STARTED:
 if (_asyncReadUnready && _asyncReadPossible) {
@@ -52,15 +54,24 @@ schedule_event=_event;
 _state=State.ASYNC_WAIT;
 action=Action.WAIT;
 break;
+case ERRORING:
+_state=State.DISPATCHED;
+action=Action.ERROR_DISPATCH;
+break;
+case ERRORED:
+_state=State.DISPATCHED;
+action=Action.ASYNC_ERROR;
+_async=null;
+break;
 default :
 _state=State.COMPLETING;
-action=Action.COMPLETE;
+action=Action.COMPLETING;
 break;
 }
 }
  else {
 _state=State.COMPLETING;
-action=Action.COMPLETE;
+action=Action.COMPLETING;
 }
 }
  if (schedule_event != null) scheduleTimeout(schedule_event);
