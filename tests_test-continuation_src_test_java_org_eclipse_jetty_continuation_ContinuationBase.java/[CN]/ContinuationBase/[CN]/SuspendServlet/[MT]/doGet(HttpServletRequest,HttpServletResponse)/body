@@ -1,6 +1,6 @@
 {
   final Continuation continuation=ContinuationSupport.getContinuation(request);
-  response.addHeader("history",continuation.getClass().toString());
+  addHistory(response,continuation.getClass().toString());
   int read_before=0;
   long sleep_for=-1;
   long suspend_for=-1;
@@ -20,7 +20,7 @@
   if (request.getParameter("complete2") != null)   complete2_after=Integer.parseInt(request.getParameter("complete2"));
   if (request.getParameter("undispatch") != null)   undispatch=Boolean.parseBoolean(request.getParameter("undispatch"));
   if (continuation.isInitial()) {
-    response.addHeader("history","initial");
+    addHistory(response,"initial");
     if (read_before > 0) {
       byte[] buf=new byte[read_before];
       request.getInputStream().read(buf);
@@ -33,7 +33,7 @@
     if (suspend_for >= 0) {
       if (suspend_for > 0)       continuation.setTimeout(suspend_for);
       continuation.addContinuationListener(__listener);
-      response.addHeader("history","suspend");
+      addHistory(response,"suspend");
       continuation.suspend(response);
       if (complete_after > 0) {
         TimerTask complete=new TimerTask(){
@@ -61,7 +61,7 @@ synchronized (_timer) {
  else       if (resume_after > 0) {
         TimerTask resume=new TimerTask(){
           @Override public void run(){
-            ((HttpServletResponse)continuation.getServletResponse()).addHeader("history","resume");
+            addHistory(((HttpServletResponse)continuation.getServletResponse()),"resume");
             continuation.resume();
           }
         }
@@ -71,7 +71,7 @@ synchronized (_timer) {
         }
       }
  else       if (resume_after == 0) {
-        ((HttpServletResponse)continuation.getServletResponse()).addHeader("history","resume");
+        addHistory(((HttpServletResponse)continuation.getServletResponse()),"resume");
         continuation.resume();
       }
       if (undispatch)       continuation.undispatch();
@@ -96,7 +96,7 @@ synchronized (_timer) {
     if (suspend2_for >= 0 && request.getAttribute("2nd") == null) {
       request.setAttribute("2nd","cycle");
       if (suspend2_for > 0)       continuation.setTimeout(suspend2_for);
-      response.addHeader("history","suspend");
+      addHistory(response,"suspend");
       continuation.suspend(response);
       if (complete2_after > 0) {
         TimerTask complete=new TimerTask(){
@@ -124,7 +124,7 @@ synchronized (_timer) {
  else       if (resume2_after > 0) {
         TimerTask resume=new TimerTask(){
           @Override public void run(){
-            response.addHeader("history","resume");
+            addHistory(response,"resume");
             continuation.resume();
           }
         }
@@ -134,7 +134,7 @@ synchronized (_timer) {
         }
       }
  else       if (resume2_after == 0) {
-        response.addHeader("history","resume");
+        addHistory(response,"resume");
         continuation.resume();
       }
       if (undispatch)       continuation.undispatch();
