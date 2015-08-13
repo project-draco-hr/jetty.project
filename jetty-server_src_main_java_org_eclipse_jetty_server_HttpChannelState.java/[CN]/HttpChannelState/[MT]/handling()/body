@@ -7,9 +7,9 @@ case IDLE:
     _state=State.DISPATCHED;
   return Action.DISPATCH;
 case COMPLETING:
-return Action.COMPLETING;
+return Action.COMPLETE;
 case COMPLETED:
-return Action.WAIT;
+return Action.TERMINATED;
 case ASYNC_WOKEN:
 if (_asyncReadPossible) {
 _state=State.ASYNC_IO;
@@ -26,7 +26,7 @@ Async async=_async;
 switch (async) {
 case COMPLETE:
 _state=State.COMPLETING;
-return Action.COMPLETING;
+return Action.COMPLETE;
 case DISPATCH:
 _state=State.DISPATCHED;
 _async=null;
@@ -43,12 +43,16 @@ case ERRORING:
 _state=State.DISPATCHED;
 return Action.ASYNC_ERROR;
 default :
-throw new IllegalStateException(String.valueOf(async));
+throw new IllegalStateException(getStatusStringLocked());
 }
 }
 return Action.WAIT;
+case ASYNC_IO:
+case ASYNC_WAIT:
+case DISPATCHED:
+case UPGRADED:
 default :
-return Action.WAIT;
+throw new IllegalStateException(getStatusStringLocked());
 }
 }
  }

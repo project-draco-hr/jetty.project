@@ -5,8 +5,8 @@
   }
  catch (  IllegalStateException e) {
   }
-  response.addHeader("history",request.getDispatcherType() + " " + request.getRequestURI());
-  if (request instanceof ServletRequestWrapper || response instanceof ServletResponseWrapper)   response.addHeader("history","wrapped" + ((request instanceof ServletRequestWrapper) ? " REQ" : "") + ((response instanceof ServletResponseWrapper) ? " RSP" : ""));
+  __history.add(request.getDispatcherType() + " " + request.getRequestURI());
+  if (request instanceof ServletRequestWrapper || response instanceof ServletResponseWrapper)   __history.add("wrapped" + ((request instanceof ServletRequestWrapper) ? " REQ" : "") + ((response instanceof ServletResponseWrapper) ? " RSP" : ""));
   boolean wrap="true".equals(request.getParameter("wrap"));
   int read_before=0;
   long sleep_for=-1;
@@ -27,7 +27,7 @@
   if (request.getParameter("complete2") != null)   complete2_after=Integer.parseInt(request.getParameter("complete2"));
   if (request.getAttribute("State") == null) {
     request.setAttribute("State",new Integer(1));
-    response.addHeader("history","initial");
+    __history.add("initial");
     if (read_before > 0) {
       byte[] buf=new byte[read_before];
       request.getInputStream().read(buf);
@@ -45,7 +45,7 @@
             InputStream in=request.getInputStream();
             int b=0;
             while (b != -1)             if ((b=in.read()) >= 0)             c++;
-            response.addHeader("history","async-read=" + c);
+            __history.add("async-read=" + c);
           }
  catch (          Exception e) {
             e.printStackTrace();
@@ -58,7 +58,7 @@
       final AsyncContext async=wrap ? request.startAsync(new HttpServletRequestWrapper(request),new HttpServletResponseWrapper(response)) : request.startAsync();
       if (start_for > 0)       async.setTimeout(start_for);
       async.addListener(__listener);
-      response.addHeader("history","start");
+      __history.add("start");
       if ("1".equals(request.getParameter("throw")))       throw new QuietServletException(new Exception("test throw in async 1"));
       if (complete_after > 0) {
         TimerTask complete=new TimerTask(){
@@ -66,7 +66,7 @@
             try {
               response.setStatus(200);
               response.getOutputStream().println("COMPLETED\n");
-              response.addHeader("history","complete");
+              __history.add("complete");
               async.complete();
             }
  catch (            Exception e) {
@@ -82,13 +82,13 @@ synchronized (_timer) {
  else       if (complete_after == 0) {
         response.setStatus(200);
         response.getOutputStream().println("COMPLETED\n");
-        response.addHeader("history","complete");
+        __history.add("complete");
         async.complete();
       }
  else       if (dispatch_after > 0) {
         TimerTask dispatch=new TimerTask(){
           @Override public void run(){
-            ((HttpServletResponse)async.getResponse()).addHeader("history","dispatch");
+            __history.add("dispatch");
             if (path != null) {
               int q=path.indexOf('?');
               String uriInContext=(q >= 0) ? URIUtil.encodePath(path.substring(0,q)) + path.substring(q) : URIUtil.encodePath(path);
@@ -103,7 +103,7 @@ synchronized (_timer) {
         }
       }
  else       if (dispatch_after == 0) {
-        ((HttpServletResponse)async.getResponse()).addHeader("history","dispatch");
+        __history.add("dispatch");
         if (path != null)         async.dispatch(path);
  else         async.dispatch();
       }
@@ -124,7 +124,7 @@ synchronized (_timer) {
     }
   }
  else {
-    response.addHeader("history","!initial");
+    __history.add("!initial");
     if (start2_for >= 0 && request.getAttribute("2nd") == null) {
       final AsyncContext async=wrap ? request.startAsync(new HttpServletRequestWrapper(request),new HttpServletResponseWrapper(response)) : request.startAsync();
       async.addListener(__listener);
@@ -132,7 +132,7 @@ synchronized (_timer) {
       if (start2_for > 0) {
         async.setTimeout(start2_for);
       }
-      response.addHeader("history","start");
+      __history.add("start");
       if ("2".equals(request.getParameter("throw")))       throw new QuietServletException(new Exception("test throw in async 2"));
       if (complete2_after > 0) {
         TimerTask complete=new TimerTask(){
@@ -140,7 +140,7 @@ synchronized (_timer) {
             try {
               response.setStatus(200);
               response.getOutputStream().println("COMPLETED\n");
-              response.addHeader("history","complete");
+              __history.add("complete");
               async.complete();
             }
  catch (            Exception e) {
@@ -156,13 +156,13 @@ synchronized (_timer) {
  else       if (complete2_after == 0) {
         response.setStatus(200);
         response.getOutputStream().println("COMPLETED\n");
-        response.addHeader("history","complete");
+        __history.add("complete");
         async.complete();
       }
  else       if (dispatch2_after > 0) {
         TimerTask dispatch=new TimerTask(){
           @Override public void run(){
-            response.addHeader("history","dispatch");
+            __history.add("dispatch");
             async.dispatch();
           }
         }
@@ -172,7 +172,7 @@ synchronized (_timer) {
         }
       }
  else       if (dispatch2_after == 0) {
-        response.addHeader("history","dispatch");
+        __history.add("dispatch");
         async.dispatch();
       }
     }

@@ -6,7 +6,7 @@
   try (Locker.Lock lock=_locker.lock()){
 switch (_state) {
 case COMPLETED:
-      return Action.COMPLETED;
+      return Action.TERMINATED;
 case DISPATCHED:
 case ASYNC_IO:
     break;
@@ -19,7 +19,7 @@ switch (_async) {
 case COMPLETE:
   _state=State.COMPLETING;
 _async=null;
-action=Action.COMPLETING;
+action=Action.COMPLETE;
 break;
 case DISPATCH:
 _state=State.DISPATCHED;
@@ -56,22 +56,22 @@ action=Action.WAIT;
 break;
 case ERRORING:
 _state=State.DISPATCHED;
-action=Action.ERROR_DISPATCH;
+action=Action.ASYNC_ERROR;
 break;
 case ERRORED:
 _state=State.DISPATCHED;
-action=Action.ASYNC_ERROR;
+action=Action.ERROR_DISPATCH;
 _async=null;
 break;
 default :
 _state=State.COMPLETING;
-action=Action.COMPLETING;
+action=Action.COMPLETE;
 break;
 }
 }
  else {
 _state=State.COMPLETING;
-action=Action.COMPLETING;
+action=Action.COMPLETE;
 }
 }
  if (schedule_event != null) scheduleTimeout(schedule_event);
