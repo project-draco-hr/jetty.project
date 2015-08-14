@@ -1,0 +1,39 @@
+{
+  Server server=new Server();
+  try {
+    ServerConnector connector=new ServerConnector(server);
+    server.addConnector(connector);
+    if (log != null) {
+      log.clear();
+    }
+    history.clear();
+    server.setHandler(this.setupHandler);
+    server.start();
+    int port=connector.getLocalPort();
+    StringBuilder request=new StringBuilder("GET /");
+    if (query != null)     request.append("?").append(query);
+    request.append(" HTTP/1.1\r\n").append("Host: localhost\r\n").append("Connection: close\r\n");
+    if (content == null) {
+      request.append("\r\n");
+    }
+ else {
+      request.append("Content-Length: ").append(content.length()).append("\r\n");
+      request.append("\r\n").append(content);
+    }
+    try (Socket socket=new Socket("localhost",port)){
+      socket.setSoTimeout(10000);
+      socket.getOutputStream().write(request.toString().getBytes(StandardCharsets.UTF_8));
+      socket.getOutputStream().flush();
+      return toString(socket.getInputStream());
+    }
+   }
+  finally {
+    server.stop();
+    if (log != null) {
+      assertThat("Log.size",log.size(),is(1));
+      String entry=log.get(0);
+      assertThat("Log entry",entry,startsWith("200 "));
+      assertThat("Log entry",entry,endsWith(" /"));
+    }
+  }
+}
