@@ -93,8 +93,8 @@ case COMPLETE:
 {
 if (!_response.isCommitted() && !_request.isHandled()) _response.sendError(404);
  else _response.closeOutput();
-_state.onComplete();
 _request.setHandled(true);
+_state.onComplete();
 onCompleted();
 break loop;
 }
@@ -105,20 +105,16 @@ throw new IllegalStateException("state=" + _state);
 }
 }
  catch (EofException|QuietServletException|BadMessageException e) {
-LOG.debug(e);
-handleException(e);
-}
-catch (Exception e) {
-if (_connector.isStarted()) LOG.warn(String.valueOf(_request.getHttpURI()),e);
- else LOG.debug(String.valueOf(_request.getHttpURI()),e);
+if (LOG.isDebugEnabled()) LOG.debug(e);
 handleException(e);
 }
 catch (Throwable e) {
-if ("ContinuationThrowable".equals(e.getClass().getSimpleName())) LOG.ignore(e);
+if ("ContinuationThrowable".equals(e.getClass().getSimpleName())) {
+LOG.ignore(e);
+}
  else {
 if (_connector.isStarted()) LOG.warn(String.valueOf(_request.getHttpURI()),e);
  else LOG.debug(String.valueOf(_request.getHttpURI()),e);
-LOG.warn(String.valueOf(_request.getHttpURI()),e);
 handleException(e);
 }
 }

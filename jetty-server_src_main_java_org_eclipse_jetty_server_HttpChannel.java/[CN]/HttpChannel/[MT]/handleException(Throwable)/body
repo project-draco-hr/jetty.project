@@ -1,38 +1,41 @@
 {
-  try {
-    if (_state.isAsyncStarted()) {
-      Throwable root=_state.getAsyncContextEvent().getThrowable();
-      if (root == null) {
-        _state.error(x);
-        return;
-      }
+  if (_state.isAsyncStarted()) {
+    Throwable root=_state.getAsyncContextEvent().getThrowable();
+    if (root == null) {
+      _state.error(x);
+    }
+ else {
       root.addSuppressed(x);
       LOG.warn("Error while handling async error: ",root);
       abort(x);
       _state.errorComplete();
-      return;
-    }
-    _request.setHandled(true);
-    _request.setAttribute(RequestDispatcher.ERROR_EXCEPTION,x);
-    _request.setAttribute(RequestDispatcher.ERROR_EXCEPTION_TYPE,x.getClass());
-    if (isCommitted()) {
-      abort(x);
-      if (!(x instanceof EofException))       LOG.warn("Could not send response error 500: " + x);
-    }
- else {
-      _response.setHeader(HttpHeader.CONNECTION.asString(),HttpHeaderValue.CLOSE.asString());
-      if (x instanceof BadMessageException) {
-        BadMessageException bme=(BadMessageException)x;
-        _response.sendError(bme.getCode(),bme.getReason());
-      }
- else       if (x instanceof UnavailableException) {
-        if (((UnavailableException)x).isPermanent())         _response.sendError(HttpStatus.NOT_FOUND_404);
- else         _response.sendError(HttpStatus.SERVICE_UNAVAILABLE_503);
-      }
- else       _response.sendError(HttpStatus.INTERNAL_SERVER_ERROR_500);
     }
   }
- catch (  IOException e) {
-    LOG.debug("Could not commit response error 500",e);
+ else {
+    try {
+      _request.setHandled(true);
+      _request.setAttribute(RequestDispatcher.ERROR_EXCEPTION,x);
+      _request.setAttribute(RequestDispatcher.ERROR_EXCEPTION_TYPE,x.getClass());
+      if (isCommitted()) {
+        abort(x);
+        if (LOG.isDebugEnabled())         LOG.debug("Could not send response error 500, already committed",x);
+      }
+ else {
+        _response.setHeader(HttpHeader.CONNECTION.asString(),HttpHeaderValue.CLOSE.asString());
+        if (x instanceof BadMessageException) {
+          BadMessageException bme=(BadMessageException)x;
+          _response.sendError(bme.getCode(),bme.getReason());
+        }
+ else         if (x instanceof UnavailableException) {
+          if (((UnavailableException)x).isPermanent())           _response.sendError(HttpStatus.NOT_FOUND_404);
+ else           _response.sendError(HttpStatus.SERVICE_UNAVAILABLE_503);
+        }
+ else         _response.sendError(HttpStatus.INTERNAL_SERVER_ERROR_500);
+      }
+    }
+ catch (    Throwable e) {
+      abort(e);
+      if (LOG.isDebugEnabled())       LOG.debug("Could not commit response error 500",e);
+    }
   }
 }
