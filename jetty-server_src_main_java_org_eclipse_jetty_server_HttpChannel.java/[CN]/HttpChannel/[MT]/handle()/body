@@ -33,7 +33,7 @@ case ERROR_DISPATCH:
 {
     Throwable ex=_state.getAsyncContextEvent().getThrowable();
     Integer loop_detect=(Integer)_request.getAttribute("org.eclipse.jetty.server.ERROR_DISPATCH");
-    if (loop_detect == null)     loop_detect=new Integer(1);
+    if (loop_detect == null)     loop_detect=1;
  else     loop_detect=loop_detect + 1;
     _request.setAttribute("org.eclipse.jetty.server.ERROR_DISPATCH",loop_detect);
     if (loop_detect > getHttpConfiguration().getMaxErrorDispatches()) {
@@ -50,7 +50,7 @@ case ERROR_DISPATCH:
     _response.resetBuffer();
     _response.getHttpOutput().reopen();
     _request.setDispatcherType(DispatcherType.ERROR);
-    String reason=null;
+    String reason;
     if (ex == null || ex instanceof TimeoutException) {
       reason="Async Timeout";
     }
@@ -91,9 +91,9 @@ break;
 }
 case COMPLETE:
 {
-_state.onComplete();
 if (!_response.isCommitted() && !_request.isHandled()) _response.sendError(404);
  else _response.closeOutput();
+_state.onComplete();
 _request.setHandled(true);
 onCompleted();
 break loop;
