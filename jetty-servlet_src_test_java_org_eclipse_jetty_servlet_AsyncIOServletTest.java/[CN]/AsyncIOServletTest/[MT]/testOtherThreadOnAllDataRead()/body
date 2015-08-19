@@ -3,6 +3,7 @@
   final byte[] data=text.getBytes(StandardCharsets.ISO_8859_1);
   startServer(new HttpServlet(){
     @Override protected void service(    HttpServletRequest request,    final HttpServletResponse response) throws ServletException, IOException {
+      assertScope();
       response.flushBuffer();
       final AsyncContext async=request.startAsync();
       async.setTimeout(500000);
@@ -11,12 +12,15 @@
       if (request.getDispatcherType() == DispatcherType.ERROR)       throw new IllegalStateException();
       in.setReadListener(new ReadListener(){
         @Override public void onError(        Throwable t){
+          assertScope();
           t.printStackTrace();
           async.complete();
         }
         @Override public void onDataAvailable() throws IOException {
-          new Thread(){
+          assertScope();
+          async.start(new Runnable(){
             public void run(){
+              assertScope();
               try {
                 Thread.sleep(1000);
                 if (!in.isReady())                 throw new IllegalStateException();
@@ -29,7 +33,7 @@
               }
             }
           }
-.start();
+);
         }
         @Override public void onAllDataRead() throws IOException {
           out.write("OK\n".getBytes(StandardCharsets.ISO_8859_1));

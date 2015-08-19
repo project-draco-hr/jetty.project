@@ -5,11 +5,13 @@
   final byte[] data=text.getBytes(StandardCharsets.ISO_8859_1);
   startServer(new HttpServlet(){
     @Override protected void service(    HttpServletRequest request,    final HttpServletResponse response) throws ServletException, IOException {
+      assertScope();
       response.flushBuffer();
       final AsyncContext async=request.startAsync();
       final ServletOutputStream out=response.getOutputStream();
       out.setWriteListener(new WriteListener(){
         @Override public void onWritePossible() throws IOException {
+          assertScope();
           while (out.isReady()) {
             try {
               Thread.sleep(100);
@@ -24,6 +26,7 @@ catch (            Exception e) {
           }
         }
         @Override public void onError(        Throwable t){
+          assertScope();
           async.complete();
           latch.countDown();
         }
