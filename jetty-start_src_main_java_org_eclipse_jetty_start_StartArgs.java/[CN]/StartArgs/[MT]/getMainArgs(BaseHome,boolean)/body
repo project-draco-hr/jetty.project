@@ -19,12 +19,16 @@
   ensureSystemPropertySet("STOP.PORT");
   ensureSystemPropertySet("STOP.KEY");
   ensureSystemPropertySet("STOP.WAIT");
-  if (dryRun) {
+  if (dryRun && exec_properties == null) {
     for (    Prop p : properties)     cmd.addRawArg(CommandLineBuilder.quote(p.key) + "=" + CommandLineBuilder.quote(p.value));
   }
  else   if (properties.size() > 0) {
-    Path prop_path=Files.createTempFile(Paths.get(baseHome.getBase()),"start_",".properties");
-    prop_path.toFile().deleteOnExit();
+    Path prop_path;
+    if (exec_properties == null) {
+      prop_path=Files.createTempFile(Paths.get(baseHome.getBase()),"start_",".properties");
+      prop_path.toFile().deleteOnExit();
+    }
+ else     prop_path=new File(exec_properties).toPath();
     try (OutputStream out=Files.newOutputStream(prop_path)){
       properties.store(out,"start.jar properties");
     }
