@@ -1,0 +1,25 @@
+{
+  if (LOG.isDebugEnabled())   LOG.debug("Access session({}) for context {} on worker {}",getId(),getContextPath(),getSessionIdManager().getWorkerName());
+  try {
+    long now=System.currentTimeMillis();
+    _lock.lock();
+    if (_activeThreads.incrementAndGet() == 1) {
+      if (getStaleIntervalSec() > 0 && (now - getLastSyncTime()) >= (getStaleIntervalSec() * 1000L)) {
+        if (LOG.isDebugEnabled())         LOG.debug("Acess session({}) for context {} on worker {} stale session. Reloading.",getId(),getContextPath(),getSessionIdManager().getWorkerName());
+        refresh();
+      }
+    }
+  }
+ catch (  Exception e) {
+    LOG.warn(e);
+  }
+ finally {
+    _lock.unlock();
+  }
+  if (super.access(time)) {
+    int maxInterval=getMaxInactiveInterval();
+    _expiryTime=(maxInterval <= 0 ? 0 : (time + maxInterval * 1000L));
+    return true;
+  }
+  return false;
+}
