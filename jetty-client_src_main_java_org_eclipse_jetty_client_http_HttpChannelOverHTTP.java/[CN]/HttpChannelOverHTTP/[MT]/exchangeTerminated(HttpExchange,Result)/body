@@ -2,15 +2,24 @@
   super.exchangeTerminated(exchange,result);
   Response response=result.getResponse();
   HttpFields responseHeaders=response.getHeaders();
-  boolean close=result.isFailed() || receiver.isShutdown();
-  if (!close) {
+  String closeReason=null;
+  if (result.isFailed())   closeReason="failure";
+ else   if (receiver.isShutdown())   closeReason="server close";
+  if (closeReason == null) {
     if (response.getVersion().compareTo(HttpVersion.HTTP_1_1) < 0) {
-      close=!responseHeaders.contains(HttpHeader.CONNECTION,HttpHeaderValue.KEEP_ALIVE.asString());
+      boolean keepAlive=responseHeaders.contains(HttpHeader.CONNECTION,HttpHeaderValue.KEEP_ALIVE.asString());
+      boolean connect=HttpMethod.CONNECT.is(exchange.getRequest().getMethod());
+      if (!keepAlive && !connect)       closeReason="http/1.0";
     }
  else {
-      close=responseHeaders.contains(HttpHeader.CONNECTION,HttpHeaderValue.CLOSE.asString());
+      if (responseHeaders.contains(HttpHeader.CONNECTION,HttpHeaderValue.CLOSE.asString()))       closeReason="http/1.1";
     }
   }
-  if (close)   connection.close();
- else   release();
+  if (closeReason != null) {
+    if (LOG.isDebugEnabled())     LOG.debug("Closing, reason: {} - {}",closeReason,connection);
+    connection.close();
+  }
+ else {
+    release();
+  }
 }
