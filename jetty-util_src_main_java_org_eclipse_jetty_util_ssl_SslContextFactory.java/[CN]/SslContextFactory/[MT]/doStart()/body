@@ -36,7 +36,7 @@
         validator.setOcspResponderURL(_ocspResponderURL);
         validator.validate(keyStore,cert);
       }
-      _certAliases.clear();
+      _certHosts.clear();
       if (keyStore != null) {
         for (        String alias : Collections.list(keyStore.aliases())) {
           Certificate certificate=keyStore.getCertificate(alias);
@@ -55,7 +55,7 @@
                   if (LOG.isDebugEnabled())                   LOG.debug("Certificate SAN alias={} cn={} in {}",alias,cn,this);
                   if (cn != null) {
                     named=true;
-                    _certAliases.put(cn,alias);
+                    _certHosts.put(cn,alias);
                   }
                 }
               }
@@ -66,7 +66,7 @@
                 if (rdn.getType().equalsIgnoreCase("cn")) {
                   String cn=rdn.getValue().toString();
                   if (LOG.isDebugEnabled())                   LOG.debug("Certificate cn alias={} cn={} in {}",alias,cn,this);
-                  if (cn != null && cn.contains(".") && !cn.contains(" "))                   _certAliases.put(cn,alias);
+                  if (cn != null && cn.contains(".") && !cn.contains(" "))                   _certHosts.put(cn,alias);
                 }
               }
             }
@@ -74,8 +74,15 @@
         }
       }
       _certWilds.clear();
-      for (      String name : _certAliases.keySet())       if (name.startsWith("*."))       _certWilds.put(name.substring(2),_certAliases.get(name));
-      LOG.info("x509={} wild={} alias={} for {}",_certAliases,_certWilds,_certAlias,this);
+      for (Iterator<Map.Entry<String,String>> iterator=_certHosts.entrySet().iterator(); iterator.hasNext(); ) {
+        Map.Entry<String,String> entry=iterator.next();
+        String host=entry.getKey();
+        if (host.startsWith("*.")) {
+          _certWilds.put(host.substring(2),entry.getValue());
+          iterator.remove();
+        }
+      }
+      LOG.info("x509={} wild={} alias={} for {}",_certHosts,_certWilds,_certAlias,this);
       KeyManager[] keyManagers=getKeyManagers(keyStore);
       TrustManager[] trustManagers=getTrustManagers(trustStore,crls);
       SecureRandom secureRandom=(_secureRandomAlgorithm == null) ? null : SecureRandom.getInstance(_secureRandomAlgorithm);

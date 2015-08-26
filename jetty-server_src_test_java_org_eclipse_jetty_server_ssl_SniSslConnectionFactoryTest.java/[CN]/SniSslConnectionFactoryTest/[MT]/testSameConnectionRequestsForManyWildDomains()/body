@@ -1,0 +1,33 @@
+{
+  SslContextFactory clientContextFactory=new SslContextFactory(true);
+  clientContextFactory.start();
+  SSLSocketFactory factory=clientContextFactory.getSslContext().getSocketFactory();
+  try (SSLSocket sslSocket=(SSLSocket)factory.createSocket("127.0.0.1",_port)){
+    SNIHostName serverName=new SNIHostName("www.domain.com");
+    SSLParameters params=sslSocket.getSSLParameters();
+    params.setServerNames(Collections.singletonList(serverName));
+    sslSocket.setSSLParameters(params);
+    sslSocket.startHandshake();
+    String request="" + "GET /ctx/path HTTP/1.1\r\n" + "Host: www.domain.com\r\n"+ "\r\n";
+    OutputStream output=sslSocket.getOutputStream();
+    output.write(request.getBytes(StandardCharsets.UTF_8));
+    output.flush();
+    InputStream input=sslSocket.getInputStream();
+    String response=response(input);
+    Assert.assertTrue(response.startsWith("HTTP/1.1 200 "));
+    request="" + "GET /ctx/path HTTP/1.1\r\n" + "Host: assets.domain.com\r\n"+ "\r\n";
+    output.write(request.getBytes(StandardCharsets.UTF_8));
+    output.flush();
+    response=response(input);
+    Assert.assertTrue(response.startsWith("HTTP/1.1 200 "));
+    request="" + "GET /ctx/path HTTP/1.1\r\n" + "Host: www.example.com\r\n"+ "\r\n";
+    output.write(request.getBytes(StandardCharsets.UTF_8));
+    output.flush();
+    response=response(input);
+    Assert.assertTrue(response.startsWith("HTTP/1.1 400 "));
+    Assert.assertThat(response,Matchers.containsString("Host does not match SNI"));
+  }
+  finally {
+    clientContextFactory.stop();
+  }
+}
