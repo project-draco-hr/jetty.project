@@ -1,6 +1,5 @@
 {
   this.statusCode=StatusCode.NO_CODE;
-  this.reason=null;
   if ((payload == null) || (payload.remaining() == 0)) {
     return;
   }
@@ -18,25 +17,16 @@
       }
     }
     if (data.remaining() > 0) {
-      try {
-        Utf8StringBuilder utf=new Utf8StringBuilder();
-        utf.append(data);
-        reason=utf.toString();
-      }
- catch (      NotUtf8Exception e) {
-        if (validate) {
+      int len=Math.min(data.remaining(),CloseStatus.MAX_REASON_PHRASE);
+      reasonBytes=new byte[len];
+      data.get(reasonBytes,0,len);
+      if (validate) {
+        try {
+          Utf8StringBuilder utf=new Utf8StringBuilder();
+          utf.append(reasonBytes,0,reasonBytes.length);
+        }
+ catch (        NotUtf8Exception e) {
           throw new BadPayloadException("Invalid Close Reason",e);
-        }
- else {
-          LOG.warn(e);
-        }
-      }
-catch (      RuntimeException e) {
-        if (validate) {
-          throw new ProtocolException("Invalid Close Reason",e);
-        }
- else {
-          LOG.warn(e);
         }
       }
     }
