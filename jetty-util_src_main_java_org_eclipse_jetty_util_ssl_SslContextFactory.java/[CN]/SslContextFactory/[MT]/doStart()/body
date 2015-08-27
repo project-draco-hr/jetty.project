@@ -17,72 +17,32 @@
       if (keyStore == null)       keyStore=loadKeyStore(_keyStoreResource);
       if (trustStore == null)       trustStore=loadTrustStore(_trustStoreResource);
       Collection<? extends CRL> crls=loadCRL(_crlPath);
-      if (_validateCerts && keyStore != null) {
-        if (_certAlias == null) {
-          for (Enumeration<String> e=keyStore.aliases(); _certAlias == null && e.hasMoreElements(); ) {
-            String alias=e.nextElement();
-            Certificate c=keyStore.getCertificate(alias);
-            if (c != null && "X.509".equals(c.getType()))             _certAlias=alias;
-          }
-        }
-        Certificate cert=_certAlias == null ? null : keyStore.getCertificate(_certAlias);
-        if (cert == null || !"X.509".equals(cert.getType())) {
-          throw new Exception("No X.509 certificate in the keystore" + (_certAlias == null ? "" : " for alias " + _certAlias));
-        }
-        CertificateValidator validator=new CertificateValidator(trustStore,crls);
-        validator.setMaxCertPathLength(_maxCertPathLength);
-        validator.setEnableCRLDP(_enableCRLDP);
-        validator.setEnableOCSP(_enableOCSP);
-        validator.setOcspResponderURL(_ocspResponderURL);
-        validator.validate(keyStore,cert);
-      }
       _certHosts.clear();
       if (keyStore != null) {
         for (        String alias : Collections.list(keyStore.aliases())) {
           Certificate certificate=keyStore.getCertificate(alias);
           if (certificate != null && "X.509".equals(certificate.getType())) {
-            X509Certificate x509=(X509Certificate)certificate;
-            if (x509.getKeyUsage() != null) {
-              boolean[] b=x509.getKeyUsage();
-              if (b[KEY_USAGE__KEY_CERT_SIGN])               continue;
+            X509Certificate x509C=(X509Certificate)certificate;
+            if (X509.isCertSign(x509C)) {
+              if (LOG.isDebugEnabled())               LOG.debug("Skipping " + x509C);
+              continue;
             }
-            boolean named=false;
-            Collection<List<?>> altNames=x509.getSubjectAlternativeNames();
-            if (altNames != null) {
-              for (              List<?> list : altNames) {
-                if (((Number)list.get(0)).intValue() == SUBJECT_ALTERNATIVE_NAMES__DNS_NAME) {
-                  String cn=list.get(1).toString();
-                  if (LOG.isDebugEnabled())                   LOG.debug("Certificate SAN alias={} cn={} in {}",alias,cn,this);
-                  if (cn != null) {
-                    named=true;
-                    _certHosts.put(cn,alias);
-                  }
-                }
-              }
+            X509 x509=new X509(alias,x509C);
+            _aliasX509.put(alias,x509);
+            if (_validateCerts) {
+              CertificateValidator validator=new CertificateValidator(trustStore,crls);
+              validator.setMaxCertPathLength(_maxCertPathLength);
+              validator.setEnableCRLDP(_enableCRLDP);
+              validator.setEnableOCSP(_enableOCSP);
+              validator.setOcspResponderURL(_ocspResponderURL);
+              validator.validate(keyStore,x509C);
             }
-            if (!named) {
-              LdapName name=new LdapName(x509.getSubjectX500Principal().getName(X500Principal.RFC2253));
-              for (              Rdn rdn : name.getRdns()) {
-                if (rdn.getType().equalsIgnoreCase("cn")) {
-                  String cn=rdn.getValue().toString();
-                  if (LOG.isDebugEnabled())                   LOG.debug("Certificate cn alias={} cn={} in {}",alias,cn,this);
-                  if (cn != null && cn.contains(".") && !cn.contains(" "))                   _certHosts.put(cn,alias);
-                }
-              }
-            }
+            LOG.info("x509={} for {}",x509,this);
+            for (            String h : x509.getHosts())             _certHosts.put(h,x509);
+            for (            String w : x509.getWilds())             _certWilds.put(w,x509);
           }
         }
       }
-      _certWilds.clear();
-      for (Iterator<Map.Entry<String,String>> iterator=_certHosts.entrySet().iterator(); iterator.hasNext(); ) {
-        Map.Entry<String,String> entry=iterator.next();
-        String host=entry.getKey();
-        if (host.startsWith("*.")) {
-          _certWilds.put(host.substring(2),entry.getValue());
-          iterator.remove();
-        }
-      }
-      LOG.info("x509={} wild={} alias={} for {}",_certHosts,_certWilds,_certAlias,this);
       KeyManager[] keyManagers=getKeyManagers(keyStore);
       TrustManager[] trustManagers=getTrustManagers(trustStore,crls);
       SecureRandom secureRandom=(_secureRandomAlgorithm == null) ? null : SecureRandom.getInstance(_secureRandomAlgorithm);
