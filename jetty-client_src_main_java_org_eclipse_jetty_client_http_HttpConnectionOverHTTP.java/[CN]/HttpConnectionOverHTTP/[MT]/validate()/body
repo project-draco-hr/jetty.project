@@ -1,0 +1,17 @@
+{
+  ByteBufferPool byteBufferPool=getHttpDestination().getHttpClient().getByteBufferPool();
+  ByteBuffer buffer=byteBufferPool.acquire(1,true);
+  try {
+    EndPoint endPoint=getEndPoint();
+    int filled=endPoint.fill(buffer);
+    if (LOG.isDebugEnabled())     LOG.debug("Validated {} {}",filled,this);
+    return filled == 0;
+  }
+ catch (  Throwable x) {
+    if (LOG.isDebugEnabled())     LOG.debug("Could not validate connection " + this,x);
+    return false;
+  }
+ finally {
+    byteBufferPool.release(buffer);
+  }
+}
