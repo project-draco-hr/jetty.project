@@ -1,0 +1,15 @@
+{
+  if (latch.compareAndSet(false,true)) {
+    boolean idle;
+    lock();
+    try {
+      quarantine.remove(connection);
+      idle=offerIdle(connection);
+      if (LOG.isDebugEnabled())       LOG.debug("Validated {}",connection);
+    }
+  finally {
+      unlock();
+    }
+    if (idle(connection,idle))     proceed();
+  }
+}

@@ -1,0 +1,19 @@
+{
+  boolean activeRemoved;
+  boolean idleRemoved;
+  lock();
+  try {
+    activeRemoved=activeConnections.remove(connection);
+    idleRemoved=idleConnections.remove(connection);
+  }
+  finally {
+    unlock();
+  }
+  if (activeRemoved)   released(connection);
+  boolean removed=activeRemoved || idleRemoved || force;
+  if (removed) {
+    int pooled=connectionCount.decrementAndGet();
+    if (LOG.isDebugEnabled())     LOG.debug("Connection removed {} - pooled: {}",connection,pooled);
+  }
+  return removed;
+}
