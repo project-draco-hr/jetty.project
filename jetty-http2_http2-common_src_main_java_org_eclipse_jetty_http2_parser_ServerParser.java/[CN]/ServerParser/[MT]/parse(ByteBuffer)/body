@@ -6,19 +6,31 @@ switch (state) {
 case PREFACE:
 {
           if (!prefaceParser.parse(buffer))           return;
-          onPreface();
-          state=State.FRAMES;
+          state=State.SETTINGS;
           break;
         }
+case SETTINGS:
+{
+        if (!parseHeader(buffer))         return;
+        if (getFrameType() != FrameType.SETTINGS.getType()) {
+          BufferUtil.clear(buffer);
+          notifyConnectionFailure(ErrorCode.PROTOCOL_ERROR.code,"invalid_preface");
+          return;
+        }
+        if (!parseBody(buffer))         return;
+        onPreface();
+        state=State.FRAMES;
+        break;
+      }
 case FRAMES:
 {
-        super.parse(buffer);
-        return;
-      }
+      super.parse(buffer);
+      return;
+    }
 default :
 {
-      throw new IllegalStateException();
-    }
+    throw new IllegalStateException();
+  }
 }
 }
 }
