@@ -9,21 +9,31 @@
   }
    if (LOG.isDebugEnabled())   LOG.debug("Async timeout {}",this);
   if (listeners != null) {
-    for (    AsyncListener listener : listeners) {
-      try {
-        listener.onTimeout(event);
+    Runnable callback=new Runnable(){
+      @Override public void run(){
+        for (        AsyncListener listener : listeners) {
+          try {
+            listener.onTimeout(event);
+          }
+ catch (          Exception e) {
+            LOG.debug(e);
+            event.addThrowable(e);
+            _channel.getRequest().setAttribute(RequestDispatcher.ERROR_EXCEPTION,event.getThrowable());
+            break;
+          }
+        }
       }
- catch (      Exception e) {
-        LOG.debug(e);
-        event.addThrowable(e);
-        _channel.getRequest().setAttribute(RequestDispatcher.ERROR_EXCEPTION,event.getThrowable());
-        break;
+      @Override public String toString(){
+        return "onTimeout";
       }
     }
+;
+    runInContext(event,callback);
   }
   boolean dispatch=false;
   try (Locker.Lock lock=_locker.lock()){
-    if (_async == Async.EXPIRING) {
+switch (_async) {
+case EXPIRING:
       if (event.getThrowable() == null) {
         _async=Async.EXPIRED;
         _event.addThrowable(new TimeoutException("Async API violation"));
@@ -31,14 +41,20 @@
  else {
         _async=Async.ERRORING;
       }
-      if (_state == State.ASYNC_WAIT) {
-        _state=State.ASYNC_WOKEN;
-        dispatch=true;
-      }
-    }
-  }
-   if (dispatch) {
-    if (LOG.isDebugEnabled())     LOG.debug("Dispatch after async timeout {}",this);
-    scheduleDispatch();
-  }
+    break;
+case COMPLETE:
+case DISPATCH:
+  break;
+default :
+throw new IllegalStateException();
+}
+if (_state == State.ASYNC_WAIT) {
+_state=State.ASYNC_WOKEN;
+dispatch=true;
+}
+}
+ if (dispatch) {
+if (LOG.isDebugEnabled()) LOG.debug("Dispatch after async timeout {}",this);
+scheduleDispatch();
+}
 }

@@ -1,35 +1,38 @@
 {
-  boolean dispatch;
+  boolean dispatch=false;
+  AsyncContextEvent event=null;
   try (Locker.Lock lock=_locker.lock()){
+    boolean started=false;
+    event=_event;
 switch (_async) {
 case STARTED:
+      started=true;
+    break;
 case EXPIRING:
 case ERRORED:
-      break;
+  break;
 default :
-    throw new IllegalStateException(this.getStatusStringLocked());
+throw new IllegalStateException(this.getStatusStringLocked());
 }
 _async=Async.DISPATCH;
 if (context != null) _event.setDispatchContext(context);
 if (path != null) _event.setDispatchPath(path);
+if (started) {
 switch (_state) {
 case DISPATCHED:
 case ASYNC_IO:
-  dispatch=false;
+case ASYNC_WOKEN:
 break;
 case ASYNC_WAIT:
 _state=State.ASYNC_WOKEN;
 dispatch=true;
 break;
-case ASYNC_WOKEN:
-dispatch=false;
-break;
 default :
 LOG.warn("async dispatched when complete {}",this);
-dispatch=false;
 break;
 }
 }
- cancelTimeout();
+}
+ cancelTimeout(event);
 if (dispatch) scheduleDispatch();
 }

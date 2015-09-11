@@ -5,21 +5,28 @@
   if (tmp != null && tmp.endsWith(".class"))   tmp=tmp.substring(0,tmp.length() - 6);
   boolean system_class=_context.isSystemClass(tmp);
   boolean server_class=_context.isServerClass(tmp);
+  if (LOG.isDebugEnabled())   LOG.debug("getResource({}) system={} server={} cl={}",name,system_class,server_class,this);
   if (system_class && server_class)   return null;
+  ClassLoader source=null;
   if (_parent != null && (_context.isParentLoaderPriority() || system_class) && !server_class) {
     tried_parent=true;
-    if (_parent != null)     url=_parent.getResource(name);
+    if (_parent != null) {
+      source=_parent;
+      url=_parent.getResource(name);
+    }
   }
   if (url == null) {
     url=this.findResource(name);
-    if (url == null && name.startsWith("/")) {
-      if (LOG.isDebugEnabled())       LOG.debug("HACK leading / off " + name);
-      url=this.findResource(name.substring(1));
-    }
+    source=this;
+    if (url == null && name.startsWith("/"))     url=this.findResource(name.substring(1));
   }
   if (url == null && !tried_parent && !server_class) {
-    if (_parent != null)     url=_parent.getResource(name);
+    if (_parent != null) {
+      tried_parent=true;
+      source=_parent;
+      url=_parent.getResource(name);
+    }
   }
-  if (url != null)   if (LOG.isDebugEnabled())   LOG.debug("getResource(" + name + ")="+ url);
+  if (LOG.isDebugEnabled())   LOG.debug("gotResource({})=={} from={} tried_parent={}",name,url,source,tried_parent);
   return url;
 }

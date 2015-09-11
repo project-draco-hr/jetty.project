@@ -1,24 +1,25 @@
 {
   boolean handle=false;
+  AsyncContextEvent event=null;
   try (Locker.Lock lock=_locker.lock()){
+    boolean started=false;
+    event=_event;
 switch (_async) {
 case STARTED:
+      started=true;
+    break;
 case EXPIRING:
 case ERRORED:
-      break;
+  break;
 default :
-    throw new IllegalStateException(this.getStatusStringLocked());
+throw new IllegalStateException(this.getStatusStringLocked());
 }
 _async=Async.COMPLETE;
-if (_state == State.ASYNC_WAIT) {
-  handle=true;
-  _state=State.ASYNC_WOKEN;
+if (started && _state == State.ASYNC_WAIT) {
+handle=true;
+_state=State.ASYNC_WOKEN;
 }
 }
- cancelTimeout();
-if (handle) {
-ContextHandler handler=getContextHandler();
-if (handler != null) handler.handle(_channel.getRequest(),_channel);
- else _channel.handle();
-}
+ cancelTimeout(event);
+if (handle) runInContext(event,_channel);
 }

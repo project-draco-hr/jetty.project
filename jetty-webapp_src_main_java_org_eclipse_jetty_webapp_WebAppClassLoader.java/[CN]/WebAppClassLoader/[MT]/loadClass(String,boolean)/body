@@ -5,11 +5,14 @@ synchronized (getClassLoadingLock(name)) {
     boolean tried_parent=false;
     boolean system_class=_context.isSystemClass(name);
     boolean server_class=_context.isServerClass(name);
+    if (LOG.isDebugEnabled())     LOG.debug("loadClass({}) system={} server={} cl={}",name,system_class,server_class,this);
+    ClassLoader source=null;
     if (system_class && server_class) {
       return null;
     }
     if (c == null && _parent != null && (_context.isParentLoaderPriority() || system_class) && !server_class) {
       tried_parent=true;
+      source=_parent;
       try {
         c=_parent.loadClass(name);
         if (LOG.isDebugEnabled())         LOG.debug("loaded " + c);
@@ -20,19 +23,24 @@ synchronized (getClassLoadingLock(name)) {
     }
     if (c == null) {
       try {
+        source=this;
         c=this.findClass(name);
       }
  catch (      ClassNotFoundException e) {
         ex=e;
       }
     }
-    if (c == null && _parent != null && !tried_parent && !server_class)     c=_parent.loadClass(name);
+    if (c == null && _parent != null && !tried_parent && !server_class) {
+      tried_parent=true;
+      source=_parent;
+      c=_parent.loadClass(name);
+    }
     if (c == null && ex != null) {
-      LOG.debug("not found {} from {}",name,this,ex);
+      LOG.debug("!loadedClass({}) from={} tried_parent={}",name,this,tried_parent);
       throw ex;
     }
+    if (LOG.isDebugEnabled())     LOG.debug("loadedClass({})=={} from={} tried_parent={}",name,c,source,tried_parent);
     if (resolve)     resolveClass(c);
-    if (LOG.isDebugEnabled())     LOG.debug("loaded {} from {}",c,c == null ? null : c.getClassLoader());
     return c;
   }
 }
