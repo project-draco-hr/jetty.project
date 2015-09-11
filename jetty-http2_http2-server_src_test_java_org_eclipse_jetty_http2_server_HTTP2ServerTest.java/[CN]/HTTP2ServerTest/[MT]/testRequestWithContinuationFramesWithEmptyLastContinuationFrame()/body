@@ -1,17 +1,2 @@
 {
-  testRequestWithContinuationFrames(new Callable<ByteBufferPool.Lease>(){
-    @Override public ByteBufferPool.Lease call() throws Exception {
-      ByteBufferPool.Lease lease=new ByteBufferPool.Lease(byteBufferPool);
-      generator.control(lease,new PrefaceFrame());
-      MetaData.Request metaData=newRequest("GET",new HttpFields());
-      generator.control(lease,new HeadersFrame(1,metaData,null,true));
-      List<ByteBuffer> buffers=lease.getByteBuffers();
-      ByteBuffer continuationFrameHeader=buffers.get(buffers.size() - 2);
-      continuationFrameHeader.put(4,(byte)0);
-      ByteBuffer last=ByteBuffer.wrap(new byte[]{0,0,0,(byte)FrameType.CONTINUATION.getType(),(byte)Flags.END_HEADERS,0,0,0,1});
-      lease.append(last,false);
-      return lease;
-    }
-  }
-);
 }

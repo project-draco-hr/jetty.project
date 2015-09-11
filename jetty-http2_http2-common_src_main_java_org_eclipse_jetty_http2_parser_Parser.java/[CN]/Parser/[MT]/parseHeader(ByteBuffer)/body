@@ -1,0 +1,22 @@
+{
+  if (!headerParser.parse(buffer))   return false;
+  int frameType=getFrameType();
+  if (LOG.isDebugEnabled())   LOG.debug("Parsed {} frame header",FrameType.from(frameType));
+  if (continuation) {
+    if (frameType != FrameType.CONTINUATION.getType()) {
+      BufferUtil.clear(buffer);
+      notifyConnectionFailure(ErrorCode.PROTOCOL_ERROR.code,"continuation_frame_expected");
+      return false;
+    }
+    if (headerParser.hasFlag(Flags.END_HEADERS)) {
+      continuation=false;
+    }
+  }
+ else {
+    if (frameType == FrameType.HEADERS.getType() && !headerParser.hasFlag(Flags.END_HEADERS)) {
+      continuation=true;
+    }
+  }
+  state=State.BODY;
+  return true;
+}
