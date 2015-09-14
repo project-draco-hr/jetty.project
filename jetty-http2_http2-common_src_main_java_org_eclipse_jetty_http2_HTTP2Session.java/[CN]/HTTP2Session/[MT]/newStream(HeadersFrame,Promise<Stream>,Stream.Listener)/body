@@ -1,10 +1,13 @@
 {
   boolean queued;
 synchronized (this) {
-    int streamId=streamIds.getAndAdd(2);
-    PriorityFrame priority=frame.getPriority();
-    priority=priority == null ? null : new PriorityFrame(streamId,priority.getDependentStreamId(),priority.getWeight(),priority.isExclusive());
-    frame=new HeadersFrame(streamId,frame.getMetaData(),priority,frame.isEndStream());
+    int streamId=frame.getStreamId();
+    if (streamId <= 0) {
+      streamId=streamIds.getAndAdd(2);
+      PriorityFrame priority=frame.getPriority();
+      priority=priority == null ? null : new PriorityFrame(streamId,priority.getParentStreamId(),priority.getWeight(),priority.isExclusive());
+      frame=new HeadersFrame(streamId,frame.getMetaData(),priority,frame.isEndStream());
+    }
     final IStream stream=createLocalStream(streamId,promise);
     if (stream == null)     return;
     stream.setListener(listener);

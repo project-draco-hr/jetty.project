@@ -1,0 +1,45 @@
+{
+  CountDownLatch beforeRequests=new CountDownLatch(1);
+  CountDownLatch afterRequests=new CountDownLatch(2);
+  start(new ServerSessionListener.Adapter(){
+    @Override public Stream.Listener onNewStream(    Stream stream,    HeadersFrame frame){
+      try {
+        beforeRequests.await(5,TimeUnit.SECONDS);
+        MetaData.Response metaData=new MetaData.Response(HttpVersion.HTTP_2,200,new HttpFields());
+        HeadersFrame responseFrame=new HeadersFrame(stream.getId(),metaData,null,true);
+        stream.headers(responseFrame,Callback.NOOP);
+        afterRequests.countDown();
+        return null;
+      }
+ catch (      InterruptedException x) {
+        x.printStackTrace();
+        return null;
+      }
+    }
+  }
+);
+  CountDownLatch responses=new CountDownLatch(2);
+  Stream.Listener.Adapter listener=new Stream.Listener.Adapter(){
+    @Override public void onHeaders(    Stream stream,    HeadersFrame frame){
+      if (frame.isEndStream())       responses.countDown();
+    }
+  }
+;
+  Session session=newClient(new Session.Listener.Adapter());
+  MetaData metaData1=newRequest("GET","/one",new HttpFields());
+  HeadersFrame headersFrame1=new HeadersFrame(metaData1,null,true);
+  FuturePromise<Stream> promise1=new FuturePromise<>();
+  session.newStream(headersFrame1,promise1,listener);
+  Stream stream1=promise1.get(5,TimeUnit.SECONDS);
+  MetaData metaData2=newRequest("GET","/two",new HttpFields());
+  HeadersFrame headersFrame2=new HeadersFrame(metaData2,null,true);
+  FuturePromise<Stream> promise2=new FuturePromise<>();
+  session.newStream(headersFrame2,promise2,listener);
+  Stream stream2=promise2.get(5,TimeUnit.SECONDS);
+  int streamId=session.priority(new PriorityFrame(stream1.getId(),stream2.getId(),13,false),Callback.NOOP);
+  Assert.assertEquals(stream1.getId(),streamId);
+  Thread.sleep(1000);
+  beforeRequests.countDown();
+  Assert.assertTrue(afterRequests.await(5,TimeUnit.SECONDS));
+  Assert.assertTrue(responses.await(5,TimeUnit.SECONDS));
+}
