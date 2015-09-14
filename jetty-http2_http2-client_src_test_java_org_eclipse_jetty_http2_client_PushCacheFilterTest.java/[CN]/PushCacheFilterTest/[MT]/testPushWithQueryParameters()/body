@@ -22,13 +22,13 @@
   HttpFields primaryFields=new HttpFields();
   MetaData.Request primaryRequest=newRequest("GET",primaryResource,primaryFields);
   final CountDownLatch warmupLatch=new CountDownLatch(1);
-  session.newStream(new HeadersFrame(0,primaryRequest,null,true),new Promise.Adapter<>(),new Stream.Listener.Adapter(){
+  session.newStream(new HeadersFrame(primaryRequest,null,true),new Promise.Adapter<>(),new Stream.Listener.Adapter(){
     @Override public void onHeaders(    Stream stream,    HeadersFrame frame){
       if (frame.isEndStream()) {
         HttpFields secondaryFields=new HttpFields();
         secondaryFields.put(HttpHeader.REFERER,primaryURI);
         MetaData.Request secondaryRequest=newRequest("GET",secondaryResource,secondaryFields);
-        session.newStream(new HeadersFrame(0,secondaryRequest,null,true),new Promise.Adapter<>(),new Stream.Listener.Adapter(){
+        session.newStream(new HeadersFrame(secondaryRequest,null,true),new Promise.Adapter<>(),new Stream.Listener.Adapter(){
           @Override public void onHeaders(          Stream stream,          HeadersFrame frame){
             if (frame.isEndStream())             warmupLatch.countDown();
           }
@@ -43,7 +43,7 @@
   primaryRequest=newRequest("GET",primaryResource,primaryFields);
   final CountDownLatch primaryResponseLatch=new CountDownLatch(1);
   final CountDownLatch pushLatch=new CountDownLatch(1);
-  session.newStream(new HeadersFrame(0,primaryRequest,null,true),new Promise.Adapter<>(),new Stream.Listener.Adapter(){
+  session.newStream(new HeadersFrame(primaryRequest,null,true),new Promise.Adapter<>(),new Stream.Listener.Adapter(){
     @Override public Stream.Listener onPush(    Stream stream,    PushPromiseFrame frame){
       return new Adapter(){
         @Override public void onHeaders(        Stream stream,        HeadersFrame frame){

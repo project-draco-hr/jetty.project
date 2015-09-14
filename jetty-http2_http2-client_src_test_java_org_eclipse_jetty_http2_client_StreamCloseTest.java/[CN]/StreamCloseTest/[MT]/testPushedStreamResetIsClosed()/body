@@ -3,7 +3,7 @@
   start(new ServerSessionListener.Adapter(){
     @Override public Stream.Listener onNewStream(    final Stream stream,    HeadersFrame frame){
       PushPromiseFrame pushFrame=new PushPromiseFrame(stream.getId(),0,newRequest("GET",new HttpFields()));
-      stream.push(pushFrame,new Promise.Adapter<Stream>(),new Stream.Listener.Adapter(){
+      stream.push(pushFrame,new Promise.Adapter<>(),new Stream.Listener.Adapter(){
         @Override public void onReset(        Stream pushedStream,        ResetFrame frame){
           Assert.assertTrue(pushedStream.isReset());
           Assert.assertTrue(pushedStream.isClosed());
@@ -18,9 +18,9 @@
   }
 );
   Session session=newClient(new Session.Listener.Adapter());
-  HeadersFrame frame=new HeadersFrame(0,newRequest("GET",new HttpFields()),null,true);
+  HeadersFrame frame=new HeadersFrame(newRequest("GET",new HttpFields()),null,true);
   final CountDownLatch clientLatch=new CountDownLatch(2);
-  session.newStream(frame,new Promise.Adapter<Stream>(),new Stream.Listener.Adapter(){
+  session.newStream(frame,new Promise.Adapter<>(),new Stream.Listener.Adapter(){
     @Override public Stream.Listener onPush(    final Stream pushedStream,    PushPromiseFrame frame){
       pushedStream.reset(new ResetFrame(pushedStream.getId(),ErrorCode.REFUSED_STREAM_ERROR.code),new Callback(){
         @Override public void succeeded(){
