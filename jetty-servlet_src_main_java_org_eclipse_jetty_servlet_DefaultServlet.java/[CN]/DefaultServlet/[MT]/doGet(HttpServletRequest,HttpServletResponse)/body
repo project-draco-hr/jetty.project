@@ -2,8 +2,8 @@
   String servletPath=null;
   String pathInfo=null;
   Enumeration<String> reqRanges=null;
-  Boolean included=request.getAttribute(RequestDispatcher.INCLUDE_REQUEST_URI) != null;
-  if (included != null && included.booleanValue()) {
+  boolean included=request.getAttribute(RequestDispatcher.INCLUDE_REQUEST_URI) != null;
+  if (included) {
     servletPath=(String)request.getAttribute(RequestDispatcher.INCLUDE_SERVLET_PATH);
     pathInfo=(String)request.getAttribute(RequestDispatcher.INCLUDE_PATH_INFO);
     if (servletPath == null) {
@@ -12,7 +12,6 @@
     }
   }
  else {
-    included=Boolean.FALSE;
     servletPath=_pathInfoOnly ? "/" : request.getServletPath();
     pathInfo=request.getPathInfo();
     reqRanges=request.getHeaders(HttpHeader.RANGE.asString());
@@ -20,106 +19,48 @@
   }
   String pathInContext=URIUtil.addPaths(servletPath,pathInfo);
   boolean endsWithSlash=(pathInfo == null ? request.getServletPath() : pathInfo).endsWith(URIUtil.SLASH);
-  Resource resource=null;
+  boolean gzippable=_gzip && !endsWithSlash && !included&& reqRanges == null;
   HttpContent content=null;
-  boolean close_content=true;
+  boolean release_content=true;
   try {
-    String pathInContextGz=null;
-    boolean gzip=false;
-    if (!included.booleanValue() && _gzip && reqRanges == null && !endsWithSlash) {
-      pathInContextGz=pathInContext + ".gz";
-      if (_cache == null)       resource=getResource(pathInContextGz);
- else {
-        content=_cache.lookup(pathInContextGz);
-        resource=(content == null) ? null : content.getResource();
-      }
-      if (resource != null && resource.exists() && !resource.isDirectory()) {
-        response.addHeader(HttpHeader.VARY.asString(),HttpHeader.ACCEPT_ENCODING.asString());
-        String accept=request.getHeader(HttpHeader.ACCEPT_ENCODING.asString());
-        if (accept != null && accept.indexOf("gzip") >= 0)         gzip=true;
-      }
-    }
-    if (!gzip) {
-      if (_cache == null)       resource=getResource(pathInContext);
- else {
-        content=_cache.lookup(pathInContext);
-        resource=content == null ? null : content.getResource();
-      }
-    }
-    if (LOG.isDebugEnabled())     LOG.debug(String.format("uri=%s, resource=%s, content=%s",request.getRequestURI(),resource,content));
-    if (resource == null || !resource.exists()) {
+    content=_contentFactory.getContent(pathInContext);
+    if (LOG.isDebugEnabled())     LOG.info("content={}",content);
+    if (content == null || !content.getResource().exists()) {
       if (included)       throw new FileNotFoundException("!" + pathInContext);
       response.sendError(HttpServletResponse.SC_NOT_FOUND);
+      return;
     }
- else     if (!resource.isDirectory()) {
-      if (endsWithSlash && pathInContext.length() > 1) {
-        String q=request.getQueryString();
-        pathInContext=pathInContext.substring(0,pathInContext.length() - 1);
-        if (q != null && q.length() != 0)         pathInContext+="?" + q;
-        response.sendRedirect(response.encodeRedirectURL(URIUtil.addPaths(_servletContext.getContextPath(),pathInContext)));
-      }
- else {
-        if (content == null)         content=new ResourceHttpContent(resource,_mimeTypes.getMimeByExtension(pathInContext),response.getBufferSize(),_etags);
-        if (included.booleanValue() || passConditionalHeaders(request,response,resource,content)) {
-          if (gzip || isGzippedContent(pathInContext)) {
-            response.setHeader(HttpHeader.CONTENT_ENCODING.asString(),"gzip");
-            String mt=_servletContext.getMimeType(pathInContext);
-            if (mt != null)             response.setContentType(mt);
-          }
-          close_content=sendData(request,response,included.booleanValue(),resource,content,reqRanges);
-        }
-      }
+    if (content.getResource().isDirectory()) {
+      sendWelcome(content,pathInContext,endsWithSlash,included,request,response);
+      return;
     }
- else {
-      String welcome=null;
-      if (!endsWithSlash || (pathInContext.length() == 1 && request.getAttribute("org.eclipse.jetty.server.nullPathInfo") != null)) {
-        StringBuffer buf=request.getRequestURL();
-synchronized (buf) {
-          int param=buf.lastIndexOf(";");
-          if (param < 0)           buf.append('/');
- else           buf.insert(param,'/');
-          String q=request.getQueryString();
-          if (q != null && q.length() != 0) {
-            buf.append('?');
-            buf.append(q);
-          }
-          response.setContentLength(0);
-          response.sendRedirect(response.encodeRedirectURL(buf.toString()));
-        }
-      }
- else       if (null != (welcome=getWelcomeFile(pathInContext))) {
-        if (LOG.isDebugEnabled())         LOG.debug("welcome={}",welcome);
-        if (_redirectWelcome) {
-          response.setContentLength(0);
-          String q=request.getQueryString();
-          if (q != null && q.length() != 0)           response.sendRedirect(response.encodeRedirectURL(URIUtil.addPaths(_servletContext.getContextPath(),welcome) + "?" + q));
- else           response.sendRedirect(response.encodeRedirectURL(URIUtil.addPaths(_servletContext.getContextPath(),welcome)));
-        }
- else {
-          RequestDispatcher dispatcher=request.getRequestDispatcher(welcome);
-          if (dispatcher != null) {
-            if (included.booleanValue())             dispatcher.include(request,response);
- else {
-              request.setAttribute("org.eclipse.jetty.server.welcome",welcome);
-              dispatcher.forward(request,response);
-            }
-          }
-        }
-      }
- else {
-        content=new ResourceHttpContent(resource,_mimeTypes.getMimeByExtension(pathInContext),_etags);
-        if (included.booleanValue() || passConditionalHeaders(request,response,resource,content))         sendDirectory(request,response,resource,pathInContext);
+    if (endsWithSlash && pathInContext.length() > 1) {
+      String q=request.getQueryString();
+      pathInContext=pathInContext.substring(0,pathInContext.length() - 1);
+      if (q != null && q.length() != 0)       pathInContext+="?" + q;
+      response.sendRedirect(response.encodeRedirectURL(URIUtil.addPaths(_servletContext.getContextPath(),pathInContext)));
+      return;
+    }
+    if (!included && !passConditionalHeaders(request,response,content))     return;
+    HttpContent gzip_content=gzippable ? content.getGzipContent() : null;
+    if (gzip_content != null) {
+      response.addHeader(HttpHeader.VARY.asString(),HttpHeader.ACCEPT_ENCODING.asString());
+      String accept=request.getHeader(HttpHeader.ACCEPT_ENCODING.asString());
+      if (accept != null && accept.indexOf("gzip") >= 0) {
+        if (LOG.isDebugEnabled())         LOG.debug("gzip={}",gzip_content);
+        content=gzip_content;
       }
     }
+    if (isGzippedContent(pathInContext))     response.setHeader(HttpHeader.CONTENT_ENCODING.asString(),"gzip");
+    release_content=sendData(request,response,included,content,reqRanges);
   }
  catch (  IllegalArgumentException e) {
     LOG.warn(Log.EXCEPTION,e);
     if (!response.isCommitted())     response.sendError(500,e.getMessage());
   }
  finally {
-    if (close_content) {
+    if (release_content) {
       if (content != null)       content.release();
- else       if (resource != null)       resource.close();
     }
   }
 }

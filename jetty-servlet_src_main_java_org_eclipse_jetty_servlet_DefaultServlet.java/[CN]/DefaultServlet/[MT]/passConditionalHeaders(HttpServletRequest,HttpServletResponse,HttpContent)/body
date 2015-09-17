@@ -1,0 +1,102 @@
+{
+  try {
+    String ifm=null;
+    String ifnm=null;
+    String ifms=null;
+    long ifums=-1;
+    if (request instanceof Request) {
+      HttpFields fields=((Request)request).getHttpFields();
+      for (int i=fields.size(); i-- > 0; ) {
+        HttpField field=fields.getField(i);
+        if (field.getHeader() != null) {
+switch (field.getHeader()) {
+case IF_MATCH:
+            ifm=field.getValue();
+          break;
+case IF_NONE_MATCH:
+        ifnm=field.getValue();
+      break;
+case IF_MODIFIED_SINCE:
+    ifms=field.getValue();
+  break;
+case IF_UNMODIFIED_SINCE:
+ifums=DateParser.parseDate(field.getValue());
+break;
+default :
+}
+}
+}
+}
+ else {
+ifm=request.getHeader(HttpHeader.IF_MATCH.asString());
+ifnm=request.getHeader(HttpHeader.IF_NONE_MATCH.asString());
+ifms=request.getHeader(HttpHeader.IF_MODIFIED_SINCE.asString());
+ifums=request.getDateHeader(HttpHeader.IF_UNMODIFIED_SINCE.asString());
+}
+if (!HttpMethod.HEAD.is(request.getMethod())) {
+if (_etags) {
+if (ifm != null) {
+boolean match=false;
+if (content.getETagValue() != null) {
+QuotedStringTokenizer quoted=new QuotedStringTokenizer(ifm,", ",false,true);
+while (!match && quoted.hasMoreTokens()) {
+String tag=quoted.nextToken();
+if (content.getETagValue().equals(tag)) match=true;
+}
+}
+if (!match) {
+response.setStatus(HttpServletResponse.SC_PRECONDITION_FAILED);
+return false;
+}
+}
+if (ifnm != null && content.getETagValue() != null) {
+if (content.getETagValue().equals(request.getAttribute("o.e.j.s.Gzip.ETag"))) {
+response.setStatus(HttpServletResponse.SC_NOT_MODIFIED);
+response.setHeader(HttpHeader.ETAG.asString(),ifnm);
+return false;
+}
+if (content.getETagValue().equals(ifnm)) {
+response.setStatus(HttpServletResponse.SC_NOT_MODIFIED);
+response.setHeader(HttpHeader.ETAG.asString(),content.getETagValue());
+return false;
+}
+QuotedStringTokenizer quoted=new QuotedStringTokenizer(ifnm,", ",false,true);
+while (quoted.hasMoreTokens()) {
+String tag=quoted.nextToken();
+if (content.getETagValue().equals(tag)) {
+response.setStatus(HttpServletResponse.SC_NOT_MODIFIED);
+response.setHeader(HttpHeader.ETAG.asString(),content.getETagValue());
+return false;
+}
+}
+return true;
+}
+}
+if (ifms != null) {
+String mdlm=content.getLastModifiedValue();
+if (mdlm != null && ifms.equals(mdlm)) {
+response.setStatus(HttpServletResponse.SC_NOT_MODIFIED);
+if (_etags) response.setHeader(HttpHeader.ETAG.asString(),content.getETagValue());
+response.flushBuffer();
+return false;
+}
+long ifmsl=request.getDateHeader(HttpHeader.IF_MODIFIED_SINCE.asString());
+if (ifmsl != -1 && content.getResource().lastModified() / 1000 <= ifmsl / 1000) {
+response.setStatus(HttpServletResponse.SC_NOT_MODIFIED);
+if (_etags) response.setHeader(HttpHeader.ETAG.asString(),content.getETagValue());
+response.flushBuffer();
+return false;
+}
+}
+if (ifums != -1 && content.getResource().lastModified() / 1000 > ifums / 1000) {
+response.sendError(HttpServletResponse.SC_PRECONDITION_FAILED);
+return false;
+}
+}
+}
+ catch (IllegalArgumentException iae) {
+if (!response.isCommitted()) response.sendError(400,iae.getMessage());
+throw iae;
+}
+return true;
+}

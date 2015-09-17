@@ -54,21 +54,23 @@
     if (max_cache_size != -1 || max_cached_file_size != -2 || max_cached_files != -2)     LOG.debug("ignoring resource cache configuration, using resourceCache attribute");
     if (_relativeResourceBase != null || _resourceBase != null)     throw new UnavailableException("resourceCache specified with resource bases");
     _cache=(ResourceCache)_servletContext.getAttribute(resourceCache);
-    if (LOG.isDebugEnabled())     LOG.debug("Cache {}={}",resourceCache,_cache);
+    if (LOG.isDebugEnabled())     LOG.debug("Cache {}={}",resourceCache,_contentFactory);
   }
   _etags=getInitBoolean("etags",_etags);
   try {
     if (_cache == null && (max_cached_files != -2 || max_cache_size != -2 || max_cached_file_size != -2)) {
-      _cache=new ResourceCache(null,this,_mimeTypes,_useFileMappedBuffer,_etags);
+      _cache=new ResourceCache(null,this,_mimeTypes,_useFileMappedBuffer,_etags,_gzip);
       if (max_cache_size >= 0)       _cache.setMaxCacheSize(max_cache_size);
       if (max_cached_file_size >= -1)       _cache.setMaxCachedFileSize(max_cached_file_size);
       if (max_cached_files >= -1)       _cache.setMaxCachedFiles(max_cached_files);
+      _servletContext.setAttribute(resourceCache == null ? "resourceCache" : resourceCache,_cache);
     }
   }
  catch (  Exception e) {
     LOG.warn(Log.EXCEPTION,e);
     throw new UnavailableException(e.toString());
   }
+  _contentFactory=_cache == null ? new ResourceContentFactory(this,_mimeTypes,-1,_gzip) : _cache;
   _gzipEquivalentFileExtensions=new ArrayList<String>();
   String otherGzipExtensions=getInitParameter("otherGzipFileExtensions");
   if (otherGzipExtensions != null) {

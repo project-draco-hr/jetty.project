@@ -1,0 +1,11 @@
+{
+  if (resource == null || !resource.exists())   return null;
+  if (resource.isDirectory())   return new ResourceHttpContent(resource,_mimeTypes.getMimeByExtension(resource.toString()),_maxBufferSize);
+  String mt=_mimeTypes.getMimeByExtension(pathInContext);
+  if (_gzip) {
+    String pathInContextGz=pathInContext + ".gz";
+    Resource resourceGz=_factory.getResource(pathInContextGz);
+    if (resourceGz.exists() && resourceGz.lastModified() >= resource.lastModified() && resourceGz.length() < resource.length())     return new ResourceHttpContent(resource,mt,_maxBufferSize,new ResourceHttpContent(resourceGz,_mimeTypes.getMimeByExtension(pathInContextGz),_maxBufferSize));
+  }
+  return new ResourceHttpContent(resource,mt,_maxBufferSize);
+}

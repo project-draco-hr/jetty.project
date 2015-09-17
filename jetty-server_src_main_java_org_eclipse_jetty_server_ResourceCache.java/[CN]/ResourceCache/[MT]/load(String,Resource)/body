@@ -1,8 +1,27 @@
 {
-  CachedHttpContent content=null;
   if (resource == null || !resource.exists())   return null;
-  if (!resource.isDirectory() && isCacheable(resource)) {
-    content=new CachedHttpContent(pathInContext,resource);
+  if (resource.isDirectory())   return new ResourceHttpContent(resource,_mimeTypes.getMimeByExtension(resource.toString()),getMaxCachedFileSize());
+  if (isCacheable(resource)) {
+    CachedHttpContent content=null;
+    if (_gzip) {
+      String pathInContextGz=pathInContext + ".gz";
+      CachedHttpContent contentGz=_cache.get(pathInContextGz);
+      if (contentGz == null || !contentGz.isValid()) {
+        contentGz=null;
+        Resource resourceGz=_factory.getResource(pathInContextGz);
+        if (resourceGz.exists() && resourceGz.lastModified() >= resource.lastModified() && resourceGz.length() < resource.length()) {
+          contentGz=new CachedHttpContent(pathInContextGz,resourceGz,null);
+          shrinkCache();
+          CachedHttpContent added=_cache.putIfAbsent(pathInContextGz,contentGz);
+          if (added != null) {
+            contentGz.invalidate();
+            contentGz=added;
+          }
+        }
+      }
+      content=new CachedHttpContent(pathInContext,resource,contentGz);
+    }
+ else     content=new CachedHttpContent(pathInContext,resource,null);
     shrinkCache();
     CachedHttpContent added=_cache.putIfAbsent(pathInContext,content);
     if (added != null) {
@@ -11,5 +30,13 @@
     }
     return content;
   }
-  return new ResourceHttpContent(resource,_mimeTypes.getMimeByExtension(resource.toString()),getMaxCachedFileSize(),_etagSupported);
+  String mt=_mimeTypes.getMimeByExtension(pathInContext);
+  if (_gzip) {
+    String pathInContextGz=pathInContext + ".gz";
+    CachedHttpContent contentGz=_cache.get(pathInContextGz);
+    if (contentGz != null && contentGz.isValid() && contentGz.getResource().lastModified() >= resource.lastModified())     return new ResourceHttpContent(resource,mt,getMaxCachedFileSize(),contentGz);
+    Resource resourceGz=_factory.getResource(pathInContextGz);
+    if (resourceGz.exists() && resourceGz.lastModified() >= resource.lastModified() && resourceGz.length() < resource.length())     return new ResourceHttpContent(resource,mt,getMaxCachedFileSize(),new ResourceHttpContent(resourceGz,_mimeTypes.getMimeByExtension(pathInContextGz),getMaxCachedFileSize()));
+  }
+  return new ResourceHttpContent(resource,mt,getMaxCachedFileSize());
 }
