@@ -42,9 +42,13 @@
       }
     }
   }
-  String etag=request.getHeader("If-None-Match");
+  String etag=baseRequest.getHttpFields().get(HttpHeader.IF_NONE_MATCH);
   if (etag != null) {
-    if (etag.contains(GzipHttpContent.ETAG_GZIP))     request.setAttribute(ETAG,etag.replace(GzipHttpContent.ETAG_GZIP,""));
+    int i=etag.indexOf(ETAG_GZIP_QUOTE);
+    while (i >= 0) {
+      baseRequest.getHttpFields().put(new HttpField(HttpHeader.ETAG,etag.substring(0,i) + etag.substring(i + GzipHttpContent.ETAG_GZIP.length())));
+      i=etag.indexOf(ETAG_GZIP_QUOTE,i);
+    }
   }
   out.setInterceptor(new GzipHttpOutputInterceptor(this,_vary,baseRequest.getHttpChannel(),out.getInterceptor()));
   if (_handler != null)   _handler.handle(target,baseRequest,request,response);

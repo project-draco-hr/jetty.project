@@ -35,13 +35,14 @@ ifums=request.getDateHeader(HttpHeader.IF_UNMODIFIED_SINCE.asString());
 }
 if (!HttpMethod.HEAD.is(request.getMethod())) {
 if (_etags) {
+String etag=content.getETagValue();
 if (ifm != null) {
 boolean match=false;
-if (content.getETagValue() != null) {
+if (etag != null) {
 QuotedStringTokenizer quoted=new QuotedStringTokenizer(ifm,", ",false,true);
 while (!match && quoted.hasMoreTokens()) {
 String tag=quoted.nextToken();
-if (content.getETagValue().equals(tag)) match=true;
+if (etag.equals(tag) || tag.endsWith(ETAG_GZIP_QUOTE) && etag.equals(removeGzipFromETag(tag))) match=true;
 }
 }
 if (!match) {
@@ -49,23 +50,18 @@ response.setStatus(HttpServletResponse.SC_PRECONDITION_FAILED);
 return false;
 }
 }
-if (ifnm != null && content.getETagValue() != null) {
-if (content.getETagValue().equals(request.getAttribute("o.e.j.s.Gzip.ETag"))) {
+if (ifnm != null && etag != null) {
+if (etag.equals(ifnm) || ifnm.endsWith(ETAG_GZIP_QUOTE) && ifnm.indexOf(',') < 0 && etag.equals(removeGzipFromETag(etag))) {
 response.setStatus(HttpServletResponse.SC_NOT_MODIFIED);
 response.setHeader(HttpHeader.ETAG.asString(),ifnm);
-return false;
-}
-if (content.getETagValue().equals(ifnm)) {
-response.setStatus(HttpServletResponse.SC_NOT_MODIFIED);
-response.setHeader(HttpHeader.ETAG.asString(),content.getETagValue());
 return false;
 }
 QuotedStringTokenizer quoted=new QuotedStringTokenizer(ifnm,", ",false,true);
 while (quoted.hasMoreTokens()) {
 String tag=quoted.nextToken();
-if (content.getETagValue().equals(tag)) {
+if (etag.equals(tag) || tag.endsWith(ETAG_GZIP_QUOTE) && etag.equals(removeGzipFromETag(tag))) {
 response.setStatus(HttpServletResponse.SC_NOT_MODIFIED);
-response.setHeader(HttpHeader.ETAG.asString(),content.getETagValue());
+response.setHeader(HttpHeader.ETAG.asString(),tag);
 return false;
 }
 }
