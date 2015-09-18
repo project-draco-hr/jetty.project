@@ -1,0 +1,17 @@
+{
+  ProcessBuilder processBuilder=new ProcessBuilder();
+  processBuilder.directory(_datastoreDir);
+  processBuilder.redirectErrorStream(true);
+  if (System.getProperty("os.name").toLowerCase(Locale.ENGLISH).contains("windows")) {
+    processBuilder.command("cmd","/C",new File(_gcdUnpackedDir,"gcd.cmd").getAbsolutePath(),"start","--testing","--allow_remote_shutdown","--port=" + String.valueOf(_port),_projectId);
+  }
+ else {
+    processBuilder.command("bash",new File(_gcdUnpackedDir,"gcd.sh").getAbsolutePath(),"start","--testing","--allow_remote_shutdown","--port=" + String.valueOf(_port),_projectId);
+  }
+  System.err.println("Starting datastore");
+  Process temp=processBuilder.start();
+  ProcessOutputReader reader=new ProcessOutputReader(temp.getInputStream(),"Dev App Server is now running");
+  Thread readerThread=new Thread(reader,"GCD reader");
+  readerThread.setDaemon(true);
+  readerThread.start();
+}

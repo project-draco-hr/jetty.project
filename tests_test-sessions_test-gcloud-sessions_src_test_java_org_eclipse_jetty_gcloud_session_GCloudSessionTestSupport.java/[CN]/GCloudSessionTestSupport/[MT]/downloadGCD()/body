@@ -1,0 +1,17 @@
+{
+  File zipFile=new File(_gcdInstallDir,DEFAULT_GCD_ZIP);
+  _gcdUnpackedDir=new File(_gcdInstallDir,DEFAULT_GCD_UNPACKED);
+  File gcdSh=new File(_gcdUnpackedDir,"gcd.sh");
+  if (gcdSh.exists())   return;
+  if (_gcdInstallDir.exists() && !zipFile.exists()) {
+    ReadableByteChannel rbc=Channels.newChannel(new URL(DEFAULT_DOWNLOAD_URL + DEFAULT_GCD_ZIP).openStream());
+    try (FileOutputStream fos=new FileOutputStream(zipFile)){
+      fos.getChannel().transferFrom(rbc,0,Long.MAX_VALUE);
+    }
+   }
+  if (zipFile.exists()) {
+    Resource zipResource=JarResource.newJarResource(Resource.newResource(zipFile));
+    zipResource.copyTo(_gcdInstallDir);
+  }
+  System.err.println("GCD downloaded and unpacked");
+}
