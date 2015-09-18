@@ -45,9 +45,12 @@
   String etag=baseRequest.getHttpFields().get(HttpHeader.IF_NONE_MATCH);
   if (etag != null) {
     int i=etag.indexOf(ETAG_GZIP_QUOTE);
-    while (i >= 0) {
-      baseRequest.getHttpFields().put(new HttpField(HttpHeader.ETAG,etag.substring(0,i) + etag.substring(i + GzipHttpContent.ETAG_GZIP.length())));
-      i=etag.indexOf(ETAG_GZIP_QUOTE,i);
+    if (i > 0) {
+      while (i >= 0) {
+        etag=etag.substring(0,i) + etag.substring(i + GzipHttpContent.ETAG_GZIP.length());
+        i=etag.indexOf(ETAG_GZIP_QUOTE,i);
+      }
+      baseRequest.getHttpFields().put(new HttpField(HttpHeader.IF_NONE_MATCH,etag));
     }
   }
   out.setInterceptor(new GzipHttpOutputInterceptor(this,_vary,baseRequest.getHttpChannel(),out.getInterceptor()));
