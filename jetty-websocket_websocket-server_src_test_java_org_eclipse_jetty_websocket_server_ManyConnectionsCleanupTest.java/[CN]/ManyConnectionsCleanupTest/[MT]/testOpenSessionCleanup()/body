@@ -1,0 +1,41 @@
+{
+  int iterationCount=100;
+  StdErrLog.getLogger(FastFailSocket.class).setLevel(StdErrLog.LEVEL_OFF);
+  StdErrLog sessLog=StdErrLog.getLogger(WebSocketSession.class);
+  int oldLevel=sessLog.getLevel();
+  sessLog.setLevel(StdErrLog.LEVEL_OFF);
+  for (int requests=0; requests < iterationCount; requests++) {
+    fastFail();
+    fastClose();
+    dropConnection();
+  }
+  sessLog.setLevel(oldLevel);
+  try (BlockheadClient client=new BlockheadClient(server.getServerUri())){
+    client.setProtocols("container");
+    client.setTimeout(1,TimeUnit.SECONDS);
+    client.connect();
+    client.sendStandardRequest();
+    client.expectUpgradeResponse();
+    client.write(new TextFrame().setPayload("calls"));
+    client.write(new TextFrame().setPayload("openSessions"));
+    EventQueue<WebSocketFrame> frames=client.readFrames(3,6,TimeUnit.SECONDS);
+    WebSocketFrame frame;
+    String resp;
+    frame=frames.poll();
+    assertThat("frames[0].opcode",frame.getOpCode(),is(OpCode.TEXT));
+    resp=frame.getPayloadAsUTF8();
+    assertThat("Should only have 1 open session",resp,containsString("calls=" + ((iterationCount * 2) + 1)));
+    frame=frames.poll();
+    assertThat("frames[1].opcode",frame.getOpCode(),is(OpCode.TEXT));
+    resp=frame.getPayloadAsUTF8();
+    assertThat("Should only have 1 open session",resp,containsString("openSessions.size=1\n"));
+    frame=frames.poll();
+    assertThat("frames[2].opcode",frame.getOpCode(),is(OpCode.CLOSE));
+    CloseInfo close=new CloseInfo(frame);
+    assertThat("Close Status Code",close.getStatusCode(),is(StatusCode.NORMAL));
+    client.write(close.asFrame());
+    assertThat("Open Sessions Latch",closeSocket.closeLatch.await(1,TimeUnit.SECONDS),is(true));
+    assertThat("Open Sessions.statusCode",closeSocket.closeStatusCode,is(StatusCode.NORMAL));
+    assertThat("Open Sessions.errors",closeSocket.errors.size(),is(0));
+  }
+ }
