@@ -1,0 +1,53 @@
+{
+  HttpClient client=getHttpChannel().getHttpDestination().getHttpClient();
+  ByteBufferPool bufferPool=client.getByteBufferPool();
+  while (true) {
+    HttpGenerator.Result result=generator.generateRequest(metaData,headerBuffer,chunkBuffer,contentBuffer,lastContent);
+    if (LOG.isDebugEnabled())     LOG.debug("Generated headers: {} - ",result,generator);
+switch (result) {
+case NEED_HEADER:
+{
+        headerBuffer=bufferPool.acquire(client.getRequestBufferSize(),false);
+        break;
+      }
+case NEED_CHUNK:
+{
+      chunkBuffer=bufferPool.acquire(HttpGenerator.CHUNK_SIZE,false);
+      break;
+    }
+case FLUSH:
+{
+    EndPoint endPoint=getHttpChannel().getHttpConnection().getEndPoint();
+    if (chunkBuffer == null) {
+      if (contentBuffer == null)       endPoint.write(this,headerBuffer);
+ else       endPoint.write(this,headerBuffer,contentBuffer);
+    }
+ else {
+      if (contentBuffer == null)       endPoint.write(this,headerBuffer,chunkBuffer);
+ else       endPoint.write(this,headerBuffer,chunkBuffer,contentBuffer);
+    }
+    generated=true;
+    return Action.SCHEDULED;
+  }
+case SHUTDOWN_OUT:
+{
+  shutdownOutput();
+  return Action.SUCCEEDED;
+}
+case CONTINUE:
+{
+if (generated) return Action.SUCCEEDED;
+break;
+}
+case DONE:
+{
+if (generated) return Action.SUCCEEDED;
+throw new HttpRequestException("Could not generate headers",exchange.getRequest());
+}
+default :
+{
+throw new IllegalStateException(result.toString());
+}
+}
+}
+}

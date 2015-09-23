@@ -1,2 +1,51 @@
 {
+  try {
+    HttpClient client=getHttpChannel().getHttpDestination().getHttpClient();
+    ByteBufferPool bufferPool=client.getByteBufferPool();
+    ByteBuffer chunk=null;
+    while (true) {
+      ByteBuffer contentBuffer=content.getByteBuffer();
+      boolean lastContent=content.isLast();
+      HttpGenerator.Result result=generator.generateRequest(null,null,chunk,contentBuffer,lastContent);
+      if (LOG.isDebugEnabled())       LOG.debug("Generated content: {} - {}",result,generator);
+switch (result) {
+case NEED_CHUNK:
+{
+          chunk=bufferPool.acquire(HttpGenerator.CHUNK_SIZE,false);
+          break;
+        }
+case FLUSH:
+{
+        EndPoint endPoint=getHttpChannel().getHttpConnection().getEndPoint();
+        if (chunk != null)         endPoint.write(new ByteBufferRecyclerCallback(callback,bufferPool,chunk),chunk,contentBuffer);
+ else         endPoint.write(callback,contentBuffer);
+        return;
+      }
+case SHUTDOWN_OUT:
+{
+      shutdownOutput();
+      break;
+    }
+case CONTINUE:
+{
+    if (lastContent)     break;
+    callback.succeeded();
+    return;
+  }
+case DONE:
+{
+  callback.succeeded();
+  return;
+}
+default :
+{
+throw new IllegalStateException(result.toString());
+}
+}
+}
+}
+ catch (Throwable x) {
+if (LOG.isDebugEnabled()) LOG.debug(x);
+callback.failed(x);
+}
 }

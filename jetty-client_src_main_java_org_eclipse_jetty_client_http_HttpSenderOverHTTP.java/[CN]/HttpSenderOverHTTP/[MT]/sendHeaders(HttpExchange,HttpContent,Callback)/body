@@ -1,66 +1,9 @@
 {
-  Request request=exchange.getRequest();
-  ContentProvider requestContent=request.getContent();
-  long contentLength=requestContent == null ? -1 : requestContent.getLength();
-  String path=request.getPath();
-  String query=request.getQuery();
-  if (query != null)   path+="?" + query;
-  MetaData.Request requestInfo=new MetaData.Request(request.getMethod(),new HttpURI(path),request.getVersion(),request.getHeaders(),contentLength);
   try {
-    HttpClient client=getHttpChannel().getHttpDestination().getHttpClient();
-    ByteBufferPool bufferPool=client.getByteBufferPool();
-    ByteBuffer header=bufferPool.acquire(client.getRequestBufferSize(),false);
-    ByteBuffer chunk=null;
-    ByteBuffer contentBuffer=null;
-    boolean lastContent=false;
-    if (!expects100Continue(request)) {
-      content.advance();
-      contentBuffer=content.getByteBuffer();
-      lastContent=content.isLast();
-    }
-    while (true) {
-      HttpGenerator.Result result=generator.generateRequest(requestInfo,header,chunk,contentBuffer,lastContent);
-switch (result) {
-case NEED_CHUNK:
-{
-          chunk=bufferPool.acquire(HttpGenerator.CHUNK_SIZE,false);
-          break;
-        }
-case FLUSH:
-{
-        int size=1;
-        boolean hasChunk=chunk != null;
-        if (hasChunk)         ++size;
-        boolean hasContent=contentBuffer != null;
-        if (hasContent)         ++size;
-        ByteBuffer[] toWrite=new ByteBuffer[size];
-        ByteBuffer[] toRecycle=new ByteBuffer[hasChunk ? 2 : 1];
-        toWrite[0]=header;
-        toRecycle[0]=header;
-        if (hasChunk) {
-          toWrite[1]=chunk;
-          toRecycle[1]=chunk;
-        }
-        if (hasContent)         toWrite[toWrite.length - 1]=contentBuffer;
-        EndPoint endPoint=getHttpChannel().getHttpConnection().getEndPoint();
-        endPoint.write(new ByteBufferRecyclerCallback(callback,bufferPool,toRecycle),toWrite);
-        return;
-      }
-case DONE:
-{
-      callback.failed(new HttpRequestException("Could not generate headers",request));
-      return;
-    }
-default :
-{
-    callback.failed(new IllegalStateException(result.toString()));
-    return;
+    new HeadersCallback(exchange,content,callback).iterate();
   }
-}
-}
-}
- catch (Throwable x) {
-if (LOG.isDebugEnabled()) LOG.debug(x);
-callback.failed(x);
-}
+ catch (  Throwable x) {
+    if (LOG.isDebugEnabled())     LOG.debug(x);
+    callback.failed(x);
+  }
 }

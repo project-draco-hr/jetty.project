@@ -4,7 +4,10 @@ case START:
 {
       if (info == null)       return Result.NEED_INFO;
       if (header == null)       return Result.NEED_HEADER;
-      if (_persistent == null)       _persistent=(info.getVersion().ordinal() > HttpVersion.HTTP_1_0.ordinal());
+      if (_persistent == null) {
+        _persistent=info.getVersion().ordinal() > HttpVersion.HTTP_1_0.ordinal();
+        if (!_persistent && HttpMethod.CONNECT.is(info.getMethod()))         _persistent=true;
+      }
       int pos=BufferUtil.flipToFill(header);
       try {
         generateRequestLine(info,header);
@@ -44,11 +47,8 @@ case COMMITTED:
       }
       _contentPrepared+=len;
     }
-    if (last) {
-      _state=State.COMPLETING;
-      return len > 0 ? Result.FLUSH : Result.CONTINUE;
-    }
-    return Result.FLUSH;
+    if (last)     _state=State.COMPLETING;
+    return len > 0 ? Result.FLUSH : Result.CONTINUE;
   }
 case COMPLETING:
 {
