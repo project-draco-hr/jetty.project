@@ -1,11 +1,13 @@
 {
   _availability=Availability.UNAVAILABLE;
   ClassLoader old_classloader=null;
+  ClassLoader old_webapploader=null;
   Thread current_thread=null;
   Context old_context=__context.get();
   __context.set(_scontext);
   try {
     if (_classLoader != null) {
+      old_webapploader=_classLoader;
       current_thread=Thread.currentThread();
       old_classloader=current_thread.getContextClassLoader();
       current_thread.setContextClassLoader(_classLoader);
@@ -20,7 +22,7 @@
   finally {
     LOG.info("Stopped {}",this);
     __context.set(old_context);
-    if (_classLoader != null && current_thread != null)     current_thread.setContextClassLoader(old_classloader);
+    if ((old_classloader == null || (old_classloader != old_webapploader)) && current_thread != null)     current_thread.setContextClassLoader(old_classloader);
   }
   _scontext.clearAttributes();
 }
