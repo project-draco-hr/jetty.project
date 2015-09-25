@@ -9,8 +9,10 @@
       HttpSenderOverHTTP2.this.stream=stream;
       stream.setIdleTimeout(request.getIdleTimeout());
       if (content.hasContent() && !expects100Continue(request)) {
-        if (content.advance()) {
-          DataFrame dataFrame=new DataFrame(stream.getId(),content.getByteBuffer(),content.isLast());
+        boolean advanced=content.advance();
+        boolean lastContent=content.isLast();
+        if (advanced || lastContent) {
+          DataFrame dataFrame=new DataFrame(stream.getId(),content.getByteBuffer(),lastContent);
           stream.data(dataFrame,callback);
           return;
         }
