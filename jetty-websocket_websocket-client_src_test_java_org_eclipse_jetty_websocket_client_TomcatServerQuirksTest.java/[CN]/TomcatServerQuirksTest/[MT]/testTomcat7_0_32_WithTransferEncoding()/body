@@ -8,7 +8,7 @@
     LatchedSocket websocket=new LatchedSocket();
     URI wsURI=server.getWsUri();
     client.connect(websocket,wsURI);
-    ServerConnection socket=server.accept();
+    IBlockheadServerConnection socket=server.accept();
     socket.setSoTimeout(2000);
     socket.addResponseHeader("Transfer-Encoding","chunked");
     socket.upgrade();
@@ -23,8 +23,7 @@
     serverFrame.put((byte)(payload.length & 0xFF));
     serverFrame.put(payload);
     BufferUtil.flipToFlush(serverFrame,0);
-    byte buf[]=BufferUtil.toArray(serverFrame);
-    socket.write(buf,0,buf.length);
+    socket.write(serverFrame);
     socket.flush();
     Assert.assertTrue(websocket.dataLatch.await(1000,TimeUnit.SECONDS));
   }
