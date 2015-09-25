@@ -1,14 +1,7 @@
 {
   if (streamId < 0)   throw new IllegalArgumentException("Invalid stream id: " + streamId);
   int flags=Flags.NONE;
-  if (priority != null) {
-    flags=Flags.PRIORITY;
-    int parentStreamId=priority.getParentStreamId();
-    if (parentStreamId < 0)     throw new IllegalArgumentException("Invalid parent stream id: " + parentStreamId);
-    if (parentStreamId == streamId)     throw new IllegalArgumentException("Stream " + streamId + " cannot depend on stream "+ parentStreamId);
-    int weight=priority.getWeight();
-    if (weight > 255)     throw new IllegalArgumentException("Invalid weight: " + weight);
-  }
+  if (priority != null)   flags=Flags.PRIORITY;
   int maxFrameSize=getMaxFrameSize();
   ByteBuffer hpacked=lease.acquire(maxFrameSize,false);
   BufferUtil.clearToFill(hpacked);
@@ -20,9 +13,9 @@
     int length=maxHeaderBlockFragment;
     if (priority != null)     length+=PriorityFrame.PRIORITY_LENGTH;
     ByteBuffer header=generateHeader(lease,FrameType.HEADERS,length,flags,streamId);
+    generatePriority(header,priority);
     BufferUtil.flipToFlush(header,0);
     lease.append(header,true);
-    generatePriority(lease,priority);
     hpacked.limit(maxHeaderBlockFragment);
     lease.append(hpacked.slice(),false);
     int position=maxHeaderBlockFragment;
@@ -48,9 +41,9 @@
     int length=hpackedLength;
     if (priority != null)     length+=PriorityFrame.PRIORITY_LENGTH;
     ByteBuffer header=generateHeader(lease,FrameType.HEADERS,length,flags,streamId);
+    generatePriority(header,priority);
     BufferUtil.flipToFlush(header,0);
     lease.append(header,true);
-    generatePriority(lease,priority);
     lease.append(hpacked,true);
   }
 }
