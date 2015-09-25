@@ -1,7 +1,46 @@
 {
-  _logger=java.util.logging.Logger.getLogger(name);
-  if (Boolean.parseBoolean(Log.__props.getProperty("org.eclipse.jetty.util.log.DEBUG","false"))) {
-    _logger.setLevel(Level.FINE);
+synchronized (JavaUtilLog.class) {
+    if (!_initialized) {
+      _initialized=true;
+      final String properties=Log.__props.getProperty("org.eclipse.jetty.util.log.javautil.PROPERTIES",null);
+      if (properties != null) {
+        AccessController.doPrivileged(new PrivilegedAction<Object>(){
+          public Object run(){
+            try {
+              URL props=Loader.getResource(JavaUtilLog.class,properties);
+              if (props != null)               LogManager.getLogManager().readConfiguration(props.openStream());
+            }
+ catch (            Throwable e) {
+              System.err.println("[WARN] Error loading logging config: " + properties);
+              e.printStackTrace(System.err);
+            }
+            return null;
+          }
+        }
+);
+      }
+    }
   }
-  configuredLevel=_logger.getLevel();
+  _logger=java.util.logging.Logger.getLogger(name);
+switch (lookupLoggingLevel(Log.__props,name)) {
+case LEVEL_ALL:
+    _logger.setLevel(Level.ALL);
+  break;
+case LEVEL_DEBUG:
+_logger.setLevel(Level.FINE);
+break;
+case LEVEL_INFO:
+_logger.setLevel(Level.INFO);
+break;
+case LEVEL_WARN:
+_logger.setLevel(Level.WARNING);
+break;
+case LEVEL_OFF:
+_logger.setLevel(Level.OFF);
+break;
+case LEVEL_DEFAULT:
+default :
+break;
+}
+configuredLevel=_logger.getLevel();
 }
