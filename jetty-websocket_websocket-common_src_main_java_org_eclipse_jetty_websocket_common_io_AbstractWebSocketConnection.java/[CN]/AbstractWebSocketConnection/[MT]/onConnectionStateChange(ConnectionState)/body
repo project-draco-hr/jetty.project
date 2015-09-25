@@ -1,5 +1,5 @@
 {
-  if (LOG.isDebugEnabled())   LOG.debug("{} Connection State Change: {}",policy.getBehavior(),state);
+  if (LOG_CLOSE.isDebugEnabled())   LOG_CLOSE.debug("{} Connection State Change: {}",policy.getBehavior(),state);
 switch (state) {
 case OPEN:
     if (BufferUtil.hasContent(prefillBuffer)) {
@@ -14,6 +14,7 @@ case OPEN:
 fillInterested();
 break;
 case CLOSED:
+if (LOG_CLOSE.isDebugEnabled()) LOG_CLOSE.debug("CLOSED - wasAbnormalClose: {}",ioState.wasAbnormalClose());
 if (ioState.wasAbnormalClose()) {
 CloseInfo abnormal=new CloseInfo(StatusCode.SHUTDOWN,"Abnormal Close - " + ioState.getCloseInfo().getReason());
 outgoingFrame(abnormal.asFrame(),new OnDisconnectCallback(false),BatchMode.OFF);
@@ -23,6 +24,7 @@ this.disconnect(false);
 }
 break;
 case CLOSING:
+if (LOG_CLOSE.isDebugEnabled()) LOG_CLOSE.debug("CLOSING - wasRemoteCloseInitiated: {}",ioState.wasRemoteCloseInitiated());
 if (ioState.wasRemoteCloseInitiated()) {
 CloseInfo close=ioState.getCloseInfo();
 outgoingFrame(close.asFrame(),new OnCloseLocalCallback(new OnDisconnectCallback(true),close),BatchMode.OFF);
