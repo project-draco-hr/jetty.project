@@ -1,8 +1,20 @@
 {
   final CountDownLatch serverLatch=new CountDownLatch(1);
-  startServer(new HttpServlet(){
-    @Override protected void service(    HttpServletRequest request,    HttpServletResponse response) throws ServletException, IOException {
+  startServer(new ServerSessionListener.Adapter(){
+    @Override public Stream.Listener onNewStream(    Stream stream,    HeadersFrame frame){
+      if (priorityFrame != null) {
+        PriorityFrame priority=frame.getPriority();
+        Assert.assertNotNull(priority);
+        Assert.assertEquals(priorityFrame.getStreamId(),priority.getStreamId());
+        Assert.assertEquals(priorityFrame.getParentStreamId(),priority.getParentStreamId());
+        Assert.assertEquals(priorityFrame.getWeight(),priority.getWeight());
+        Assert.assertEquals(priorityFrame.isExclusive(),priority.isExclusive());
+      }
       serverLatch.countDown();
+      MetaData.Response metaData=new MetaData.Response(HttpVersion.HTTP_2,200,new HttpFields());
+      HeadersFrame responseFrame=new HeadersFrame(stream.getId(),metaData,null,true);
+      stream.headers(responseFrame,Callback.NOOP);
+      return null;
     }
   }
 );

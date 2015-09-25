@@ -1,5 +1,14 @@
 {
   if (streamId < 0)   throw new IllegalArgumentException("Invalid stream id: " + streamId);
+  int flags=Flags.NONE;
+  if (priority != null) {
+    flags=Flags.PRIORITY;
+    int parentStreamId=priority.getParentStreamId();
+    if (parentStreamId < 0)     throw new IllegalArgumentException("Invalid parent stream id: " + parentStreamId);
+    if (parentStreamId == streamId)     throw new IllegalArgumentException("Stream " + streamId + " cannot depend on stream "+ parentStreamId);
+    int weight=priority.getWeight();
+    if (weight > 255)     throw new IllegalArgumentException("Invalid weight: " + weight);
+  }
   int maxFrameSize=getMaxFrameSize();
   ByteBuffer hpacked=lease.acquire(maxFrameSize,false);
   BufferUtil.clearToFill(hpacked);
@@ -7,10 +16,13 @@
   int hpackedLength=hpacked.position();
   BufferUtil.flipToFlush(hpacked,0);
   if (maxHeaderBlockFragment > 0 && hpackedLength > maxHeaderBlockFragment) {
-    int flags=contentFollows ? Flags.NONE : Flags.END_STREAM;
-    ByteBuffer header=generateHeader(lease,FrameType.HEADERS,maxHeaderBlockFragment,flags,streamId);
+    if (endStream)     flags|=Flags.END_STREAM;
+    int length=maxHeaderBlockFragment;
+    if (priority != null)     length+=PriorityFrame.PRIORITY_LENGTH;
+    ByteBuffer header=generateHeader(lease,FrameType.HEADERS,length,flags,streamId);
     BufferUtil.flipToFlush(header,0);
     lease.append(header,true);
+    generatePriority(lease,priority);
     hpacked.limit(maxHeaderBlockFragment);
     lease.append(hpacked.slice(),false);
     int position=maxHeaderBlockFragment;
@@ -31,11 +43,14 @@
     lease.append(hpacked,true);
   }
  else {
-    int flags=Flags.END_HEADERS;
-    if (!contentFollows)     flags|=Flags.END_STREAM;
-    ByteBuffer header=generateHeader(lease,FrameType.HEADERS,hpackedLength,flags,streamId);
+    flags|=Flags.END_HEADERS;
+    if (endStream)     flags|=Flags.END_STREAM;
+    int length=hpackedLength;
+    if (priority != null)     length+=PriorityFrame.PRIORITY_LENGTH;
+    ByteBuffer header=generateHeader(lease,FrameType.HEADERS,length,flags,streamId);
     BufferUtil.flipToFlush(header,0);
     lease.append(header,true);
+    generatePriority(lease,priority);
     lease.append(hpacked,true);
   }
 }
