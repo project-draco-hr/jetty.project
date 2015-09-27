@@ -15,15 +15,20 @@
     }
  else {
       URI uri=target.getURI();
-      resourcesDir=Resource.newResource("jar:" + uri + "!/META-INF/resources");
+      resourcesDir=Resource.newResource("jar:" + uri + "!/META-INF/resources",false);
     }
-    if (!resourcesDir.exists() || !resourcesDir.isDirectory())     resourcesDir=EmptyResource.INSTANCE;
+    if (!resourcesDir.exists() || !resourcesDir.isDirectory()) {
+      resourcesDir.close();
+      resourcesDir=EmptyResource.INSTANCE;
+    }
     if (cache != null) {
       Resource old=cache.putIfAbsent(target,resourcesDir);
       if (old != null)       resourcesDir=old;
  else       if (LOG.isDebugEnabled())       LOG.debug(target + " META-INF/resources cache updated");
     }
-    if (resourcesDir == EmptyResource.INSTANCE)     return;
+    if (resourcesDir == EmptyResource.INSTANCE) {
+      return;
+    }
   }
   Set<Resource> dirs=(Set<Resource>)context.getAttribute(METAINF_RESOURCES);
   if (dirs == null) {

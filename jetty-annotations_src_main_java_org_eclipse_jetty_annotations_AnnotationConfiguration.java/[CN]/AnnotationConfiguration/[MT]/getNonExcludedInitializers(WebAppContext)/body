@@ -2,11 +2,10 @@
   ArrayList<ServletContainerInitializer> nonExcludedInitializers=new ArrayList<ServletContainerInitializer>();
   long start=0;
   ClassLoader old=Thread.currentThread().getContextClassLoader();
-  ServiceLoader<ServletContainerInitializer> loadedInitializers=null;
   try {
     if (LOG.isDebugEnabled())     start=System.nanoTime();
     Thread.currentThread().setContextClassLoader(context.getClassLoader());
-    loadedInitializers=ServiceLoader.load(ServletContainerInitializer.class);
+    _loadedInitializers=ServiceLoader.load(ServletContainerInitializer.class);
   }
   finally {
     Thread.currentThread().setContextClassLoader(old);
@@ -14,7 +13,7 @@
   if (LOG.isDebugEnabled())   LOG.debug("Service loaders found in {}ms",(TimeUnit.MILLISECONDS.convert((System.nanoTime() - start),TimeUnit.NANOSECONDS)));
   Map<ServletContainerInitializer,Resource> sciResourceMap=new HashMap<ServletContainerInitializer,Resource>();
   ServletContainerInitializerOrdering initializerOrdering=getInitializerOrdering(context);
-  for (  ServletContainerInitializer sci : loadedInitializers) {
+  for (  ServletContainerInitializer sci : _loadedInitializers) {
     if (matchesExclusionPattern(sci)) {
       if (LOG.isDebugEnabled())       LOG.debug("{} excluded by pattern",sci);
       continue;
