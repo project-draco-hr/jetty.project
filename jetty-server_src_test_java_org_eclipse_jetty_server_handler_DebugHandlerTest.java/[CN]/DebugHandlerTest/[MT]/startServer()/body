@@ -1,0 +1,19 @@
+{
+  server=new Server();
+  ServerConnector connector=new ServerConnector(server);
+  connector.setPort(0);
+  server.addConnector(connector);
+  debugHandler=new DebugHandler();
+  capturedLog=new ByteArrayOutputStream();
+  debugHandler.setOutputStream(capturedLog);
+  debugHandler.setHandler(new AbstractHandler(){
+    @Override public void handle(    String target,    Request baseRequest,    HttpServletRequest request,    HttpServletResponse response) throws IOException, ServletException {
+      baseRequest.setHandled(true);
+      response.setStatus(HttpStatus.OK_200);
+    }
+  }
+);
+  server.setHandler(debugHandler);
+  server.start();
+  serverURI=URI.create(String.format("http://%s:%d/",connector.getHost() == null ? "localhost" : connector.getHost(),connector.getLocalPort()));
+}
