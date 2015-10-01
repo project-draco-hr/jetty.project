@@ -2,7 +2,8 @@
   long now=System.currentTimeMillis();
   Session session=_converter.sessionFromEntity(e);
   if (session == null)   return;
-  Session memSession=_sessions.get(session.getId());
-  if (memSession == null)   memSession=_sessions.putIfAbsent(session.getId(),memSession);
+  if (LOG.isDebugEnabled())   LOG.debug("Scavenging session: {}",session.getId());
+  Session memSession=_sessions.putIfAbsent(session.getId(),session);
+  if (memSession == null)   memSession=session;
   if (memSession.isExpiredAt(now))   memSession.timeout();
 }
