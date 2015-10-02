@@ -1,26 +1,46 @@
 {
   if (entity == null)   return null;
-  String clusterId=entity.getString(CLUSTERID);
-  String contextPath=entity.getString(CONTEXTPATH);
-  String vhost=entity.getString(VHOST);
-  long accessed=entity.getLong(ACCESSED);
-  long lastAccessed=entity.getLong(LASTACCESSED);
-  long createTime=entity.getLong(CREATETIME);
-  long cookieSetTime=entity.getLong(COOKIESETTIME);
-  String lastNode=entity.getString(LASTNODE);
-  long expiry=entity.getLong(EXPIRY);
-  long maxInactive=entity.getLong(MAXINACTIVE);
-  Blob blob=(Blob)entity.getBlob(ATTRIBUTES);
-  Session session=new Session(clusterId,createTime,accessed,maxInactive);
-  session.setLastNode(lastNode);
-  session.setContextPath(contextPath);
-  session.setVHost(vhost);
-  session.setCookieSetTime(cookieSetTime);
-  session.setLastAccessedTime(lastAccessed);
-  session.setLastNode(lastNode);
-  try (ClassLoadingObjectInputStream ois=new ClassLoadingObjectInputStream(blob.asInputStream())){
-    Object o=ois.readObject();
-    session.addAttributes((Map<String,Object>)o);
+  final AtomicReference<Session> reference=new AtomicReference<Session>();
+  final AtomicReference<Exception> exception=new AtomicReference<Exception>();
+  Runnable load=new Runnable(){
+    public void run(){
+      try {
+        String clusterId=entity.getString(CLUSTERID);
+        String contextPath=entity.getString(CONTEXTPATH);
+        String vhost=entity.getString(VHOST);
+        long accessed=entity.getLong(ACCESSED);
+        long lastAccessed=entity.getLong(LASTACCESSED);
+        long createTime=entity.getLong(CREATETIME);
+        long cookieSetTime=entity.getLong(COOKIESETTIME);
+        String lastNode=entity.getString(LASTNODE);
+        long expiry=entity.getLong(EXPIRY);
+        long maxInactive=entity.getLong(MAXINACTIVE);
+        Blob blob=(Blob)entity.getBlob(ATTRIBUTES);
+        Session session=new Session(clusterId,createTime,accessed,maxInactive);
+        session.setLastNode(lastNode);
+        session.setContextPath(contextPath);
+        session.setVHost(vhost);
+        session.setCookieSetTime(cookieSetTime);
+        session.setLastAccessedTime(lastAccessed);
+        session.setLastNode(lastNode);
+        session.setExpiry(expiry);
+        try (ClassLoadingObjectInputStream ois=new ClassLoadingObjectInputStream(blob.asInputStream())){
+          Object o=ois.readObject();
+          session.addAttributes((Map<String,Object>)o);
+        }
+         reference.set(session);
+      }
+ catch (      Exception e) {
+        exception.set(e);
+      }
+    }
   }
-   return session;
+;
+  if (_context == null)   load.run();
+ else   _context.getContextHandler().handle(null,load);
+  if (exception.get() != null) {
+    exception.get().printStackTrace();
+    throw exception.get();
+  }
+  return reference.get();
 }
