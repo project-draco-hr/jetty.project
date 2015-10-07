@@ -1,0 +1,116 @@
+{
+  try {
+    ((StdErrLog)Log.getLogger(HttpChannel.class)).setHideStacks(true);
+    int acceptors=0;
+    int selectors=1;
+    int maxThreads=10;
+    final int barried=maxThreads - acceptors - selectors;
+    final CyclicBarrier barrier=new CyclicBarrier(barried);
+    QueuedThreadPool threadPool=new QueuedThreadPool(maxThreads,maxThreads);
+    threadPool.setDetailedDump(true);
+    _server=new Server(threadPool);
+    ServerConnector connector=new ServerConnector(_server,acceptors,selectors){
+      @Override protected SelectChannelEndPoint newEndPoint(      SocketChannel channel,      ManagedSelector selectSet,      SelectionKey key) throws IOException {
+        return new SelectChannelEndPoint(channel,selectSet,key,getScheduler(),getIdleTimeout()){
+          @Override public boolean flush(          ByteBuffer... buffers) throws IOException {
+            super.flush(buffers[0]);
+            throw new IOException("TEST FAILURE");
+          }
+        }
+;
+      }
+    }
+;
+    connector.setIdleTimeout(Long.MAX_VALUE);
+    _server.addConnector(connector);
+    final AtomicInteger count=new AtomicInteger(0);
+    _server.setHandler(new AbstractHandler(){
+      @Override public void handle(      String target,      Request baseRequest,      HttpServletRequest request,      HttpServletResponse response) throws IOException, ServletException {
+        int c=count.getAndIncrement();
+        try {
+          if (c < barried) {
+            barrier.await(10,TimeUnit.SECONDS);
+          }
+        }
+ catch (        InterruptedException|BrokenBarrierException|TimeoutException e) {
+          throw new ServletException(e);
+        }
+        baseRequest.setHandled(true);
+        response.setStatus(200);
+        response.setContentLength(13);
+        response.getWriter().print("Hello World!\n");
+        response.getWriter().flush();
+      }
+    }
+);
+    _server.start();
+    List<Socket> sockets=new ArrayList<>();
+    for (int i=0; i < maxThreads * 2; ++i) {
+      Socket socket=new Socket("localhost",connector.getLocalPort());
+      sockets.add(socket);
+      OutputStream output=socket.getOutputStream();
+      String request="" + "GET / HTTP/1.1\r\n" + "Host: localhost\r\n"+ "\r\n";
+      output.write(request.getBytes(StandardCharsets.UTF_8));
+      output.flush();
+    }
+    byte[] buffer=new byte[48 * 1024];
+    List<Exchanger<Integer>> totals=new ArrayList<>();
+    for (    Socket socket : sockets) {
+      final Exchanger<Integer> x=new Exchanger<>();
+      totals.add(x);
+      final InputStream input=socket.getInputStream();
+      new Thread(){
+        @Override public void run(){
+          int read=0;
+          try {
+            StringBuilder header=new StringBuilder();
+            int state=0;
+            while (state < 4 && header.length() < 2048) {
+              int ch=input.read();
+              if (ch < 0)               break;
+              header.append((char)ch);
+switch (state) {
+case 0:
+                if (ch == '\r')                 state=1;
+              break;
+case 1:
+            if (ch == '\n')             state=2;
+ else             state=0;
+          break;
+case 2:
+        if (ch == '\r')         state=3;
+ else         state=0;
+      break;
+case 3:
+    if (ch == '\n')     state=4;
+ else     state=0;
+  break;
+}
+}
+read=input.read(buffer);
+}
+ catch (IOException e) {
+}
+ finally {
+try {
+x.exchange(read);
+}
+ catch (InterruptedException e) {
+e.printStackTrace();
+}
+}
+}
+}
+.start();
+}
+for (Exchanger<Integer> x : totals) {
+Integer read=x.exchange(-1,10,TimeUnit.SECONDS);
+Assert.assertEquals(-1,read.intValue());
+}
+for (Socket socket : sockets) socket.close();
+_server.stop();
+}
+  finally {
+((StdErrLog)Log.getLogger(HttpChannel.class)).setHideStacks(false);
+}
+}

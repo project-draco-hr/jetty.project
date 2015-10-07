@@ -1,5 +1,5 @@
 {
-  int maxThreads=2;
+  int maxThreads=10;
   QueuedThreadPool threadPool=new QueuedThreadPool(maxThreads,maxThreads);
   threadPool.setDetailedDump(true);
   _server=new Server(threadPool);
@@ -27,6 +27,7 @@
     }
   }
 ;
+  connector.setIdleTimeout(Long.MAX_VALUE);
   _server.addConnector(connector);
   ServletContextHandler context=new ServletContextHandler(_server,"/");
   context.setResourceBase(directory.toURI().toString());
@@ -34,7 +35,7 @@
   _server.setHandler(context);
   _server.start();
   List<Socket> sockets=new ArrayList<>();
-  for (int i=0; i < maxThreads; ++i) {
+  for (int i=0; i < maxThreads * 2; ++i) {
     Socket socket=new Socket("localhost",connector.getLocalPort());
     sockets.add(socket);
     OutputStream output=socket.getOutputStream();
@@ -44,42 +45,38 @@
     Thread.sleep(100);
   }
   Assert.assertTrue(writePending.await(5,TimeUnit.SECONDS));
-  Thread.sleep(1000);
-  _server.dumpStdErr();
-  Thread.sleep(1000);
-  ScheduledFuture<?> dumper=Executors.newSingleThreadScheduledExecutor().schedule(new Runnable(){
-    @Override public void run(){
-      _server.dumpStdErr();
-    }
-  }
-,10,TimeUnit.SECONDS);
   long expected=Files.size(resourcePath);
   byte[] buffer=new byte[48 * 1024];
+  List<Exchanger<Long>> totals=new ArrayList<>();
   for (  Socket socket : sockets) {
-    String socketString=socket.toString();
-    long total=0;
-    InputStream input=socket.getInputStream();
-    StringBuilder header=new StringBuilder();
-    int state=0;
-    while (state < 4 && header.length() < 2048) {
-      int ch=input.read();
-      if (ch < 0)       break;
-      header.append((char)ch);
+    final Exchanger<Long> x=new Exchanger<>();
+    totals.add(x);
+    final InputStream input=socket.getInputStream();
+    new Thread(){
+      @Override public void run(){
+        long total=0;
+        try {
+          StringBuilder header=new StringBuilder();
+          int state=0;
+          while (state < 4 && header.length() < 2048) {
+            int ch=input.read();
+            if (ch < 0)             break;
+            header.append((char)ch);
 switch (state) {
 case 0:
-        if (ch == '\r')         state=1;
-      break;
+              if (ch == '\r')               state=1;
+            break;
 case 1:
-    if (ch == '\n')     state=2;
- else     state=0;
-  break;
+          if (ch == '\n')           state=2;
+ else           state=0;
+        break;
 case 2:
-if (ch == '\r') state=3;
- else state=0;
-break;
+      if (ch == '\r')       state=3;
+ else       state=0;
+    break;
 case 3:
-if (ch == '\n') state=4;
- else state=0;
+  if (ch == '\n')   state=4;
+ else   state=0;
 break;
 }
 }
@@ -88,8 +85,25 @@ int read=input.read(buffer);
 if (read < 0) break;
 total+=read;
 }
-Assert.assertEquals(expected,total);
 }
-dumper.cancel(false);
+ catch (IOException e) {
+e.printStackTrace();
+}
+ finally {
+try {
+x.exchange(total);
+}
+ catch (InterruptedException e) {
+e.printStackTrace();
+}
+}
+}
+}
+.start();
+}
+for (Exchanger<Long> x : totals) {
+Long total=x.exchange(-1L,10000,TimeUnit.SECONDS);
+Assert.assertEquals(expected,total.longValue());
+}
 for (Socket socket : sockets) socket.close();
 }
