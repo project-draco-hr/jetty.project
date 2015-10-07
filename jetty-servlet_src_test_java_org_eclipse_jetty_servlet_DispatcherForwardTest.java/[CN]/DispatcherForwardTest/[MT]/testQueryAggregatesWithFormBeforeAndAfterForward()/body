@@ -1,4 +1,5 @@
 {
+  CountDownLatch latch=new CountDownLatch(1);
   final String query1="a=1%20one";
   final String query2="c=3%20three";
   final String query3="c=3%20three&a=1%20one";
@@ -13,6 +14,7 @@
       checkThat(req.getParameter("a"),Matchers.equalTo("1 one"));
       checkThat(req.getParameter("b"),Matchers.equalTo("2 two"));
       checkThat(req.getParameter("c"),Matchers.nullValue());
+      latch.countDown();
     }
   }
 ;
@@ -28,5 +30,6 @@
   prepare();
   String request="" + "POST /one?" + query1 + " HTTP/1.1\r\n"+ "Host: localhost\r\n"+ "Content-Type: application/x-www-form-urlencoded\r\n"+ "Content-Length: "+ form.length()+ "\r\n"+ "Connection: close\r\n"+ "\r\n"+ form;
   String response=connector.getResponses(request);
+  Assert.assertTrue(latch.await(5,TimeUnit.SECONDS));
   Assert.assertTrue(response,response.startsWith("HTTP/1.1 200"));
 }
