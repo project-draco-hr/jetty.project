@@ -8,7 +8,8 @@
   WebSocketSession session=sessionFactory.createSession(request.getRequestURI(),websocket,connection);
   session.setPolicy(policy);
   session.setUpgradeResponse(response);
-  connection.setSession(session);
+  connection.addListener(session);
+  connectPromise.setSession(session);
   ExtensionStack extensionStack=new ExtensionStack(connectPromise.getClient().getExtensionFactory());
   extensionStack.negotiate(response.getExtensions());
   extensionStack.configure(connection.getParser());
@@ -17,7 +18,7 @@
   extensionStack.setNextIncoming(session);
   session.setOutgoingHandler(extensionStack);
   extensionStack.setNextOutgoing(connection);
-  session.addBean(extensionStack);
+  session.addManaged(extensionStack);
   connectPromise.getClient().addManaged(session);
   endp.upgrade(connection);
 }

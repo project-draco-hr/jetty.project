@@ -57,23 +57,15 @@
   session.setUpgradeRequest(request);
   response.setExtensions(extensionStack.getNegotiatedExtensions());
   session.setUpgradeResponse(response);
-  wsConnection.setSession(session);
+  wsConnection.addListener(session);
   wsConnection.setNextIncomingFrames(extensionStack);
   extensionStack.setNextIncoming(session);
   session.setOutgoingHandler(extensionStack);
   extensionStack.setNextOutgoing(wsConnection);
-  session.addBean(extensionStack);
-  this.addBean(session);
+  session.addManaged(extensionStack);
+  this.addManaged(session);
   if (session.isFailed()) {
     throw new IOException("Session failed to start");
-  }
- else   if (!session.isRunning()) {
-    try {
-      session.start();
-    }
- catch (    Exception e) {
-      throw new IOException("Unable to start Session",e);
-    }
   }
   request.setServletAttribute(HttpConnection.UPGRADE_CONNECTION_ATTRIBUTE,wsConnection);
   if (LOG.isDebugEnabled())   LOG.debug("Handshake Response: {}",handshaker);
