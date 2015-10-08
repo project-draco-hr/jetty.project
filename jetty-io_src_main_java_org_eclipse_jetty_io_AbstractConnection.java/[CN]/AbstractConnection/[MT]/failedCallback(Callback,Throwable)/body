@@ -1,19 +1,29 @@
 {
-  try {
-    getExecutor().execute(new Runnable(){
-      @Override public void run(){
-        try {
-          callback.failed(x);
-        }
- catch (        Exception e) {
-          LOG.warn(e);
+  if (callback.isNonBlocking()) {
+    try {
+      callback.failed(x);
+    }
+ catch (    Exception e) {
+      LOG.warn(e);
+    }
+  }
+ else {
+    try {
+      getExecutor().execute(new Runnable(){
+        @Override public void run(){
+          try {
+            callback.failed(x);
+          }
+ catch (          Exception e) {
+            LOG.warn(e);
+          }
         }
       }
-    }
 );
-  }
- catch (  RejectedExecutionException e) {
-    LOG.debug(e);
-    callback.failed(x);
+    }
+ catch (    RejectedExecutionException e) {
+      LOG.debug(e);
+      callback.failed(x);
+    }
   }
 }

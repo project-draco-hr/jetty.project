@@ -1,10 +1,42 @@
 {
+  List<ConnectionFactory> result=new ArrayList<>();
 switch (transport) {
 case HTTP:
-    return new HttpConnectionFactory(new HttpConfiguration());
-case HTTP2:
-  return new HTTP2ServerConnectionFactory(new HttpConfiguration());
+{
+      result.add(new HttpConnectionFactory(new HttpConfiguration()));
+      break;
+    }
+case HTTPS:
+{
+    HttpConfiguration configuration=new HttpConfiguration();
+    configuration.addCustomizer(new SecureRequestCustomizer());
+    HttpConnectionFactory http=new HttpConnectionFactory(configuration);
+    SslConnectionFactory ssl=new SslConnectionFactory(sslContextFactory,http.getProtocol());
+    result.add(ssl);
+    result.add(http);
+    break;
+  }
+case H2C:
+{
+  result.add(new HTTP2CServerConnectionFactory(new HttpConfiguration()));
+  break;
+}
+case H2:
+{
+HttpConfiguration configuration=new HttpConfiguration();
+configuration.addCustomizer(new SecureRequestCustomizer());
+HTTP2ServerConnectionFactory h2=new HTTP2ServerConnectionFactory(configuration);
+ALPNServerConnectionFactory alpn=new ALPNServerConnectionFactory("h2");
+SslConnectionFactory ssl=new SslConnectionFactory(sslContextFactory,alpn.getProtocol());
+result.add(ssl);
+result.add(alpn);
+result.add(h2);
+break;
+}
 default :
+{
 throw new IllegalArgumentException();
 }
+}
+return result.toArray(new ConnectionFactory[result.size()]);
 }
