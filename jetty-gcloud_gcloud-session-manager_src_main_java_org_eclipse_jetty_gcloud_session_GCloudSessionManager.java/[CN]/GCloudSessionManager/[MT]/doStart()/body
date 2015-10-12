@@ -1,0 +1,18 @@
+{
+  if (_sessionIdManager == null)   throw new IllegalStateException("No session id manager defined");
+  GCloudConfiguration config=((GCloudSessionIdManager)_sessionIdManager).getConfig();
+  if (config == null)   throw new IllegalStateException("No gcloud configuration");
+  _datastore=DatastoreFactory.instance().get(config.getDatastoreOptions());
+  _keyFactory=_datastore.newKeyFactory().kind(KIND);
+  _converter=new SessionEntityConverter();
+  _sessions=new ConcurrentHashMap<String,Session>();
+  _scheduler=getSessionHandler().getServer().getBean(Scheduler.class);
+  if (_scheduler == null) {
+    _scheduler=new ScheduledExecutorScheduler();
+    _ownScheduler=true;
+    _scheduler.start();
+  }
+ else   if (!_scheduler.isStarted())   throw new IllegalStateException("Shared scheduler not started");
+  setScavengeIntervalSec(getScavengeIntervalSec());
+  super.doStart();
+}

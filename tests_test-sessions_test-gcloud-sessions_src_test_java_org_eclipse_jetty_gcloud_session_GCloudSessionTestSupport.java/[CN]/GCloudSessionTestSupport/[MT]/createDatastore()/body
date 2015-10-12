@@ -1,0 +1,17 @@
+{
+  _datastoreDir=Files.createTempDirectory("gcloud-sessions").toFile();
+  _datastoreDir.deleteOnExit();
+  ProcessBuilder processBuilder=new ProcessBuilder();
+  processBuilder.redirectError(ProcessBuilder.Redirect.INHERIT);
+  processBuilder.directory(_datastoreDir);
+  if (System.getProperty("os.name").toLowerCase(Locale.ENGLISH).contains("windows")) {
+    processBuilder.command("cmd","/C",new File(_gcdUnpackedDir,"gcd.cmd").getAbsolutePath(),"create","-p",_projectId,_projectId);
+    processBuilder.redirectOutput(new File("NULL:"));
+  }
+ else {
+    processBuilder.redirectOutput(new File("/tmp/run.out"));
+    processBuilder.command("bash",new File(_gcdUnpackedDir,"gcd.sh").getAbsolutePath(),"create","-p",_projectId,_projectId);
+  }
+  Process temp=processBuilder.start();
+  System.err.println("Create outcome: " + temp.waitFor());
+}

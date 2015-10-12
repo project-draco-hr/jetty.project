@@ -1,0 +1,22 @@
+{
+  long old_period=_scavengeIntervalMs;
+  long period=sec * 1000L;
+  _scavengeIntervalMs=period;
+  if (_scavengeIntervalMs > 0) {
+    long tenPercent=_scavengeIntervalMs / 10;
+    if ((System.currentTimeMillis() % 2) == 0)     _scavengeIntervalMs+=tenPercent;
+    if (LOG.isDebugEnabled())     LOG.debug("Scavenging every " + _scavengeIntervalMs + " ms");
+  }
+ else {
+    if (LOG.isDebugEnabled())     LOG.debug("Scavenging disabled");
+  }
+synchronized (this) {
+    if (_scheduler != null && (period != old_period || _task == null)) {
+      if (_task != null)       _task.cancel();
+      if (_scavengeIntervalMs > 0) {
+        if (_scavenger == null)         _scavenger=new Scavenger();
+        _task=_scheduler.schedule(_scavenger,_scavengeIntervalMs,TimeUnit.MILLISECONDS);
+      }
+    }
+  }
+}
