@@ -6,19 +6,19 @@ switch (state) {
 case PREFACE:
 {
           if (!prefaceParser.parse(buffer))           return;
+          if (notifyPreface)           onPreface();
           state=State.SETTINGS;
           break;
         }
 case SETTINGS:
 {
         if (!parseHeader(buffer))         return;
-        if (getFrameType() != FrameType.SETTINGS.getType()) {
+        if (getFrameType() != FrameType.SETTINGS.getType() || hasFlag(Flags.ACK)) {
           BufferUtil.clear(buffer);
           notifyConnectionFailure(ErrorCode.PROTOCOL_ERROR.code,"invalid_preface");
           return;
         }
         if (!parseBody(buffer))         return;
-        onPreface();
         state=State.FRAMES;
         break;
       }
