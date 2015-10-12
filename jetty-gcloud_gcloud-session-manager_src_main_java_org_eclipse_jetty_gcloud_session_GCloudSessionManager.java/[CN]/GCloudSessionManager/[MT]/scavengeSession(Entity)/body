@@ -1,0 +1,14 @@
+{
+  long now=System.currentTimeMillis();
+  Session session=_converter.sessionFromEntity(e);
+  if (session == null)   return;
+  if (LOG.isDebugEnabled())   LOG.debug("Scavenging session: {}",session.getId());
+  Session memSession=_sessions.putIfAbsent(session.getId(),session);
+  if (memSession == null) {
+    memSession=session;
+  }
+  if (memSession.isExpiredAt(now)) {
+    if (LOG.isDebugEnabled())     LOG.debug("Session {} is definitely expired",memSession.getId());
+    memSession.timeout();
+  }
+}

@@ -1,0 +1,28 @@
+{
+  if (args.length < 4)   System.err.println("Usage: GCloudSessionTester projectid p12file password serviceaccount");
+  System.setProperty("org.eclipse.jetty.server.session.LEVEL","DEBUG");
+  Server server=new Server(8080);
+  HashLoginService loginService=new HashLoginService();
+  loginService.setName("Test Realm");
+  loginService.setConfig("../../jetty-distribution/target/distribution/demo-base/resources/realm.properties");
+  server.addBean(loginService);
+  GCloudConfiguration config=new GCloudConfiguration();
+  config.setProjectId(args[0]);
+  config.setP12File(args[1]);
+  config.setPassword(args[2]);
+  config.setServiceAccount(args[3]);
+  GCloudSessionIdManager idmgr=new GCloudSessionIdManager(server);
+  idmgr.setConfig(config);
+  idmgr.setWorkerName("w1");
+  server.setSessionIdManager(idmgr);
+  WebAppContext webapp=new WebAppContext();
+  webapp.setContextPath("/");
+  webapp.setWar("../../jetty-distribution/target/distribution/demo-base/webapps/test.war");
+  webapp.addAliasCheck(new AllowSymLinkAliasChecker());
+  GCloudSessionManager mgr=new GCloudSessionManager();
+  mgr.setSessionIdManager(idmgr);
+  webapp.setSessionHandler(new SessionHandler(mgr));
+  server.setHandler(webapp);
+  server.start();
+  server.join();
+}

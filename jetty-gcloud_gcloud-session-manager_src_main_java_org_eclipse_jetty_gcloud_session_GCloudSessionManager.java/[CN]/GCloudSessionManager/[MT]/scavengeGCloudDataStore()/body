@@ -1,0 +1,14 @@
+{
+  long now=System.currentTimeMillis();
+  now=now - (_scavengeIntervalMs / 2);
+  if (LOG.isDebugEnabled())   LOG.debug("Scavenging for sessions expired before " + now);
+  GqlQuery.Builder builder=Query.gqlQueryBuilder(ResultType.ENTITY,"select * from " + KIND + " where expiry < @1 limit "+ _maxResults);
+  builder.allowLiteral(true);
+  builder.addBinding(now);
+  Query<Entity> query=builder.build();
+  QueryResults<Entity> results=_datastore.run(query);
+  while (results.hasNext()) {
+    Entity sessionEntity=results.next();
+    scavengeSession(sessionEntity);
+  }
+}

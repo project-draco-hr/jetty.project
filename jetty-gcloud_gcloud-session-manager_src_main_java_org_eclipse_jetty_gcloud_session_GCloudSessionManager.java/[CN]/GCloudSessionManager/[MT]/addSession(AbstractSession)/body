@@ -1,0 +1,13 @@
+{
+  if (session == null)   return;
+  if (LOG.isDebugEnabled())   LOG.debug("Adding session({}) to session manager for context {} on worker {}",session.getClusterId(),getContextPath(getContext()),getSessionIdManager().getWorkerName() + " with lastnode=" + ((Session)session).getLastNode());
+  _sessions.put(session.getClusterId(),(Session)session);
+  try {
+    session.willPassivate();
+    save(((GCloudSessionManager.Session)session));
+    session.didActivate();
+  }
+ catch (  Exception e) {
+    LOG.warn("Unable to store new session id=" + session.getId(),e);
+  }
+}
