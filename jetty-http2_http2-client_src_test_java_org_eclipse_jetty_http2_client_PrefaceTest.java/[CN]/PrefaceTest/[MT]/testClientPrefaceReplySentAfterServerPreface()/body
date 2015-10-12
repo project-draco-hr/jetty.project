@@ -1,0 +1,46 @@
+{
+  start(new ServerSessionListener.Adapter(){
+    @Override public Map<Integer,Integer> onPreface(    Session session){
+      Map<Integer,Integer> settings=new HashMap<>();
+      settings.put(SettingsFrame.MAX_CONCURRENT_STREAMS,128);
+      return settings;
+    }
+    @Override public void onPing(    Session session,    PingFrame frame){
+      session.close(ErrorCode.NO_ERROR.code,null,Callback.NOOP);
+    }
+  }
+);
+  ByteBufferPool byteBufferPool=client.getByteBufferPool();
+  try (SocketChannel socket=SocketChannel.open()){
+    socket.connect(new InetSocketAddress("localhost",connector.getLocalPort()));
+    Generator generator=new Generator(byteBufferPool);
+    ByteBufferPool.Lease lease=new ByteBufferPool.Lease(byteBufferPool);
+    generator.control(lease,new PrefaceFrame());
+    Map<Integer,Integer> clientSettings=new HashMap<>();
+    clientSettings.put(SettingsFrame.ENABLE_PUSH,0);
+    generator.control(lease,new SettingsFrame(clientSettings,false));
+    generator.control(lease,new PingFrame(true));
+    List<ByteBuffer> buffers=lease.getByteBuffers();
+    socket.write(buffers.toArray(new ByteBuffer[buffers.size()]));
+    Queue<SettingsFrame> settings=new ArrayQueue<>();
+    Parser parser=new Parser(byteBufferPool,new Parser.Listener.Adapter(){
+      @Override public void onSettings(      SettingsFrame frame){
+        settings.offer(frame);
+      }
+    }
+,4096,8192);
+    ByteBuffer buffer=byteBufferPool.acquire(1024,true);
+    while (true) {
+      int read=socket.read(buffer);
+      buffer.flip();
+      if (read < 0)       break;
+      parser.parse(buffer);
+      buffer.clear();
+    }
+    Assert.assertEquals(2,settings.size());
+    SettingsFrame frame1=settings.poll();
+    Assert.assertFalse(frame1.isReply());
+    SettingsFrame frame2=settings.poll();
+    Assert.assertTrue(frame2.isReply());
+  }
+ }
