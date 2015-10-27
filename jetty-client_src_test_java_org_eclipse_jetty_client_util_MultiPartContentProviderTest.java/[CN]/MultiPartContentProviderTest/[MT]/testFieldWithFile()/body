@@ -1,0 +1,48 @@
+{
+  byte[] data=new byte[1024];
+  new Random().nextBytes(data);
+  Path tmpDir=MavenTestingUtils.getTargetTestingPath();
+  Path tmpPath=Files.createTempFile(tmpDir,"multipart_",".txt");
+  try (OutputStream output=Files.newOutputStream(tmpPath,StandardOpenOption.CREATE)){
+    output.write(data);
+  }
+   String field="field";
+  String value="\u20ac";
+  String fileField="file";
+  Charset encoding=StandardCharsets.UTF_8;
+  String contentType="text/plain; charset=" + encoding.name();
+  String headerName="foo";
+  String headerValue="bar";
+  start(new AbstractMultiPartHandler(){
+    @Override protected void handle(    HttpServletRequest request,    HttpServletResponse response) throws ServletException, IOException {
+      List<Part> parts=new ArrayList<>(request.getParts());
+      Assert.assertEquals(2,parts.size());
+      Part fieldPart=parts.get(0);
+      Part filePart=parts.get(1);
+      if (!field.equals(fieldPart.getName())) {
+        Part swap=filePart;
+        filePart=fieldPart;
+        fieldPart=swap;
+      }
+      Assert.assertEquals(field,fieldPart.getName());
+      Assert.assertEquals(contentType,fieldPart.getContentType());
+      Assert.assertEquals(value,IO.toString(fieldPart.getInputStream(),encoding));
+      Assert.assertEquals(headerValue,fieldPart.getHeader(headerName));
+      Assert.assertEquals(fileField,filePart.getName());
+      Assert.assertEquals("application/octet-stream",filePart.getContentType());
+      Assert.assertEquals(tmpPath.getFileName().toString(),filePart.getSubmittedFileName());
+      Assert.assertEquals(Files.size(tmpPath),filePart.getSize());
+      Assert.assertArrayEquals(data,IO.readBytes(filePart.getInputStream()));
+    }
+  }
+);
+  MultiPartContentProvider multiPart=new MultiPartContentProvider();
+  Fields fields=new Fields();
+  fields.put("Content-Type",contentType);
+  fields.put(headerName,headerValue);
+  multiPart.addPart(new MultiPartContentProvider.FieldPart(field,encoding.encode(value),fields));
+  multiPart.addPart(new MultiPartContentProvider.PathPart(fileField,tmpPath));
+  ContentResponse response=client.newRequest("localhost",connector.getLocalPort()).scheme(scheme).method(HttpMethod.POST).content(multiPart).send();
+  Assert.assertEquals(200,response.getStatus());
+  Files.delete(tmpPath);
+}

@@ -1,0 +1,24 @@
+{
+  String name="field";
+  String value="\u20ac";
+  Charset encoding=StandardCharsets.UTF_8;
+  start(new AbstractMultiPartHandler(){
+    @Override protected void handle(    HttpServletRequest request,    HttpServletResponse response) throws ServletException, IOException {
+      Collection<Part> parts=request.getParts();
+      Assert.assertEquals(1,parts.size());
+      Part part=parts.iterator().next();
+      Assert.assertEquals(name,part.getName());
+      String contentType=part.getContentType();
+      Assert.assertNotNull(contentType);
+      int equal=contentType.lastIndexOf('=');
+      Charset charset=Charset.forName(contentType.substring(equal + 1));
+      Assert.assertEquals(encoding,charset);
+      Assert.assertEquals(value,IO.toString(part.getInputStream(),charset));
+    }
+  }
+);
+  MultiPartContentProvider multiPart=new MultiPartContentProvider();
+  multiPart.addPart(new MultiPartContentProvider.FieldPart(name,value,encoding));
+  ContentResponse response=client.newRequest("localhost",connector.getLocalPort()).scheme(scheme).method(HttpMethod.POST).content(multiPart).send();
+  Assert.assertEquals(200,response.getStatus());
+}
