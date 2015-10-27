@@ -1,7 +1,7 @@
 {
   if (_parts != null)   return;
   long total=0;
-  _parts=new MultiMap<Part>();
+  _parts=new MultiMap<>();
   if (_contentType == null || !_contentType.startsWith("multipart/form-data"))   return;
   if (_config.getLocation() == null)   _tmpDir=_contextTmpDir;
  else   if ("".equals(_config.getLocation()))   _tmpDir=_contextTmpDir;
@@ -19,7 +19,8 @@
     contentTypeBoundary=QuotedStringTokenizer.unquote(value(_contentType.substring(bstart,bend)).trim());
   }
   String boundary="--" + contentTypeBoundary;
-  byte[] byteBoundary=(boundary + "--").getBytes(StandardCharsets.ISO_8859_1);
+  String lastBoundary=boundary + "--";
+  byte[] byteBoundary=lastBoundary.getBytes(StandardCharsets.ISO_8859_1);
   String line=null;
   try {
     line=((ReadLineInputStream)_in).readLine();
@@ -31,7 +32,7 @@
   if (line == null)   throw new IOException("Missing content for multipart request");
   boolean badFormatLogged=false;
   line=line.trim();
-  while (line != null && !line.equals(boundary)) {
+  while (line != null && !line.equals(boundary) && !line.equals(lastBoundary)) {
     if (!badFormatLogged) {
       LOG.warn("Badly formatted multipart request");
       badFormatLogged=true;
@@ -40,12 +41,13 @@
     line=(line == null ? line : line.trim());
   }
   if (line == null)   throw new IOException("Missing initial multi part boundary");
+  if (line.equals(lastBoundary))   return;
   boolean lastPart=false;
   outer:   while (!lastPart) {
     String contentDisposition=null;
     String contentType=null;
     String contentTransferEncoding=null;
-    MultiMap<String> headers=new MultiMap<String>();
+    MultiMap<String> headers=new MultiMap<>();
     while (true) {
       line=((ReadLineInputStream)_in).readLine();
       if (line == null)       break outer;
