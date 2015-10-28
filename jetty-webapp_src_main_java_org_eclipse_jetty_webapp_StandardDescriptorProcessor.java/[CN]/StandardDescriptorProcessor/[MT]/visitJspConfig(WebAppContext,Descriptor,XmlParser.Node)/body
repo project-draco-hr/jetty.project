@@ -43,9 +43,36 @@
     if (LOG.isDebugEnabled())     LOG.debug(config.toString());
   }
   if (paths.size() > 0) {
-    ServletMapping mapping=new ServletMapping();
-    mapping.setServletName("jsp");
-    mapping.setPathSpecs(paths.toArray(new String[paths.size()]));
-    _servletMappings.add(mapping);
+    ServletMapping jspMapping=null;
+    for (    ServletMapping m : _servletMappings) {
+      if (m.getServletName().equals("jsp")) {
+        jspMapping=m;
+        break;
+      }
+    }
+    if (jspMapping != null) {
+      if (jspMapping.getPathSpecs() == null) {
+        if (LOG.isDebugEnabled())         LOG.debug("Adding all paths from jsp-config to jsp servlet mapping");
+        jspMapping.setPathSpecs(paths.toArray(new String[paths.size()]));
+      }
+ else {
+        ListIterator<String> piterator=paths.listIterator();
+        while (piterator.hasNext()) {
+          String p=piterator.next();
+          if (jspMapping.containsPathSpec(p))           piterator.remove();
+        }
+        if (paths.size() > 0) {
+          for (          String p : jspMapping.getPathSpecs())           paths.add(p);
+          if (LOG.isDebugEnabled())           LOG.debug("Adding extra paths from jsp-config to jsp servlet mapping");
+          jspMapping.setPathSpecs((String[])paths.toArray(new String[paths.size()]));
+        }
+      }
+    }
+ else {
+      ServletMapping mapping=new ServletMapping();
+      mapping.setServletName("jsp");
+      mapping.setPathSpecs(paths.toArray(new String[paths.size()]));
+      _servletMappings.add(mapping);
+    }
   }
 }
