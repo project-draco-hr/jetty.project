@@ -13,20 +13,30 @@ case DISPATCH:
         if (!_request.hasMetaData())         throw new IllegalStateException("state=" + _state);
         _request.setHandled(false);
         _response.getHttpOutput().reopen();
-        _request.setDispatcherType(DispatcherType.REQUEST);
         List<HttpConfiguration.Customizer> customizers=_configuration.getCustomizers();
         if (!customizers.isEmpty()) {
           for (          HttpConfiguration.Customizer customizer : customizers)           customizer.customize(getConnector(),_configuration,_request);
         }
-        getServer().handle(this);
+        try {
+          _request.setDispatcherType(DispatcherType.REQUEST);
+          getServer().handle(this);
+        }
+  finally {
+          _request.setDispatcherType(null);
+        }
         break;
       }
 case ASYNC_DISPATCH:
 {
       _request.setHandled(false);
       _response.getHttpOutput().reopen();
-      _request.setDispatcherType(DispatcherType.ASYNC);
-      getServer().handleAsync(this);
+      try {
+        _request.setDispatcherType(DispatcherType.ASYNC);
+        getServer().handleAsync(this);
+      }
+  finally {
+        _request.setDispatcherType(null);
+      }
       break;
     }
 case ERROR_DISPATCH:
@@ -49,7 +59,6 @@ case ERROR_DISPATCH:
     _request.setHandled(false);
     _response.resetBuffer();
     _response.getHttpOutput().reopen();
-    _request.setDispatcherType(DispatcherType.ERROR);
     String reason;
     if (ex == null || ex instanceof TimeoutException) {
       reason="Async Timeout";
@@ -67,7 +76,13 @@ case ERROR_DISPATCH:
       String error_page=((ErrorHandler.ErrorPageMapper)eh).getErrorPage((HttpServletRequest)_state.getAsyncContextEvent().getSuppliedRequest());
       if (error_page != null)       _state.getAsyncContextEvent().setDispatchPath(error_page);
     }
-    getServer().handleAsync(this);
+    try {
+      _request.setDispatcherType(DispatcherType.ERROR);
+      getServer().handleAsync(this);
+    }
+  finally {
+      _request.setDispatcherType(null);
+    }
     break;
   }
 case READ_CALLBACK:
@@ -117,9 +132,6 @@ if (_connector.isStarted()) LOG.warn(String.valueOf(_request.getHttpURI()),e);
  else LOG.debug(String.valueOf(_request.getHttpURI()),e);
 handleException(e);
 }
-}
- finally {
-_request.setDispatcherType(null);
 }
 action=_state.unhandle();
 }
