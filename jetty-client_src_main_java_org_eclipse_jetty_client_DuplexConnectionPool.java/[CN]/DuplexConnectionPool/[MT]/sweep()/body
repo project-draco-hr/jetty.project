@@ -1,18 +1,18 @@
 {
-  List<Sweeper.Sweepable> toSweep=new ArrayList<>();
+  List<Connection> toSweep=new ArrayList<>();
   lock();
   try {
-    for (    Connection connection : getActiveConnections()) {
-      if (connection instanceof Sweeper.Sweepable)       toSweep.add(((Sweeper.Sweepable)connection));
+    for (    Connection connection : activeConnections) {
+      if (connection instanceof Sweeper.Sweepable)       toSweep.add(connection);
     }
   }
   finally {
     unlock();
   }
-  for (  Sweeper.Sweepable candidate : toSweep) {
-    if (candidate.sweep()) {
-      boolean removed=getActiveConnections().remove(candidate);
-      LOG.warn("Connection swept: {}{}{} from active connections{}{}",candidate,System.lineSeparator(),removed ? "Removed" : "Not removed",System.lineSeparator(),dump());
+  for (  Connection connection : toSweep) {
+    if (((Sweeper.Sweepable)connection).sweep()) {
+      boolean removed=remove(connection,true);
+      LOG.warn("Connection swept: {}{}{} from active connections{}{}",connection,System.lineSeparator(),removed ? "Removed" : "Not removed",System.lineSeparator(),dump());
     }
   }
   return false;
