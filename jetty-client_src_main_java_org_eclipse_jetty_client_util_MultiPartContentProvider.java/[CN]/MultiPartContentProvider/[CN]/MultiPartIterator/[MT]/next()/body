@@ -1,3 +1,48 @@
 {
-  return iterator.next();
+  while (true) {
+switch (state) {
+case FIRST_BOUNDARY:
+{
+        if (parts.isEmpty()) {
+          state=State.COMPLETE;
+          return onlyBoundary.slice();
+        }
+ else {
+          state=State.HEADERS;
+          return firstBoundary.slice();
+        }
+      }
+case HEADERS:
+{
+      Part part=parts.get(index);
+      ContentProvider content=part.content;
+      if (content instanceof AsyncContentProvider)       ((AsyncContentProvider)content).setListener(listener);
+      iterator=content.iterator();
+      state=State.CONTENT;
+      return part.headers.slice();
+    }
+case CONTENT:
+{
+    if (iterator.hasNext())     return iterator.next();
+    ++index;
+    if (index == parts.size())     state=State.LAST_BOUNDARY;
+ else     state=State.MIDDLE_BOUNDARY;
+    break;
+  }
+case MIDDLE_BOUNDARY:
+{
+  state=State.HEADERS;
+  return middleBoundary.slice();
+}
+case LAST_BOUNDARY:
+{
+state=State.COMPLETE;
+return lastBoundary.slice();
+}
+case COMPLETE:
+{
+throw new NoSuchElementException();
+}
+}
+}
 }

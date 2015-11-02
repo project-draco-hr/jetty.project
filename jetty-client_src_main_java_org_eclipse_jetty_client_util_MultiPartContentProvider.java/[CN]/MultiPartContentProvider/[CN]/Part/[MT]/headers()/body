@@ -1,0 +1,34 @@
+{
+  try {
+    String contentDisposition="Content-Disposition: form-data; name=\"" + name + "\"";
+    if (fileName != null)     contentDisposition+="; filename=\"" + fileName + "\"";
+    contentDisposition+="\r\n";
+    String contentType=fields == null ? null : fields.get(HttpHeader.CONTENT_TYPE);
+    if (contentType == null) {
+      if (content instanceof Typed)       contentType=((Typed)content).getContentType();
+ else       contentType=this.contentType;
+    }
+    contentType="Content-Type: " + contentType + "\r\n";
+    if (fields == null || fields.size() == 0) {
+      String headers=contentDisposition;
+      headers+=contentType;
+      headers+="\r\n";
+      return ByteBuffer.wrap(headers.getBytes(StandardCharsets.UTF_8));
+    }
+    ByteArrayOutputStream buffer=new ByteArrayOutputStream((fields.size() + 1) * contentDisposition.length());
+    buffer.write(contentDisposition.getBytes(StandardCharsets.UTF_8));
+    buffer.write(contentType.getBytes(StandardCharsets.UTF_8));
+    for (    HttpField field : fields) {
+      if (HttpHeader.CONTENT_TYPE.equals(field.getHeader()))       continue;
+      buffer.write(field.getName().getBytes(StandardCharsets.US_ASCII));
+      buffer.write(COLON_SPACE_BYTES);
+      buffer.write(field.getValue().getBytes(StandardCharsets.UTF_8));
+      buffer.write(CR_LF_BYTES);
+    }
+    buffer.write(CR_LF_BYTES);
+    return ByteBuffer.wrap(buffer.toByteArray());
+  }
+ catch (  IOException x) {
+    throw new RuntimeIOException(x);
+  }
+}

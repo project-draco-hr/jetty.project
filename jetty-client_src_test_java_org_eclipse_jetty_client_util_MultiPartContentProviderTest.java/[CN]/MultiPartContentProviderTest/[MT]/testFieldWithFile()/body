@@ -10,7 +10,7 @@
   String value="\u20ac";
   String fileField="file";
   Charset encoding=StandardCharsets.UTF_8;
-  String contentType="text/plain; charset=" + encoding.name();
+  String contentType="text/plain;charset=" + encoding.name();
   String headerName="foo";
   String headerValue="bar";
   start(new AbstractMultiPartHandler(){
@@ -37,11 +37,10 @@
   }
 );
   MultiPartContentProvider multiPart=new MultiPartContentProvider();
-  Fields fields=new Fields();
-  fields.put("Content-Type",contentType);
+  HttpFields fields=new HttpFields();
   fields.put(headerName,headerValue);
-  multiPart.addPart(new MultiPartContentProvider.FieldPart(field,encoding.encode(value),fields));
-  multiPart.addPart(new MultiPartContentProvider.PathPart(fileField,tmpPath));
+  multiPart.addFieldPart(field,new StringContentProvider(value,encoding),fields);
+  multiPart.addFilePart(fileField,tmpPath.getFileName().toString(),new PathContentProvider(tmpPath),null);
   ContentResponse response=client.newRequest("localhost",connector.getLocalPort()).scheme(scheme).method(HttpMethod.POST).content(multiPart).send();
   Assert.assertEquals(200,response.getStatus());
   Files.delete(tmpPath);
