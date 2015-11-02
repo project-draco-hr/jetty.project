@@ -45,6 +45,10 @@
   final CountDownLatch pushLatch=new CountDownLatch(1);
   session.newStream(new HeadersFrame(primaryRequest,null,true),new Promise.Adapter<>(),new Stream.Listener.Adapter(){
     @Override public Stream.Listener onPush(    Stream stream,    PushPromiseFrame frame){
+      MetaData metaData=frame.getMetaData();
+      Assert.assertTrue(metaData instanceof MetaData.Request);
+      MetaData.Request pushedRequest=(MetaData.Request)metaData;
+      Assert.assertEquals(servletPath + secondaryResource,pushedRequest.getURI().getPathQuery());
       return new Adapter(){
         @Override public void onHeaders(        Stream stream,        HeadersFrame frame){
           if (frame.isEndStream()) {
