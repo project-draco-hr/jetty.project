@@ -19,22 +19,26 @@
       sendConnectResponse(request,response,HttpServletResponse.SC_FORBIDDEN);
       return;
     }
-    SocketChannel channel=SocketChannel.open();
-    channel.socket().setTcpNoDelay(true);
-    channel.configureBlocking(false);
-    AsyncContext asyncContext=request.startAsync();
-    asyncContext.setTimeout(0);
     HttpTransport transport=baseRequest.getHttpChannel().getHttpTransport();
     if (!(transport instanceof HttpConnection)) {
-      if (LOG.isDebugEnabled())       LOG.debug("CONNECT forbidden for {}",transport);
+      if (LOG.isDebugEnabled())       LOG.debug("CONNECT not supported for {}",transport);
       sendConnectResponse(request,response,HttpServletResponse.SC_FORBIDDEN);
       return;
     }
-    InetSocketAddress address=newConnectAddress(host,port);
-    if (LOG.isDebugEnabled())     LOG.debug("Connecting to {}",address);
-    ConnectContext connectContext=new ConnectContext(request,response,asyncContext,(HttpConnection)transport);
-    if (channel.connect(address))     selector.accept(channel,connectContext);
- else     selector.connect(channel,connectContext);
+    AsyncContext asyncContext=request.startAsync();
+    asyncContext.setTimeout(0);
+    if (LOG.isDebugEnabled())     LOG.debug("Connecting to {}:{}",host,port);
+    connectToServer(request,host,port,new Promise<SocketChannel>(){
+      @Override public void succeeded(      SocketChannel channel){
+        ConnectContext connectContext=new ConnectContext(request,response,asyncContext,(HttpConnection)transport);
+        if (channel.isConnected())         selector.accept(channel,connectContext);
+ else         selector.connect(channel,connectContext);
+      }
+      @Override public void failed(      Throwable x){
+        onConnectFailure(request,response,asyncContext,x);
+      }
+    }
+);
   }
  catch (  Exception x) {
     onConnectFailure(request,response,null,x);
