@@ -1,0 +1,23 @@
+{
+  Set<String> remainingIds=new HashSet<String>(expiredSessionIds);
+  Set<SessionManager> managers=getAllSessionManagers();
+  for (  SessionManager m : managers) {
+    Set<String> successfullyExpiredIds=((JDBCSessionManager)m).expire(expiredSessionIds);
+    if (successfullyExpiredIds != null) {
+      remainingIds.removeAll(successfullyExpiredIds);
+      candidateIds.removeAll(successfullyExpiredIds);
+    }
+  }
+  if (!remainingIds.isEmpty() && forceDelete) {
+    LOG.info("Forcibly deleting unrecoverable expired sessions {}",remainingIds);
+    try {
+synchronized (_sessionIds) {
+        _sessionIds.removeAll(remainingIds);
+      }
+      cleanExpiredSessionIds(remainingIds);
+    }
+ catch (    Exception e) {
+      LOG.warn("Error removing expired session ids",e);
+    }
+  }
+}

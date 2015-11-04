@@ -1,4 +1,5 @@
 {
+  Set<String> candidateIds=getAllCandidateExpiredSessionIds();
   Connection connection=null;
   try {
     if (LOG.isDebugEnabled())     LOG.debug(getWorkerName() + "- Scavenge sweep started at " + System.currentTimeMillis());
@@ -21,7 +22,7 @@
           }
         }
        }
-       scavengeSessions(expiredSessionIds,false);
+       scavengeSessions(candidateIds,expiredSessionIds,false);
       try (PreparedStatement selectExpiredSessions=connection.prepareStatement(_selectExpiredSessions)){
         expiredSessionIds.clear();
         upperBound=_lastScavengeTime - (2 * _scavengeIntervalMs);
@@ -36,7 +37,7 @@
               if (LOG.isDebugEnabled())               LOG.debug("Found expired sessionId=" + sessionId + " last managed by "+ getWorkerName());
             }
           }
-           scavengeSessions(expiredSessionIds,false);
+           scavengeSessions(candidateIds,expiredSessionIds,false);
         }
         upperBound=_lastScavengeTime - (3 * _scavengeIntervalMs);
         expiredSessionIds.clear();
@@ -50,10 +51,11 @@
               if (LOG.isDebugEnabled())               LOG.debug("Found expired sessionId=" + sessionId);
             }
           }
-           scavengeSessions(expiredSessionIds,true);
+           scavengeSessions(candidateIds,expiredSessionIds,true);
         }
       }
-     }
+       scavengeSessions(candidateIds);
+    }
   }
  catch (  Exception e) {
     if (isRunning())     LOG.warn("Problem selecting expired sessions",e);
