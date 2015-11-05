@@ -12,10 +12,7 @@
   }
  else {
     proxyResponse.resetBuffer();
-    if (failure instanceof TimeoutException)     proxyResponse.setStatus(HttpServletResponse.SC_GATEWAY_TIMEOUT);
- else     proxyResponse.setStatus(HttpServletResponse.SC_BAD_GATEWAY);
-    proxyResponse.setHeader(HttpHeader.CONNECTION.asString(),HttpHeaderValue.CLOSE.asString());
-    AsyncContext asyncContext=clientRequest.getAsyncContext();
-    asyncContext.complete();
+    int status=failure instanceof TimeoutException ? HttpStatus.GATEWAY_TIMEOUT_504 : HttpStatus.BAD_GATEWAY_502;
+    sendProxyResponseError(clientRequest,proxyResponse,status);
   }
 }
