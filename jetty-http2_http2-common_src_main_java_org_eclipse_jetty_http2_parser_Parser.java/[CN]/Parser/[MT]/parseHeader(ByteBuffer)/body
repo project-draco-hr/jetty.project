@@ -1,9 +1,9 @@
 {
   if (!headerParser.parse(buffer))   return false;
-  int frameType=getFrameType();
-  if (LOG.isDebugEnabled())   LOG.debug("Parsed {} frame header",FrameType.from(frameType));
+  FrameType frameType=FrameType.from(getFrameType());
+  if (LOG.isDebugEnabled())   LOG.debug("Parsed {} frame header from {}",frameType,buffer);
   if (continuation) {
-    if (frameType != FrameType.CONTINUATION.getType()) {
+    if (frameType != FrameType.CONTINUATION) {
       BufferUtil.clear(buffer);
       notifyConnectionFailure(ErrorCode.PROTOCOL_ERROR.code,"continuation_frame_expected");
       return false;
@@ -13,7 +13,7 @@
     }
   }
  else {
-    if (frameType == FrameType.HEADERS.getType() && !headerParser.hasFlag(Flags.END_HEADERS)) {
+    if (frameType == FrameType.HEADERS && !headerParser.hasFlag(Flags.END_HEADERS)) {
       continuation=true;
     }
   }
