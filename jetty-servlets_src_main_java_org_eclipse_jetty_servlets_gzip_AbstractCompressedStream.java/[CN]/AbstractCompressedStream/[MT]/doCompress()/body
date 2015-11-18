@@ -2,9 +2,10 @@
   if (_compressedOutputStream == null) {
     if (_response.isCommitted())     throw new IllegalStateException();
     if (_encoding != null) {
-      setHeader("Content-Encoding",_encoding);
+      String prefix=Response.getResponse(_response).isIncluding() ? Response.SET_INCLUDE_HEADER_PREFIX : "";
+      setHeader(prefix + "Content-Encoding",_encoding);
       if (_response.containsHeader("Content-Encoding")) {
-        addHeader("Vary",_vary);
+        addHeader(prefix + "Vary",_vary);
         _out=_compressedOutputStream=createStream();
         if (_out != null) {
           if (_bOut != null) {
@@ -14,8 +15,8 @@
           String etag=_wrapper.getETag();
           if (etag != null) {
             int end=etag.length() - 1;
-            if (etag.charAt(end) == '"')             setHeader("ETag",etag.substring(0,end) + "--" + _encoding+ '"');
- else             setHeader("ETag",etag + "--" + _encoding);
+            if (etag.charAt(end) == '"')             setHeader(prefix + "ETag",etag.substring(0,end) + "--" + _encoding+ '"');
+ else             setHeader(prefix + "ETag",etag + "--" + _encoding);
           }
           return;
         }
