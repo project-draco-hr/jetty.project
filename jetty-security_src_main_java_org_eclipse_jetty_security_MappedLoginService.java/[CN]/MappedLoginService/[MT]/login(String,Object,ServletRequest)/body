@@ -1,8 +1,15 @@
 {
   if (username == null)   return null;
   UserIdentity user=_users.get(username);
-  if (user == null)   user=loadUser(username);
-  if (user != null) {
+  if (user == null) {
+    KnownUser userPrincipal=loadUserInfo(username);
+    if (userPrincipal.authenticate(credentials)) {
+      String[] roles=loadRoleInfo(userPrincipal);
+      user=putUser(userPrincipal,roles);
+      return user;
+    }
+  }
+ else {
     UserPrincipal principal=(UserPrincipal)user.getUserPrincipal();
     if (principal.authenticate(credentials))     return user;
   }
