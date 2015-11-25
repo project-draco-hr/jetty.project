@@ -3,12 +3,15 @@
   if (proxyServlet instanceof AsyncProxyServlet) {
     proxyServlet=new AsyncProxyServlet(){
       @Override protected ContentProvider proxyRequestContent(      HttpServletRequest request,      HttpServletResponse response,      Request proxyRequest) throws IOException {
-        return new DeferredContentProvider(){
+        DeferredContentProvider provider=new DeferredContentProvider(){
           @Override public boolean offer(          ByteBuffer buffer,          Callback callback){
-            return true;
+            buffer.limit(buffer.limit() - 1);
+            return super.offer(buffer.slice(),callback);
           }
         }
 ;
+        request.getInputStream().setReadListener(newReadListener(request,response,proxyRequest,provider));
+        return provider;
       }
     }
 ;
@@ -31,6 +34,5 @@
   long idleTimeout=1000;
   serverConnector.setIdleTimeout(idleTimeout);
   ContentResponse response=client.newRequest("localhost",serverConnector.getLocalPort()).content(new BytesContentProvider(content)).send();
-  if (proxyServlet instanceof AsyncProxyServlet)   Assert.assertEquals(502,response.getStatus());
- else   Assert.assertEquals(500,response.getStatus());
+  Assert.assertEquals(500,response.getStatus());
 }
