@@ -7,18 +7,24 @@
   boolean close=false;
   boolean content_type=false;
   StringBuilder connection=null;
-  if (_info.getFields() != null) {
-    for (    HttpField field : _info.getFields()) {
+  long content_length=_info.getContentLength();
+  HttpFields fields=_info.getFields();
+  if (fields != null) {
+    int n=fields.size();
+    for (int f=0; f < n; f++) {
+      HttpField field=fields.getField(f);
       String v=field.getValue();
       if (v == null || v.length() == 0)       continue;
       HttpHeader h=field.getHeader();
-switch (h == null ? HttpHeader.UNKNOWN : h) {
+      if (h == null)       putTo(field,header);
+ else {
+switch (h) {
 case CONTENT_LENGTH:
-        if (_info.getContentLength() >= 0)         _endOfContent=EndOfContent.CONTENT_LENGTH;
+          _endOfContent=EndOfContent.CONTENT_LENGTH;
+        if (content_length < 0)         content_length=Long.valueOf(field.getValue());
       break;
 case CONTENT_TYPE:
 {
-      if (field.getValue().startsWith(MimeTypes.Type.MULTIPART_BYTERANGES.toString()))       _endOfContent=EndOfContent.SELF_DEFINING_CONTENT;
       content_type=true;
       putTo(field,header);
       break;
@@ -87,13 +93,13 @@ putTo(field,header);
 }
 }
 }
+}
 int status=response != null ? response.getStatus() : -1;
 switch (_endOfContent) {
 case UNKNOWN_CONTENT:
-if (_contentPrepared == 0 && response != null && (status < 200 || status == 204 || status == 304)) _endOfContent=EndOfContent.NO_CONTENT;
+if (_contentPrepared == 0 && response != null && _noContent) _endOfContent=EndOfContent.NO_CONTENT;
  else if (_info.getContentLength() > 0) {
 _endOfContent=EndOfContent.CONTENT_LENGTH;
-long content_length=_info.getContentLength();
 if ((response != null || content_length > 0 || content_type) && !_noContent) {
 header.put(HttpHeader.CONTENT_LENGTH.getBytesColonSpace());
 BufferUtil.putDecLong(header,content_length);
@@ -102,15 +108,9 @@ header.put(HttpTokens.CRLF);
 }
  else if (last) {
 _endOfContent=EndOfContent.CONTENT_LENGTH;
-long content_length=_contentPrepared + BufferUtil.length(content);
-if (content_length > 0) {
-header.put(HttpHeader.CONTENT_LENGTH.getBytesColonSpace());
-BufferUtil.putDecLong(header,content_length);
-header.put(HttpTokens.CRLF);
-}
- else if (!_noContent) {
-if (content_type || response != null || (request != null && __assumedContentMethods.contains(request.getMethod()))) header.put(CONTENT_LENGTH_0);
-}
+long actual_length=_contentPrepared + BufferUtil.length(content);
+if (content_length >= 0 && content_length != actual_length) throw new IllegalArgumentException("Content-Length header(" + content_length + ") != actual("+ actual_length+ ")");
+putContentLength(header,actual_length,content_type,request,response);
 }
  else {
 _endOfContent=EndOfContent.CHUNKED_CONTENT;
@@ -119,25 +119,7 @@ if (!isPersistent() || _info.getVersion().ordinal() < HttpVersion.HTTP_1_1.ordin
 break;
 case CONTENT_LENGTH:
 {
-long content_length=_info.getContentLength();
-if (content_length > 0) {
-header.put(HttpHeader.CONTENT_LENGTH.getBytesColonSpace());
-BufferUtil.putDecLong(header,content_length);
-header.put(HttpTokens.CRLF);
-}
- else if (!_noContent) {
-if (content_type || response != null || (request != null && __assumedContentMethods.contains(request.getMethod()))) header.put(CONTENT_LENGTH_0);
-}
-break;
-}
-case SELF_DEFINING_CONTENT:
-{
-long content_length=_info.getContentLength();
-if (content_length > 0) {
-header.put(HttpHeader.CONTENT_LENGTH.getBytesColonSpace());
-BufferUtil.putDecLong(header,content_length);
-header.put(HttpTokens.CRLF);
-}
+putContentLength(header,content_length,content_type,request,response);
 break;
 }
 case NO_CONTENT:
