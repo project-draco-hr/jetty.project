@@ -103,10 +103,13 @@ header.put(HttpTokens.CRLF);
  else if (last) {
 _endOfContent=EndOfContent.CONTENT_LENGTH;
 long content_length=_contentPrepared + BufferUtil.length(content);
-if ((response != null || content_length > 0 || content_type) && !_noContent) {
+if (content_length > 0) {
 header.put(HttpHeader.CONTENT_LENGTH.getBytesColonSpace());
 BufferUtil.putDecLong(header,content_length);
 header.put(HttpTokens.CRLF);
+}
+ else if (!_noContent) {
+if (content_type || response != null || (request != null && __assumedContentMethods.contains(request.getMethod()))) header.put(CONTENT_LENGTH_0);
 }
 }
  else {
@@ -117,10 +120,13 @@ break;
 case CONTENT_LENGTH:
 {
 long content_length=_info.getContentLength();
-if ((response != null || content_length > 0 || content_type) && !_noContent) {
+if (content_length > 0) {
 header.put(HttpHeader.CONTENT_LENGTH.getBytesColonSpace());
 BufferUtil.putDecLong(header,content_length);
 header.put(HttpTokens.CRLF);
+}
+ else if (!_noContent) {
+if (content_type || response != null || (request != null && __assumedContentMethods.contains(request.getMethod()))) header.put(CONTENT_LENGTH_0);
 }
 break;
 }
@@ -135,8 +141,7 @@ header.put(HttpTokens.CRLF);
 break;
 }
 case NO_CONTENT:
-if (response != null && status >= 200 && status != 204 && status != 304) header.put(CONTENT_LENGTH_0);
-break;
+throw new IllegalStateException();
 case EOF_CONTENT:
 _persistent=request != null;
 break;
