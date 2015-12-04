@@ -23,19 +23,18 @@
   for (  String p : urlPatterns)   urlPatternList.add(Util.normalizePattern(p));
   String servletName=(annotation.name().equals("") ? clazz.getName() : annotation.name());
   MetaData metaData=_context.getMetaData();
+  ServletMapping mapping=null;
   ServletHolder[] holders=_context.getServletHandler().getServlets();
-  boolean isNew=true;
   ServletHolder holder=null;
   if (holders != null) {
     for (    ServletHolder h : holders) {
       if (h.getName() != null && servletName.equals(h.getName())) {
         holder=h;
-        isNew=false;
         break;
       }
     }
   }
-  if (isNew) {
+  if (holder == null) {
     holder=_context.getServletHandler().newServletHolder(Holder.Source.ANNOTATION);
     holder.setHeldClass(clazz);
     metaData.setOrigin(servletName + ".servlet.servlet-class",annotation,clazz);
@@ -51,11 +50,9 @@
       metaData.setOrigin(servletName + ".servlet.init-param." + ip.name(),ip,clazz);
     }
     _context.getServletHandler().addServlet(holder);
-    ServletMapping mapping=new ServletMapping();
+    mapping=new ServletMapping();
     mapping.setServletName(holder.getName());
     mapping.setPathSpecs(LazyList.toStringArray(urlPatternList));
-    _context.getServletHandler().addServletMapping(mapping);
-    metaData.setOrigin(servletName + ".servlet.mappings",annotation,clazz);
   }
  else {
     if (holder.getClassName() == null)     holder.setClassName(clazz.getName());
@@ -66,36 +63,31 @@
         metaData.setOrigin(servletName + ".servlet.init-param." + ip.name(),ip,clazz);
       }
     }
-    boolean mappingsExist=false;
-    boolean anyNonDefaults=false;
-    ServletMapping[] allMappings=_context.getServletHandler().getServletMappings();
-    if (allMappings != null) {
-      for (      ServletMapping m : allMappings) {
-        if (m.getServletName() != null && servletName.equals(m.getServletName())) {
-          mappingsExist=true;
-          if (!m.isDefault()) {
-            anyNonDefaults=true;
-            break;
-          }
+    List<ServletMapping> existingMappings=getServletMappingsForServlet(servletName);
+    if (existingMappings.isEmpty() || !containsNonDefaultMappings(existingMappings)) {
+      mapping=new ServletMapping();
+      mapping.setServletName(servletName);
+      mapping.setPathSpecs(LazyList.toStringArray(urlPatternList));
+    }
+  }
+  if (mapping != null) {
+    List<ServletMapping> allMappings=ArrayUtil.asMutableList(_context.getServletHandler().getServletMappings());
+    for (    String p : urlPatternList) {
+      ServletMapping existingMapping=_context.getServletHandler().getServletMapping(p);
+      if (existingMapping != null && existingMapping.isDefault()) {
+        String[] updatedPaths=ArrayUtil.removeFromArray(existingMapping.getPathSpecs(),p);
+        if (updatedPaths == null || updatedPaths.length == 0) {
+          boolean success=allMappings.remove(existingMapping);
+          if (LOG.isDebugEnabled())           LOG.debug("Removed empty mapping {} from defaults descriptor success:{}",existingMapping,success);
+        }
+ else {
+          existingMapping.setPathSpecs(updatedPaths);
+          if (LOG.isDebugEnabled())           LOG.debug("Removed path {} from mapping {} from defaults descriptor ",p,existingMapping);
         }
       }
+      _context.getMetaData().setOrigin(servletName + ".servlet.mapping." + p,annotation,clazz);
     }
-    if (anyNonDefaults)     return;
-    boolean clash=false;
-    if (mappingsExist) {
-      for (      String p : urlPatternList) {
-        ServletMapping m=_context.getServletHandler().getServletMapping(p);
-        if (m != null && !m.isDefault()) {
-          clash=true;
-          break;
-        }
-      }
-    }
-    if (!mappingsExist || !clash) {
-      ServletMapping m=new ServletMapping();
-      m.setServletName(servletName);
-      m.setPathSpecs(LazyList.toStringArray(urlPatternList));
-      _context.getServletHandler().addServletMapping(m);
-    }
+    allMappings.add(mapping);
+    _context.getServletHandler().setServletMappings(allMappings.toArray(new ServletMapping[allMappings.size()]));
   }
 }
