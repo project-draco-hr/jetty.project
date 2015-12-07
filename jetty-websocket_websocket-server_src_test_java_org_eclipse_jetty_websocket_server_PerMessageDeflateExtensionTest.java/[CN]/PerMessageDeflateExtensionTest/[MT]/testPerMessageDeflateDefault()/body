@@ -1,28 +1,41 @@
 {
   Assume.assumeTrue("Server has permessage-deflate registered",server.getWebSocketServletFactory().getExtensionFactory().isAvailable("permessage-deflate"));
-  BlockheadClient client=new BlockheadClient(server.getServerUri());
-  client.clearExtensions();
-  client.addExtensions("permessage-deflate");
-  client.setProtocols("echo");
+  Assert.assertThat("server scheme",server.getServerUri().getScheme(),is(scheme));
+  int binBufferSize=(int)(msgSize * 1.5);
+  WebSocketPolicy serverPolicy=server.getWebSocketServletFactory().getPolicy();
+  binBufferSize=Math.max(binBufferSize,serverPolicy.getMaxBinaryMessageSize());
+  binBufferSize=Math.max(binBufferSize,serverPolicy.getMaxBinaryMessageBufferSize());
+  binBufferSize=Math.max(binBufferSize,this.inputBufferSize);
+  serverPolicy.setMaxBinaryMessageSize(binBufferSize);
+  serverPolicy.setMaxBinaryMessageBufferSize(binBufferSize);
+  WebSocketClient client=new WebSocketClient(server.getSslContextFactory(),null,bufferPool);
+  WebSocketPolicy clientPolicy=client.getPolicy();
+  clientPolicy.setMaxBinaryMessageSize(binBufferSize);
+  clientPolicy.setMaxBinaryMessageBufferSize(binBufferSize);
+  if (inputBufferSize > 0) {
+    clientPolicy.setInputBufferSize(inputBufferSize);
+  }
   try {
-    client.setTimeout(1,TimeUnit.SECONDS);
-    client.connect();
-    client.sendStandardRequest();
-    HttpResponse resp=client.expectUpgradeResponse();
-    Assert.assertThat("Response",resp.getExtensionsHeader(),containsString("permessage-deflate"));
-    String msg="Hello";
-    client.write(new TextFrame().setPayload(msg));
-    EventQueue<WebSocketFrame> frames=client.readFrames(1,1000,TimeUnit.MILLISECONDS);
-    WebSocketFrame frame=frames.poll();
-    Assert.assertThat("TEXT.payload",frame.getPayloadAsUTF8(),is(msg.toString()));
-    client.clearCaptured();
-    msg="There";
-    client.write(new TextFrame().setPayload(msg));
-    frames=client.readFrames(1,1,TimeUnit.SECONDS);
-    frame=frames.poll();
-    Assert.assertThat("TEXT.payload",frame.getPayloadAsUTF8(),is(msg.toString()));
+    client.start();
+    client.setMaxIdleTimeout(TimeUnit.SECONDS.toMillis(1));
+    CaptureSocket clientSocket=new CaptureSocket();
+    ClientUpgradeRequest request=new ClientUpgradeRequest();
+    request.addExtensions("permessage-deflate");
+    request.setSubProtocols("echo");
+    Future<Session> fut=client.connect(clientSocket,server.getServerUri(),request);
+    Session session=fut.get(3,TimeUnit.SECONDS);
+    assertThat("Response.extensions",getNegotiatedExtensionList(session),containsString("permessage-deflate"));
+    byte msg[]=new byte[msgSize];
+    Random rand=new Random();
+    rand.setSeed(8080);
+    rand.nextBytes(msg);
+    String sha1=Sha1Sum.calculate(msg);
+    session.getRemote().sendBytes(ByteBuffer.wrap(msg));
+    clientSocket.messages.awaitEventCount(1,1,TimeUnit.SECONDS);
+    String echoMsg=clientSocket.messages.poll();
+    Assert.assertThat("Echo'd Message",echoMsg,is("binary[sha1=" + sha1 + "]"));
   }
   finally {
-    client.close();
+    client.stop();
   }
 }
