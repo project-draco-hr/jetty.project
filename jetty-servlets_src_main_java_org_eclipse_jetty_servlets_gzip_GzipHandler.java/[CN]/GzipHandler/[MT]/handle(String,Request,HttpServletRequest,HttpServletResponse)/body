@@ -1,49 +1,42 @@
 {
-  if (_handler != null && isStarted()) {
-    String ae=request.getHeader("accept-encoding");
-    if (ae != null && ae.indexOf("gzip") >= 0 && !response.containsHeader("Content-Encoding") && !HttpMethod.HEAD.is(request.getMethod())) {
-      if (_excludedUA != null) {
-        String ua=request.getHeader("User-Agent");
-        if (_excludedUA.contains(ua)) {
-          _handler.handle(target,baseRequest,request,response);
-          return;
-        }
-      }
-      final CompressedResponseWrapper wrappedResponse=newGzipResponseWrapper(request,response);
-      boolean exceptional=true;
-      try {
-        _handler.handle(target,baseRequest,request,wrappedResponse);
-        exceptional=false;
-      }
+  if (_handler == null || !isStarted()) {
+    return;
+  }
+  if (isGzippable(baseRequest,request,response)) {
+    final CompressedResponseWrapper wrappedResponse=newGzipResponseWrapper(request,response);
+    boolean exceptional=true;
+    try {
+      _handler.handle(target,baseRequest,request,wrappedResponse);
+      exceptional=false;
+    }
   finally {
-        if (request.isAsyncStarted()) {
-          request.getAsyncContext().addListener(new AsyncListener(){
-            @Override public void onTimeout(            AsyncEvent event) throws IOException {
+      if (request.isAsyncStarted()) {
+        request.getAsyncContext().addListener(new AsyncListener(){
+          @Override public void onTimeout(          AsyncEvent event) throws IOException {
+          }
+          @Override public void onStartAsync(          AsyncEvent event) throws IOException {
+          }
+          @Override public void onError(          AsyncEvent event) throws IOException {
+          }
+          @Override public void onComplete(          AsyncEvent event) throws IOException {
+            try {
+              wrappedResponse.finish();
             }
-            @Override public void onStartAsync(            AsyncEvent event) throws IOException {
-            }
-            @Override public void onError(            AsyncEvent event) throws IOException {
-            }
-            @Override public void onComplete(            AsyncEvent event) throws IOException {
-              try {
-                wrappedResponse.finish();
-              }
- catch (              IOException e) {
-                LOG.warn(e);
-              }
+ catch (            IOException e) {
+              LOG.warn(e);
             }
           }
+        }
 );
-        }
- else         if (exceptional && !response.isCommitted()) {
-          wrappedResponse.resetBuffer();
-          wrappedResponse.noCompression();
-        }
- else         wrappedResponse.finish();
       }
+ else       if (exceptional && !response.isCommitted()) {
+        wrappedResponse.resetBuffer();
+        wrappedResponse.noCompression();
+      }
+ else       wrappedResponse.finish();
     }
+  }
  else {
-      _handler.handle(target,baseRequest,request,response);
-    }
+    _handler.handle(target,baseRequest,request,response);
   }
 }

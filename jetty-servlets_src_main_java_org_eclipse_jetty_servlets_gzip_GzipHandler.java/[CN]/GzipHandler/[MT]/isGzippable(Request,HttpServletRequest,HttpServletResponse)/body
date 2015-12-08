@@ -1,0 +1,33 @@
+{
+  String ae=request.getHeader("accept-encoding");
+  if (ae == null || !ae.contains("gzip")) {
+    return false;
+  }
+  if (response.containsHeader("Content-Encoding")) {
+    LOG.debug("{} excluded as Content-Encoding already declared {}",this,request);
+    return false;
+  }
+  if (HttpMethod.HEAD.is(request.getMethod())) {
+    LOG.debug("{} excluded by method {}",this,request);
+    return false;
+  }
+  if (!_methods.matches(baseRequest.getMethod())) {
+    LOG.debug("{} excluded by method {}",this,request);
+    return false;
+  }
+  ServletContext context=baseRequest.getServletContext();
+  String path=context == null ? baseRequest.getRequestURI() : URIUtil.addPaths(baseRequest.getServletPath(),baseRequest.getPathInfo());
+  if (path != null && !_paths.matches(path)) {
+    LOG.debug("{} excluded by path {}",this,request);
+    return false;
+  }
+  String mimeType=context == null ? null : context.getMimeType(path);
+  if (mimeType != null) {
+    mimeType=MimeTypes.getContentTypeWithoutCharset(mimeType);
+    if (!_mimeTypes.matches(mimeType)) {
+      LOG.debug("{} excluded by path suffix mime type {}",this,request);
+      return false;
+    }
+  }
+  return true;
+}
