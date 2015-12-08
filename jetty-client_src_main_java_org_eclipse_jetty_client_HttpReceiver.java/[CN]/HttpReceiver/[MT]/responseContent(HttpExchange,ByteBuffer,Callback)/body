@@ -23,20 +23,25 @@ if (decoder == null) {
 notifier.notifyContent(listeners,response,buffer,callback);
 }
  else {
-List<ByteBuffer> decodeds=new ArrayList<>(2);
-while (buffer.hasRemaining()) {
-  ByteBuffer decoded=decoder.decode(buffer);
-  if (!decoded.hasRemaining())   continue;
-  decodeds.add(decoded);
-  if (LOG.isDebugEnabled())   LOG.debug("Response content decoded ({}) {}{}{}",decoder,response,System.lineSeparator(),BufferUtil.toDetailString(decoded));
-}
-if (decodeds.isEmpty()) {
-  callback.succeeded();
-}
+try {
+  List<ByteBuffer> decodeds=new ArrayList<>(2);
+  while (buffer.hasRemaining()) {
+    ByteBuffer decoded=decoder.decode(buffer);
+    if (!decoded.hasRemaining())     continue;
+    decodeds.add(decoded);
+    if (LOG.isDebugEnabled())     LOG.debug("Response content decoded ({}) {}{}{}",decoder,response,System.lineSeparator(),BufferUtil.toDetailString(decoded));
+  }
+  if (decodeds.isEmpty()) {
+    callback.succeeded();
+  }
  else {
-  int size=decodeds.size();
-  CountingCallback counter=new CountingCallback(callback,size);
-  for (int i=0; i < size; ++i)   notifier.notifyContent(listeners,response,decodeds.get(i),counter);
+    int size=decodeds.size();
+    CountingCallback counter=new CountingCallback(callback,size);
+    for (int i=0; i < size; ++i)     notifier.notifyContent(listeners,response,decodeds.get(i),counter);
+  }
+}
+ catch (Throwable x) {
+  callback.failed(x);
 }
 }
 if (updateResponseState(ResponseState.TRANSIENT,ResponseState.CONTENT)) return true;
