@@ -7,13 +7,16 @@
     }
   }
 ,4096,8192);
-  ByteBufferPool.Lease lease=new ByteBufferPool.Lease(byteBufferPool);
-  ByteBuffer data=ByteBuffer.wrap(largeContent);
-  generator.generateData(lease,13,data.slice(),true,data.remaining());
-  for (  ByteBuffer buffer : lease.getByteBuffers()) {
-    while (buffer.hasRemaining()) {
-      parser.parse(ByteBuffer.wrap(new byte[]{buffer.get()}));
+  for (int i=0; i < 2; ++i) {
+    ByteBufferPool.Lease lease=new ByteBufferPool.Lease(byteBufferPool);
+    ByteBuffer data=ByteBuffer.wrap(largeContent);
+    generator.generateData(lease,13,data.slice(),true,data.remaining());
+    frames.clear();
+    for (    ByteBuffer buffer : lease.getByteBuffers()) {
+      while (buffer.hasRemaining()) {
+        parser.parse(ByteBuffer.wrap(new byte[]{buffer.get()}));
+      }
     }
+    Assert.assertEquals(largeContent.length,frames.size());
   }
-  Assert.assertEquals(largeContent.length,frames.size());
 }
