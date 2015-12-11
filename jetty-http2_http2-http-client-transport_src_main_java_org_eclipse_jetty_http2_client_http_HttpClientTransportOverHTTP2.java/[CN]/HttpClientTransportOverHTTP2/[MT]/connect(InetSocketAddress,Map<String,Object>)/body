@@ -1,23 +1,9 @@
 {
   client.setConnectTimeout(httpClient.getConnectTimeout());
   final HttpDestination destination=(HttpDestination)context.get(HTTP_DESTINATION_CONTEXT_KEY);
-  @SuppressWarnings("unchecked") final Promise<Connection> connection=(Promise<Connection>)context.get(HTTP_CONNECTION_PROMISE_CONTEXT_KEY);
-  Session.Listener listener=new Session.Listener.Adapter(){
-    @Override public void onFailure(    Session session,    Throwable failure){
-      destination.abort(failure);
-    }
-  }
-;
-  final Promise<Session> promise=new Promise<Session>(){
-    @Override public void succeeded(    Session session){
-      connection.succeeded(newHttpConnection(destination,session));
-    }
-    @Override public void failed(    Throwable failure){
-      connection.failed(failure);
-    }
-  }
-;
+  @SuppressWarnings("unchecked") final Promise<Connection> connectionPromise=(Promise<Connection>)context.get(HTTP_CONNECTION_PROMISE_CONTEXT_KEY);
+  SessionListenerPromise listenerPromise=new SessionListenerPromise(destination,connectionPromise);
   SslContextFactory sslContextFactory=null;
   if (HttpScheme.HTTPS.is(destination.getScheme()))   sslContextFactory=httpClient.getSslContextFactory();
-  client.connect(sslContextFactory,address,listener,promise,context);
+  client.connect(sslContextFactory,address,listenerPromise,listenerPromise,context);
 }
