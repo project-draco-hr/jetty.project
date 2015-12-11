@@ -1,16 +1,26 @@
 {
-  HttpClient client=getHttpClient();
-  final HttpExchange exchange=getHttpExchanges().poll();
-  if (LOG.isDebugEnabled())   LOG.debug("Processing {} on {}",exchange,connection);
-  if (exchange == null)   return false;
-  final Request request=exchange.getRequest();
-  Throwable cause=request.getAbortCause();
-  if (cause != null) {
-    if (LOG.isDebugEnabled())     LOG.debug("Aborted before processing {}: {}",exchange,cause);
-    exchange.abort(cause);
-  }
+  while (true) {
+    int max=getMaxRequestsPerConnection();
+    int count=requestsPerConnection.get();
+    int next=count + 1;
+    if (next > max)     return;
+    if (requestsPerConnection.compareAndSet(count,next)) {
+      HttpExchange exchange=getHttpExchanges().poll();
+      if (LOG.isDebugEnabled())       LOG.debug("Processing {}/{} {} on {}",next,max,exchange,connection);
+      if (exchange == null) {
+        requestsPerConnection.decrementAndGet();
+        return;
+      }
+      final Request request=exchange.getRequest();
+      Throwable cause=request.getAbortCause();
+      if (cause != null) {
+        if (LOG.isDebugEnabled())         LOG.debug("Aborted before processing {}: {}",exchange,cause);
+        exchange.abort(cause);
+        requestsPerConnection.decrementAndGet();
+      }
  else {
-    send(connection,exchange);
+        send(connection,exchange);
+      }
+    }
   }
-  return true;
 }
