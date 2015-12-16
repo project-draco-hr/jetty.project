@@ -1,0 +1,31 @@
+{
+  if ((servletPathSpec == null) || servletPathSpec.equals("")) {
+    return;
+  }
+  int len=servletPathSpec.length();
+  if (servletPathSpec.charAt(0) == '/') {
+    if (len == 1) {
+      return;
+    }
+    int idx=servletPathSpec.indexOf('*');
+    if (idx < 0) {
+      return;
+    }
+    if (idx != (len - 1)) {
+      throw new IllegalArgumentException("Servlet Spec 12.2 violation: glob '*' can only exist at end of prefix based matches: bad spec \"" + servletPathSpec + "\"");
+    }
+  }
+ else   if (servletPathSpec.startsWith("*.")) {
+    int idx=servletPathSpec.indexOf('/');
+    if (idx >= 0) {
+      throw new IllegalArgumentException("Servlet Spec 12.2 violation: suffix based path spec cannot have path separators: bad spec \"" + servletPathSpec + "\"");
+    }
+    idx=servletPathSpec.indexOf('*',2);
+    if (idx >= 1) {
+      throw new IllegalArgumentException("Servlet Spec 12.2 violation: suffix based path spec cannot have multiple glob '*': bad spec \"" + servletPathSpec + "\"");
+    }
+  }
+ else {
+    throw new IllegalArgumentException("Servlet Spec 12.2 violation: path spec must start with \"/\" or \"*.\": bad spec \"" + servletPathSpec + "\"");
+  }
+}

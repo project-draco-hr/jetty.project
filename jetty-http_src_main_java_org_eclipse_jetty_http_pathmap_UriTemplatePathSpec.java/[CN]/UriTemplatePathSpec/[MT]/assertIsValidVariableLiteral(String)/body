@@ -1,0 +1,36 @@
+{
+  int len=variable.length();
+  int i=0;
+  int codepoint;
+  boolean valid=(len > 0);
+  while (valid && i < len) {
+    codepoint=variable.codePointAt(i);
+    i+=Character.charCount(codepoint);
+    if (isValidBasicLiteralCodepoint(codepoint)) {
+      continue;
+    }
+    if (Character.isSupplementaryCodePoint(codepoint)) {
+      continue;
+    }
+    if (codepoint == '%') {
+      if (i + 2 > len) {
+        valid=false;
+        continue;
+      }
+      codepoint=TypeUtil.convertHexDigit(variable.codePointAt(i++)) << 4;
+      codepoint|=TypeUtil.convertHexDigit(variable.codePointAt(i++));
+      if (isValidBasicLiteralCodepoint(codepoint)) {
+        continue;
+      }
+    }
+    valid=false;
+  }
+  if (!valid) {
+    StringBuilder err=new StringBuilder();
+    err.append("Syntax Error: variable {");
+    err.append(variable);
+    err.append("} an invalid variable name: ");
+    err.append(pathSpec);
+    throw new IllegalArgumentException(err.toString());
+  }
+}
