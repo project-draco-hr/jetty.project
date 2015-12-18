@@ -1,0 +1,28 @@
+{
+  boolean send=false;
+  while (true) {
+    int current=idleTimeoutState.get();
+    if (current < 0)     break;
+    if (idleTimeoutState.compareAndSet(current,current + 1)) {
+      send=true;
+      break;
+    }
+  }
+  if (send) {
+    HttpRequest request=exchange.getRequest();
+    SendFailure result;
+    if (channel.associate(exchange)) {
+      channel.send();
+      result=null;
+    }
+ else {
+      channel.release();
+      result=new SendFailure(new HttpRequestException("Could not associate request to connection",request),false);
+    }
+    idleTimeoutState.decrementAndGet();
+    return result;
+  }
+ else {
+    return new SendFailure(new TimeoutException(),true);
+  }
+}
