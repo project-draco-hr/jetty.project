@@ -10,8 +10,7 @@
   _lastModified=_lastModifiedValue == -1 ? null : new PreEncodedHttpField(HttpHeader.LAST_MODIFIED,DateGenerator.formatDate(_lastModifiedValue));
   _contentLengthValue=exists ? (int)resource.length() : 0;
   _contentLength=new PreEncodedHttpField(HttpHeader.CONTENT_LENGTH,Long.toString(_contentLengthValue));
-  _cachedSize.addAndGet(_contentLengthValue);
-  _cachedFiles.incrementAndGet();
+  if (_cachedFiles.incrementAndGet() > _maxCachedFiles)   shrinkCache();
   _lastAccessed=System.currentTimeMillis();
   _etag=ResourceCache.this._etags ? new PreEncodedHttpField(HttpHeader.ETAG,resource.getWeakETag()) : null;
   _gzipped=gzipped == null ? null : new CachedGzipHttpContent(this,gzipped);

@@ -11,7 +11,6 @@
         Resource resourceGz=_factory.getResource(pathInContextGz);
         if (resourceGz.exists() && resourceGz.lastModified() >= resource.lastModified() && resourceGz.length() < resource.length()) {
           contentGz=new CachedHttpContent(pathInContextGz,resourceGz,null);
-          shrinkCache();
           CachedHttpContent added=_cache.putIfAbsent(pathInContextGz,contentGz);
           if (added != null) {
             contentGz.invalidate();
@@ -22,7 +21,6 @@
       content=new CachedHttpContent(pathInContext,resource,contentGz);
     }
  else     content=new CachedHttpContent(pathInContext,resource,null);
-    shrinkCache();
     CachedHttpContent added=_cache.putIfAbsent(pathInContext,content);
     if (added != null) {
       content.invalidate();
@@ -34,9 +32,9 @@
   if (_gzip) {
     String pathInContextGz=pathInContext + ".gz";
     CachedHttpContent contentGz=_cache.get(pathInContextGz);
-    if (contentGz != null && contentGz.isValid() && contentGz.getResource().lastModified() >= resource.lastModified())     return new ResourceHttpContent(resource,mt,getMaxCachedFileSize(),contentGz);
+    if (contentGz != null && contentGz.isValid() && contentGz.getResource().lastModified() >= resource.lastModified())     return new ResourceHttpContent(resource,mt,maxBufferSize,contentGz);
     Resource resourceGz=_factory.getResource(pathInContextGz);
-    if (resourceGz.exists() && resourceGz.lastModified() >= resource.lastModified() && resourceGz.length() < resource.length())     return new ResourceHttpContent(resource,mt,getMaxCachedFileSize(),new ResourceHttpContent(resourceGz,_mimeTypes.getMimeByExtension(pathInContextGz),getMaxCachedFileSize()));
+    if (resourceGz.exists() && resourceGz.lastModified() >= resource.lastModified() && resourceGz.length() < resource.length())     return new ResourceHttpContent(resource,mt,maxBufferSize,new ResourceHttpContent(resourceGz,_mimeTypes.getMimeByExtension(pathInContextGz),maxBufferSize));
   }
-  return new ResourceHttpContent(resource,mt,getMaxCachedFileSize());
+  return new ResourceHttpContent(resource,mt,maxBufferSize);
 }
