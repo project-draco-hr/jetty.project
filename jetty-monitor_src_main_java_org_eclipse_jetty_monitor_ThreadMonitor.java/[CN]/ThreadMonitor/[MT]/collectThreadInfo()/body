@@ -2,6 +2,7 @@
   boolean repeat=false;
   try {
     Map<Thread,StackTraceElement[]> all=Thread.getAllStackTraces();
+    Set<Long> newOrUpdatedIds=new HashSet<Long>();
     for (    Map.Entry<Thread,StackTraceElement[]> entry : all.entrySet()) {
       Thread thread=entry.getKey();
       long threadId=thread.getId();
@@ -41,7 +42,14 @@
           }
         }
       }
+      newOrUpdatedIds.add(Long.valueOf(threadId));
     }
+    Iterator<Long> iter=_monitorInfo.keySet().iterator();
+    while (iter.hasNext()) {
+      Long id=iter.next();
+      if (!newOrUpdatedIds.contains(id))       iter.remove();
+    }
+    newOrUpdatedIds.clear();
   }
  catch (  Exception ex) {
     LOG.debug(ex);
