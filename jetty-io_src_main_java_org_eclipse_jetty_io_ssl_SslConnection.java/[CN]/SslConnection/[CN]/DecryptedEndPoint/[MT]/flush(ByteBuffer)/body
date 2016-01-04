@@ -1,5 +1,5 @@
 {
-  if (DEBUG) {
+  if (LOG.isDebugEnabled()) {
     for (    ByteBuffer b : appOuts)     LOG.debug("{} flush {}",SslConnection.this,BufferUtil.toHexSummary(b));
   }
   try {
@@ -18,7 +18,7 @@
   finally {
         BufferUtil.flipToFlush(_encryptedOutput,pos);
       }
-      if (DEBUG)       LOG.debug("{} wrap {}",SslConnection.this,wrapResult.toString().replace('\n',' '));
+      if (LOG.isDebugEnabled())       LOG.debug("{} wrap {}",SslConnection.this,wrapResult.toString().replace('\n',' '));
       Status wrapResultStatus=wrapResult.getStatus();
       boolean allConsumed=true;
       for (      ByteBuffer b : appOuts)       if (BufferUtil.hasContent(b))       allConsumed=false;
@@ -37,14 +37,14 @@ case CLOSED:
 case BUFFER_UNDERFLOW:
     throw new IllegalStateException();
 default :
-  if (DEBUG)   LOG.debug("{} wrap {} {}",SslConnection.this,wrapResultStatus,BufferUtil.toHexSummary(_encryptedOutput));
+  if (LOG.isDebugEnabled())   LOG.debug("{} wrap {} {}",SslConnection.this,wrapResultStatus,BufferUtil.toHexSummary(_encryptedOutput));
 if (wrapResult.getHandshakeStatus() == HandshakeStatus.FINISHED && !_handshaken) {
   _handshaken=true;
-  if (DEBUG)   LOG.debug("{} server handshook complete {}/{}",SslConnection.this,_sslEngine.getSession().getProtocol(),_sslEngine.getSession().getCipherSuite());
+  if (LOG.isDebugEnabled())   LOG.debug("{} server handshook complete {}/{}",SslConnection.this,_sslEngine.getSession().getProtocol(),_sslEngine.getSession().getCipherSuite());
 }
 HandshakeStatus handshakeStatus=_sslEngine.getHandshakeStatus();
 if (_handshaken && handshakeStatus != HandshakeStatus.NOT_HANDSHAKING && !isRenegotiationAllowed()) {
-if (DEBUG) LOG.debug("{} renegotiation denied",SslConnection.this);
+if (LOG.isDebugEnabled()) LOG.debug("{} renegotiation denied",SslConnection.this);
 getEndPoint().shutdownOutput();
 return allConsumed;
 }
