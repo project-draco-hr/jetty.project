@@ -37,19 +37,25 @@
     forwardSuccessComplete(request,response);
     return;
   }
-  final Authentication.Result authnResult=authentication.authenticate(request,response,headerInfo,conversation);
-  if (LOG.isDebugEnabled())   LOG.debug("Authentication result {}",authnResult);
-  if (authnResult == null) {
-    forwardSuccessComplete(request,response);
-    return;
-  }
-  conversation.setAttribute(AUTHENTICATION_ATTRIBUTE,true);
-  Request newRequest=client.copyRequest(request,request.getURI());
-  authnResult.apply(newRequest);
-  newRequest.onResponseSuccess(new Response.SuccessListener(){
-    @Override public void onSuccess(    Response response){
-      client.getAuthenticationStore().addAuthenticationResult(authnResult);
+  try {
+    final Authentication.Result authnResult=authentication.authenticate(request,response,headerInfo,conversation);
+    if (LOG.isDebugEnabled())     LOG.debug("Authentication result {}",authnResult);
+    if (authnResult == null) {
+      forwardSuccessComplete(request,response);
+      return;
     }
-  }
+    conversation.setAttribute(AUTHENTICATION_ATTRIBUTE,true);
+    Request newRequest=client.copyRequest(request,request.getURI());
+    authnResult.apply(newRequest);
+    newRequest.onResponseSuccess(new Response.SuccessListener(){
+      @Override public void onSuccess(      Response response){
+        client.getAuthenticationStore().addAuthenticationResult(authnResult);
+      }
+    }
 ).send(null);
+  }
+ catch (  Throwable x) {
+    if (LOG.isDebugEnabled())     LOG.debug("Authentication failed",x);
+    forwardFailureComplete(request,null,response,x);
+  }
 }
