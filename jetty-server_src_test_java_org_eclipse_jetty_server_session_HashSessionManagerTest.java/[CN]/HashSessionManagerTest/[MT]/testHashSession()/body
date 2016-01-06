@@ -5,7 +5,19 @@
   Server server=new Server();
   SessionHandler handler=new SessionHandler();
   handler.setServer(server);
-  HashSessionManager manager=new HashSessionManager();
+  HashSessionManager manager=new HashSessionManager(){
+    @Override public void doStart() throws Exception {
+      super.doStart();
+      Scheduler timerBean=getBean(Scheduler.class);
+      Assert.assertNotNull(timerBean);
+    }
+    @Override public void doStop() throws Exception {
+      super.doStop();
+      Scheduler timerBean=getBean(Scheduler.class);
+      Assert.assertNull(timerBean);
+    }
+  }
+;
   manager.setStoreDirectory(testDir);
   manager.setMaxInactiveInterval(5);
   Assert.assertTrue(testDir.exists());
