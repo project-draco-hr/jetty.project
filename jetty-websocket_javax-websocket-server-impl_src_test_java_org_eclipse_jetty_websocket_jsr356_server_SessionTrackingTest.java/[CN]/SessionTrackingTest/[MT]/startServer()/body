@@ -1,0 +1,18 @@
+{
+  Server server=new Server();
+  ServerConnector serverConnector=new ServerConnector(server);
+  serverConnector.setPort(0);
+  server.addConnector(serverConnector);
+  ServletContextHandler servletContextHandler=new ServletContextHandler(ServletContextHandler.NO_SESSIONS);
+  servletContextHandler.setContextPath("/");
+  server.setHandler(servletContextHandler);
+  ServerContainer serverContainer=WebSocketServerContainerInitializer.configureContext(servletContextHandler);
+  serverContainer.addEndpoint(EchoSocket.class);
+  wsServerFactory=serverContainer.getBean(WebSocketServerFactory.class);
+  server.start();
+  String host=serverConnector.getHost();
+  if (StringUtil.isBlank(host)) {
+    host="localhost";
+  }
+  serverURI=new URI("ws://" + host + ":"+ serverConnector.getLocalPort());
+}
