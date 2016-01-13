@@ -1,0 +1,27 @@
+{
+  try {
+    URI uri=null;
+    if (o instanceof URI)     uri=(URI)o;
+ else     if (o instanceof URL)     uri=((URL)o).toURI();
+ else     if (o instanceof File)     uri=((File)o).toURI();
+ else {
+      String s=o.toString();
+      uri=new URI(s);
+      if (uri.getScheme() == null)       return s;
+    }
+    if ("jar".equalsIgnoreCase(uri.getScheme())) {
+      String raw=uri.getRawSchemeSpecificPart();
+      int bang=raw.indexOf("!/");
+      String normal=normalize(raw.substring(0,bang));
+      String suffix=raw.substring(bang);
+      return "jar:" + normal + suffix;
+    }
+ else     if ("file".equalsIgnoreCase(uri.getScheme())) {
+      return "file:" + normalizePath(new File(uri).toPath());
+    }
+  }
+ catch (  Exception e) {
+    LOG.warn(e);
+  }
+  return String.valueOf(o);
+}
