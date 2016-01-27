@@ -1,7 +1,9 @@
 {
   String error_page=null;
+  PageLookupTechnique pageSource=null;
   Throwable th=(Throwable)request.getAttribute(Dispatcher.ERROR_EXCEPTION);
   while (error_page == null && th != null) {
+    pageSource=PageLookupTechnique.THROWABLE;
     Class<?> exClass=th.getClass();
     error_page=(String)_errorPages.get(exClass.getName());
     while (error_page == null) {
@@ -11,14 +13,16 @@
     }
     th=(th instanceof ServletException) ? ((ServletException)th).getRootCause() : null;
   }
+  Integer errorStatusCode=null;
   if (error_page == null) {
-    Integer code=(Integer)request.getAttribute(Dispatcher.ERROR_STATUS_CODE);
-    if (code != null) {
-      error_page=(String)_errorPages.get(Integer.toString(code));
+    pageSource=PageLookupTechnique.STATUS_CODE;
+    errorStatusCode=(Integer)request.getAttribute(Dispatcher.ERROR_STATUS_CODE);
+    if (errorStatusCode != null) {
+      error_page=(String)_errorPages.get(Integer.toString(errorStatusCode));
       if ((error_page == null) && (_errorPageList != null)) {
         for (int i=0; i < _errorPageList.size(); i++) {
           ErrorCodeRange errCode=(ErrorCodeRange)_errorPageList.get(i);
-          if (errCode.isInRange(code)) {
+          if (errCode.isInRange(errorStatusCode)) {
             error_page=errCode.getUri();
             break;
           }
@@ -26,6 +30,34 @@
       }
     }
   }
-  if (error_page == null)   error_page=_errorPages.get(GLOBAL_ERROR_PAGE);
-  return error_page;
+  if (error_page == null) {
+    pageSource=PageLookupTechnique.GLOBAL;
+    error_page=_errorPages.get(GLOBAL_ERROR_PAGE);
+  }
+  if (LOG.isDebugEnabled()) {
+    StringBuilder dbg=new StringBuilder();
+    dbg.append("getErrorPage(");
+    dbg.append(request.getMethod()).append(' ');
+    dbg.append(request.getRequestURI());
+    dbg.append(") => error_page=").append(error_page);
+switch (pageSource) {
+case THROWABLE:
+      dbg.append(" (from Throwable ");
+    dbg.append(th.getClass().getName());
+  dbg.append(')');
+LOG.debug(dbg.toString(),th);
+break;
+case STATUS_CODE:
+dbg.append(" (from status code ");
+dbg.append(errorStatusCode);
+dbg.append(')');
+LOG.debug(dbg.toString());
+break;
+case GLOBAL:
+dbg.append(" (from global default)");
+LOG.debug(dbg.toString());
+break;
+}
+}
+return error_page;
 }
