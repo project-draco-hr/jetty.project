@@ -1,8 +1,14 @@
 {
-  if (_warPath != null && path.startsWith(_warPath))   return URIUtil.addPaths("${WAR}",_warPath.relativize(path).toString());
-  if (_jettyBasePath != null && path.startsWith(_jettyBasePath))   return URIUtil.addPaths("${jetty.base}",_jettyBasePath.relativize(path).toString());
-  if (_jettyHomePath != null && path.startsWith(_jettyHomePath))   return URIUtil.addPaths("${jetty.home}",_jettyHomePath.relativize(path).toString());
-  if (_userHomePath != null && path.startsWith(_userHomePath))   return URIUtil.addPaths("${user.home}",_userHomePath.relativize(path).toString());
-  if (_userDirPath != null && path.startsWith(_userDirPath))   return URIUtil.addPaths("${user.dir}",_userDirPath.relativize(path).toString());
+  for (  PathAttribute attr : attributes) {
+    if (attr.path == null)     continue;
+    try {
+      if (path.startsWith(attr.path) || path.equals(attr.path) || Files.isSameFile(path,attr.path)) {
+        return URIUtil.addPaths("${" + attr.key + "}",attr.path.relativize(path).toString());
+      }
+    }
+ catch (    IOException ignore) {
+      LOG.ignore(ignore);
+    }
+  }
   return path.toString();
 }

@@ -1,0 +1,44 @@
+{
+  if (str == null) {
+    return str;
+  }
+  if (str.indexOf("${") < 0) {
+    return str;
+  }
+  Matcher mat=__propertyPattern.matcher(str);
+  StringBuilder expanded=new StringBuilder();
+  int offset=0;
+  String property;
+  String value;
+  while (mat.find(offset)) {
+    property=mat.group(1);
+    if (seenStack.contains(property)) {
+      StringBuilder err=new StringBuilder();
+      err.append("Property expansion loop detected: ");
+      int idx=seenStack.lastIndexOf(property);
+      for (int i=idx; i < seenStack.size(); i++) {
+        err.append(seenStack.get(i));
+        err.append(" -> ");
+      }
+      err.append(property);
+      throw new RuntimeException(err.toString());
+    }
+    seenStack.push(property);
+    expanded.append(str.subSequence(offset,mat.start()));
+    value=getString(property);
+    if (value == null) {
+      if (LOG.isDebugEnabled())       LOG.debug("Unable to expand: {}",property);
+      expanded.append(mat.group());
+    }
+ else {
+      value=expand(value,seenStack);
+      expanded.append(value);
+    }
+    offset=mat.end();
+  }
+  expanded.append(str.substring(offset));
+  if (expanded.indexOf("$$") >= 0) {
+    return expanded.toString().replaceAll("\\$\\$","\\$");
+  }
+  return expanded.toString();
+}
