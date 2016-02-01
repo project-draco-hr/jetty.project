@@ -3,6 +3,19 @@
     Runnable task=_producer.produce();
     if (LOG.isDebugEnabled())     LOG.debug("{} PER produced {}",_producer,task);
     if (task == null)     break;
-    _executor.execute(task);
+    try {
+      _executor.execute(task);
+    }
+ catch (    RejectedExecutionException e) {
+      if (task instanceof Rejectable) {
+        try {
+          ((Rejectable)task).reject();
+        }
+ catch (        Throwable x) {
+          e.addSuppressed(x);
+          LOG.warn(e);
+        }
+      }
+    }
   }
 }

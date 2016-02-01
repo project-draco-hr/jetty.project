@@ -24,10 +24,26 @@
     }
      if (dispatch) {
       if (LOG.isDebugEnabled())       LOG.debug("{} dispatch",this);
-      _executor.execute(this);
+      try {
+        _executor.execute(this);
+      }
+ catch (      RejectedExecutionException e) {
+        LOG.debug(e);
+        LOG.warn("RejectedExecution {}",task);
+        try {
+          if (task instanceof Rejectable)           ((Rejectable)task).reject();
+        }
+ catch (        Exception x) {
+          e.addSuppressed(x);
+          LOG.warn(e);
+        }
+ finally {
+          task=null;
+        }
+      }
     }
     if (LOG.isDebugEnabled())     LOG.debug("{} run {}",this,task);
-    task.run();
+    if (task != null)     task.run();
     if (LOG.isDebugEnabled())     LOG.debug("{} ran {}",this,task);
     try (Lock locked=_locker.lock()){
       if (_producing || _idle)       break;
