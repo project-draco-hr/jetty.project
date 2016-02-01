@@ -61,4 +61,19 @@ catch (        Throwable x) {
   Assert.assertThat(rejections.get(),Matchers.lessThan(10));
   Assert.assertThat(timeout.get(),Matchers.equalTo(0));
   Assert.assertThat(echoed.get(),Matchers.equalTo(10 - rejections.get()));
-}
+  try (Socket client=newClient()){
+    client.setSoTimeout(5000);
+    SocketChannel server=_connector.accept();
+    server.configureBlocking(false);
+    _manager.accept(server);
+    client.getOutputStream().write("HelloWorld".getBytes(StandardCharsets.UTF_8));
+    client.getOutputStream().flush();
+    client.shutdownOutput();
+    for (    char c : "HelloWorld".toCharArray()) {
+      int b=client.getInputStream().read();
+      assertTrue(b > 0);
+      assertEquals(c,(char)b);
+    }
+    assertEquals(-1,client.getInputStream().read());
+  }
+ }
