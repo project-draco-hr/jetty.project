@@ -1,6 +1,9 @@
 {
   if (!_mutableWhenRunning && isStarted())   throw new IllegalStateException(STARTED);
-  if (handlers != null)   for (  Handler handler : handlers)   if (handler.getServer() != getServer())   handler.setServer(getServer());
+  if (handlers != null) {
+    for (    Handler handler : handlers)     if (handler == this || (handler instanceof HandlerContainer && Arrays.asList(((HandlerContainer)handler).getChildHandlers()).contains(this)))     throw new IllegalStateException("setHandler loop");
+    for (    Handler handler : handlers)     if (handler.getServer() != getServer())     handler.setServer(getServer());
+  }
   Handler[] old=_handlers;
   ;
   _handlers=handlers;
