@@ -1,11 +1,9 @@
 {
-  _dir=File.createTempFile("testmultupart",null);
-  assertTrue(_dir.delete());
-  assertTrue(_dir.mkdir());
-  _dir.deleteOnExit();
-  assertTrue(_dir.isDirectory());
+  Path tmpDir=MavenTestingUtils.getTargetTestingPath("testmultupart");
+  FS.ensureEmpty(tmpDir);
+  _dir=tmpDir.toFile();
   tester=new ServletTester("/context");
-  tester.getContext().setResourceBase(_dir.getCanonicalPath());
+  tester.getContext().setResourceBase(tmpDir.toString());
   tester.getContext().addServlet(TestServlet.class,"/");
   tester.getContext().setAttribute("javax.servlet.context.tempdir",_dir);
   multipartFilter=tester.getContext().addFilter(MultiPartFilter.class,"/*",EnumSet.of(DispatcherType.REQUEST));

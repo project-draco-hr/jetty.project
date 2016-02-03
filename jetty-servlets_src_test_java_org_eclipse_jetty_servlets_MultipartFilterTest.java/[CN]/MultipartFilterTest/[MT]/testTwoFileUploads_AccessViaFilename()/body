@@ -1,0 +1,36 @@
+{
+  tester.addServlet(ParameterListServlet.class,"/paramlist");
+  multipartFilter.setInitParameter("fileOutputBuffer","1");
+  multipartFilter.setInitParameter("deleteFiles","false");
+  multipartFilter.setInitParameter("writeFilesWithFilenames","true");
+  HttpTester.Request request=HttpTester.newRequest();
+  HttpTester.Response response;
+  request.setMethod("POST");
+  request.setURI("/context/paramlist");
+  request.setVersion("HTTP/1.1");
+  request.setHeader("Host","tester");
+  request.setHeader("Connection","close");
+  String boundary="XyXyXy";
+  request.setHeader("Content-Type","multipart/form-data; boundary=" + boundary);
+  StringBuilder content=new StringBuilder();
+  content.append("--").append(boundary).append("\r\n");
+  content.append("Content-Disposition: form-data; name=\"same\"; filename=\"crocodile.dat\"\r\n");
+  content.append("Content-Type: application/octet-stream\r\n");
+  content.append("\r\n");
+  content.append("See ya later, aligator.\r\n");
+  content.append("--").append(boundary).append("\r\n");
+  content.append("Content-Disposition: form-data; name=\"same\"; filename=\"aligator.dat\"\r\n");
+  content.append("Content-Type: application/octet-stream\r\n");
+  content.append("\r\n");
+  content.append("In a while, crocodile.\r\n");
+  content.append("--").append(boundary).append("--\r\n");
+  content.append("\r\n");
+  request.setContent(content.toString());
+  response=HttpTester.parseResponse(tester.getResponses(request.generate()));
+  assertThat("Response status",response.getStatus(),is(HttpServletResponse.SC_OK));
+  assertEquals(HttpServletResponse.SC_OK,response.getStatus());
+  String contents=assertUploadedFileExists("crocodile.dat");
+  assertThat("contents",contents,containsString("See ya later, aligator."));
+  contents=assertUploadedFileExists("aligator.dat");
+  assertThat("contents",contents,containsString("In a while, crocodile."));
+}
