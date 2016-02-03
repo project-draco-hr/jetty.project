@@ -105,6 +105,7 @@ mark=i + 1;
 state=State.PORT;
 break;
 case '@':
+if (_user != null) throw new IllegalArgumentException("Bad authority");
 _user=uri.substring(mark,i);
 mark=i + 1;
 break;
@@ -136,7 +137,13 @@ continue;
 }
 case PORT:
 {
-if (c == '/') {
+if (c == '@') {
+if (_user != null) throw new IllegalArgumentException("Bad authority");
+_user=_host + ":" + uri.substring(mark,i);
+mark=i + 1;
+state=State.HOST;
+}
+ else if (c == '/') {
 _port=TypeUtil.parseInt(uri,mark,i - mark,10);
 path_mark=mark=i;
 state=State.PATH;
