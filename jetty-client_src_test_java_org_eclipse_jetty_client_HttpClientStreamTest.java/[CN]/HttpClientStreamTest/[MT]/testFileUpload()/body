@@ -1,21 +1,2 @@
 {
-  Path targetTestsDir=MavenTestingUtils.getTargetTestingDir().toPath();
-  Files.createDirectories(targetTestsDir);
-  Path upload=Paths.get(targetTestsDir.toString(),"http_client_upload.big");
-  try (OutputStream output=Files.newOutputStream(upload,CREATE)){
-    byte[] kb=new byte[1024];
-    for (int i=0; i < 10 * 1024; ++i)     output.write(kb);
-  }
-   start(new RespondThenConsumeHandler());
-  final AtomicLong requestTime=new AtomicLong();
-  ContentResponse response=client.newRequest("localhost",connector.getLocalPort()).scheme(scheme).file(upload).onRequestSuccess(new Request.SuccessListener(){
-    @Override public void onSuccess(    Request request){
-      requestTime.set(System.nanoTime());
-    }
-  }
-).timeout(10,TimeUnit.SECONDS).send();
-  long responseTime=System.nanoTime();
-  Assert.assertEquals(200,response.getStatus());
-  Assert.assertTrue(requestTime.get() <= responseTime);
-  Thread.sleep(1000);
 }
