@@ -1,9 +1,12 @@
 {
-  if (!closed) {
-    super.close();
-    if (LOG.isDebugEnabled())     LOG.debug("Queuing close {}{}",CLOSED,"");
-    queue.offer(CLOSED);
+  Callback callback=null;
+synchronized (lock) {
+    if (closed)     return;
     closed=true;
-    signal();
+    if (chunk != null)     callback=chunk.callback;
+    lock.notifyAll();
   }
+  if (LOG.isDebugEnabled())   LOG.debug("InputStream close");
+  if (callback != null)   callback.failed(new AsynchronousCloseException());
+  super.close();
 }

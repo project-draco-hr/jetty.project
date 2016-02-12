@@ -1,4 +1,11 @@
 {
-  fail(failure);
-  signal();
+  Callback callback=null;
+synchronized (lock) {
+    if (this.failure != null)     return;
+    this.failure=failure;
+    if (chunk != null)     callback=chunk.callback;
+    lock.notifyAll();
+  }
+  if (LOG.isDebugEnabled())   LOG.debug("Content failure",failure);
+  if (callback != null)   callback.failed(failure);
 }

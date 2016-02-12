@@ -1,0 +1,27 @@
+{
+  try {
+    int result;
+    Callback callback=null;
+synchronized (lock) {
+      while (true) {
+        if (failure != null)         throw toIOException(failure);
+        if (chunk == EOF)         return -1;
+        if (closed)         throw new AsynchronousCloseException();
+        if (chunk != null)         break;
+        lock.wait();
+      }
+      ByteBuffer buffer=chunk.buffer;
+      result=Math.min(buffer.remaining(),length);
+      buffer.get(b,offset,result);
+      if (!buffer.hasRemaining()) {
+        callback=chunk.callback;
+        chunk=null;
+      }
+    }
+    if (callback != null)     callback.succeeded();
+    return result;
+  }
+ catch (  InterruptedException x) {
+    throw new InterruptedIOException();
+  }
+}

@@ -1,29 +1,6 @@
 {
-  while (true) {
-    if (bytes == EOF) {
-      index=-1;
-      return -1;
-    }
- else     if (bytes == FAILURE) {
-      throw failure();
-    }
- else     if (bytes == CLOSED) {
-      if (index < 0)       return -1;
-      throw new AsynchronousCloseException();
-    }
- else     if (bytes != null) {
-      int result=bytes[index] & 0xFF;
-      if (++index == bytes.length) {
-        length.addAndGet(-index);
-        bytes=null;
-        index=0;
-        signal();
-      }
-      return result;
-    }
- else {
-      bytes=take();
-      if (LOG.isDebugEnabled())       LOG.debug("Dequeued {}/{} bytes",bytes,bytes.length);
-    }
-  }
+  byte[] tmp=new byte[1];
+  int read=read(tmp);
+  if (read < 0)   return read;
+  return tmp[0] & 0xFF;
 }

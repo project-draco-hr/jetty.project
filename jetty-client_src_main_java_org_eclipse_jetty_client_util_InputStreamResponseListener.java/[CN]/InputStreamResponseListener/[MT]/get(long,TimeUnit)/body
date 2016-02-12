@@ -1,6 +1,8 @@
 {
   boolean expired=!responseLatch.await(timeout,unit);
   if (expired)   throw new TimeoutException();
-  if (failure != null)   throw new ExecutionException(failure);
-  return response;
+synchronized (lock) {
+    if (response == null)     throw new ExecutionException(failure);
+    return response;
+  }
 }
