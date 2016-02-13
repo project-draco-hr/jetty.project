@@ -16,13 +16,19 @@
     session.setAttribute(TIMESTAMP_ATTR,timestamps);
   }
   timestamps.put(uri,System.currentTimeMillis());
-  if (baseRequest.isPushSupported() && target._associated.size() > 0) {
-    PushBuilder builder=baseRequest.getPushBuilder();
-    builder.addHeader("X-Pusher",PushSessionCacheFilter.class.toString());
-    for (    Target associated : target._associated.values()) {
-      String path=associated._path;
-      if (LOG.isDebugEnabled())       LOG.debug("PUSH {} <- {}",path,uri);
-      builder.path(path).etag(associated._etag).lastModified(associated._lastModified).push();
+  if (baseRequest.isPushSupported() && !baseRequest.isPush() && !target._associated.isEmpty()) {
+    Queue<Target> queue=new ArrayDeque<>();
+    queue.offer(target);
+    while (!queue.isEmpty()) {
+      Target parent=queue.poll();
+      PushBuilder builder=baseRequest.getPushBuilder();
+      builder.addHeader("X-Pusher",PushSessionCacheFilter.class.toString());
+      for (      Target child : parent._associated.values()) {
+        queue.offer(child);
+        String path=child._path;
+        if (LOG.isDebugEnabled())         LOG.debug("PUSH {} <- {}",path,uri);
+        builder.path(path).etag(child._etag).lastModified(child._lastModified).push();
+      }
     }
   }
   chain.doFilter(request,response);

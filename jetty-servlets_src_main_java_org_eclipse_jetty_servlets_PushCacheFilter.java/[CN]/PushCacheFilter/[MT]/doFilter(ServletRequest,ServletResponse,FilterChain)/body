@@ -26,7 +26,7 @@ default :
 break;
 }
 }
-if (LOG.isDebugEnabled()) LOG.debug("{} {} referrer={} conditional={}",request.getMethod(),request.getRequestURI(),referrer,conditional);
+if (LOG.isDebugEnabled()) LOG.debug("{} {} referrer={} conditional={} synthetic={}",request.getMethod(),request.getRequestURI(),referrer,conditional,isPushRequest(request));
 String path=URIUtil.addPaths(request.getServletPath(),request.getPathInfo());
 String query=request.getQueryString();
 if (query != null) path+="?" + query;
@@ -78,9 +78,9 @@ if (LOG.isDebugEnabled()) LOG.debug("External referrer {}",referrer);
 }
 PrimaryResource primaryResource=_cache.get(path);
 if (primaryResource == null) {
-PrimaryResource t=new PrimaryResource();
-primaryResource=_cache.putIfAbsent(path,t);
-primaryResource=primaryResource == null ? t : primaryResource;
+PrimaryResource r=new PrimaryResource();
+primaryResource=_cache.putIfAbsent(path,r);
+primaryResource=primaryResource == null ? r : primaryResource;
 primaryResource._timestamp.compareAndSet(0,now);
 if (LOG.isDebugEnabled()) LOG.debug("Cached primary resource {}",path);
 }
@@ -91,10 +91,18 @@ primaryResource._associated.clear();
 if (LOG.isDebugEnabled()) LOG.debug("Clear associated resources for {}",path);
 }
 }
-if (!conditional && !primaryResource._associated.isEmpty()) {
-for (RequestDispatcher dispatcher : primaryResource._associated.values()) {
+if (!isPushRequest(request) && !conditional && !primaryResource._associated.isEmpty()) {
+Queue<PrimaryResource> queue=new ArrayDeque<>();
+queue.offer(primaryResource);
+while (!queue.isEmpty()) {
+PrimaryResource parent=queue.poll();
+for (Map.Entry<String,RequestDispatcher> entry : parent._associated.entrySet()) {
+PrimaryResource child=_cache.get(entry.getKey());
+if (child != null) queue.offer(child);
+Dispatcher dispatcher=(Dispatcher)entry.getValue();
 if (LOG.isDebugEnabled()) LOG.debug("Pushing {} for {}",dispatcher,path);
-((Dispatcher)dispatcher).push(request);
+dispatcher.push(request);
+}
 }
 }
 chain.doFilter(request,resp);
