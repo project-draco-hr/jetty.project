@@ -2,7 +2,7 @@
   if (LOG.isDebugEnabled())   LOG.debug("{} onFillable enter {} {}",this,_channel.getState(),BufferUtil.toDetailString(_requestBuffer));
   HttpConnection last=setCurrentConnection(this);
   try {
-    while (true) {
+    while (getEndPoint().isOpen()) {
       int filled=fillRequestBuffer();
       boolean handle=parseRequestBuffer();
       if (getEndPoint().getConnection() != this)       break;
@@ -14,9 +14,11 @@
         boolean suspended=!_channel.handle();
         if (suspended || getEndPoint().getConnection() != this)         break;
       }
- else       if (filled <= 0) {
-        if (filled == 0)         fillInterested();
-        break;
+ else {
+        if (filled <= 0) {
+          if (filled == 0)           fillInterested();
+          break;
+        }
       }
     }
   }
