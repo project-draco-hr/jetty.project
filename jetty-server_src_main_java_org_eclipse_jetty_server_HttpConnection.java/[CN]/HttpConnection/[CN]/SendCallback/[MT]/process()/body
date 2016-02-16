@@ -5,45 +5,47 @@
     HttpGenerator.Result result=_generator.generateResponse(_info,_head,_header,chunk,_content,_lastContent);
     if (LOG.isDebugEnabled())     LOG.debug("{} generate: {} ({},{},{})@{}",this,result,BufferUtil.toSummaryString(_header),BufferUtil.toSummaryString(_content),_lastContent,_generator.getState());
 switch (result) {
+case NEED_INFO:
+      throw new EofException("request lifecycle violation");
 case NEED_HEADER:
 {
-        _header=_bufferPool.acquire(_config.getResponseHeaderSize(),HEADER_BUFFER_DIRECT);
-        continue;
-      }
-case NEED_CHUNK:
-{
-      chunk=_chunk=_bufferPool.acquire(HttpGenerator.CHUNK_SIZE,CHUNK_BUFFER_DIRECT);
+      _header=_bufferPool.acquire(_config.getResponseHeaderSize(),HEADER_BUFFER_DIRECT);
       continue;
     }
+case NEED_CHUNK:
+{
+    chunk=_chunk=_bufferPool.acquire(HttpGenerator.CHUNK_SIZE,CHUNK_BUFFER_DIRECT);
+    continue;
+  }
 case FLUSH:
 {
-    if (_head || _generator.isNoContent()) {
-      BufferUtil.clear(chunk);
-      BufferUtil.clear(_content);
-    }
-    if (BufferUtil.hasContent(_header)) {
-      if (BufferUtil.hasContent(_content)) {
-        if (BufferUtil.hasContent(chunk))         getEndPoint().write(this,_header,chunk,_content);
- else         getEndPoint().write(this,_header,_content);
-      }
- else       getEndPoint().write(this,_header);
-    }
- else     if (BufferUtil.hasContent(chunk)) {
-      if (BufferUtil.hasContent(_content))       getEndPoint().write(this,chunk,_content);
- else       getEndPoint().write(this,chunk);
-    }
- else     if (BufferUtil.hasContent(_content)) {
-      getEndPoint().write(this,_content);
-    }
- else {
-      succeeded();
-    }
-    return Action.SCHEDULED;
+  if (_head || _generator.isNoContent()) {
+    BufferUtil.clear(chunk);
+    BufferUtil.clear(_content);
   }
+  if (BufferUtil.hasContent(_header)) {
+    if (BufferUtil.hasContent(_content)) {
+      if (BufferUtil.hasContent(chunk))       getEndPoint().write(this,_header,chunk,_content);
+ else       getEndPoint().write(this,_header,_content);
+    }
+ else     getEndPoint().write(this,_header);
+  }
+ else   if (BufferUtil.hasContent(chunk)) {
+    if (BufferUtil.hasContent(_content))     getEndPoint().write(this,chunk,_content);
+ else     getEndPoint().write(this,chunk);
+  }
+ else   if (BufferUtil.hasContent(_content)) {
+    getEndPoint().write(this,_content);
+  }
+ else {
+    succeeded();
+  }
+  return Action.SCHEDULED;
+}
 case SHUTDOWN_OUT:
 {
-  _shutdownOut=true;
-  continue;
+_shutdownOut=true;
+continue;
 }
 case DONE:
 {
