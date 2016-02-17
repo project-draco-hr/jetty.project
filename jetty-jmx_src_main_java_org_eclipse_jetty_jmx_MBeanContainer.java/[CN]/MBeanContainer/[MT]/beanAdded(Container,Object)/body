@@ -1,15 +1,15 @@
 {
   if (LOG.isDebugEnabled())   LOG.debug("beanAdded {}->{}",parent,obj);
-  ObjectName pname=null;
-  if (parent != null) {
-    pname=_beans.get(parent);
-    if (pname == null) {
-      beanAdded(null,parent);
+  try (Locker.Lock lock=_lock.lock()){
+    ObjectName pname=null;
+    if (parent != null) {
       pname=_beans.get(parent);
+      if (pname == null) {
+        beanAdded(null,parent);
+        pname=_beans.get(parent);
+      }
     }
-  }
-  if (obj == null || _beans.containsKey(obj))   return;
-  try {
+    if (obj == null || _beans.containsKey(obj))     return;
     Object mbean=ObjectMBean.mbeanFor(obj);
     if (mbean == null)     return;
     ObjectName oname=null;
