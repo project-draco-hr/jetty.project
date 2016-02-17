@@ -11,18 +11,20 @@
       setAuthenticated(false);
       return isAuthenticated();
     }
-    if (_forceBindingLogin) {
-      return bindingLogin(webUserName,webCredential);
-    }
-    UserInfo userInfo=getUserInfo(webUserName);
-    if (userInfo == null) {
-      setAuthenticated(false);
-      return false;
-    }
-    setCurrentUser(new JAASUserInfo(userInfo));
     boolean authed=false;
-    if (webCredential instanceof String)     authed=credentialLogin(Credential.getCredential((String)webCredential));
- else     authed=credentialLogin(webCredential);
+    if (_forceBindingLogin) {
+      authed=bindingLogin(webUserName,webCredential);
+    }
+ else {
+      UserInfo userInfo=getUserInfo(webUserName);
+      if (userInfo == null) {
+        setAuthenticated(false);
+        return false;
+      }
+      setCurrentUser(new JAASUserInfo(userInfo));
+      if (webCredential instanceof String)       authed=credentialLogin(Credential.getCredential((String)webCredential));
+ else       authed=credentialLogin(webCredential);
+    }
     if (authed)     getCurrentUser().fetchRoles();
     return authed;
   }
