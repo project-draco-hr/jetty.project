@@ -1,7 +1,5 @@
 {
   try {
-    int status=response.getCommittedMetaData().getStatus();
-    long written=response.getHttpChannel().getBytesWritten();
     if (_ignorePathMap != null && _ignorePathMap.getMatch(request.getRequestURI()) != null)     return;
     if (!isEnabled())     return;
     StringBuilder buf=_buffers.get();
@@ -29,12 +27,14 @@
     buf.append(' ');
     append(buf,request.getProtocol());
     buf.append("\" ");
+    int status=response.getCommittedMetaData().getStatus();
     if (status >= 0) {
       buf.append((char)('0' + ((status / 100) % 10)));
       buf.append((char)('0' + ((status / 10) % 10)));
       buf.append((char)('0' + (status % 10)));
     }
  else     buf.append(status);
+    long written=response.getHttpChannel().getBytesWritten();
     if (written >= 0) {
       buf.append(' ');
       if (written > 99999)       buf.append(written);
@@ -48,7 +48,7 @@
       buf.append(' ');
     }
  else     buf.append(" - ");
-    if (_extended)     logExtended(request,buf);
+    if (_extended)     logExtended(buf,request,response);
     if (_logCookies) {
       Cookie[] cookies=request.getCookies();
       if (cookies == null || cookies.length == 0)       buf.append(" -");
