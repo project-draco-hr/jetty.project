@@ -1,12 +1,8 @@
 {
-  boolean send=false;
-  while (true) {
-    int current=idleTimeoutGuard.get();
-    if (current < 0)     break;
-    if (idleTimeoutGuard.compareAndSet(current,current + 1)) {
-      send=true;
-      break;
-    }
+  boolean send;
+synchronized (this) {
+    send=idleTimeoutGuard >= 0;
+    if (send)     ++idleTimeoutGuard;
   }
   if (send) {
     HttpRequest request=exchange.getRequest();
@@ -19,8 +15,10 @@
       channel.release();
       result=new SendFailure(new HttpRequestException("Could not associate request to connection",request),false);
     }
-    idleTimeoutStamp=System.nanoTime();
-    idleTimeoutGuard.decrementAndGet();
+synchronized (this) {
+      --idleTimeoutGuard;
+      idleTimeoutStamp=System.nanoTime();
+    }
     return result;
   }
  else {
