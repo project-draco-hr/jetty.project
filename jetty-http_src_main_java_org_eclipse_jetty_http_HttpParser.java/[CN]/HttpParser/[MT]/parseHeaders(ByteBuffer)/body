@@ -13,9 +13,24 @@ switch (ch) {
 case HttpTokens.COLON:
 case HttpTokens.SPACE:
 case HttpTokens.TAB:
-        throw new BadMessageException(HttpStatus.BAD_REQUEST_400,"Bad Continuation");
+{
+          if (_compliance.ordinal() >= Compliance.RFC7230.ordinal())           throw new BadMessageException(HttpStatus.BAD_REQUEST_400,"Bad Continuation");
+          if (_valueString == null) {
+            _string.setLength(0);
+            _length=0;
+          }
+ else {
+            setString(_valueString);
+            _string.append(' ');
+            _length++;
+            _valueString=null;
+          }
+          setState(State.HEADER_VALUE);
+          break;
+        }
 case HttpTokens.LINE_FEED:
 {
+        parsedHeader();
         _contentPosition=0;
         if (!_host && _version == HttpVersion.HTTP_1_1 && _requestHandler != null) {
           throw new BadMessageException(HttpStatus.BAD_REQUEST_400,"No Host");
@@ -47,14 +62,15 @@ return handle;
 }
 default :
 {
-if (ch <= HttpTokens.SPACE) throw new BadMessageException();
+if (ch < HttpTokens.SPACE) throw new BadMessageException();
+parsedHeader();
 if (buffer.hasRemaining()) {
 HttpField field=_connectionFields == null ? null : _connectionFields.getBest(buffer,-1,buffer.remaining());
 if (field == null) field=CACHE.getBest(buffer,-1,buffer.remaining());
 if (field != null) {
 final String n;
 final String v;
-if (_strict) {
+if (_compliance == Compliance.STRICT) {
 String fn=field.getName();
 String fv=field.getValue();
 n=BufferUtil.toString(buffer,buffer.position() - 1,fn.length(),StandardCharsets.US_ASCII);
@@ -141,7 +157,6 @@ _value=null;
 _string.setLength(0);
 _valueString=null;
 _length=-1;
-parsedHeader();
 setState(State.HEADER);
 break;
 }
@@ -163,7 +178,6 @@ _value=null;
 _valueString=takeString();
 _length=-1;
 }
-parsedHeader();
 setState(State.HEADER);
 break;
 }
