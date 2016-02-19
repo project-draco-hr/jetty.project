@@ -1,9 +1,9 @@
 {
   boolean send=false;
   while (true) {
-    int current=idleTimeoutState.get();
+    int current=idleTimeoutGuard.get();
     if (current < 0)     break;
-    if (idleTimeoutState.compareAndSet(current,current + 1)) {
+    if (idleTimeoutGuard.compareAndSet(current,current + 1)) {
       send=true;
       break;
     }
@@ -19,7 +19,8 @@
       channel.release();
       result=new SendFailure(new HttpRequestException("Could not associate request to connection",request),false);
     }
-    idleTimeoutState.decrementAndGet();
+    idleTimeoutStamp=System.nanoTime();
+    idleTimeoutGuard.decrementAndGet();
     return result;
   }
  else {
