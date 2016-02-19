@@ -1,31 +1,31 @@
 {
   if (LOG.isDebugEnabled())   LOG.debug("beanAdded {}->{}",parent,obj);
-  try (Locker.Lock lock=_lock.lock()){
-    ObjectName pname=null;
-    if (parent != null) {
-      pname=_beans.get(parent);
-      if (pname == null) {
-        beanAdded(null,parent);
-        pname=_beans.get(parent);
-      }
+  ObjectName parentObjectName=null;
+  if (parent != null) {
+    parentObjectName=findMBean(parent);
+    if (parentObjectName == null) {
+      beanAdded(null,parent);
+      parentObjectName=findMBean(parent);
     }
-    if (obj == null || _beans.containsKey(obj))     return;
+  }
+  if (obj == null || _beans.containsKey(obj))   return;
+  try {
     Object mbean=ObjectMBean.mbeanFor(obj);
     if (mbean == null)     return;
-    ObjectName oname=null;
+    ObjectName objectName=null;
     if (mbean instanceof ObjectMBean) {
       ((ObjectMBean)mbean).setMBeanContainer(this);
-      oname=((ObjectMBean)mbean).getObjectName();
+      objectName=((ObjectMBean)mbean).getObjectName();
     }
-    if (oname == null) {
+    if (objectName == null) {
       String domain=_domain;
       if (domain == null)       domain=obj.getClass().getPackage().getName();
       String type=obj.getClass().getName().toLowerCase(Locale.ENGLISH);
       int dot=type.lastIndexOf('.');
       if (dot >= 0)       type=type.substring(dot + 1);
-      StringBuffer buf=new StringBuffer();
+      StringBuilder buf=new StringBuilder();
       String context=(mbean instanceof ObjectMBean) ? makeName(((ObjectMBean)mbean).getObjectContextBasis()) : null;
-      if (context == null && pname != null)       context=pname.getKeyProperty("context");
+      if (context == null && parentObjectName != null)       context=parentObjectName.getKeyProperty("context");
       if (context != null && context.length() > 1)       buf.append("context=").append(context).append(",");
       buf.append("type=").append(type);
       String name=(mbean instanceof ObjectMBean) ? makeName(((ObjectMBean)mbean).getObjectNameBasis()) : context;
@@ -33,16 +33,17 @@
       String basis=buf.toString();
       AtomicInteger count=__unique.get(basis);
       if (count == null) {
-        count=__unique.putIfAbsent(basis,new AtomicInteger());
-        if (count == null)         count=__unique.get(basis);
+        count=new AtomicInteger();
+        AtomicInteger existing=__unique.putIfAbsent(basis,count);
+        if (existing != null)         count=existing;
       }
-      oname=ObjectName.getInstance(domain + ":" + basis+ ",id="+ count.getAndIncrement());
+      objectName=ObjectName.getInstance(domain + ":" + basis+ ",id="+ count.getAndIncrement());
     }
-    ObjectInstance oinstance=_mbeanServer.registerMBean(mbean,oname);
-    if (LOG.isDebugEnabled())     LOG.debug("Registered {}",oinstance.getObjectName());
-    _beans.put(obj,oinstance.getObjectName());
+    _mbeanServer.registerMBean(mbean,objectName);
+    if (LOG.isDebugEnabled())     LOG.debug("Registered {}",objectName);
+    _beans.put(obj,objectName);
   }
- catch (  Exception e) {
-    LOG.warn("bean: " + obj,e);
+ catch (  Throwable x) {
+    LOG.warn("bean: " + obj,x);
   }
 }
