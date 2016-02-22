@@ -1,6 +1,7 @@
 {
   try {
     if (channel == null) {
+      buffer=bufferPool == null ? ByteBuffer.allocateDirect(bufferSize) : bufferPool.acquire(bufferSize,true);
       channel=Files.newByteChannel(filePath,StandardOpenOption.READ);
       if (LOG.isDebugEnabled())       LOG.debug("Opened file {}",filePath);
     }
@@ -9,7 +10,6 @@
     if (read < 0)     throw new NoSuchElementException();
     if (LOG.isDebugEnabled())     LOG.debug("Read {} bytes from {}",read,filePath);
     position+=read;
-    if (!hasNext())     close();
     buffer.flip();
     return buffer;
   }
