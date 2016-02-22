@@ -1,11 +1,11 @@
 {
-  __log.debug("MongoSessionManager:refresh session {}",session.getId());
+  if (__log.isDebugEnabled())   __log.debug("MongoSessionManager:refresh session {}",session.getId());
   if (version != null) {
     DBObject o=_dbSessions.findOne(new BasicDBObject(__ID,session.getClusterId()),_version_1);
     if (o != null) {
       Object saved=getNestedValue(o,getContextAttributeKey(__VERSION));
       if (saved != null && saved.equals(version)) {
-        __log.debug("MongoSessionManager:refresh not needed session {}",session.getId());
+        if (__log.isDebugEnabled())         __log.debug("MongoSessionManager:refresh not needed session {}",session.getId());
         return version;
       }
       version=saved;
@@ -13,13 +13,13 @@
   }
   DBObject o=_dbSessions.findOne(new BasicDBObject(__ID,session.getClusterId()));
   if (o == null) {
-    __log.debug("MongoSessionManager:refresh:marking session {} invalid, no object",session.getClusterId());
+    if (__log.isDebugEnabled())     __log.debug("MongoSessionManager:refresh:marking session {} invalid, no object",session.getClusterId());
     session.invalidate();
     return null;
   }
   Boolean valid=(Boolean)o.get(__VALID);
   if (valid == null || !valid) {
-    __log.debug("MongoSessionManager:refresh:marking session {} invalid, valid flag {}",session.getClusterId(),valid);
+    if (__log.isDebugEnabled())     __log.debug("MongoSessionManager:refresh:marking session {} invalid, valid flag {}",session.getClusterId(),valid);
     session.invalidate();
     return null;
   }
@@ -34,7 +34,7 @@
         if (__METADATA.equals(name))         continue;
         String attr=decodeName(name);
         Object value=decodeValue(attrs.get(name));
-        if (session.getAttribute(attr) == null) {
+        if (session.doGet(attr) == null) {
           session.doPutOrRemove(attr,value);
           session.bindValue(attr,value);
         }

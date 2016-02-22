@@ -1,0 +1,20 @@
+{
+  if (LOG.isDebugEnabled())   LOG.debug("Checking before de-idling {}, isidle:{}, isDeidleFailed:",super.getId(),isIdle(),isDeIdleFailed());
+  if (isIdle() && !isDeIdleFailed()) {
+    setDeIdling();
+    if (LOG.isDebugEnabled())     LOG.debug("De-idling " + super.getId());
+    super.access(System.currentTimeMillis());
+    if (isValid()) {
+      try {
+        setIdle(false);
+        _version=_manager.refresh(this,new Long(0));
+        if (_version == null)         setDeIdleFailed(true);
+      }
+ catch (      Exception e) {
+        setDeIdleFailed(true);
+        LOG.warn("Problem de-idling session " + super.getId(),e);
+        invalidate();
+      }
+    }
+  }
+}

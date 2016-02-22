@@ -1,0 +1,12 @@
+{
+  if (getIdlePeriod() <= 0)   return;
+  long idleMs=getIdlePeriod() * 1000L;
+  long now=System.currentTimeMillis();
+synchronized (this) {
+    for (    NoSqlSession session : _sessions.values()) {
+      if (session.getAccessed() + idleMs < now) {
+        session.idle();
+      }
+    }
+  }
+}
