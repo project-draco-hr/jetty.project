@@ -19,12 +19,12 @@
   }
 );
   server.start();
+  Logger logger=Log.getLogger(HttpChannel.class);
   try {
-    ((AbstractLogger)Log.getLogger(HttpChannel.class)).info("Excpect IOException: Response header too large...");
-    ((StdErrLog)Log.getLogger(HttpChannel.class)).setHideStacks(true);
-    int offset=0;
-    response=connector.getResponses("GET / HTTP/1.1\n" + "Host: localhost\n" + "\015\012");
-    checkContains(response,offset,"HTTP/1.1 500");
+    logger.info("Expect IOException: Response header too large...");
+    ((StdErrLog)logger).setHideStacks(true);
+    response=connector.getResponses("GET / HTTP/1.1\r\n" + "Host: localhost\r\n" + "\r\n");
+    checkContains(response,0,"HTTP/1.1 500");
     assertTrue(checkError.await(1,TimeUnit.SECONDS));
   }
  catch (  Exception e) {
@@ -32,6 +32,6 @@
     throw e;
   }
  finally {
-    ((StdErrLog)Log.getLogger(HttpChannel.class)).setHideStacks(false);
+    ((StdErrLog)logger).setHideStacks(false);
   }
 }
