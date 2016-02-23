@@ -13,7 +13,11 @@ case HTTP_1_1:
     if (_persistent == null)     _persistent=Boolean.TRUE;
   break;
 default :
-throw new IllegalArgumentException(version + " not supported");
+_persistent=false;
+_endOfContent=EndOfContent.EOF_CONTENT;
+if (BufferUtil.hasContent(content)) _contentPrepared+=content.remaining();
+_state=last ? State.COMPLETING : State.COMMITTED;
+return Result.FLUSH;
 }
 if (header == null) return Result.NEED_HEADER;
 int pos=BufferUtil.flipToFill(header);
@@ -23,9 +27,9 @@ int status=info.getStatus();
 if (status >= 100 && status < 200) {
 _noContent=true;
 if (status != HttpStatus.SWITCHING_PROTOCOLS_101) {
-  header.put(HttpTokens.CRLF);
-  _state=State.COMPLETING_1XX;
-  return Result.FLUSH;
+header.put(HttpTokens.CRLF);
+_state=State.COMPLETING_1XX;
+return Result.FLUSH;
 }
 }
  else if (status == HttpStatus.NO_CONTENT_204 || status == HttpStatus.NOT_MODIFIED_304) {

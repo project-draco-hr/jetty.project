@@ -1,50 +1,55 @@
 {
   boolean persistent;
 switch (_metadata.getVersion()) {
-case HTTP_1_0:
+case HTTP_0_9:
 {
-      if (getHttpConfiguration().isPersistentConnectionsEnabled()) {
-        if (_connection != null) {
-          if (_connection.contains(HttpHeaderValue.KEEP_ALIVE.asString()))           persistent=true;
- else           persistent=_fields.contains(HttpHeader.CONNECTION,HttpHeaderValue.KEEP_ALIVE.asString());
-        }
- else         persistent=false;
-      }
- else       persistent=false;
-      if (!persistent)       persistent=HttpMethod.CONNECT.is(_metadata.getMethod());
-      if (persistent)       getResponse().getHttpFields().add(HttpHeader.CONNECTION,HttpHeaderValue.KEEP_ALIVE);
+      persistent=false;
       break;
     }
-case HTTP_1_1:
+case HTTP_1_0:
 {
-    if (_unknownExpectation) {
-      badMessage(HttpStatus.EXPECTATION_FAILED_417,null);
-      return false;
-    }
     if (getHttpConfiguration().isPersistentConnectionsEnabled()) {
       if (_connection != null) {
-        if (_connection.contains(HttpHeaderValue.CLOSE.asString()))         persistent=false;
- else         persistent=!_fields.contains(HttpHeader.CONNECTION,HttpHeaderValue.CLOSE.asString());
+        if (_connection.contains(HttpHeaderValue.KEEP_ALIVE.asString()))         persistent=true;
+ else         persistent=_fields.contains(HttpHeader.CONNECTION,HttpHeaderValue.KEEP_ALIVE.asString());
       }
- else       persistent=true;
+ else       persistent=false;
     }
  else     persistent=false;
     if (!persistent)     persistent=HttpMethod.CONNECT.is(_metadata.getMethod());
-    if (!persistent)     getResponse().getHttpFields().add(HttpHeader.CONNECTION,HttpHeaderValue.CLOSE);
-    if (_upgrade != null && upgrade())     return true;
+    if (persistent)     getResponse().getHttpFields().add(HttpHeader.CONNECTION,HttpHeaderValue.KEEP_ALIVE);
     break;
   }
+case HTTP_1_1:
+{
+  if (_unknownExpectation) {
+    badMessage(HttpStatus.EXPECTATION_FAILED_417,null);
+    return false;
+  }
+  if (getHttpConfiguration().isPersistentConnectionsEnabled()) {
+    if (_connection != null) {
+      if (_connection.contains(HttpHeaderValue.CLOSE.asString()))       persistent=false;
+ else       persistent=!_fields.contains(HttpHeader.CONNECTION,HttpHeaderValue.CLOSE.asString());
+    }
+ else     persistent=true;
+  }
+ else   persistent=false;
+  if (!persistent)   persistent=HttpMethod.CONNECT.is(_metadata.getMethod());
+  if (!persistent)   getResponse().getHttpFields().add(HttpHeader.CONNECTION,HttpHeaderValue.CLOSE);
+  if (_upgrade != null && upgrade())   return true;
+  break;
+}
 case HTTP_2:
 {
-  _upgrade=PREAMBLE_UPGRADE_H2C;
-  if (HttpMethod.PRI.is(_metadata.getMethod()) && "*".equals(_metadata.getURI().toString()) && _fields.size() == 0 && upgrade())   return true;
-  badMessage(HttpStatus.UPGRADE_REQUIRED_426,null);
-  _httpConnection.getParser().close();
-  return false;
+_upgrade=PREAMBLE_UPGRADE_H2C;
+if (HttpMethod.PRI.is(_metadata.getMethod()) && "*".equals(_metadata.getURI().toString()) && _fields.size() == 0 && upgrade()) return true;
+badMessage(HttpStatus.UPGRADE_REQUIRED_426,null);
+_httpConnection.getParser().close();
+return false;
 }
 default :
 {
-throw new IllegalStateException();
+throw new IllegalStateException("unsupported version " + _metadata.getVersion());
 }
 }
 if (!persistent) _httpConnection.getGenerator().setPersistent(false);
