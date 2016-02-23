@@ -9,13 +9,15 @@ synchronized (AbstractConnector.this) {
     _acceptors[_id]=thread;
   }
   try {
+    Throwable exception=null;
     while (isAccepting()) {
       try {
         accept(_id);
+        exception=null;
       }
- catch (      Throwable e) {
-        if (isAccepting())         LOG.warn(e);
- else         LOG.ignore(e);
+ catch (      Throwable x) {
+        if (handleAcceptFailure(exception,x))         exception=x;
+ else         break;
       }
     }
   }
