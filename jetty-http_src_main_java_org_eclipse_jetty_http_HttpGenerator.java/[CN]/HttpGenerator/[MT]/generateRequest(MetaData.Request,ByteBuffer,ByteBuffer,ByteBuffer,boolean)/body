@@ -11,7 +11,7 @@ case START:
       int pos=BufferUtil.flipToFill(header);
       try {
         generateRequestLine(info,header);
-        if (info.getVersion() == HttpVersion.HTTP_0_9)         throw new IllegalArgumentException("HTTP/0.9 not supported");
+        if (info.getVersion() == HttpVersion.HTTP_0_9)         throw new BadMessageException(500,"HTTP/0.9 not supported");
         generateHeaders(info,header,content,last);
         boolean expect100=info.getFields().contains(HttpHeader.EXPECT,HttpHeaderValue.CONTINUE.asString());
         if (expect100) {
@@ -29,7 +29,7 @@ case START:
       }
  catch (      Exception e) {
         String message=(e instanceof BufferOverflowException) ? "Request header too large" : e.getMessage();
-        throw new IOException(message,e);
+        throw new BadMessageException(500,message,e);
       }
  finally {
         BufferUtil.flipToFlush(header,pos);

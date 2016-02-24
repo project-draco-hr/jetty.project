@@ -109,7 +109,7 @@ header.put(HttpTokens.CRLF);
  else if (last) {
 _endOfContent=EndOfContent.CONTENT_LENGTH;
 long actual_length=_contentPrepared + BufferUtil.length(content);
-if (content_length >= 0 && content_length != actual_length) throw new IllegalArgumentException("Content-Length header(" + content_length + ") != actual("+ actual_length+ ")");
+if (content_length >= 0 && content_length != actual_length) throw new BadMessageException(500,"Content-Length header(" + content_length + ") != actual("+ actual_length+ ")");
 putContentLength(header,actual_length,content_type,request,response);
 }
  else {
@@ -123,7 +123,7 @@ putContentLength(header,content_length,content_type,request,response);
 break;
 }
 case NO_CONTENT:
-throw new IllegalStateException();
+throw new BadMessageException(500);
 case EOF_CONTENT:
 _persistent=request != null;
 break;
@@ -136,7 +136,7 @@ if (isChunking()) {
 if (transfer_encoding != null && !HttpHeaderValue.CHUNKED.toString().equalsIgnoreCase(transfer_encoding.getValue())) {
 String c=transfer_encoding.getValue();
 if (c.endsWith(HttpHeaderValue.CHUNKED.toString())) putTo(transfer_encoding,header);
- else throw new IllegalArgumentException("BAD TE");
+ else throw new BadMessageException(500,"BAD TE");
 }
  else header.put(TRANSFER_ENCODING_CHUNKED);
 }
