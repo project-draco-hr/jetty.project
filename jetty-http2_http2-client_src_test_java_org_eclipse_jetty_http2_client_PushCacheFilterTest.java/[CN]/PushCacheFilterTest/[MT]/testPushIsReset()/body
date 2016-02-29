@@ -25,6 +25,7 @@
         MetaData.Request secondaryRequest=newRequest("GET",secondaryResource,secondaryFields);
         session.newStream(new HeadersFrame(secondaryRequest,null,true),new Promise.Adapter<>(),new Stream.Listener.Adapter(){
           @Override public void onData(          Stream stream,          DataFrame frame,          Callback callback){
+            callback.succeeded();
             warmupLatch.countDown();
           }
         }
@@ -43,6 +44,7 @@
       stream.reset(resetFrame,Callback.NOOP);
       return new Adapter(){
         @Override public void onData(        Stream stream,        DataFrame frame,        Callback callback){
+          callback.succeeded();
           pushLatch.countDown();
         }
       }
@@ -62,6 +64,7 @@
   final CountDownLatch secondaryResponseLatch=new CountDownLatch(1);
   session.newStream(new HeadersFrame(secondaryRequest,null,true),new Promise.Adapter<>(),new Stream.Listener.Adapter(){
     @Override public void onData(    Stream stream,    DataFrame frame,    Callback callback){
+      callback.succeeded();
       if (frame.isEndStream())       secondaryResponseLatch.countDown();
     }
   }
