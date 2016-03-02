@@ -33,6 +33,7 @@
           MetaData.Request redirectRequest=newRequest("GET",location,redirectFields);
           session.newStream(new HeadersFrame(redirectRequest,null,true),new Promise.Adapter<>(),new Adapter(){
             @Override public void onData(            Stream stream,            DataFrame frame,            Callback callback){
+              callback.succeeded();
               if (frame.isEndStream())               warmupLatch.countDown();
             }
           }
@@ -49,6 +50,7 @@
   final CountDownLatch pushLatch=new CountDownLatch(1);
   session.newStream(new HeadersFrame(primaryRequest,null,true),new Promise.Adapter<>(),new Stream.Listener.Adapter(){
     @Override public void onData(    Stream stream,    DataFrame frame,    Callback callback){
+      callback.succeeded();
       if (frame.isEndStream())       primaryResponseLatch.countDown();
     }
     @Override public Stream.Listener onPush(    Stream stream,    PushPromiseFrame frame){

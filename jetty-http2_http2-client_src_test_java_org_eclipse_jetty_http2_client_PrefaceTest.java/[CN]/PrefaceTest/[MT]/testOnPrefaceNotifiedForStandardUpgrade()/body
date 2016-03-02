@@ -36,9 +36,9 @@
     Assert.assertTrue(serverSettingsLatch.get().await(5,TimeUnit.SECONDS));
     ByteBuffer buffer=byteBufferPool.acquire(1024,true);
     http1:     while (true) {
-      buffer.clear();
+      BufferUtil.clearToFill(buffer);
       int read=socket.read(buffer);
-      buffer.flip();
+      BufferUtil.flipToFlush(buffer,0);
       if (read < 0)       Assert.fail();
       int crlfs=0;
       while (buffer.hasRemaining()) {
@@ -76,9 +76,9 @@
     while (true) {
       parser.parse(buffer);
       if (responded.get())       break;
-      buffer.clear();
+      BufferUtil.clearToFill(buffer);
       int read=socket.read(buffer);
-      buffer.flip();
+      BufferUtil.flipToFlush(buffer,0);
       if (read < 0)       Assert.fail();
     }
     Assert.assertTrue(clientSettingsLatch.await(5,TimeUnit.SECONDS));

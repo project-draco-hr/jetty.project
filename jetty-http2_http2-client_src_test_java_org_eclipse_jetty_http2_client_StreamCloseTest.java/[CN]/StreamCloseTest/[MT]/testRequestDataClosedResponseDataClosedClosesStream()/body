@@ -8,7 +8,10 @@
       return new Stream.Listener.Adapter(){
         @Override public void onData(        final Stream stream,        DataFrame frame,        final Callback callback){
           Assert.assertTrue(((HTTP2Stream)stream).isRemotelyClosed());
-          stream.data(frame,new Callback(){
+          ByteBuffer data=frame.getData();
+          ByteBuffer copy=ByteBuffer.allocate(data.remaining());
+          copy.put(data).flip();
+          stream.data(new DataFrame(stream.getId(),copy,frame.isEndStream()),new Callback(){
             @Override public void succeeded(){
               Assert.assertTrue(stream.isClosed());
               Assert.assertEquals(0,stream.getSession().getStreams().size());
@@ -29,6 +32,7 @@
   FuturePromise<Stream> promise=new FuturePromise<>();
   session.newStream(frame,promise,new Stream.Listener.Adapter(){
     @Override public void onData(    Stream stream,    DataFrame frame,    Callback callback){
+      callback.succeeded();
       completeLatch.countDown();
     }
   }
