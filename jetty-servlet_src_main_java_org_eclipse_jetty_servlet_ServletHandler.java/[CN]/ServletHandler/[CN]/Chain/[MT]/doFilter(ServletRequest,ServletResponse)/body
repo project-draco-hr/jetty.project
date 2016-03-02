@@ -4,14 +4,16 @@
     FilterHolder holder=_chain.get(_filter++);
     if (LOG.isDebugEnabled())     LOG.debug("call filter " + holder);
     Filter filter=holder.getFilter();
-    boolean requestAsyncSupported=_baseRequest.isAsyncSupported();
-    try {
-      if (!holder.isAsyncSupported() && requestAsyncSupported)       _baseRequest.setAsyncSupported(false);
-      filter.doFilter(request,response,this);
-    }
+    if (!holder.isAsyncSupported() && _baseRequest.isAsyncSupported()) {
+      try {
+        _baseRequest.setAsyncSupported(false,holder.toString());
+        filter.doFilter(request,response,this);
+      }
   finally {
-      _baseRequest.setAsyncSupported(requestAsyncSupported);
+        _baseRequest.setAsyncSupported(true,null);
+      }
     }
+ else     filter.doFilter(request,response,this);
     return;
   }
   HttpServletRequest srequest=(HttpServletRequest)request;
