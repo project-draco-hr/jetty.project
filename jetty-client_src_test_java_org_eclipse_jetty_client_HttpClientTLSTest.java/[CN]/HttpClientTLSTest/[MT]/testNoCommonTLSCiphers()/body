@@ -1,0 +1,14 @@
+{
+  SslContextFactory serverTLSFactory=createSslContextFactory();
+  serverTLSFactory.setIncludeCipherSuites("TLS_RSA_WITH_AES_128_CBC_SHA");
+  startServer(serverTLSFactory,new EmptyServerHandler());
+  SslContextFactory clientTLSFactory=createSslContextFactory();
+  clientTLSFactory.setExcludeCipherSuites(".*_SHA$");
+  startClient(clientTLSFactory);
+  try {
+    client.newRequest("localhost",connector.getLocalPort()).scheme(HttpScheme.HTTPS.asString()).timeout(5,TimeUnit.SECONDS).send();
+    Assert.fail();
+  }
+ catch (  ExecutionException x) {
+  }
+}
