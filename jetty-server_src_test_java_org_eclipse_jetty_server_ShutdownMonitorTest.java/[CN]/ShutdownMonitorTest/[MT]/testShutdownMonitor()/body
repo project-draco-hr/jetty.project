@@ -1,18 +1,24 @@
 {
-  ShutdownMonitor.getInstance().setPort(0);
-  ShutdownMonitor.getInstance().setExitVm(false);
-  ShutdownMonitor.getInstance().start();
-  String key=ShutdownMonitor.getInstance().getKey();
-  int port=ShutdownMonitor.getInstance().getPort();
-  ShutdownMonitor.getInstance().start();
+  ShutdownMonitor monitor=ShutdownMonitor.getInstance();
+  monitor.setDebug(true);
+  monitor.setPort(0);
+  monitor.setExitVm(false);
+  monitor.start();
+  String key=monitor.getKey();
+  int port=monitor.getPort();
+  monitor.start();
   stop("stop",port,key,true);
-  assertTrue(!ShutdownMonitor.getInstance().isAlive());
-  ShutdownMonitor.getInstance().setPort(0);
-  ShutdownMonitor.getInstance().setKey("foo");
-  ShutdownMonitor.getInstance().start();
-  key=ShutdownMonitor.getInstance().getKey();
-  port=ShutdownMonitor.getInstance().getPort();
-  assertTrue(ShutdownMonitor.getInstance().isAlive());
+  monitor.await();
+  assertTrue(!monitor.isAlive());
+  monitor.setPort(0);
+  String newKey="foo";
+  monitor.setKey(newKey);
+  monitor.start();
+  key=monitor.getKey();
+  assertEquals(newKey,key);
+  port=monitor.getPort();
+  assertTrue(monitor.isAlive());
   stop("stop",port,key,true);
-  assertTrue(!ShutdownMonitor.getInstance().isAlive());
+  monitor.await();
+  assertTrue(!monitor.isAlive());
 }
