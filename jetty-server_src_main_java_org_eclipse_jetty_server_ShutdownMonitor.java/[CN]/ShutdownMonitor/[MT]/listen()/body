@@ -1,29 +1,33 @@
 {
+  int port=getPort();
   if (port < 0) {
-    if (DEBUG)     System.err.println("ShutdownMonitor not in use (port < 0): " + port);
-    return;
+    debug("Not enabled (port < 0): %d",port);
+    return null;
   }
+  String key=getKey();
   try {
-    serverSocket=new ServerSocket();
+    ServerSocket serverSocket=new ServerSocket();
     serverSocket.setReuseAddress(true);
-    serverSocket.bind(new InetSocketAddress(InetAddress.getByName(host),port),1);
+    serverSocket.bind(new InetSocketAddress(InetAddress.getByName(host),port));
     if (port == 0) {
       port=serverSocket.getLocalPort();
       System.out.printf("STOP.PORT=%d%n",port);
+      setPort(port);
     }
     if (key == null) {
       key=Long.toString((long)(Long.MAX_VALUE * Math.random() + this.hashCode() + System.currentTimeMillis()),36);
       System.out.printf("STOP.KEY=%s%n",key);
+      setKey(key);
     }
+    return serverSocket;
   }
- catch (  Exception e) {
-    debug(e);
-    System.err.println("Error binding monitor port " + port + ": "+ e.toString());
-    serverSocket=null;
+ catch (  Throwable x) {
+    debug(x);
+    System.err.println("Error binding ShutdownMonitor to port " + port + ": "+ x.toString());
+    return null;
   }
  finally {
     debug("STOP.PORT=%d",port);
     debug("STOP.KEY=%s",key);
-    debug("%s",serverSocket);
   }
 }
