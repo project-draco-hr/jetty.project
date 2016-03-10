@@ -1,0 +1,48 @@
+{
+  String contextPath="";
+  String servletMapping="/server";
+  int inactivePeriod=10;
+  int scavengePeriod=1;
+  AbstractTestServer server1=createServer(0,inactivePeriod,scavengePeriod);
+  ChangeTimeoutServlet servlet=new ChangeTimeoutServlet();
+  ServletHolder holder=new ServletHolder(servlet);
+  ServletContextHandler context=server1.addContext(contextPath);
+  context.addServlet(holder,servletMapping);
+  TestHttpSessionListener listener=new TestHttpSessionListener();
+  context.getSessionHandler().addEventListener(listener);
+  server1.start();
+  int port1=server1.getPort();
+  try {
+    HttpClient client=new HttpClient();
+    client.start();
+    String url="http://localhost:" + port1 + contextPath+ servletMapping;
+    ContentResponse response1=client.GET(url + "?action=init");
+    assertEquals(HttpServletResponse.SC_OK,response1.getStatus());
+    String sessionCookie=response1.getHeaders().get("Set-Cookie");
+    assertTrue(sessionCookie != null);
+    sessionCookie=sessionCookie.replaceFirst("(\\W)(P|p)ath=","$1\\$Path=");
+    String sessionId=AbstractTestServer.extractSessionId(sessionCookie);
+    DBCollection sessions=((MongoSessionIdManager)((MongoTestServer)server1).getServer().getSessionIdManager()).getSessions();
+    verifySessionCreated(listener,sessionId);
+    verifySessionTimeout(sessions,sessionId,inactivePeriod);
+    long expiry=getSessionExpiry(sessions,sessionId);
+    inactivePeriod=5;
+    Request request=client.newRequest(url + "?action=change&val=" + inactivePeriod);
+    request.getHeaders().add("Cookie",sessionCookie);
+    ContentResponse response2=request.send();
+    assertEquals(HttpServletResponse.SC_OK,response2.getStatus());
+    verifySessionTimeout(sessions,sessionId,inactivePeriod);
+    assertTrue(getSessionExpiry(sessions,sessionId) < expiry);
+    expiry=getSessionExpiry(sessions,sessionId);
+    inactivePeriod=20;
+    request=client.newRequest(url + "?action=change&val=" + inactivePeriod);
+    request.getHeaders().add("Cookie",sessionCookie);
+    response2=request.send();
+    assertEquals(HttpServletResponse.SC_OK,response2.getStatus());
+    verifySessionTimeout(sessions,sessionId,inactivePeriod);
+    assertTrue(getSessionAccessed(sessions,sessionId) + (1000L * inactivePeriod) == getSessionExpiry(sessions,sessionId));
+  }
+  finally {
+    server1.stop();
+  }
+}

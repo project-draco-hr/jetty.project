@@ -1,8 +1,9 @@
 {
   XmlParser.Node tNode=node.get("session-timeout");
   if (tNode != null) {
-    int timeout=Integer.parseInt(tNode.toString(false,true));
-    context.getSessionHandler().getSessionManager().setMaxInactiveInterval(timeout * 60);
+    java.math.BigDecimal asDecimal=new java.math.BigDecimal(tNode.toString(false,true));
+    if (asDecimal.compareTo(AbstractSessionManager.MAX_INACTIVE_MINUTES) > 0)     throw new IllegalStateException("Max session-timeout in minutes is " + AbstractSessionManager.MAX_INACTIVE_MINUTES);
+    context.getSessionHandler().getSessionManager().setMaxInactiveInterval(asDecimal.intValueExact() * 60);
   }
   Iterator<Node> iter=node.iterator("tracking-mode");
   if (iter.hasNext()) {

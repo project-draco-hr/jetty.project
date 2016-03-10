@@ -9,12 +9,14 @@
     Object version=o.get(getContextAttributeKey(__VERSION));
     Long created=(Long)o.get(__CREATED);
     Long accessed=(Long)o.get(__ACCESSED);
+    Integer maxIdle=(Integer)o.get(__MAX_IDLE);
     NoSqlSession session=null;
     DBObject attrs=(DBObject)getNestedValue(o,getContextKey());
     if (__log.isDebugEnabled())     __log.debug("MongoSessionManager:attrs {}",attrs);
     if (attrs != null) {
       if (__log.isDebugEnabled())       __log.debug("MongoSessionManager: session {} present for context {}",clusterId,getContextKey());
       session=new NoSqlSession(this,created,accessed,clusterId,version);
+      session.setMaxInactiveInterval(maxIdle);
       for (      String name : attrs.keySet()) {
         if (__METADATA.equals(name))         continue;
         String attr=decodeName(name);

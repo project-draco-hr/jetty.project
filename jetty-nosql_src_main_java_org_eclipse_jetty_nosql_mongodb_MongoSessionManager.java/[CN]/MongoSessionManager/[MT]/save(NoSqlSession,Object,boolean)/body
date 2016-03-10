@@ -1,6 +1,6 @@
 {
   try {
-    __log.debug("MongoSessionManager:save session {}",session.getClusterId());
+    if (__log.isDebugEnabled())     __log.debug("MongoSessionManager:save session {}",session.getClusterId());
     session.willPassivate();
     BasicDBObject key=new BasicDBObject(__ID,session.getClusterId());
     BasicDBObject update=new BasicDBObject();
@@ -8,15 +8,14 @@
     BasicDBObject sets=new BasicDBObject();
     BasicDBObject unsets=new BasicDBObject();
     if (session.isValid()) {
-      long expiry=(session.getMaxInactiveInterval() > 0 ? (session.getAccessed() + (1000L * getMaxInactiveInterval())) : 0);
-      __log.debug("MongoSessionManager: calculated expiry {} for session {}",expiry,session.getId());
+      long expiry=(session.getMaxInactiveInterval() > 0 ? (session.getAccessed() + (1000L * session.getMaxInactiveInterval())) : 0);
       if (version == null) {
         upsert=true;
         version=new Long(1);
         sets.put(__CREATED,session.getCreationTime());
         sets.put(__VALID,true);
         sets.put(getContextAttributeKey(__VERSION),version);
-        sets.put(__MAX_IDLE,getMaxInactiveInterval());
+        sets.put(__MAX_IDLE,session.getMaxInactiveInterval());
         sets.put(__EXPIRY,expiry);
       }
  else {
@@ -27,10 +26,12 @@
         fields.append(__EXPIRY,true);
         DBObject o=_dbSessions.findOne(new BasicDBObject("id",session.getClusterId()),fields);
         if (o != null) {
-          Integer currentMaxIdle=(Integer)o.get(__MAX_IDLE);
-          Long currentExpiry=(Long)o.get(__EXPIRY);
-          if (currentMaxIdle != null && getMaxInactiveInterval() > 0 && getMaxInactiveInterval() < currentMaxIdle)           sets.put(__MAX_IDLE,getMaxInactiveInterval());
-          if (currentExpiry != null && expiry > 0 && expiry != currentExpiry)           sets.put(__EXPIRY,expiry);
+          Integer tmpInt=(Integer)o.get(__MAX_IDLE);
+          int currentMaxIdle=(tmpInt == null ? 0 : tmpInt.intValue());
+          Long tmpLong=(Long)o.get(__EXPIRY);
+          long currentExpiry=(tmpLong == null ? 0 : tmpLong.longValue());
+          if (currentMaxIdle != session.getMaxInactiveInterval())           sets.put(__MAX_IDLE,session.getMaxInactiveInterval());
+          if (currentExpiry != expiry)           sets.put(__EXPIRY,expiry);
         }
       }
       sets.put(__ACCESSED,session.getAccessed());
