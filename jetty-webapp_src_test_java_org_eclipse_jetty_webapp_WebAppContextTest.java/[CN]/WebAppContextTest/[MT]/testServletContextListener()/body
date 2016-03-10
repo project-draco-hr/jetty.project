@@ -1,0 +1,45 @@
+{
+  Server server=new Server();
+  ServletContextHandler context=new ServletContextHandler(ServletContextHandler.SESSIONS);
+  context.setContextPath("/");
+  context.setResourceBase(System.getProperty("java.io.tmpdir"));
+  server.setHandler(context);
+  final List<String> history=new ArrayList<>();
+  context.addEventListener(new ServletContextListener(){
+    @Override public void contextInitialized(    ServletContextEvent servletContextEvent){
+      history.add("I1");
+    }
+    @Override public void contextDestroyed(    ServletContextEvent servletContextEvent){
+      history.add("D1");
+    }
+  }
+);
+  context.addEventListener(new ServletContextListener(){
+    @Override public void contextInitialized(    ServletContextEvent servletContextEvent){
+      history.add("I2");
+      throw new RuntimeException("Listener2 broken");
+    }
+    @Override public void contextDestroyed(    ServletContextEvent servletContextEvent){
+      history.add("D2");
+    }
+  }
+);
+  context.addEventListener(new ServletContextListener(){
+    @Override public void contextInitialized(    ServletContextEvent servletContextEvent){
+      history.add("I3");
+    }
+    @Override public void contextDestroyed(    ServletContextEvent servletContextEvent){
+      history.add("D3");
+    }
+  }
+);
+  try {
+    server.start();
+  }
+ catch (  Exception e) {
+  }
+ finally {
+    server.stop();
+  }
+  Assert.assertThat(history,Matchers.contains("I1","I2","D3","D2","D1"));
+}
