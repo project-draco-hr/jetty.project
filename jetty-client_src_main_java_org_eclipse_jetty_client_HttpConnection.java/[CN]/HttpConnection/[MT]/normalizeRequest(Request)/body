@@ -9,8 +9,9 @@
     path="/";
     request.path(path);
   }
-  if (proxy != null && !HttpMethod.CONNECT.is(method)) {
-    path=request.getURI().toString();
+  URI uri=request.getURI();
+  if (proxy != null && !HttpMethod.CONNECT.is(method) && uri != null) {
+    path=uri.toString();
     request.path(path);
   }
   if (version.getVersion() > 10) {
@@ -33,12 +34,11 @@
   }
   CookieStore cookieStore=getHttpClient().getCookieStore();
   if (cookieStore != null) {
-    URI uri=request.getURI();
     StringBuilder cookies=null;
     if (uri != null)     cookies=convertCookies(cookieStore.get(uri),null);
     cookies=convertCookies(request.getCookies(),cookies);
     if (cookies != null)     request.header(HttpHeader.COOKIE.asString(),cookies.toString());
   }
   applyAuthentication(request,proxy != null ? proxy.getURI() : null);
-  applyAuthentication(request,request.getURI());
+  applyAuthentication(request,uri);
 }
