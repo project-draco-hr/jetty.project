@@ -1,0 +1,44 @@
+{
+  startServer(new AbstractConnectionFactory("http/1.1"){
+    @Override public Connection newConnection(    Connector connector,    EndPoint endPoint){
+      return new AbstractConnection(endPoint,connector.getExecutor()){
+        @Override public void onOpen(){
+          super.onOpen();
+          fillInterested();
+        }
+        @Override public void onFillable(){
+          try {
+            ByteBuffer buffer=BufferUtil.allocate(1024);
+            int filled=0;
+            while (filled == 0)             filled=getEndPoint().fill(buffer);
+            Utf8StringBuilder builder=new Utf8StringBuilder();
+            builder.append(buffer);
+            String request=builder.toString();
+            Assert.assertThat(request.length(),Matchers.greaterThan(0));
+            if (serverSslContextFactory == null)             Assert.assertFalse(request.contains("http://"));
+ else             Assert.assertFalse(request.contains("https://"));
+            String response="" + "HTTP/1.1 200 OK\r\n" + "Content-Length: 0\r\n"+ "\r\n";
+            getEndPoint().write(Callback.NOOP,ByteBuffer.wrap(response.getBytes(StandardCharsets.UTF_8)));
+          }
+ catch (          Throwable x) {
+            x.printStackTrace();
+            close();
+          }
+        }
+      }
+;
+    }
+  }
+);
+  startProxy();
+  HttpClient httpClient=new HttpClient(newSslContextFactory());
+  httpClient.getProxyConfiguration().getProxies().add(newHttpProxy());
+  httpClient.start();
+  try {
+    ContentResponse response=httpClient.newRequest("localhost",serverConnector.getLocalPort()).scheme(serverSslContextFactory == null ? "http" : "https").method(HttpMethod.GET).path("/test").send();
+    Assert.assertEquals(HttpStatus.OK_200,response.getStatus());
+  }
+  finally {
+    httpClient.stop();
+  }
+}
