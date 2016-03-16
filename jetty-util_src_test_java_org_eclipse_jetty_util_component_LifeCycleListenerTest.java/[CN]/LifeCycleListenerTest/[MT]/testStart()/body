@@ -3,17 +3,13 @@
   TestListener listener=new TestListener();
   lifecycle.addLifeCycleListener(listener);
   lifecycle.setCause(cause);
-  try {
-    StdErrLog.getLogger(AbstractLifeCycle.class).setHideStacks(true);
+  try (StacklessLogging stackless=new StacklessLogging(AbstractLifeCycle.class)){
     lifecycle.start();
     assertTrue(false);
   }
  catch (  Exception e) {
     assertEquals(cause,e);
     assertEquals(cause,listener.getCause());
-  }
- finally {
-    StdErrLog.getLogger(AbstractLifeCycle.class).setHideStacks(false);
   }
   lifecycle.setCause(null);
   lifecycle.start();

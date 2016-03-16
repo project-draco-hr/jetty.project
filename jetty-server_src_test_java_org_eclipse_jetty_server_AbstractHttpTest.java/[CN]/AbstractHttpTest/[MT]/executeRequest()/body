@@ -1,13 +1,14 @@
 {
-  Socket socket=new Socket("localhost",connector.getLocalPort());
-  socket.setSoTimeout((int)connector.getIdleTimeout());
-  BufferedReader reader=new BufferedReader(new InputStreamReader(socket.getInputStream(),StandardCharsets.UTF_8));
-  PrintWriter writer=new PrintWriter(new OutputStreamWriter(socket.getOutputStream()));
-  writer.write("GET / " + httpVersion + "\r\n");
-  writer.write("Host: localhost\r\n");
-  writer.write("\r\n");
-  writer.flush();
-  SimpleHttpResponse response=httpParser.readResponse(reader);
-  if ("HTTP/1.1".equals(httpVersion) && response.getHeaders().get("content-length") == null && response.getHeaders().get("transfer-encoding") == null && !__noBodyCodes.contains(response.getCode()))   assertThat("If HTTP/1.1 response doesn't contain transfer-encoding or content-length headers, " + "it should contain connection:close",response.getHeaders().get("connection"),is("close"));
-  return response;
-}
+  try (Socket socket=new Socket("localhost",connector.getLocalPort())){
+    socket.setSoTimeout((int)connector.getIdleTimeout());
+    BufferedReader reader=new BufferedReader(new InputStreamReader(socket.getInputStream(),StandardCharsets.UTF_8));
+    PrintWriter writer=new PrintWriter(new OutputStreamWriter(socket.getOutputStream()));
+    writer.write("GET / " + httpVersion + "\r\n");
+    writer.write("Host: localhost\r\n");
+    writer.write("\r\n");
+    writer.flush();
+    SimpleHttpResponse response=httpParser.readResponse(reader);
+    if ("HTTP/1.1".equals(httpVersion) && response.getHeaders().get("content-length") == null && response.getHeaders().get("transfer-encoding") == null && !__noBodyCodes.contains(response.getCode()))     assertThat("If HTTP/1.1 response doesn't contain transfer-encoding or content-length headers, " + "it should contain connection:close",response.getHeaders().get("connection"),is("close"));
+    return response;
+  }
+ }

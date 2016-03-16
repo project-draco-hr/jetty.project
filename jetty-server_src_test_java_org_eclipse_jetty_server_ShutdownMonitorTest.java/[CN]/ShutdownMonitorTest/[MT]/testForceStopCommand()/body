@@ -1,17 +1,18 @@
 {
   ShutdownMonitor monitor=ShutdownMonitor.getInstance();
   monitor.setPort(0);
-  TestableServer server=new TestableServer();
-  server.start();
-  assertTrue(!ShutdownThread.isRegistered(server));
-  assertTrue(ShutdownMonitor.isRegistered(server));
-  String key=monitor.getKey();
-  int port=monitor.getPort();
-  stop("forcestop",port,key,true);
-  monitor.await();
-  assertTrue(!monitor.isAlive());
-  assertTrue(server.stopped);
-  assertTrue(!server.destroyed);
-  assertTrue(!ShutdownThread.isRegistered(server));
-  assertTrue(!ShutdownMonitor.isRegistered(server));
-}
+  try (CloseableServer server=new CloseableServer()){
+    server.start();
+    assertTrue(!ShutdownThread.isRegistered(server));
+    assertTrue(ShutdownMonitor.isRegistered(server));
+    String key=monitor.getKey();
+    int port=monitor.getPort();
+    stop("forcestop",port,key,true);
+    monitor.await();
+    assertTrue(!monitor.isAlive());
+    assertTrue(server.stopped);
+    assertTrue(!server.destroyed);
+    assertTrue(!ShutdownThread.isRegistered(server));
+    assertTrue(!ShutdownMonitor.isRegistered(server));
+  }
+ }

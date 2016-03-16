@@ -1,9 +1,7 @@
 {
   CommittedErrorHandler handler=new CommittedErrorHandler();
   configureServer(handler);
-  Socket client=newSocket(_serverURI.getHost(),_serverURI.getPort());
-  try {
-    ((StdErrLog)Log.getLogger(HttpChannel.class)).setHideStacks(true);
+  try (Socket client=newSocket(_serverURI.getHost(),_serverURI.getPort());StacklessLogging stackless=new StacklessLogging(HttpChannel.class)){
     ((AbstractLogger)Log.getLogger(HttpChannel.class)).info("Expecting exception after commit then could not send 500....");
     OutputStream os=client.getOutputStream();
     InputStream is=client.getInputStream();
@@ -20,8 +18,4 @@
     Thread.sleep(200);
     assertTrue(!handler._endp.isOpen());
   }
-  finally {
-    ((StdErrLog)Log.getLogger(HttpChannel.class)).setHideStacks(false);
-    if (!client.isClosed())     client.close();
-  }
-}
+ }

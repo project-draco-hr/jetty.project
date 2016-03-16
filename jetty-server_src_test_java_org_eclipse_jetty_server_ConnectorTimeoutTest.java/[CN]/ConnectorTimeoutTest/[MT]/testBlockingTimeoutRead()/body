@@ -9,8 +9,7 @@
   os.write(("GET / HTTP/1.1\r\n" + "host: " + _serverURI.getHost() + ":"+ _serverURI.getPort()+ "\r\n"+ "Transfer-Encoding: chunked\r\n"+ "Content-Type: text/plain\r\n"+ "Connection: close\r\n"+ "\r\n"+ "5\r\n"+ "LMNOP\r\n").getBytes("utf-8"));
   os.flush();
   long start=System.currentTimeMillis();
-  try {
-    ((StdErrLog)Log.getLogger(HttpChannel.class)).setHideStacks(true);
+  try (StacklessLogging stackless=new StacklessLogging(HttpChannel.class)){
     Thread.sleep(300);
     os.write("1".getBytes("utf-8"));
     os.flush();
@@ -30,9 +29,6 @@
     os.flush();
   }
  catch (  Exception e) {
-  }
- finally {
-    ((StdErrLog)Log.getLogger(HttpChannel.class)).setHideStacks(false);
   }
   long duration=System.currentTimeMillis() - start;
   Assert.assertThat(duration,Matchers.greaterThan(500L));

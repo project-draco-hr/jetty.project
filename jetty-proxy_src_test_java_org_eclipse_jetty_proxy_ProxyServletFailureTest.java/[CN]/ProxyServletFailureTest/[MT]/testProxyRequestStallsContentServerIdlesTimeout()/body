@@ -33,6 +33,8 @@
   prepareServer(new EchoHttpServlet());
   long idleTimeout=1000;
   serverConnector.setIdleTimeout(idleTimeout);
-  ContentResponse response=client.newRequest("localhost",serverConnector.getLocalPort()).content(new BytesContentProvider(content)).send();
-  Assert.assertEquals(500,response.getStatus());
-}
+  try (StacklessLogging stackless=new StacklessLogging(ServletHandler.class)){
+    ContentResponse response=client.newRequest("localhost",serverConnector.getLocalPort()).content(new BytesContentProvider(content)).send();
+    Assert.assertEquals(500,response.getStatus());
+  }
+ }

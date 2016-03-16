@@ -1,13 +1,14 @@
 {
   StdErrLog log=new StdErrLog(StdErrLogTest.class.getName(),new Properties());
-  log.setHideStacks(true);
-  StdErrCapture output=new StdErrCapture(log);
-  log.ignore(new Throwable("IGNORE ME"));
-  log.setLevel(StdErrLog.LEVEL_ALL);
-  log.ignore(new Throwable("Don't ignore me"));
-  log.setLevel(StdErrLog.LEVEL_DEBUG);
-  log.ignore(new Throwable("Debug me"));
-  output.assertNotContains("IGNORE ME");
-  output.assertContains("Don't ignore me");
-  output.assertNotContains("Debug me");
-}
+  try (StacklessLogging stackless=new StacklessLogging(log)){
+    StdErrCapture output=new StdErrCapture(log);
+    log.ignore(new Throwable("IGNORE ME"));
+    log.setLevel(StdErrLog.LEVEL_ALL);
+    log.ignore(new Throwable("Don't ignore me"));
+    log.setLevel(StdErrLog.LEVEL_DEBUG);
+    log.ignore(new Throwable("Debug me"));
+    output.assertNotContains("IGNORE ME");
+    output.assertContains("Don't ignore me");
+    output.assertNotContains("Debug me");
+  }
+ }
