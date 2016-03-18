@@ -1,6 +1,8 @@
 {
   ClientConnectionFactory factory=connectionFactory;
-  SslContextFactory sslContextFactory=(SslContextFactory)context.get(SslClientConnectionFactory.SSL_CONTEXT_FACTORY_CONTEXT_KEY);
-  if (sslContextFactory != null)   factory=new ALPNClientConnectionFactory(client.getExecutor(),factory,client.getProtocols());
+  HttpDestinationOverHTTP2 destination=(HttpDestinationOverHTTP2)context.get(HTTP_DESTINATION_CONTEXT_KEY);
+  ProxyConfiguration.Proxy proxy=destination.getProxy();
+  boolean ssl=proxy == null ? HttpScheme.HTTPS.is(destination.getScheme()) : proxy.isSecure();
+  if (ssl && isUseALPN())   factory=new ALPNClientConnectionFactory(client.getExecutor(),factory,client.getProtocols());
   return factory.newConnection(endPoint,context);
 }
