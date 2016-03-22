@@ -20,7 +20,7 @@ case METHOD:
         _length=_string.length();
         _methodString=takeString();
         HttpMethod method=HttpMethod.CACHE.get(_methodString);
-        if (method != null && _compliance != HttpCompliance.LEGACY)         _methodString=method.asString();
+        if (method != null)         _methodString=legacyString(_methodString,method.asString());
         setState(State.SPACE1);
       }
  else       if (ch < SPACE) {
@@ -91,7 +91,7 @@ if (ch == HttpTokens.SPACE) {
 setState(State.SPACE2);
 }
  else if (ch < HttpTokens.SPACE && ch >= 0) {
-if (_compliance.ordinal() >= HttpCompliance.RFC7230.ordinal()) throw new BadMessageException("HTTP/0.9 not supported");
+if (!checkCompliance(RFC2616,"HTTP/0.9")) throw new BadMessageException("HTTP/0.9 not supported");
 handle=_requestHandler.startRequest(_methodString,_uri.toString(),HttpVersion.HTTP_0_9);
 setState(State.END);
 BufferUtil.clear(buffer);
@@ -141,7 +141,7 @@ setState(State.HEADER);
 handle=_responseHandler.startResponse(_version,_responseStatus,null) || handle;
 }
  else {
-if (_compliance.ordinal() >= HttpCompliance.RFC7230.ordinal()) throw new BadMessageException("HTTP/0.9 not supported");
+if (!checkCompliance(RFC2616,"HTTP/0.9")) throw new BadMessageException("HTTP/0.9 not supported");
 handle=_requestHandler.startRequest(_methodString,_uri.toString(),HttpVersion.HTTP_0_9);
 setState(State.END);
 BufferUtil.clear(buffer);

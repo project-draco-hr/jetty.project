@@ -1,7 +1,7 @@
 {
-  ByteBuffer buffer=BufferUtil.toBuffer("GET / HTTP/1.0\r\n" + "Host: localhost\r\n" + "Name0: \r\n"+ "Name1:\r\n"+ "\r\n");
+  ByteBuffer buffer=BufferUtil.toBuffer("GET / HTTP/1.0\r\n" + "Host: localhost\r\n" + "Name\r\n"+ "Other: value\r\n"+ "\r\n");
   HttpParser.RequestHandler handler=new Handler();
-  HttpParser parser=new HttpParser(handler);
+  HttpParser parser=new HttpParser(handler,HttpCompliance.RFC2616);
   parseAll(parser,buffer);
   Assert.assertTrue(_headerCompleted);
   Assert.assertTrue(_messageCompleted);
@@ -10,9 +10,10 @@
   Assert.assertEquals("HTTP/1.0",_versionOrReason);
   Assert.assertEquals("Host",_hdr[0]);
   Assert.assertEquals("localhost",_val[0]);
-  Assert.assertEquals("Name0",_hdr[1]);
+  Assert.assertEquals("Name",_hdr[1]);
   Assert.assertEquals("",_val[1]);
-  Assert.assertEquals("Name1",_hdr[2]);
-  Assert.assertEquals("",_val[2]);
+  Assert.assertEquals("Other",_hdr[2]);
+  Assert.assertEquals("value",_val[2]);
   Assert.assertEquals(2,_headers);
+  assertThat(_complianceViolation,containsString("name only"));
 }
