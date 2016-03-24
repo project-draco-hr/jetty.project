@@ -1,11 +1,25 @@
 {
-  if ("WAR".equalsIgnoreCase(property)) {
-    return warURI.toASCIIString();
+  if (property == null) {
+    if (LOG.isDebugEnabled())     LOG.debug("getString({}) = <null>",property);
+    return null;
   }
-  for (  PathAttribute attr : attributes) {
-    if (attr.key.equalsIgnoreCase(property)) {
-      return attr.path.toUri().getRawSchemeSpecificPart();
+  String val=null;
+  if ("WAR".equalsIgnoreCase(property)) {
+    val=warURI.toASCIIString();
+    if (LOG.isDebugEnabled())     LOG.debug("getString({})#is(WAR)",property);
+  }
+  if (val == null) {
+    for (    PathAttribute attr : attributes) {
+      if (attr.key.equalsIgnoreCase(property)) {
+        val=uriSeparators(attr.path.toString());
+        if (LOG.isDebugEnabled())         LOG.debug("getString({})#isPathAttribute({}) = {}",property,attr,val);
+        return val;
+      }
     }
   }
-  return System.getProperty(property);
+  if (val == null) {
+    val=System.getProperty(property);
+    if (LOG.isDebugEnabled())     LOG.debug("getString({}}#systemProperty = %s",property,val == null ? "<null>" : "\"" + val + "\"");
+  }
+  return val;
 }
