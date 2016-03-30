@@ -39,10 +39,12 @@ String etag=content.getETagValue();
 if (ifm != null) {
 boolean match=false;
 if (etag != null) {
-QuotedStringTokenizer quoted=new QuotedStringTokenizer(ifm,", ",false,true);
-while (!match && quoted.hasMoreTokens()) {
-String tag=quoted.nextToken();
-if (etag.equals(tag) || tag.endsWith(ETAG_GZIP_QUOTE) && etag.equals(removeGzipFromETag(tag))) match=true;
+QuotedCSV quoted=new QuotedCSV(true,ifm);
+for (String tag : quoted) {
+if (etag.equals(tag) || tag.endsWith(ETAG_GZIP_QUOTE) && etag.equals(removeGzipFromETag(tag))) {
+match=true;
+break;
+}
 }
 }
 if (!match) {
@@ -56,9 +58,8 @@ response.setStatus(HttpServletResponse.SC_NOT_MODIFIED);
 response.setHeader(HttpHeader.ETAG.asString(),ifnm);
 return false;
 }
-QuotedStringTokenizer quoted=new QuotedStringTokenizer(ifnm,", ",false,true);
-while (quoted.hasMoreTokens()) {
-String tag=quoted.nextToken();
+QuotedCSV quoted=new QuotedCSV(true,ifnm);
+for (String tag : quoted) {
 if (etag.equals(tag) || tag.endsWith(ETAG_GZIP_QUOTE) && etag.equals(removeGzipFromETag(tag))) {
 response.setStatus(HttpServletResponse.SC_NOT_MODIFIED);
 response.setHeader(HttpHeader.ETAG.asString(),tag);
