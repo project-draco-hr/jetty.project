@@ -1,23 +1,33 @@
 {
-  MetaData.Request request=(MetaData.Request)frame.getMetaData();
-  HttpFields fields=request.getFields();
-  if (!fields.contains(HttpHeader.HOST)) {
-    String authority=request.getURI().getAuthority();
-    if (authority != null) {
-      fields.put("host",authority);
+  try {
+    MetaData.Request request=(MetaData.Request)frame.getMetaData();
+    HttpFields fields=request.getFields();
+    if (!fields.contains(HttpHeader.HOST)) {
+      String authority=request.getURI().getAuthority();
+      if (authority != null) {
+        fields.put("host",authority);
+      }
     }
+    _expect100Continue=fields.contains(HttpHeader.EXPECT,HttpHeaderValue.CONTINUE.asString());
+    HttpFields response=getResponse().getHttpFields();
+    if (getHttpConfiguration().getSendServerVersion())     response.add(SERVER_VERSION);
+    if (getHttpConfiguration().getSendXPoweredBy())     response.add(POWERED_BY);
+    onRequest(request);
+    boolean endStream=frame.isEndStream();
+    if (endStream)     onRequestComplete();
+    _delayedUntilContent=getHttpConfiguration().isDelayDispatchUntilContent() && !endStream && !_expect100Continue;
+    if (LOG.isDebugEnabled()) {
+      Stream stream=getStream();
+      LOG.debug("HTTP2 Request #{}/{}, delayed={}:{}{} {} {}{}{}",stream.getId(),Integer.toHexString(stream.getSession().hashCode()),_delayedUntilContent,System.lineSeparator(),request.getMethod(),request.getURI(),request.getVersion(),System.lineSeparator(),fields);
+    }
+    return _delayedUntilContent ? null : this;
   }
-  _expect100Continue=fields.contains(HttpHeader.EXPECT,HttpHeaderValue.CONTINUE.asString());
-  HttpFields response=getResponse().getHttpFields();
-  if (getHttpConfiguration().getSendServerVersion())   response.add(SERVER_VERSION);
-  if (getHttpConfiguration().getSendXPoweredBy())   response.add(POWERED_BY);
-  onRequest(request);
-  boolean endStream=frame.isEndStream();
-  if (endStream)   onRequestComplete();
-  _delayedUntilContent=getHttpConfiguration().isDelayDispatchUntilContent() && !endStream && !_expect100Continue;
-  if (LOG.isDebugEnabled()) {
-    Stream stream=getStream();
-    LOG.debug("HTTP2 Request #{}/{}, delayed={}:{}{} {} {}{}{}",stream.getId(),Integer.toHexString(stream.getSession().hashCode()),_delayedUntilContent,System.lineSeparator(),request.getMethod(),request.getURI(),request.getVersion(),System.lineSeparator(),fields);
+ catch (  BadMessageException x) {
+    onBadMessage(x.getCode(),x.getReason());
+    return null;
   }
-  return _delayedUntilContent ? null : this;
+catch (  Throwable x) {
+    onBadMessage(HttpStatus.INTERNAL_SERVER_ERROR_500,null);
+    return null;
+  }
 }
