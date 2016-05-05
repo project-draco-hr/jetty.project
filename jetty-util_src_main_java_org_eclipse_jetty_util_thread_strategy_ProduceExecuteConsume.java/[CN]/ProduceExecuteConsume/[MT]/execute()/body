@@ -1,18 +1,32 @@
 {
-synchronized (this) {
-    _state=_state == State.IDLE ? State.PRODUCE : State.EXECUTE;
-    if (_state == State.EXECUTE)     return;
-  }
-  while (true) {
-    Runnable task=_producer.produce();
-    if (LOG.isDebugEnabled())     LOG.debug("{} produced {}",_producer,task);
-    if (task == null) {
-synchronized (this) {
-        _state=_state == State.PRODUCE ? State.IDLE : State.PRODUCE;
-        if (_state == State.PRODUCE)         continue;
-        return;
-      }
-    }
-    execute(task);
-  }
+  try (Lock locked=_locker.lock()){
+switch (_state) {
+case IDLE:
+      _state=State.PRODUCE;
+    break;
+case PRODUCE:
+case EXECUTE:
+  _state=State.EXECUTE;
+return;
+}
+}
+ while (true) {
+Runnable task=_producer.produce();
+if (LOG.isDebugEnabled()) LOG.debug("{} produced {}",_producer,task);
+if (task == null) {
+try (Lock locked=_locker.lock()){
+switch (_state) {
+case IDLE:
+  throw new IllegalStateException();
+case PRODUCE:
+_state=State.IDLE;
+return;
+case EXECUTE:
+_state=State.PRODUCE;
+continue;
+}
+}
+ }
+execute(task);
+}
 }
