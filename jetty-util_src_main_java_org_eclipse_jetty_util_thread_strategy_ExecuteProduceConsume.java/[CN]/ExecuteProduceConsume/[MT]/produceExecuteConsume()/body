@@ -1,0 +1,18 @@
+{
+  if (LOG.isDebugEnabled())   LOG.debug("{} Low Resources",this);
+  while (_threadpool.isLowOnThreads()) {
+    Runnable task=_producer.produce();
+    if (LOG.isDebugEnabled())     LOG.debug("{} produced {}",_producer,task);
+    if (task == null) {
+      try (Lock locked=_locker.lock()){
+        if (LOG.isDebugEnabled())         LOG.debug("{} Idle Low Resources",this);
+        _producing=false;
+        _idle=false;
+      }
+       return false;
+    }
+    execute(task);
+  }
+  if (LOG.isDebugEnabled())   LOG.debug("{} No longer Low Resources",this);
+  return true;
+}
