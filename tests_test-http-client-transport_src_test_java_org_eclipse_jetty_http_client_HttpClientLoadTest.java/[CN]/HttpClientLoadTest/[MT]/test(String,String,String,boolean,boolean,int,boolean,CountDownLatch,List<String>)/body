@@ -1,5 +1,6 @@
 {
-  Request request=client.newRequest(host,connector.getLocalPort()).scheme(scheme).method(method);
+  long requestId=requestCount.incrementAndGet();
+  Request request=client.newRequest(host,connector.getLocalPort()).scheme(scheme).path("/" + requestId).method(method);
   if (clientClose)   request.header(HttpHeader.CONNECTION,"close");
  else   if (serverClose)   request.header("X-Close","true");
 switch (method) {
@@ -34,5 +35,7 @@ latch.countDown();
 }
 }
 );
-await(requestLatch,5,TimeUnit.SECONDS);
+if (!await(requestLatch,5,TimeUnit.SECONDS)) {
+logger.warn("Request {} took too long{}{}{}{}",requestId,System.lineSeparator(),server.dump(),System.lineSeparator(),client.dump());
+}
 }
