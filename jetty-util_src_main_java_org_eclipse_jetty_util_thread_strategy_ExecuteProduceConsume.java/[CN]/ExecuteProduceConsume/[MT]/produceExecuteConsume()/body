@@ -1,18 +1,30 @@
 {
-  if (LOG.isDebugEnabled())   LOG.debug("{} Low Resources",this);
-  while (_threadpool.isLowOnThreads()) {
-    Runnable task=_producer.produce();
-    if (LOG.isDebugEnabled())     LOG.debug("{} produced {}",_producer,task);
-    if (task == null) {
-      try (Lock locked=_locker.lock()){
-        if (LOG.isDebugEnabled())         LOG.debug("{} Idle Low Resources",this);
-        _producing=false;
-        _idle=false;
-      }
-       return false;
+  if (LOG.isDebugEnabled())   LOG.debug("{} enter low threads mode",this);
+  _lowThreads=true;
+  try {
+    boolean idle=false;
+    while (_threadPool.isLowOnThreads()) {
+      Runnable task=_producer.produce();
+      if (LOG.isDebugEnabled())       LOG.debug("{} produced {}",_producer,task);
+      if (task == null) {
+        try (Lock locked=_locker.lock()){
+          if (_execute) {
+            _execute=false;
+            _producing=true;
+            _idle=false;
+            continue;
+          }
+          _producing=false;
+          idle=_idle=true;
+          break;
+        }
+       }
+      execute(task);
     }
-    execute(task);
+    return !idle;
   }
-  if (LOG.isDebugEnabled())   LOG.debug("{} No longer Low Resources",this);
-  return true;
+  finally {
+    _lowThreads=false;
+    if (LOG.isDebugEnabled())     LOG.debug("{} exit low threads mode",this);
+  }
 }
