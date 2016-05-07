@@ -1,5 +1,8 @@
 {
   if (LOG.isDebugEnabled())   LOG.debug("{} {}",flush ? "Sending" : "Queueing",entry.frame);
   boolean queued=entry.frame.getType() == FrameType.PING ? flusher.prepend(entry) : flusher.append(entry);
-  if (queued && flush)   flusher.iterate();
+  if (queued && flush) {
+    if (entry.stream != null)     entry.stream.notIdle();
+    flusher.iterate();
+  }
 }
