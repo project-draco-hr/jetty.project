@@ -1,16 +1,18 @@
 {
   String error_page=null;
   PageLookupTechnique pageSource=null;
+  Class<?> matchedThrowable=null;
   Throwable th=(Throwable)request.getAttribute(Dispatcher.ERROR_EXCEPTION);
   while (error_page == null && th != null) {
     pageSource=PageLookupTechnique.THROWABLE;
     Class<?> exClass=th.getClass();
-    error_page=(String)_errorPages.get(exClass.getName());
+    error_page=_errorPages.get(exClass.getName());
     while (error_page == null) {
       exClass=exClass.getSuperclass();
       if (exClass == null)       break;
-      error_page=(String)_errorPages.get(exClass.getName());
+      error_page=_errorPages.get(exClass.getName());
     }
+    if (error_page != null)     matchedThrowable=exClass;
     th=(th instanceof ServletException) ? ((ServletException)th).getRootCause() : null;
   }
   Integer errorStatusCode=null;
@@ -42,9 +44,12 @@
     dbg.append(") => error_page=").append(error_page);
 switch (pageSource) {
 case THROWABLE:
-      dbg.append(" (from Throwable ");
-    dbg.append(th.getClass().getName());
-  dbg.append(')');
+      dbg.append(" (using matched Throwable ");
+    dbg.append(matchedThrowable.getName());
+  dbg.append(" / actually thrown as ");
+Throwable originalThrowable=(Throwable)request.getAttribute(Dispatcher.ERROR_EXCEPTION);
+dbg.append(originalThrowable.getClass().getName());
+dbg.append(')');
 LOG.debug(dbg.toString(),th);
 break;
 case STATUS_CODE:
