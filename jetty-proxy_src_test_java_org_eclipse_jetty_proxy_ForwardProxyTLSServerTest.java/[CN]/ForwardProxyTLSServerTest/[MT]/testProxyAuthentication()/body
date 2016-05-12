@@ -1,32 +1,16 @@
 {
-  startTLSServer(new ServerHandler());
-  String proxyRealm="ProxyRealm";
-  startProxy(new ConnectHandler(){
+  final String realm="test-realm";
+  testProxyAuthentication(realm,new ConnectHandler(){
     @Override public void handle(    String target,    Request baseRequest,    HttpServletRequest request,    HttpServletResponse response) throws ServletException, IOException {
       String proxyAuth=request.getHeader(HttpHeader.PROXY_AUTHORIZATION.asString());
       if (proxyAuth == null) {
         baseRequest.setHandled(true);
         response.setStatus(HttpStatus.PROXY_AUTHENTICATION_REQUIRED_407);
-        response.setHeader(HttpHeader.PROXY_AUTHENTICATE.asString(),"Basic realm=\"" + proxyRealm + "\"");
+        response.setHeader(HttpHeader.PROXY_AUTHENTICATE.asString(),"Basic realm=\"" + realm + "\"");
         return;
       }
       super.handle(target,baseRequest,request,response);
     }
   }
 );
-  HttpClient httpClient=new HttpClient(newSslContextFactory());
-  httpClient.getProxyConfiguration().getProxies().add(newHttpProxy());
-  URI proxyURI=URI.create("https://localhost:" + proxyConnector.getLocalPort());
-  httpClient.getAuthenticationStore().addAuthentication(new BasicAuthentication(proxyURI,proxyRealm,"proxyUser","proxyPassword"));
-  httpClient.start();
-  try {
-    String body="BODY";
-    ContentResponse response=httpClient.newRequest("localhost",serverConnector.getLocalPort()).scheme(HttpScheme.HTTPS.asString()).method(HttpMethod.GET).path("/echo").param("body",body).send();
-    Assert.assertEquals(HttpStatus.OK_200,response.getStatus());
-    String content=response.getContentAsString();
-    Assert.assertEquals(body,content);
-  }
-  finally {
-    httpClient.stop();
-  }
 }
