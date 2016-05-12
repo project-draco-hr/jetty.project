@@ -1,0 +1,28 @@
+{
+  String target=destination.getOrigin().getAddress().asString();
+  Origin.Address proxyAddress=destination.getConnectAddress();
+  HttpClient httpClient=destination.getHttpClient();
+  Request connect=httpClient.newRequest(proxyAddress.getHost(),proxyAddress.getPort()).scheme(HttpScheme.HTTP.asString()).method(HttpMethod.CONNECT).path(target).header(HttpHeader.HOST,target).timeout(httpClient.getConnectTimeout(),TimeUnit.MILLISECONDS);
+  final HttpConversation conversation=((HttpRequest)connect).getConversation();
+  conversation.setAttribute(EndPoint.class.getName(),endPoint);
+  connect.attribute(Connection.class.getName(),new ProxyConnection(destination,connection,promise));
+  connection.send(connect,new Response.CompleteListener(){
+    @Override public void onComplete(    Result result){
+      EndPoint endPoint=(EndPoint)conversation.getAttribute(EndPoint.class.getName());
+      if (result.isSucceeded()) {
+        Response response=result.getResponse();
+        if (response.getStatus() == HttpStatus.OK_200) {
+          tunnelSucceeded(endPoint);
+        }
+ else {
+          HttpResponseException failure=new HttpResponseException("Unexpected " + response + " for "+ result.getRequest(),response);
+          tunnelFailed(endPoint,failure);
+        }
+      }
+ else {
+        tunnelFailed(endPoint,result.getFailure());
+      }
+    }
+  }
+);
+}
