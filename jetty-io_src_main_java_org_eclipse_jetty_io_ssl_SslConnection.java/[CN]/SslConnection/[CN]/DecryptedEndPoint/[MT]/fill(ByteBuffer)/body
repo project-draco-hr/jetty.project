@@ -63,6 +63,7 @@ case OK:
 if (unwrapHandshakeStatus == HandshakeStatus.FINISHED && !_handshaken) {
   _handshaken=true;
   if (LOG.isDebugEnabled())   LOG.debug("{} {} handshake succeeded {}/{}",SslConnection.this,_sslEngine.getUseClientMode() ? "client" : "resumed server",_sslEngine.getSession().getProtocol(),_sslEngine.getSession().getCipherSuite());
+  notifyHandshakeSucceeded(_sslEngine);
 }
 if (_handshaken && handshakeStatus != HandshakeStatus.NOT_HANDSHAKING && !isRenegotiationAllowed()) {
   if (LOG.isDebugEnabled())   LOG.debug("{} renegotiation denied",SslConnection.this);
@@ -117,11 +118,15 @@ throw new IllegalStateException();
 }
 }
  catch (SSLHandshakeException x) {
+notifyHandshakeFailed(_sslEngine,x);
 close(x);
 throw x;
 }
 catch (SSLException x) {
-if (!_handshaken) x=(SSLException)new SSLHandshakeException(x.getMessage()).initCause(x);
+if (!_handshaken) {
+x=(SSLException)new SSLHandshakeException(x.getMessage()).initCause(x);
+notifyHandshakeFailed(_sslEngine,x);
+}
 close(x);
 throw x;
 }

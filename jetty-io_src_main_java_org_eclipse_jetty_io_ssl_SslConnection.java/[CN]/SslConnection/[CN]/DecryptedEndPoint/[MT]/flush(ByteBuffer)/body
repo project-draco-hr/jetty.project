@@ -45,7 +45,8 @@ default :
       if (LOG.isDebugEnabled())       LOG.debug("{} wrap {} {}",SslConnection.this,wrapResultStatus,BufferUtil.toHexSummary(_encryptedOutput));
       if (wrapResult.getHandshakeStatus() == HandshakeStatus.FINISHED && !_handshaken) {
         _handshaken=true;
-        if (LOG.isDebugEnabled())         LOG.debug("{} server handshake succeeded {}/{}",SslConnection.this,_sslEngine.getSession().getProtocol(),_sslEngine.getSession().getCipherSuite());
+        if (LOG.isDebugEnabled())         LOG.debug("{} {} handshake succeeded {}/{}",SslConnection.this,_sslEngine.getUseClientMode() ? "resumed client" : "server",_sslEngine.getSession().getProtocol(),_sslEngine.getSession().getCipherSuite());
+        notifyHandshakeSucceeded(_sslEngine);
       }
       HandshakeStatus handshakeStatus=_sslEngine.getHandshakeStatus();
       if (_handshaken && handshakeStatus != HandshakeStatus.NOT_HANDSHAKING && !isRenegotiationAllowed()) {
@@ -78,6 +79,7 @@ throw new IllegalStateException();
 }
 }
  catch (SSLHandshakeException x) {
+notifyHandshakeFailed(_sslEngine,x);
 close(x);
 throw x;
 }
