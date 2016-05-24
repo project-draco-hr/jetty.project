@@ -116,14 +116,18 @@ throw new IllegalStateException();
 }
 }
 }
- catch (IllegalStateException e) {
-LOG.debug(e);
-close();
-throw new EofException(e);
+ catch (SSLHandshakeException x) {
+close(x);
+throw x;
 }
-catch (Exception e) {
-close();
-throw e;
+catch (SSLException x) {
+if (!_handshaken) x=(SSLException)new SSLHandshakeException(x.getMessage()).initCause(x);
+close(x);
+throw x;
+}
+catch (Throwable x) {
+close(x);
+throw x;
 }
  finally {
 if (_flushRequiresFillToProgress) {
