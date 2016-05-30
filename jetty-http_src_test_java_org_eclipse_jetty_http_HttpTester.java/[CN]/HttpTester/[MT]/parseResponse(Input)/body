@@ -1,0 +1,18 @@
+{
+  Response r;
+  HttpParser parser=in.takeHttpParser();
+  if (parser == null) {
+    r=new Response();
+    parser=new HttpParser(r);
+  }
+ else   r=(Response)parser.getHandler();
+  ByteBuffer buffer=in.getBuffer();
+  int len=0;
+  while (len >= 0) {
+    if (BufferUtil.hasContent(buffer))     if (parser.parseNext(buffer))     break;
+    if (in.fillBuffer() <= 0)     break;
+  }
+  if (r.isComplete())   return r;
+  in.setHttpParser(parser);
+  return null;
+}
