@@ -1,50 +1,17 @@
 {
-  ConnectionState event=null;
-  ConnectionState abnormalEvent=null;
-  ConnectionState initialState=this.state;
-  if (LOG.isDebugEnabled())   LOG.debug("onCloseLocal({}) : {}",close,initialState);
-  if (initialState == ConnectionState.CLOSED) {
-    LOG.debug("already closed");
-    return;
-  }
-  if (initialState == ConnectionState.CONNECTED) {
-    LOG.debug("FastClose in CONNECTED detected");
-    onOpened();
-    if (LOG.isDebugEnabled())     LOG.debug("FastClose continuing with Closure");
-  }
+  boolean open=false;
 synchronized (this) {
-    closeInfo=close;
-    outputAvailable=false;
-    boolean in=inputAvailable;
-    boolean out=outputAvailable;
-    if (closeHandshakeSource == CloseHandshakeSource.NONE) {
-      closeHandshakeSource=CloseHandshakeSource.LOCAL;
+    ConnectionState initialState=this.state;
+    if (LOG.isDebugEnabled())     LOG.debug("onCloseLocal({}) : {}",closeInfo,initialState);
+    if (initialState == ConnectionState.CLOSED) {
+      if (LOG.isDebugEnabled())       LOG.debug("already closed");
+      return;
     }
-    LOG.debug("onCloseLocal(), input={}, output={}",in,out);
-    if (!in && !out) {
-      LOG.debug("Close Handshake satisfied, disconnecting");
-      cleanClose=true;
-      this.state=ConnectionState.CLOSED;
-      finalClose.compareAndSet(null,close);
-      event=this.state;
-    }
- else     if (this.state == ConnectionState.OPEN) {
-      this.state=ConnectionState.CLOSING;
-      event=this.state;
-      if (close.isAbnormal()) {
-        abnormalEvent=ConnectionState.CLOSED;
-        finalClose.compareAndSet(null,close);
-        cleanClose=false;
-        outputAvailable=false;
-        inputAvailable=false;
-        closeHandshakeSource=CloseHandshakeSource.ABNORMAL;
-      }
+    if (initialState == ConnectionState.CONNECTED) {
+      if (LOG.isDebugEnabled())       LOG.debug("FastClose in CONNECTED detected");
+      open=true;
     }
   }
-  if (event != null) {
-    notifyStateListeners(event);
-    if (abnormalEvent != null) {
-      notifyStateListeners(abnormalEvent);
-    }
-  }
+  if (open)   openAndCloseLocal(closeInfo);
+ else   closeLocal(closeInfo);
 }
