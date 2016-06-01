@@ -14,24 +14,41 @@
     if (_mimeType != null && _mimeType.getCharset() != null && !_mimeType.isCharsetAssumed())     charset=_mimeType.getCharsetString();
  else     charset=MimeTypes.getCharsetFromContentType(contentType);
     if (charset == null) {
-      if (_characterEncoding != null) {
-        _contentType=contentType + ";charset=" + _characterEncoding;
+switch (_encodingFrom) {
+case NOT_SET:
+        break;
+case INFERRED:
+case SET_CONTENT_TYPE:
+      if (isWriting()) {
         _mimeType=null;
+        _contentType=_contentType + ";charset=" + _characterEncoding;
       }
-    }
- else     if (isWriting() && !charset.equalsIgnoreCase(_characterEncoding)) {
-      _mimeType=null;
-      _contentType=MimeTypes.getContentTypeWithoutCharset(_contentType);
-      if (_characterEncoding != null)       _contentType=_contentType + ";charset=" + _characterEncoding;
-    }
  else {
-      _characterEncoding=charset;
-      _explicitEncoding=true;
-    }
-    if (HttpGenerator.__STRICT || _mimeType == null)     _fields.put(HttpHeader.CONTENT_TYPE,_contentType);
- else {
-      _contentType=_mimeType.asString();
-      _fields.put(_mimeType.getContentTypeField());
-    }
+        _encodingFrom=EncodingFrom.NOT_SET;
+        _characterEncoding=null;
+      }
+    break;
+case SET_LOCALE:
+case SET_CHARACTER_ENCODING:
+{
+    _contentType=contentType + ";charset=" + _characterEncoding;
+    _mimeType=null;
   }
+}
+}
+ else if (isWriting() && !charset.equalsIgnoreCase(_characterEncoding)) {
+_mimeType=null;
+_contentType=MimeTypes.getContentTypeWithoutCharset(_contentType);
+if (_characterEncoding != null) _contentType=_contentType + ";charset=" + _characterEncoding;
+}
+ else {
+_characterEncoding=charset;
+_encodingFrom=EncodingFrom.SET_CONTENT_TYPE;
+}
+if (HttpGenerator.__STRICT || _mimeType == null) _fields.put(HttpHeader.CONTENT_TYPE,_contentType);
+ else {
+_contentType=_mimeType.asString();
+_fields.put(_mimeType.getContentTypeField());
+}
+}
 }
