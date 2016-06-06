@@ -1,0 +1,48 @@
+{
+  HttpParser.ResponseHandler handler=new HttpParser.ResponseHandler(){
+    @Override public void parsedHeader(    HttpField field){
+    }
+    @Override public boolean messageComplete(){
+      return true;
+    }
+    @Override public boolean headerComplete(){
+      return false;
+    }
+    @Override public int getHeaderCacheSize(){
+      return 0;
+    }
+    @Override public void earlyEOF(){
+    }
+    @Override public boolean content(    ByteBuffer item){
+      return false;
+    }
+    @Override public void badMessage(    int status,    String reason){
+    }
+    @Override public boolean startResponse(    HttpVersion version,    int status,    String reason){
+      return false;
+    }
+  }
+;
+  HttpParser parser=new HttpParser(handler);
+  parser.setHeadResponse(head);
+  try (ByteArrayOutputStream2 bout=new ByteArrayOutputStream2()){
+    loop:     while (true) {
+      ByteBuffer chunk=BufferUtil.hasContent(_responseData) ? _responseData : waitForOutput(time,unit);
+      _responseData=null;
+      while (BufferUtil.hasContent(chunk)) {
+        int pos=chunk.position();
+        boolean complete=parser.parseNext(chunk);
+        if (chunk.position() == pos) {
+          if (BufferUtil.isEmpty(chunk))           break;
+          return null;
+        }
+        bout.write(chunk.array(),chunk.arrayOffset() + pos,chunk.position() - pos);
+        if (complete) {
+          if (BufferUtil.hasContent(chunk))           _responseData=chunk;
+          break loop;
+        }
+      }
+    }
+    return ByteBuffer.wrap(bout.getBuf(),0,bout.getCount());
+  }
+ }

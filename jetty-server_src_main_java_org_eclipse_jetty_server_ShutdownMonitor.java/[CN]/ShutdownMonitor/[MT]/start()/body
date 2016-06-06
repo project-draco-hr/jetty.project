@@ -1,14 +1,16 @@
 {
-  Thread t=null;
 synchronized (this) {
-    if (thread != null && thread.isAlive()) {
-      if (DEBUG)       System.err.printf("ShutdownMonitorThread already started");
+    if (alive) {
+      debug("Already started");
       return;
     }
-    thread=new Thread(new ShutdownMonitorRunnable());
-    thread.setDaemon(true);
-    thread.setName("ShutdownMonitor");
-    t=thread;
+    ServerSocket serverSocket=listen();
+    if (serverSocket != null) {
+      alive=true;
+      Thread thread=new Thread(new ShutdownMonitorRunnable(serverSocket));
+      thread.setDaemon(true);
+      thread.setName("ShutdownMonitor");
+      thread.start();
+    }
   }
-  if (t != null)   t.start();
 }

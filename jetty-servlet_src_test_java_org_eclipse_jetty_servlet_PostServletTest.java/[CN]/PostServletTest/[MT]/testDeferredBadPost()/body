@@ -1,0 +1,22 @@
+{
+  StringBuilder req=new StringBuilder(16 * 1024);
+  req.append("POST /post HTTP/1.1\r\n");
+  req.append("Host: localhost\r\n");
+  req.append("Transfer-Encoding: chunked\r\n");
+  req.append("\r\n");
+  try (StacklessLogging scope=new StacklessLogging(ServletHandler.class)){
+    LocalConnector.LocalEndPoint endp=connector.executeRequest(req.toString());
+    Thread.sleep(1000);
+    assertFalse(posted.get());
+    req.setLength(0);
+    for (int i=1024; i-- > 0; )     req.append("xxxxxxxxxxxx");
+    req.append("\r\n");
+    req.append("\r\n");
+    endp.addInput(req.toString());
+    endp.waitUntilClosedOrIdleFor(1,TimeUnit.SECONDS);
+    String resp=endp.takeOutputString();
+    assertThat("resp",resp,containsString("HTTP/1.1 400 "));
+  }
+   assertThat(ex0.get(),nullValue());
+  assertThat(ex1.get(),nullValue());
+}

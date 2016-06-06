@@ -1,7 +1,5 @@
 {
-  StdErrLog logger=StdErrLog.getLogger(org.eclipse.jetty.server.HttpConnection.class);
-  logger.setHideStacks(true);
-  try {
+  try (StacklessLogging stackless=new StacklessLogging(HttpConnection.class)){
     start(new AbstractHandler(){
       @Override public void handle(      String target,      org.eclipse.jetty.server.Request baseRequest,      HttpServletRequest request,      HttpServletResponse response) throws IOException, ServletException {
         response.setHeader("Connection","close");
@@ -35,7 +33,4 @@
     Assert.assertEquals(0,activeConnections.size());
     server.stop();
   }
-  finally {
-    logger.setHideStacks(false);
-  }
-}
+ }

@@ -14,7 +14,7 @@ case HttpTokens.COLON:
 case HttpTokens.SPACE:
 case HttpTokens.TAB:
 {
-          if (_compliance.ordinal() >= HttpCompliance.RFC7230.ordinal())           throw new BadMessageException(HttpStatus.BAD_REQUEST_400,"Bad Continuation");
+          if (complianceViolation(RFC7230,"header folding"))           throw new BadMessageException(HttpStatus.BAD_REQUEST_400,"Header Folding");
           if (_valueString == null) {
             _string.setLength(0);
             _length=0;
@@ -70,13 +70,13 @@ if (field == null) field=CACHE.getBest(buffer,-1,buffer.remaining());
 if (field != null) {
 final String n;
 final String v;
-if (_compliance == HttpCompliance.LEGACY) {
+if (_compliance == LEGACY) {
 String fn=field.getName();
+n=legacyString(BufferUtil.toString(buffer,buffer.position() - 1,fn.length(),StandardCharsets.US_ASCII),fn);
 String fv=field.getValue();
-n=BufferUtil.toString(buffer,buffer.position() - 1,fn.length(),StandardCharsets.US_ASCII);
 if (fv == null) v=null;
  else {
-v=BufferUtil.toString(buffer,buffer.position() + fn.length() + 1,fv.length(),StandardCharsets.ISO_8859_1);
+v=legacyString(BufferUtil.toString(buffer,buffer.position() + fn.length() + 1,fv.length(),StandardCharsets.ISO_8859_1),fv);
 field=new HttpField(field.getHeader(),n,v);
 }
 }
@@ -143,6 +143,18 @@ _string.append((char)ch);
 if (ch > HttpTokens.SPACE) _length=_string.length();
 break;
 }
+if (ch == HttpTokens.LINE_FEED && !complianceViolation(RFC7230,"name only header")) {
+if (_headerString == null) {
+_headerString=takeString();
+_header=HttpHeader.CACHE.get(_headerString);
+}
+_value=null;
+_string.setLength(0);
+_valueString="";
+_length=-1;
+setState(State.HEADER);
+break;
+}
 throw new IllegalCharacterException(_state,ch,buffer);
 case HEADER_VALUE:
 if (ch > HttpTokens.SPACE || ch < 0) {
@@ -155,7 +167,7 @@ if (ch == HttpTokens.SPACE || ch == HttpTokens.TAB) break;
 if (ch == HttpTokens.LINE_FEED) {
 _value=null;
 _string.setLength(0);
-_valueString=null;
+_valueString="";
 _length=-1;
 setState(State.HEADER);
 break;

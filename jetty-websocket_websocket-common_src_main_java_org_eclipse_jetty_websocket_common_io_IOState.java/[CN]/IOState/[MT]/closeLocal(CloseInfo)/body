@@ -1,0 +1,37 @@
+{
+  ConnectionState event=null;
+  ConnectionState abnormalEvent=null;
+synchronized (this) {
+    if (LOG.isDebugEnabled())     LOG.debug("onCloseLocal(), input={}, output={}",inputAvailable,outputAvailable);
+    this.closeInfo=closeInfo;
+    outputAvailable=false;
+    if (closeHandshakeSource == CloseHandshakeSource.NONE) {
+      closeHandshakeSource=CloseHandshakeSource.LOCAL;
+    }
+    if (!inputAvailable) {
+      if (LOG.isDebugEnabled())       LOG.debug("Close Handshake satisfied, disconnecting");
+      cleanClose=true;
+      this.state=ConnectionState.CLOSED;
+      finalClose.compareAndSet(null,closeInfo);
+      event=this.state;
+    }
+ else     if (this.state == ConnectionState.OPEN) {
+      this.state=ConnectionState.CLOSING;
+      event=this.state;
+      if (closeInfo.isAbnormal()) {
+        abnormalEvent=ConnectionState.CLOSED;
+        finalClose.compareAndSet(null,closeInfo);
+        cleanClose=false;
+        outputAvailable=false;
+        inputAvailable=false;
+        closeHandshakeSource=CloseHandshakeSource.ABNORMAL;
+      }
+    }
+  }
+  if (event != null) {
+    notifyStateListeners(event);
+    if (abnormalEvent != null) {
+      notifyStateListeners(abnormalEvent);
+    }
+  }
+}

@@ -1,0 +1,20 @@
+{
+  startTLSServer(new ServerHandler());
+  startProxy(connectHandler);
+  HttpClient httpClient=new HttpClient(newSslContextFactory());
+  httpClient.getProxyConfiguration().getProxies().add(newHttpProxy());
+  URI uri=URI.create((proxySslContextFactory == null ? "http" : "https") + "://localhost:" + proxyConnector.getLocalPort());
+  httpClient.getAuthenticationStore().addAuthentication(new BasicAuthentication(uri,realm,"proxyUser","proxyPassword"));
+  httpClient.start();
+  try {
+    String host="localhost";
+    String body="BODY";
+    ContentResponse response=httpClient.newRequest(host,serverConnector.getLocalPort()).scheme(HttpScheme.HTTPS.asString()).method(HttpMethod.GET).path("/echo?body=" + URLEncoder.encode(body,"UTF-8")).send();
+    Assert.assertEquals(HttpStatus.OK_200,response.getStatus());
+    String content=response.getContentAsString();
+    Assert.assertEquals(body,content);
+  }
+  finally {
+    httpClient.stop();
+  }
+}

@@ -1,0 +1,21 @@
+{
+  startTLSServer(new ServerHandler());
+  startProxy(new ConnectHandler(){
+    @Override protected void handleConnect(    Request baseRequest,    HttpServletRequest request,    HttpServletResponse response,    String serverAddress){
+      ((HttpConnection)baseRequest.getHttpChannel().getHttpTransport()).close();
+    }
+  }
+);
+  HttpClient httpClient=new HttpClient(newSslContextFactory());
+  httpClient.getProxyConfiguration().getProxies().add(newHttpProxy());
+  httpClient.start();
+  try {
+    httpClient.newRequest("localhost",serverConnector.getLocalPort()).scheme(HttpScheme.HTTPS.asString()).send();
+    Assert.fail();
+  }
+ catch (  ExecutionException x) {
+  }
+ finally {
+    httpClient.stop();
+  }
+}

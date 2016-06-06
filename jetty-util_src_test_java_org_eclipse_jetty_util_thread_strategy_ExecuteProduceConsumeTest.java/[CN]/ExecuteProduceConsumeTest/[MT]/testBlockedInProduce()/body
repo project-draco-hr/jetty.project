@@ -1,0 +1,34 @@
+{
+  final Task t0=new Task(true);
+  Thread thread0=new Thread(){
+    @Override public void run(){
+      _produce.add(t0);
+      _ewyk.execute();
+    }
+  }
+;
+  thread0.start();
+  t0.awaitRun();
+  Assert.assertEquals(thread0,t0.getThread());
+  Assert.assertEquals(_ewyk,_executions.poll());
+  Thread thread1=new Thread(_ewyk);
+  thread1.start();
+  while (_producer == null)   Thread.yield();
+  Assert.assertEquals(thread1,_producer);
+  _ewyk.run();
+  _ewyk.execute();
+  final Task t1=new Task(true);
+  _produce.add(t1);
+  t1.awaitRun();
+  Assert.assertEquals(thread1,t1.getThread());
+  Assert.assertEquals(_ewyk,_executions.poll());
+  t1.unblock();
+  while (_producer == null)   Thread.yield();
+  Assert.assertEquals(thread1,_producer);
+  t0.unblock();
+  thread0.join();
+  _ewyk.run();
+  _produce.add(NULLTASK);
+  thread1.join();
+  Assert.assertEquals(null,_producer);
+}

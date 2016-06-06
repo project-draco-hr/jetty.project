@@ -1,0 +1,31 @@
+{
+  long idleTimeout=500;
+  startTLSServer(new ServerHandler());
+  startProxy(new ConnectHandler(){
+    @Override protected void handleConnect(    Request baseRequest,    HttpServletRequest request,    HttpServletResponse response,    String serverAddress){
+      try {
+        Thread.sleep(2 * idleTimeout);
+        super.handleConnect(baseRequest,request,response,serverAddress);
+      }
+ catch (      InterruptedException x) {
+        onConnectFailure(request,response,null,x);
+      }
+    }
+  }
+);
+  HttpClient httpClient=new HttpClient(newSslContextFactory());
+  httpClient.getProxyConfiguration().getProxies().add(newHttpProxy());
+  httpClient.setIdleTimeout(idleTimeout);
+  httpClient.start();
+  try {
+    String host="localhost";
+    String body="BODY";
+    ContentResponse response=httpClient.newRequest(host,serverConnector.getLocalPort()).scheme(HttpScheme.HTTPS.asString()).method(HttpMethod.GET).path("/echo?body=" + URLEncoder.encode(body,"UTF-8")).idleTimeout(10 * idleTimeout,TimeUnit.MILLISECONDS).send();
+    Assert.assertEquals(HttpStatus.OK_200,response.getStatus());
+    String content=response.getContentAsString();
+    Assert.assertEquals(body,content);
+  }
+  finally {
+    httpClient.stop();
+  }
+}

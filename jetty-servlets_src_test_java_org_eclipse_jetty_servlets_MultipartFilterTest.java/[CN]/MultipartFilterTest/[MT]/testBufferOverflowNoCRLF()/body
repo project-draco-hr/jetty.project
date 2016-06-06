@@ -18,7 +18,9 @@
     baos.write('a');
   }
   request.setContent(baos.toString());
-  response=HttpTester.parseResponse(tester.getResponses(request.generate()));
-  assertTrue(response.getContent().contains("Buffer size exceeded"));
-  assertEquals(HttpServletResponse.SC_INTERNAL_SERVER_ERROR,response.getStatus());
-}
+  try (StacklessLogging stackless=new StacklessLogging(ServletHandler.class)){
+    response=HttpTester.parseResponse(tester.getResponses(request.generate()));
+    assertTrue(response.getContent().contains("Buffer size exceeded"));
+    assertEquals(HttpServletResponse.SC_INTERNAL_SERVER_ERROR,response.getStatus());
+  }
+ }

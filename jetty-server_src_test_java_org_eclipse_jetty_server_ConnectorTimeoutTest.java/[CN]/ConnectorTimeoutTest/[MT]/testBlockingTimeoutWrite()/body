@@ -12,9 +12,7 @@
   Assert.assertThat(line,Matchers.startsWith("HTTP/1.1 200 OK"));
   while (line.length() != 0)   line=is.readLine();
   long start=System.currentTimeMillis();
-  try {
-    ((StdErrLog)Log.getLogger(HttpChannel.class)).setHideStacks(true);
-    ((StdErrLog)Log.getLogger(AbstractConnection.class)).setHideStacks(true);
+  try (StacklessLogging stackless=new StacklessLogging(HttpChannel.class,AbstractConnection.class)){
     for (int i=0; i < (128 * 1024); i++) {
       if (i % 1028 == 0) {
         Thread.sleep(20);
@@ -24,10 +22,6 @@
     }
   }
  catch (  Throwable e) {
-  }
- finally {
-    ((StdErrLog)Log.getLogger(AbstractConnection.class)).setHideStacks(false);
-    ((StdErrLog)Log.getLogger(HttpChannel.class)).setHideStacks(false);
   }
   long end=System.currentTimeMillis();
   long duration=end - start;

@@ -1,11 +1,10 @@
 {
-  startServer(_connector,new ReadHandler());
-  System.err.println(_threadPool.dump());
-  Socket client=newSocket(_serverURI.getHost(),_serverURI.getPort());
-  client.setSoTimeout(10000);
+  prepareServer(new ReadHandler()).start();
+  Socket client=new Socket("localhost",_connector.getLocalPort());
   OutputStream os=client.getOutputStream();
   InputStream is=client.getInputStream();
-  os.write(("GET / HTTP/1.0\r\n" + "host: " + _serverURI.getHost() + ":"+ _serverURI.getPort()+ "\r\n"+ "content-length: 10\r\n"+ "\r\n"+ "0123456789\r\n").getBytes("utf-8"));
+  String request="" + "GET / HTTP/1.0\r\n" + "Host: localhost\r\n"+ "Content-Length: 10\r\n"+ "\r\n"+ "0123456789\r\n";
+  os.write(request.getBytes(StandardCharsets.UTF_8));
   os.flush();
   String response=IO.toString(is);
   assertEquals(-1,is.read());

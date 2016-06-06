@@ -1,25 +1,30 @@
 {
-  if (_closed)   throw new IOException("CLOSED");
-  if (_oshut)   throw new IOException("OSHUT");
   boolean flushed=true;
-  boolean idle=true;
-  for (  ByteBuffer b : buffers) {
-    if (BufferUtil.hasContent(b)) {
-      if (_growOutput && b.remaining() > BufferUtil.space(_out)) {
-        BufferUtil.compact(_out);
-        if (b.remaining() > BufferUtil.space(_out)) {
-          ByteBuffer n=BufferUtil.allocate(_out.capacity() + b.remaining() * 2);
-          BufferUtil.append(n,_out);
-          _out=n;
+  try (Locker.Lock lock=_locker.lock()){
+    if (_closed)     throw new IOException("CLOSED");
+    if (_oshut)     throw new IOException("OSHUT");
+    boolean idle=true;
+    for (    ByteBuffer b : buffers) {
+      if (BufferUtil.hasContent(b)) {
+        if (_growOutput && b.remaining() > BufferUtil.space(_out)) {
+          BufferUtil.compact(_out);
+          if (b.remaining() > BufferUtil.space(_out)) {
+            ByteBuffer n=BufferUtil.allocate(_out.capacity() + b.remaining() * 2);
+            BufferUtil.append(n,_out);
+            _out=n;
+          }
+        }
+        if (BufferUtil.append(_out,b) > 0)         idle=false;
+        if (BufferUtil.hasContent(b)) {
+          flushed=false;
+          break;
         }
       }
-      if (BufferUtil.append(_out,b) > 0)       idle=false;
-      if (BufferUtil.hasContent(b)) {
-        flushed=false;
-        break;
-      }
+    }
+    if (!idle) {
+      notIdle();
+      _hasOutput.signalAll();
     }
   }
-  if (!idle)   notIdle();
-  return flushed;
+   return flushed;
 }

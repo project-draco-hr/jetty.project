@@ -1,8 +1,6 @@
 {
-  enableStacks(Parser.class,false);
-  BlockheadClient client=new BlockheadClient(server.getServerUri());
-  client.setProtocols("other");
-  try {
+  try (StacklessLogging stackless=new StacklessLogging(Parser.class);BlockheadClient client=new BlockheadClient(server.getServerUri())){
+    client.setProtocols("other");
     client.connect();
     client.sendStandardRequest();
     client.expectUpgradeResponse();
@@ -18,8 +16,4 @@
     CloseInfo close=new CloseInfo(frame);
     Assert.assertThat("Close Status Code",close.getStatusCode(),is(StatusCode.BAD_PAYLOAD));
   }
-  finally {
-    enableStacks(Parser.class,true);
-    client.close();
-  }
-}
+ }

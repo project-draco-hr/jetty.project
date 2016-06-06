@@ -4,8 +4,7 @@
   tp.setMaxThreads(10);
   tp.setIdleTimeout(1000);
   tp.start();
-  try {
-    ((StdErrLog)Log.getLogger(QueuedThreadPool.class)).setHideStacks(true);
+  try (StacklessLogging stackless=new StacklessLogging(QueuedThreadPool.class)){
     tp.execute(new Runnable(){
       public void run(){
         throw new IllegalStateException();
@@ -33,7 +32,4 @@
     Thread.sleep(100);
     assertThat(tp.getThreads(),greaterThanOrEqualTo(5));
   }
-  finally {
-    ((StdErrLog)Log.getLogger(QueuedThreadPool.class)).setHideStacks(false);
-  }
-}
+ }

@@ -1,21 +1,32 @@
 {
-  while (true) {
-    Runnable task=_producer.produce();
-    if (LOG.isDebugEnabled())     LOG.debug("{} PER produced {}",_producer,task);
-    if (task == null)     break;
-    try {
-      _executor.execute(task);
-    }
- catch (    RejectedExecutionException e) {
-      if (task instanceof Rejectable) {
-        try {
-          ((Rejectable)task).reject();
-        }
- catch (        Throwable x) {
-          e.addSuppressed(x);
-          LOG.warn(e);
-        }
-      }
-    }
-  }
+  try (Lock locked=_locker.lock()){
+switch (_state) {
+case IDLE:
+      _state=State.PRODUCE;
+    break;
+case PRODUCE:
+case EXECUTE:
+  _state=State.EXECUTE;
+return;
+}
+}
+ while (true) {
+Runnable task=_producer.produce();
+if (LOG.isDebugEnabled()) LOG.debug("{} produced {}",_producer,task);
+if (task == null) {
+try (Lock locked=_locker.lock()){
+switch (_state) {
+case IDLE:
+  throw new IllegalStateException();
+case PRODUCE:
+_state=State.IDLE;
+return;
+case EXECUTE:
+_state=State.PRODUCE;
+continue;
+}
+}
+ }
+execute(task);
+}
 }

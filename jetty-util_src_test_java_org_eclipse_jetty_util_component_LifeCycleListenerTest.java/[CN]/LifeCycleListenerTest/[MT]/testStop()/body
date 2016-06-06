@@ -4,17 +4,13 @@
   lifecycle.addLifeCycleListener(listener);
   lifecycle.start();
   lifecycle.setCause(cause);
-  try {
-    ((StdErrLog)Log.getLogger(AbstractLifeCycle.class)).setHideStacks(true);
+  try (StacklessLogging stackless=new StacklessLogging(AbstractLifeCycle.class)){
     lifecycle.stop();
     assertTrue(false);
   }
  catch (  Exception e) {
     assertEquals(cause,e);
     assertEquals(cause,listener.getCause());
-  }
- finally {
-    ((StdErrLog)Log.getLogger(AbstractLifeCycle.class)).setHideStacks(false);
   }
   lifecycle.setCause(null);
   lifecycle.stop();

@@ -1,7 +1,6 @@
 {
   configureServer(new HelloWorldHandler());
-  try (Socket client=newSocket(_serverURI.getHost(),_serverURI.getPort())){
-    ((StdErrLog)Log.getLogger(HttpConnection.class)).setHideStacks(true);
+  try (Socket client=newSocket(_serverURI.getHost(),_serverURI.getPort());StacklessLogging stackless=new StacklessLogging(HttpConnection.class)){
     ((AbstractLogger)Log.getLogger(HttpConnection.class)).info("expect URI is too large, then ISE extra data ...");
     OutputStream os=client.getOutputStream();
     byte[] buffer=new byte[64 * 1024];
@@ -16,7 +15,4 @@
     String response=readResponse(client);
     Assert.assertThat(response,Matchers.containsString("HTTP/1.1 414 "));
   }
-  finally {
-    ((StdErrLog)Log.getLogger(HttpConnection.class)).setHideStacks(true);
-  }
-}
+ }

@@ -1,0 +1,44 @@
+{
+  SslContextFactory serverTLSFactory=createSslContextFactory();
+  startServer(serverTLSFactory,new EmptyServerHandler());
+  AtomicReference<byte[]> serverSession=new AtomicReference<>();
+  connector.addBean(new SslHandshakeListener(){
+    @Override public void handshakeSucceeded(    Event event){
+      serverSession.set(event.getSSLEngine().getSession().getId());
+    }
+  }
+);
+  SslContextFactory clientTLSFactory=createSslContextFactory();
+  startClient(clientTLSFactory);
+  AtomicReference<byte[]> clientSession=new AtomicReference<>();
+  client.addBean(new SslHandshakeListener(){
+    @Override public void handshakeSucceeded(    Event event){
+      clientSession.set(event.getSSLEngine().getSession().getId());
+    }
+  }
+);
+  ContentResponse response=client.newRequest("localhost",connector.getLocalPort()).scheme(HttpScheme.HTTPS.asString()).header(HttpHeader.CONNECTION,"close").timeout(5,TimeUnit.SECONDS).send();
+  Assert.assertEquals(HttpStatus.OK_200,response.getStatus());
+  Assert.assertNotNull(serverSession.get());
+  Assert.assertNotNull(clientSession.get());
+  connector.removeBean(connector.getBean(SslHandshakeListener.class));
+  client.removeBean(client.getBean(SslHandshakeListener.class));
+  CountDownLatch serverLatch=new CountDownLatch(1);
+  connector.addBean(new SslHandshakeListener(){
+    @Override public void handshakeSucceeded(    Event event){
+      if (Arrays.equals(serverSession.get(),event.getSSLEngine().getSession().getId()))       serverLatch.countDown();
+    }
+  }
+);
+  CountDownLatch clientLatch=new CountDownLatch(1);
+  client.addBean(new SslHandshakeListener(){
+    @Override public void handshakeSucceeded(    Event event){
+      if (Arrays.equals(clientSession.get(),event.getSSLEngine().getSession().getId()))       clientLatch.countDown();
+    }
+  }
+);
+  response=client.newRequest("localhost",connector.getLocalPort()).scheme(HttpScheme.HTTPS.asString()).header(HttpHeader.CONNECTION,"close").timeout(5,TimeUnit.SECONDS).send();
+  Assert.assertEquals(HttpStatus.OK_200,response.getStatus());
+  Assert.assertTrue(serverLatch.await(1,TimeUnit.SECONDS));
+  Assert.assertTrue(clientLatch.await(1,TimeUnit.SECONDS));
+}

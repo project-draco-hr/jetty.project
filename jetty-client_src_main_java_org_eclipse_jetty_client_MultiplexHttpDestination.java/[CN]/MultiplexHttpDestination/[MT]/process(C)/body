@@ -15,13 +15,14 @@
       Throwable cause=request.getAbortCause();
       if (cause != null) {
         if (LOG.isDebugEnabled())         LOG.debug("Aborted before processing {}: {}",exchange,cause);
-        exchange.abort(cause);
         requestsPerConnection.decrementAndGet();
+        exchange.abort(cause);
       }
  else {
         SendFailure result=send(connection,exchange);
         if (result != null) {
           if (LOG.isDebugEnabled())           LOG.debug("Send failed {} for {}",result,exchange);
+          requestsPerConnection.decrementAndGet();
           if (result.retry) {
             if (enqueue(getHttpExchanges(),exchange))             return true;
           }

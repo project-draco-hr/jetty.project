@@ -1,0 +1,34 @@
+{
+  String contextPath="";
+  String servletMapping="/server";
+  int inactivePeriod=Integer.MAX_VALUE * 60;
+  int scavengePeriod=1;
+  AbstractTestServer server1=createServer(0,inactivePeriod,scavengePeriod);
+  ChangeTimeoutServlet servlet=new ChangeTimeoutServlet();
+  ServletHolder holder=new ServletHolder(servlet);
+  ServletContextHandler context=server1.addContext(contextPath);
+  context.addServlet(holder,servletMapping);
+  TestHttpSessionListener listener=new TestHttpSessionListener();
+  context.getSessionHandler().addEventListener(listener);
+  server1.start();
+  int port1=server1.getPort();
+  try {
+    HttpClient client=new HttpClient();
+    client.start();
+    String url="http://localhost:" + port1 + contextPath+ servletMapping;
+    ContentResponse response1=client.GET(url + "?action=init");
+    assertEquals(HttpServletResponse.SC_OK,response1.getStatus());
+    String sessionCookie=response1.getHeaders().get("Set-Cookie");
+    assertTrue(sessionCookie != null);
+    sessionCookie=sessionCookie.replaceFirst("(\\W)(P|p)ath=","$1\\$Path=");
+    String sessionId=AbstractTestServer.extractSessionId(sessionCookie);
+    DBCollection sessions=((MongoSessionIdManager)((MongoTestServer)server1).getServer().getSessionIdManager()).getSessions();
+    verifySessionCreated(listener,sessionId);
+    verifySessionTimeout(sessions,sessionId,inactivePeriod);
+    long expiry=getSessionExpiry(sessions,sessionId);
+    assertEquals(0,expiry);
+  }
+  finally {
+    server1.stop();
+  }
+}

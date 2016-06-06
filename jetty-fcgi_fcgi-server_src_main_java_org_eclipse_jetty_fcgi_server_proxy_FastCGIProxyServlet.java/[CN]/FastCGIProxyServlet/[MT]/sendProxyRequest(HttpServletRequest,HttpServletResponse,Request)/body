@@ -6,10 +6,15 @@
   proxyRequest.attribute(SERVER_PORT_ATTRIBUTE,String.valueOf(request.getLocalPort()));
   proxyRequest.attribute(SCHEME_ATTRIBUTE,request.getScheme());
   String originalURI=null;
+  String originalQuery=null;
   if (originalURIAttribute != null)   originalURI=(String)request.getAttribute(originalURIAttribute);
+  if (originalURI != null && originalQueryAttribute != null) {
+    originalQuery=(String)request.getAttribute(originalQueryAttribute);
+    if (originalQuery != null)     originalURI+="?" + originalQuery;
+  }
   if (originalURI == null) {
     String originalPath=(String)request.getAttribute(RequestDispatcher.FORWARD_REQUEST_URI);
-    String originalQuery=(String)request.getAttribute(RequestDispatcher.FORWARD_QUERY_STRING);
+    originalQuery=(String)request.getAttribute(RequestDispatcher.FORWARD_QUERY_STRING);
     if (originalPath == null) {
       originalPath=(String)request.getAttribute(RequestDispatcher.INCLUDE_REQUEST_URI);
       originalQuery=(String)request.getAttribute(RequestDispatcher.INCLUDE_QUERY_STRING);
@@ -20,6 +25,7 @@
     }
   }
   if (originalURI != null)   proxyRequest.attribute(REQUEST_URI_ATTRIBUTE,originalURI);
+  if (originalQuery != null)   proxyRequest.attribute(REQUEST_QUERY_ATTRIBUTE,originalQuery);
   if (!proxyRequest.getHeaders().containsKey(HttpHeader.HOST.asString())) {
     String host=request.getServerName();
     int port=request.getServerPort();
@@ -27,7 +33,7 @@
     proxyRequest.header(HttpHeader.HOST,host);
     proxyRequest.header(HttpHeader.X_FORWARDED_HOST,host);
   }
-  List<String> cookies=proxyRequest.getHeaders().getValuesList(HttpHeader.COOKIE.asString());
+  List<String> cookies=proxyRequest.getHeaders().getValuesList(HttpHeader.COOKIE);
   if (cookies.size() > 1) {
     StringBuilder builder=new StringBuilder();
     for (int i=0; i < cookies.size(); ++i) {

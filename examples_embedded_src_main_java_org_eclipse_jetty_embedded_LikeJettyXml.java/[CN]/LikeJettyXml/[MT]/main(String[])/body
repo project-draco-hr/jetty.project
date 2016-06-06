@@ -1,10 +1,13 @@
 {
   String jettyHomeBuild="../../jetty-distribution/target/distribution";
   String homePath=System.getProperty("jetty.home",jettyHomeBuild);
-  File homeDir=new File(homePath);
-  if (!homeDir.exists()) {
-    throw new FileNotFoundException(homeDir.getAbsolutePath());
+  File start_jar=new File(homePath,"start.jar");
+  if (!start_jar.exists()) {
+    homePath=jettyHomeBuild="jetty-distribution/target/distribution";
+    start_jar=new File(homePath,"start.jar");
+    if (!start_jar.exists())     throw new FileNotFoundException(start_jar.toString());
   }
+  File homeDir=new File(homePath);
   String basePath=System.getProperty("jetty.base",homeDir + "/demo-base");
   File baseDir=new File(basePath);
   if (!baseDir.exists()) {
@@ -69,6 +72,10 @@
   StatisticsHandler stats=new StatisticsHandler();
   stats.setHandler(server.getHandler());
   server.setHandler(stats);
+  ConnectorStatistics.addToAllConnectors(server);
+  RewriteHandler rewrite=new RewriteHandler();
+  rewrite.setHandler(server.getHandler());
+  server.setHandler(rewrite);
   NCSARequestLog requestLog=new NCSARequestLog();
   requestLog.setFilename(jetty_home + "/logs/yyyy_mm_dd.request.log");
   requestLog.setFilenameDateFormat("yyyy_MM_dd");

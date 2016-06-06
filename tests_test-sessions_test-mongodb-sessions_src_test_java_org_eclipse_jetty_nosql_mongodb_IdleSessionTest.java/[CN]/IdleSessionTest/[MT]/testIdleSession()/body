@@ -36,7 +36,6 @@
     request.getHeaders().add("Cookie",sessionCookie);
     response2=request.send();
     assertEquals(HttpServletResponse.SC_OK,response2.getStatus());
-    System.err.println("\n TESTING DEIDLE EXPIRED\n");
     response=client.GET(url + "?action=init");
     assertEquals(HttpServletResponse.SC_OK,response.getStatus());
     sessionCookie=response.getHeaders().get("Set-Cookie");
@@ -44,11 +43,8 @@
     sessionCookie=sessionCookie.replaceFirst("(\\W)(P|p)ath=","$1\\$Path=");
     pause(idlePeriod * 2);
     ((MongoTestServer.TestMongoSessionIdManager)server1.getServer().getSessionIdManager()).cancelScavenge();
-    System.err.println("SCAVENGE STOPPED");
     checkSessionIdle();
-    System.err.println("WAITING FOR EXPIRY TIME TO PASS");
     pause(inactivePeriod + (inactivePeriod / 2));
-    System.err.println("EXPIRY TIME PASSED");
     request=client.newRequest(url + "?action=testfail");
     request.getHeaders().add("Cookie",sessionCookie);
     response2=request.send();

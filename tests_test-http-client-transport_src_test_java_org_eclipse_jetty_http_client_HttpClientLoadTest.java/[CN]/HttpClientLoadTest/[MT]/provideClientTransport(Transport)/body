@@ -1,0 +1,49 @@
+{
+switch (transport) {
+case HTTP:
+case HTTPS:
+{
+      return new HttpClientTransportOverHTTP(1){
+        @Override public HttpDestination newHttpDestination(        Origin origin){
+          return new HttpDestinationOverHTTP(getHttpClient(),origin){
+            @Override protected ConnectionPool newConnectionPool(            HttpClient client){
+              return new LeakTrackingConnectionPool(this,client.getMaxConnectionsPerDestination(),this){
+                @Override protected void leaked(                LeakDetector.LeakInfo leakInfo){
+                  super.leaked(leakInfo);
+                  connectionLeaks.incrementAndGet();
+                }
+              }
+;
+            }
+          }
+;
+        }
+      }
+;
+    }
+case FCGI:
+{
+    return new HttpClientTransportOverFCGI(1,false,""){
+      @Override public HttpDestination newHttpDestination(      Origin origin){
+        return new HttpDestinationOverFCGI(getHttpClient(),origin){
+          @Override protected ConnectionPool newConnectionPool(          HttpClient client){
+            return new LeakTrackingConnectionPool(this,client.getMaxConnectionsPerDestination(),this){
+              @Override protected void leaked(              LeakDetector.LeakInfo leakInfo){
+                super.leaked(leakInfo);
+                connectionLeaks.incrementAndGet();
+              }
+            }
+;
+          }
+        }
+;
+      }
+    }
+;
+  }
+default :
+{
+  return super.provideClientTransport(transport);
+}
+}
+}

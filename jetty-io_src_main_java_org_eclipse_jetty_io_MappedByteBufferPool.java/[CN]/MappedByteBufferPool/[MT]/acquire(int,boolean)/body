@@ -1,13 +1,7 @@
 {
-  int bucket=bucketFor(size);
-  ConcurrentMap<Integer,Queue<ByteBuffer>> buffers=buffersFor(direct);
-  ByteBuffer result=null;
-  Queue<ByteBuffer> byteBuffers=buffers.get(bucket);
-  if (byteBuffers != null)   result=byteBuffers.poll();
-  if (result == null) {
-    int capacity=bucket * factor;
-    result=newByteBuffer(capacity,direct);
-  }
-  BufferUtil.clear(result);
-  return result;
+  int b=bucketFor(size);
+  ConcurrentMap<Integer,Bucket> buffers=bucketsFor(direct);
+  Bucket bucket=buffers.get(b);
+  if (bucket == null)   return newByteBuffer(b * _factor,direct);
+  return bucket.acquire(direct);
 }
