@@ -7,8 +7,10 @@
   request.setHeader("accept-encoding","gzip");
   request.setURI("/ctx/include");
   response=HttpTester.parseResponse(_connector.getResponses(request.generate()));
-  assertTrue(response.get("Content-Encoding").equalsIgnoreCase("gzip"));
-  assertEquals(HttpServletResponse.SC_OK,response.getStatus());
+  assertThat(response.getStatus(),is(200));
+  assertThat(response.get("Content-Encoding"),Matchers.equalToIgnoringCase("gzip"));
+  assertThat(response.get("ETag"),nullValue());
+  assertThat(response.get("Vary"),is("Accept-Encoding"));
   InputStream testIn=new GZIPInputStream(new ByteArrayInputStream(response.getContentBytes()));
   ByteArrayOutputStream testOut=new ByteArrayOutputStream();
   IO.copy(testIn,testOut);
