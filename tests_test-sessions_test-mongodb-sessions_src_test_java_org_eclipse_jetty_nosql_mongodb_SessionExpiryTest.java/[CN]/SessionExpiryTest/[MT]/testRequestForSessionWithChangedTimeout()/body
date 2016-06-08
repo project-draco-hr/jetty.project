@@ -1,0 +1,42 @@
+{
+  String contextPath="";
+  String servletMapping="/server";
+  int inactivePeriod=5;
+  int scavengePeriod=1;
+  AbstractTestServer server1=createServer(0,inactivePeriod,scavengePeriod);
+  ChangeTimeoutServlet servlet=new ChangeTimeoutServlet();
+  ServletHolder holder=new ServletHolder(servlet);
+  ServletContextHandler context=server1.addContext(contextPath);
+  context.addServlet(holder,servletMapping);
+  TestHttpSessionListener listener=new TestHttpSessionListener();
+  context.getSessionHandler().addEventListener(listener);
+  server1.start();
+  int port1=server1.getPort();
+  try {
+    HttpClient client=new HttpClient();
+    client.start();
+    String url="http://localhost:" + port1 + contextPath+ servletMapping;
+    ContentResponse response=client.GET(url + "?action=init");
+    assertEquals(HttpServletResponse.SC_OK,response.getStatus());
+    String sessionCookie=response.getHeaders().get("Set-Cookie");
+    assertTrue(sessionCookie != null);
+    sessionCookie=sessionCookie.replaceFirst("(\\W)(P|p)ath=","$1\\$Path=");
+    int newInactivePeriod=100;
+    Request request=client.newRequest(url + "?action=change&val=" + newInactivePeriod);
+    request.getHeaders().add("Cookie",sessionCookie);
+    response=request.send();
+    assertEquals(HttpServletResponse.SC_OK,response.getStatus());
+    context.stop();
+    context.start();
+    Thread.currentThread().sleep(inactivePeriod * 1000L);
+    request=client.newRequest(url + "?action=check");
+    request.getHeaders().add("Cookie",sessionCookie);
+    response=request.send();
+    assertEquals(HttpServletResponse.SC_OK,response.getStatus());
+    String sessionCookie2=response.getHeaders().get("Set-Cookie");
+    assertNull(sessionCookie2);
+  }
+  finally {
+    server1.stop();
+  }
+}
