@@ -1,0 +1,21 @@
+{
+  File target=MavenTestingUtils.getTargetDir();
+  File jettyBase=new File(target,"test-base");
+  File webapps=new File(jettyBase,"webapps");
+  File war=new File(webapps,"jmx-webapp.war");
+  __server=new Server(0);
+  WebAppContext context=new WebAppContext();
+  context.setWar(war.getCanonicalPath());
+  context.setContextPath("/jmx-webapp");
+  Configuration.ClassList classlist=Configuration.ClassList.setServerDefault(__server);
+  classlist.addBefore("org.eclipse.jetty.webapp.JettyWebXmlConfiguration","org.eclipse.jetty.annotations.AnnotationConfiguration");
+  context.setAttribute("org.eclipse.jetty.server.webapp.ContainerIncludeJarPattern",".*/javax.servlet-[^/]*\\.jar$|.*/servlet-api-[^/]*\\.jar$");
+  __server.setHandler(context);
+  MBeanContainer mbContainer=new MBeanContainer(ManagementFactory.getPlatformMBeanServer());
+  __server.addBean(mbContainer);
+  JMXServiceURL serviceUrl=new JMXServiceURL("rmi","localhost",1099,"/jndi/rmi://localhost:1099/jmxrmi");
+  ConnectorServer jmxConnServer=new ConnectorServer(serviceUrl,"org.eclipse.jetty.jmx:name=rmiconnectorserver");
+  __server.addBean(jmxConnServer);
+  __server.start();
+  __port=((NetworkConnector)__server.getConnectors()[0]).getLocalPort();
+}
