@@ -1,19 +1,34 @@
 {
   ClientContainer clientContainer=new ClientContainer();
+  QueuedThreadPool clientThreads=new QueuedThreadPool();
+  clientThreads.setName("client");
+  clientContainer.getClient().setExecutor(clientThreads);
   try {
+    CountDownLatch openedLatch=new CountDownLatch(2);
+    CountDownLatch closedLatch=new CountDownLatch(2);
+    wsServerFactory.addSessionListener(new WebSocketSession.Listener(){
+      @Override public void onOpened(      WebSocketSession session){
+        openedLatch.countDown();
+      }
+      @Override public void onClosed(      WebSocketSession session){
+        closedLatch.countDown();
+      }
+    }
+);
     clientContainer.start();
     ClientSocket cli1=new ClientSocket();
     clientContainer.connectToServer(cli1,serverURI.resolve("/test"));
     cli1.waitForOpen(1,TimeUnit.SECONDS);
-    assertServerOpenConnectionCount(1);
     ClientSocket cli2=new ClientSocket();
     clientContainer.connectToServer(cli2,serverURI.resolve("/test"));
     cli2.waitForOpen(1,TimeUnit.SECONDS);
+    openedLatch.await(5,TimeUnit.SECONDS);
     assertServerOpenConnectionCount(2);
     cli1.session.close();
     cli2.session.close();
     cli1.waitForClose(1,TimeUnit.SECONDS);
     cli2.waitForClose(1,TimeUnit.SECONDS);
+    closedLatch.await(5,TimeUnit.SECONDS);
     assertServerOpenConnectionCount(0);
   }
   finally {
