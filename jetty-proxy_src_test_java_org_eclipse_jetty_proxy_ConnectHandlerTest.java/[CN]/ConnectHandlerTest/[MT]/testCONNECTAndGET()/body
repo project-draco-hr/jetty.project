@@ -3,16 +3,16 @@
   String request="" + "CONNECT " + hostPort + " HTTP/1.1\r\n"+ "Host: "+ hostPort+ "\r\n"+ "\r\n";
   try (Socket socket=newSocket()){
     OutputStream output=socket.getOutputStream();
-    BufferedReader input=new BufferedReader(new InputStreamReader(socket.getInputStream()));
+    InputStream input=socket.getInputStream();
     output.write(request.getBytes(StandardCharsets.UTF_8));
     output.flush();
-    SimpleHttpResponse response=readResponse(input);
-    Assert.assertEquals("200",response.getCode());
+    HttpTester.Response response=readResponse(input);
+    Assert.assertEquals(HttpStatus.OK_200,response.getStatus());
     request="" + "GET /echo" + " HTTP/1.1\r\n"+ "Host: " + hostPort + "\r\n"+ "\r\n";
     output.write(request.getBytes(StandardCharsets.UTF_8));
     output.flush();
     response=readResponse(input);
-    Assert.assertEquals("200",response.getCode());
-    Assert.assertEquals("GET /echo",response.getBody());
+    Assert.assertEquals(HttpStatus.OK_200,response.getStatus());
+    Assert.assertEquals("GET /echo",response.getContent());
   }
  }

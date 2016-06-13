@@ -3,22 +3,19 @@
   String request="" + "CONNECT " + hostPort + " HTTP/1.1\r\n"+ "Host: "+ hostPort+ "\r\n"+ "\r\n";
   try (Socket socket=newSocket()){
     OutputStream output=socket.getOutputStream();
-    BufferedReader input=new BufferedReader(new InputStreamReader(socket.getInputStream()));
     output.write(request.getBytes(StandardCharsets.UTF_8));
     output.flush();
-    SimpleHttpResponse response=readResponse(input);
-    Assert.assertEquals("200",response.getCode());
-    Assert.assertFalse(input.ready());
+    HttpTester.Response response=readResponse(socket.getInputStream());
+    Assert.assertEquals(HttpStatus.OK_200,response.getStatus());
     try (SSLSocket sslSocket=wrapSocket(socket)){
       output=sslSocket.getOutputStream();
-      input=new BufferedReader(new InputStreamReader(sslSocket.getInputStream()));
       for (int i=0; i < 10; ++i) {
         request="" + "POST /echo?param=" + i + " HTTP/1.1\r\n"+ "Host: "+ hostPort+ "\r\n"+ "Content-Length: 5\r\n"+ "\r\n"+ "HELLO";
         output.write(request.getBytes(StandardCharsets.UTF_8));
         output.flush();
-        response=readResponse(input);
-        Assert.assertEquals("200",response.getCode());
-        Assert.assertEquals("POST /echo?param=" + i + "\r\nHELLO",response.getBody());
+        response=readResponse(sslSocket.getInputStream());
+        Assert.assertEquals(HttpStatus.OK_200,response.getStatus());
+        Assert.assertEquals("POST /echo?param=" + i + "\r\nHELLO",response.getContent());
       }
     }
    }
