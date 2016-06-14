@@ -17,13 +17,13 @@
   }
   try {
     client.start();
-    client.setMaxIdleTimeout(TimeUnit.SECONDS.toMillis(1));
+    client.setMaxIdleTimeout(TimeUnit.SECONDS.toMillis(15));
     CaptureSocket clientSocket=new CaptureSocket();
     ClientUpgradeRequest request=new ClientUpgradeRequest();
     request.addExtensions("permessage-deflate");
     request.setSubProtocols("echo");
     Future<Session> fut=client.connect(clientSocket,server.getServerUri(),request);
-    Session session=fut.get(3,TimeUnit.SECONDS);
+    Session session=fut.get(5,TimeUnit.SECONDS);
     assertThat("Response.extensions",getNegotiatedExtensionList(session),containsString("permessage-deflate"));
     byte msg[]=new byte[msgSize];
     Random rand=new Random();
@@ -31,7 +31,7 @@
     rand.nextBytes(msg);
     String sha1=Sha1Sum.calculate(msg);
     session.getRemote().sendBytes(ByteBuffer.wrap(msg));
-    clientSocket.messages.awaitEventCount(1,1,TimeUnit.SECONDS);
+    clientSocket.messages.awaitEventCount(1,5,TimeUnit.SECONDS);
     String echoMsg=clientSocket.messages.poll();
     Assert.assertThat("Echo'd Message",echoMsg,is("binary[sha1=" + sha1 + "]"));
   }
