@@ -1,0 +1,37 @@
+{
+  byte[] chunk1=new byte[]{0,1};
+  byte[] chunk2=new byte[]{2,3};
+  start(new AbstractHandler(){
+    @Override public void handle(    String target,    Request baseRequest,    HttpServletRequest request,    HttpServletResponse response) throws IOException, ServletException {
+      baseRequest.setHandled(true);
+      response.setContentLength(chunk1.length + chunk2.length);
+      ServletOutputStream output=response.getOutputStream();
+      output.write(chunk1);
+      output.flush();
+      output.write(chunk2);
+    }
+  }
+);
+  CountDownLatch failedLatch=new CountDownLatch(1);
+  CountDownLatch contentLatch=new CountDownLatch(1);
+  InputStreamResponseListener listener=new InputStreamResponseListener(){
+    @Override public void onContent(    Response response,    ByteBuffer content,    Callback callback){
+      super.onContent(response,content,new Callback(){
+        @Override public void failed(        Throwable x){
+          failedLatch.countDown();
+          callback.failed(x);
+        }
+      }
+);
+      contentLatch.countDown();
+    }
+  }
+;
+  client.newRequest("localhost",connector.getLocalPort()).scheme(getScheme()).send(listener);
+  Response response=listener.get(5,TimeUnit.SECONDS);
+  Assert.assertEquals(HttpStatus.OK_200,response.getStatus());
+  Assert.assertTrue(contentLatch.await(5,TimeUnit.SECONDS));
+  InputStream stream=listener.getInputStream();
+  stream.close();
+  Assert.assertTrue(failedLatch.await(5,TimeUnit.SECONDS));
+}

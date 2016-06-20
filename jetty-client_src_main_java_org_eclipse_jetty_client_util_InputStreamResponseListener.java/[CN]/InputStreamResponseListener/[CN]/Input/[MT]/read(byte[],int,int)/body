@@ -3,11 +3,13 @@
     int result;
     Callback callback=null;
 synchronized (lock) {
+      DeferredContentProvider.Chunk chunk;
       while (true) {
-        if (failure != null)         throw toIOException(failure);
+        chunk=chunks.peek();
         if (chunk == EOF)         return -1;
-        if (closed)         throw new AsynchronousCloseException();
         if (chunk != null)         break;
+        if (failure != null)         throw toIOException(failure);
+        if (closed)         throw new AsynchronousCloseException();
         lock.wait();
       }
       ByteBuffer buffer=chunk.buffer;
@@ -15,7 +17,7 @@ synchronized (lock) {
       buffer.get(b,offset,result);
       if (!buffer.hasRemaining()) {
         callback=chunk.callback;
-        chunk=null;
+        chunks.poll();
       }
     }
     if (callback != null)     callback.succeeded();
