@@ -1,6 +1,5 @@
 {
   Action action;
-  AsyncContextEvent schedule_event=null;
   boolean read_interested=false;
   if (DEBUG)   LOG.debug("{} unhandle {}",this,_state);
   try (Locker.Lock lock=_locker.lock()){
@@ -43,14 +42,14 @@ _state=State.ASYNC_IO;
 action=Action.WRITE_CALLBACK;
 }
  else {
-schedule_event=_event;
-read_interested=_asyncReadUnready;
 _state=State.ASYNC_WAIT;
 action=Action.WAIT;
+if (_asyncReadUnready) _channel.asyncReadFillInterested();
+Scheduler scheduler=_channel.getScheduler();
+if (scheduler != null && _timeoutMs > 0) _event.setTimeoutTask(scheduler.schedule(_event,_timeoutMs,TimeUnit.MILLISECONDS));
 }
 break;
 case EXPIRING:
-schedule_event=_event;
 _state=State.ASYNC_WAIT;
 action=Action.WAIT;
 break;
@@ -73,7 +72,5 @@ action=Action.COMPLETE;
 break;
 }
 }
- if (schedule_event != null) scheduleTimeout(schedule_event);
-if (read_interested) _channel.asyncReadFillInterested();
-return action;
+ return action;
 }
