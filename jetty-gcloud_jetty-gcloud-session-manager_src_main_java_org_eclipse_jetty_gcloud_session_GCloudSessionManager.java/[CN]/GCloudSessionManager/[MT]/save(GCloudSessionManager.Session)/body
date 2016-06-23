@@ -2,6 +2,28 @@
   if (_datastore == null)   throw new IllegalStateException("No DataStore");
   if (LOG.isDebugEnabled())   LOG.debug("Writing session {} to DataStore",session.getId());
   Entity entity=_converter.entityFromSession(session,makeKey(session,_context));
-  _datastore.put(entity);
-  session.setLastSyncTime(System.currentTimeMillis());
+  int backoff=getBackoffMs();
+  int attempts;
+  for (attempts=0; attempts < getMaxRetries(); attempts++) {
+    try {
+      _datastore.put(entity);
+      session.setLastSyncTime(System.currentTimeMillis());
+      return;
+    }
+ catch (    DatastoreException e) {
+      if (e.code().retryable()) {
+        if (LOG.isDebugEnabled())         LOG.debug("Datastore put retry {} waiting {}ms",attempts,backoff);
+        try {
+          Thread.currentThread().sleep(backoff);
+        }
+ catch (        InterruptedException x) {
+        }
+        backoff*=2;
+      }
+ else {
+        throw e;
+      }
+    }
+  }
+  throw new IOException("Retries exhausted");
 }
