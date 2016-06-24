@@ -1,13 +1,11 @@
 {
-  deleteMemcachedSessions();
-  ensureDatastore();
-  StructuredQuery<ProjectionEntity> keyOnlyProjectionQuery=Query.projectionEntityQueryBuilder().kind(GCloudSessionManager.KIND).projection(Projection.property("__key__")).limit(100).build();
-  QueryResults<ProjectionEntity> results=_ds.run(keyOnlyProjectionQuery);
+  _flusher.flush();
+  Query<Key> query=Query.keyQueryBuilder().kind(GCloudSessionManager.KIND).build();
+  QueryResults<Key> results=_ds.run(query);
   if (results != null) {
     List<Key> keys=new ArrayList<Key>();
     while (results.hasNext()) {
-      ProjectionEntity pe=results.next();
-      keys.add(pe.key());
+      keys.add(results.next());
     }
     _ds.delete(keys.toArray(new Key[keys.size()]));
   }
