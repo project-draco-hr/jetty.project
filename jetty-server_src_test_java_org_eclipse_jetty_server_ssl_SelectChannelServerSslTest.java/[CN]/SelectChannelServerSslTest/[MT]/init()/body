@@ -7,7 +7,11 @@
   sslContextFactory.setTrustStorePath(keystorePath);
   sslContextFactory.setTrustStorePassword("storepwd");
   ByteBufferPool pool=new LeakTrackingByteBufferPool(new MappedByteBufferPool.Tagged());
-  ServerConnector connector=new ServerConnector(_server,(Executor)null,(Scheduler)null,pool,1,1,AbstractConnectionFactory.getFactories(sslContextFactory,new HttpConnectionFactory()));
+  HttpConnectionFactory httpConnectionFactory=new HttpConnectionFactory();
+  ServerConnector connector=new ServerConnector(_server,(Executor)null,(Scheduler)null,pool,1,1,AbstractConnectionFactory.getFactories(sslContextFactory,httpConnectionFactory));
+  SecureRequestCustomizer secureRequestCustomer=new SecureRequestCustomizer();
+  secureRequestCustomer.setSslSessionAttribute("SSL_SESSION");
+  httpConnectionFactory.getHttpConfiguration().addCustomizer(secureRequestCustomer);
   startServer(connector);
   KeyStore keystore=KeyStore.getInstance(KeyStore.getDefaultType());
   try (InputStream stream=sslContextFactory.getKeyStoreResource().getInputStream()){
