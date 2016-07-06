@@ -1,8 +1,11 @@
 {
+  List<Worker> workers=new ArrayList<>();
   for (int i=0; i < NUM_CONNECTIONS; ++i) {
-    new Thread(new Worker(i)).start();
+    workers.add(new Worker(i));
   }
-  _doneRequests.await(10,TimeUnit.SECONDS);
+  ExecutorService executor=Executors.newFixedThreadPool(NUM_CONNECTIONS);
+  List<Future<Void>> futures=executor.invokeAll(workers,10,TimeUnit.SECONDS);
+  rethrowExceptions(futures);
   if (TestServlet.__maxSleepers <= MAX_QOS)   LOG.warn("TEST WAS NOT PARALLEL ENOUGH!");
- else   Assert.assertThat(TestServlet.__maxSleepers,Matchers.lessThanOrEqualTo(NUM_CONNECTIONS));
+ else   assertThat(TestServlet.__maxSleepers,Matchers.lessThanOrEqualTo(NUM_CONNECTIONS));
 }
