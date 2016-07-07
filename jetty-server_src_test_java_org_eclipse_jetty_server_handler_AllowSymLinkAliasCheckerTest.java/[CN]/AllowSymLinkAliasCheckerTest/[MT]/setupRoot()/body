@@ -1,0 +1,25 @@
+{
+  rootPath=MavenTestingUtils.getTargetTestingPath(AllowSymLinkAliasCheckerTest.class.getSimpleName());
+  FS.ensureEmpty(rootPath);
+  Path testdir=rootPath.resolve("testdir");
+  FS.ensureDirExists(testdir);
+  try {
+    Path testdirlnk=rootPath.resolve("testdirlnk");
+    Files.createSymbolicLink(testdirlnk,new File("testdir").toPath());
+  }
+ catch (  UnsupportedOperationException|FileSystemException e) {
+    assumeNoException(e);
+  }
+  Path testfileTxt=testdir.resolve("testfile.txt");
+  Files.createFile(testfileTxt);
+  try (OutputStream out=Files.newOutputStream(testfileTxt)){
+    out.write("Hello TestFile".getBytes(StandardCharsets.UTF_8));
+  }
+   try {
+    Path testfileTxtLnk=testdir.resolve("testfilelnk.txt");
+    Files.createSymbolicLink(testfileTxtLnk,new File("testfile.txt").toPath());
+  }
+ catch (  UnsupportedOperationException|FileSystemException e) {
+    assumeNoException(e);
+  }
+}
