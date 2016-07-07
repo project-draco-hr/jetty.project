@@ -27,8 +27,16 @@
   parser.setHeadResponse(head);
   try (ByteArrayOutputStream2 bout=new ByteArrayOutputStream2()){
     loop:     while (true) {
-      ByteBuffer chunk=BufferUtil.hasContent(_responseData) ? _responseData : waitForOutput(time,unit);
-      _responseData=null;
+      ByteBuffer chunk;
+      if (BufferUtil.hasContent(_responseData))       chunk=_responseData;
+ else {
+        chunk=waitForOutput(time,unit);
+        if (BufferUtil.isEmpty(chunk) && (!isOpen() || isOutputShutdown())) {
+          parser.atEOF();
+          parser.parseNext(BufferUtil.EMPTY_BUFFER);
+          break loop;
+        }
+      }
       while (BufferUtil.hasContent(chunk)) {
         int pos=chunk.position();
         boolean complete=parser.parseNext(chunk);
