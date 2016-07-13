@@ -1,0 +1,13 @@
+{
+  HttpTester.Request request=new HttpTester.Request();
+  request.setMethod("GET");
+  request.setURI("/multiline/%0A%20Content-Type%3A%20image/png%0A%20Content-Length%3A%208%0A%20%0A%20yuck<!--");
+  request.setVersion(HttpVersion.HTTP_1_1);
+  request.setHeader("Connection","close");
+  request.setHeader("Host","test");
+  ByteBuffer responseBuffer=connector.getResponse(request.generate());
+  System.err.println(BufferUtil.toUTF8String(responseBuffer));
+  HttpTester.Response response=HttpTester.parseResponse(responseBuffer);
+  assertThat("Response Code",response.getStatus(),is(200));
+  assertThat("Response Header Content-Type",response.get("Content-Type"),is("text/plain;charset=UTF-8"));
+}
