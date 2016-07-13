@@ -27,6 +27,7 @@
       final boolean last=++sends == 2;
       stream.data(new DataFrame(stream.getId(),ByteBuffer.allocate(1),last),!last ? this : new Callback.NonBlocking(){
         @Override public void succeeded(){
+          Assert.assertEquals(1,timeoutLatch.getCount());
           dataLatch.countDown();
         }
       }
@@ -35,5 +36,5 @@
   }
 );
   Assert.assertTrue(dataLatch.await(5 * idleTimeout,TimeUnit.MILLISECONDS));
-  Assert.assertFalse(timeoutLatch.await(1,TimeUnit.SECONDS));
+  Assert.assertTrue(timeoutLatch.await(5 * idleTimeout,TimeUnit.SECONDS));
 }
