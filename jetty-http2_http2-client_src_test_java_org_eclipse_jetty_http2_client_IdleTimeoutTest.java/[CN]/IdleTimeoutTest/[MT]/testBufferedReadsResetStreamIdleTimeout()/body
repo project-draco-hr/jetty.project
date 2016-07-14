@@ -1,9 +1,10 @@
 {
+  int bufferSize=8192;
   long delay=1000;
   start(new HttpServlet(){
     @Override protected void service(    HttpServletRequest request,    HttpServletResponse response) throws ServletException, IOException {
       ServletInputStream input=request.getInputStream();
-      byte[] buffer=new byte[8192];
+      byte[] buffer=new byte[bufferSize];
       while (true) {
         int read=input.read(buffer);
         Log.getLogger(IdleTimeoutTest.class).info("Read {} bytes",read);
@@ -26,7 +27,8 @@
   }
 );
   Stream stream=promise.get(5,TimeUnit.SECONDS);
-  ByteBuffer data=ByteBuffer.allocate(FlowControlStrategy.DEFAULT_WINDOW_SIZE + 1);
+  int contentLength=FlowControlStrategy.DEFAULT_WINDOW_SIZE + 1;
+  ByteBuffer data=ByteBuffer.allocate(contentLength);
   stream.data(new DataFrame(stream.getId(),data,true),Callback.NOOP);
-  Assert.assertTrue(latch.await(555,TimeUnit.SECONDS));
+  Assert.assertTrue(latch.await(2 * (contentLength / bufferSize + 1) * delay,TimeUnit.MILLISECONDS));
 }
