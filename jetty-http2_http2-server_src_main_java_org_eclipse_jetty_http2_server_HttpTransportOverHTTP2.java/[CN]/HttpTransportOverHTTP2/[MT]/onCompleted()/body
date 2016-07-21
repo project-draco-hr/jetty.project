@@ -1,4 +1,8 @@
 {
-  if (!stream.isClosed())   stream.reset(new ResetFrame(stream.getId(),ErrorCode.CANCEL_STREAM_ERROR.code),Callback.NOOP);
-  consumeInput();
+  if (!stream.isClosed()) {
+    if (LOG.isDebugEnabled())     LOG.debug("HTTP2 Response #{}: unconsumed request content, resetting stream",stream.getId());
+    stream.reset(new ResetFrame(stream.getId(),ErrorCode.CANCEL_STREAM_ERROR.code),Callback.NOOP);
+  }
+  HttpChannelOverHTTP2 channel=(HttpChannelOverHTTP2)stream.getAttribute(IStream.CHANNEL_ATTRIBUTE);
+  channel.consumeInput();
 }

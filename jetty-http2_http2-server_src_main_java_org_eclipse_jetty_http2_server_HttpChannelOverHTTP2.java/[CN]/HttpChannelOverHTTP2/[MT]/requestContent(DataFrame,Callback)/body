@@ -1,4 +1,10 @@
 {
+  Stream stream=getStream();
+  if (stream.isReset()) {
+    consumeInput();
+    callback.succeeded();
+    return null;
+  }
   final ByteBufferPool byteBufferPool=getByteBufferPool();
   ByteBuffer original=frame.getData();
   int length=original.remaining();
@@ -23,7 +29,6 @@
   boolean endStream=frame.isEndStream();
   if (endStream)   handle|=onRequestComplete();
   if (LOG.isDebugEnabled()) {
-    Stream stream=getStream();
     LOG.debug("HTTP2 Request #{}/{}: {} bytes of {} content, handle: {}",stream.getId(),Integer.toHexString(stream.getSession().hashCode()),length,endStream ? "last" : "some",handle);
   }
   boolean delayed=_delayedUntilContent;
