@@ -1,0 +1,36 @@
+{
+  ServletContext context=baseRequest.getServletContext();
+  String path=context == null ? baseRequest.getRequestURI() : URIUtil.addPaths(baseRequest.getServletPath(),baseRequest.getPathInfo());
+  LOG.debug("{} handle {} in {}",this,baseRequest,context);
+  HttpOutput out=baseRequest.getResponse().getHttpOutput();
+  HttpOutput.Interceptor interceptor=out.getInterceptor();
+  while (interceptor != null) {
+    if (interceptor instanceof BufferedInterceptor) {
+      LOG.debug("{} already intercepting {}",this,request);
+      _handler.handle(target,baseRequest,request,response);
+      return;
+    }
+    interceptor=interceptor.getNextInterceptor();
+  }
+  if (!_methods.matches(baseRequest.getMethod())) {
+    LOG.debug("{} excluded by method {}",this,request);
+    _handler.handle(target,baseRequest,request,response);
+    return;
+  }
+  if (!isPathBufferable(path)) {
+    LOG.debug("{} excluded by path {}",this,request);
+    _handler.handle(target,baseRequest,request,response);
+    return;
+  }
+  String mimeType=context == null ? null : context.getMimeType(path);
+  if (mimeType != null) {
+    mimeType=MimeTypes.getContentTypeWithoutCharset(mimeType);
+    if (!isMimeTypeBufferable(mimeType)) {
+      LOG.debug("{} excluded by path suffix mime type {}",this,request);
+      _handler.handle(target,baseRequest,request,response);
+      return;
+    }
+  }
+  out.setInterceptor(new BufferedInterceptor(baseRequest.getHttpChannel(),out.getInterceptor()));
+  if (_handler != null)   _handler.handle(target,baseRequest,request,response);
+}

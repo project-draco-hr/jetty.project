@@ -1,0 +1,21 @@
+{
+  if (_buffers.size() == 1)   getNextInterceptor().write(_buffers.remove(),true,callback);
+ else {
+    IteratingCallback icb=new IteratingCallback(){
+      @Override protected Action process() throws Exception {
+        ByteBuffer buffer=_buffers.poll();
+        if (buffer == null)         return Action.SUCCEEDED;
+        getNextInterceptor().write(buffer,_buffers.isEmpty(),this);
+        return Action.SCHEDULED;
+      }
+      @Override protected void onCompleteSuccess(){
+        callback.succeeded();
+      }
+      @Override protected void onCompleteFailure(      Throwable cause){
+        callback.failed(cause);
+      }
+    }
+;
+    icb.iterate();
+  }
+}

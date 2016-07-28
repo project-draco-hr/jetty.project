@@ -1,5 +1,6 @@
 {
   if (LOG.isDebugEnabled())   LOG.debug(String.format("CtxTbl[%x] encoding",_context.hashCode()));
+  _size=0;
   int pos=buffer.position();
   int maxDynamicTableSize=Math.min(_remoteMaxDynamicTableSize,_localMaxDynamicTableSize);
   if (maxDynamicTableSize != _context.getMaxDynamicTableSize())   encodeMaxDynamicTableSize(buffer,maxDynamicTableSize);
@@ -19,5 +20,9 @@
     encode(buffer,status);
   }
   for (  HttpField field : metadata)   encode(buffer,field);
+  if (_maxHeaderListSize > 0 && _size > _maxHeaderListSize) {
+    LOG.warn("Header list size too large {} > {} for {}",_size,_maxHeaderListSize);
+    if (LOG.isDebugEnabled())     LOG.debug("metadata={}",metadata);
+  }
   if (LOG.isDebugEnabled())   LOG.debug(String.format("CtxTbl[%x] encoded %d octets",_context.hashCode(),buffer.position() - pos));
 }
