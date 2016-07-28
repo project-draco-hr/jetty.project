@@ -1,0 +1,37 @@
+{
+  if (LOG.isDebugEnabled())   LOG.debug("{} write last={} {}",this,last,BufferUtil.toDetailString(content));
+  if (_aggregating == null) {
+    Response response=_channel.getResponse();
+    int sc=response.getStatus();
+    if (sc > 0 && (sc < 200 || sc == 204 || sc == 205 || sc >= 300))     _aggregating=Boolean.FALSE;
+ else {
+      String ct=response.getContentType();
+      if (ct == null)       _aggregating=Boolean.TRUE;
+ else {
+        ct=MimeTypes.getContentTypeWithoutCharset(ct);
+        _aggregating=isMimeTypeBufferable(StringUtil.asciiToLowerCase(ct));
+      }
+    }
+  }
+  if (!_aggregating.booleanValue()) {
+    getNextInterceptor().write(content,last,callback);
+    return;
+  }
+  if (last) {
+    if (BufferUtil.length(content) > 0)     _buffers.add(content);
+    if (LOG.isDebugEnabled())     LOG.debug("{} committing {}",this,_buffers.size());
+    commit(_buffers,callback);
+  }
+ else {
+    if (LOG.isDebugEnabled())     LOG.debug("{} aggregating",this);
+    while (BufferUtil.hasContent(content)) {
+      if (BufferUtil.space(_aggregate) == 0) {
+        int size=Math.max(_channel.getHttpConfiguration().getOutputBufferSize(),BufferUtil.length(content));
+        _aggregate=BufferUtil.allocate(size);
+        _buffers.add(_aggregate);
+      }
+      BufferUtil.append(_aggregate,content);
+    }
+    callback.succeeded();
+  }
+}
