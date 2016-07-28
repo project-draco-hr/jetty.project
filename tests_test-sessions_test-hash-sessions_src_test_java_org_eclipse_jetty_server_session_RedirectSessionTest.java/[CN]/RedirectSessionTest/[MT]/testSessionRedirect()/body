@@ -1,0 +1,23 @@
+{
+  AbstractTestServer testServer=new HashTestServer(0);
+  ServletContextHandler testServletContextHandler=testServer.addContext("/context");
+  testServletContextHandler.addServlet(Servlet1.class,"/one");
+  testServletContextHandler.addServlet(Servlet2.class,"/two");
+  try {
+    testServer.start();
+    int serverPort=testServer.getPort();
+    HttpClient client=new HttpClient();
+    client.setFollowRedirects(true);
+    client.start();
+    try {
+      ContentResponse response=client.GET("http://localhost:" + serverPort + "/context/one");
+      assertEquals(HttpServletResponse.SC_OK,response.getStatus());
+    }
+  finally {
+      client.stop();
+    }
+  }
+  finally {
+    testServer.stop();
+  }
+}
