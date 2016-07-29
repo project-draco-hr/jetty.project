@@ -1,7 +1,7 @@
 {
-  final HttpChannelState state=connection.getRequest().getHttpChannelState();
+  final HttpChannelState state=channel.getRequest().getHttpChannelState();
   final AsyncContextEvent event=state.getAsyncContextEvent();
-  final Request baseRequest=connection.getRequest();
+  final Request baseRequest=channel.getRequest();
   final String path=event.getPath();
   if (path != null) {
     ServletContext context=event.getServletContext();
@@ -14,10 +14,7 @@
   final String target=baseRequest.getPathInfo();
   final HttpServletRequest request=(HttpServletRequest)event.getSuppliedRequest();
   final HttpServletResponse response=(HttpServletResponse)event.getSuppliedResponse();
-  if (LOG.isDebugEnabled()) {
-    LOG.debug(request.getDispatcherType() + " " + request.getMethod()+ " "+ target+ " on "+ connection);
-    handle(target,baseRequest,request,response);
-    LOG.debug("RESPONSE " + target + "  "+ connection.getResponse().getStatus());
-  }
- else   handle(target,baseRequest,request,response);
+  if (LOG.isDebugEnabled())   LOG.debug("{} {} {} on {}",request.getDispatcherType(),request.getMethod(),target,channel);
+  handle(target,baseRequest,request,response);
+  if (LOG.isDebugEnabled())   LOG.debug("handledAsync={} async={} committed={} on {}",channel.getRequest().isHandled(),request.isAsyncStarted(),response.isCommitted(),channel);
 }
