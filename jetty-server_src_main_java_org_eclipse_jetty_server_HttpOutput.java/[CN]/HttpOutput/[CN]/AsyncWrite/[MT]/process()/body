@@ -1,10 +1,10 @@
 {
   if (BufferUtil.hasContent(_aggregate)) {
     _completed=_len == 0;
-    write(_aggregate,_complete && _completed,this);
+    write(_aggregate,_last && _completed,this);
     return Action.SCHEDULED;
   }
-  if (!_complete && _len < BufferUtil.space(_aggregate) && _len < _commitSize) {
+  if (!_last && _len < BufferUtil.space(_aggregate) && _len < _commitSize) {
     int position=BufferUtil.flipToFill(_aggregate);
     BufferUtil.put(_buffer,_aggregate);
     BufferUtil.flipToFlush(_aggregate,position);
@@ -13,7 +13,7 @@
   if (_buffer.hasRemaining()) {
     if (_slice == null) {
       _completed=true;
-      write(_buffer,_complete,this);
+      write(_buffer,_last,this);
       return Action.SCHEDULED;
     }
     int p=_buffer.position();
@@ -23,10 +23,10 @@
     _buffer.position(pl);
     _slice.position(p);
     _completed=!_buffer.hasRemaining();
-    write(_slice,_complete && _completed,this);
+    write(_slice,_last && _completed,this);
     return Action.SCHEDULED;
   }
-  if (_complete && !_completed) {
+  if (_last && !_completed) {
     _completed=true;
     write(BufferUtil.EMPTY_BUFFER,true,this);
     return Action.SCHEDULED;

@@ -1,6 +1,4 @@
 {
-  _written+=len;
-  boolean complete=_channel.getResponse().isAllContentWritten(_written);
   while (true) {
 switch (_state.get()) {
 case OPEN:
@@ -9,17 +7,18 @@ case ASYNC:
     throw new IllegalStateException("isReady() not called");
 case READY:
   if (!_state.compareAndSet(OutputState.READY,OutputState.PENDING))   continue;
-if (!complete && len <= _commitSize) {
-  if (_aggregate == null)   _aggregate=_channel.getByteBufferPool().acquire(getBufferSize(),_interceptor.isOptimizedForDirectBuffers());
-  int filled=BufferUtil.fill(_aggregate,b,off,len);
-  if (filled == len && !BufferUtil.isFull(_aggregate)) {
-    if (!_state.compareAndSet(OutputState.PENDING,OutputState.ASYNC))     throw new IllegalStateException();
-    return;
-  }
-  off+=filled;
-  len-=filled;
+boolean last=isLastContentToWrite(len);
+if (!last && len <= _commitSize) {
+if (_aggregate == null) _aggregate=_channel.getByteBufferPool().acquire(getBufferSize(),_interceptor.isOptimizedForDirectBuffers());
+int filled=BufferUtil.fill(_aggregate,b,off,len);
+if (filled == len && !BufferUtil.isFull(_aggregate)) {
+  if (!_state.compareAndSet(OutputState.PENDING,OutputState.ASYNC))   throw new IllegalStateException();
+  return;
 }
-new AsyncWrite(b,off,len,complete).iterate();
+off+=filled;
+len-=filled;
+}
+new AsyncWrite(b,off,len,last).iterate();
 return;
 case PENDING:
 case UNREADY:
@@ -34,7 +33,8 @@ throw new IllegalStateException();
 break;
 }
 int capacity=getBufferSize();
-if (!complete && len <= _commitSize) {
+boolean last=isLastContentToWrite(len);
+if (!last && len <= _commitSize) {
 if (_aggregate == null) _aggregate=_channel.getByteBufferPool().acquire(capacity,_interceptor.isOptimizedForDirectBuffers());
 int filled=BufferUtil.fill(_aggregate,b,off,len);
 if (filled == len && !BufferUtil.isFull(_aggregate)) return;
@@ -42,8 +42,8 @@ off+=filled;
 len-=filled;
 }
 if (BufferUtil.hasContent(_aggregate)) {
-write(_aggregate,complete && len == 0);
-if (len > 0 && !complete && len <= _commitSize && len <= BufferUtil.space(_aggregate)) {
+write(_aggregate,last && len == 0);
+if (len > 0 && !last && len <= _commitSize && len <= BufferUtil.space(_aggregate)) {
 BufferUtil.append(_aggregate,b,off,len);
 return;
 }
@@ -59,10 +59,10 @@ len-=getBufferSize();
 view.limit(l + Math.min(len,getBufferSize()));
 view.position(l);
 }
-write(view,complete);
+write(view,last);
 }
- else if (complete) {
+ else if (last) {
 write(BufferUtil.EMPTY_BUFFER,true);
 }
-if (complete) closed();
+if (last) closed();
 }
