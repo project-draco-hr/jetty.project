@@ -1,37 +1,65 @@
 {
   HttpFields httpFields=request.getHttpFields();
-  if (getForwardedCipherSuiteHeader() != null) {
-    String cipher_suite=httpFields.get(getForwardedCipherSuiteHeader());
-    if (cipher_suite != null)     request.setAttribute("javax.servlet.request.cipher_suite",cipher_suite);
-  }
-  if (getForwardedSslSessionIdHeader() != null) {
-    String ssl_session_id=httpFields.get(getForwardedSslSessionIdHeader());
-    if (ssl_session_id != null) {
-      request.setAttribute("javax.servlet.request.ssl_session_id",ssl_session_id);
-      request.setScheme(HttpScheme.HTTPS.asString());
+  RFC7239 rfc7230=null;
+  String forwardedHost=null;
+  String forwardedServer=null;
+  String forwardedFor=null;
+  String forwardedProto=null;
+  String forwardedHttps=null;
+  for (  HttpField field : httpFields) {
+    String name=field.getName();
+    if (getForwardedCipherSuiteHeader() != null && httpFields.get(getForwardedCipherSuiteHeader()).equalsIgnoreCase(name))     request.setAttribute("javax.servlet.request.cipher_suite",field.getValue());
+    if (getForwardedSslSessionIdHeader() != null && httpFields.get(getForwardedSslSessionIdHeader()).equalsIgnoreCase(name))     request.setAttribute("javax.servlet.request.ssl_session_id",field.getValue());
+    if (forwardedHost == null && _forwardedHostHeader != null && _forwardedHostHeader.equalsIgnoreCase(name))     forwardedHost=getLeftMost(field.getValue());
+    if (forwardedServer == null && _forwardedServerHeader != null && _forwardedServerHeader.equalsIgnoreCase(name))     forwardedServer=getLeftMost(field.getValue());
+    if (forwardedFor == null && _forwardedForHeader != null && _forwardedForHeader.equalsIgnoreCase(name))     forwardedFor=getLeftMost(field.getValue());
+    if (forwardedProto == null && _forwardedProtoHeader != null && _forwardedProtoHeader.equalsIgnoreCase(name))     forwardedProto=getLeftMost(field.getValue());
+    if (forwardedHttps == null && _forwardedHttpsHeader != null && _forwardedHttpsHeader.equalsIgnoreCase(name))     forwardedHttps=getLeftMost(field.getValue());
+    if (_forwardedHeader != null && _forwardedHeader.equalsIgnoreCase(name)) {
+      if (rfc7230 == null)       rfc7230=new RFC7239();
+      rfc7230.addValue(field.getValue());
     }
   }
-  String forwardedHost=getLeftMostFieldValue(httpFields,getForwardedHostHeader());
-  String forwardedServer=getLeftMostFieldValue(httpFields,getForwardedServerHeader());
-  String forwardedFor=getLeftMostFieldValue(httpFields,getForwardedForHeader());
-  String forwardedProto=getLeftMostFieldValue(httpFields,getForwardedProtoHeader());
-  if (_hostHeader != null) {
-    httpFields.put(_hostHeader);
-    request.setAuthority(_hostHeader.getHost(),_hostHeader.getPort());
+  if (_forcedHost != null) {
+    httpFields.put(_forcedHost);
+    request.setAuthority(_forcedHost.getHost(),_forcedHost.getPort());
+  }
+ else   if (rfc7230 != null && rfc7230._host != null) {
+    HostPortHttpField auth=rfc7230._host;
+    httpFields.put(auth);
+    request.setAuthority(auth.getHost(),auth.getPort());
   }
  else   if (forwardedHost != null) {
     HostPortHttpField auth=new HostPortHttpField(forwardedHost);
     httpFields.put(auth);
     request.setAuthority(auth.getHost(),auth.getPort());
   }
- else   if (forwardedServer != null) {
-    request.setAuthority(forwardedServer,request.getServerPort());
+ else   if (_proxyAsAuthority) {
+    if (rfc7230 != null && rfc7230._by != null) {
+      HostPortHttpField auth=rfc7230._by;
+      httpFields.put(auth);
+      request.setAuthority(auth.getHost(),auth.getPort());
+    }
+ else     if (forwardedServer != null) {
+      request.setAuthority(forwardedServer,request.getServerPort());
+    }
   }
-  if (forwardedFor != null) {
+  if (rfc7230 != null && rfc7230._for != null) {
+    request.setRemoteAddr(InetSocketAddress.createUnresolved(rfc7230._for.getHost(),rfc7230._for.getPort()));
+  }
+ else   if (forwardedFor != null) {
     request.setRemoteAddr(InetSocketAddress.createUnresolved(forwardedFor,request.getRemotePort()));
   }
-  if (forwardedProto != null) {
+  if (rfc7230 != null && rfc7230._proto != null) {
+    request.setScheme(rfc7230._proto);
+    if (rfc7230._proto.equals(config.getSecureScheme()))     request.setSecure(true);
+  }
+ else   if (forwardedProto != null) {
     request.setScheme(forwardedProto);
     if (forwardedProto.equals(config.getSecureScheme()))     request.setSecure(true);
+  }
+ else   if (forwardedHttps != null && ("on".equalsIgnoreCase(forwardedHttps) || "true".equalsIgnoreCase(forwardedHttps))) {
+    request.setScheme(HttpScheme.HTTPS.asString());
+    if (HttpScheme.HTTPS.asString().equals(config.getSecureScheme()))     request.setSecure(true);
   }
 }
