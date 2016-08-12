@@ -1,0 +1,62 @@
+{
+  prepareServer(new HTTP2ServerConnectionFactory(new HttpConfiguration()){
+    @Override protected ServerSessionListener newSessionListener(    Connector connector,    EndPoint endPoint){
+      return new HTTPServerSessionListener(connector,endPoint){
+        @Override public Stream.Listener onNewStream(        Stream stream,        HeadersFrame frame){
+          stream.setIdleTimeout(streamTimeout);
+          return super.onNewStream(stream,frame);
+        }
+      }
+;
+    }
+  }
+);
+  connector.setIdleTimeout(sessionTimeout);
+  ServletContextHandler context=new ServletContextHandler(server,"/");
+  long timeout=Math.min(sessionTimeout,streamTimeout);
+  CountDownLatch errorLatch=new CountDownLatch(1);
+  context.addServlet(new ServletHolder(new HttpServlet(){
+    @Override protected void service(    HttpServletRequest request,    HttpServletResponse response) throws ServletException, IOException {
+      AsyncContext asyncContext=(AsyncContext)request.getAttribute(AsyncContext.class.getName());
+      if (asyncContext == null) {
+        AsyncContext context=request.startAsync();
+        context.setTimeout(2 * timeout);
+        request.setAttribute(AsyncContext.class.getName(),context);
+        context.addListener(new AsyncListener(){
+          @Override public void onComplete(          AsyncEvent event) throws IOException {
+          }
+          @Override public void onTimeout(          AsyncEvent event) throws IOException {
+            event.getAsyncContext().complete();
+          }
+          @Override public void onError(          AsyncEvent event) throws IOException {
+            errorLatch.countDown();
+          }
+          @Override public void onStartAsync(          AsyncEvent event) throws IOException {
+          }
+        }
+);
+      }
+ else {
+        throw new ServletException();
+      }
+    }
+  }
+),servletPath + "/*");
+  server.start();
+  prepareClient();
+  client.start();
+  Session session=newClient(new Session.Listener.Adapter());
+  HttpFields fields=new HttpFields();
+  MetaData.Request metaData=newRequest("GET",fields);
+  HeadersFrame frame=new HeadersFrame(metaData,null,true);
+  CountDownLatch clientLatch=new CountDownLatch(1);
+  session.newStream(frame,new Promise.Adapter<>(),new Stream.Listener.Adapter(){
+    @Override public void onHeaders(    Stream stream,    HeadersFrame frame){
+      MetaData.Response response=(MetaData.Response)frame.getMetaData();
+      if (response.getStatus() == HttpStatus.OK_200 && frame.isEndStream())       clientLatch.countDown();
+    }
+  }
+);
+  Assert.assertFalse(errorLatch.await(2 * timeout,TimeUnit.MILLISECONDS));
+  Assert.assertTrue(clientLatch.await(2 * timeout,TimeUnit.MILLISECONDS));
+}
