@@ -8,8 +8,20 @@
   String forwardedHttps=null;
   for (  HttpField field : httpFields) {
     String name=field.getName();
-    if (getForwardedCipherSuiteHeader() != null && httpFields.get(getForwardedCipherSuiteHeader()).equalsIgnoreCase(name))     request.setAttribute("javax.servlet.request.cipher_suite",field.getValue());
-    if (getForwardedSslSessionIdHeader() != null && httpFields.get(getForwardedSslSessionIdHeader()).equalsIgnoreCase(name))     request.setAttribute("javax.servlet.request.ssl_session_id",field.getValue());
+    if (getForwardedCipherSuiteHeader() != null && getForwardedCipherSuiteHeader().equalsIgnoreCase(name)) {
+      request.setAttribute("javax.servlet.request.cipher_suite",field.getValue());
+      if (isSslIsSecure()) {
+        request.setSecure(true);
+        request.setScheme(config.getSecureScheme());
+      }
+    }
+    if (getForwardedSslSessionIdHeader() != null && getForwardedSslSessionIdHeader().equalsIgnoreCase(name)) {
+      request.setAttribute("javax.servlet.request.ssl_session_id",field.getValue());
+      if (isSslIsSecure()) {
+        request.setSecure(true);
+        request.setScheme(config.getSecureScheme());
+      }
+    }
     if (forwardedHost == null && _forwardedHostHeader != null && _forwardedHostHeader.equalsIgnoreCase(name))     forwardedHost=getLeftMost(field.getValue());
     if (forwardedServer == null && _forwardedServerHeader != null && _forwardedServerHeader.equalsIgnoreCase(name))     forwardedServer=getLeftMost(field.getValue());
     if (forwardedFor == null && _forwardedForHeader != null && _forwardedForHeader.equalsIgnoreCase(name))     forwardedFor=getLeftMost(field.getValue());
