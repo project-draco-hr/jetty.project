@@ -1,6 +1,15 @@
 {
 synchronized (_inputQ) {
-    if (_blockingTimeoutAt >= 0 && !isAsync())     _blockingTimeoutAt=System.currentTimeMillis() + getHttpChannelState().getHttpChannel().getHttpConfiguration().getBlockingTimeout();
+    long now=System.currentTimeMillis();
+    if (_blockingTimeoutAt >= 0 && !isAsync())     _blockingTimeoutAt=now + getHttpChannelState().getHttpChannel().getHttpConfiguration().getBlockingTimeout();
+    int minRequestDataRate=_channelState.getHttpChannel().getHttpConfiguration().getMinRequestDataRate();
+    if (minRequestDataRate > 0) {
+      long period=now - _channelState.getHttpChannel().getRequest().getTimeStamp();
+      if (period >= 1000) {
+        long data_rate=_contentArrived / (now - _channelState.getHttpChannel().getRequest().getTimeStamp());
+        if (data_rate < minRequestDataRate)         throw new IOException(String.format("Request Data rate %d < %d B/s",data_rate,minRequestDataRate));
+      }
+    }
     while (true) {
       Content item=nextContent();
       if (item != null) {
