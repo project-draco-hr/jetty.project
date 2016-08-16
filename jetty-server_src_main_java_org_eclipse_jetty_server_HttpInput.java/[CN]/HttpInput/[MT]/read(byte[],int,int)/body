@@ -3,10 +3,10 @@ synchronized (_inputQ) {
     long now=System.currentTimeMillis();
     if (_blockingTimeoutAt >= 0 && !isAsync())     _blockingTimeoutAt=now + getHttpChannelState().getHttpChannel().getHttpConfiguration().getBlockingTimeout();
     int minRequestDataRate=_channelState.getHttpChannel().getHttpConfiguration().getMinRequestDataRate();
-    if (minRequestDataRate > 0) {
-      long period=now - _channelState.getHttpChannel().getRequest().getTimeStamp();
+    if (minRequestDataRate > 0 && _firstByteTimeStamp != -1) {
+      long period=now - _firstByteTimeStamp;
       if (period >= 1000) {
-        double data_rate=_contentArrived / (0.001 * (now - _channelState.getHttpChannel().getRequest().getTimeStamp()));
+        double data_rate=_contentArrived / (0.001 * period);
         if (data_rate < minRequestDataRate)         throw new BadMessageException(HttpStatus.REQUEST_TIMEOUT_408,String.format("Request Data rate %f < %d B/s",data_rate,minRequestDataRate));
       }
     }
