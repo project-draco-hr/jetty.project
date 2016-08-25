@@ -1,6 +1,6 @@
 {
   HttpFields httpFields=request.getHttpFields();
-  RFC7239 rfc7230=null;
+  RFC7239 rfc7239=null;
   String forwardedHost=null;
   String forwardedServer=null;
   String forwardedFor=null;
@@ -28,16 +28,16 @@
     if (forwardedProto == null && _forwardedProtoHeader != null && _forwardedProtoHeader.equalsIgnoreCase(name))     forwardedProto=getLeftMost(field.getValue());
     if (forwardedHttps == null && _forwardedHttpsHeader != null && _forwardedHttpsHeader.equalsIgnoreCase(name))     forwardedHttps=getLeftMost(field.getValue());
     if (_forwardedHeader != null && _forwardedHeader.equalsIgnoreCase(name)) {
-      if (rfc7230 == null)       rfc7230=new RFC7239();
-      rfc7230.addValue(field.getValue());
+      if (rfc7239 == null)       rfc7239=new RFC7239();
+      rfc7239.addValue(field.getValue());
     }
   }
   if (_forcedHost != null) {
     httpFields.put(_forcedHost);
     request.setAuthority(_forcedHost.getHost(),_forcedHost.getPort());
   }
- else   if (rfc7230 != null && rfc7230._host != null) {
-    HostPortHttpField auth=rfc7230._host;
+ else   if (rfc7239 != null && rfc7239._host != null) {
+    HostPortHttpField auth=rfc7239._host;
     httpFields.put(auth);
     request.setAuthority(auth.getHost(),auth.getPort());
   }
@@ -47,8 +47,8 @@
     request.setAuthority(auth.getHost(),auth.getPort());
   }
  else   if (_proxyAsAuthority) {
-    if (rfc7230 != null && rfc7230._by != null) {
-      HostPortHttpField auth=rfc7230._by;
+    if (rfc7239 != null && rfc7239._by != null) {
+      HostPortHttpField auth=rfc7239._by;
       httpFields.put(auth);
       request.setAuthority(auth.getHost(),auth.getPort());
     }
@@ -56,15 +56,15 @@
       request.setAuthority(forwardedServer,request.getServerPort());
     }
   }
-  if (rfc7230 != null && rfc7230._for != null) {
-    request.setRemoteAddr(InetSocketAddress.createUnresolved(rfc7230._for.getHost(),rfc7230._for.getPort()));
+  if (rfc7239 != null && rfc7239._for != null) {
+    request.setRemoteAddr(InetSocketAddress.createUnresolved(rfc7239._for.getHost(),rfc7239._for.getPort()));
   }
  else   if (forwardedFor != null) {
     request.setRemoteAddr(InetSocketAddress.createUnresolved(forwardedFor,request.getRemotePort()));
   }
-  if (rfc7230 != null && rfc7230._proto != null) {
-    request.setScheme(rfc7230._proto);
-    if (rfc7230._proto.equals(config.getSecureScheme()))     request.setSecure(true);
+  if (rfc7239 != null && rfc7239._proto != null) {
+    request.setScheme(rfc7239._proto);
+    if (rfc7239._proto.equals(config.getSecureScheme()))     request.setSecure(true);
   }
  else   if (forwardedProto != null) {
     request.setScheme(forwardedProto);
