@@ -1,7 +1,12 @@
 {
 synchronized (_inputQ) {
-    if (_blockingTimeoutAt >= 0 && !isAsync())     _blockingTimeoutAt=System.currentTimeMillis() + getHttpChannelState().getHttpChannel().getHttpConfiguration().getBlockingTimeout();
-    int minRequestDataRate=_channelState.getHttpChannel().getHttpConfiguration().getMinRequestDataRate();
+    if (!isAsync()) {
+      if (_blockUntil == 0) {
+        long blockingTimeout=getBlockingTimeout();
+        if (blockingTimeout > 0)         _blockUntil=System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(blockingTimeout);
+      }
+    }
+    long minRequestDataRate=_channelState.getHttpChannel().getHttpConfiguration().getMinRequestDataRate();
     if (minRequestDataRate > 0 && _firstByteTimeStamp != -1) {
       long period=System.nanoTime() - _firstByteTimeStamp;
       if (period > 0) {

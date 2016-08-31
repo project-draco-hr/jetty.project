@@ -3,11 +3,16 @@
   if (info != null) {
     if (commit.compareAndSet(false,true)) {
       if (hasContent) {
-        commit(info,false,commitCallback);
-        send(content,lastContent,callback);
+        Callback commitCallback=new Callback.Nested(callback){
+          @Override public void succeeded(){
+            if (transportCallback.start(callback,false))             send(content,lastContent,transportCallback);
+          }
+        }
+;
+        if (transportCallback.start(commitCallback,true))         commit(info,false,transportCallback);
       }
  else {
-        commit(info,lastContent,callback);
+        if (transportCallback.start(callback,false))         commit(info,lastContent,transportCallback);
       }
     }
  else {
@@ -16,7 +21,7 @@
   }
  else {
     if (hasContent || lastContent) {
-      send(content,lastContent,callback);
+      if (transportCallback.start(callback,false))       send(content,lastContent,transportCallback);
     }
  else {
       callback.succeeded();

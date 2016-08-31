@@ -3,14 +3,13 @@
 switch (transport) {
 case HTTP:
 {
-      result.add(new HttpConnectionFactory(new HttpConfiguration()));
+      result.add(new HttpConnectionFactory(httpConfig));
       break;
     }
 case HTTPS:
 {
-    HttpConfiguration configuration=new HttpConfiguration();
-    configuration.addCustomizer(new SecureRequestCustomizer());
-    HttpConnectionFactory http=new HttpConnectionFactory(configuration);
+    httpConfig.addCustomizer(new SecureRequestCustomizer());
+    HttpConnectionFactory http=new HttpConnectionFactory(httpConfig);
     SslConnectionFactory ssl=new SslConnectionFactory(sslContextFactory,http.getProtocol());
     result.add(ssl);
     result.add(http);
@@ -18,14 +17,13 @@ case HTTPS:
   }
 case H2C:
 {
-  result.add(new HTTP2CServerConnectionFactory(new HttpConfiguration()));
+  result.add(new HTTP2CServerConnectionFactory(httpConfig));
   break;
 }
 case H2:
 {
-HttpConfiguration configuration=new HttpConfiguration();
-configuration.addCustomizer(new SecureRequestCustomizer());
-HTTP2ServerConnectionFactory h2=new HTTP2ServerConnectionFactory(configuration);
+httpConfig.addCustomizer(new SecureRequestCustomizer());
+HTTP2ServerConnectionFactory h2=new HTTP2ServerConnectionFactory(httpConfig);
 ALPNServerConnectionFactory alpn=new ALPNServerConnectionFactory("h2");
 SslConnectionFactory ssl=new SslConnectionFactory(sslContextFactory,alpn.getProtocol());
 result.add(ssl);
@@ -35,7 +33,7 @@ break;
 }
 case FCGI:
 {
-result.add(new ServerFCGIConnectionFactory(new HttpConfiguration()));
+result.add(new ServerFCGIConnectionFactory(httpConfig));
 break;
 }
 default :
