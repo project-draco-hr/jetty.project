@@ -1,11 +1,7 @@
 {
-  int rmiPort=1099;
-  String rmiHost=hostPath;
-  int idx=hostPath.indexOf(':');
-  if (idx > 0) {
-    rmiPort=Integer.parseInt(hostPath.substring(idx + 1));
-    rmiHost=hostPath.substring(0,idx);
-  }
+  HostPort hostPort=new HostPort(hostPath);
+  String rmiHost=hostPort.getHost();
+  int rmiPort=hostPort.getPort(1099);
   InetAddress hostAddress=InetAddress.getByName(rmiHost);
   if (hostAddress.isLoopbackAddress()) {
     if (rmiPort == 0) {
@@ -24,7 +20,7 @@
     }
     _registry=LocateRegistry.createRegistry(rmiPort);
     Thread.sleep(1000);
-    rmiHost=InetAddress.getLocalHost().getCanonicalHostName();
+    rmiHost=HostPort.normalizeHost(InetAddress.getLocalHost().getCanonicalHostName());
     return rmiHost + ':' + Integer.toString(rmiPort);
   }
   return null;
