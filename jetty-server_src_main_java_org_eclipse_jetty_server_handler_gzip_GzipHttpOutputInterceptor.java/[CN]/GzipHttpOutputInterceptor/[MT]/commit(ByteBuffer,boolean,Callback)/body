@@ -25,7 +25,8 @@
       return;
     }
   }
-  String ce=response.getHeader("Content-Encoding");
+  HttpFields fields=response.getHttpFields();
+  String ce=fields.get(HttpHeader.CONTENT_ENCODING);
   if (ce != null) {
     LOG.debug("{} exclude by content-encoding {}",this,ce);
     noCompression();
@@ -33,8 +34,10 @@
     return;
   }
   if (_state.compareAndSet(GZState.MIGHT_COMPRESS,GZState.COMMITTING)) {
-    HttpFields fields=response.getHttpFields();
-    if (_vary != null)     fields.add(_vary);
+    if (_vary != null) {
+      if (fields.contains(HttpHeader.VARY))       fields.addCSV(HttpHeader.VARY,_vary.getValues());
+ else       fields.add(_vary);
+    }
     long content_length=response.getContentLength();
     if (content_length < 0 && complete)     content_length=content.remaining();
     _deflater=_factory.getDeflater(_channel.getRequest(),content_length);
