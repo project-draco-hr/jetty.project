@@ -6,7 +6,9 @@
   HTTP2ServerSession session=new HTTP2ServerSession(connector.getScheduler(),endPoint,generator,listener,flowControl);
   session.setMaxLocalStreams(getMaxConcurrentStreams());
   session.setMaxRemoteStreams(getMaxConcurrentStreams());
-  session.setStreamIdleTimeout(endPoint.getIdleTimeout());
+  long streamIdleTimeout=getStreamIdleTimeout();
+  if (streamIdleTimeout <= 0)   streamIdleTimeout=endPoint.getIdleTimeout();
+  session.setStreamIdleTimeout(streamIdleTimeout);
   session.setInitialSessionRecvWindow(getInitialSessionRecvWindow());
   ServerParser parser=newServerParser(connector,session);
   HTTP2Connection connection=new HTTP2ServerConnection(connector.getByteBufferPool(),connector.getExecutor(),endPoint,httpConfiguration,parser,session,getInputBufferSize(),getExecutionStrategyFactory(),listener);

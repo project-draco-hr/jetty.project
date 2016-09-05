@@ -1,10 +1,13 @@
 {
-  _lock.lock();
   long idle=getIdleTimeout();
+  _lock.lock();
   try {
     while (_state == null) {
-      if (idle > 0 && (idle < Long.MAX_VALUE / 2)) {
-        if (!_complete.await(idle + idle / 2,TimeUnit.MILLISECONDS))         _state=new BlockerTimeoutException();
+      if (idle > 0) {
+        long excess=Math.min(idle / 2,1000);
+        if (!_complete.await(idle + excess,TimeUnit.MILLISECONDS)) {
+          _state=new BlockerTimeoutException();
+        }
       }
  else {
         _complete.await();
