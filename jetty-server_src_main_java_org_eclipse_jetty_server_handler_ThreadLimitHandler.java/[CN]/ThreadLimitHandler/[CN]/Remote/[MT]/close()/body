@@ -1,0 +1,13 @@
+{
+  try (Locker.Lock lock=_locker.lock()){
+    _permits--;
+    while (true) {
+      CompletableFuture<Closeable> permit=_queue.pollFirst();
+      if (permit == null)       break;
+      if (permit.complete(this)) {
+        _permits++;
+        break;
+      }
+    }
+  }
+ }
