@@ -1,0 +1,31 @@
+{
+  Assume.assumeThat(transport,Matchers.isOneOf(Transport.H2C,Transport.H2));
+  start(new AbstractHandler(){
+    @Override public void handle(    String target,    Request baseRequest,    HttpServletRequest request,    HttpServletResponse response) throws IOException, ServletException {
+      baseRequest.setHandled(true);
+      IO.copy(request.getInputStream(),response.getOutputStream());
+    }
+  }
+);
+  ConnectionStatistics serverStats=new ConnectionStatistics();
+  connector.addBean(serverStats);
+  serverStats.start();
+  ConnectionStatistics clientStats=new ConnectionStatistics();
+  client.addBean(clientStats);
+  clientStats.start();
+  byte[] content=new byte[3072];
+  long contentLength=content.length;
+  ContentResponse response=client.newRequest(newURI()).content(new BytesContentProvider(content)).timeout(5,TimeUnit.SECONDS).send();
+  Assert.assertThat(response.getStatus(),Matchers.equalTo(HttpStatus.OK_200));
+  stop();
+  Assert.assertThat(serverStats.getConnectionsMax(),Matchers.greaterThan(0L));
+  Assert.assertThat(serverStats.getReceivedBytes(),Matchers.greaterThan(contentLength));
+  Assert.assertThat(serverStats.getSentBytes(),Matchers.greaterThan(contentLength));
+  Assert.assertThat(serverStats.getReceivedMessages(),Matchers.greaterThan(0L));
+  Assert.assertThat(serverStats.getSentMessages(),Matchers.greaterThan(0L));
+  Assert.assertThat(clientStats.getConnectionsMax(),Matchers.greaterThan(0L));
+  Assert.assertThat(clientStats.getReceivedBytes(),Matchers.greaterThan(contentLength));
+  Assert.assertThat(clientStats.getSentBytes(),Matchers.greaterThan(contentLength));
+  Assert.assertThat(clientStats.getReceivedMessages(),Matchers.greaterThan(0L));
+  Assert.assertThat(clientStats.getSentMessages(),Matchers.greaterThan(0L));
+}

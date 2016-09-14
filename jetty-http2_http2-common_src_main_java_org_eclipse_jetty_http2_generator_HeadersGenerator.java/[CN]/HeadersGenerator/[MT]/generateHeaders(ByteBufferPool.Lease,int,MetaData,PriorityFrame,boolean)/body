@@ -18,6 +18,7 @@
     lease.append(header,true);
     hpacked.limit(maxHeaderBlockFragment);
     lease.append(hpacked.slice(),false);
+    int totalLength=Frame.HEADER_LENGTH + length;
     int position=maxHeaderBlockFragment;
     int limit=position + maxHeaderBlockFragment;
     while (limit < hpackedLength) {
@@ -28,12 +29,15 @@
       lease.append(hpacked.slice(),false);
       position+=maxHeaderBlockFragment;
       limit+=maxHeaderBlockFragment;
+      totalLength+=Frame.HEADER_LENGTH + maxHeaderBlockFragment;
     }
     hpacked.position(position).limit(hpackedLength);
     header=generateHeader(lease,FrameType.CONTINUATION,hpacked.remaining(),Flags.END_HEADERS,streamId);
     BufferUtil.flipToFlush(header,0);
     lease.append(header,true);
     lease.append(hpacked,true);
+    totalLength+=Frame.HEADER_LENGTH + hpacked.remaining();
+    return totalLength;
   }
  else {
     flags|=Flags.END_HEADERS;
@@ -45,5 +49,6 @@
     BufferUtil.flipToFlush(header,0);
     lease.append(header,true);
     lease.append(hpacked,true);
+    return Frame.HEADER_LENGTH + length;
   }
 }
