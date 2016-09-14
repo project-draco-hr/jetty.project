@@ -1,18 +1,10 @@
 {
-  String host="google.com";
-  try {
-    Assume.assumeTrue(InetAddress.getAllByName(host).length > 1);
-  }
- catch (  Throwable x) {
-    Assume.assumeNoException(x);
-  }
-  startClient();
-  client.setFollowRedirects(false);
+  start(new EmptyServerHandler());
   client.setSocketAddressResolver(new SocketAddressResolver.Async(client.getExecutor(),client.getScheduler(),client.getConnectTimeout()){
     @Override public void resolve(    String host,    int port,    Promise<List<InetSocketAddress>> promise){
       super.resolve(host,port,new Promise<List<InetSocketAddress>>(){
         @Override public void succeeded(        List<InetSocketAddress> result){
-          result.add(0,new InetSocketAddress("idontexist",80));
+          result.add(0,new InetSocketAddress("idontexist",port));
           promise.succeeded(result);
         }
         @Override public void failed(        Throwable x){
@@ -23,5 +15,5 @@
     }
   }
 );
-  client.newRequest(host,80).header(HttpHeader.CONNECTION,"close").send();
+  client.newRequest("localhost",connector.getLocalPort()).scheme(scheme).header(HttpHeader.CONNECTION,"close").send();
 }
