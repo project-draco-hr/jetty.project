@@ -12,13 +12,15 @@
     _deleteId=_sessionIdTableSchema.getDeleteStatementAsString();
     _queryId=_sessionIdTableSchema.getSelectStatementAsString();
     String tableName=_dbAdaptor.convertIdentifier(_sessionIdTableSchema.getTableName());
-    try (ResultSet result=metaData.getTables(null,null,tableName,null)){
+    String schemaName=_sessionIdTableSchema.getSchemaName() != null ? _dbAdaptor.convertIdentifier(_sessionIdTableSchema.getSchemaName()) : null;
+    try (ResultSet result=metaData.getTables(null,schemaName,tableName,null)){
       if (!result.next()) {
         statement.executeUpdate(_createSessionIdTable);
       }
     }
      tableName=_dbAdaptor.convertIdentifier(_sessionTableSchema.getTableName());
-    try (ResultSet result=metaData.getTables(null,null,tableName,null)){
+    schemaName=_sessionTableSchema.getSchemaName() != null ? _dbAdaptor.convertIdentifier(_sessionTableSchema.getSchemaName()) : null;
+    try (ResultSet result=metaData.getTables(null,schemaName,tableName,null)){
       if (!result.next()) {
         _createSessionTable=_sessionTableSchema.getCreateStatementAsString();
         statement.executeUpdate(_createSessionTable);
@@ -26,7 +28,7 @@
  else {
         ResultSet colResult=null;
         try {
-          colResult=metaData.getColumns(null,null,_dbAdaptor.convertIdentifier(_sessionTableSchema.getTableName()),_dbAdaptor.convertIdentifier(_sessionTableSchema.getMaxIntervalColumn()));
+          colResult=metaData.getColumns(null,schemaName,tableName,_dbAdaptor.convertIdentifier(_sessionTableSchema.getMaxIntervalColumn()));
         }
  catch (        SQLException s) {
           LOG.warn("Problem checking if " + _sessionTableSchema.getTableName() + " table contains "+ _sessionTableSchema.getMaxIntervalColumn()+ " column. Ensure table contains column definition: \""+ _sessionTableSchema.getMaxIntervalColumn()+ " long not null default -999\"");
@@ -52,7 +54,7 @@
     String index2="idx_" + _sessionTableSchema.getTableName() + "_session";
     boolean index1Exists=false;
     boolean index2Exists=false;
-    try (ResultSet result=metaData.getIndexInfo(null,null,tableName,false,false)){
+    try (ResultSet result=metaData.getIndexInfo(null,schemaName,tableName,false,true)){
       while (result.next()) {
         String idxName=result.getString("INDEX_NAME");
         if (index1.equalsIgnoreCase(idxName))         index1Exists=true;
