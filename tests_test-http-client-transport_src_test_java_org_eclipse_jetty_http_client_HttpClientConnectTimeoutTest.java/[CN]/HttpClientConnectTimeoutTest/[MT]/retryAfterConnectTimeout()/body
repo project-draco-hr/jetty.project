@@ -1,27 +1,2 @@
 {
-  final String host="10.255.255.1";
-  final int port=80;
-  int connectTimeout=1000;
-  assumeConnectTimeout(host,port,connectTimeout);
-  start(null);
-  client.stop();
-  client.setConnectTimeout(connectTimeout);
-  client.start();
-  final CountDownLatch latch=new CountDownLatch(1);
-  Request request=client.newRequest(host,port);
-  request.send(new Response.CompleteListener(){
-    @Override public void onComplete(    Result result){
-      if (result.isFailed()) {
-        client.newRequest(host,port).send(new Response.CompleteListener(){
-          @Override public void onComplete(          Result result){
-            if (result.isFailed())             latch.countDown();
-          }
-        }
-);
-      }
-    }
-  }
-);
-  Assert.assertTrue(latch.await(3 * connectTimeout,TimeUnit.MILLISECONDS));
-  Assert.assertNotNull(request.getAbortCause());
 }
