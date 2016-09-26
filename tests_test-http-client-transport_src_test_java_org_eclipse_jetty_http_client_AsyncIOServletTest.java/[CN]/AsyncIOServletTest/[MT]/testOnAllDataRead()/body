@@ -1,15 +1,13 @@
 {
-  String text="X";
-  byte[] data=text.getBytes(StandardCharsets.ISO_8859_1);
   String success="SUCCESS";
   start(new HttpServlet(){
-    @Override protected void service(    HttpServletRequest request,    final HttpServletResponse response) throws ServletException, IOException {
+    @Override protected void service(    HttpServletRequest request,    HttpServletResponse response) throws ServletException, IOException {
       assertScope();
       response.flushBuffer();
-      final AsyncContext async=request.startAsync();
+      AsyncContext async=request.startAsync();
       async.setTimeout(5000);
-      final ServletInputStream in=request.getInputStream();
-      final ServletOutputStream out=response.getOutputStream();
+      ServletInputStream in=request.getInputStream();
+      ServletOutputStream out=response.getOutputStream();
       in.setReadListener(new ReadListener(){
         @Override public void onDataAvailable() throws IOException {
           assertScope();
@@ -26,7 +24,7 @@
         }
         @Override public void onAllDataRead() throws IOException {
           assertScope();
-          out.write(success.getBytes(StandardCharsets.ISO_8859_1));
+          out.write(success.getBytes(StandardCharsets.UTF_8));
           async.complete();
         }
         @Override public void onError(        Throwable t){
@@ -39,6 +37,7 @@
     }
   }
 );
+  byte[] data="X".getBytes(StandardCharsets.UTF_8);
   CountDownLatch clientLatch=new CountDownLatch(1);
   DeferredContentProvider content=new DeferredContentProvider(){
     @Override public long getLength(){
