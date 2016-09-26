@@ -1,10 +1,9 @@
 {
-  ContentTransformer transformer=(ContentTransformer)clientRequest.getAttribute(CLIENT_TRANSFORMER);
+  ContentTransformer transformer=(ContentTransformer)clientRequest.getAttribute(CLIENT_TRANSFORMER_ATTRIBUTE);
   if (transformer == null) {
     transformer=newClientRequestContentTransformer(clientRequest,proxyRequest);
-    clientRequest.setAttribute(CLIENT_TRANSFORMER,transformer);
+    clientRequest.setAttribute(CLIENT_TRANSFORMER_ATTRIBUTE,transformer);
   }
-  boolean committed=clientRequest.getAttribute(PROXY_REQUEST_COMMITTED) != null;
   int contentBytes=content.remaining();
   if (contentBytes == 0 && !finished) {
     callback.succeeded();
@@ -24,10 +23,13 @@
   }
   if (finished)   provider.close();
   if (_log.isDebugEnabled())   _log.debug("{} upstream content transformation {} -> {} bytes",getRequestId(clientRequest),contentBytes,newContentBytes);
-  if (!committed && (size > 0 || finished)) {
-    proxyRequest.header(HttpHeader.CONTENT_LENGTH,null);
-    clientRequest.setAttribute(PROXY_REQUEST_COMMITTED,true);
-    sendProxyRequest(clientRequest,proxyResponse,proxyRequest);
+  boolean contentCommitted=clientRequest.getAttribute(PROXY_REQUEST_CONTENT_COMMITTED_ATTRIBUTE) != null;
+  if (!contentCommitted && (size > 0 || finished)) {
+    clientRequest.setAttribute(PROXY_REQUEST_CONTENT_COMMITTED_ATTRIBUTE,true);
+    if (!expects100Continue) {
+      proxyRequest.header(HttpHeader.CONTENT_LENGTH,null);
+      sendProxyRequest(clientRequest,proxyResponse,proxyRequest);
+    }
   }
   if (size == 0)   callback.succeeded();
 }
