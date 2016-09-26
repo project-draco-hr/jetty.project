@@ -1,0 +1,60 @@
+{
+  Queue<Throwable> errors=new ConcurrentLinkedQueue<>();
+  CountDownLatch writeLatch=new CountDownLatch(1);
+  start(new HttpServlet(){
+    @Override protected void service(    HttpServletRequest request,    HttpServletResponse response) throws ServletException, IOException {
+      AsyncContext asyncContext=request.startAsync();
+      request.getInputStream().setReadListener(new ReadListener(){
+        @Override public void onDataAvailable() throws IOException {
+          ServletInputStream input=request.getInputStream();
+          ServletOutputStream output=response.getOutputStream();
+          while (input.isReady()) {
+            byte[] buffer=new byte[512];
+            int read=input.read(buffer);
+            if (read < 0) {
+              asyncContext.complete();
+              break;
+            }
+            if (output.isReady())             output.write(buffer,0,read);
+ else             Assert.fail();
+          }
+        }
+        @Override public void onAllDataRead() throws IOException {
+        }
+        @Override public void onError(        Throwable t){
+          errors.offer(t);
+        }
+      }
+);
+      response.getOutputStream().setWriteListener(new WriteListener(){
+        @Override public void onWritePossible() throws IOException {
+          writeLatch.countDown();
+        }
+        @Override public void onError(        Throwable t){
+          errors.offer(t);
+        }
+      }
+);
+    }
+  }
+);
+  String content="0123456789ABCDEF";
+  DeferredContentProvider contentProvider=new DeferredContentProvider();
+  contentProvider.offer(ByteBuffer.wrap(content.getBytes(StandardCharsets.UTF_8)));
+  CountDownLatch clientLatch=new CountDownLatch(1);
+  client.newRequest(newURI()).method(HttpMethod.POST).path(servletPath).content(contentProvider).send(new BufferingResponseListener(){
+    @Override public void onComplete(    Result result){
+      if (result.isSucceeded()) {
+        Response response=result.getResponse();
+        assertThat(response.getStatus(),Matchers.equalTo(HttpStatus.OK_200));
+        assertThat(getContentAsString(),Matchers.equalTo(content));
+        assertThat(errors,Matchers.hasSize(0));
+        clientLatch.countDown();
+      }
+    }
+  }
+);
+  assertTrue(writeLatch.await(5,TimeUnit.SECONDS));
+  contentProvider.close();
+  assertTrue(clientLatch.await(5,TimeUnit.SECONDS));
+}

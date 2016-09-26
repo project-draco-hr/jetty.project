@@ -1,0 +1,63 @@
+{
+  String text="X";
+  byte[] data=text.getBytes(StandardCharsets.ISO_8859_1);
+  String success="SUCCESS";
+  start(new HttpServlet(){
+    @Override protected void service(    HttpServletRequest request,    final HttpServletResponse response) throws ServletException, IOException {
+      assertScope();
+      response.flushBuffer();
+      final AsyncContext async=request.startAsync();
+      async.setTimeout(5000);
+      final ServletInputStream in=request.getInputStream();
+      final ServletOutputStream out=response.getOutputStream();
+      in.setReadListener(new ReadListener(){
+        @Override public void onDataAvailable() throws IOException {
+          assertScope();
+          try {
+            sleep(1000);
+            if (!in.isReady())             throw new IllegalStateException();
+            if (in.read() != 'X')             throw new IllegalStateException();
+            if (!in.isReady())             throw new IllegalStateException();
+            if (in.read() != -1)             throw new IllegalStateException();
+          }
+ catch (          IOException x) {
+            throw new UncheckedIOException(x);
+          }
+        }
+        @Override public void onAllDataRead() throws IOException {
+          assertScope();
+          out.write(success.getBytes(StandardCharsets.ISO_8859_1));
+          async.complete();
+        }
+        @Override public void onError(        Throwable t){
+          assertScope();
+          t.printStackTrace();
+          async.complete();
+        }
+      }
+);
+    }
+  }
+);
+  CountDownLatch clientLatch=new CountDownLatch(1);
+  DeferredContentProvider content=new DeferredContentProvider(){
+    @Override public long getLength(){
+      return data.length;
+    }
+  }
+;
+  client.newRequest(newURI()).method(HttpMethod.POST).path(servletPath).content(content).timeout(5,TimeUnit.SECONDS).send(new BufferingResponseListener(){
+    @Override public void onComplete(    Result result){
+      if (result.isSucceeded()) {
+        Response response=result.getResponse();
+        String content=getContentAsString();
+        if (response.getStatus() == HttpStatus.OK_200 && success.equals(content))         clientLatch.countDown();
+      }
+    }
+  }
+);
+  sleep(100);
+  content.offer(ByteBuffer.wrap(data));
+  content.close();
+  assertTrue(clientLatch.await(5,TimeUnit.SECONDS));
+}

@@ -1,0 +1,43 @@
+{
+  String text="XYZ";
+  byte[] data=text.getBytes(StandardCharsets.ISO_8859_1);
+  String success="SUCCESS";
+  AtomicBoolean allDataRead=new AtomicBoolean(false);
+  start(new HttpServlet(){
+    @Override protected void service(    HttpServletRequest request,    final HttpServletResponse response) throws ServletException, IOException {
+      assertScope();
+      response.flushBuffer();
+      AsyncContext async=request.startAsync();
+      ServletInputStream input=request.getInputStream();
+      ServletOutputStream output=response.getOutputStream();
+      input.setReadListener(new ReadListener(){
+        @Override public void onDataAvailable() throws IOException {
+          assertScope();
+          while (input.isReady()) {
+            int b=input.read();
+            if (b < 0) {
+              output.write(success.getBytes(StandardCharsets.ISO_8859_1));
+              async.complete();
+              return;
+            }
+          }
+        }
+        @Override public void onAllDataRead() throws IOException {
+          assertScope();
+          output.write("FAILURE".getBytes(StandardCharsets.ISO_8859_1));
+          allDataRead.set(true);
+          throw new IllegalStateException();
+        }
+        @Override public void onError(        Throwable t){
+          assertScope();
+          t.printStackTrace();
+        }
+      }
+);
+    }
+  }
+);
+  ContentResponse response=client.newRequest(newURI()).method(HttpMethod.POST).path(servletPath).header(HttpHeader.CONNECTION,"close").content(new StringContentProvider(text)).timeout(5,TimeUnit.SECONDS).send();
+  assertThat(response.getStatus(),Matchers.equalTo(HttpStatus.OK_200));
+  assertThat(response.getContentAsString(),Matchers.equalTo(success));
+}

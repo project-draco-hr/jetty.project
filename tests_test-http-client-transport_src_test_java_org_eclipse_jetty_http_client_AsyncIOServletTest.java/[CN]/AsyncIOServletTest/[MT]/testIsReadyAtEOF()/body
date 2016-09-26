@@ -1,0 +1,42 @@
+{
+  String text="TEST\n";
+  byte[] data=text.getBytes(StandardCharsets.ISO_8859_1);
+  start(new HttpServlet(){
+    @Override protected void service(    HttpServletRequest request,    final HttpServletResponse response) throws ServletException, IOException {
+      assertScope();
+      response.flushBuffer();
+      AsyncContext async=request.startAsync();
+      ServletInputStream input=request.getInputStream();
+      ServletOutputStream output=response.getOutputStream();
+      input.setReadListener(new ReadListener(){
+        transient int _i=0;
+        transient boolean _minusOne=false;
+        transient boolean _finished=false;
+        @Override public void onDataAvailable() throws IOException {
+          assertScope();
+          while (input.isReady() && !input.isFinished()) {
+            int b=input.read();
+            if (b == -1)             _minusOne=true;
+ else             if (data[_i++] != b)             throw new IllegalStateException();
+          }
+          if (input.isFinished())           _finished=true;
+        }
+        @Override public void onAllDataRead() throws IOException {
+          assertScope();
+          output.write(String.format("i=%d eof=%b finished=%b",_i,_minusOne,_finished).getBytes(StandardCharsets.ISO_8859_1));
+          async.complete();
+        }
+        @Override public void onError(        Throwable t){
+          assertScope();
+          t.printStackTrace();
+          async.complete();
+        }
+      }
+);
+    }
+  }
+);
+  ContentResponse response=client.newRequest(newURI()).method(HttpMethod.POST).path(servletPath).header(HttpHeader.CONNECTION,"close").content(new StringContentProvider(text)).timeout(5,TimeUnit.SECONDS).send();
+  String responseContent=response.getContentAsString();
+  assertThat(responseContent,containsString("i=" + data.length + " eof=true finished=true"));
+}

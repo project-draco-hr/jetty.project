@@ -1,0 +1,34 @@
+{
+  AtomicBoolean oda=new AtomicBoolean();
+  CountDownLatch latch=new CountDownLatch(1);
+  start(new HttpServlet(){
+    @Override protected void service(    HttpServletRequest request,    HttpServletResponse response) throws ServletException, IOException {
+      assertScope();
+      AsyncContext asyncContext=request.startAsync(request,response);
+      response.setStatus(200);
+      response.getOutputStream().close();
+      request.getInputStream().setReadListener(new ReadListener(){
+        @Override public void onDataAvailable() throws IOException {
+          assertScope();
+          oda.set(true);
+        }
+        @Override public void onAllDataRead() throws IOException {
+          assertScope();
+          asyncContext.complete();
+          latch.countDown();
+        }
+        @Override public void onError(        Throwable t){
+          assertScope();
+          t.printStackTrace();
+          asyncContext.complete();
+        }
+      }
+);
+    }
+  }
+);
+  ContentResponse response=client.newRequest(newURI()).path(servletPath).header(HttpHeader.CONNECTION,"close").timeout(5,TimeUnit.SECONDS).send();
+  assertThat(response.getStatus(),Matchers.equalTo(HttpStatus.OK_200));
+  assertTrue(latch.await(5,TimeUnit.SECONDS));
+  Assert.assertFalse(oda.get());
+}

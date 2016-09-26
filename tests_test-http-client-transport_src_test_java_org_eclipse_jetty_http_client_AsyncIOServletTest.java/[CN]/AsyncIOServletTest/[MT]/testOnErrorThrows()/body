@@ -1,0 +1,39 @@
+{
+  final AtomicInteger errors=new AtomicInteger();
+  start(new HttpServlet(){
+    @Override protected void service(    HttpServletRequest request,    HttpServletResponse response) throws ServletException, IOException {
+      assertScope();
+      if (request.getDispatcherType() == DispatcherType.ERROR) {
+        response.flushBuffer();
+        return;
+      }
+      request.startAsync(request,response);
+      request.getInputStream().setReadListener(new ReadListener(){
+        @Override public void onDataAvailable() throws IOException {
+          assertScope();
+          throw new NullPointerException("explicitly_thrown_by_test_1");
+        }
+        @Override public void onAllDataRead() throws IOException {
+          assertScope();
+        }
+        @Override public void onError(        final Throwable t){
+          assertScope();
+          errors.incrementAndGet();
+          throw new NullPointerException("explicitly_thrown_by_test_2"){
+{
+              this.initCause(t);
+            }
+          }
+;
+        }
+      }
+);
+    }
+  }
+);
+  try (StacklessLogging stackless=new StacklessLogging(HttpChannel.class)){
+    ContentResponse response=client.newRequest(newURI()).path(servletPath).content(new StringContentProvider("0123456789")).timeout(5,TimeUnit.SECONDS).send();
+    assertEquals(HttpStatus.INTERNAL_SERVER_ERROR_500,response.getStatus());
+    Assert.assertEquals(1,errors.get());
+  }
+ }
