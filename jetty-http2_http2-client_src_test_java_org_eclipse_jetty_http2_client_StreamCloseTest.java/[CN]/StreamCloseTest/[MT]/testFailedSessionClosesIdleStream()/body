@@ -1,4 +1,5 @@
 {
+  AtomicReference<Session> sessionRef=new AtomicReference<>();
   final CountDownLatch latch=new CountDownLatch(1);
   final List<Stream> streams=new ArrayList<>();
   start(new ServerSessionListener.Adapter(){
@@ -12,8 +13,7 @@
       return null;
     }
     @Override public void onFailure(    Session session,    Throwable failure){
-      Assert.assertEquals(0,session.getStreams().size());
-      for (      Stream stream : streams)       Assert.assertTrue(stream.isClosed());
+      sessionRef.set(session);
       latch.countDown();
     }
   }
@@ -24,4 +24,8 @@
   HeadersFrame request2=new HeadersFrame(newRequest("GET",new HttpFields()),null,true);
   session.newStream(request2,new Promise.Adapter<>(),new Stream.Listener.Adapter());
   Assert.assertTrue(latch.await(5,TimeUnit.SECONDS));
+  Session serverSession=sessionRef.get();
+  Thread.sleep(1000);
+  Assert.assertEquals(0,serverSession.getStreams().size());
+  for (  Stream stream : streams)   Assert.assertTrue(stream.isClosed());
 }
