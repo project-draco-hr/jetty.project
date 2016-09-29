@@ -5,18 +5,19 @@
   if (context == null) {
     if (keyStore == null && _keyStoreResource == null && trustStore == null && _trustStoreResource == null) {
       TrustManager[] trust_managers=null;
-      if (_trustAll) {
+      if (isTrustAll()) {
         if (LOG.isDebugEnabled())         LOG.debug("No keystore or trust store configured.  ACCEPTING UNTRUSTED CERTIFICATES!!!!!");
         trust_managers=TRUST_ALL_CERTS;
       }
-      SecureRandom secureRandom=(_secureRandomAlgorithm == null) ? null : SecureRandom.getInstance(_secureRandomAlgorithm);
+      String algorithm=getSecureRandomAlgorithm();
+      SecureRandom secureRandom=algorithm == null ? null : SecureRandom.getInstance(algorithm);
       context=_sslProvider == null ? SSLContext.getInstance(_sslProtocol) : SSLContext.getInstance(_sslProtocol,_sslProvider);
       context.init(null,trust_managers,secureRandom);
     }
  else {
       if (keyStore == null)       keyStore=loadKeyStore(_keyStoreResource);
       if (trustStore == null)       trustStore=loadTrustStore(_trustStoreResource);
-      Collection<? extends CRL> crls=loadCRL(_crlPath);
+      Collection<? extends CRL> crls=loadCRL(getCrlPath());
       _certHosts.clear();
       if (keyStore != null) {
         for (        String alias : Collections.list(keyStore.aliases())) {
@@ -29,12 +30,12 @@
             }
             X509 x509=new X509(alias,x509C);
             _aliasX509.put(alias,x509);
-            if (_validateCerts) {
+            if (isValidateCerts()) {
               CertificateValidator validator=new CertificateValidator(trustStore,crls);
-              validator.setMaxCertPathLength(_maxCertPathLength);
-              validator.setEnableCRLDP(_enableCRLDP);
-              validator.setEnableOCSP(_enableOCSP);
-              validator.setOcspResponderURL(_ocspResponderURL);
+              validator.setMaxCertPathLength(getMaxCertPathLength());
+              validator.setEnableCRLDP(isEnableCRLDP());
+              validator.setEnableOCSP(isEnableOCSP());
+              validator.setOcspResponderURL(getOcspResponderURL());
               validator.validate(keyStore,x509C);
             }
             LOG.info("x509={} for {}",x509,this);
